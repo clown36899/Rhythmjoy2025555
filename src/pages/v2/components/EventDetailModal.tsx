@@ -1752,6 +1752,33 @@ export default function EventDetailModal({
                           </button>
                         )}
                       </div>
+                      {/* Selected Dates Display */}
+                      {dateMode === 'dates' && (
+                        <div className="selected-dates-container">
+                          <div className="selected-dates-list">
+                            {editValue.split(',').filter(Boolean).length > 0 ? (
+                              editValue.split(',').filter(Boolean).map(d => (
+                                <div key={d} className="selected-date-chip">
+                                  <span>{d.substring(5)}</span>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const currentDates = editValue.split(',').filter(Boolean);
+                                      const newDates = currentDates.filter(ed => ed !== d);
+                                      setEditValue(newDates.join(','));
+                                    }}
+                                    className="remove-date-btn"
+                                  >
+                                    <i className="ri-close-line"></i>
+                                  </button>
+                                </div>
+                              ))
+                            ) : (
+                              <span className="no-dates-text">날짜를 선택해주세요</span>
+                            )}
+                          </div>
+                        </div>
+                      )}
                       <div className="calendar-wrapper" style={{ minHeight: '340px' }}>
                         <DatePicker
                           selected={dateMode === 'single' && editValue ? new Date(editValue) : null}

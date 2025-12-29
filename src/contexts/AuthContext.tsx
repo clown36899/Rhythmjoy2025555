@@ -223,11 +223,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const timeoutId = setTimeout(async () => {
       if (isMounted && loading) {
-        console.warn('[AuthContext] ⏱️ Session check timeout (3s)');
+        console.warn('[AuthContext] ⏱️ Session check timeout (10s)');
         await cleanupStaleSession();
         setLoading(false);
       }
-    }, 3000);
+    }, 10000);
 
     validateAndRecoverSession()
       .then(async (recoveredSession: Session | null) => {

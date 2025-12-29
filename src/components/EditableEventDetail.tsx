@@ -136,10 +136,9 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
 
     // Date Picker Mode
     const [dateMode, setDateMode] = useState<'single' | 'range' | 'dates'>(() => {
-        // Prevent 'dates' mode for class and club categories
-        const isClassOrClub = event.category === 'class' || event.category === 'club';
+        // Prevent 'dates' mode for class and club categories -> Removed restriction
 
-        if (eventDates && eventDates.length > 0 && !isClassOrClub) {
+        if (eventDates && eventDates.length > 0) {
             return 'dates';
         } else if (date && endDate && date.getTime() !== endDate.getTime()) {
             return 'range';
@@ -148,17 +147,17 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
         }
     });
 
-    // Auto-switch from 'dates' mode when category changes to class or club
-    useEffect(() => {
-        const isClassOrClub = event.category === 'class' || event.category === 'club';
-        if (isClassOrClub && dateMode === 'dates') {
-            setDateMode('single');
-            // Clear individual dates when switching away from dates mode
-            if (setEventDates) {
-                setEventDates([]);
-            }
-        }
-    }, [event.category, dateMode, setEventDates]);
+    // Auto-switch from 'dates' mode when category changes to class or club -> Removed restriction
+    // useEffect(() => {
+    //     const isClassOrClub = event.category === 'class' || event.category === 'club';
+    //     if (isClassOrClub && dateMode === 'dates') {
+    //         setDateMode('single');
+    //         // Clear individual dates when switching away from dates mode
+    //         if (setEventDates) {
+    //             setEventDates([]);
+    //         }
+    //     }
+    // }, [event.category, dateMode, setEventDates]);
 
     // Local state for modals
     const [tempLocation, setTempLocation] = useState("");
@@ -666,31 +665,39 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                                         </div>
                                                     ) : (
                                                         <div className="genre-grid">
-                                                            {['정규강습', '린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'].map(g => {
-                                                                const currentGenres = event.genre ? event.genre.split(',').map(s => s.trim()).filter(Boolean) : [];
-                                                                const isActive = currentGenres.includes(g);
-                                                                return (
-                                                                    <button
-                                                                        key={g}
-                                                                        onClick={() => {
-                                                                            // Class: Single Select Logic
-                                                                            if (isActive) {
-                                                                                onUpdate('genre', '');
-                                                                            } else {
-                                                                                onUpdate('genre', g);
-                                                                            }
-                                                                        }}
-                                                                        className={`genre-grid-btn ${isActive ? 'active' : ''}`}
-                                                                        style={{
-                                                                            backgroundColor: isActive ? '#3b82f6' : 'rgba(255,255,255,0.05)',
-                                                                            borderColor: isActive ? '#3b82f6' : 'rgba(255,255,255,0.1)',
-                                                                            color: isActive ? 'white' : 'rgba(255,255,255,0.7)'
-                                                                        }}
-                                                                    >
-                                                                        {g}
-                                                                    </button>
-                                                                );
-                                                            })}
+                                                            {(() => {
+                                                                // 정규강습은 '동호회(club)' 카테고리일 때만 노출
+                                                                const baseGenres = ['린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'];
+                                                                const genreList = event.category === 'club'
+                                                                    ? ['정규강습', ...baseGenres]
+                                                                    : baseGenres;
+
+                                                                return genreList.map(g => {
+                                                                    const currentGenres = event.genre ? event.genre.split(',').map(s => s.trim()).filter(Boolean) : [];
+                                                                    const isActive = currentGenres.includes(g);
+                                                                    return (
+                                                                        <button
+                                                                            key={g}
+                                                                            onClick={() => {
+                                                                                // Class: Single Select Logic
+                                                                                if (isActive) {
+                                                                                    onUpdate('genre', '');
+                                                                                } else {
+                                                                                    onUpdate('genre', g);
+                                                                                }
+                                                                            }}
+                                                                            className={`genre-grid-btn ${isActive ? 'active' : ''}`}
+                                                                            style={{
+                                                                                backgroundColor: isActive ? '#3b82f6' : 'rgba(255,255,255,0.05)',
+                                                                                borderColor: isActive ? '#3b82f6' : 'rgba(255,255,255,0.1)',
+                                                                                color: isActive ? 'white' : 'rgba(255,255,255,0.7)'
+                                                                            }}
+                                                                        >
+                                                                            {g}
+                                                                        </button>
+                                                                    );
+                                                                });
+                                                            })()}
                                                         </div>
                                                     )}
                                                 </>
@@ -792,13 +799,28 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                         <i className="ri-calendar-line editable-info-icon"></i>
                         <span className="editable-info-text-default">
                             {eventDates && eventDates.length > 0 ? (
-                                // Multiple Dates Display
-                                <span className="text-sm">
-                                    {eventDates.length}일 선택됨: {eventDates.map(d => {
-                                        const dateObj = new Date(d);
-                                        return `${dateObj.getMonth() + 1}/${dateObj.getDate()}`;
-                                    }).join(', ')}
-                                </span>
+                                /* Multiple Dates Display: Chips in Main View */
+                                <div className="flex flex-wrap gap-1.5 mt-1 mb-1">
+                                    {eventDates.map(d => (
+                                        <div
+                                            key={d}
+                                            className="selected-date-chip"
+                                            style={{ margin: 0 }} /* Override margin for main view context */
+                                        >
+                                            <span>{d.substring(5)}</span>
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    const newDates = eventDates.filter(ed => ed !== d);
+                                                    setEventDates && setEventDates(newDates);
+                                                }}
+                                                className="remove-date-btn"
+                                            >
+                                                <i className="ri-close-line"></i>
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
                             ) : event.start_date ? (
                                 // Range Display
                                 (() => {
@@ -851,8 +873,8 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                             >
                                                 하루
                                             </button>
-                                            {/* Hide individual date selection for class and club categories */}
-                                            {event.category !== 'class' && event.category !== 'club' && (
+                                            {/* Hide individual date selection for class and club categories -> Removed restriction */}
+                                            {true && (
                                                 <button
                                                     onClick={() => {
                                                         setDateMode('dates');
@@ -946,9 +968,12 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                                     onChange={(d: Date | null) => {
                                                         if (!d) return;
                                                         const dateStr = formatDateStr(d);
+                                                        console.log('[EditableEventDetail] Date clicked:', dateStr);
+                                                        console.log('[EditableEventDetail] Current eventDates:', eventDates);
                                                         const newDates = eventDates.includes(dateStr)
                                                             ? eventDates.filter(ed => ed !== dateStr)
                                                             : [...eventDates, dateStr].sort();
+                                                        console.log('[EditableEventDetail] New eventDates:', newDates);
                                                         setEventDates && setEventDates(newDates);
                                                     }}
                                                     highlightDates={eventDates.map(d => new Date(d))}
@@ -1101,130 +1126,130 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                             <EditBadge isStatic />
                         </div>
                     </div>
-                </div >
-            </div >
 
-            {/* Footer Actions */}
-            <div className="editable-footer">
-                <div className="editable-footer-actions">
-                    {/* Delete Button (Left Aligned) */}
-                    {onDelete && (
-                        <button
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                if (window.confirm("정말로 이 이벤트를 삭제하시겠습니까?")) {
-                                    onDelete();
-                                }
-                            }}
-                            className="editable-action-btn icon-only delete-btn"
-                            title="삭제"
-                            style={{ marginRight: 'auto', color: '#ff6b6b' }}
-                        >
-                            <i className="ri-delete-bin-line editable-action-icon"></i>
-                        </button>
-                    )}
-                    {/* Link Input Button */}
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            setActiveModal(activeModal === 'link' ? null : 'link');
-                        }}
-                        className="editable-action-btn group"
-                        title={link ? "링크 수정" : "링크 추가"}
-                    >
-                        <span className={`editable-link-btn-text ${link ? 'active' : ''}`}>
-                            링크입력
-                        </span>
-                        <EditBadge isStatic />
-
-                        {/* Link Bottom Sheet Portal */}
-                        {activeModal === 'link' && createPortal(
-                            <div className="bottom-sheet-portal">
-                                {/* Backdrop */}
-                                <div
-                                    className="bottom-sheet-backdrop"
+                    {/* Footer Actions */}
+                    <div className="editable-footer">
+                        <div className="editable-footer-actions">
+                            {/* Delete Button (Left Aligned) */}
+                            {onDelete && (
+                                <button
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        setActiveModal(null);
+                                        if (window.confirm("정말로 이 이벤트를 삭제하시겠습니까?")) {
+                                            onDelete();
+                                        }
                                     }}
-                                />
-                                {/* Content */}
-                                <div
-                                    className="bottom-sheet-content"
-                                    onClick={(e) => e.stopPropagation()}
+                                    className="editable-action-btn icon-only delete-btn"
+                                    title="삭제"
+                                    style={{ marginRight: 'auto', color: '#ff6b6b' }}
                                 >
-                                    <div className="bottom-sheet-handle"></div>
-                                    <h3 className="bottom-sheet-header">
-                                        <i className="ri-link-m"></i>
-                                        외부 링크 연결
-                                    </h3>
+                                    <i className="ri-delete-bin-line editable-action-icon"></i>
+                                </button>
+                            )}
+                            {/* Link Input Button */}
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveModal(activeModal === 'link' ? null : 'link');
+                                }}
+                                className="editable-action-btn group"
+                                title={link ? "링크 수정" : "링크 추가"}
+                            >
+                                <span className={`editable-link-btn-text ${link ? 'active' : ''}`}>
+                                    링크입력
+                                </span>
+                                <EditBadge isStatic />
 
-                                    <div className="bottom-sheet-body">
-                                        <div className="bottom-sheet-input-group">
-                                            <label className="bottom-sheet-label">버튼 이름</label>
-                                            <input
-                                                value={linkName}
-                                                onChange={(e) => setLinkName?.(e.target.value)}
-                                                placeholder="예: 신청서 작성, 인스타그램"
-                                                className="bottom-sheet-input"
-                                                autoFocus
-                                            />
-                                        </div>
-                                        <div className="bottom-sheet-input-group">
-                                            <label className="bottom-sheet-label">URL 주소</label>
-                                            <div className="bottom-sheet-input-wrapper">
-                                                <i className="ri-global-line bottom-sheet-input-icon"></i>
-                                                <input
-                                                    value={link}
-                                                    onChange={(e) => setLink?.(e.target.value)}
-                                                    placeholder="https://..."
-                                                    className="bottom-sheet-input has-icon"
-                                                />
+                                {/* Link Bottom Sheet Portal */}
+                                {activeModal === 'link' && createPortal(
+                                    <div className="bottom-sheet-portal">
+                                        {/* Backdrop */}
+                                        <div
+                                            className="bottom-sheet-backdrop"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setActiveModal(null);
+                                            }}
+                                        />
+                                        {/* Content */}
+                                        <div
+                                            className="bottom-sheet-content"
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            <div className="bottom-sheet-handle"></div>
+                                            <h3 className="bottom-sheet-header">
+                                                <i className="ri-link-m"></i>
+                                                외부 링크 연결
+                                            </h3>
+
+                                            <div className="bottom-sheet-body">
+                                                <div className="bottom-sheet-input-group">
+                                                    <label className="bottom-sheet-label">버튼 이름</label>
+                                                    <input
+                                                        value={linkName}
+                                                        onChange={(e) => setLinkName?.(e.target.value)}
+                                                        placeholder="예: 신청서 작성, 인스타그램"
+                                                        className="bottom-sheet-input"
+                                                        autoFocus
+                                                    />
+                                                </div>
+                                                <div className="bottom-sheet-input-group">
+                                                    <label className="bottom-sheet-label">URL 주소</label>
+                                                    <div className="bottom-sheet-input-wrapper">
+                                                        <i className="ri-global-line bottom-sheet-input-icon"></i>
+                                                        <input
+                                                            value={link}
+                                                            onChange={(e) => setLink?.(e.target.value)}
+                                                            placeholder="https://..."
+                                                            className="bottom-sheet-input has-icon"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="bottom-sheet-actions">
+                                                    <button
+                                                        onClick={() => setActiveModal(null)}
+                                                        className="bottom-sheet-button"
+                                                    >
+                                                        완료
+                                                    </button>
+                                                </div>
                                             </div>
                                         </div>
-                                        <div className="bottom-sheet-actions">
-                                            <button
-                                                onClick={() => setActiveModal(null)}
-                                                className="bottom-sheet-button"
-                                            >
-                                                완료
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>,
-                            document.body
-                        )}
-                    </button>
+                                    </div>,
+                                    document.body
+                                )}
+                            </button>
 
 
 
 
 
-                    {/* Close Button */}
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onClose?.();
-                        }}
-                        className="editable-action-btn icon-only"
-                        title="닫기"
-                    >
-                        <i className="ri-close-line editable-action-icon"></i>
-                    </button>
+                            {/* Close Button */}
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onClose?.();
+                                }}
+                                className="editable-action-btn icon-only"
+                                title="닫기"
+                            >
+                                <i className="ri-close-line editable-action-icon"></i>
+                            </button>
 
-                    {/* Register Button */}
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onRegister?.();
-                        }}
-                        disabled={isSubmitting}
-                        className="editable-action-btn editable-register-btn"
-                        title="등록하기"
-                    >
-                        {isSubmitting ? '등록 중...' : '등록'}
-                    </button>
+                            {/* Register Button */}
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onRegister?.();
+                                }}
+                                disabled={isSubmitting}
+                                className="editable-action-btn editable-register-btn"
+                                title="등록하기"
+                            >
+                                {isSubmitting ? '등록 중...' : '등록'}
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

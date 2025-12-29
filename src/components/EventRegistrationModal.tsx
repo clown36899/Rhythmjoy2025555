@@ -107,6 +107,7 @@ export default memo(function EventRegistrationModal({
   // Loading State
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState("저장 중...");
+  const [uploadProgress, setUploadProgress] = useState<number | undefined>(undefined);
 
   // Genre Suggestions
   const [allGenres, setAllGenres] = useState<string[]>([]);
@@ -531,7 +532,9 @@ export default memo(function EventRegistrationModal({
           // 1. 이미지가 수정되지 않았지만(fileToUpload 없음), 기존 이미지는 있고 micro 버전이 없는 경우 (레거시 데이터 복구)
           // 원본 이미지를 다운로드하여 fileToUpload로 설정 -> 아래 로직에서 4가지 버전 생성 및 업로드 수행
           if (fileToUpload) {
-            setLoadingMessage("이미지 업로드 중... (자동 재시도)");
+            setLoadingMessage("이미지 변환 중...");
+            setUploadProgress(10); // Start processing
+
             const timestamp = Date.now();
             const randomString = Math.random().toString(36).substring(2, 15);
             const basePath = `event-posters`;
@@ -540,6 +543,8 @@ export default memo(function EventRegistrationModal({
             // 먼저 모든 이미지 리사이즈 (WebP 변환 포함)
             try {
               const resizedImages = await createResizedImages(fileToUpload);
+              setUploadProgress(30); // Resize done
+              setLoadingMessage("이미지 업로드 중...");
 
               // 이미지 업로드 함수 (재시도 용)
               const uploadImage = async (path: string, file: Blob) => {
@@ -551,12 +556,24 @@ export default memo(function EventRegistrationModal({
                 return supabase.storage.from("images").getPublicUrl(path).data.publicUrl;
               };
 
+              let completedUploads = 0;
+              const totalUploads = 4;
+
+              const trackProgress = async (promise: Promise<string>) => {
+                const result = await promise;
+                completedUploads++;
+                // 30% to 100% range for uploads (70% span)
+                // Each upload is 17.5%
+                setUploadProgress(30 + Math.floor((completedUploads / totalUploads) * 70));
+                return result;
+              };
+
               // 병렬 업로드 및 재시도 적용
               const uploadPromises = [
-                retryOperation(() => uploadImage(`${basePath}/micro/${fileName}`, resizedImages.micro)),
-                retryOperation(() => uploadImage(`${basePath}/thumbnails/${fileName}`, resizedImages.thumbnail)),
-                retryOperation(() => uploadImage(`${basePath}/medium/${fileName}`, resizedImages.medium)),
-                retryOperation(() => uploadImage(`${basePath}/full/${fileName}`, resizedImages.full))
+                trackProgress(retryOperation(() => uploadImage(`${basePath}/micro/${fileName}`, resizedImages.micro))),
+                trackProgress(retryOperation(() => uploadImage(`${basePath}/thumbnails/${fileName}`, resizedImages.thumbnail))),
+                trackProgress(retryOperation(() => uploadImage(`${basePath}/medium/${fileName}`, resizedImages.medium))),
+                trackProgress(retryOperation(() => uploadImage(`${basePath}/full/${fileName}`, resizedImages.full)))
               ];
 
               const [microUrl, thumbUrl, mediumUrl, fullUrl] = await Promise.all(uploadPromises);
@@ -567,6 +584,8 @@ export default memo(function EventRegistrationModal({
               imageMediumUrl = mediumUrl;
               imageFullUrl = fullUrl;
               imageUrl = imageFullUrl; // 원본도 full과 동일하게 설정
+
+              setUploadProgress(100);
 
             } catch (resizeError) {
               console.error("Image processing failed:", resizeError);
@@ -686,7 +705,7 @@ export default memo(function EventRegistrationModal({
             onClose();
           }
         })(),
-        new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 20000))
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 60000))
       ]);
 
     } catch (error: any) {
@@ -706,6 +725,7 @@ export default memo(function EventRegistrationModal({
       alert(errorMessage);
     } finally {
       setIsSubmitting(false);
+      setUploadProgress(undefined);
     }
   };
 
@@ -1054,6 +1074,7 @@ export default memo(function EventRegistrationModal({
       <GlobalLoadingOverlay
         isLoading={isSubmitting}
         message={loadingMessage}
+        progress={uploadProgress}
       />
 
       {/* Venue Select Modal */}

@@ -545,3 +545,118 @@
     font-size: 0.925rem;
     opacity: 0.6;
 }
+
+/* ===== Selected Dates Display (Ported from EventDetailModal.css for cross-device consistency) ===== */
+.selected-dates-container {
+    width: 100%;
+    margin-bottom: 0.3rem;
+    padding: 0 0.5rem;
+}
+
+.selected-dates-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: center;
+    min-height: 2.5rem;
+}
+
+.selected-date-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(37, 99, 235, 0.2);
+    /* blue-600/20 */
+    border: 1px solid rgba(37, 99, 235, 0.4);
+    /* blue-600/40 */
+    color: #93c5fd;
+    /* blue-300 */
+    padding: 0.375rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.remove-date-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 1rem;
+}
+
+.remove-date-btn:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: #fca5a5;
+    /* red-300 */
+}
+
+.no-dates-text {
+    color: #6b7280;
+    /* gray-500 */
+    font-size: 0.875rem;
+    padding: 0.5rem;
+}
+
+/* Range Display */
+.date-range-display {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    width: 100%;
+}
+
+.date-display-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: #1f2937;
+    /* gray-800 */
+    border: 1px solid #374151;
+    /* gray-700 */
+    padding: 0.5rem 1rem;
+    border-radius: 0.75rem;
+    min-width: 7rem;
+    transition: all 0.2s;
+}
+
+.date-display-box.active {
+    border-color: #2563eb;
+    /* blue-600 */
+    background-color: rgba(37, 99, 235, 0.1);
+}
+
+.date-display-box .label {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    /* gray-400 */
+    margin-bottom: 0.25rem;
+}
+
+.date-display-box .value {
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: white;
+}
+
+.separator {
+    color: #6b7280;
+    /* gray-500 */
+    font-size: 1.25rem;
+}
+
+/* Calendar Wrapper */
+.calendar-wrapper {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}

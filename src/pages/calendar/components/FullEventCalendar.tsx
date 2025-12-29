@@ -271,6 +271,16 @@ export default memo(function FullEventCalendar({
     return filteredEvents.filter((event) => {
       // 특정 날짜 모드
       if (event.event_dates && event.event_dates.length > 0) {
+        // 강습(class)은 개별 선택된 날짜 중 첫 번째 날짜에만 표시
+        const isClass = event.category && (event.category.toLowerCase() === 'class' || event.category === 'regular');
+
+        if (isClass) {
+          // event_dates 배열을 정렬하여 첫 번째(가장 이른) 날짜만 사용
+          const sortedDates = [...event.event_dates].sort();
+          const firstDate = sortedDates[0];
+          return dateString === firstDate;
+        }
+        // 행사(event) 등 나머지는 등록된 모든 날짜 표시
         return event.event_dates.some((d: string) => d.startsWith(dateString));
       }
       // 연속 기간 모드
