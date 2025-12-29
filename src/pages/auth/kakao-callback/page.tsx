@@ -55,6 +55,10 @@ export default function KakaoCallbackPage() {
             try {
                 console.log('[Kakao Callback] ✅ 인증 코드 수신:', code.substring(0, 10) + '...');
 
+                // 인증 코드는 1회용이므로 즉시 URL에서 제거 (중복 사용 방지)
+                window.history.replaceState({}, '', '/auth/kakao-callback');
+                console.log('[Kakao Callback] 🧹 URL에서 인증 코드 제거 완료');
+
                 // 2. 서버로 인증 코드 전송
                 const authEndpoint = '/.netlify/functions/kakao-login';
                 const redirectUri = `${window.location.origin}/auth/kakao-callback`;
@@ -144,58 +148,6 @@ export default function KakaoCallbackPage() {
                     }
 
                     console.log('[Kakao Callback] ✅ 세션 설정 함수 실행 완료');
-
-                    // 🔍 localStorage 상태 확인
-                    const lsKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-'));
-                    console.log('[Kakao Callback] 📦 localStorage Supabase 키 개수:', lsKeys.length);
-                    console.log('[Kakao Callback] 📦 localStorage 키 목록:', lsKeys);
-
-                    // 🔥 [중요] 세션이 실제로 저장되고 AuthContext가 인지할 수 있도록 검증
-                    console.log('[Kakao Callback] 🔍 스토리지 세션 반영 확인 시작...');
-                    let sessionSaved = false;
-                    const maxRetries = 10; // 200ms * 10 = 최대 2초
-
-                    for (let i = 0; i < maxRetries; i++) {
-                        if (cancelled) {
-                            console.log('[Kakao Callback] ⚠️ 컴포넌트 언마운트로 검증 중단');
-                            return;
-                        }
-
-                        // 약간의 지연 (이벤트 루프 양보 및 스토리지 I/O 대기)
-                        await new Promise(resolve => setTimeout(resolve, 200));
-
-                        const { data: { session: currentSession }, error: getSessionError } = await supabase.auth.getSession();
-
-                        console.log(`[Kakao Callback] 🔍 getSession 결과 (시도 ${i + 1}/${maxRetries}):`, {
-                            hasSession: !!currentSession,
-                            hasError: !!getSessionError,
-                            error: getSessionError,
-                            currentAccessToken: currentSession?.access_token?.substring(0, 10) + '...',
-                            expectedAccessToken: authData.session.access_token.substring(0, 10) + '...',
-                            tokensMatch: currentSession?.access_token === authData.session.access_token
-                        });
-
-                        // 현재 세션의 액세스 토큰이 카카오 로그인으로 받은 것과 일치하는지 확인
-                        if (currentSession?.access_token === authData.session.access_token) {
-                            console.log(`[Kakao Callback] ✅ 스토리지 세션 확인됨 (시도: ${i + 1}/${maxRetries})`);
-                            console.log(`[Kakao Callback] 토큰 앞자리: ${currentSession!.access_token.substring(0, 10)}...`);
-                            sessionSaved = true;
-                            break;
-                        }
-
-                        console.log(`[Kakao Callback] ⏳ 스토리지 반영 대기 중... (${i + 1}/${maxRetries})`);
-                    }
-
-                    console.log('[Kakao Callback] 📊 세션 검증 루프 완료');
-
-                    if (!sessionSaved) {
-                        // 세션 저장이 확인되지 않았지만, 강제로 진행
-                        // AuthContext가 나중에 세션을 감지할 것으로 기대
-                        console.warn('[Kakao Callback] ⚠️ 세션 반영 확인 실패 - 강제 진행');
-                    } else {
-                        console.log('[Kakao Callback] ✅ 세션 검증 성공!');
-                    }
-
                     console.log('[Kakao Callback] 🎉 로그인 성공!');
 
                     // 4. 원래 페이지로 즉시 복귀 (모달 없이)
