@@ -8,6 +8,20 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '2.55.0',
+        date: '2025-12-29',
+        changes: [
+            '[✨ 기능] 금주의 일정 이미지 공유 기능 추가 (관리자 전용)',
+            '[✨ 기능] 요일별 일정 개수 뱃지 표시 (+숫자 형식)',
+            '[✨ 기능] 캡처 이미지에 댄스빌보드 헤더 자동 추가',
+            '[✨ 기능] 일정 카드 날짜 형식 개선 (12-30 → 12/30)',
+            '[🐛 Fix] 탭 인디케이터 정렬 문제 해결',
+            '[🐛 Fix] 이미지 캡처 CORS 문제 해결 (base64 변환)',
+            '[🐛 Fix] 캡처 시 텍스트 렌더링 문제 해결',
+            '[🐛 Fix] 캡처 시 opacity 문제 해결'
+        ]
+    },
+    {
         version: '2.54.1', // 2.47.7 + Minor 7 + Patch 1
         date: '2025-12-29',
         changes: [
