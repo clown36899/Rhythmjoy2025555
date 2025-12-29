@@ -170,21 +170,28 @@ export default function KakaoCallbackPage() {
                         console.log(`[Kakao Callback] ⏳ 스토리지 반영 대기 중... (${i + 1}/${maxRetries})`);
                     }
 
+                    console.log('[Kakao Callback] 📊 세션 검증 루프 완료');
+
                     if (!sessionSaved) {
                         // 세션 저장이 확인되지 않았지만, 강제로 진행
                         // AuthContext가 나중에 세션을 감지할 것으로 기대
                         console.warn('[Kakao Callback] ⚠️ 세션 반영 확인 실패 - 강제 진행');
+                    } else {
+                        console.log('[Kakao Callback] ✅ 세션 검증 성공!');
                     }
 
                     console.log('[Kakao Callback] 🎉 로그인 성공!');
 
                     // 4. 원래 페이지로 즉시 복귀 (모달 없이)
+                    console.log('[Kakao Callback] 📍 리다이렉트 준비 시작');
                     const returnUrl = sessionStorage.getItem('kakao_login_return_url') || '/';
                     console.log('[Kakao Callback] 복귀 URL:', returnUrl);
+                    console.log('[Kakao Callback] 🧹 sessionStorage 정리 중...');
                     sessionStorage.removeItem('kakao_login_return_url');
 
-                    console.log('[Kakao Callback] ➡️ 페이지 리다이렉트 중...');
+                    console.log('[Kakao Callback] ➡️ navigate() 호출 직전');
                     navigate(returnUrl, { replace: true });
+                    console.log('[Kakao Callback] ✈️ navigate() 호출 완료');
                 } else {
                     console.error('[Kakao Callback] ❌ 세션 정보 없음');
                     throw new Error('서버 응답에 세션 정보가 없습니다');
