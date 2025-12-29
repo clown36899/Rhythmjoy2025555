@@ -1,5 +1,5 @@
 import { supabase } from '../lib/supabase';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
 interface UserInteractions {
     post_likes: number[];
@@ -16,44 +16,44 @@ export const useUserInteractions = (userId: string | null) => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
+    const fetchInteractions = useCallback(async () => {
         if (!userId) {
             setInteractions(null);
             return;
         }
 
-        const fetchInteractions = async () => {
-            setLoading(true);
-            setError(null);
+        setLoading(true);
+        setError(null);
 
-            try {
-                const { data, error: rpcError } = await supabase.rpc('get_user_interactions', {
-                    p_user_id: userId
-                });
+        try {
+            const { data, error: rpcError } = await supabase.rpc('get_user_interactions', {
+                p_user_id: userId
+            });
 
-                if (rpcError) throw rpcError;
+            if (rpcError) throw rpcError;
 
-                setInteractions(data);
-            } catch (err) {
-                console.error('[useUserInteractions] Error:', err);
-                setError((err as Error).message);
-                // Fallback to empty arrays
-                setInteractions({
-                    post_likes: [],
-                    post_dislikes: [],
-                    post_favorites: [],
-                    event_favorites: [],
-                    social_group_favorites: [],
-                    practice_room_favorites: [],
-                    shop_favorites: []
-                });
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchInteractions();
+            setInteractions(data);
+        } catch (err) {
+            console.error('[useUserInteractions] Error:', err);
+            setError((err as Error).message);
+            // Fallback to empty arrays
+            setInteractions({
+                post_likes: [],
+                post_dislikes: [],
+                post_favorites: [],
+                event_favorites: [],
+                social_group_favorites: [],
+                practice_room_favorites: [],
+                shop_favorites: []
+            });
+        } finally {
+            setLoading(false);
+        }
     }, [userId]);
 
-    return { interactions, loading, error };
+    useEffect(() => {
+        fetchInteractions();
+    }, [fetchInteractions]);
+
+    return { interactions, loading, error, refreshInteractions: fetchInteractions };
 };

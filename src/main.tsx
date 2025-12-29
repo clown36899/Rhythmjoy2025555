@@ -1,9 +1,9 @@
 import { StrictMode, useEffect } from 'react'
 import './i18n'
 import { createRoot } from 'react-dom/client'
-import { AuthProvider } from './contexts/AuthContext'
-import { BoardDataProvider } from './contexts/BoardDataContext'
-import { ModalProvider } from './contexts/ModalContext'
+import { AuthProvider } from './contexts/AuthContext';
+import { ModalProvider } from './contexts/ModalContext';
+import { BoardDataProvider } from './contexts/BoardDataContext';
 import { BrowserRouter } from 'react-router-dom'
 import './index.css'
 import App from './App.tsx'
@@ -111,12 +111,14 @@ function RootApp() {
   return (
     <BrowserRouter basename={basename}>
       <AuthProvider>
-        <ModalProvider>
-          <GlobalErrorBoundary>
-            <App />
-            <ModalRegistry />
-          </GlobalErrorBoundary>
-        </ModalProvider>
+        <BoardDataProvider>
+          <ModalProvider>
+            <GlobalErrorBoundary>
+              <App />
+              <ModalRegistry />
+            </GlobalErrorBoundary>
+          </ModalProvider>
+        </BoardDataProvider>
       </AuthProvider>
     </BrowserRouter>
   );
