@@ -125,11 +125,39 @@ export default function KakaoCallbackPage() {
                         throw new Error('세션 설정에 실패했습니다: ' + sessionError.message);
                     }
 
-                    console.log('[Kakao Callback] ✅ 세션 설정 완료');
+                    console.log('[Kakao Callback] ✅ 세션 설정 함수 실행 완료');
 
-                    // 🔥 [중요] localStorage에 세션이 완전히 저장될 때까지 짧은 대기
-                    // setSession()은 비동기로 저장하므로 즉시 리다이렉트하면 손상된 세션 발생 가능
-                    await new Promise(resolve => setTimeout(resolve, 500));
+                    // 🔥 [중요] 세션이 실제로 저장되고 AuthContext가 인지할 수 있도록 검증
+                    console.log('[Kakao Callback] 🔍 스토리지 세션 반영 확인 시작...');
+                    let sessionSaved = false;
+                    const maxRetries = 10; // 200ms * 10 = 최대 2초
+
+                    for (let i = 0; i < maxRetries; i++) {
+                        if (cancelled) {
+                            console.log('[Kakao Callback] ⚠️ 컴포넌트 언마운트로 검증 중단');
+                            return;
+                        }
+
+                        // 약간의 지연 (이벤트 루프 양보 및 스토리지 I/O 대기)
+                        await new Promise(resolve => setTimeout(resolve, 200));
+
+                        const { data: { session: currentSession } } = await supabase.auth.getSession();
+
+                        // 현재 세션의 액세스 토큰이 카카오 로그인으로 받은 것과 일치하는지 확인
+                        if (currentSession?.access_token === authData.session.access_token) {
+                            console.log(`[Kakao Callback] ✅ 스토리지 세션 확인됨 (시도: ${i + 1}/${maxRetries})`);
+                            console.log(`[Kakao Callback] 토큰 앞자리: ${currentSession!.access_token.substring(0, 10)}...`);
+                            sessionSaved = true;
+                            break;
+                        }
+
+                        console.log(`[Kakao Callback] ⏳ 스토리지 반영 대기 중... (${i + 1}/${maxRetries})`);
+                    }
+
+                    if (!sessionSaved) {
+                        console.error('[Kakao Callback] ❌ 세션 저장 실패 - 타임아웃');
+                        throw new Error('세션 저장에 실패했습니다. 다시 시도해주세요.');
+                    }
 
                     console.log('[Kakao Callback] 🎉 로그인 성공!');
 
