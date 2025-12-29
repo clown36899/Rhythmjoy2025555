@@ -1,5 +1,5 @@
 // 빌보드 PWA 서비스 워커
-const CACHE_NAME = 'rhythmjoy-cache-v4';
+const CACHE_NAME = 'rhythmjoy-cache-v5';
 const urlsToCache = [
   '/',
   '/icon-192.png',

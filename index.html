@@ -290,32 +290,16 @@
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
 
-  <!-- PWA Service Worker 등록 -->
+  <!-- PWA Service Worker 등록 - 임시 비활성화 -->
   <script>
     if ('serviceWorker' in navigator) {
-      // 개발 환경 (localhost) 확인
-      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-
-      if (isLocalhost) {
-        // 개발 환경이면 모든 서비스 워커 해제 (백그라운드 요청 방지)
-        navigator.serviceWorker.getRegistrations().then(function (registrations) {
-          for (let registration of registrations) {
-            registration.unregister();
-            console.log('개발 환경: Service Worker 해제됨 (백그라운드 요청 방지)');
-          }
-        });
-      } else {
-        // 배포 환경: 모든 모드에서 서비스 워커 등록
-        window.addEventListener('load', function () {
-          navigator.serviceWorker.register('/service-worker.js')
-            .then(function (registration) {
-              console.log('Service Worker 등록 성공:', registration.scope);
-            })
-            .catch(function (error) {
-              console.error('Service Worker 등록 실패:', error);
-            });
-        });
-      }
+      // 모든 서비스 워커 해제
+      navigator.serviceWorker.getRegistrations().then(function (registrations) {
+        for (let registration of registrations) {
+          registration.unregister();
+          console.log('Service Worker 해제됨 (디버깅 목적)');
+        }
+      });
     }
   </script>
 </body>
