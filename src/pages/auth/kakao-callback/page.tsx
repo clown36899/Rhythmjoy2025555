@@ -126,6 +126,11 @@ export default function KakaoCallbackPage() {
                     }
 
                     console.log('[Kakao Callback] ✅ 세션 설정 완료');
+
+                    // 🔥 [중요] localStorage에 세션이 완전히 저장될 때까지 짧은 대기
+                    // setSession()은 비동기로 저장하므로 즉시 리다이렉트하면 손상된 세션 발생 가능
+                    await new Promise(resolve => setTimeout(resolve, 500));
+
                     console.log('[Kakao Callback] 🎉 로그인 성공!');
 
                     // 4. 원래 페이지로 즉시 복귀 (모달 없이)

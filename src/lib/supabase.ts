@@ -229,9 +229,12 @@ export const validateAndRecoverSession = async (): Promise<any> => {
         return null;
       }
     } catch (timeoutError) {
-      console.warn('[Supabase] ⏱️ getUser() timeout - skipping server validation');
-      // 타임아웃 발생 시 로컬 세션만으로 진행 (모바일 네트워크 느릴 때 대응)
-      // 세션이 있으면 일단 허용하고, 실제 API 호출 시 검증됨
+      console.error('[Supabase] ⏱️ getUser() timeout - 손상된 세션으로 판단, 정리 시작');
+      // 🔥 [중요] 타임아웃은 손상된 세션의 신호
+      // 정상적인 세션이라면 5초 안에 응답이 와야 함
+      // 타임아웃 발생 = 세션이 손상되었거나 서버와 통신 불가 = 세션 삭제 필요
+      await supabase.auth.signOut({ scope: 'local' });
+      return null;
     }
 
     console.log('[Supabase] ✅ Session is valid and verified by server');
