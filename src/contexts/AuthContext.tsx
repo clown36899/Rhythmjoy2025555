@@ -157,26 +157,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     profileLoadInProgress.current = true;
     try {
-      const { data } = await supabase
-        .from('board_users')
-        .select('nickname, profile_image')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      // 🔥 프로필 로딩에 3초 타임아웃 추가 (DB 지연 시 무한 로딩 방지)
+      const fetchProfileWithTimeout = Promise.race([
+        supabase
+          .from('board_users')
+          .select('nickname, profile_image')
+          .eq('user_id', user.id)
+          .maybeSingle(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Profile fetch timeout')), 3000)
+        )
+      ]);
+
+      const result = await fetchProfileWithTimeout as any;
+      const data = result.data;
 
       if (data) {
         setUserProfile({
           nickname: data.nickname || user.user_metadata?.name || user.email?.split('@')[0] || '',
           profile_image: data.profile_image || user.user_metadata?.avatar_url || null
         });
-      } else if (user) {
-        // Fallback to metadata if no board_user record yet
+      } else {
+        // Fallback to metadata if no board_user record yet or timeout
         setUserProfile({
           nickname: user.user_metadata?.name || user.email?.split('@')[0] || '',
           profile_image: user.user_metadata?.avatar_url || null
         });
       }
     } catch (e) {
-      console.error('[AuthContext] Failed to load user profile:', e);
+      console.warn('[AuthContext] Profile load failed or timed out, using fallback:', e);
+      // Fallback on error/timeout
+      setUserProfile({
+        nickname: user.user_metadata?.name || user.email?.split('@')[0] || '',
+        profile_image: user.user_metadata?.avatar_url || null
+      });
     } finally {
       profileLoadInProgress.current = false;
     }

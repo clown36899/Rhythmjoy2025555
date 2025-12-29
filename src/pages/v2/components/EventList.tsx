@@ -1117,14 +1117,18 @@ export default function EventList({
       setLoadError(errorMessage || "알 수 없는 오류");
       setEvents([]);
 
-      // 타임아웃 발생 시 PWA 충돌 가능성 안내
-      // "데이터 로딩 시간 초과 (10초)" 또는 "timeout" 또는 "Network Error" 등 다양한 케이스 커버
+      // 타임아웃 발생 시 모달 표시 여부 결정
+      // 단순 네트워크 지연(10초)이 PWA 충돌로 오해받는 것을 방지하기 위해 
+      // isPWADuplicate가 true인 경우에만 우선적으로 표시하도록 권장
       if (errorMessage.includes("시간 초과") ||
         errorMessage.includes("timeout") ||
-        errorMessage.includes("Time-out") ||
-        errorMessage.includes("데이터를 불러올 수 없습니다")) {
-        console.warn(`[EventList] ⏱️ Timeout/Error detected (${errorMessage}) - Triggering PWA conflict modal`);
-        setShowPWAConflict(true);
+        errorMessage.includes("Time-out")) {
+        console.warn(`[EventList] ⏱️ Data fetching timeout detected: ${errorMessage}`);
+
+        // PWA 중복이 확실하거나, 정말 오래 기다린 경우에만 안내
+        if (isPWADuplicate) {
+          setShowPWAConflict(true);
+        }
       }
     } finally {
       setLoading(false);

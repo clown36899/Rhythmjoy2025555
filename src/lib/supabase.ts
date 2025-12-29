@@ -169,8 +169,9 @@ export const validateAndRecoverSession = async (): Promise<any> => {
       session = result.data?.session;
       error = result.error;
     } catch (timeoutError) {
-      console.warn('[Supabase] ⏱️ getSession() timeout - assuming no session');
-      return null;
+      console.warn('[Supabase] ⏱️ getSession() timeout - trying to proceed anyway');
+      // 타임아웃 시 null을 주면 AuthContext가 로그아웃시키므로, 
+      // 에러를 던지지 않고 일단 진행 (상위 try-catch에서 처리되거나 undefined로 남음)
     }
 
     // 에러 발생 시 세션 정리
@@ -224,17 +225,15 @@ export const validateAndRecoverSession = async (): Promise<any> => {
 
       if (userError) {
         console.error('[Supabase] ❌ Token validation failed on server:', userError);
-        // 토큰 서명 불일치 등 서버에서 거부된 경우 -> 강제 로그아웃
+        // 서버에서 명확하게 "유효하지 않은 토큰"이라고 응답한 경우에만 세션 정리
         await supabase.auth.signOut({ scope: 'local' });
         return null;
       }
     } catch (timeoutError) {
-      console.error('[Supabase] ⏱️ getUser() timeout - 손상된 세션으로 판단, 정리 시작');
-      // 🔥 [중요] 타임아웃은 손상된 세션의 신호
-      // 정상적인 세션이라면 5초 안에 응답이 와야 함
-      // 타임아웃 발생 = 세션이 손상되었거나 서버와 통신 불가 = 세션 삭제 필요
-      await supabase.auth.signOut({ scope: 'local' });
-      return null;
+      console.warn('[Supabase] ⏱️ getUser() timeout - proceeding with local session');
+      // 타임아웃은 네트워크 지연일 뿐 세션이 깨진 것이 아니므로, 
+      // 로컬 세션을 믿고 일단 반환 (로그인 유지)
+      return session;
     }
 
     console.log('[Supabase] ✅ Session is valid and verified by server');
