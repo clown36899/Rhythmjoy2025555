@@ -1,8 +1,38 @@
 /* WeeklySocial.css (Kanban-Style Regular Tab) */
 .weekly-social-container {
     margin-bottom: 40px;
-    padding: 0 20px;
+    padding: 5px 20px;
+    background: #0a0a0a;
 }
+
+/* 캡처용 헤더 */
+.capture-header {
+    display: none;
+    /* 평소에는 숨김 */
+    text-align: center;
+    padding: 16px 0;
+    margin-bottom: 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.capture-site-name {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #ffffff;
+    margin: 0 0 6px 0;
+    letter-spacing: 0.5px;
+}
+
+.capture-site-url {
+    font-size: 0.875rem;
+    color: #9ca3af;
+    margin: 0;
+    font-weight: 500;
+}
+
+
 
 /* 탭 메뉴 */
 .view-tab-menu-v3 {
@@ -15,8 +45,50 @@
     border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
+/* 공유 버튼 래퍼 */
+.share-btn-wrapper {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 8px;
+}
+
+/* 공유 버튼 */
+.share-schedule-btn {
+    background: rgba(251, 191, 36, 0.1);
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    border-radius: 10px;
+    padding: 8px 12px;
+    color: #fbbf24;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.share-schedule-btn:hover {
+    background: rgba(251, 191, 36, 0.2);
+    border-color: rgba(251, 191, 36, 0.5);
+    transform: scale(1.05);
+}
+
+.share-schedule-btn:active {
+    transform: scale(0.95);
+}
+
+@media (max-width: 640px) {
+    .share-schedule-btn {
+        padding: 6px 10px;
+        font-size: 0.9rem;
+    }
+}
+
+
 .tab-btn {
-    flex: 1;
+    flex: 1 1 25%;
+    min-width: 0;
+    max-width: 25%;
     background: none;
     border: none;
     padding: 10px 0;
@@ -34,10 +106,10 @@
 
 .tab-indicator-v4 {
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 25%;
-    height: 100%;
+    top: 4px;
+    left: 4px;
+    width: calc(25% - 2px);
+    height: calc(100% - 8px);
     z-index: 1;
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     pointer-events: none;
@@ -46,10 +118,10 @@
 .tab-indicator-v4::after {
     content: '';
     position: absolute;
-    top: 4px;
-    bottom: 4px;
-    left: 4px;
-    right: 4px;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
     background: #fbbf24;
     border-radius: 10px;
 }
@@ -59,7 +131,15 @@
 }
 
 .tab-indicator-v4.all {
-    transform: translateX(100%);
+    transform: translateX(calc(100% + 2px));
+}
+
+.tab-indicator-v4.regular {
+    transform: translateX(calc(200% + 4px));
+}
+
+.tab-indicator-v4.register {
+    transform: translateX(calc(300% + 6px));
 }
 
 .tab-indicator-v4.regular {
@@ -85,6 +165,19 @@
         transform: translateY(0);
     }
 }
+
+/* 캡처용 타이틀 */
+.capture-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #fbbf24;
+    text-align: center;
+    margin: 0 0 20px 0;
+    padding: 16px 0;
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.1) 0%, rgba(251, 191, 36, 0.05) 100%);
+    border-radius: 12px;
+}
+
 
 /* 칸반보드 (정규 일정용 - 화면에 맞게 줄어드는 7컬럼 그리드) */
 .regular-kanban-container {
@@ -239,6 +332,7 @@
     align-items: center;
     gap: 4px;
     cursor: pointer;
+    position: relative;
 }
 
 .day-btn-v5.active {
@@ -267,6 +361,24 @@
     background: #fbbf24;
     border-radius: 50%;
 }
+
+/* 일정 개수 뱃지 */
+.schedule-count-badge {
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(96, 165, 250, 0.9);
+    color: white;
+    font-size: 0.6rem;
+    font-weight: 700;
+    padding: 1px 4px;
+    border-radius: 6px;
+    min-width: 16px;
+    text-align: center;
+    line-height: 1.2;
+}
+
 
 /* 리스트 아이템 (기존 스타일 유지) */
 .weekly-list,
@@ -299,6 +411,7 @@
     border-radius: 12px;
     overflow: hidden;
     margin-right: 16px;
+    border: 1px solid #464646;
     background: #262626;
 }
 
