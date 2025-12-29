@@ -141,7 +141,16 @@ export default function KakaoCallbackPage() {
                         // 약간의 지연 (이벤트 루프 양보 및 스토리지 I/O 대기)
                         await new Promise(resolve => setTimeout(resolve, 200));
 
-                        const { data: { session: currentSession } } = await supabase.auth.getSession();
+                        const { data: { session: currentSession }, error: getSessionError } = await supabase.auth.getSession();
+
+                        console.log(`[Kakao Callback] 🔍 getSession 결과 (시도 ${i + 1}/${maxRetries}):`, {
+                            hasSession: !!currentSession,
+                            hasError: !!getSessionError,
+                            error: getSessionError,
+                            currentAccessToken: currentSession?.access_token?.substring(0, 10) + '...',
+                            expectedAccessToken: authData.session.access_token.substring(0, 10) + '...',
+                            tokensMatch: currentSession?.access_token === authData.session.access_token
+                        });
 
                         // 현재 세션의 액세스 토큰이 카카오 로그인으로 받은 것과 일치하는지 확인
                         if (currentSession?.access_token === authData.session.access_token) {
