@@ -15,8 +15,18 @@ export const handler: Handler = async (event) => {
   const adminEmail = process.env.VITE_ADMIN_EMAIL;
 
   if (!supabaseUrl || !supabaseServiceKey) {
+    console.error('[kakao-login] ❌ 환경변수 누락:', {
+      hasUrl: !!supabaseUrl,
+      hasServiceKey: !!supabaseServiceKey
+    });
     return { statusCode: 500, body: JSON.stringify({ error: 'Server configuration error' }) };
   }
+
+  console.log('[kakao-login] 환경변수 확인:', {
+    hasUrl: !!supabaseUrl,
+    hasServiceKey: !!supabaseServiceKey,
+    serviceKeyPrefix: supabaseServiceKey?.substring(0, 20) + '...'
+  });
 
   if (!supabaseAdmin) {
     supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
@@ -171,7 +181,11 @@ export const handler: Handler = async (event) => {
         updated_at: new Date().toISOString()
       }, { onConflict: 'user_id' });
 
-    if (upsertError) console.error('Error updating board_users:', upsertError);
+    if (upsertError) {
+      console.error('Error updating board_users:', upsertError);
+      console.error('HINT: SUPABASE_SERVICE_KEY 환경변수가 올바른 service_role key인지 확인하세요 (anon key 불가)');
+      // RLS 에러가 나도 로그인은 계속 진행 (사용자 정보가 없을 뿐)
+    }
 
     // 4. 보안 토큰 처리 (RSA 암호화) - 현재 비활성화
     // RLS 정책 문제로 인해 에러 발생하므로 주석 처리

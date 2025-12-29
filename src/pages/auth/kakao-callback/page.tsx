@@ -114,11 +114,27 @@ export default function KakaoCallbackPage() {
                     console.log('[Kakao Callback] Refresh Token 존재:', !!authData.session.refresh_token);
 
                     console.log('[Kakao Callback] 🚀 setSession 호출 시작...');
-                    const { error: sessionError } = await supabase.auth.setSession({
+
+                    // setSession에 타임아웃 추가 (무한 대기 방지)
+                    const setSessionPromise = supabase.auth.setSession({
                         access_token: authData.session.access_token,
                         refresh_token: authData.session.refresh_token,
                     });
-                    console.log('[Kakao Callback] 🏁 setSession 호출 완료');
+
+                    const timeoutPromise = new Promise((_, reject) =>
+                        setTimeout(() => reject(new Error('setSession timeout')), 3000)
+                    );
+
+                    let sessionError = null;
+                    try {
+                        const result = await Promise.race([setSessionPromise, timeoutPromise]);
+                        sessionError = (result as any).error;
+                        console.log('[Kakao Callback] 🏁 setSession 호출 완료');
+                    } catch (timeoutError) {
+                        console.warn('[Kakao Callback] ⚠️ setSession 무한 대기 감지 - 강제 리다이렉트 진행');
+                        // 타임아웃이지만 백그라운드에서 setSession은 계속 진행 중
+                        // AuthContext가 이미 SIGNED_IN 이벤트를 받았으므로 괜찮음
+                    }
 
                     if (cancelled) return;
 
