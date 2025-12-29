@@ -173,14 +173,15 @@ export const handler: Handler = async (event) => {
 
     if (upsertError) console.error('Error updating board_users:', upsertError);
 
-    // 4. 보안 토큰 처리 (RSA 암호화)
-    // Refresh Token이 있으면 그것을, 없으면 Access Token이라도 저장 (비상용)
+    // 4. 보안 토큰 처리 (RSA 암호화) - 현재 비활성화
+    // RLS 정책 문제로 인해 에러 발생하므로 주석 처리
+    // 로그인 기능에는 영향 없음
+    /*
     const tokenToSave = kakaoRefreshToken || kakaoAccessToken;
 
     if (tokenToSave) {
       console.log(`[kakao-login] Processing security token for user: ${userId}`);
 
-      // 4-1. 공개키 가져오기 (매번 최신 키를 가져오도록 변경)
       const { data: keyData, error: keyError } = await supabaseAdmin
         .from('system_keys')
         .select('public_key')
@@ -192,7 +193,6 @@ export const handler: Handler = async (event) => {
       } else {
         const publicKey = keyData.public_key;
 
-        // 4-2. 암호화 및 저장
         try {
           console.log('[kakao-login] Encrypting token...');
           const encryptedBuffer = crypto.publicEncrypt(
@@ -230,7 +230,6 @@ export const handler: Handler = async (event) => {
             console.log('[kakao-login] ✅ Security token upsert returned data:', upsertData);
             console.log('[kakao-login] Verifying with separate SELECT...');
 
-            // 검증: 방금 저장한 데이터가 실제로 있는지 확인
             const { data: verifyData, error: verifyError } = await supabaseAdmin
               .from('user_tokens')
               .select('user_id')
@@ -253,6 +252,7 @@ export const handler: Handler = async (event) => {
     } else {
       console.warn('[kakao-login] No kakao token found to save.');
     }
+    */
 
     // 5. 로그인 세션 생성 (Magic Link 방식)
     // 앞서(3단계) 생성한 링크 정보를 그대로 사용함 ("generateLink"를 두 번 호출하면 토큰이 갱신되어 앞의 것이 무효화될 수 있음)
