@@ -216,7 +216,7 @@ export const validateAndRecoverSession = async (): Promise<any> => {
     const getUserWithTimeout = Promise.race([
       supabase.auth.getUser(),
       new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('getUser timeout')), 5000)
+        setTimeout(() => reject(new Error('getUser timeout')), 10000)
       )
     ]);
 

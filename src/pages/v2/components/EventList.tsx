@@ -1058,11 +1058,11 @@ export default function EventList({
       setLoading(true);
       setLoadError(null);
 
-      // 10초 timeout 설정
+      // 15초 timeout 설정 (DB RLS 부하 상황 대비 연장)
       const timeoutPromise = new Promise((_, reject) =>
         setTimeout(
-          () => reject(new Error("데이터 로딩 시간 초과 (10초)")),
-          10000,
+          () => reject(new Error("데이터 로딩 시간 초과 (15초)")),
+          15000,
         ),
       );
 
@@ -1118,8 +1118,6 @@ export default function EventList({
       setEvents([]);
 
       // 타임아웃 발생 시 모달 표시 여부 결정
-      // 단순 네트워크 지연(10초)이 PWA 충돌로 오해받는 것을 방지하기 위해 
-      // isPWADuplicate가 true인 경우에만 우선적으로 표시하도록 권장
       if (errorMessage.includes("시간 초과") ||
         errorMessage.includes("timeout") ||
         errorMessage.includes("Time-out")) {
@@ -1128,6 +1126,8 @@ export default function EventList({
         // PWA 중복이 확실하거나, 정말 오래 기다린 경우에만 안내
         if (isPWADuplicate) {
           setShowPWAConflict(true);
+        } else {
+          setLoadError("서버 응답이 늦어지고 있습니다. 잠시 후 자동으로 다시 시도합니다.");
         }
       }
     } finally {
