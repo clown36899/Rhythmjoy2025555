@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import type { SocialSchedule, SocialGroup } from '../types';
 import { getLocalDateString, getKSTDay } from '../../v2/utils/eventListUtils';
 import GroupDirectory from './GroupDirectory';
@@ -33,6 +33,11 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
     const [activeTab, setActiveTab] = useState<ViewTab>('weekly');
 
     const weekNames = ['일', '월', '화', '수', '목', '금', '토'];
+
+    // 소셜 페이지 진입 시 항상 금주일정 탭으로 리셋
+    useEffect(() => {
+        setActiveTab('weekly');
+    }, []);
 
     // 이번 주(월~일) 날짜 계산
     const weekDates = useMemo(() => {
@@ -71,9 +76,8 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
 
     const [selectedDay, setSelectedDay] = useState<number | null>(null);
 
-    // 초기 로드 시 데이터가 있으면 자동 선택
+    // 페이지 진입 시 항상 자동 선택 (오늘 → 가장 가까운 미래 일정)
     React.useEffect(() => {
-        if (selectedDay !== null) return; // 이미 선택됨
         if (schedules.length === 0) return; // 데이터 대기
 
         const kstDay = getKSTDay();
@@ -110,7 +114,7 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
         } else {
             setSelectedDay(todayIndex); // 일정 없으면 오늘
         }
-    }, [schedules, weekDates, selectedDay]);
+    }, [schedules, weekDates]);
 
     // [1] 금주의 일정 (날짜 지정 일정만 표시 - 정규 일정 제외)
     const displaySchedules = useMemo(() => {
