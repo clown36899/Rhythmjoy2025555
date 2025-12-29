@@ -105,6 +105,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // Admin 체크 캐시 (5분)
+  const [adminCheckCache, setAdminCheckCache] = useState<{
+    checked: boolean;
+    isAdmin: boolean;
+    timestamp: number;
+  } | null>(null);
+
   // 관리자 권한 계산 헬퍼 함수 (비동기) - useCallback으로 메모이제이션
   const refreshAdminStatus = useCallback(async (currentUser: User | null) => {
     if (!currentUser) {
@@ -119,31 +126,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // 2순위: DB 및 RPC 체크
-    try {
-      // RPC 시도
-      const { data: rpcData } = await supabase.rpc('is_admin_user');
-      if (rpcData) {
-        if (!isAdmin) setIsAdmin(true);
-        return;
+    // 2순위: 캐시 체크 (5분 이내면 캐시 사용)
+    if (adminCheckCache && Date.now() - adminCheckCache.timestamp < 300000) {
+      if (isAdmin !== adminCheckCache.isAdmin) {
+        setIsAdmin(adminCheckCache.isAdmin);
       }
+      return;
+    }
 
-      // board_admins 테이블 직접 확인
-      const { data: tableData } = await supabase
-        .from('board_admins')
-        .select('user_id')
-        .eq('user_id', currentUser.id)
-        .maybeSingle();
+    // 3순위: 최적화된 RPC 체크 (1초 타임아웃으로 단축)
+    try {
+      const adminCheckWithTimeout = Promise.race([
+        supabase.rpc('get_user_admin_status'),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Admin check timeout')), 1000) // 3초 → 1초
+        )
+      ]);
 
-      const isTableAdmin = !!tableData;
-      if (isAdmin !== isTableAdmin) {
-        setIsAdmin(isTableAdmin);
+      const { data: isAdminUser, error } = await adminCheckWithTimeout as any;
+
+      if (error) throw error;
+
+      const adminStatus = !!isAdminUser;
+
+      // 캐시 업데이트
+      setAdminCheckCache({
+        checked: true,
+        isAdmin: adminStatus,
+        timestamp: Date.now()
+      });
+
+      if (isAdmin !== adminStatus) {
+        setIsAdmin(adminStatus);
       }
     } catch (e) {
-      console.error('[AuthContext] Admin check failed:', e);
+      const errorMsg = (e as Error).message;
+      if (errorMsg.includes('timeout')) {
+        console.warn('[AuthContext] Admin check timeout - skipping');
+      } else {
+        console.error('[AuthContext] Admin check failed:', e);
+      }
       if (isAdmin) setIsAdmin(false);
     }
-  }, [isAdmin]);
+  }, [isAdmin, adminCheckCache]);
 
   // 프로필 데이터 가져오기 - useCallback으로 메모이제이션
   const refreshUserProfile = useCallback(async () => {
@@ -252,7 +277,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const currentUser = recoveredSession.user;
           setSession(recoveredSession);
           setUser(currentUser);
-          await refreshAdminStatus(currentUser);
+          // Admin 체크를 백그라운드에서 실행 (await 제거)
+          refreshAdminStatus(currentUser);
           setUserId(currentUser.id);
         } else {
           setSession(null);
@@ -294,7 +320,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         setSession(session);
         setUser(currentUser);
-        await refreshAdminStatus(currentUser);
+        refreshAdminStatus(currentUser); // await 제거 - 백그라운드 실행
 
         if (currentUser) {
           setUserProperties({ login_status: 'logged_in' });
@@ -308,7 +334,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(currentUser);
         if (currentUser) {
           setUserId(currentUser.id);
-          await refreshAdminStatus(currentUser);
+          refreshAdminStatus(currentUser); // await 제거 - 백그라운드 실행
         } else {
           setUserId(null);
         }
@@ -510,7 +536,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         justifyContent: 'center',
         alignItems: 'center',
         height: '100vh',
-        backgroundColor: '#ffffff'
+        backgroundColor: '#000000'
       }}>
         <div className="auth-callback-spinner" style={{ width: '40px', height: '40px' }}></div>
       </div>

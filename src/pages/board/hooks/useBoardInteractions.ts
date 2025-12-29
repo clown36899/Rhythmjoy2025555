@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
+import { useUserInteractions } from '../../../hooks/useUserInteractions';
 
 import type { BoardCategory } from '../components/BoardTabBar';
 import type { BoardPost } from '../page';
@@ -13,70 +14,33 @@ interface UseBoardInteractionsProps {
 }
 
 export function useBoardInteractions({ user, category, isRealAdmin, loadPosts, setPosts }: UseBoardInteractionsProps) {
+    // Use centralized user interactions hook
+    const { interactions } = useUserInteractions(user?.id || null);
+
+    // Local state for UI (derived from interactions)
     const [likedPostIds, setLikedPostIds] = useState<Set<number>>(new Set());
     const [dislikedPostIds, setDislikedPostIds] = useState<Set<number>>(new Set());
     const [favoritedPostIds, setFavoritedPostIds] = useState<Set<number>>(new Set());
 
-    // Load Interactions
+    // Sync local state from centralized interactions
     useEffect(() => {
-        if (user) {
-            fetchInteractions();
-        } else {
-            // Reset interactions if logged out
+        if (!interactions) {
             setLikedPostIds(new Set());
             setDislikedPostIds(new Set());
             setFavoritedPostIds(new Set());
+            return;
         }
-    }, [user, category]);
 
-    const fetchInteractions = async () => {
-        try {
-            if (!user) return;
-
-            if (category !== 'anonymous') {
-                // Fetch Likes for authenticated users (Standard)
-                const { data: likes } = await supabase
-                    .from('board_post_likes')
-                    .select('post_id')
-                    .eq('user_id', user.id);
-                if (likes) setLikedPostIds(new Set(likes.map(l => l.post_id)));
-
-                // Fetch Favorites for authenticated users (Standard)
-                const { data: favorites } = await supabase
-                    .from('board_post_favorites')
-                    .select('post_id')
-                    .eq('user_id', user.id);
-                if (favorites) setFavoritedPostIds(new Set(favorites.map(f => f.post_id)));
-
-                // Fetch Dislikes for authenticated users (Standard)
-                const { data: dislikes, error } = await supabase
-                    .from('board_post_dislikes')
-                    .select('post_id')
-                    .eq('user_id', user.id);
-
-                if (dislikes && !error) {
-                    setDislikedPostIds(new Set(dislikes.map(d => d.post_id)));
-                }
-            } else {
-                // Fetch Interactions for anonymous users (Now Authenticated Only)
-                // Use user_id instead of fingerprint
-                const [{ data: anonLikes }, { data: anonDislikes }] = await Promise.all([
-                    supabase.from('board_anonymous_likes').select('post_id').eq('user_id', user.id),
-                    supabase.from('board_anonymous_dislikes').select('post_id').eq('user_id', user.id)
-                ]);
-
-                if (anonLikes) {
-                    setLikedPostIds(new Set(anonLikes.map(l => l.post_id)));
-                }
-
-                if (anonDislikes) {
-                    setDislikedPostIds(new Set(anonDislikes.map(d => d.post_id)));
-                }
-            }
-        } catch (err) {
-            console.warn('Post interactions loading failed:', err);
+        if (category !== 'anonymous') {
+            // Standard board - use post_likes/dislikes/favorites
+            setLikedPostIds(new Set(interactions.post_likes || []));
+            setDislikedPostIds(new Set(interactions.post_dislikes || []));
+            setFavoritedPostIds(new Set(interactions.post_favorites || []));
+        } else {
+            // Anonymous board - interactions are handled separately via RPC
+            // Keep existing anonymous logic
         }
-    };
+    }, [interactions, category]);
 
     /**
      * Unified Optimistic UI Update Helper for Standard Board

@@ -6,6 +6,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 
 
 import EventList from "./components/EventList";
+import { supabase } from "../../lib/supabase";
 
 
 import FullscreenBillboard from "../../components/FullscreenBillboard";
@@ -17,7 +18,7 @@ import EventDetailModal from "./components/EventDetailModal";
 import VenueDetailModal from "../practice/components/VenueDetailModal";
 // EventPasswordModal removed
 import CalendarSearchModal from "./components/CalendarSearchModal";
-import { useEventFavorites } from "../../hooks/useEventFavorites";
+import { useUserInteractions } from "../../hooks/useUserInteractions";
 import { registerLocale } from "react-datepicker";
 import { ko } from "date-fns/locale/ko";
 import "react-datepicker/dist/react-datepicker.css";
@@ -115,8 +116,55 @@ export default function HomePageV2() {
     const handleBillboardSettingsOpen = () => setIsBillboardSettingsOpen(true);
     const handleSearchStart = () => navigateWithCategory("all");
 
-    // Favorites Logic
-    const { favoriteEventIds, toggleFavorite, refreshFavorites } = useEventFavorites(user, signInWithKakao);
+    // Favorites Logic - Using centralized useUserInteractions
+    const { interactions, refreshInteractions } = useUserInteractions(user?.id || null);
+    const favoriteEventIds = new Set(interactions?.event_favorites || []);
+
+    // Toggle favorite function
+    const toggleFavorite = useCallback(async (eventId: number, e?: React.MouseEvent) => {
+        e?.stopPropagation();
+
+        if (!user) {
+            if (confirm('즐겨찾기는 로그인 후 이용 가능합니다.\n확인을 눌러서 로그인을 진행해주세요')) {
+                try {
+                    await signInWithKakao();
+                } catch (err) {
+                    console.error(err);
+                }
+            }
+            return;
+        }
+
+        const isFav = favoriteEventIds.has(eventId);
+
+        if (isFav) {
+            // Remove
+            const { error } = await supabase
+                .from('event_favorites')
+                .delete()
+                .eq('user_id', user.id)
+                .eq('event_id', eventId);
+
+            if (error) {
+                console.error('Error removing favorite:', error);
+            } else {
+                refreshInteractions();
+            }
+        } else {
+            // Add
+            const { error } = await supabase
+                .from('event_favorites')
+                .insert({ user_id: user.id, event_id: eventId });
+
+            if (error) {
+                console.error('Error adding favorite:', error);
+            } else {
+                refreshInteractions();
+            }
+        }
+    }, [user, favoriteEventIds, signInWithKakao, refreshInteractions]);
+
+    const refreshFavorites = refreshInteractions;
 
 
 

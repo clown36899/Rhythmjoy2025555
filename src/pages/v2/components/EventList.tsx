@@ -161,7 +161,7 @@ export default function EventList({
   onToggleFavorite: externalOnToggleFavorite,
   refreshFavorites,
 }: EventListProps) {
-  const { user, signInWithKakao, validateSession } = useAuth();
+  const { user, signInWithKakao } = useAuth();
   const navigate = useNavigate();
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -1053,10 +1053,12 @@ export default function EventList({
   }, [events]);
 
 
-  const fetchEvents = useCallback(async () => {
+  const fetchEvents = useCallback(async (silent = false) => {
     try {
-      setLoading(true);
-      setLoadError(null);
+      if (!silent) {
+        setLoading(true);
+        setLoadError(null);
+      }
 
       // 15초 timeout 설정 (DB RLS 부하 상황 대비 연장)
       const timeoutPromise = new Promise((_, reject) =>
@@ -1102,77 +1104,42 @@ export default function EventList({
       await Promise.race([fetchPromise, timeoutPromise]);
 
       if (error) {
-        console.error("[📋 이벤트 목록] ❌ Supabase 에러:", error);
-        setLoadError(`DB 에러: ${(error as any).message || "알 수 없는 오류"}`);
+        if (!silent) {
+          console.error("[📋 이벤트 목록] ❌ Supabase 에러:", error);
+          setLoadError(`DB 에러: ${(error as any).message || "알 수 없는 오류"}`);
+        }
         setEvents([]);
       } else {
         const eventList: Event[] = data || [];
-
-        // Analyze image usage
         setEvents(eventList);
       }
     } catch (error: unknown) {
       const errorMessage = (error as Error).message;
-      console.error("이벤트 상세 로딩 실패:", errorMessage);
-      setLoadError(errorMessage || "알 수 없는 오류");
-      setEvents([]);
 
-      // 타임아웃 발생 시 모달 표시 여부 결정
-      if (errorMessage.includes("시간 초과") ||
-        errorMessage.includes("timeout") ||
-        errorMessage.includes("Time-out")) {
-        console.warn(`[EventList] ⏱️ Data fetching timeout detected: ${errorMessage}`);
+      if (!silent) {
+        console.error("이벤트 상세 로딩 실패:", errorMessage);
+        setLoadError(errorMessage || "알 수 없는 오류");
 
-        // PWA 중복이 확실하거나, 정말 오래 기다린 경우에만 안내
-        if (isPWADuplicate) {
-          setShowPWAConflict(true);
-        } else {
-          setLoadError("서버 응답이 늦어지고 있습니다. 잠시 후 자동으로 다시 시도합니다.");
+        // 타임아웃 발생 시 모달 표시 여부 결정
+        if (errorMessage.includes("시간 초과") ||
+          errorMessage.includes("timeout") ||
+          errorMessage.includes("Time-out")) {
+          console.warn(`[EventList] ⏱️ Data fetching timeout detected: ${errorMessage}`);
+
+          // PWA 중복이 확실하거나, 정말 오래 기다린 경우에만 안내
+          if (isPWADuplicate) {
+            setShowPWAConflict(true);
+          } else {
+            setLoadError("서버 응답이 늦어지고 있습니다. 잠시 후 자동으로 다시 시도합니다.");
+          }
         }
       }
+
+      setEvents([]);
     } finally {
-      setLoading(false);
-    }
-  }, [isAdminMode, validateSession]);
-
-  // Silent refresh for background updates (no loading spinner)
-  const fetchEventsSilently = useCallback(async () => {
-    try {
-      console.log('[📋 이벤트 목록] 백그라운드 새로고침...');
-      // Don't set loading state - update silently
-
-      const columns = "id,title,description,date,start_date,end_date,event_dates,time,location,location_link,category,price,image,image_thumbnail,organizer,organizer_name,contact,created_at,updated_at,genre,user_id,venue_id,venue_name,venue_custom_link";
-
-      let data: Event[] | null = null;
-
-      if (isAdminMode) {
-        const result = await supabase
-          .from("events")
-          .select(columns)
-          .order("start_date", { ascending: true, nullsFirst: false })
-          .order("date", { ascending: true, nullsFirst: false });
-        data = result.data;
-      } else {
-        const threeMonthsAgo = new Date();
-        threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-        const cutoffDate = threeMonthsAgo.toISOString().split('T')[0];
-
-        const result = await supabase
-          .from("events")
-          .select(columns)
-          .or(`end_date.gte.${cutoffDate},date.gte.${cutoffDate}`)
-          .order("start_date", { ascending: true, nullsFirst: false })
-          .order("date", { ascending: true, nullsFirst: false });
-        data = result.data;
+      if (!silent) {
+        setLoading(false);
       }
-
-      if (data) {
-        setEvents(data);
-        console.log('[📋 이벤트 목록] ✅ 백그라운드 새로고침 완료');
-      }
-    } catch (error: unknown) {
-      console.error("백그라운드 새로고침 실패:", (error as Error).message);
-      // Don't show error to user for silent updates
     }
   }, [isAdminMode]);
 
@@ -1202,7 +1169,7 @@ export default function EventList({
       } else {
         // 데이터가 없으면 전체 새로고침 (삭제 등의 경우)
         isPartialUpdate.current = false;
-        fetchEventsSilently();
+        fetchEvents(true);
       }
     };
 
@@ -1215,7 +1182,7 @@ export default function EventList({
       window.removeEventListener("eventUpdated", handleEventUpdate);
       window.removeEventListener("eventCreated", handleEventUpdate);
     };
-  }, [fetchEventsSilently]);
+  }, [fetchEvents]);
 
   // 부분 업데이트 플래그 리셋 (모든 useMemo 실행 후)
   useEffect(() => {
@@ -2522,7 +2489,7 @@ export default function EventList({
       alert("이벤트가 수정되었습니다.");
       setIsEditingWithDetail(false);
       setEventToEdit(null);
-      await fetchEventsSilently(); // Silent refresh - no loading spinner
+      await fetchEvents(true); // Silent refresh - no loading spinner
       window.dispatchEvent(new Event("eventUpdated"));
 
       // Scroll to the edited event
@@ -2598,7 +2565,7 @@ export default function EventList({
       setIsEditingWithDetail(false); // Close edit modal immediately
       setEventToEdit(null);
       // closeModal(); // Detail modal close managed by parent via eventDeleted
-      fetchEventsSilently(); // Silent refresh - no loading spinner
+      fetchEvents(true); // Silent refresh - no loading spinner
       window.dispatchEvent(new CustomEvent("eventDeleted", { detail: { eventId } })); // Notify other components
       alert("이벤트가 삭제되었습니다.");
     } catch (error: any) {
