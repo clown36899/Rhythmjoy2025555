@@ -113,10 +113,12 @@ export default function KakaoCallbackPage() {
                     console.log('[Kakao Callback] Access Token 존재:', !!authData.session.access_token);
                     console.log('[Kakao Callback] Refresh Token 존재:', !!authData.session.refresh_token);
 
+                    console.log('[Kakao Callback] 🚀 setSession 호출 시작...');
                     const { error: sessionError } = await supabase.auth.setSession({
                         access_token: authData.session.access_token,
                         refresh_token: authData.session.refresh_token,
                     });
+                    console.log('[Kakao Callback] 🏁 setSession 호출 완료');
 
                     if (cancelled) return;
 
@@ -126,6 +128,11 @@ export default function KakaoCallbackPage() {
                     }
 
                     console.log('[Kakao Callback] ✅ 세션 설정 함수 실행 완료');
+
+                    // 🔍 localStorage 상태 확인
+                    const lsKeys = Object.keys(localStorage).filter(k => k.startsWith('sb-'));
+                    console.log('[Kakao Callback] 📦 localStorage Supabase 키 개수:', lsKeys.length);
+                    console.log('[Kakao Callback] 📦 localStorage 키 목록:', lsKeys);
 
                     // 🔥 [중요] 세션이 실제로 저장되고 AuthContext가 인지할 수 있도록 검증
                     console.log('[Kakao Callback] 🔍 스토리지 세션 반영 확인 시작...');
