@@ -226,22 +226,38 @@ export default function BoardMainContainer() {
         }
     }, [boardData]);
 
-    const [touchStart, setTouchStart] = useState<number | null>(null);
-    const [touchEnd, setTouchEnd] = useState<number | null>(null);
-    const minSwipeDistance = 50;
+    const [touchStart, setTouchStart] = useState<{ x: number, y: number } | null>(null);
+    const [touchEnd, setTouchEnd] = useState<{ x: number, y: number } | null>(null);
+    const minSwipeDistance = 70; // Increased from 50px for better intentionality
 
     const onTouchStart = (e: React.TouchEvent) => {
         setTouchEnd(null);
-        setTouchStart(e.targetTouches[0].clientX);
+        setTouchStart({
+            x: e.targetTouches[0].clientX,
+            y: e.targetTouches[0].clientY
+        });
     };
     const onTouchMove = (e: React.TouchEvent) => {
-        setTouchEnd(e.targetTouches[0].clientX);
+        setTouchEnd({
+            x: e.targetTouches[0].clientX,
+            y: e.targetTouches[0].clientY
+        });
     };
     const onTouchEnd = () => {
         if (!touchStart || !touchEnd) return;
-        const distance = touchStart - touchEnd;
-        const isLeftSwipe = distance > minSwipeDistance;
-        const isRightSwipe = distance < -minSwipeDistance;
+
+        const deltaX = touchStart.x - touchEnd.x;
+        const deltaY = touchStart.y - touchEnd.y;
+
+        const absX = Math.abs(deltaX);
+        const absY = Math.abs(deltaY);
+
+        // Prevent swipe if vertical movement is dominant (scrolling)
+        // Only trigger if horizontal movement is at least 1.5x greater than vertical movement
+        if (absX < absY * 1.5) return;
+
+        const isLeftSwipe = deltaX > minSwipeDistance;
+        const isRightSwipe = deltaX < -minSwipeDistance;
         const currentIndex = categories.findIndex((cat: any) => cat.id === category);
 
         if (isLeftSwipe && currentIndex < categories.length - 1) handleCategoryChange(categories[currentIndex + 1].id);
