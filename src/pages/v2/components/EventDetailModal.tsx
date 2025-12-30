@@ -1794,27 +1794,25 @@ export default function EventDetailModal({
                         >
                           하루
                         </button>
-                        {editCategory !== 'class' && editCategory !== 'club' && (
-                          <button
-                            onClick={() => {
-                              console.log('[Date Mode] Switching to dates mode');
-                              setDateMode('dates');
-                              setEditValue(''); // Clear edit value when switching modes
-                            }}
-                            className={`date-mode-btn ${dateMode === 'dates' ? 'active' : ''}`}
-                            style={{
-                              padding: '8px 16px',
-                              borderRadius: '8px',
-                              background: dateMode === 'dates' ? '#3b82f6' : 'rgba(255,255,255,0.05)',
-                              border: dateMode === 'dates' ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
-                              color: 'white',
-                              cursor: 'pointer',
-                              fontWeight: 600
-                            }}
-                          >
-                            개별
-                          </button>
-                        )}
+                        <button
+                          onClick={() => {
+                            console.log('[Date Mode] Switching to dates mode');
+                            setDateMode('dates');
+                            setEditValue(''); // Clear edit value when switching modes
+                          }}
+                          className={`date-mode-btn ${dateMode === 'dates' ? 'active' : ''}`}
+                          style={{
+                            padding: '8px 16px',
+                            borderRadius: '8px',
+                            background: dateMode === 'dates' ? '#3b82f6' : 'rgba(255,255,255,0.05)',
+                            border: dateMode === 'dates' ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
+                            color: 'white',
+                            cursor: 'pointer',
+                            fontWeight: 600
+                          }}
+                        >
+                          개별
+                        </button>
                       </div>
                       {/* Selected Dates Display */}
                       {dateMode === 'dates' && (

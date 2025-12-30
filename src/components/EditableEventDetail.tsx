@@ -152,17 +152,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
         }
     });
 
-    // Auto-switch from 'dates' mode when category changes to class or club -> Removed restriction
-    // useEffect(() => {
-    //     const isClassOrClub = event.category === 'class' || event.category === 'club';
-    //     if (isClassOrClub && dateMode === 'dates') {
-    //         setDateMode('single');
-    //         // Clear individual dates when switching away from dates mode
-    //         if (setEventDates) {
-    //             setEventDates([]);
-    //         }
-    //     }
-    // }, [event.category, dateMode, setEventDates]);
+
 
     // Local state for modals
     const [tempLocation, setTempLocation] = useState("");
@@ -881,26 +871,17 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                                 >
                                                     하루
                                                 </button>
-                                                {/* Hide individual date selection for class and club categories -> Removed restriction */}
-                                                {(() => {
-                                                    const shouldShow = true;
-                                                    console.log('[EditableEventDetail] 개별 버튼 렌더링 조건:', shouldShow);
-                                                    console.log('[EditableEventDetail] event.category:', event.category);
-                                                    console.log('[EditableEventDetail] dateMode:', dateMode);
-                                                    return shouldShow;
-                                                })() && (
-                                                        <button
-                                                            onClick={() => {
-                                                                console.log('[EditableEventDetail] 개별 버튼 클릭!');
-                                                                setDateMode('dates');
-                                                                setDate && setDate(null);
-                                                                setEndDate && setEndDate(null);
-                                                            }}
-                                                            className={`date-mode-btn ${dateMode === 'dates' ? 'active' : ''}`}
-                                                        >
-                                                            개별
-                                                        </button>
-                                                    )}
+                                                <button
+                                                    onClick={() => {
+                                                        console.log('[EditableEventDetail] 개별 버튼 클릭!');
+                                                        setDateMode('dates');
+                                                        setDate && setDate(null);
+                                                        setEndDate && setEndDate(null);
+                                                    }}
+                                                    className={`date-mode-btn ${dateMode === 'dates' ? 'active' : ''}`}
+                                                >
+                                                    개별
+                                                </button>
                                             </div>
                                         </div>
 
