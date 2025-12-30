@@ -9,9 +9,8 @@ import EventList from "./components/EventList";
 import { supabase } from "../../lib/supabase";
 
 
-import FullscreenBillboard from "../../components/FullscreenBillboard";
+
 // Lazy loading으로 성능 최적화 - 큰 모달 컴포넌트들
-const AdminBillboardModal = lazy(() => import("./components/AdminBillboardModal"));
 const EventRegistrationModal = lazy(() => import("../../components/EventRegistrationModal"));
 
 import EventDetailModal from "./components/EventDetailModal";
@@ -24,13 +23,13 @@ import { ko } from "date-fns/locale/ko";
 import "react-datepicker/dist/react-datepicker.css";
 
 
-import { useBillboardSettings } from "../../hooks/useBillboardSettings";
+
 import { useAuth } from "../../contexts/AuthContext";
 import { useCalendarGesture } from "./hooks/useCalendarGesture";
 import { useEventActions } from "./hooks/useEventActions";
 import { useCalendarState } from "./hooks/useCalendarState";
 import { useDeepLinkLogic } from "./hooks/useDeepLinkLogic";
-import { useBillboardLogic } from "./hooks/useBillboardLogic";
+
 
 import "./styles/Page.css";
 
@@ -41,7 +40,7 @@ export default function HomePageV2() {
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
     const { isAdmin, user, signInWithKakao } = useAuth();
-    const { settings, updateSettings, resetSettings } = useBillboardSettings();
+
 
     // Import Social Types and Components
 
@@ -52,12 +51,10 @@ export default function HomePageV2() {
     // 2. Local State
     // --------------------------------------------------------------------------------
     // UI Constants & derived state
-    const [fromQR] = useState(() => new URLSearchParams(window.location.search).get("from") === "qr");
+
 
     // Admin State
     const [adminType, setAdminType] = useState<"super" | "sub" | null>(null);
-    const [billboardUserId] = useState<string | null>(null);
-    const [billboardUserName] = useState<string>("");
     const [isAdminModeOverride, setIsAdminModeOverride] = useState(false);
     const effectiveIsAdmin = isAdmin || isAdminModeOverride;
 
@@ -104,16 +101,9 @@ export default function HomePageV2() {
         sharedEventId, setSharedEventId
     } = useDeepLinkLogic({ setCurrentMonth });
 
-    // Billboard Logic
-    const {
-        isBillboardOpen,
-        isBillboardSettingsOpen, setIsBillboardSettingsOpen,
-        billboardImages, billboardEvents,
-        handleBillboardClose, handleBillboardSettingsClose,
-        handleBillboardEventClick
-    } = useBillboardLogic({ settings, fromQR, setCurrentMonth, setHighlightEvent });
 
-    const handleBillboardSettingsOpen = () => setIsBillboardSettingsOpen(true);
+
+
     const handleSearchStart = () => navigateWithCategory("all");
 
     // Favorites Logic - Using centralized useUserInteractions
@@ -243,7 +233,6 @@ export default function HomePageV2() {
     useEffect(() => {
         const isAnyModalOpen = showInputModal ||
             showRegistrationModal ||
-            isBillboardSettingsOpen ||
             !!selectedEvent;
 
         const container = containerRef.current;
@@ -251,7 +240,7 @@ export default function HomePageV2() {
             container.inert = isAnyModalOpen;
         }
         return () => { if (container) container.inert = false; };
-    }, [showInputModal, showSortModal, showRegistrationModal, isBillboardSettingsOpen, selectedEvent]);
+    }, [showInputModal, showSortModal, showRegistrationModal, selectedEvent]);
 
     const handleHorizontalSwipe = (direction: 'next' | 'prev') => {
         changeMonth(direction);
@@ -305,7 +294,7 @@ export default function HomePageV2() {
     }, [navigate]);
 
     // Admin type sync logic
-    useEffect(() => { if (effectiveIsAdmin && !billboardUserId && adminType !== "super") setAdminType("super"); else if (!effectiveIsAdmin && !billboardUserId && adminType !== null) { setAdminType(null); setIsAdminModeOverride(false); } }, [effectiveIsAdmin, billboardUserId, adminType]);
+    useEffect(() => { if (effectiveIsAdmin && adminType !== "super") setAdminType("super"); else if (!effectiveIsAdmin && adminType !== null) { setAdminType(null); setIsAdminModeOverride(false); } }, [effectiveIsAdmin, adminType]);
 
     // State Sync dispatchers
     useEffect(() => { window.dispatchEvent(new CustomEvent("viewModeChanged", { detail: { viewMode: "month" } })); }, []);
@@ -346,7 +335,7 @@ export default function HomePageV2() {
         window.addEventListener('openSortModal', handleOpenSortModal);
         window.addEventListener('openCalendarSearch', handleOpenCalendarSearch);
         window.addEventListener('resetV2MainView', handleResetV2MainView);
-        window.addEventListener('openBillboardSettings', handleBillboardSettingsOpen);
+
         window.addEventListener('prevMonth', handlePrevMonth);
         window.addEventListener('nextMonth', handleNextMonth);
 
@@ -356,11 +345,11 @@ export default function HomePageV2() {
             window.removeEventListener('openSortModal', handleOpenSortModal);
             window.removeEventListener('openCalendarSearch', handleOpenCalendarSearch);
             window.removeEventListener('resetV2MainView', handleResetV2MainView);
-            window.removeEventListener('openBillboardSettings', handleBillboardSettingsOpen);
+
             window.removeEventListener('prevMonth', handlePrevMonth);
             window.removeEventListener('nextMonth', handleNextMonth);
         };
-    }, [calendarMode, sortBy, navigateWithCategory, searchParams, setSearchParams, moveToToday, handleBillboardSettingsOpen, setCalendarMode, setShowInputModal]);
+    }, [calendarMode, sortBy, navigateWithCategory, searchParams, setSearchParams, moveToToday, setCalendarMode, setShowInputModal]);
     useEffect(() => {
         const handleOpenEventSearch = () => {
             console.log('[Page.tsx] openEventSearch event received');
@@ -485,21 +474,7 @@ export default function HomePageV2() {
 
 
                 {/* Modals */}
-                {settings.enabled && <FullscreenBillboard images={billboardImages} events={billboardEvents} isOpen={isBillboardOpen} onClose={handleBillboardClose} onEventClick={handleBillboardEventClick} autoSlideInterval={settings.autoSlideInterval} transitionDuration={settings.transitionDuration} dateRangeStart={settings.dateRangeStart} dateRangeEnd={settings.dateRangeEnd} showDateRange={settings.showDateRange} playOrder={settings.playOrder} />}
-                {isBillboardSettingsOpen && (
-                    <Suspense fallback={<div />}>
-                        <AdminBillboardModal
-                            isOpen={isBillboardSettingsOpen}
-                            onClose={() => { handleBillboardSettingsClose(); if (adminType === "sub") setTimeout(() => window.dispatchEvent(new CustomEvent("reopenAdminSettings")), 100); }}
-                            settings={settings}
-                            onUpdateSettings={updateSettings}
-                            onResetSettings={resetSettings}
-                            adminType={billboardUserId ? "sub" : isAdmin ? "super" : null}
-                            billboardUserId={billboardUserId}
-                            billboardUserName={billboardUserName}
-                        />
-                    </Suspense>
-                )}
+
 
                 {showRegistrationModal && selectedDate && (
                     <Suspense fallback={<div />}>

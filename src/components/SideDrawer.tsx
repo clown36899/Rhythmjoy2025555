@@ -31,11 +31,11 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
     const boardManagementModal = useModal('boardManagement');
     const boardPrefixModal = useModal('boardPrefixManagement');
     const billboardUserModal = useModal('billboardUserManagement');
-    const adminBillboardModal = useModal('adminBillboard');
+
     const adminFavoritesModal = useModal('adminFavorites');
     const adminSecureMembersModal = useModal('adminSecureMembers');
     const thumbnailModal = useModal('defaultThumbnailSettings');
-    const colorSettingsModal = useModal('colorSettings');
+
     const invitationModal = useModal('invitationManagement');
     const onlineUsersModal = useModal('onlineUsers');
     const genreWeightSettingsModal = useModal('genreWeightSettings');
@@ -231,18 +231,12 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                                         <i className="ri-user-settings-line"></i>
                                         <span>빌보드 회원 관리</span>
                                     </div>
-                                    <div className="drawer-submenu-item" onClick={() => { adminBillboardModal.open(); }}>
-                                        <i className="ri-image-2-line"></i>
-                                        <span>댄스빌보드 설정</span>
-                                    </div>
+
                                     <div className="drawer-submenu-item" onClick={() => { thumbnailModal.open(); }}>
                                         <i className="ri-image-line"></i>
                                         <span>기본 썸네일 설정</span>
                                     </div>
-                                    <div className="drawer-submenu-item" onClick={() => { colorSettingsModal.open(); }}>
-                                        <i className="ri-palette-line"></i>
-                                        <span>색상 설정</span>
-                                    </div>
+
                                     <div className="drawer-submenu-item" onClick={() => { invitationModal.open(); }}>
                                         <i className="ri-mail-send-line"></i>
                                         <span>초대 관리</span>

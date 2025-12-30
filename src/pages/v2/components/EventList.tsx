@@ -51,8 +51,7 @@ import { useNavigate } from "react-router-dom";
 import "../../practice/components/PracticeRoomList.css";
 import "../../shopping/components/shopcard.css";
 import GlobalLoadingOverlay from "../../../components/GlobalLoadingOverlay";
-import PWAConflictModal from "../../../components/PWAConflictModal";
-import { usePWADuplicateDetection } from "../../../hooks/usePWADuplicateDetection";
+
 
 registerLocale("ko", ko);
 
@@ -225,18 +224,7 @@ export default function EventList({
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [showPWAConflict, setShowPWAConflict] = useState(false);
 
-  // PWA 중복 실행 감지
-  const isPWADuplicate = usePWADuplicateDetection();
-
-  // PWA 중복 감지 시 모달 표시
-  useEffect(() => {
-    if (isPWADuplicate) {
-      console.warn('[EventList] 🔴 PWA duplicate detected - showing conflict modal');
-      setShowPWAConflict(true);
-    }
-  }, [isPWADuplicate]);
 
   // 컴포넌트 마운트 감지
   useEffect(() => {
@@ -1146,12 +1134,7 @@ export default function EventList({
           errorMessage.includes("Time-out")) {
           console.warn(`[EventList] ⏱️ Data fetching timeout detected: ${errorMessage}`);
 
-          // PWA 중복이 확실하거나, 정말 오래 기다린 경우에만 안내
-          if (isPWADuplicate) {
-            setShowPWAConflict(true);
-          } else {
-            setLoadError("서버 응답이 늦어지고 있습니다. 잠시 후 자동으로 다시 시도합니다.");
-          }
+          setLoadError("서버 응답이 늦어지고 있습니다. 잠시 후 자동으로 다시 시도합니다.");
         }
       }
 
@@ -2967,11 +2950,7 @@ export default function EventList({
 
   return (
     <div className="no-select evt-flex-col-full">
-      {/* PWA 충돌 안내 모달 */}
-      <PWAConflictModal
-        show={showPWAConflict}
-        onClose={() => setShowPWAConflict(false)}
-      />
+
 
       {/* 삭제 로딩 오버레이 */}
       {(isDeleting || isFetchingDetail) && createPortal(
