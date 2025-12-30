@@ -27,6 +27,41 @@ const isDevelopment = () => {
     return false;
 };
 
+// 봇/자동화 도구 감지
+const isBot = () => {
+    if (typeof window === 'undefined') return false;
+
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    const botPatterns = [
+        'bot', 'spider', 'crawl', 'ahrefs', 'adsbot', 'googlebot',
+        'bingbot', 'yandex', 'baiduspider', 'facebookexternalhit',
+        'twitterbot', 'rogerbot', 'linkedinbot', 'embedly',
+        'quora link preview', 'showyoubot', 'outbrain', 'pinterest/0.',
+        'slackbot', 'vkshare', 'w3c_validator', 'redditbot', 'applebot',
+        'whatsapp', 'flipboard', 'tumblr', 'bitlybot', 'skypeuripreview',
+        'nuzzel', 'discordbot', 'google page speed', 'qwantify', 'headless',
+        'puppeteer', 'selenium', 'webdriver'
+    ];
+
+    // 1. User-Agent 기반 봇 감지
+    if (botPatterns.some(pattern => userAgent.includes(pattern))) {
+        return true;
+    }
+
+    // 2. WebDriver 속성 체크 (Headless 브라우저, 자동화 도구)
+    if (navigator.webdriver) {
+        return true;
+    }
+
+    // 3. 특정 브라우저 속성 체크 (봇이 흔히 위장하는 방식 필터링)
+    // @ts-ignore
+    if (window._phantom || window.callPhantom || window.__setter__) {
+        return true;
+    }
+
+    return false;
+};
+
 // 빌보드 페이지 감지 (자동 재생 페이지)
 const isBillboardPage = () => {
     if (typeof window === 'undefined') return false;
@@ -44,7 +79,13 @@ export const initGA = () => {
     console.log('[Analytics.initGA] Measurement ID:', MEASUREMENT_ID);
     console.log('[Analytics.initGA] Hostname:', window.location.hostname);
 
-    // 1. 개발 환경 차단 (빌보드는 모니터링을 위해 허용하되, PageView는 아래 logPageView에서 차단)
+    // 1. 봇 트래픽 체크
+    if (isBot()) {
+        console.log('[Analytics.initGA] 🤖 Bot detected. GA4 initialization skipped.');
+        return;
+    }
+
+    // 2. 개발 환경 차단 (빌보드는 모니터링을 위해 허용하되, PageView는 아래 logPageView에서 차단)
     const devMode = isDevelopment();
     console.log('[Analytics.initGA] 개발 환경 감지:', devMode);
 
@@ -53,7 +94,7 @@ export const initGA = () => {
         return;
     }
 
-    // 2. 도메인 화이트리스트 체크 (Prod Only)
+    // 3. 도메인 화이트리스트 체크 (Prod Only)
     const hostname = window.location.hostname;
     const allowedDomains = ['swingenjoy.com', 'swingandjoy.com', 'www.swingenjoy.com', 'www.swingandjoy.com'];
     console.log('[Analytics.initGA] 허용된 도메인:', allowedDomains);
