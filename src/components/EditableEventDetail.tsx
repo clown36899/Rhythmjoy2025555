@@ -344,7 +344,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                             {/* Reposition Controls */}
                             {isRepositioning ? (
                                 <div className="reposition-overlay">
-                                    <div className="pointer-events-auto flex gap-2 mt-auto mb-6">
+                                    <div className="pointer-events-auto editable-flex-row editable-margin-top-auto editable-margin-bottom-lg">
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
@@ -465,7 +465,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                 <div className="bottom-sheet-body">
                                     <p className="editable-video-desc">
                                         유튜브 영상 주소를 입력해주세요.<br />
-                                        <span className="text-xs text-red-400 mt-1 block">
+                                        <span className="editable-error-text">
                                             * 주소를 지우고 등록하면 영상이 삭제됩니다.
                                         </span>
                                     </p>
@@ -479,12 +479,12 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                         />
                                     </div>
                                     <div className="bottom-sheet-actions">
-                                        <div className="flex gap-3 w-full">
+                                        <div className="editable-flex-row editable-width-full">
                                             <button
                                                 onClick={() => {
                                                     setActiveModal(null);
                                                 }}
-                                                className="bottom-sheet-button flex-1 editable-video-cancel-btn"
+                                                className="bottom-sheet-button editable-flex-1 editable-video-cancel-btn"
                                                 style={{ backgroundColor: '', color: '' }}
                                             >
                                                 취소
@@ -498,7 +498,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                                     onVideoChange?.(tempVideoUrl);
                                                     setActiveModal(null);
                                                 }}
-                                                className="bottom-sheet-button flex-1 editable-video-register-btn"
+                                                className="bottom-sheet-button editable-flex-1 editable-video-register-btn"
                                             >
                                                 등록
                                             </button>
@@ -521,7 +521,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                         <div className="header-selectors-container">
                             {/* Unified Classification (Category + Genre) Selector */}
                             <div
-                                className="classification-selector group flex items-center gap-2 cursor-pointer"
+                                className="classification-selector group"
                                 onClick={(e) => {
                                     e.stopPropagation();
                                     e.stopPropagation();
@@ -566,9 +566,9 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
 
                                             <div className="bottom-sheet-body">
                                                 {/* Category Section */}
-                                                <div className="mb-6">
+                                                <div className="editable-margin-bottom-lg">
                                                     <label className="bottom-sheet-label">분류</label>
-                                                    <div className="flex gap-3 w-full">
+                                                    <div className="editable-flex-row editable-width-full">
                                                         <button
                                                             onClick={(e) => {
                                                                 e.preventDefault();
@@ -610,11 +610,6 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                                                 }
                                                             }}
                                                             className={`editable-category-btn ${event.category === 'club' ? 'club-active' : ''}`}
-                                                            style={{
-                                                                background: event.category === 'club' ? '#10b981' : 'rgba(255, 255, 255, 0.05)',
-                                                                border: event.category === 'club' ? '1px solid #10b981' : '1px solid rgba(255, 255, 255, 0.1)',
-                                                                color: event.category === 'club' ? 'white' : 'rgba(255, 255, 255, 0.6)'
-                                                            }}
                                                         >
                                                             <span className="editable-category-btn-text">동호회</span>
                                                             {event.category === 'club' && <i className="ri-check-line"></i>}
@@ -628,7 +623,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                                         <label className="bottom-sheet-label">장르</label>
 
                                                         {event.category === 'event' ? (
-                                                            <div className="flex flex-wrap gap-2">
+                                                            <div className="editable-flex-wrap">
                                                                 {['워크샵', '파티', '대회', '기타'].map((option) => {
                                                                     const currentGenres = event.genre ? event.genre.split(',').map(s => s.trim()).filter(Boolean) : [];
                                                                     const isActive = currentGenres.includes(option);
@@ -687,11 +682,6 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                                                                     }
                                                                                 }}
                                                                                 className={`genre-grid-btn ${isActive ? 'active' : ''}`}
-                                                                                style={{
-                                                                                    backgroundColor: isActive ? '#3b82f6' : 'rgba(255,255,255,0.05)',
-                                                                                    borderColor: isActive ? '#3b82f6' : 'rgba(255,255,255,0.1)',
-                                                                                    color: isActive ? 'white' : 'rgba(255,255,255,0.7)'
-                                                                                }}
                                                                             >
                                                                                 {g}
                                                                             </button>
@@ -805,7 +795,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                             <span className="editable-info-text-default">
                                 {eventDates && eventDates.length > 0 ? (
                                     /* Multiple Dates Display: Chips in Main View */
-                                    <div className="flex flex-wrap gap-1.5 mt-1 mb-1">
+                                    <div className="editable-flex-wrap editable-margin-top-auto editable-margin-bottom-lg">
                                         {eventDates.map(d => (
                                             <div
                                                 key={d}
@@ -868,8 +858,8 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                         onClick={(e) => e.stopPropagation()}
                                     >
                                         <div className="bottom-sheet-handle"></div>
-                                        <div className="flex items-center justify-between bottom-sheet-header">
-                                            <h3 className="flex items-center gap-2">
+                                        <div className="editable-flex-between bottom-sheet-header">
+                                            <h3 className="editable-flex-row">
                                                 <i className="ri-calendar-check-line"></i>
                                                 날짜 선택
                                             </h3>
@@ -909,7 +899,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                             </div>
                                         </div>
 
-                                        <div className="bottom-sheet-body flex flex-col items-center pb-8">
+                                        <div className="bottom-sheet-body editable-flex-col-center editable-padding-bottom-xl">
                                             {/* Selected Dates Display */}
                                             <div className="selected-dates-container">
                                                 {dateMode === 'single' ? (

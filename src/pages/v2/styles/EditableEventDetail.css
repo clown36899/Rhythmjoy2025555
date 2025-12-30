@@ -774,3 +774,193 @@
     justify-content: center !important;
     flex-shrink: 0 !important;
 }
+
+/* Bottom Sheet Desktop Optimization - Centered Modal Style */
+@media (min-width: 768px) {
+    .bottom-sheet-portal {
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 20px !important;
+    }
+
+    .bottom-sheet-content {
+        max-width: 500px !important;
+        width: 100% !important;
+        border-radius: 24px !important; /* All corners rounded for desktop modal feel */
+        border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        max-height: 90vh !important;
+        animation: modalEnter 0.3s cubic-bezier(0.19, 1, 0.22, 1) !important;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    .bottom-sheet-handle {
+        display: none !important; /* No need for swipe handle on desktop */
+    }
+
+    .bottom-sheet-body {
+        padding-bottom: 10px !important;
+    }
+}
+
+/* Premium UI Enhancements for Toggles and Buttons */
+.date-mode-toggle {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    border-radius: 12px !important;
+    padding: 4px !important;
+    display: inline-flex !important;
+    gap: 4px !important;
+}
+
+.date-mode-btn {
+    border: none !important;
+    background: transparent !important;
+    color: #9ca3af !important;
+    padding: 6px 16px !important;
+    border-radius: 8px !important;
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    cursor: pointer !important;
+}
+
+.date-mode-btn:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: white !important;
+}
+
+.date-mode-btn.active {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+    color: white !important;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3) !important;
+}
+
+/* Genre and Category Grid Buttons refinement */
+.genre-grid-btn, 
+.editable-genre-btn, 
+.editable-category-btn {
+    background: rgba(255, 255, 255, 0.05) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    color: #d1d5db !important;
+    padding: 10px 16px !important;
+    border-radius: 12px !important;
+    font-weight: 600 !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    cursor: pointer !important;
+}
+
+.genre-grid-btn:hover, 
+.editable-genre-btn:hover, 
+.editable-category-btn:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
+    color: white !important;
+    transform: translateY(-1px) !important;
+}
+
+.genre-grid-btn.active, 
+.editable-genre-btn.active,
+.editable-category-btn.event-active,
+.editable-category-btn.class-active {
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%) !important;
+    border-color: #3b82f6 !important;
+    color: white !important;
+    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* Specific highlight for class-active if preferred different color */
+.editable-category-btn.class-active {
+    background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%) !important;
+    border-color: #8b5cf6 !important;
+    box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4) !important;
+}
+
+/* Vanilla CSS Replacement for Tailwind Utilities */
+.editable-flex-wrap {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    gap: 8px !important;
+}
+
+.editable-flex-row {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+}
+
+.editable-flex-between {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+}
+
+.editable-width-full {
+    width: 100% !important;
+}
+
+.editable-margin-top-auto {
+    margin-top: auto !important;
+}
+
+.editable-margin-bottom-lg {
+    margin-bottom: 24px !important;
+}
+
+.editable-error-text {
+    display: block !important;
+    font-size: 0.75rem !important;
+    color: #f87171 !important;
+    margin-top: 4px !important;
+}
+
+.editable-flex-col-center {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+}
+
+.editable-padding-bottom-xl {
+    padding-bottom: 32px !important;
+}
+
+.editable-gap-sm {
+    gap: 8px !important;
+}
+
+.editable-gap-lg {
+    gap: 12px !important;
+}
+
+.editable-flex-1 {
+    flex: 1 !important;
+}
+
+.editable-flex-row-sm {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+
+/* Club category specific styling */
+.editable-category-btn.club-active {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    border-color: #10b981 !important;
+    box-shadow: 0 4px 15px rgba(16, 185, 129, 0.4) !important;
+}
+
+/* Genre Grid Layout - Unified for all categories */
+.genre-grid,
+.editable-flex-wrap {
+    display: grid !important;
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+    width: 100% !important;
+}
+
+/* Ensure all genre buttons have consistent sizing */
+.genre-grid .genre-grid-btn,
+.editable-flex-wrap .editable-genre-btn {
+    width: 100% !important;
+    text-align: center !important;
+}
