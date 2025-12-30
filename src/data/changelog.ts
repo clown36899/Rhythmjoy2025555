@@ -9,11 +9,12 @@ export interface ChangelogVersion {
 export const changelogData: ChangelogVersion[] = [
     {
         version: '3.1.2',
-        date: '2025-12-30',
+        date: '2025-12-31',
         changes: [
-            '[🚀 성능] 로그인/초기 로딩 속도 대폭 개선 (API 호출 40+회 → 3회)',
-            '[🔧 최적화] 전역 상태 관리 통합 (RPC 배칭 적용)',
-            '[🐛 Fix] 불필요한 중복 데이터 요청 제거'
+            '[🚀 성능] API 호출 오버헤드 획기적 단축 (전역 통합 RPC 및 캐싱 도입)',
+            '[🔧 최적화] 사용자 상호작용 및 장르 설정 데이터 전역 공유 레이어 구축',
+            '[🔧 개선] 이벤트/소셜 스케줄 SWR 캐싱으로 페이지 전환 속도 향상 (Zero-Lag)',
+            '[🐛 Fix] 게시판 권한 체크 등 불필요한 중복 네트워크 요청 제거'
         ]
     },
     {

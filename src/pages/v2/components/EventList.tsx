@@ -11,8 +11,10 @@ import { HorizontalScrollNav } from "./HorizontalScrollNav";
 // 컴포넌트 리마운트 시에도 순서 유지를 위한 전역 변수
 let globalLastSortedEvents: Event[] = [];
 let globalLastFutureClasses: Event[] = [];
-// Cache weights globally to avoid refetch on every mount/navigation
-let globalGenreWeights: GenreWeightSettings | null = null;
+let globalLastFetchedEvents: Event[] = [];
+let globalLastFetchTime: number = 0;
+const EVENT_CACHE_DURATION = 30 * 1000; // 30 seconds
+// Cache weights globally - removed in favor of Context
 
 import type { Event } from "../utils/eventListUtils";
 import { parseVideoUrl, isValidVideoUrl } from "../../../utils/videoEmbed";
@@ -51,6 +53,7 @@ import { useNavigate } from "react-router-dom";
 import "../../practice/components/PracticeRoomList.css";
 import "../../shopping/components/shopcard.css";
 import GlobalLoadingOverlay from "../../../components/GlobalLoadingOverlay";
+import { useBoardData } from "../../../contexts/BoardDataContext";
 
 
 registerLocale("ko", ko);
@@ -181,41 +184,20 @@ export default function EventList({
 
   // selectedEvent removed - delegated to props
 
-  const [genreWeights, setGenreWeights] = useState<GenreWeightSettings | null>(globalGenreWeights);
 
-  // Load Genre Weights
+  const { data: boardData } = useBoardData();
+  const [genreWeights, setGenreWeights] = useState<GenreWeightSettings | null>(null);
+
+  // Sync genre weights from boardData
   useEffect(() => {
-    // If we have global cache, use it (we might want to revalidate in background, but keeping it simple for now)
-    if (globalGenreWeights) {
-      setGenreWeights(globalGenreWeights);
+    if (boardData?.genre_weights) {
+      // Merge with defaults to ensure safety
+      const merged = { ...DEFAULT_GENRE_WEIGHTS, ...boardData.genre_weights };
+      setGenreWeights(merged);
+    } else {
+      setGenreWeights(DEFAULT_GENRE_WEIGHTS);
     }
-
-    const loadGenreWeights = async () => {
-      try {
-        const { data } = await supabase
-          .from('app_settings')
-          .select('value')
-          .eq('key', 'genre_weights')
-          .maybeSingle();
-
-        if (data && data.value) {
-          // Merge with defaults to ensure safety
-          const merged = { ...DEFAULT_GENRE_WEIGHTS, ...data.value };
-          setGenreWeights(merged);
-          globalGenreWeights = merged;
-        } else {
-          // If no settings found, use defaults
-          setGenreWeights(DEFAULT_GENRE_WEIGHTS);
-          globalGenreWeights = DEFAULT_GENRE_WEIGHTS;
-        }
-      } catch (e) {
-        console.error('Failed to load genre weights', e);
-      }
-    };
-
-    // Always try to load fresh on mount if standard page visit
-    loadGenreWeights();
-  }, []);
+  }, [boardData?.genre_weights]);
   const [events, setEvents] = useState<Event[]>([]);
   const [pendingFocusId, setPendingFocusId] = useState<number | null>(null);
   const isPartialUpdate = useRef(false); // 부분 업데이트 플래그
@@ -1042,6 +1024,14 @@ export default function EventList({
 
 
   const fetchEvents = useCallback(async (silent = false) => {
+    // SWR Strategy: Use cache if not expired and silent/background fetch
+    const isManualRefresh = silent === false; // If not silent, we treat it as manual/initial load
+    if (!isManualRefresh && globalLastFetchedEvents.length > 0 && (Date.now() - globalLastFetchTime < EVENT_CACHE_DURATION)) {
+      console.log('[EventList] Using cached events (SWR)');
+      setEvents(globalLastFetchedEvents);
+      return;
+    }
+
     try {
       if (!silent) {
         setLoading(true);
@@ -1057,14 +1047,12 @@ export default function EventList({
       );
 
       let data: Event[] | null = null;
-      let error: unknown = undefined; // Use unknown instead of any
+      let error: unknown = undefined;
 
       const fetchPromise = (async () => {
-        // 필요한 컬럼만 선택 (성능 최적화)
         const columns = "id,title,description,date,start_date,end_date,event_dates,time,location,location_link,category,price,image,image_thumbnail,image_micro,organizer,organizer_name,contact,created_at,updated_at,genre,user_id,venue_id,venue_name,venue_custom_link";
 
         if (isAdminMode) {
-          // 관리자 모드: 모든 이벤트 조회 (종료된 이벤트 포함)
           const result = await supabase
             .from("events")
             .select(columns)
@@ -1073,33 +1061,24 @@ export default function EventList({
           data = result.data;
           error = result.error;
         } else {
-          // 일반 사용자: 3개월 전부터 미래 이벤트만 조회 (성능 최적화)
           const threeMonthsAgo = new Date();
           threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
           const cutoffDate = threeMonthsAgo.toISOString().split('T')[0];
 
-          // event_dates 배열의 마지막 날짜도 확인하기 위해 모든 이벤트를 가져온 후 필터링
           const result = await supabase
             .from("events")
             .select(columns)
             .order("start_date", { ascending: true, nullsFirst: false })
             .order("date", { ascending: true, nullsFirst: false });
 
-          // 클라이언트 측에서 필터링 (event_dates 고려)
           if (result.data) {
             data = result.data.filter((event: any) => {
-              // end_date가 cutoff 이후면 포함
               if (event.end_date && event.end_date >= cutoffDate) return true;
-
-              // date가 cutoff 이후면 포함
               if (event.date && event.date >= cutoffDate) return true;
-
-              // event_dates 배열의 마지막 날짜가 cutoff 이후면 포함
               if (event.event_dates && Array.isArray(event.event_dates) && event.event_dates.length > 0) {
                 const lastEventDate = event.event_dates[event.event_dates.length - 1];
                 if (lastEventDate >= cutoffDate) return true;
               }
-
               return false;
             });
           } else {
@@ -1120,6 +1099,9 @@ export default function EventList({
       } else {
         const eventList: Event[] = data || [];
         setEvents(eventList);
+        // Update global cache
+        globalLastFetchedEvents = eventList;
+        globalLastFetchTime = Date.now();
       }
     } catch (error: unknown) {
       const errorMessage = (error as Error).message;

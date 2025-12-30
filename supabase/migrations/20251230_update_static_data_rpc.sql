@@ -88,7 +88,15 @@ BEGIN
           -- WHERE is_active = true -- Removed as column might not exist
           ORDER BY s.created_at DESC
        ) s
-    ), '[]'::json)
+    ), '[]'::json),
+
+    -- 7. Genre Weights (New)
+    'genre_weights', COALESCE((
+       SELECT value
+       FROM app_settings
+       WHERE key = 'genre_weights'
+       LIMIT 1
+    ), '{}'::json)
   ) INTO result;
   
   RETURN result;

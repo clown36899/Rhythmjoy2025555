@@ -3,15 +3,32 @@ import { supabase } from '../../../lib/supabase';
 import type { SocialSchedule } from '../types';
 import { useAuth } from '../../../contexts/AuthContext';
 
+// Global cache for social schedules to avoid redundant fetches across components
+let globalSchedulesCache: {
+    data: SocialSchedule[];
+    timestamp: number;
+    groupId: number | undefined;
+} | null = null;
+
+const CACHE_DURATION = 60 * 1000; // 1 minute
+
 export function useSocialSchedulesNew(groupId?: number) {
     const { isAdmin } = useAuth();
-    const [schedules, setSchedules] = useState<SocialSchedule[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [schedules, setSchedules] = useState<SocialSchedule[]>(globalSchedulesCache?.data || []);
+    const [loading, setLoading] = useState(!globalSchedulesCache || globalSchedulesCache.groupId !== groupId);
 
-    const fetchSchedules = useCallback(async () => {
+    const fetchSchedules = useCallback(async (force = false) => {
+        // Use cache if available and not expired (unless force refresh)
+        if (!force && globalSchedulesCache &&
+            globalSchedulesCache.groupId === groupId &&
+            Date.now() - globalSchedulesCache.timestamp < CACHE_DURATION) {
+            setSchedules(globalSchedulesCache.data);
+            setLoading(false);
+            return;
+        }
+
         setLoading(true);
         try {
-            // 모든 이미지 사이즈(micro, thumbnail, medium, full)를 포함하여 조회합니다.
             let selectFields = `
         id, group_id, title, date, day_of_week, start_time, 
         place_name, address, venue_id, description, 
@@ -35,13 +52,22 @@ export function useSocialSchedulesNew(groupId?: number) {
                 .order('start_time', { ascending: true });
 
             if (error) throw error;
-            setSchedules((data || []) as unknown as SocialSchedule[]);
+
+            const fetchedData = (data || []) as unknown as SocialSchedule[];
+            setSchedules(fetchedData);
+
+            // Update global cache
+            globalSchedulesCache = {
+                data: fetchedData,
+                timestamp: Date.now(),
+                groupId: groupId
+            };
         } catch (err) {
             console.error('Error fetching social schedules:', err);
         } finally {
             setLoading(false);
         }
-    }, [groupId, isAdmin]); // isAdmin 의존성 추가
+    }, [groupId, isAdmin]);
 
     useEffect(() => {
         fetchSchedules();
@@ -50,6 +76,6 @@ export function useSocialSchedulesNew(groupId?: number) {
     return {
         schedules,
         loading,
-        refresh: fetchSchedules
+        refresh: () => fetchSchedules(true)
     };
 }

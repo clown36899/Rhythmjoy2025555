@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
 
 interface BoardCategory {
@@ -73,6 +73,16 @@ interface Shop {
     featured_items?: any[]; // Added to satisfy compatibility, though maybe empty from static data
 }
 
+export interface UserInteractions {
+    post_likes: number[];
+    post_dislikes: number[];
+    post_favorites: number[];
+    event_favorites: number[];
+    social_group_favorites: number[];
+    practice_room_favorites: number[];
+    shop_favorites: number[];
+}
+
 interface BoardStaticData {
     categories: BoardCategory[];
     prefixes: Record<string, BoardPrefix[]>;
@@ -80,21 +90,43 @@ interface BoardStaticData {
     billboard_settings: BillboardSettings;
     practice_rooms: PracticeRoom[];
     shops: Shop[];
+    genre_weights?: Record<string, number>; // Added
 }
 
 interface BoardDataContextType {
     data: BoardStaticData | null;
+    interactions: UserInteractions | null;
     loading: boolean;
     error: string | null;
     refreshData: () => Promise<void>;
+    refreshInteractions: (userId: string) => Promise<void>;
 }
 
 const BoardDataContext = createContext<BoardDataContextType | undefined>(undefined);
 
 export const BoardDataProvider = ({ children }: { children: ReactNode }) => {
     const [data, setData] = useState<BoardStaticData | null>(null);
-    const [loading, setLoading] = useState(false); // 초기 false로 변경하여 흰 화면 방지
+    const [interactions, setInteractions] = useState<UserInteractions | null>(null);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    const fetchInteractions = useCallback(async (userId: string) => {
+        try {
+            const { data: interactionData, error: interactionError } = await supabase.rpc('get_user_interactions', {
+                p_user_id: userId
+            });
+            if (interactionError) throw interactionError;
+            setInteractions(interactionData);
+        } catch (err) {
+            console.error('[BoardDataContext] Interactions Error:', err);
+            // Fallback to empty
+            setInteractions({
+                post_likes: [], post_dislikes: [], post_favorites: [],
+                event_favorites: [], social_group_favorites: [],
+                practice_room_favorites: [], shop_favorites: []
+            });
+        }
+    }, []);
 
     const fetchData = async () => {
         try {
@@ -105,7 +137,13 @@ export const BoardDataProvider = ({ children }: { children: ReactNode }) => {
 
             if (rpcError) throw rpcError;
 
-            setData(rpcData);
+            // Ensure genre_weights has at least an empty object for safety
+            const processedData = {
+                ...rpcData,
+                genre_weights: rpcData.genre_weights || {}
+            };
+
+            setData(processedData);
         } catch (err) {
             console.error('[BoardDataContext] Error:', err);
             setError((err as Error).message);
@@ -123,7 +161,14 @@ export const BoardDataProvider = ({ children }: { children: ReactNode }) => {
     };
 
     return (
-        <BoardDataContext.Provider value={{ data, loading, error, refreshData }}>
+        <BoardDataContext.Provider value={{
+            data,
+            interactions,
+            loading,
+            error,
+            refreshData,
+            refreshInteractions: fetchInteractions
+        }}>
             {children}
         </BoardDataContext.Provider>
     );

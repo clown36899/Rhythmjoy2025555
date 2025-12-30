@@ -24,7 +24,7 @@ import { useBoardInteractions } from './hooks/useBoardInteractions';
 export default function BoardMainContainer() {
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
-    const { user } = useAuth();
+    const { user, isAdmin } = useAuth();
     const { data: boardData } = useBoardData();
     const [isRealAdmin, setIsRealAdmin] = useState(false);
     const [isAdminChecked, setIsAdminChecked] = useState(false);
@@ -86,36 +86,11 @@ export default function BoardMainContainer() {
         setSelectedPrefixId(null);
     }, [category]);
 
-    // Admin Status Check
+    // Admin Status Check - Simplified to use AuthContext
     useEffect(() => {
-        checkAdminStatus();
-    }, [user]);
-
-    const checkAdminStatus = async () => {
-        if (!user) {
-            setIsRealAdmin(false);
-            setIsAdminChecked(true);
-            return;
-        }
-        try {
-            const { data } = await supabase.rpc('is_admin_user');
-            if (data) {
-                setIsRealAdmin(true);
-            } else {
-                const { data: tableData } = await supabase
-                    .from('board_admins')
-                    .select('user_id')
-                    .eq('user_id', user.id)
-                    .maybeSingle();
-                setIsRealAdmin(!!tableData);
-            }
-        } catch (e) {
-            console.error(e);
-            setIsRealAdmin(false);
-        } finally {
-            setIsAdminChecked(true);
-        }
-    };
+        setIsRealAdmin(isAdmin);
+        setIsAdminChecked(true);
+    }, [isAdmin]);
 
     // Custom Hooks
     const {
