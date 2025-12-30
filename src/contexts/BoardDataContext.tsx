@@ -29,6 +29,11 @@ interface ThemeSettings {
     accent_color: string;
     background_color: string;
     text_color: string;
+    header_bg_color?: string; // Added
+    calendar_bg_color?: string; // Added
+    event_list_bg_color?: string; // Added
+    event_list_outer_bg_color?: string; // Added
+    page_bg_color?: string; // Added
     created_at: string;
     updated_at: string;
 }
@@ -58,12 +63,14 @@ interface PracticeRoom {
 }
 
 interface Shop {
-    id: string;
+    id: number; // Changed from string to number to match ShoppingPage
     name: string;
     description: string | null;
     logo_url: string | null;
+    website_url: string; // Added
     is_active: boolean;
     created_at: string;
+    featured_items?: any[]; // Added to satisfy compatibility, though maybe empty from static data
 }
 
 interface BoardStaticData {

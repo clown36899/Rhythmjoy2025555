@@ -133,10 +133,14 @@ export function useBoardInteractions({ user, category, isRealAdmin, loadPosts, s
 
     const handleToggleLike = async (postId: number) => {
         if (!user) {
+            const message = category === 'anonymous'
+                ? "글쓰기와 달리, 좋아요/싫어요는 1인 1표 정직한 투표를 위해 로그인이 필요합니다."
+                : "좋아요/싫어요는 로그인한 사용자만 이용할 수 있습니다.";
+
             window.dispatchEvent(new CustomEvent('requestProtectedAction', {
                 detail: {
                     action: () => handleToggleLike(postId),
-                    message: "좋아요/싫어요는 로그인한 사용자만 이용할 수 있습니다."
+                    message: message
                 }
             }));
             return;
@@ -195,10 +199,14 @@ export function useBoardInteractions({ user, category, isRealAdmin, loadPosts, s
 
     const handleToggleDislike = async (postId: number) => {
         if (!user) {
+            const message = category === 'anonymous'
+                ? "글쓰기와 달리, 좋아요/싫어요는 1인 1표 정직한 투표를 위해 로그인이 필요합니다."
+                : "좋아요/싫어요는 로그인한 사용자만 이용할 수 있습니다.";
+
             window.dispatchEvent(new CustomEvent('requestProtectedAction', {
                 detail: {
                     action: () => handleToggleDislike(postId),
-                    message: "좋아요/싫어요는 로그인한 사용자만 이용할 수 있습니다."
+                    message: message
                 }
             }));
             return;

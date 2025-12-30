@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../lib/supabase';
+import { useAuth } from '../../../contexts/AuthContext';
 import { resizeImage } from '../../../utils/imageResize';
 import { retryOperation } from '../../../utils/asyncUtils';
 import './QuickMemoEditor.css';
@@ -34,6 +35,36 @@ export default function QuickMemoEditor({
     const [bannedWords, setBannedWords] = useState<string[]>([]);
     const [isNotice, setIsNotice] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Auth Check for Anonymous Board
+    const { user } = useAuth(); // Import useAuth hook at top if not present, or pass as prop
+    // Since useAuth is context, we should import it.
+
+    // Effect early return for logged in users on mount/expand
+    useEffect(() => {
+        if (user && category === 'anonymous' && !isAdmin && !editData) {
+            // Prevent editing/writing if logged in
+            // Using setTimeout to avoid render loop issues or to let modal open first
+            const timer = setTimeout(() => {
+                const shouldLogout = window.confirm("로그인 상태에서는 글을 쓸 수 없습니다.\n익명 글을 작성하려면 로그아웃 해주세요.\n\n[확인]을 누르면 로그아웃 됩니다.");
+                if (shouldLogout) {
+                    supabase.auth.signOut().then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    onCancelEdit?.(); // Close modal or collapse
+                    if (className.includes('modal-mode')) {
+                        // If in modal, close it
+                        const closeBtn = document.querySelector('.anonymous-modal-close') as HTMLElement;
+                        if (closeBtn) closeBtn.click();
+                    } else {
+                        setIsExpanded(false);
+                    }
+                }
+            }, 100);
+            return () => clearTimeout(timer);
+        }
+    }, [user, category, isAdmin, editData]);
 
     const handleNoticeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const checked = e.target.checked;
