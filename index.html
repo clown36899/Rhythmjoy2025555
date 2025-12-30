@@ -55,35 +55,7 @@
       }
 
       // 기본 manifest (빌보드가 아닌 경우)
-      const manifestData = {
-        name: '댄스빌보드',
-        short_name: '댄스빌보드',
-        description: '이벤트 빌보드 디스플레이',
-        start_url: baseUrl + '/',
-        display: 'fullscreen',
-        background_color: '#000000',
-        theme_color: '#000000',
-        orientation: 'portrait',
-        scope: baseUrl + '/',
-        icons: [
-          {
-            src: baseUrl + '/icon-192.png',
-            sizes: '192x192',
-            type: 'image/png',
-            purpose: 'any'
-          },
-          {
-            src: baseUrl + '/icon-512.png',
-            sizes: '512x512',
-            type: 'image/png',
-            purpose: 'any maskable'
-          }
-        ]
-      };
-
-      const manifestBlob = new Blob([JSON.stringify(manifestData)], { type: 'application/manifest+json' });
-      const manifestURL = URL.createObjectURL(manifestBlob);
-      document.getElementById('manifest-placeholder').setAttribute('href', manifestURL);
+      document.getElementById('manifest-placeholder').setAttribute('href', '/manifest.json');
     })();
 
     // 유튜브 iframe 콘솔 에러 필터링 (기능에는 영향 없음)
@@ -290,15 +262,17 @@
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
 
-  <!-- PWA Service Worker 등록 - 임시 비활성화 -->
+  <!-- PWA Service Worker 등록 -->
   <script>
     if ('serviceWorker' in navigator) {
-      // 모든 서비스 워커 해제
-      navigator.serviceWorker.getRegistrations().then(function (registrations) {
-        for (let registration of registrations) {
-          registration.unregister();
-          console.log('Service Worker 해제됨 (디버깅 목적)');
-        }
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js', { scope: '/' })
+          .then(registration => {
+            console.log('[PWA] ✅ Service Worker registered:', registration.scope);
+          })
+          .catch(err => {
+            console.error('[PWA] ❌ Service Worker registration failed:', err);
+          });
       });
     }
   </script>
