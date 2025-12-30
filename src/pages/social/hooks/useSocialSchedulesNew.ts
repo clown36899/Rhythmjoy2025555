@@ -35,7 +35,7 @@ export function useSocialSchedulesNew(groupId?: number) {
                 .order('start_time', { ascending: true });
 
             if (error) throw error;
-            setSchedules((data as SocialSchedule[]) || []);
+            setSchedules((data || []) as unknown as SocialSchedule[]);
         } catch (err) {
             console.error('Error fetching social schedules:', err);
         } finally {

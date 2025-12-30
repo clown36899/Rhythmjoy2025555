@@ -2580,7 +2580,6 @@ export default function EventList({
           if (individualPaths.length > 0) {
             try {
               // 현재 새로 업로드한 경로는 제외하고 삭제
-              const timestamp = Date.now(); // Note: This timestamp is newer than the upload one but should be fine for startsWith check
               const filteredPaths = individualPaths.filter(p => !p.startsWith(`event-posters/`)); // Simple exclusion
               if (filteredPaths.length > 0) {
                 await supabase.storage.from("images").remove(filteredPaths);

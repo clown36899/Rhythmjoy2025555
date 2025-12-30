@@ -40,7 +40,7 @@ export default function PostEditorModal({
 
       // Load all prefixes from BoardDataContext
       if (boardData?.prefixes) {
-        const allPrefixes = Object.values(boardData.prefixes).flat();
+        const allPrefixes = Object.values(boardData.prefixes).flat() as BoardPrefix[];
         setPrefixes(allPrefixes);
       }
 

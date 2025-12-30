@@ -19,6 +19,7 @@ interface BoardPrefix {
     admin_only: boolean;
     board_category_code: string;
     display_order: number;
+    created_at: string;
 }
 
 interface ThemeSettings {

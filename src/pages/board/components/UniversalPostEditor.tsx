@@ -180,7 +180,7 @@ export default function UniversalPostEditor({
     // Load prefixes from BoardDataContext when category changes
     useEffect(() => {
         if (formData.category && boardData?.prefixes) {
-            const categoryPrefixes = boardData.prefixes[formData.category] || [];
+            const categoryPrefixes = (boardData.prefixes[formData.category] || []) as BoardPrefix[];
             setPrefixes(categoryPrefixes);
         }
     }, [formData.category, boardData]);

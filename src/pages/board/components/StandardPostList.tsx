@@ -1,6 +1,3 @@
-// import { useNavigate } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import { useBoardData } from '../../../contexts/BoardDataContext';
 // import { useAuth } from '../../../contexts/AuthContext';
 // import { getAvatarStyle } from '../../../utils/avatarUtils'; // Removed due to resolution issue
 import type { StandardBoardPost } from '../../../types/board';
@@ -54,18 +51,7 @@ export default function StandardPostList({
     onToggleFavorite,
     isAdmin,
     onWriteClick,
-    selectedPrefixId,
-    onPrefixChange,
-    category
 }: StandardPostListProps) {
-    const { data: boardData } = useBoardData();
-    const [prefixes, setPrefixes] = useState<any[]>([]);
-
-    useEffect(() => {
-        // Use prefixes from BoardDataContext
-        const categoryPrefixes = boardData?.prefixes?.[category] || [];
-        setPrefixes(categoryPrefixes);
-    }, [category, boardData]);
 
     const truncateText = (text: string, maxLength: number) => {
         if (!text) return '';
