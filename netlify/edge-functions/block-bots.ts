@@ -12,15 +12,11 @@ export default async (request: Request, context: Context) => {
         "requests", "node-fetch", "axios", "go-http-client", "curl", "wget"
     ];
 
-    // Detect suspicious Linux crawlers (e.g., Linux + X11 + Chrome without desktop characteristics)
-    const isSuspiciousLinux = userAgent.includes("linux x86_64") &&
-        userAgent.includes("x11") &&
-        userAgent.includes("chrome") &&
-        !userAgent.includes("android");
-
-    if (blockedBots.some(bot => userAgent.includes(bot)) || isSuspiciousLinux) {
-        console.log(`[Edge Function] Blocked suspicious traffic: ${userAgent}`);
-        return new Response("Access Denied: Your client is identified as a potential bot or crawler.", {
+    // Detect suspicious patterns (Note: Billboard players may use Linux X11 Chrome)
+    // To avoid false positives, we focus only on identifiable bot names or headless drivers.
+    if (blockedBots.some(bot => userAgent.includes(bot))) {
+        console.log(`[Edge Function] Blocked known bot: ${userAgent}`);
+        return new Response("Access Denied: Your client is identified as a known bot or crawler.", {
             status: 403,
             headers: { "Content-Type": "text/plain" },
         });
