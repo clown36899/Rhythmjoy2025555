@@ -49,6 +49,7 @@ import DefaultThumbnailSettingsModal from '../components/DefaultThumbnailSetting
 import InvitationManagementModal from '../components/InvitationManagementModal';
 
 import { OnlineUsersModal } from '../components/OnlineUsersModal';
+import GlobalNoticeEditor from '../components/GlobalNoticeEditor';
 
 // Admin Modals
 import AdminUserInfoModal from '../components/AdminUserInfoModal';
@@ -121,6 +122,7 @@ const MODAL_COMPONENTS: Record<string, any> = {
     'adminFavorites': AdminFavoritesModal,
     'adminSecureMembers': AdminSecureMembersModal,
     'genreWeightSettings': GenreWeightSettingsModal,
+    'globalNoticeEditor': GlobalNoticeEditor,
 };
 
 /**

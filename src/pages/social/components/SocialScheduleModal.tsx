@@ -291,7 +291,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
     if (!isOpen) return null;
 
     return createPortal(
-        <div className="social-schedule-modal-overlay" onClick={onClose}>
+        <div className="social-schedule-modal-overlay">
             <div className="social-schedule-modal-container" onClick={(e) => e.stopPropagation()}>
                 <div className="social-schedule-modal-header">
                     <h2>{editSchedule ? '일정 수정' : (copyFrom ? '일정 복사 등록' : '새 일정 등록')}</h2>

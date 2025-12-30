@@ -15,6 +15,7 @@ import BillboardUserManagementModal from "../components/BillboardUserManagementM
 import InvitationManagementModal from "../components/InvitationManagementModal";
 import { useOnlineUsers } from "../hooks/useOnlineUsers";
 import { useTotalUserCount } from "../hooks/useTotalUserCount";
+import GlobalNoticePopup from "../components/GlobalNoticePopup";
 
 export function MobileShell() {
   const location = useLocation();
@@ -748,6 +749,8 @@ export function MobileShell() {
           if (isProcessing) setIsProcessing(false);
         }}
       />
+      <GlobalNoticePopup />
+
     </div>
   );
 }

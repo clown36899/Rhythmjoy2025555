@@ -158,7 +158,7 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
   };
 
   return (
-    <div className="sed-modal-overlay" onClick={onClose}>
+    <div className="sed-modal-overlay">
       <div className="sed-modal-container" onClick={(e) => e.stopPropagation()}>
         <form onSubmit={handleSubmit} className="sed-modal-form">
           <h2 className="sed-modal-title">일정 수정</h2>

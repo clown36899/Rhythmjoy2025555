@@ -98,7 +98,7 @@ const SocialDetailModal: React.FC<SocialDetailModalProps> = ({
     };
 
     return createPortal(
-        <div className="social-detail-overlay" onClick={onClose}>
+        <div className="social-detail-overlay">
             <div className="social-detail-container" onClick={(e) => e.stopPropagation()}>
                 {/* 고정된 버튼 영역 (스크롤 안됨) */}
                 <button className="detail-close-btn" onClick={onClose}>

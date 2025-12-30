@@ -263,7 +263,7 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
     const isCreator = editGroup ? editGroup.user_id === user?.id : true; // 신규는 본인이 생성자
 
     const mainModal = createPortal(
-        <div className="social-group-modal-overlay" onClick={onClose}>
+        <div className="social-group-modal-overlay">
             <div className="social-group-modal-container" onClick={(e) => e.stopPropagation()}>
                 <div className="social-group-modal-header">
                     <h2>{editGroup ? '단체 정보 수정' : '새 단체 등록'}</h2>

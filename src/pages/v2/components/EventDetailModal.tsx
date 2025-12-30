@@ -91,11 +91,7 @@ export default function EventDetailModal({
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
 
-  const handleOverlayClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  };
+
   const [showFullscreenImage, setShowFullscreenImage] = useState(false);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [dateMode, setDateMode] = useState<'single' | 'dates'>('single'); // Track date mode separately
@@ -869,7 +865,6 @@ export default function EventDetailModal({
       {createPortal(
         <div
           className="event-detail-modal-overlay"
-          onClick={handleOverlayClick}
           onTouchStartCapture={(e) => {
             e.stopPropagation();
           }}
