@@ -1,6 +1,6 @@
 // import { useNavigate } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import { supabase } from '../../../lib/supabase';
+import { useBoardData } from '../../../contexts/BoardDataContext';
 // import { useAuth } from '../../../contexts/AuthContext';
 // import { getAvatarStyle } from '../../../utils/avatarUtils'; // Removed due to resolution issue
 import type { StandardBoardPost } from '../../../types/board';
@@ -58,22 +58,14 @@ export default function StandardPostList({
     onPrefixChange,
     category
 }: StandardPostListProps) {
+    const { data: boardData } = useBoardData();
     const [prefixes, setPrefixes] = useState<any[]>([]);
 
     useEffect(() => {
-        const fetchPrefixes = async () => {
-            if (!category) return;
-            const { data } = await supabase
-                .from('board_prefixes')
-                .select('*')
-                .eq('board_category_code', category)
-                .order('id', { ascending: true });
-
-            if (data) setPrefixes(data);
-            else setPrefixes([]);
-        };
-        fetchPrefixes();
-    }, [category]);
+        // Use prefixes from BoardDataContext
+        const categoryPrefixes = boardData?.prefixes?.[category] || [];
+        setPrefixes(categoryPrefixes);
+    }, [category, boardData]);
 
     const truncateText = (text: string, maxLength: number) => {
         if (!text) return '';

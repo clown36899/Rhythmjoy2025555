@@ -1,6 +1,6 @@
 import './BoardTabBar.css';
 import { useEffect, useState, useRef, useLayoutEffect } from 'react';
-import { supabase } from '../../../lib/supabase';
+import { useBoardData } from '../../../contexts/BoardDataContext';
 
 export type BoardCategory = string; // Relaxed type for dynamic categories
 
@@ -20,6 +20,7 @@ const DEFAULT_CATEGORIES = [
 ];
 
 export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardTabBarProps) {
+    const { data } = useBoardData();
     const [categories, setCategories] = useState<any[]>([]);
     const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
     const scrollerRef = useRef<HTMLDivElement | null>(null);
@@ -38,9 +39,9 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
 
         window.addEventListener('refreshBoardCategories', handleRefresh);
         return () => window.removeEventListener('refreshBoardCategories', handleRefresh);
-    }, []);
+    }, [data]);
 
-    const loadCategories = async () => {
+    const loadCategories = () => {
         try {
             // Temporarily disable transition during category update to prevent flicker
             const wasReady = isReady;
@@ -48,17 +49,10 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
                 setShowTransition(false);
             }
 
-            const { data, error } = await supabase
-                .from('board_categories')
-                .select('*')
-                .eq('is_active', true) // Only show active boards
-                .order('display_order', { ascending: true });
-
-            if (error) throw error;
-
-            if (data && data.length > 0) {
+            const dbCategories = data?.categories;
+            if (dbCategories && dbCategories.length > 0) {
                 // Map DB data to UI format
-                const mapped = data.map((item: any) => ({
+                const mapped = dbCategories.map((item: any) => ({
                     id: item.code,
                     label: item.name,
                     icon: getIconForCategory(item.code)

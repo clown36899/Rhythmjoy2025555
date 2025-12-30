@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useBoardData } from '../../contexts/BoardDataContext';
 import BoardTabBar, { type BoardCategory } from './components/BoardTabBar';
 import BoardPrefixTabBar from './components/BoardPrefixTabBar';
 import AnonymousPostList from './components/AnonymousPostList';
@@ -24,6 +25,7 @@ export default function BoardMainContainer() {
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
     const { user } = useAuth();
+    const { data: boardData } = useBoardData();
     const [isRealAdmin, setIsRealAdmin] = useState(false);
     const [isAdminChecked, setIsAdminChecked] = useState(false);
 
@@ -52,18 +54,17 @@ export default function BoardMainContainer() {
             // Get unique prefix IDs
             const usedPrefixIds = [...new Set(posts.map(p => p.prefix_id))];
 
-            // Fetch only those prefixes
-            const { data: prefixData } = await supabase
-                .from('board_prefixes')
-                .select('*')
-                .in('id', usedPrefixIds)
-                .order('display_order', { ascending: true });
+            // Use prefixes from BoardDataContext instead of fetching
+            const allPrefixes = boardData?.prefixes?.[category] || [];
+            const filteredPrefixes = allPrefixes.filter((prefix: any) =>
+                usedPrefixIds.includes(prefix.id)
+            );
 
-            console.log('[BoardMainContainer] Used prefixes for category:', category, 'data:', prefixData);
-            setPrefixes(prefixData || []);
+            console.log('[BoardMainContainer] Used prefixes for category:', category, 'data:', filteredPrefixes);
+            setPrefixes(filteredPrefixes);
         };
         fetchPrefixes();
-    }, [category]);
+    }, [category, boardData]);
 
     // Ensure category is always in URL to prevent back navigation issues
     useEffect(() => {
@@ -214,24 +215,16 @@ export default function BoardMainContainer() {
         };
     }, []);
 
-    useEffect(() => { loadCategories(); }, []);
-
-    const loadCategories = async () => {
-        try {
-            const { data } = await supabase
-                .from('board_categories')
-                .select('*')
-                .eq('is_active', true)
-                .order('display_order', { ascending: true });
-
-            if (data && data.length > 0) {
-                const mapped = data.map((item: any) => ({ id: item.code, label: item.name }));
-                mapped.push({ id: 'history', label: '히스토리' });
-                mapped.push({ id: 'dev-log', label: '개발일지' });
-                setCategories(mapped);
-            }
-        } catch (error) { console.error('Failed to load categories:', error); }
-    };
+    useEffect(() => {
+        // Use categories from BoardDataContext
+        const dbCategories = boardData?.categories;
+        if (dbCategories && dbCategories.length > 0) {
+            const mapped = dbCategories.map((item: any) => ({ id: item.code, label: item.name }));
+            mapped.push({ id: 'history', label: '히스토리' });
+            mapped.push({ id: 'dev-log', label: '개발일지' });
+            setCategories(mapped);
+        }
+    }, [boardData]);
 
     const [touchStart, setTouchStart] = useState<number | null>(null);
     const [touchEnd, setTouchEnd] = useState<number | null>(null);

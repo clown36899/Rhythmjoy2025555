@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useBoardData } from '../../../contexts/BoardDataContext';
 import type { BoardPost } from '../page';
 import type { BoardPrefix } from '../../../components/BoardPrefixManagementModal';
 import './PostEditorModal.css';
@@ -22,6 +23,7 @@ export default function PostEditorModal({
   userNickname
 }: PostEditorModalProps) {
   const { isAdmin, user } = useAuth();
+  const { data: boardData } = useBoardData();
   const [formData, setFormData] = useState({
     title: '',
     content: '',
@@ -35,8 +37,13 @@ export default function PostEditorModal({
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
-      loadPrefixes();
-      
+
+      // Load all prefixes from BoardDataContext
+      if (boardData?.prefixes) {
+        const allPrefixes = Object.values(boardData.prefixes).flat();
+        setPrefixes(allPrefixes);
+      }
+
       if (post) {
         // 수정 모드
         setFormData({
@@ -59,25 +66,11 @@ export default function PostEditorModal({
     } else {
       document.body.style.overflow = '';
     }
-    
+
     return () => {
       document.body.style.overflow = '';
     };
-  }, [isOpen, post, user]);
-
-  const loadPrefixes = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('board_prefixes')
-        .select('*')
-        .order('display_order', { ascending: true });
-
-      if (error) throw error;
-      setPrefixes(data || []);
-    } catch (error) {
-      console.error('머릿말 로드 실패:', error);
-    }
-  };
+  }, [isOpen, post, user, boardData]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>

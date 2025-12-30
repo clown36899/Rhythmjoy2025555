@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useBoardData } from '../../../contexts/BoardDataContext';
 import type { BoardPost } from '../page';
 import type { BoardPrefix } from '../../../components/BoardPrefixManagementModal';
 import { type BoardCategory } from './BoardTabBar';
@@ -32,6 +33,7 @@ export default function UniversalPostEditor({
     useModalHistory(isOpen, onClose);
 
     const { isAdmin, user, signInWithKakao } = useAuth();
+    const { data: boardData } = useBoardData();
     const handleLogin = () => signInWithKakao();
 
     // Login Overlay Component
@@ -123,7 +125,6 @@ export default function UniversalPostEditor({
     useEffect(() => {
         if (isOpen) {
             document.body.style.overflow = 'hidden';
-            loadPrefixes();
             loadBannedWords();
 
             if (post) {
@@ -167,28 +168,6 @@ export default function UniversalPostEditor({
         };
     }, [isOpen, post, user, category]);
 
-    const loadPrefixes = async () => {
-        try {
-            // Filter by board_category_code matching the current post's category
-            // We use formData.category since that's what controls the current post
-            let query = supabase
-                .from('board_prefixes')
-                .select('*')
-                .order('display_order', { ascending: true });
-
-            if (formData.category) {
-                query = query.eq('board_category_code', formData.category);
-            }
-
-            const { data, error } = await query;
-
-            if (error) throw error;
-            setPrefixes(data || []);
-        } catch (error) {
-            console.error('머릿말 로드 실패:', error);
-        }
-    };
-
     const loadBannedWords = async () => {
         try {
             const { data } = await supabase.from('board_banned_words').select('word');
@@ -198,12 +177,13 @@ export default function UniversalPostEditor({
         }
     };
 
-    // Reload prefixes when category changes
+    // Load prefixes from BoardDataContext when category changes
     useEffect(() => {
-        if (formData.category) {
-            loadPrefixes();
+        if (formData.category && boardData?.prefixes) {
+            const categoryPrefixes = boardData.prefixes[formData.category] || [];
+            setPrefixes(categoryPrefixes);
         }
-    }, [formData.category]);
+    }, [formData.category, boardData]);
 
     const handleInputChange = (
         e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
