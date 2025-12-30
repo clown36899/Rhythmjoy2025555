@@ -49,6 +49,8 @@ const DebugLogPage = lazy(() => import('../pages/DebugLogPage'));
 export const prefetchHistoryTimelinePage = () => import('../pages/history/HistoryTimelinePage');
 const HistoryTimelinePage = lazy(prefetchHistoryTimelinePage);
 
+const PushNotificationTestPage = lazy(() => import('../pages/PushNotificationTestPage'));
+
 export const routes: RouteObject[] = [
     {
         element: <MobileShell />,
@@ -71,6 +73,7 @@ export const routes: RouteObject[] = [
             { path: '/my-activities', element: <MyActivitiesPage /> },
             { path: '/debug', element: <DebugLogPage /> },
             { path: '/history', element: <HistoryTimelinePage /> },
+            { path: '/push-test', element: <PushNotificationTestPage /> },
         ],
     },
     {
