@@ -512,678 +512,38 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
 
 
                 </div>
-
-                {/* Sticky Header */}
-                <div
-                    className="sticky-header"
-
-                >
-                    <div className="header-selectors-container">
-                        {/* Unified Classification (Category + Genre) Selector */}
-                        <div
-                            className="classification-selector group flex items-center gap-2 cursor-pointer"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                e.stopPropagation();
-                                // setShowCustomGenreInput(false); // Removed
-                                // setCustomGenreInput(""); // Removed
-                                setActiveModal('classification');
-                            }}
-                        >
-                            {/* Category Badge part */}
-                            <div className={`category-selector category-badge ${!event.category ? "default" : event.category}`}>
-                                {!event.category ? "분류" : (event.category === "class" ? "강습" : event.category === "club" ? "동호회" : "행사")}
-                            </div>
-
-                            {/* Genre Text part */}
-                            <div className={`genre-text ${getGenreColor(event.genre || '')}`}>
-                                {event.genre || <span className="editable-genre-placeholder">장르 선택</span>}
-                            </div>
-
-                            <EditBadge isStatic />
-
-                            {/* Classification (Category + Genre) Bottom Sheet Portal */}
-                            {activeModal === 'classification' && createPortal(
-                                <div className="bottom-sheet-portal">
-                                    {/* Backdrop */}
-                                    <div
-                                        className="bottom-sheet-backdrop"
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            setActiveModal(null);
-                                        }}
-                                    />
-                                    {/* Content */}
-                                    <div
-                                        className="bottom-sheet-content"
-                                        onClick={(e) => e.stopPropagation()}
-                                    >
-                                        <div className="bottom-sheet-handle"></div>
-                                        <h3 className="bottom-sheet-header">
-                                            <i className="ri-music-2-line"></i>
-                                            분류 및 장르 선택
-                                        </h3>
-
-                                        <div className="bottom-sheet-body">
-                                            {/* Category Section */}
-                                            <div className="mb-6">
-                                                <label className="bottom-sheet-label">분류</label>
-                                                <div className="flex gap-3 w-full">
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.preventDefault();
-                                                            e.stopPropagation();
-                                                            console.log('[EditableEventDetail] Clicked Category: Event');
-                                                            if (event.category !== 'event') {
-                                                                onUpdate('category', 'event');
-                                                                onUpdate('genre', '');
-                                                            }
-                                                        }}
-                                                        className={`editable-category-btn ${event.category === 'event' ? 'event-active' : ''}`}
-                                                    >
-                                                        <span className="editable-category-btn-text">행사</span>
-                                                        {event.category === 'event' && <i className="ri-check-line"></i>}
-                                                    </button>
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.preventDefault();
-                                                            e.stopPropagation();
-                                                            console.log('[EditableEventDetail] Clicked Category: Class');
-                                                            if (event.category !== 'class') {
-                                                                onUpdate('category', 'class');
-                                                                onUpdate('genre', '');
-                                                            }
-                                                        }}
-                                                        className={`editable-category-btn ${event.category === 'class' ? 'class-active' : ''}`}
-                                                    >
-                                                        <span className="editable-category-btn-text">강습</span>
-                                                        {event.category === 'class' && <i className="ri-check-line"></i>}
-                                                    </button>
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.preventDefault();
-                                                            e.stopPropagation();
-                                                            console.log('[EditableEventDetail] Clicked Category: Club');
-                                                            if (event.category !== 'club') {
-                                                                onUpdate('category', 'club');
-                                                                onUpdate('genre', '');
-                                                            }
-                                                        }}
-                                                        className={`editable-category-btn ${event.category === 'club' ? 'club-active' : ''}`}
-                                                        style={{
-                                                            background: event.category === 'club' ? '#10b981' : 'rgba(255, 255, 255, 0.05)',
-                                                            border: event.category === 'club' ? '1px solid #10b981' : '1px solid rgba(255, 255, 255, 0.1)',
-                                                            color: event.category === 'club' ? 'white' : 'rgba(255, 255, 255, 0.6)'
-                                                        }}
-                                                    >
-                                                        <span className="editable-category-btn-text">동호회</span>
-                                                        {event.category === 'club' && <i className="ri-check-line"></i>}
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            {/* Genre Section - Only visible if category is selected */}
-                                            {event.category && (
-                                                <>
-                                                    <label className="bottom-sheet-label">장르</label>
-
-                                                    {event.category === 'event' ? (
-                                                        <div className="flex flex-wrap gap-2">
-                                                            {['워크샵', '파티', '대회', '기타'].map((option) => {
-                                                                const currentGenres = event.genre ? event.genre.split(',').map(s => s.trim()).filter(Boolean) : [];
-                                                                const isActive = currentGenres.includes(option);
-
-                                                                return (
-                                                                    <button
-                                                                        key={option}
-                                                                        type="button"
-                                                                        onClick={(e) => {
-                                                                            e.preventDefault();
-                                                                            e.stopPropagation();
-
-                                                                            let newGenres = [];
-                                                                            if (isActive) {
-                                                                                newGenres = currentGenres.filter(g => g !== option);
-                                                                            } else {
-                                                                                let temp = [...currentGenres];
-                                                                                // Mutual Exclusivity: '파티' vs '대회'
-                                                                                if (option === '파티') {
-                                                                                    temp = temp.filter(g => g !== '대회');
-                                                                                } else if (option === '대회') {
-                                                                                    temp = temp.filter(g => g !== '파티');
-                                                                                }
-                                                                                newGenres = [...temp, option];
-                                                                            }
-                                                                            onUpdate('genre', newGenres.join(','));
-                                                                        }}
-                                                                        className={`editable-genre-btn ${isActive ? 'active' : ''}`}
-                                                                    >
-                                                                        {option}
-                                                                    </button>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    ) : (
-                                                        <div className="genre-grid">
-                                                            {(() => {
-                                                                // 정규강습은 '동호회(club)' 카테고리일 때만 노출
-                                                                const baseGenres = ['린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'];
-                                                                const genreList = event.category === 'club'
-                                                                    ? ['정규강습', ...baseGenres]
-                                                                    : baseGenres;
-
-                                                                return genreList.map(g => {
-                                                                    const currentGenres = event.genre ? event.genre.split(',').map(s => s.trim()).filter(Boolean) : [];
-                                                                    const isActive = currentGenres.includes(g);
-                                                                    return (
-                                                                        <button
-                                                                            key={g}
-                                                                            onClick={() => {
-                                                                                // Class: Single Select Logic
-                                                                                if (isActive) {
-                                                                                    onUpdate('genre', '');
-                                                                                } else {
-                                                                                    onUpdate('genre', g);
-                                                                                }
-                                                                            }}
-                                                                            className={`genre-grid-btn ${isActive ? 'active' : ''}`}
-                                                                            style={{
-                                                                                backgroundColor: isActive ? '#3b82f6' : 'rgba(255,255,255,0.05)',
-                                                                                borderColor: isActive ? '#3b82f6' : 'rgba(255,255,255,0.1)',
-                                                                                color: isActive ? 'white' : 'rgba(255,255,255,0.7)'
-                                                                            }}
-                                                                        >
-                                                                            {g}
-                                                                        </button>
-                                                                    );
-                                                                });
-                                                            })()}
-                                                        </div>
-                                                    )}
-                                                </>
-                                            )}
-                                        </div>
-
-                                    </div>
-                                </div>,
-                                document.body
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Title */}
-                <div
-                    className="title-editor-container group"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        setTempTitle(event.title);
-                        setActiveModal('title');
-                    }}
-                >
-                    <h2 className={`title-text editable-title-text ${!event.title ? 'placeholder' : ''}`}>
-                        {event.title || "제목을 입력하세요"}
-                    </h2>
-                    <EditBadge isStatic />
-
-                    {/* Title Bottom Sheet Portal */}
-                    {activeModal === 'title' && createPortal(
-                        <div className="bottom-sheet-portal">
-                            {/* Backdrop */}
+                {/* Info Column - Wraps sticky header + info section */}
+                <div className="info-column">
+                    {/* Sticky Header */}
+                    <div
+                        className="sticky-header"
+                    >
+                        <div className="header-selectors-container">
+                            {/* Unified Classification (Category + Genre) Selector */}
                             <div
-                                className="bottom-sheet-backdrop"
+                                className="classification-selector group flex items-center gap-2 cursor-pointer"
                                 onClick={(e) => {
                                     e.stopPropagation();
-                                    setActiveModal(null);
-                                }}
-                            />
-                            {/* Content */}
-                            <div
-                                className="bottom-sheet-content"
-                                onClick={(e) => e.stopPropagation()}
-                            >
-                                <div className="bottom-sheet-handle"></div>
-                                <h3 className="bottom-sheet-header">
-                                    <i className="ri-text"></i>
-                                    제목 입력
-                                </h3>
-
-                                <div className="bottom-sheet-body">
-                                    <div className="bottom-sheet-input-group">
-                                        <textarea
-                                            value={tempTitle}
-                                            onChange={(e) => setTempTitle(e.target.value)}
-                                            className="bottom-sheet-input"
-                                            placeholder="행사 제목을 입력하세요"
-                                            autoFocus
-                                            rows={3}
-                                            style={{ resize: 'none', minHeight: '100px' }}
-                                        />
-                                    </div>
-                                    <div className="bottom-sheet-actions">
-                                        <button
-                                            onClick={() => {
-                                                onUpdate('title', tempTitle);
-                                                setActiveModal(null);
-                                            }}
-                                            className="bottom-sheet-button"
-                                        >
-                                            저장
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>,
-                        document.body
-                    )}
-                </div>
-
-                {/* Info Section */}
-                <div className="info-section">
-                    {/* Date                    */}
-                    <div
-                        id="date-selector-section"
-                        className="date-selector-row editable-info-item"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            console.log('[EditableEventDetail] 날짜 클릭!');
-                            console.log('[EditableEventDetail] eventDates:', eventDates);
-                            console.log('[EditableEventDetail] date:', date);
-                            console.log('[EditableEventDetail] endDate:', endDate);
-                            if (eventDates && eventDates.length > 0) {
-                                console.log('[EditableEventDetail] dateMode -> dates');
-                                setDateMode('dates');
-                            } else if (date && endDate && date.getTime() !== endDate.getTime()) {
-                                console.log('[EditableEventDetail] dateMode -> range');
-                                setDateMode('range');
-                            } else {
-                                console.log('[EditableEventDetail] dateMode -> single');
-                                setDateMode('single');
-                            }
-                            setActiveModal('date');
-                        }}
-                    >
-                        <i className="ri-calendar-line editable-info-icon"></i>
-                        <span className="editable-info-text-default">
-                            {eventDates && eventDates.length > 0 ? (
-                                /* Multiple Dates Display: Chips in Main View */
-                                <div className="flex flex-wrap gap-1.5 mt-1 mb-1">
-                                    {eventDates.map(d => (
-                                        <div
-                                            key={d}
-                                            className="selected-date-chip"
-                                            style={{ margin: 0 }} /* Override margin for main view context */
-                                        >
-                                            <span>{d.substring(5)}</span>
-                                            <button
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    const newDates = eventDates.filter(ed => ed !== d);
-                                                    setEventDates && setEventDates(newDates);
-                                                }}
-                                                className="remove-date-btn"
-                                            >
-                                                <i className="ri-close-line"></i>
-                                            </button>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : event.start_date ? (
-                                // Range Display
-                                (() => {
-                                    const start = new Date(event.start_date);
-                                    const end = event.end_date ? new Date(event.end_date) : null;
-                                    const startStr = `${start.getFullYear()}년 ${start.getMonth() + 1}월 ${start.getDate()}일`;
-                                    if (end && start.getTime() !== end.getTime()) {
-                                        return `${startStr} ~ ${end.getMonth() + 1}월 ${end.getDate()}일`;
-                                    }
-                                    return startStr;
-                                })()
-                            ) : (
-                                <span className="editable-date-placeholder">날짜를 선택하세요</span>
-                            )}
-                        </span>
-                        <EditBadge isStatic />
-
-                        {/* Date Picker Bottom Sheet Portal */}
-                        {(() => {
-                            const shouldRender = activeModal === 'date' && setDate && setEndDate && setEventDates;
-                            console.log('[EditableEventDetail] 날짜 모달 렌더링 조건:', shouldRender);
-                            console.log('[EditableEventDetail] activeModal:', activeModal);
-                            console.log('[EditableEventDetail] setDate:', !!setDate);
-                            console.log('[EditableEventDetail] setEndDate:', !!setEndDate);
-                            console.log('[EditableEventDetail] setEventDates:', !!setEventDates);
-                            return shouldRender;
-                        })() && createPortal(
-                            <div className="bottom-sheet-portal">
-                                {/* Backdrop */}
-                                <div
-                                    className="bottom-sheet-backdrop"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setActiveModal(null);
-                                    }}
-                                />
-                                {/* Content */}
-                                <div
-                                    className="bottom-sheet-content"
-                                    onClick={(e) => e.stopPropagation()}
-                                >
-                                    <div className="bottom-sheet-handle"></div>
-                                    <div className="flex items-center justify-between bottom-sheet-header">
-                                        <h3 className="flex items-center gap-2">
-                                            <i className="ri-calendar-check-line"></i>
-                                            날짜 선택
-                                        </h3>
-                                        {/* Toggle Switch */}
-                                        <div className="date-mode-toggle">
-                                            <button
-                                                onClick={() => {
-                                                    setDateMode('single');
-                                                    setEventDates && setEventDates([]);
-                                                    setDate && setDate(null);
-                                                    setEndDate && setEndDate(null);
-                                                }}
-                                                className={`date-mode-btn ${dateMode === 'single' ? 'active' : ''}`}
-                                            >
-                                                하루
-                                            </button>
-                                            {/* Hide individual date selection for class and club categories -> Removed restriction */}
-                                            {(() => {
-                                                const shouldShow = true;
-                                                console.log('[EditableEventDetail] 개별 버튼 렌더링 조건:', shouldShow);
-                                                console.log('[EditableEventDetail] event.category:', event.category);
-                                                console.log('[EditableEventDetail] dateMode:', dateMode);
-                                                return shouldShow;
-                                            })() && (
-                                                    <button
-                                                        onClick={() => {
-                                                            console.log('[EditableEventDetail] 개별 버튼 클릭!');
-                                                            setDateMode('dates');
-                                                            setDate && setDate(null);
-                                                            setEndDate && setEndDate(null);
-                                                        }}
-                                                        className={`date-mode-btn ${dateMode === 'dates' ? 'active' : ''}`}
-                                                    >
-                                                        개별
-                                                    </button>
-                                                )}
-                                        </div>
-                                    </div>
-
-                                    <div className="bottom-sheet-body flex flex-col items-center pb-8">
-                                        {/* Selected Dates Display */}
-                                        <div className="selected-dates-container">
-                                            {dateMode === 'single' ? (
-                                                <div className="date-display-box active">
-                                                    <span className="label">선택일</span>
-                                                    <span className="value">{date ? formatDateStr(date) : '-'}</span>
-                                                </div>
-                                            ) : dateMode === 'range' ? (
-                                                <div className="date-range-display">
-                                                    <div className={`date-display-box ${date ? 'active' : ''}`}>
-                                                        <span className="label">시작</span>
-                                                        <span className="value">{date ? formatDateStr(date) : '-'}</span>
-                                                    </div>
-                                                    <i className="ri-arrow-right-line separator"></i>
-                                                    <div className={`date-display-box ${endDate ? 'active' : ''}`}>
-                                                        <span className="label">종료</span>
-                                                        <span className="value">{endDate ? formatDateStr(endDate) : '-'}</span>
-                                                    </div>
-                                                </div>
-                                            ) : (
-                                                <div className="selected-dates-list">
-                                                    {eventDates.length > 0 ? (
-                                                        eventDates.map(d => (
-                                                            <div key={d} className="selected-date-chip">
-                                                                <span>{d.substring(5)}</span>
-                                                                <button
-                                                                    onClick={(e) => {
-                                                                        e.stopPropagation();
-                                                                        const newDates = eventDates.filter(ed => ed !== d);
-                                                                        setEventDates && setEventDates(newDates);
-                                                                    }}
-                                                                    className="remove-date-btn"
-                                                                >
-                                                                    <i className="ri-close-line"></i>
-                                                                </button>
-                                                            </div>
-                                                        ))
-                                                    ) : (
-                                                        <span className="no-dates-text">날짜를 선택해주세요</span>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        <div className="calendar-wrapper" style={{ minHeight: '340px' }}>
-                                            {dateMode === 'single' ? (
-                                                <DatePicker
-                                                    selected={date}
-                                                    onChange={(d: Date | null) => {
-                                                        if (d) {
-                                                            setDate && setDate(d);
-                                                            setEndDate && setEndDate(d);
-                                                            setEventDates && setEventDates([]);
-                                                        }
-                                                    }}
-                                                    locale={ko}
-                                                    inline
-                                                />
-                                            ) : dateMode === 'range' ? (
-                                                <DatePicker
-                                                    selected={date}
-                                                    onChange={(dates) => {
-                                                        const [start, end] = dates as [Date | null, Date | null];
-                                                        setDate && setDate(start);
-                                                        setEndDate && setEndDate(end);
-                                                    }}
-                                                    startDate={date}
-                                                    endDate={endDate}
-                                                    selectsRange
-                                                    locale={ko}
-                                                    inline
-                                                />
-                                            ) : (
-                                                <DatePicker
-                                                    selected={null}
-                                                    onChange={(d: Date | null) => {
-                                                        if (!d) return;
-                                                        const dateStr = formatDateStr(d);
-                                                        console.log('[EditableEventDetail] Date clicked:', dateStr);
-                                                        console.log('[EditableEventDetail] Current eventDates:', eventDates);
-                                                        const newDates = eventDates.includes(dateStr)
-                                                            ? eventDates.filter(ed => ed !== dateStr)
-                                                            : [...eventDates, dateStr].sort();
-                                                        console.log('[EditableEventDetail] New eventDates:', newDates);
-                                                        setEventDates && setEventDates(newDates);
-                                                    }}
-                                                    highlightDates={eventDates.map(d => new Date(d))}
-                                                    locale={ko}
-                                                    inline
-                                                    shouldCloseOnSelect={false}
-                                                />
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div className="bottom-sheet-actions">
-                                        <button
-                                            onClick={() => {
-                                                if (dateMode === 'single' || dateMode === 'range') {
-                                                    if (date && endDate) {
-                                                        onUpdate('date', formatDateForInput(date));
-                                                        onUpdate('end_date', formatDateForInput(endDate));
-                                                        onUpdate('event_dates', []); // Clear multiple dates
-                                                        setActiveModal(null);
-                                                    }
-                                                } else {
-                                                    // Multiple dates mode
-                                                    onUpdate('event_dates', eventDates);
-                                                    onUpdate('date', null); // Clear range dates
-                                                    onUpdate('end_date', null);
-                                                    setActiveModal(null);
-                                                }
-                                            }}
-                                            className="bottom-sheet-button"
-                                            disabled={(dateMode === 'range' && (!date || !endDate)) || (dateMode === 'single' && !date)}
-                                        >
-                                            확인
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>,
-                            document.body
-                        )}
-                    </div>
-
-                    {/* Location                    */}
-                    <div
-                        className="location-selector-row editable-info-item"
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            // If onVenueSelectClick is provided, use venue selection instead of manual input
-                            if (onVenueSelectClick) {
-                                console.log('🔘 Location clicked - opening venue selection');
-                                onVenueSelectClick();
-                            } else {
-                                // Fallback to manual input
-                                setTempLocation(event.location);
-                                setTempLocationLink(event.location_link || "");
-                                setActiveModal('location');
-                            }
-                        }}
-                    >
-                        <i className="ri-map-pin-line editable-info-icon"></i>
-                        <div className="editable-info-content">
-                            <span className="editable-info-text-default">{event.location || <span className="editable-info-placeholder">장소를 입력하세요</span>}</span>
-                            {event.location_link && (
-                                <span className="editable-location-link-badge">
-                                    <i className="ri-map-2-line editable-location-link-icon"></i>
-                                    지도
-                                </span>
-                            )}
-                        </div>
-                        <EditBadge isStatic />
-
-                        {/* Location Bottom Sheet Portal */}
-                        {activeModal === 'location' && createPortal(
-                            <div className="bottom-sheet-portal">
-                                {/* Backdrop */}
-                                <div
-                                    className="bottom-sheet-backdrop"
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        setActiveModal(null);
-                                    }}
-                                />
-                                {/* Content */}
-                                <div
-                                    className="bottom-sheet-content"
-                                    onClick={(e) => e.stopPropagation()}
-                                >
-                                    <div className="bottom-sheet-handle"></div>
-                                    <h3 className="bottom-sheet-header">
-                                        <i className="ri-map-pin-user-line"></i>
-                                        장소 정보 입력
-                                    </h3>
-
-                                    <div className="bottom-sheet-body">
-                                        <div className="bottom-sheet-input-group">
-                                            <label className="bottom-sheet-label">장소명</label>
-                                            <input
-                                                value={tempLocation}
-                                                onChange={(e) => setTempLocation(e.target.value)}
-                                                className="bottom-sheet-input"
-                                                placeholder="예: 강남역 1번출구, 00댄스스튜디오"
-                                                autoFocus
-                                            />
-                                        </div>
-                                        <div className="bottom-sheet-input-group">
-                                            <label className="bottom-sheet-label">지도 링크 (선택)</label>
-                                            <div className="bottom-sheet-input-wrapper">
-                                                <i className="ri-link bottom-sheet-input-icon"></i>
-                                                <input
-                                                    value={tempLocationLink}
-                                                    onChange={(e) => setTempLocationLink(e.target.value)}
-                                                    className="bottom-sheet-input has-icon"
-                                                    placeholder="네이버/카카오맵 URL"
-                                                />
-                                            </div>
-                                        </div>
-                                        <div className="bottom-sheet-actions">
-                                            <button
-                                                onClick={() => {
-                                                    onUpdate('location', tempLocation);
-                                                    onUpdate('location_link', tempLocationLink);
-                                                    setActiveModal(null);
-                                                }}
-                                                className="bottom-sheet-button"
-                                            >
-                                                저장
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>,
-                            document.body
-                        )}
-                    </div>
-
-                    {/* Description */}
-                    <div className="info-divider">
-                        <div className="description-editor-row editable-info-item">
-                            <i className="ri-file-text-line editable-info-icon"></i>
-                            <div className="editable-info-content-wrapper">
-                                <textarea
-                                    ref={textareaRef}
-                                    value={event.description || ""}
-                                    onChange={(e) => {
-                                        onUpdate('description', e.target.value);
-                                        // Auto-expand happens in useEffect
-                                    }}
-                                    className="editable-description-textarea"
-                                    placeholder="내용을 입력해주세요..."
-                                />
-                            </div>
-                            <EditBadge isStatic />
-                        </div>
-                    </div>
-
-                    {/* Footer Actions */}
-                    <div className="editable-footer">
-                        <div className="editable-footer-actions">
-                            {/* Delete Button (Left Aligned) */}
-                            {onDelete && (
-                                <button
-                                    onClick={(e) => {
-                                        e.stopPropagation();
-                                        if (window.confirm("정말로 이 이벤트를 삭제하시겠습니까?")) {
-                                            onDelete();
-                                        }
-                                    }}
-                                    className="editable-action-btn icon-only delete-btn"
-                                    title="삭제"
-                                    style={{ marginRight: 'auto', color: '#ff6b6b' }}
-                                >
-                                    <i className="ri-delete-bin-line editable-action-icon"></i>
-                                </button>
-                            )}
-                            {/* Link Input Button */}
-                            <button
-                                onClick={(e) => {
                                     e.stopPropagation();
-                                    setActiveModal(activeModal === 'link' ? null : 'link');
+                                    // setShowCustomGenreInput(false); // Removed
+                                    // setCustomGenreInput(""); // Removed
+                                    setActiveModal('classification');
                                 }}
-                                className="editable-action-btn group"
-                                title={link ? "링크 수정" : "링크 추가"}
                             >
-                                <span className={`editable-link-btn-text ${link ? 'active' : ''}`}>
-                                    링크입력
-                                </span>
+                                {/* Category Badge part */}
+                                <div className={`category-selector category-badge ${!event.category ? "default" : event.category}`}>
+                                    {!event.category ? "분류" : (event.category === "class" ? "강습" : event.category === "club" ? "동호회" : "행사")}
+                                </div>
+
+                                {/* Genre Text part */}
+                                <div className={`genre-text ${getGenreColor(event.genre || '')}`}>
+                                    {event.genre || <span className="editable-genre-placeholder">장르 선택</span>}
+                                </div>
+
                                 <EditBadge isStatic />
 
-                                {/* Link Bottom Sheet Portal */}
-                                {activeModal === 'link' && createPortal(
+                                {/* Classification (Category + Genre) Bottom Sheet Portal */}
+                                {activeModal === 'classification' && createPortal(
                                     <div className="bottom-sheet-portal">
                                         {/* Backdrop */}
                                         <div
@@ -1200,78 +560,717 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                         >
                                             <div className="bottom-sheet-handle"></div>
                                             <h3 className="bottom-sheet-header">
-                                                <i className="ri-link-m"></i>
-                                                외부 링크 연결
+                                                <i className="ri-music-2-line"></i>
+                                                분류 및 장르 선택
                                             </h3>
 
                                             <div className="bottom-sheet-body">
-                                                <div className="bottom-sheet-input-group">
-                                                    <label className="bottom-sheet-label">버튼 이름</label>
-                                                    <input
-                                                        value={linkName}
-                                                        onChange={(e) => setLinkName?.(e.target.value)}
-                                                        placeholder="예: 신청서 작성, 인스타그램"
-                                                        className="bottom-sheet-input"
-                                                        autoFocus
-                                                    />
-                                                </div>
-                                                <div className="bottom-sheet-input-group">
-                                                    <label className="bottom-sheet-label">URL 주소</label>
-                                                    <div className="bottom-sheet-input-wrapper">
-                                                        <i className="ri-global-line bottom-sheet-input-icon"></i>
-                                                        <input
-                                                            value={link}
-                                                            onChange={(e) => setLink?.(e.target.value)}
-                                                            placeholder="https://..."
-                                                            className="bottom-sheet-input has-icon"
-                                                        />
+                                                {/* Category Section */}
+                                                <div className="mb-6">
+                                                    <label className="bottom-sheet-label">분류</label>
+                                                    <div className="flex gap-3 w-full">
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                e.stopPropagation();
+                                                                console.log('[EditableEventDetail] Clicked Category: Event');
+                                                                if (event.category !== 'event') {
+                                                                    onUpdate('category', 'event');
+                                                                    onUpdate('genre', '');
+                                                                }
+                                                            }}
+                                                            className={`editable-category-btn ${event.category === 'event' ? 'event-active' : ''}`}
+                                                        >
+                                                            <span className="editable-category-btn-text">행사</span>
+                                                            {event.category === 'event' && <i className="ri-check-line"></i>}
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                e.stopPropagation();
+                                                                console.log('[EditableEventDetail] Clicked Category: Class');
+                                                                if (event.category !== 'class') {
+                                                                    onUpdate('category', 'class');
+                                                                    onUpdate('genre', '');
+                                                                }
+                                                            }}
+                                                            className={`editable-category-btn ${event.category === 'class' ? 'class-active' : ''}`}
+                                                        >
+                                                            <span className="editable-category-btn-text">강습</span>
+                                                            {event.category === 'class' && <i className="ri-check-line"></i>}
+                                                        </button>
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.preventDefault();
+                                                                e.stopPropagation();
+                                                                console.log('[EditableEventDetail] Clicked Category: Club');
+                                                                if (event.category !== 'club') {
+                                                                    onUpdate('category', 'club');
+                                                                    onUpdate('genre', '');
+                                                                }
+                                                            }}
+                                                            className={`editable-category-btn ${event.category === 'club' ? 'club-active' : ''}`}
+                                                            style={{
+                                                                background: event.category === 'club' ? '#10b981' : 'rgba(255, 255, 255, 0.05)',
+                                                                border: event.category === 'club' ? '1px solid #10b981' : '1px solid rgba(255, 255, 255, 0.1)',
+                                                                color: event.category === 'club' ? 'white' : 'rgba(255, 255, 255, 0.6)'
+                                                            }}
+                                                        >
+                                                            <span className="editable-category-btn-text">동호회</span>
+                                                            {event.category === 'club' && <i className="ri-check-line"></i>}
+                                                        </button>
                                                     </div>
                                                 </div>
-                                                <div className="bottom-sheet-actions">
-                                                    <button
-                                                        onClick={() => setActiveModal(null)}
-                                                        className="bottom-sheet-button"
-                                                    >
-                                                        완료
-                                                    </button>
-                                                </div>
+
+                                                {/* Genre Section - Only visible if category is selected */}
+                                                {event.category && (
+                                                    <>
+                                                        <label className="bottom-sheet-label">장르</label>
+
+                                                        {event.category === 'event' ? (
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {['워크샵', '파티', '대회', '기타'].map((option) => {
+                                                                    const currentGenres = event.genre ? event.genre.split(',').map(s => s.trim()).filter(Boolean) : [];
+                                                                    const isActive = currentGenres.includes(option);
+
+                                                                    return (
+                                                                        <button
+                                                                            key={option}
+                                                                            type="button"
+                                                                            onClick={(e) => {
+                                                                                e.preventDefault();
+                                                                                e.stopPropagation();
+
+                                                                                let newGenres = [];
+                                                                                if (isActive) {
+                                                                                    newGenres = currentGenres.filter(g => g !== option);
+                                                                                } else {
+                                                                                    let temp = [...currentGenres];
+                                                                                    // Mutual Exclusivity: '파티' vs '대회'
+                                                                                    if (option === '파티') {
+                                                                                        temp = temp.filter(g => g !== '대회');
+                                                                                    } else if (option === '대회') {
+                                                                                        temp = temp.filter(g => g !== '파티');
+                                                                                    }
+                                                                                    newGenres = [...temp, option];
+                                                                                }
+                                                                                onUpdate('genre', newGenres.join(','));
+                                                                            }}
+                                                                            className={`editable-genre-btn ${isActive ? 'active' : ''}`}
+                                                                        >
+                                                                            {option}
+                                                                        </button>
+                                                                    );
+                                                                })}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="genre-grid">
+                                                                {(() => {
+                                                                    // 정규강습은 '동호회(club)' 카테고리일 때만 노출
+                                                                    const baseGenres = ['린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'];
+                                                                    const genreList = event.category === 'club'
+                                                                        ? ['정규강습', ...baseGenres]
+                                                                        : baseGenres;
+
+                                                                    return genreList.map(g => {
+                                                                        const currentGenres = event.genre ? event.genre.split(',').map(s => s.trim()).filter(Boolean) : [];
+                                                                        const isActive = currentGenres.includes(g);
+                                                                        return (
+                                                                            <button
+                                                                                key={g}
+                                                                                onClick={() => {
+                                                                                    // Class: Single Select Logic
+                                                                                    if (isActive) {
+                                                                                        onUpdate('genre', '');
+                                                                                    } else {
+                                                                                        onUpdate('genre', g);
+                                                                                    }
+                                                                                }}
+                                                                                className={`genre-grid-btn ${isActive ? 'active' : ''}`}
+                                                                                style={{
+                                                                                    backgroundColor: isActive ? '#3b82f6' : 'rgba(255,255,255,0.05)',
+                                                                                    borderColor: isActive ? '#3b82f6' : 'rgba(255,255,255,0.1)',
+                                                                                    color: isActive ? 'white' : 'rgba(255,255,255,0.7)'
+                                                                                }}
+                                                                            >
+                                                                                {g}
+                                                                            </button>
+                                                                        );
+                                                                    });
+                                                                })()}
+                                                            </div>
+                                                        )}
+                                                    </>
+                                                )}
                                             </div>
                                         </div>
                                     </div>,
                                     document.body
                                 )}
-                            </button>
+                            </div>
+                        </div>
 
+                        <div
+                            className="title-editor-container group"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setTempTitle(event.title);
+                                setActiveModal('title');
+                            }}
+                        >
+                            <h2 className={`title-text editable-title-text ${!event.title ? 'placeholder' : ''}`}>
+                                {event.title || "제목을 입력하세요"}
+                            </h2>
+                            <EditBadge isStatic />
 
+                            {/* Title Bottom Sheet Portal */}
+                            {activeModal === 'title' && createPortal(
+                                <div className="bottom-sheet-portal">
+                                    {/* Backdrop */}
+                                    <div
+                                        className="bottom-sheet-backdrop"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setActiveModal(null);
+                                        }}
+                                    />
+                                    {/* Content */}
+                                    <div
+                                        className="bottom-sheet-content"
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <div className="bottom-sheet-handle"></div>
+                                        <h3 className="bottom-sheet-header">
+                                            <i className="ri-text"></i>
+                                            제목 입력
+                                        </h3>
 
-
-
-                            {/* Close Button */}
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onClose?.();
-                                }}
-                                className="editable-action-btn icon-only"
-                                title="닫기"
-                            >
-                                <i className="ri-close-line editable-action-icon"></i>
-                            </button>
-
-                            {/* Register Button */}
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onRegister?.();
-                                }}
-                                disabled={isSubmitting}
-                                className="editable-action-btn editable-register-btn"
-                                title="등록하기"
-                            >
-                                {isSubmitting ? '등록 중...' : '등록'}
-                            </button>
+                                        <div className="bottom-sheet-body">
+                                            <div className="bottom-sheet-input-group">
+                                                <textarea
+                                                    value={tempTitle}
+                                                    onChange={(e) => setTempTitle(e.target.value)}
+                                                    className="bottom-sheet-input"
+                                                    placeholder="행사 제목을 입력하세요"
+                                                    autoFocus
+                                                    rows={3}
+                                                    style={{ resize: 'none', minHeight: '100px' }}
+                                                />
+                                            </div>
+                                            <div className="bottom-sheet-actions">
+                                                <button
+                                                    onClick={() => {
+                                                        onUpdate('title', tempTitle);
+                                                        setActiveModal(null);
+                                                    }}
+                                                    className="bottom-sheet-button"
+                                                >
+                                                    저장
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>,
+                                document.body
+                            )}
                         </div>
                     </div>
+
+                    {/* Info Section */}
+                    <div className="info-section">
+                        {/* Date                    */}
+                        <div
+                            id="date-selector-section"
+                            className="date-selector-row editable-info-item"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                console.log('[EditableEventDetail] 날짜 클릭!');
+                                console.log('[EditableEventDetail] eventDates:', eventDates);
+                                console.log('[EditableEventDetail] date:', date);
+                                console.log('[EditableEventDetail] endDate:', endDate);
+                                if (eventDates && eventDates.length > 0) {
+                                    console.log('[EditableEventDetail] dateMode -> dates');
+                                    setDateMode('dates');
+                                } else if (date && endDate && date.getTime() !== endDate.getTime()) {
+                                    console.log('[EditableEventDetail] dateMode -> range');
+                                    setDateMode('range');
+                                } else {
+                                    console.log('[EditableEventDetail] dateMode -> single');
+                                    setDateMode('single');
+                                }
+                                setActiveModal('date');
+                            }}
+                        >
+                            <i className="ri-calendar-line editable-info-icon"></i>
+                            <span className="editable-info-text-default">
+                                {eventDates && eventDates.length > 0 ? (
+                                    /* Multiple Dates Display: Chips in Main View */
+                                    <div className="flex flex-wrap gap-1.5 mt-1 mb-1">
+                                        {eventDates.map(d => (
+                                            <div
+                                                key={d}
+                                                className="selected-date-chip"
+                                                style={{ margin: 0 }} /* Override margin for main view context */
+                                            >
+                                                <span>{d.substring(5)}</span>
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        const newDates = eventDates.filter(ed => ed !== d);
+                                                        setEventDates && setEventDates(newDates);
+                                                    }}
+                                                    className="remove-date-btn"
+                                                >
+                                                    <i className="ri-close-line"></i>
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : event.start_date ? (
+                                    // Range Display
+                                    (() => {
+                                        const start = new Date(event.start_date);
+                                        const end = event.end_date ? new Date(event.end_date) : null;
+                                        const startStr = `${start.getFullYear()}년 ${start.getMonth() + 1}월 ${start.getDate()}일`;
+                                        if (end && start.getTime() !== end.getTime()) {
+                                            return `${startStr} ~ ${end.getMonth() + 1}월 ${end.getDate()}일`;
+                                        }
+                                        return startStr;
+                                    })()
+                                ) : (
+                                    <span className="editable-date-placeholder">날짜를 선택하세요</span>
+                                )}
+                            </span>
+                            <EditBadge isStatic />
+
+                            {/* Date Picker Bottom Sheet Portal */}
+                            {(() => {
+                                const shouldRender = activeModal === 'date' && setDate && setEndDate && setEventDates;
+                                console.log('[EditableEventDetail] 날짜 모달 렌더링 조건:', shouldRender);
+                                console.log('[EditableEventDetail] activeModal:', activeModal);
+                                console.log('[EditableEventDetail] setDate:', !!setDate);
+                                console.log('[EditableEventDetail] setEndDate:', !!setEndDate);
+                                console.log('[EditableEventDetail] setEventDates:', !!setEventDates);
+                                return shouldRender;
+                            })() && createPortal(
+                                <div className="bottom-sheet-portal">
+                                    {/* Backdrop */}
+                                    <div
+                                        className="bottom-sheet-backdrop"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setActiveModal(null);
+                                        }}
+                                    />
+                                    {/* Content */}
+                                    <div
+                                        className="bottom-sheet-content"
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <div className="bottom-sheet-handle"></div>
+                                        <div className="flex items-center justify-between bottom-sheet-header">
+                                            <h3 className="flex items-center gap-2">
+                                                <i className="ri-calendar-check-line"></i>
+                                                날짜 선택
+                                            </h3>
+                                            {/* Toggle Switch */}
+                                            <div className="date-mode-toggle">
+                                                <button
+                                                    onClick={() => {
+                                                        setDateMode('single');
+                                                        setEventDates && setEventDates([]);
+                                                        setDate && setDate(null);
+                                                        setEndDate && setEndDate(null);
+                                                    }}
+                                                    className={`date-mode-btn ${dateMode === 'single' ? 'active' : ''}`}
+                                                >
+                                                    하루
+                                                </button>
+                                                {/* Hide individual date selection for class and club categories -> Removed restriction */}
+                                                {(() => {
+                                                    const shouldShow = true;
+                                                    console.log('[EditableEventDetail] 개별 버튼 렌더링 조건:', shouldShow);
+                                                    console.log('[EditableEventDetail] event.category:', event.category);
+                                                    console.log('[EditableEventDetail] dateMode:', dateMode);
+                                                    return shouldShow;
+                                                })() && (
+                                                        <button
+                                                            onClick={() => {
+                                                                console.log('[EditableEventDetail] 개별 버튼 클릭!');
+                                                                setDateMode('dates');
+                                                                setDate && setDate(null);
+                                                                setEndDate && setEndDate(null);
+                                                            }}
+                                                            className={`date-mode-btn ${dateMode === 'dates' ? 'active' : ''}`}
+                                                        >
+                                                            개별
+                                                        </button>
+                                                    )}
+                                            </div>
+                                        </div>
+
+                                        <div className="bottom-sheet-body flex flex-col items-center pb-8">
+                                            {/* Selected Dates Display */}
+                                            <div className="selected-dates-container">
+                                                {dateMode === 'single' ? (
+                                                    <div className="date-display-box active">
+                                                        <span className="label">선택일</span>
+                                                        <span className="value">{date ? formatDateStr(date) : '-'}</span>
+                                                    </div>
+                                                ) : dateMode === 'range' ? (
+                                                    <div className="date-range-display">
+                                                        <div className={`date-display-box ${date ? 'active' : ''}`}>
+                                                            <span className="label">시작</span>
+                                                            <span className="value">{date ? formatDateStr(date) : '-'}</span>
+                                                        </div>
+                                                        <i className="ri-arrow-right-line separator"></i>
+                                                        <div className={`date-display-box ${endDate ? 'active' : ''}`}>
+                                                            <span className="label">종료</span>
+                                                            <span className="value">{endDate ? formatDateStr(endDate) : '-'}</span>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="selected-dates-list">
+                                                        {eventDates.length > 0 ? (
+                                                            eventDates.map(d => (
+                                                                <div key={d} className="selected-date-chip">
+                                                                    <span>{d.substring(5)}</span>
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            const newDates = eventDates.filter(ed => ed !== d);
+                                                                            setEventDates && setEventDates(newDates);
+                                                                        }}
+                                                                        className="remove-date-btn"
+                                                                    >
+                                                                        <i className="ri-close-line"></i>
+                                                                    </button>
+                                                                </div>
+                                                            ))
+                                                        ) : (
+                                                            <span className="no-dates-text">날짜를 선택해주세요</span>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="calendar-wrapper" style={{ minHeight: '340px' }}>
+                                                {dateMode === 'single' ? (
+                                                    <DatePicker
+                                                        selected={date}
+                                                        onChange={(d: Date | null) => {
+                                                            if (d) {
+                                                                setDate && setDate(d);
+                                                                setEndDate && setEndDate(d);
+                                                                setEventDates && setEventDates([]);
+                                                            }
+                                                        }}
+                                                        locale={ko}
+                                                        inline
+                                                    />
+                                                ) : dateMode === 'range' ? (
+                                                    <DatePicker
+                                                        selected={date}
+                                                        onChange={(dates) => {
+                                                            const [start, end] = dates as [Date | null, Date | null];
+                                                            setDate && setDate(start);
+                                                            setEndDate && setEndDate(end);
+                                                        }}
+                                                        startDate={date}
+                                                        endDate={endDate}
+                                                        selectsRange
+                                                        locale={ko}
+                                                        inline
+                                                    />
+                                                ) : (
+                                                    <DatePicker
+                                                        selected={null}
+                                                        onChange={(d: Date | null) => {
+                                                            if (!d) return;
+                                                            const dateStr = formatDateStr(d);
+                                                            console.log('[EditableEventDetail] Date clicked:', dateStr);
+                                                            console.log('[EditableEventDetail] Current eventDates:', eventDates);
+                                                            const newDates = eventDates.includes(dateStr)
+                                                                ? eventDates.filter(ed => ed !== dateStr)
+                                                                : [...eventDates, dateStr].sort();
+                                                            console.log('[EditableEventDetail] New eventDates:', newDates);
+                                                            setEventDates && setEventDates(newDates);
+                                                        }}
+                                                        highlightDates={eventDates.map(d => new Date(d))}
+                                                        locale={ko}
+                                                        inline
+                                                        shouldCloseOnSelect={false}
+                                                    />
+                                                )}
+                                            </div>
+                                        </div>
+                                        <div className="bottom-sheet-actions">
+                                            <button
+                                                onClick={() => {
+                                                    if (dateMode === 'single' || dateMode === 'range') {
+                                                        if (date && endDate) {
+                                                            onUpdate('date', formatDateForInput(date));
+                                                            onUpdate('end_date', formatDateForInput(endDate));
+                                                            onUpdate('event_dates', []); // Clear multiple dates
+                                                            setActiveModal(null);
+                                                        }
+                                                    } else {
+                                                        // Multiple dates mode
+                                                        onUpdate('event_dates', eventDates);
+                                                        onUpdate('date', null); // Clear range dates
+                                                        onUpdate('end_date', null);
+                                                        setActiveModal(null);
+                                                    }
+                                                }}
+                                                className="bottom-sheet-button"
+                                                disabled={(dateMode === 'range' && (!date || !endDate)) || (dateMode === 'single' && !date)}
+                                            >
+                                                확인
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>,
+                                document.body
+                            )}
+                        </div>
+
+                        {/* Location                    */}
+                        <div
+                            className="location-selector-row editable-info-item"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                // If onVenueSelectClick is provided, use venue selection instead of manual input
+                                if (onVenueSelectClick) {
+                                    console.log('🔘 Location clicked - opening venue selection');
+                                    onVenueSelectClick();
+                                } else {
+                                    // Fallback to manual input
+                                    setTempLocation(event.location);
+                                    setTempLocationLink(event.location_link || "");
+                                    setActiveModal('location');
+                                }
+                            }}
+                        >
+                            <i className="ri-map-pin-line editable-info-icon"></i>
+                            <div className="editable-info-content">
+                                <span className="editable-info-text-default">{event.location || <span className="editable-info-placeholder">장소를 입력하세요</span>}</span>
+                                {event.location_link && (
+                                    <span className="editable-location-link-badge">
+                                        <i className="ri-map-2-line editable-location-link-icon"></i>
+                                        지도
+                                    </span>
+                                )}
+                            </div>
+                            <EditBadge isStatic />
+
+                            {/* Location Bottom Sheet Portal */}
+                            {activeModal === 'location' && createPortal(
+                                <div className="bottom-sheet-portal">
+                                    {/* Backdrop */}
+                                    <div
+                                        className="bottom-sheet-backdrop"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            setActiveModal(null);
+                                        }}
+                                    />
+                                    {/* Content */}
+                                    <div
+                                        className="bottom-sheet-content"
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <div className="bottom-sheet-handle"></div>
+                                        <h3 className="bottom-sheet-header">
+                                            <i className="ri-map-pin-user-line"></i>
+                                            장소 정보 입력
+                                        </h3>
+
+                                        <div className="bottom-sheet-body">
+                                            <div className="bottom-sheet-input-group">
+                                                <label className="bottom-sheet-label">장소명</label>
+                                                <input
+                                                    value={tempLocation}
+                                                    onChange={(e) => setTempLocation(e.target.value)}
+                                                    className="bottom-sheet-input"
+                                                    placeholder="예: 강남역 1번출구, 00댄스스튜디오"
+                                                    autoFocus
+                                                />
+                                            </div>
+                                            <div className="bottom-sheet-input-group">
+                                                <label className="bottom-sheet-label">지도 링크 (선택)</label>
+                                                <div className="bottom-sheet-input-wrapper">
+                                                    <i className="ri-link bottom-sheet-input-icon"></i>
+                                                    <input
+                                                        value={tempLocationLink}
+                                                        onChange={(e) => setTempLocationLink(e.target.value)}
+                                                        className="bottom-sheet-input has-icon"
+                                                        placeholder="네이버/카카오맵 URL"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="bottom-sheet-actions">
+                                                <button
+                                                    onClick={() => {
+                                                        onUpdate('location', tempLocation);
+                                                        onUpdate('location_link', tempLocationLink);
+                                                        setActiveModal(null);
+                                                    }}
+                                                    className="bottom-sheet-button"
+                                                >
+                                                    저장
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>,
+                                document.body
+                            )}
+                        </div>
+
+                        {/* Description */}
+                        <div className="info-divider">
+                            <div className="description-editor-row editable-info-item">
+                                <i className="ri-file-text-line editable-info-icon"></i>
+                                <div className="editable-info-content-wrapper">
+                                    <textarea
+                                        ref={textareaRef}
+                                        value={event.description || ""}
+                                        onChange={(e) => {
+                                            onUpdate('description', e.target.value);
+                                            // Auto-expand happens in useEffect
+                                        }}
+                                        className="editable-description-textarea"
+                                        placeholder="내용을 입력해주세요..."
+                                    />
+                                </div>
+                                <EditBadge isStatic />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Footer Actions */}
+            <div className="editable-footer">
+                <div className="editable-footer-actions">
+                    {/* Delete Button (Left Aligned) */}
+                    {onDelete && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (window.confirm("정말로 이 이벤트를 삭제하시겠습니까?")) {
+                                    onDelete();
+                                }
+                            }}
+                            className="editable-action-btn icon-only delete-btn"
+                            title="삭제"
+                            style={{ marginRight: 'auto', color: '#ff6b6b' }}
+                        >
+                            <i className="ri-delete-bin-line editable-action-icon"></i>
+                        </button>
+                    )}
+                    {/* Link Input Button */}
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveModal(activeModal === 'link' ? null : 'link');
+                        }}
+                        className="editable-action-btn group"
+                        title={link ? "링크 수정" : "링크 추가"}
+                    >
+                        <span className={`editable-link-btn-text ${link ? 'active' : ''}`}>
+                            링크입력
+                        </span>
+                        <EditBadge isStatic />
+
+                        {/* Link Bottom Sheet Portal */}
+                        {activeModal === 'link' && createPortal(
+                            <div className="bottom-sheet-portal">
+                                {/* Backdrop */}
+                                <div
+                                    className="bottom-sheet-backdrop"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setActiveModal(null);
+                                    }}
+                                />
+                                {/* Content */}
+                                <div
+                                    className="bottom-sheet-content"
+                                    onClick={(e) => e.stopPropagation()}
+                                >
+                                    <div className="bottom-sheet-handle"></div>
+                                    <h3 className="bottom-sheet-header">
+                                        <i className="ri-link-m"></i>
+                                        외부 링크 연결
+                                    </h3>
+
+                                    <div className="bottom-sheet-body">
+                                        <div className="bottom-sheet-input-group">
+                                            <label className="bottom-sheet-label">버튼 이름</label>
+                                            <input
+                                                value={linkName}
+                                                onChange={(e) => setLinkName?.(e.target.value)}
+                                                placeholder="예: 신청서 작성, 인스타그램"
+                                                className="bottom-sheet-input"
+                                                autoFocus
+                                            />
+                                        </div>
+                                        <div className="bottom-sheet-input-group">
+                                            <label className="bottom-sheet-label">URL 주소</label>
+                                            <div className="bottom-sheet-input-wrapper">
+                                                <i className="ri-global-line bottom-sheet-input-icon"></i>
+                                                <input
+                                                    value={link}
+                                                    onChange={(e) => setLink?.(e.target.value)}
+                                                    placeholder="https://..."
+                                                    className="bottom-sheet-input has-icon"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="bottom-sheet-actions">
+                                            <button
+                                                onClick={() => setActiveModal(null)}
+                                                className="bottom-sheet-button"
+                                            >
+                                                완료
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>,
+                            document.body
+                        )}
+                    </button>
+
+
+
+
+
+                    {/* Close Button */}
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onClose?.();
+                        }}
+                        className="editable-action-btn icon-only"
+                        title="닫기"
+                    >
+                        <i className="ri-close-line editable-action-icon"></i>
+                    </button>
+
+                    {/* Register Button */}
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onRegister?.();
+                        }}
+                        disabled={isSubmitting}
+                        className="editable-action-btn editable-register-btn"
+                        title="등록하기"
+                    >
+                        {isSubmitting ? '등록 중...' : '등록'}
+                    </button>
                 </div>
             </div>
         </div>

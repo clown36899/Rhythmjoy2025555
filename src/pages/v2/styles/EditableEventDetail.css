@@ -660,3 +660,117 @@
     justify-content: center;
     width: 100%;
 }
+/* Desktop Layout (768px+) - Matching EventDetailModal */
+@media (min-width: 768px) {
+    .event-detail-modal-container {
+        max-width: 1100px !important;
+        height: 85vh !important;
+        max-height: 850px !important;
+        border-radius: 28px !important;
+        flex-direction: row !important;
+        position: relative !important;
+        overflow: hidden !important;
+        margin: auto !important;
+    }
+
+    .modal-scroll-container {
+        display: flex !important;
+        flex-direction: row !important;
+        height: 100% !important;
+        width: 100% !important;
+        overflow: hidden !important;
+        padding-bottom: 0 !important;
+    }
+
+    .image-area {
+        width: 45% !important;
+        height: 100% !important;
+        flex-shrink: 0 !important;
+        position: relative !important;
+    }
+
+    .info-column {
+        width: 55% !important;
+        height: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+        position: relative !important;
+        background-color: rgb(10, 10, 10) !important;
+    }
+
+    .info-section {
+        flex: 1 !important;
+        overflow-y: auto !important;
+        padding: 0 32px 120px 32px !important; /* Space for fixed footer */
+        scrollbar-width: none; /* Firefox */
+    }
+
+    .info-section::-webkit-scrollbar {
+        display: none; /* Chrome, Safari, Edge */
+    }
+
+    .sticky-header {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 50 !important;
+        background-color: rgb(10, 10, 10) !important;
+        padding: 32px 32px 20px 32px !important;
+    }
+
+    .editable-footer {
+        position: absolute !important;
+        bottom: 0 !important;
+        right: 0 !important;
+        width: 55% !important;
+        height: 100px !important;
+        background: linear-gradient(to top, rgba(10, 10, 10, 1) 70%, transparent 100%) !important;
+        border-top: none !important;
+        padding: 0 32px 24px 32px !important;
+        display: flex !important;
+        align-items: flex-end !important;
+        justify-content: flex-end !important;
+        z-index: 100 !important;
+    }
+
+    .editable-footer-actions {
+        width: 100% !important;
+        justify-content: flex-end !important;
+    }
+}
+
+/* Classification Selector Alignment Fix */
+.classification-selector {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    cursor: pointer !important;
+    width: fit-content !important;
+}
+
+.classification-selector .category-badge {
+    position: static !important; /* Override absolute position from EventDetailModal.css */
+    margin: 0 !important;
+    padding: 4px 8px !important;
+    font-size: 0.75rem !important;
+    height: auto !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.classification-selector .genre-text {
+    display: flex !important;
+    align-items: center !important;
+    font-size: 0.875rem !important;
+    font-weight: 700 !important;
+    margin: 0 !important;
+    line-height: normal !important;
+}
+
+.classification-selector .editable-badge-wrapper {
+    margin-left: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-shrink: 0 !important;
+}
