@@ -11,6 +11,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import "../styles/components/EventDetailModal.css";
 import "../pages/v2/styles/EditableEventDetail.css";
 import "../styles/components/InteractivePreview.css";
+import GlobalLoadingOverlay from './GlobalLoadingOverlay';
 
 // Register locale
 registerLocale("ko", ko);
@@ -39,6 +40,8 @@ interface EditableEventDetailProps {
     onClose?: () => void;
     isSubmitting?: boolean;
     onDelete?: () => void;
+    isDeleting?: boolean;
+    progress?: number;
     // DatePicker props
     date?: Date | null;
     setDate?: (date: Date | null) => void;
@@ -101,6 +104,8 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
     onClose,
     isSubmitting,
     onDelete,
+    isDeleting = false,
+    progress,
     date,
     setDate,
     endDate,
@@ -1148,15 +1153,17 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                         <button
                             onClick={(e) => {
                                 e.stopPropagation();
+                                if (isDeleting) return;
                                 if (window.confirm("정말로 이 이벤트를 삭제하시겠습니까?")) {
                                     onDelete();
                                 }
                             }}
-                            className="editable-action-btn icon-only delete-btn"
+                            className={`editable-action-btn icon-only delete-btn ${isDeleting ? 'loading' : ''}`}
                             title="삭제"
-                            style={{ marginRight: 'auto', color: '#ff6b6b' }}
+                            style={{ marginRight: 'auto', color: '#ff6b6b', opacity: isDeleting ? 0.7 : 1, cursor: isDeleting ? 'not-allowed' : 'pointer' }}
+                            disabled={isDeleting}
                         >
-                            <i className="ri-delete-bin-line editable-action-icon"></i>
+                            {isDeleting ? <i className="ri-loader-4-line editable-action-icon spin-animation"></i> : <i className="ri-delete-bin-line editable-action-icon"></i>}
                         </button>
                     )}
                     {/* Link Input Button */}
@@ -1263,6 +1270,14 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                     </button>
                 </div>
             </div>
+            {createPortal(
+                <GlobalLoadingOverlay
+                    isLoading={isDeleting || (isSubmitting ?? false)}
+                    message={isDeleting ? "삭제 중입니다..." : "저장 중입니다..."}
+                    progress={isDeleting ? progress : undefined}
+                />,
+                document.body
+            )}
         </div>
     );
 });

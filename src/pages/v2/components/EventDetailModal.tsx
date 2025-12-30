@@ -67,6 +67,8 @@ interface EventDetailModalProps {
   onToggleFavorite?: (e: React.MouseEvent) => void;
   onOpenVenueDetail?: (venueId: string) => void;
   allGenres?: { class: string[]; event: string[] } | string[]; // Backwards compatibility if needed, but we'll cast to structured
+  isDeleting?: boolean;
+  deleteProgress?: number;
 }
 
 export default function EventDetailModal({
@@ -81,6 +83,8 @@ export default function EventDetailModal({
   onToggleFavorite,
   onOpenVenueDetail,
   allGenres = { class: [], event: [] },
+  isDeleting = false,
+  deleteProgress = 0,
 }: EventDetailModalProps) {
   // Safe cast or normalization
   const structuredGenres = Array.isArray(allGenres)
@@ -1621,16 +1625,17 @@ export default function EventDetailModal({
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
+                      if (isDeleting) return;
                       if (window.confirm('정말로 이 이벤트를 삭제하시겠습니까?')) {
                         _onDelete(selectedEvent, e);
-                        onClose(); // 삭제 후 모달 닫기
                       }
                     }}
-                    className="action-button delete"
+                    className={`action-button delete ${isDeleting ? 'loading' : ''}`}
                     title="삭제하기"
-                    style={{ backgroundColor: '#ef4444', color: 'white', marginRight: '8px' }}
+                    style={{ backgroundColor: '#ef4444', color: 'white', marginRight: '8px', opacity: isDeleting ? 0.7 : 1, cursor: isDeleting ? 'not-allowed' : 'pointer' }}
+                    disabled={isDeleting}
                   >
-                    <i className="ri-delete-bin-line action-icon"></i>
+                    {isDeleting ? <i className="ri-loader-4-line action-icon spin-animation"></i> : <i className="ri-delete-bin-line action-icon"></i>}
                   </button>
                 )}
 
@@ -1685,8 +1690,9 @@ export default function EventDetailModal({
             </div>
           </div>
           <GlobalLoadingOverlay
-            isLoading={isSaving || (isImageLoading && !isCropModalOpen)}
-            message={isSaving ? "저장 중입니다..." : "이미지 불러오는 중..."}
+            isLoading={isDeleting || isSaving || (isImageLoading && !isCropModalOpen)}
+            message={isDeleting ? "삭제 중입니다..." : (isSaving ? "저장 중입니다..." : "이미지 불러오는 중...")}
+            progress={isDeleting ? deleteProgress : undefined}
           />
         </div>
         , document.body

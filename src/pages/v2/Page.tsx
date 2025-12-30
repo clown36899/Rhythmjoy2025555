@@ -92,7 +92,8 @@ export default function HomePageV2() {
         selectedEvent, setSelectedEvent,
         handleDailyModalEventClick, closeModal,
         handleEditClick, handleDeleteClick,
-        selectedVenueId, handleVenueClick, closeVenueModal
+        selectedVenueId, handleVenueClick, closeVenueModal,
+        isDeleting, deleteProgress
     } = useEventActions({ adminType, user, signInWithKakao });
 
     // Deep Link & QR Logic
@@ -557,6 +558,8 @@ export default function HomePageV2() {
                     allGenres={allGenres}
                     isFavorite={selectedEvent ? favoriteEventIds.has(selectedEvent.id) : false}
                     onToggleFavorite={(e) => selectedEvent && toggleFavorite(selectedEvent.id, e)}
+                    isDeleting={isDeleting}
+                    deleteProgress={deleteProgress}
                 />
 
                 {/* Venue Detail Modal - Hoisted to Page Level for persistence */}

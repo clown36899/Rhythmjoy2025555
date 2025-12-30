@@ -72,9 +72,9 @@ BEGIN
     'shops', COALESCE((
        SELECT json_agg(row_to_json(s))
        FROM (
-          SELECT id, name, description, logo_url, is_active, created_at
+          SELECT id, name, description, logo_url, created_at
           FROM shops
-          WHERE is_active = true
+          -- WHERE is_active = true -- Removed as column might not exist
           ORDER BY created_at DESC
        ) s
     ), '[]'::json)

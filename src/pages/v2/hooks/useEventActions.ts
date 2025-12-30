@@ -55,9 +55,30 @@ export function useEventActions({ adminType, user, signInWithKakao }: UseEventAc
         window.dispatchEvent(new CustomEvent('editEventFromDetail', { detail: { event, field } }));
     }, [user, signInWithKakao, adminType]);
 
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [deleteProgress, setDeleteProgress] = useState(0);
+
     const deleteEvent = async (eventId: number, password: string | null = null) => {
+        if (isDeleting) return; // Prevent double click
+
+        // Double Confirmation
+        if (!confirm("삭제된 데이터는 복구할 수 없습니다.\n정말로 삭제하시겠습니까?")) {
+            return;
+        }
+
+        // State update
+        setIsDeleting(true);
+        setDeleteProgress(0);
+
+        // Fake progress interval
+        const interval = setInterval(() => {
+            setDeleteProgress(prev => {
+                if (prev >= 90) return prev;
+                return prev + 10;
+            });
+        }, 100);
+
         try {
-            console.log(`[useEventActions] Calling delete-event function for event ${eventId}`);
 
             const { data: { session } } = await supabase.auth.getSession();
             const token = session?.access_token;
@@ -77,18 +98,33 @@ export function useEventActions({ adminType, user, signInWithKakao }: UseEventAc
                 // Foreign Key Constraint Check (즐겨찾기 삭제 방지 - 서버 에러 메시지 활용)
                 if (errorData.error?.includes('foreign key constraint') || errorData.message?.includes('foreign key constraint')) {
                     alert("다른 사용자가 '즐겨찾기' 및 '관심설정'한 이벤트는 삭제할 수 없습니다.\n\n(참고: 데이터 보호를 위해 삭제가 제한됩니다)");
+                    setIsDeleting(false); // Manually reset on early return
+                    clearInterval(interval);
+                    setDeleteProgress(0);
                     return;
                 }
 
                 throw new Error(errorData.error || `Server returned ${response.status}`);
             }
 
-            alert("이벤트가 삭제되었습니다.");
-            window.dispatchEvent(new CustomEvent("eventDeleted", { detail: { eventId } }));
-            closeModal();
+            // Success
+            setDeleteProgress(100);
+            clearInterval(interval);
+
+            setTimeout(() => {
+                // alert("이벤트가 삭제되었습니다."); // Removed as per request
+                window.dispatchEvent(new CustomEvent("eventDeleted", { detail: { eventId } }));
+                closeModal();
+                setIsDeleting(false);
+                setDeleteProgress(0);
+            }, 500); // Slight delay to show 100%
+
         } catch (error: any) {
             console.error("이벤트 삭제 중 오류 발생:", error);
             alert(`삭제하지 못했습니다.\n권한이 없거나 오류가 발생했습니다.`);
+            setIsDeleting(false); // Reset state on error
+            setDeleteProgress(0);
+            clearInterval(interval);
         }
     };
 
@@ -147,6 +183,8 @@ export function useEventActions({ adminType, user, signInWithKakao }: UseEventAc
         handleDeleteClick,
         selectedVenueId,
         handleVenueClick,
-        closeVenueModal
+        closeVenueModal,
+        isDeleting,
+        deleteProgress
     };
 }

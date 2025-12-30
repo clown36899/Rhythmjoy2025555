@@ -2622,6 +2622,7 @@ export default function EventList({
 
   const handleDeleteClick = (event: Event, e?: React.MouseEvent) => {
     e?.stopPropagation();
+    if (isDeleting) return;
 
     // 확인 메시지만 표시 (비밀번호 프롬프트 제거, RLS가 권한 체크)
     if (confirm('정말로 이 이벤트를 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.')) {
@@ -2629,54 +2630,81 @@ export default function EventList({
     }
   };
 
+  const [deleteProgress, setDeleteProgress] = useState(0);
+
   const deleteEvent = async (eventId: number) => {
+    if (isDeleting) return;
+
+    // Double Confirmation
+    if (!confirm("삭제된 데이터는 복구할 수 없습니다.\n정말로 삭제하시겠습니까?")) {
+      return;
+    }
+
     setIsDeleting(true);
+    setDeleteProgress(0);
+
+    // Fake progress interval
+    const interval = setInterval(() => {
+      setDeleteProgress(prev => {
+        if (prev >= 90) return prev;
+        return prev + 10;
+      });
+    }, 100);
+
     try {
       console.log(`[삭제 시작] Event ID: ${eventId}`);
 
-      // 1. 참조 데이터 삭제 (event_favorites)
-      // CASCADE 설정이 DB에 없다면 수동으로 삭제해야 함
-      const { error: favError } = await supabase
-        .from('event_favorites')
-        .delete()
-        .eq('event_id', eventId);
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
 
-      if (favError) {
-        console.warn('즐겨찾기 삭제 중 경고 (무시 가능):', favError);
-      }
+      const response = await fetch('/.netlify/functions/delete-event', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify({ eventId })
+      });
 
-      // 2. 이벤트 삭제
-      const { error } = await supabase
-        .from('events')
-        .delete()
-        .eq('id', eventId);
+      if (!response.ok) {
+        const errorData = await response.json();
 
-      if (error) {
-        console.error('삭제 실패:', error);
-
-        // RLS 권한 에러 처리
-        if (error.code === 'PGRST301' || error.message?.includes('policy')) {
-          alert('권한이 없습니다.\n본인이 작성한 글이거나 관리자만 삭제할 수 있습니다.');
-        } else {
-          alert('삭제 중 오류가 발생했습니다.');
+        // Foreign Key Constraint Check
+        if (errorData.error?.includes('foreign key constraint') || errorData.message?.includes('foreign key constraint')) {
+          alert("다른 사용자가 '즐겨찾기' 및 '관심설정'한 이벤트는 삭제할 수 없습니다.\n(데이터 보호를 위해 삭제가 제한됩니다)");
+          return;
         }
-        setIsDeleting(false);
-        return;
+
+        throw new Error(errorData.error || `Server returned ${response.status}`);
       }
 
       console.log(`[삭제 성공] Event ID: ${eventId}`);
-      setIsEditingWithDetail(false); // Close edit modal immediately
+
+      // Success
+      setDeleteProgress(100);
+      clearInterval(interval);
+
+      // 즉시 반영을 위한 UI 업데이트
+      setIsEditingWithDetail(false);
       setEventToEdit(null);
-      // closeModal(); // Detail modal close managed by parent via eventDeleted
-      fetchEvents(true); // Silent refresh - no loading spinner
-      window.dispatchEvent(new CustomEvent("eventDeleted", { detail: { eventId } })); // Notify other components
-      alert("이벤트가 삭제되었습니다.");
+
+      // 리프레시 및 상태 초기화
+      setTimeout(() => {
+        // alert("이벤트가 삭제되었습니다."); // Removed
+        fetchEvents(true);
+        window.dispatchEvent(new CustomEvent("eventDeleted", { detail: { eventId } }));
+        setIsDeleting(false);
+        setDeleteProgress(0);
+      }, 500);
+
     } catch (error: any) {
-      console.error("Edge Function 호출 또는 이벤트 삭제 중 오류 발생:", error);
+      console.error("이벤트 삭제 중 오류 발생:", error);
       alert(`이벤트 삭제 중 오류가 발생했습니다: ${error.context?.error_description || error.message || '알 수 없는 오류'}`);
-    } finally {
       setIsDeleting(false);
+      setDeleteProgress(0);
+      clearInterval(interval);
     }
+    // finally block removed to prevent premature state reset
   };
 
 
@@ -4400,6 +4428,8 @@ export default function EventList({
               onRegister={handleEditSave}
               onClose={handleEditCancel}
               isSubmitting={isEditSubmitting}
+              isDeleting={isDeleting}
+              progress={deleteProgress}
               onDelete={() => {
                 if (eventToEdit) {
                   handleDeleteClick(eventToEdit);

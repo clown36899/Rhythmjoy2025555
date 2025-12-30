@@ -43,10 +43,12 @@ export const handler: Handler = async (event) => {
             .single();
 
         if (fetchError || !eventData) {
+            // 이미 삭제된 경우로 간주하고 성공 응답 반환 (Idempotent 처리)
+            console.log(`[delete-event] Event ${eventId} not found (might vary already deleted). returning success.`);
             return {
-                statusCode: 404,
+                statusCode: 200,
                 headers: corsHeaders,
-                body: JSON.stringify({ error: 'Event not found.' })
+                body: JSON.stringify({ message: 'Event already deleted or not found.' })
             };
         }
 
