@@ -295,7 +295,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
             <div className="social-schedule-modal-container" onClick={(e) => e.stopPropagation()}>
                 <div className="social-schedule-modal-header">
                     <h2>{editSchedule ? '일정 수정' : (copyFrom ? '일정 복사 등록' : '새 일정 등록')}</h2>
-                    <button className="close-btn" onClick={onClose}>
+                    <button className="ssm-close-btn" onClick={onClose}>
                         <i className="ri-close-line"></i>
                     </button>
                 </div>
@@ -459,12 +459,12 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
 
                     <div className="form-actions">
                         {editSchedule && (
-                            <button type="button" className="delete-btn" onClick={handleDelete} disabled={isSubmitting}>
+                            <button type="button" className="ssm-delete-btn" onClick={handleDelete} disabled={isSubmitting}>
                                 <i className="ri-delete-bin-line"></i> 삭제
                             </button>
                         )}
-                        <button type="button" className="cancel-btn" onClick={onClose} disabled={isSubmitting}>취소</button>
-                        <button type="submit" className="submit-btn" disabled={isSubmitting}>
+                        <button type="button" className="ssm-cancel-btn" onClick={onClose} disabled={isSubmitting}>취소</button>
+                        <button type="submit" className="ssm-submit-btn" disabled={isSubmitting}>
                             저장하기
                         </button>
                     </div>

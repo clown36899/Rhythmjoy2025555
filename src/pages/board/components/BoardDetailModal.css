@@ -76,6 +76,7 @@
     overflow-y: auto;
     padding: 20px;
     padding-bottom: 40px;
+    letter-spacing: -0.015em;
 }
 
 /* Mobile adjustments */

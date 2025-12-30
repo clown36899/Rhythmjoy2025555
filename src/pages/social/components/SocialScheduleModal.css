@@ -245,7 +245,7 @@
     font-size: 2.5rem;
 }
 
-.delete-btn {
+.ssm-delete-btn {
     padding: 6px 12px;
     background-color: transparent;
     color: #ef4444;
@@ -261,9 +261,28 @@
     font-size: 0.85rem;
 }
 
-.delete-btn:hover:not(:disabled) {
+.ssm-delete-btn:hover:not(:disabled) {
     background-color: rgba(239, 68, 68, 0.1);
     border-color: #ef4444;
+}
+
+.ssm-close-btn {
+    background: none;
+    border: none;
+    color: #9ca3af;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.ssm-close-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
 }
 
 @media (max-width: 480px) {
@@ -301,6 +320,44 @@
     .day-bubble {
         flex: 0 0 calc(25% - 8px);
     }
+}
+
+.form-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+.ssm-cancel-btn {
+    padding: 12px 24px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: #333;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ssm-cancel-btn:hover {
+    background: #444;
+}
+
+.ssm-submit-btn {
+    flex: 1;
+    padding: 12px 24px;
+    border-radius: 12px;
+    border: none;
+    background: #fbbf24;
+    color: #1a1a1a;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ssm-submit-btn:hover {
+    background: #f59e0b;
+    transform: translateY(-1px);
 }
 
 /* Link Box in Detail Modal */

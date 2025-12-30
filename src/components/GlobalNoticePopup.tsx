@@ -7,6 +7,7 @@ export default function GlobalNoticePopup() {
     const FIXED_NOTICE_ID = 1; // singleton notice ID
     const [notice, setNotice] = useState<any>(null);
     const [isVisible, setIsVisible] = useState(false);
+    const [dontShowToday, setDontShowToday] = useState(false);
 
     useEffect(() => {
         checkNotice();
@@ -48,49 +49,68 @@ export default function GlobalNoticePopup() {
     };
 
     const handleClose = () => {
+        if (dontShowToday) {
+            handleSaveDontShow();
+        }
         setIsVisible(false);
     };
 
-    const handleDontShowToday = () => {
+    const handleSaveDontShow = () => {
         // Hide for 24 hours
         const tomorrow = new Date();
         tomorrow.setHours(tomorrow.getHours() + 24);
         localStorage.setItem('hideNoticeUntil', tomorrow.toISOString());
-        setIsVisible(false);
+    };
+
+    const toggleDontShow = () => {
+        setDontShowToday(!dontShowToday);
     };
 
 
     if (!isVisible || !notice) return null;
 
     return createPortal(
-        <div className="global-notice-popup-overlay" onClick={handleClose}>
+        <div className="global-notice-popup-overlay">
             <div className="global-notice-popup" onClick={e => e.stopPropagation()}>
                 <div className="notice-popup-header">
-                    <h3>{notice.title}</h3>
+                    <div className="title-area">
+                        <i className="ri-notification-3-line"></i>
+                        <h3>{notice.title}</h3>
+                    </div>
                     <button className="notice-close-btn" onClick={handleClose}>
                         <i className="ri-close-line"></i>
                     </button>
                 </div>
 
                 <div className="notice-popup-content">
-                    {notice.image_url && (
-                        <div className="notice-image-container">
-                            <img src={notice.image_url} alt="Notice" />
-                        </div>
-                    )}
                     <div className="notice-text-content">
                         {notice.content.split('\n').map((line: string, i: number) => (
                             <p key={i}>{line}</p>
                         ))}
                     </div>
+                    {notice.image_url && (
+                        <div className="notice-image-container-v2">
+                            <img
+                                id="notice-dynamic-img"
+                                src={`${notice.image_url}${notice.image_url.includes('?') ? '&' : '?'}v=${Date.now()}`}
+                                alt="Notice"
+                            />
+                        </div>
+                    )}
                 </div>
 
                 <div className="notice-popup-footer">
-                    <button className="dont-show-btn" onClick={handleDontShowToday}>
+                    <label className="dont-show-label" onClick={(e) => e.stopPropagation()}>
+                        <input
+                            type="checkbox"
+                            checked={dontShowToday}
+                            onChange={toggleDontShow}
+                        />
+                        <span className="checkbox-custom"></span>
                         오늘 하루 보지 않기
-                    </button>
-                    <button className="close-btn" onClick={handleClose}>
-                        닫기
+                    </label>
+                    <button className="notice-confirm-btn" onClick={handleClose}>
+                        확인
                     </button>
                 </div>
             </div>

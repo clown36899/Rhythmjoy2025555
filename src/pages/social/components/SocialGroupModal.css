@@ -54,7 +54,7 @@
     margin: 0;
 }
 
-.close-btn {
+.modal-close-x-btn {
     background: none;
     border: none;
     color: #9ca3af;
@@ -67,7 +67,7 @@
     transition: color 0.2s;
 }
 
-.close-btn:hover {
+.modal-close-x-btn:hover {
     color: white;
 }
 

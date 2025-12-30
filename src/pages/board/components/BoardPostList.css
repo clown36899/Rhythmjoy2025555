@@ -112,6 +112,7 @@
     font-size: 1rem;
     font-weight: 700;
     line-height: 1.4;
+    letter-spacing: -0.03em;
     margin: 0 !important;
     flex: 1;
     min-width: 0;
@@ -158,6 +159,7 @@
     color: var(--memo-text-content) !important;
     font-size: 0.88rem;
     line-height: 1.6;
+    letter-spacing: -0.02em;
     margin: 0 !important;
     white-space: pre-wrap;
     padding: 10px;

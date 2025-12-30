@@ -267,7 +267,7 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
             <div className="social-group-modal-container" onClick={(e) => e.stopPropagation()}>
                 <div className="social-group-modal-header">
                     <h2>{editGroup ? '단체 정보 수정' : '새 단체 등록'}</h2>
-                    <button className="close-btn" onClick={onClose}>
+                    <button className="modal-close-x-btn" onClick={onClose}>
                         <i className="ri-close-line"></i>
                     </button>
                 </div>

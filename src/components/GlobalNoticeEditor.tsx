@@ -89,7 +89,8 @@ export default function GlobalNoticeEditor({ isOpen, onClose, noticeId: propNoti
             let uploadedImageUrl = previewUrl;
 
             if (imageFile) {
-                const resized = await resizeImage(imageFile, 300, 0.8, `notice_${Date.now()}.webp`);
+                // WebP로 변환하되, 원본 사이즈를 최대한 유지 (4000px까지 허용)
+                const resized = await resizeImage(imageFile, 4000, 0.9, `notice_${Date.now()}.webp`);
 
                 const filePath = `notices/${Date.now()}_${resized.name}`;
                 const { error: uploadError } = await supabase.storage
