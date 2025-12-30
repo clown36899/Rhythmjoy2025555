@@ -569,6 +569,9 @@ export default function EventDetailModal({
       setIsSaving(true);
       console.log("🌀 EventDetailModal 스피너 실행됨 (isSaving: true)");
 
+      // Capture timestamp at the start of save for consistent folder naming
+      const timestamp = Date.now();
+
       // UI 렌더링을 위해 양보 (0ms)
       await new Promise(resolve => setTimeout(resolve, 0));
 
@@ -612,9 +615,10 @@ export default function EventDetailModal({
 
       // Upload image if changed
       if (imageFile) {
-        const timestamp = Date.now();
-        const fileName = `${timestamp}_${Math.random().toString(36).substring(2)}.webp`;
-        const basePath = `event-posters`;
+        const randomString = Math.random().toString(36).substring(2, 7);
+        const eventFolder = `${timestamp}_${randomString}`;
+        const basePath = `event-posters/${eventFolder}`;
+        const imageStoragePath = basePath;
 
         // Resize images
         const resizedImages = await createResizedImages(imageFile);
@@ -622,18 +626,18 @@ export default function EventDetailModal({
         // Upload Full Size
         const { error: uploadError } = await supabase.storage
           .from('images')
-          .upload(`${basePath}/full/${fileName}`, resizedImages.full, {
+          .upload(`${basePath}/full.webp`, resizedImages.full, {
             contentType: 'image/webp',
             upsert: true
           });
 
         if (uploadError) throw uploadError;
 
-        // Upload Medium (50% reduction)
+        // Upload Medium
         if (resizedImages.medium) {
           await supabase.storage
             .from('images')
-            .upload(`${basePath}/medium/${fileName}`, resizedImages.medium, {
+            .upload(`${basePath}/medium.webp`, resizedImages.medium, {
               contentType: 'image/webp',
               upsert: true
             });
@@ -643,17 +647,17 @@ export default function EventDetailModal({
         if (resizedImages.thumbnail) {
           await supabase.storage
             .from('images')
-            .upload(`${basePath}/thumbnail/${fileName}`, resizedImages.thumbnail, {
+            .upload(`${basePath}/thumbnail.webp`, resizedImages.thumbnail, {
               contentType: 'image/webp',
               upsert: true
             });
         }
 
-        // Upload Micro (100px) - ADDED
+        // Upload Micro
         if (resizedImages.micro) {
           await supabase.storage
             .from('images')
-            .upload(`${basePath}/micro/${fileName}`, resizedImages.micro, {
+            .upload(`${basePath}/micro.webp`, resizedImages.micro, {
               contentType: 'image/webp',
               upsert: true
             });
@@ -661,19 +665,19 @@ export default function EventDetailModal({
 
         const publicUrl = supabase.storage
           .from('images')
-          .getPublicUrl(`${basePath}/full/${fileName}`).data.publicUrl;
+          .getPublicUrl(`${basePath}/full.webp`).data.publicUrl;
 
         const mediumUrl = supabase.storage
           .from('images')
-          .getPublicUrl(`${basePath}/medium/${fileName}`).data.publicUrl;
+          .getPublicUrl(`${basePath}/medium.webp`).data.publicUrl;
 
         const thumbnailUrl = supabase.storage
           .from('images')
-          .getPublicUrl(`${basePath}/thumbnail/${fileName}`).data.publicUrl;
+          .getPublicUrl(`${basePath}/thumbnail.webp`).data.publicUrl;
 
         const microUrl = supabase.storage
           .from('images')
-          .getPublicUrl(`${basePath}/micro/${fileName}`).data.publicUrl;
+          .getPublicUrl(`${basePath}/micro.webp`).data.publicUrl;
 
         // Update draft fields
         updates.image = publicUrl;
@@ -681,7 +685,18 @@ export default function EventDetailModal({
         updates.image_medium = mediumUrl;
         updates.image_thumbnail = thumbnailUrl;
         updates.image_micro = microUrl;
+        updates.storage_path = imageStoragePath;
       }
+
+      // Capture old paths for cleanup if image is changed
+      const oldStoragePath = originalEvent?.storage_path || event?.storage_path || null;
+      const oldImageUrls = [
+        originalEvent?.image,
+        originalEvent?.image_micro,
+        originalEvent?.image_thumbnail,
+        originalEvent?.image_medium,
+        originalEvent?.image_full
+      ].filter(url => !!url);
 
       // DB Update - Get updated data directly from the update query
       console.log('[DB Update] About to update database with payload:', updates);
@@ -730,13 +745,13 @@ export default function EventDetailModal({
           if (!retryError && retryData && retryData.category === updates.category) {
             console.log('✅ Force update SUCCEEDED! Category is now:', retryData.category);
             // Correct the local event data reference
-            const event = new CustomEvent("eventUpdated", {
+            const eventUpdatedEvent = new CustomEvent("eventUpdated", {
               detail: {
                 id: draftEvent.id,
                 event: retryData
               }
             });
-            window.dispatchEvent(event);
+            window.dispatchEvent(eventUpdatedEvent);
             setIsSaving(false);
 
             // Stay in modal, just exit edit mode
@@ -761,6 +776,59 @@ export default function EventDetailModal({
         }
       }));
       console.log('[Screen Update] Custom event dispatched');
+
+      // 🎯 [CLEANUP] After successful DB update, remove old images if changed
+      if (imageFile) {
+        const performCleanup = async () => {
+          console.log("🧹 [EventDetailModal] Starting cleanup of old images...");
+
+          // 1. New style folder-based cleanup
+          if (oldStoragePath) {
+            try {
+              const { data: files } = await supabase.storage.from("images").list(oldStoragePath);
+              if (files && files.length > 0) {
+                const filePaths = files.map(f => `${oldStoragePath}/${f.name}`);
+                await supabase.storage.from("images").remove(filePaths);
+                console.log(`✅ [CLEANUP] Deleted ${files.length} files from old folder: ${oldStoragePath}`);
+              }
+            } catch (e) {
+              console.warn("⚠️ [CLEANUP] Failed to delete old folder content:", e);
+            }
+          }
+
+          // 2. Legacy/Individual file cleanup
+          const extractPath = (url: string | null | undefined) => {
+            if (!url) return null;
+            try {
+              if (url.includes('/images/')) {
+                return decodeURIComponent(url.split('/images/')[1]?.split('?')[0]);
+              }
+              return null;
+            } catch (e) { return null; }
+          };
+
+          const individualPaths = oldImageUrls
+            .map(url => extractPath(url))
+            .filter((p): p is string => !!p);
+
+          if (individualPaths.length > 0) {
+            try {
+              // 현재 새로 업로드한 경로는 제외하고 삭제
+              const filteredPaths = individualPaths.filter(p => !p.startsWith(`event-posters/${timestamp}`));
+              if (filteredPaths.length > 0) {
+                await supabase.storage.from("images").remove(filteredPaths);
+                console.log(`✅ [CLEANUP] Deleted ${filteredPaths.length} individual legacy files`);
+              }
+            } catch (e) {
+              console.warn("⚠️ [CLEANUP] Failed to delete legacy individual files:", e);
+            }
+          }
+        };
+
+        // Run in background
+        performCleanup().catch(err => console.error("❌ [CLEANUP] error:", err));
+      }
+
       setIsSaving(false);
 
       // Stay in modal, just exit edit mode
@@ -769,12 +837,6 @@ export default function EventDetailModal({
       // Update local state to reflect saved data immediately
       if (updatedEvent) {
         console.log('[Screen Update] Updating local state with DB response');
-        console.log('[Screen Update] Updated event dates:', {
-          date: updatedEvent.date,
-          start_date: updatedEvent.start_date,
-          end_date: updatedEvent.end_date,
-          event_dates: updatedEvent.event_dates
-        });
         setDraftEvent(updatedEvent);
         setOriginalEvent(updatedEvent);
       } else {

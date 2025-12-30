@@ -81,14 +81,38 @@ export function useEventModal(): UseEventModalReturn {
     // 4. 이벤트 삭제 핸들러
     const handleDeleteEvent = useCallback(async (eventId: number) => {
         if (confirm("정말로 이 이벤트를 삭제하시겠습니까?")) {
-            const { error } = await supabase.from('events').delete().eq('id', eventId);
-            if (!error) {
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+                const token = session?.access_token;
+
+                const response = await fetch('/.netlify/functions/delete-event', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                    },
+                    body: JSON.stringify({ eventId })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+
+                    // Foreign Key Constraint Check
+                    if (errorData.error?.includes('foreign key constraint') || errorData.message?.includes('foreign key constraint')) {
+                        alert("다른 사용자가 '즐겨찾기' 및 '관심설정'한 이벤트는 삭제할 수 없습니다.");
+                        return;
+                    }
+
+                    throw new Error(errorData.error || `Server returned ${response.status}`);
+                }
+
                 alert("삭제되었습니다.");
                 setSelectedEvent(null);
                 // 다른 컴포넌트에 삭제 이벤트 알림
                 window.dispatchEvent(new CustomEvent("eventDeleted", { detail: { eventId } }));
-            } else {
-                alert("삭제 실패: " + error.message);
+            } catch (error: any) {
+                console.error("이벤트 삭제 중 오류 발생:", error);
+                alert("삭제 실패: " + (error.message || "알 수 없는 오류"));
             }
         }
     }, []);

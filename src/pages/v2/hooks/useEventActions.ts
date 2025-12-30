@@ -57,37 +57,8 @@ export function useEventActions({ adminType, user, signInWithKakao }: UseEventAc
 
     const deleteEvent = async (eventId: number, password: string | null = null) => {
         try {
-            console.log(`[deleteEvent] Deleting event ${eventId}, user: ${user?.id}`);
+            console.log(`[useEventActions] Calling delete-event function for event ${eventId}`);
 
-            // 1. Try Direct RLS Deletion first (for logged-in users)
-            if (user) {
-                // RLS Policy가 권한(본인 또는 관리자)을 확인하므로 단순히 ID로 삭제 요청
-                // .eq('user_id', user.id)를 제거하여 관리자가 타인의 ID를 삭제할 수 있도록 함
-                const { error: rlsError, count } = await supabase
-                    .from('events')
-                    .delete({ count: 'exact' })
-                    .eq('id', eventId);
-
-                if (!rlsError && count !== null && count > 0) {
-                    alert("이벤트가 삭제되었습니다.");
-                    window.dispatchEvent(new CustomEvent("eventDeleted", { detail: { eventId } }));
-                    closeModal();
-                    return;
-                }
-
-                // If RLS failed/returned 0 rows, log and proceed to Edge Function
-                if (rlsError) {
-                    // Foreign Key Constraint Check (즐겨찾기 삭제 방지)
-                    if (rlsError.code === '23503') {
-                        console.warn("Delete blocked by foreign key constraint (favorites)", rlsError);
-                        alert("다른 사용자가 '즐겨찾기' 및 '관심설정'한 이벤트는 삭제할 수 없습니다.\n\n(참고: 데이터 보호를 위해 삭제가 제한됩니다)");
-                        return; // 🛑 Stop execution prevents fallback force-delete
-                    }
-                    console.warn("Direct delete failed, falling back to Edge Function", rlsError);
-                }
-            }
-
-            // 2. Netlify Function Fallback (handles cascading deletes & storage)
             const { data: { session } } = await supabase.auth.getSession();
             const token = session?.access_token;
 
@@ -102,8 +73,16 @@ export function useEventActions({ adminType, user, signInWithKakao }: UseEventAc
 
             if (!response.ok) {
                 const errorData = await response.json();
+
+                // Foreign Key Constraint Check (즐겨찾기 삭제 방지 - 서버 에러 메시지 활용)
+                if (errorData.error?.includes('foreign key constraint') || errorData.message?.includes('foreign key constraint')) {
+                    alert("다른 사용자가 '즐겨찾기' 및 '관심설정'한 이벤트는 삭제할 수 없습니다.\n\n(참고: 데이터 보호를 위해 삭제가 제한됩니다)");
+                    return;
+                }
+
                 throw new Error(errorData.error || `Server returned ${response.status}`);
             }
+
             alert("이벤트가 삭제되었습니다.");
             window.dispatchEvent(new CustomEvent("eventDeleted", { detail: { eventId } }));
             closeModal();

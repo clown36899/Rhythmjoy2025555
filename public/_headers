@@ -14,6 +14,10 @@
 # HTML files - no cache (always fresh)
 /*.html
   Cache-Control: public, max-age=0, must-revalidate
+
+# Service Worker - 절대 캐시하지 않음 (업데이트 보장)
+/service-worker.js
+  Cache-Control: no-cache, no-store, must-revalidate
 # 2) 해시된 정적 리소스: 1년 캐시 + immutable
 # ─────────────────────────────────────────
 /assets/*.js

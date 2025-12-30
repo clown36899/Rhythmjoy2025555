@@ -526,6 +526,17 @@ export default memo(function EventRegistrationModal({
           let imageThumbnailUrl = editEventData?.image_thumbnail || null;
           let imageMediumUrl = editEventData?.image_medium || null;
           let imageFullUrl = editEventData?.image_full || null;
+          let imageStoragePath = editEventData?.storage_path || null;
+
+          // Capture old paths for cleanup if image is changed
+          const oldStoragePath = editEventData?.storage_path || null;
+          const oldImageUrls = [
+            editEventData?.image,
+            editEventData?.image_micro,
+            editEventData?.image_thumbnail,
+            editEventData?.image_medium,
+            editEventData?.image_full
+          ].filter(url => !!url);
 
           let fileToUpload = imageFile;
 
@@ -536,9 +547,10 @@ export default memo(function EventRegistrationModal({
             setUploadProgress(10); // Start processing
 
             const timestamp = Date.now();
-            const randomString = Math.random().toString(36).substring(2, 15);
-            const basePath = `event-posters`;
-            const fileName = `${timestamp}_${randomString}.webp`;
+            const randomString = Math.random().toString(36).substring(2, 7);
+            const eventFolder = `${timestamp}_${randomString}`;
+            const basePath = `event-posters/${eventFolder}`;
+            const storagePath = basePath;
 
             // 먼저 모든 이미지 리사이즈 (WebP 변환 포함)
             try {
@@ -570,10 +582,10 @@ export default memo(function EventRegistrationModal({
 
               // 병렬 업로드 및 재시도 적용
               const uploadPromises = [
-                trackProgress(retryOperation(() => uploadImage(`${basePath}/micro/${fileName}`, resizedImages.micro))),
-                trackProgress(retryOperation(() => uploadImage(`${basePath}/thumbnails/${fileName}`, resizedImages.thumbnail))),
-                trackProgress(retryOperation(() => uploadImage(`${basePath}/medium/${fileName}`, resizedImages.medium))),
-                trackProgress(retryOperation(() => uploadImage(`${basePath}/full/${fileName}`, resizedImages.full)))
+                trackProgress(retryOperation(() => uploadImage(`${basePath}/micro.webp`, resizedImages.micro))),
+                trackProgress(retryOperation(() => uploadImage(`${basePath}/thumbnail.webp`, resizedImages.thumbnail))),
+                trackProgress(retryOperation(() => uploadImage(`${basePath}/medium.webp`, resizedImages.medium))),
+                trackProgress(retryOperation(() => uploadImage(`${basePath}/full.webp`, resizedImages.full)))
               ];
 
               const [microUrl, thumbUrl, mediumUrl, fullUrl] = await Promise.all(uploadPromises);
@@ -583,7 +595,8 @@ export default memo(function EventRegistrationModal({
               imageThumbnailUrl = thumbUrl;
               imageMediumUrl = mediumUrl;
               imageFullUrl = fullUrl;
-              imageUrl = imageFullUrl; // 원본도 full과 동일하게 설정
+              imageUrl = imageFullUrl;
+              imageStoragePath = storagePath;
 
               setUploadProgress(100);
 
@@ -625,6 +638,7 @@ export default memo(function EventRegistrationModal({
             image_thumbnail: imageThumbnailUrl,
             image_medium: imageMediumUrl,
             image_full: imageFullUrl,
+            storage_path: imageStoragePath,
             video_url: videoUrl,
             organizer: '익명', // Default value since input is removed
             organizer_name: isAdmin ? '관리자' : null,
@@ -708,6 +722,54 @@ export default memo(function EventRegistrationModal({
               logEvent('Event', 'Create', `${title} (ID: ${createdEvent.id})`);
             }
             onClose();
+
+            // 🎯 [CLEANUP] After successful DB update, remove old images if changed
+            if (editEventData && fileToUpload) {
+              const performCleanup = async () => {
+                console.log("🧹 [CLEANUP] Starting cleanup of old images...");
+
+                // 1. New style folder-based cleanup
+                if (oldStoragePath) {
+                  try {
+                    const { data: files } = await supabase.storage.from("images").list(oldStoragePath);
+                    if (files && files.length > 0) {
+                      const filePaths = files.map(f => `${oldStoragePath}/${f.name}`);
+                      await supabase.storage.from("images").remove(filePaths);
+                      console.log(`✅ [CLEANUP] Deleted ${files.length} files from old folder: ${oldStoragePath}`);
+                    }
+                  } catch (e) {
+                    console.warn("⚠️ [CLEANUP] Failed to delete old folder content:", e);
+                  }
+                }
+
+                // 2. Legacy/Individual file cleanup
+                const extractPath = (url: string | null) => {
+                  if (!url) return null;
+                  try {
+                    if (url.includes('/images/')) {
+                      return decodeURIComponent(url.split('/images/')[1]?.split('?')[0]);
+                    }
+                    return null;
+                  } catch (e) { return null; }
+                };
+
+                const individualPaths = oldImageUrls
+                  .map(url => extractPath(url as string))
+                  .filter((p): p is string => !!p);
+
+                if (individualPaths.length > 0) {
+                  try {
+                    await supabase.storage.from("images").remove(individualPaths);
+                    console.log(`✅ [CLEANUP] Deleted ${individualPaths.length} individual legacy files`);
+                  } catch (e) {
+                    console.warn("⚠️ [CLEANUP] Failed to delete legacy individual files:", e);
+                  }
+                }
+              };
+
+              // Run in background so UI closes fast
+              performCleanup().catch(err => console.error("❌ [CLEANUP] Fatal error during cleanup:", err));
+            }
           }
         })(),
         new Promise((_, reject) => setTimeout(() => reject(new Error("Timeout")), 60000))

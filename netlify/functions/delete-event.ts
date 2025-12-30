@@ -97,22 +97,47 @@ export const handler: Handler = async (event) => {
 
         // 4. 스토리지 파일 삭제
         if (eventData.storage_path) {
-            const { data: files } = await supabaseAdmin.storage.from('images').list(eventData.storage_path);
+            console.log(`[delete-event] Deleting folder: ${eventData.storage_path}`);
+            // 폴더 내의 모든 파일을 나열한 뒤 한꺼번에 삭제
+            const { data: files, error: listError } = await supabaseAdmin.storage.from('images').list(eventData.storage_path);
+
+            if (listError) {
+                console.warn(`[delete-event] Error listing files in ${eventData.storage_path}:`, listError);
+            }
+
             if (files && files.length > 0) {
                 const filePaths = files.map((file) => `${eventData.storage_path}/${file.name}`);
-                await supabaseAdmin.storage.from('images').remove(filePaths);
+                const { error: removeError } = await supabaseAdmin.storage.from('images').remove(filePaths);
+                if (removeError) {
+                    console.error(`[delete-event] Error removing files in ${eventData.storage_path}:`, removeError);
+                } else {
+                    console.log(`[delete-event] Successfully removed ${files.length} files from ${eventData.storage_path}`);
+                }
             }
-            // 폴더 자체는 자동 삭제되지 않으므로 빈 폴더로 남을 수 있음 (Supabase 정책)
-        } else {
-            // 레거시 이미지 경로 처리
-            const extractPath = (url: string | null) => url ? decodeURIComponent(url.split('/images/')[1]?.split('?')[0]) : null;
-            const paths = [eventData.image, eventData.image_thumbnail, eventData.image_medium, eventData.image_full]
-                .map(extractPath)
-                .filter((p): p is string => !!p);
+        }
 
-            if (paths.length > 0) {
-                await supabaseAdmin.storage.from('images').remove(paths);
+        // Legacy 방식 또는 storage_path와 별개로 이미지 컬럼에 직접 경로가 있는 경우 추가 삭제 시도
+        const extractPath = (url: string | null) => {
+            if (!url) return null;
+            try {
+                // URL에서 /public/images/ 이후의 경로만 추출
+                if (url.includes('/images/')) {
+                    return decodeURIComponent(url.split('/images/')[1]?.split('?')[0]);
+                }
+                return null;
+            } catch (e) {
+                return null;
             }
+        };
+
+        const imagePaths = [eventData.image, eventData.image_thumbnail, eventData.image_medium, eventData.image_full]
+            .map(extractPath)
+            .filter((p): p is string => !!p);
+
+        // storage_path 폴더 내에 이미 지워진 파일들을 제외하고 남은 게 있으면 지움
+        if (imagePaths.length > 0) {
+            console.log(`[delete-event] Checking legacy/individual image paths:`, imagePaths);
+            await supabaseAdmin.storage.from('images').remove(imagePaths);
         }
 
         // 5. 이벤트 삭제

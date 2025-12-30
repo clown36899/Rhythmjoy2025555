@@ -2435,37 +2435,47 @@ export default function EventList({
       let imageThumbnailUrl = eventToEdit.image_thumbnail;
       let imageMediumUrl = eventToEdit.image_medium;
       let imageFullUrl = eventToEdit.image_full;
+      let imageStoragePath = eventToEdit.storage_path;
+
+      // Capture old paths for cleanup if image is changed
+      const oldStoragePath = eventToEdit.storage_path || null;
+      const oldImageUrls = [
+        eventToEdit.image,
+        eventToEdit.image_full,
+        eventToEdit.image_medium,
+        eventToEdit.image_thumbnail,
+        eventToEdit.image_micro
+      ].filter(Boolean) as string[];
 
       // Upload new image if changed
       if (editImageFile) {
         const timestamp = Date.now();
-        const randomString = Math.random().toString(36).substring(2, 15);
-        const basePath = `event-posters`;
+        const randomString = Math.random().toString(36).substring(2, 7);
+        const eventFolder = `${timestamp}_${randomString}`;
+        const basePath = `event-posters/${eventFolder}`;
+        imageStoragePath = basePath;
 
         // 먼저 모든 이미지 리사이즈 (WebP 변환 포함)
         try {
           const resizedImages = await createResizedImages(editImageFile);
 
-          // 파일명은 WebP 확장자 사용
-          const fileName = `${timestamp}_${randomString}.webp`;
-
           // Upload micro (micro 폴더) - 달력용
-          const microPath = `${basePath}/micro/${fileName}`;
+          const microPath = `${basePath}/micro.webp`;
           await supabase.storage.from("images").upload(microPath, resizedImages.micro);
           imageMicroUrl = supabase.storage.from("images").getPublicUrl(microPath).data.publicUrl;
 
           // Upload thumbnail (thumbnail 폴더)
-          const thumbPath = `${basePath}/thumbnail/${fileName}`;
+          const thumbPath = `${basePath}/thumbnail.webp`;
           await supabase.storage.from("images").upload(thumbPath, resizedImages.thumbnail);
           imageThumbnailUrl = supabase.storage.from("images").getPublicUrl(thumbPath).data.publicUrl;
 
           // Upload medium (medium 폴더)
-          const mediumPath = `${basePath}/medium/${fileName}`;
+          const mediumPath = `${basePath}/medium.webp`;
           await supabase.storage.from("images").upload(mediumPath, resizedImages.medium);
           imageMediumUrl = supabase.storage.from("images").getPublicUrl(mediumPath).data.publicUrl;
 
           // Upload full (full 폴더) - 원본 대신 사용
-          const fullPath = `${basePath}/full/${fileName}`;
+          const fullPath = `${basePath}/full.webp`;
           await supabase.storage.from("images").upload(fullPath, resizedImages.full);
           imageFullUrl = supabase.storage.from("images").getPublicUrl(fullPath).data.publicUrl;
 
@@ -2509,6 +2519,7 @@ export default function EventList({
         image_position_x: editImagePosition.x,
         image_position_y: editImagePosition.y,
         video_url: editFormData.videoUrl,
+        storage_path: imageStoragePath,
       };
 
       let query = supabase
@@ -2531,6 +2542,59 @@ export default function EventList({
       setEventToEdit(null);
       await fetchEvents(true); // Silent refresh - no loading spinner
       window.dispatchEvent(new Event("eventUpdated"));
+
+      // 🎯 [CLEANUP] After successful DB update, remove old images if changed
+      if (editImageFile) {
+        const performCleanup = async () => {
+          console.log("🧹 [EventList] Starting cleanup of old images...");
+
+          // 1. New style folder-based cleanup
+          if (oldStoragePath) {
+            try {
+              const { data: files } = await supabase.storage.from("images").list(oldStoragePath);
+              if (files && files.length > 0) {
+                const filePaths = files.map(f => `${oldStoragePath}/${f.name}`);
+                await supabase.storage.from("images").remove(filePaths);
+                console.log(`✅ [CLEANUP] Deleted ${files.length} files from old folder: ${oldStoragePath}`);
+              }
+            } catch (e) {
+              console.warn("⚠️ [CLEANUP] Failed to delete old folder content:", e);
+            }
+          }
+
+          // 2. Legacy/Individual file cleanup
+          const extractPath = (url: string | null | undefined) => {
+            if (!url) return null;
+            try {
+              if (url.includes('/images/')) {
+                return decodeURIComponent(url.split('/images/')[1]?.split('?')[0]);
+              }
+              return null;
+            } catch (e) { return null; }
+          };
+
+          const individualPaths = oldImageUrls
+            .map(url => extractPath(url))
+            .filter((p): p is string => !!p);
+
+          if (individualPaths.length > 0) {
+            try {
+              // 현재 새로 업로드한 경로는 제외하고 삭제
+              const timestamp = Date.now(); // Note: This timestamp is newer than the upload one but should be fine for startsWith check
+              const filteredPaths = individualPaths.filter(p => !p.startsWith(`event-posters/`)); // Simple exclusion
+              if (filteredPaths.length > 0) {
+                await supabase.storage.from("images").remove(filteredPaths);
+                console.log(`✅ [CLEANUP] Deleted ${filteredPaths.length} individual legacy files`);
+              }
+            } catch (e) {
+              console.warn("⚠️ [CLEANUP] Failed to delete legacy individual files:", e);
+            }
+          }
+        };
+
+        // Run in background
+        performCleanup().catch(err => console.error("❌ [CLEANUP] error:", err));
+      }
 
       // Scroll to the edited event
       setTimeout(() => {
