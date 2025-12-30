@@ -1566,6 +1566,7 @@ export default function EventDetailModal({
                       e.stopPropagation();
                       if (window.confirm('정말로 이 이벤트를 삭제하시겠습니까?')) {
                         _onDelete(selectedEvent, e);
+                        onClose(); // 삭제 후 모달 닫기
                       }
                     }}
                     className="action-button delete"
