@@ -15,7 +15,7 @@
 .board-prefix-scroller {
     display: flex;
     overflow-x: auto;
-    padding: 4px 16px;
+    padding: 5px 16px 0px 16px;
     gap: 6px;
     scrollbar-width: none;
     height: 100%;
