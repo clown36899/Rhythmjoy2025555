@@ -69,13 +69,40 @@ const isBillboardPage = () => {
 };
 
 /**
- * Google Analytics 초기화
- * 앱 시작 시 한 번만 호출
- * 실제 서비스 도메인(swingenjoy.com, swingandjoy.com)에서만 초기화
+ * Google Analytics 초기화 (사용자 참여 기반)
+ * 앱 시작 시 직접 호출하지 않고, 실제 사용자 이벤트(스크롤, 이동 등) 발생 시 초기화
  */
-// Google Analytics 초기화
-export const initGA = () => {
-    console.log('[Analytics.initGA] 🚀 GA4 초기화 시작');
+export const initGAWithEngagement = () => {
+    let initialized = false;
+    const initTimeout = 5000; // 5초 후 자동 초기화 (백그라운드 탭 등 고려)
+
+    const triggerInit = () => {
+        if (!initialized) {
+            initialized = true;
+            initGA();
+            // 이벤트 리스너 제거
+            window.removeEventListener('scroll', triggerInit);
+            window.removeEventListener('mousemove', triggerInit);
+            window.removeEventListener('touchstart', triggerInit);
+            window.removeEventListener('click', triggerInit);
+        }
+    };
+
+    // 1. 사용자 활동 감지 시 초기화
+    if (typeof window !== 'undefined') {
+        window.addEventListener('scroll', triggerInit, { passive: true });
+        window.addEventListener('mousemove', triggerInit, { passive: true });
+        window.addEventListener('touchstart', triggerInit, { passive: true });
+        window.addEventListener('click', triggerInit);
+
+        // 2. 활동이 없더라도 일정 시간 후에는 초기화 (데이터 유실 방지)
+        setTimeout(triggerInit, initTimeout);
+    }
+};
+
+// 기본 Google Analytics 초기화 로직 (내부용)
+const initGA = () => {
+    console.log('[Analytics.initGA] 🚀 GA4 초기화 시작 (Engagement Triggered)');
     console.log('[Analytics.initGA] Measurement ID:', MEASUREMENT_ID);
     console.log('[Analytics.initGA] Hostname:', window.location.hostname);
 

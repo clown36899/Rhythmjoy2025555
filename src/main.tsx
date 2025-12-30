@@ -7,7 +7,7 @@ import { BoardDataProvider } from './contexts/BoardDataContext';
 import { BrowserRouter } from 'react-router-dom'
 import './index.css'
 import App from './App.tsx'
-import { initGA } from './lib/analytics'
+import { initGAWithEngagement } from './lib/analytics'
 import { ModalRegistry } from './components/ModalRegistry'
 import GlobalErrorBoundary from './components/GlobalErrorBoundary'
 
@@ -24,8 +24,8 @@ function RootApp() {
     // React 렌더링 완료 후 body 표시
     document.body.classList.add('loaded');
 
-    // Google Analytics 초기화
-    initGA();
+    // Google Analytics 초기화 (사용자 참여 기반)
+    initGAWithEngagement();
 
     // 📱 Mobile PWA Orientation Lock
     // 데스크탑은 회전/리사이즈 자유, 모바일 PWA만 세로 모드 고정
