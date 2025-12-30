@@ -232,12 +232,14 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
             <div className="compact-place">{item.place_name}</div>
         </div>
     );
+    const [isSharing, setIsSharing] = useState(false);
 
-    // 이미지 캡처 및 공유 함수
     const handleShareImage = async () => {
-        if (!containerRef.current) return;
+        if (!containerRef.current || isSharing) return;
 
         try {
+            setIsSharing(true);
+
             // 이미지를 base64로 변환하는 헬퍼 함수
             const convertImageToBase64 = async (img: HTMLImageElement): Promise<string> => {
                 try {
@@ -315,7 +317,10 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
 
             // Canvas를 Blob으로 변환
             canvas.toBlob(async (blob) => {
-                if (!blob) return;
+                if (!blob) {
+                    setIsSharing(false);
+                    return;
+                }
 
                 const fileName = `금주의_일정_${new Date().toISOString().split('T')[0]}.png`;
                 const file = new File([blob], fileName, { type: 'image/png' });
@@ -344,10 +349,12 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                     document.body.removeChild(link);
                     URL.revokeObjectURL(url);
                 }
+                setIsSharing(false);
             }, 'image/png');
         } catch (error) {
             console.error('Image capture failed:', error);
             alert('이미지 생성에 실패했습니다.');
+            setIsSharing(false);
         }
     };
 
@@ -359,12 +366,15 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                 <p className="capture-site-url">swingenjoy.com</p>
             </div>
 
-
             {/* 공유 버튼 (탭 메뉴 밖) */}
             {activeTab === 'weekly' && isAdmin && (
                 <div className="share-btn-wrapper">
-                    <button className="share-schedule-btn" onClick={handleShareImage} title="일정 이미지로 공유">
-                        <i className="ri-share-line"></i>
+                    <button className="share-schedule-btn" onClick={handleShareImage} disabled={isSharing} title="일정 이미지로 공유">
+                        {isSharing ? (
+                            <i className="ri-loader-4-line spin"></i>
+                        ) : (
+                            <i className="ri-share-line"></i>
+                        )}
                     </button>
                 </div>
             )}
@@ -394,7 +404,6 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                             const isToday = item.day === todayIndex;
                             const isSelected = selectedDay === item.day;
 
-                            // 해당 날짜의 일정 개수 계산
                             const scheduleCount = schedules.filter(s =>
                                 s.date && s.date.trim() !== '' && s.date === item.isoDate
                             ).length;

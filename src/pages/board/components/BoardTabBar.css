@@ -17,7 +17,7 @@
     /* Firefox */
     -ms-overflow-style: none;
     /* IE/Edge */
-    padding: 0 16px;
+    padding: 0 1px;
     gap: 16px;
     position: relative;
     /* 인디케이터 위치 기준점 */

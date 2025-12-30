@@ -249,8 +249,8 @@
 }
 
 .standard-view .board-post-content {
-  color: #d1d5db;
-  padding: 0 0 0px 5px;
+  color: #d1d5dba1;
+  padding: 0 0 0px 33px;
   /* Light gray (Gray 300 equivalent) */
   font-size: 12px;
   margin: 0;
