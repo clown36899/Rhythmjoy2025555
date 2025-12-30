@@ -16,6 +16,7 @@ import InvitationManagementModal from "../components/InvitationManagementModal";
 import { useOnlineUsers } from "../hooks/useOnlineUsers";
 import { useTotalUserCount } from "../hooks/useTotalUserCount";
 import GlobalNoticePopup from "../components/GlobalNoticePopup";
+import { useBoardData } from "../contexts/BoardDataContext";
 
 export function MobileShell() {
   const location = useLocation();
@@ -235,34 +236,22 @@ export function MobileShell() {
     }
   }, [location.pathname, calendarView]);
 
-  // 테마 색상 로드 (DB 최우선, index.css는 폴백)
+  // 테마 색상 적용 (BoardDataContext 활용)
+  const { data: boardData } = useBoardData();
+
   useEffect(() => {
-    const loadThemeColors = async () => {
-      try {
-        const { data, error } = await supabase
-          .from("theme_settings")
-          .select("*")
-          .eq("id", 1)
-          .single();
+    if (!boardData?.theme_settings) return;
 
-        if (error || !data) {
-          return;
-        }
+    const data = boardData.theme_settings;
 
-        // CSS 변수 업데이트 (DB 색상으로 덮어씀)
-        document.documentElement.style.setProperty("--bg-color", data.background_color);
-        document.documentElement.style.setProperty("--header-bg-color", data.header_bg_color || "#1f2937");
-        document.documentElement.style.setProperty("--calendar-bg-color", data.calendar_bg_color);
-        document.documentElement.style.setProperty("--event-list-bg-color", data.event_list_bg_color);
-        document.documentElement.style.setProperty("--event-list-outer-bg-color", data.event_list_outer_bg_color);
-        document.documentElement.style.setProperty("--page-bg-color", data.page_bg_color || "#111827");
-      } catch (err) {
-        // 기본 색상 사용 (index.css)
-      }
-    };
-
-    loadThemeColors();
-  }, []);
+    // CSS 변수 업데이트 (DB 색상으로 덮어씀)
+    document.documentElement.style.setProperty("--bg-color", data.background_color);
+    document.documentElement.style.setProperty("--header-bg-color", data.header_bg_color || "#1f2937");
+    document.documentElement.style.setProperty("--calendar-bg-color", data.calendar_bg_color);
+    document.documentElement.style.setProperty("--event-list-bg-color", data.event_list_bg_color);
+    document.documentElement.style.setProperty("--event-list-outer-bg-color", data.event_list_outer_bg_color);
+    document.documentElement.style.setProperty("--page-bg-color", data.page_bg_color || "#111827");
+  }, [boardData?.theme_settings]);
 
 
   // 현재 페이지와 카테고리 파악

@@ -8,6 +8,15 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '3.1.2',
+        date: '2025-12-30',
+        changes: [
+            '[🚀 성능] 로그인/초기 로딩 속도 대폭 개선 (API 호출 40+회 → 3회)',
+            '[🔧 최적화] 전역 상태 관리 통합 (RPC 배칭 적용)',
+            '[🐛 Fix] 불필요한 중복 데이터 요청 제거'
+        ]
+    },
+    {
         version: '3.1.1',
         date: '2025-12-30',
         changes: [

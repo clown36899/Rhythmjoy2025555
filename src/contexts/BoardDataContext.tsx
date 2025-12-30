@@ -33,10 +33,46 @@ interface ThemeSettings {
     updated_at: string;
 }
 
+interface BillboardSettings {
+    id: number;
+    enabled: boolean;
+    dateRangeStart: string | null;
+    dateRangeEnd: string | null;
+    excludedWeekdays: number[] | null;
+    excludedEventIds: number[] | null;
+    inactivityTimeout: number;
+    showControls: boolean;
+    autoOpenOnLoad: boolean;
+    default_thumbnail_class: string | null;
+    default_thumbnail_event: string | null;
+}
+
+interface PracticeRoom {
+    id: string; // venues.id is usually uuid or int, logic uses string in banner
+    name: string;
+    address: string;
+    images: (string | any)[] | null;
+    category: string;
+    display_order: number;
+    is_active: boolean;
+}
+
+interface Shop {
+    id: string;
+    name: string;
+    description: string | null;
+    logo_url: string | null;
+    is_active: boolean;
+    created_at: string;
+}
+
 interface BoardStaticData {
     categories: BoardCategory[];
     prefixes: Record<string, BoardPrefix[]>;
     theme_settings: ThemeSettings;
+    billboard_settings: BillboardSettings;
+    practice_rooms: PracticeRoom[];
+    shops: Shop[];
 }
 
 interface BoardDataContextType {

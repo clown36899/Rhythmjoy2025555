@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../../lib/supabase';
+// import { supabase } from '../../../lib/supabase'; // Not needed anymore
 import { useModal } from '../../../hooks/useModal';
+import { useBoardData } from '../../../contexts/BoardDataContext';
 import { logUserInteraction } from '../../../lib/analytics';
 import { getOptimizedImageUrl } from '../../../utils/getEventThumbnail';
 import { HorizontalScrollNav } from './HorizontalScrollNav';
@@ -12,32 +13,21 @@ interface PracticeRoom {
     address: string;
     image?: string; // Specialized thumbnail field
     images: (string | any)[];
-    description: string;
+    // description: string; // Removed or optional as it's not in the lite RPC
+    category: string;
 }
 
 export default function PracticeRoomBanner() {
     const [rooms, setRooms] = useState<PracticeRoom[]>([]);
     const venueDetailModal = useModal('venueDetail');
+    const { data: boardData } = useBoardData();
 
     useEffect(() => {
-        fetchPracticeRooms();
-    }, []);
+        if (boardData?.practice_rooms) {
+            // Parse images and randomize order (Images might already be JSON if from RPC, but RPC returns JSON types as objects in Supabase JS client usually, but explicit parsing might still be needed if text)
+            // Actually RPC `json_agg` returns JSON objects directly.
 
-    const fetchPracticeRooms = async () => {
-        try {
-            const { data, error } = await supabase
-                .from('venues')
-                .select('*')
-                .eq('category', '연습실')
-                .eq('is_active', true);
-
-            if (error) {
-                console.error('Error fetching practice rooms:', error);
-                return;
-            }
-
-            // Parse images and randomize order
-            const processedData = (data ?? []).map((room) => ({
+            const processedData = boardData.practice_rooms.map((room) => ({
                 ...room,
                 images: typeof room.images === 'string'
                     ? JSON.parse(room.images)
@@ -47,10 +37,8 @@ export default function PracticeRoomBanner() {
             // Shuffle array for random order
             const shuffled = processedData.sort(() => Math.random() - 0.5);
             setRooms(shuffled);
-        } catch (err) {
-            console.error('Unexpected error while fetching practice rooms:', err);
         }
-    };
+    }, [boardData]);
 
     const handleRoomClick = (room: PracticeRoom) => {
         // Google Analytics: 연습실 배너 클릭 추적

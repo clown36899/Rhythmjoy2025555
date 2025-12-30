@@ -1,5 +1,6 @@
 import { useState, useEffect, memo } from 'react';
-import { supabase } from '../../../lib/supabase';
+// import { supabase } from '../../../lib/supabase';
+import { useBoardData } from '../../../contexts/BoardDataContext';
 import type { Shop } from '../../shopping/page';
 import { useModal } from '../../../hooks/useModal';
 import { useIntersectionObserver } from '../../../hooks/useIntersectionObserver';
@@ -9,7 +10,10 @@ import './ShoppingBanner.css';
 
 function ShoppingBanner() {
     const [shops, setShops] = useState<Shop[]>([]);
+    const { data: boardData } = useBoardData();
+    // Loading depends on boardData now
     const [loading, setLoading] = useState(true);
+
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isHovered, setIsHovered] = useState(false);
     const shopDetailModal = useModal('shopDetail');
@@ -22,27 +26,15 @@ function ShoppingBanner() {
     // Minimum swipe distance (in px) to trigger navigation
     const minSwipeDistance = 50;
 
-    // Fetch shops from Supabase
-    const fetchShops = async () => {
-        setLoading(true);
-        const { data, error } = await supabase
-            .from('shops')
-            .select('*, featured_items (*)')
-            .order('created_at', { ascending: false });
-
-        if (data && !error) {
-            setShops(data);
-        }
-        setLoading(false);
-    };
-
     // Visibility check
     const { ref, isIntersecting } = useIntersectionObserver({ threshold: 0.1 });
 
     useEffect(() => {
-        fetchShops();
-        // No cleanup needed for Data URLs
-    }, []);
+        if (boardData?.shops) {
+            setShops(boardData.shops);
+            setLoading(false);
+        }
+    }, [boardData]);
 
     // Auto-slide timer (only when visible, not hovered, and not swiping)
     useEffect(() => {
@@ -69,7 +61,7 @@ function ShoppingBanner() {
 
         shopDetailModal.open({
             shop,
-            onUpdate: fetchShops
+            // onUpdate: fetchShops // Removed as we use global data now
         });
     };
 
