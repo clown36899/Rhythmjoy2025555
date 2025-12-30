@@ -786,11 +786,18 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                         className="date-selector-row editable-info-item"
                         onClick={(e) => {
                             e.stopPropagation();
+                            console.log('[EditableEventDetail] 날짜 클릭!');
+                            console.log('[EditableEventDetail] eventDates:', eventDates);
+                            console.log('[EditableEventDetail] date:', date);
+                            console.log('[EditableEventDetail] endDate:', endDate);
                             if (eventDates && eventDates.length > 0) {
+                                console.log('[EditableEventDetail] dateMode -> dates');
                                 setDateMode('dates');
                             } else if (date && endDate && date.getTime() !== endDate.getTime()) {
+                                console.log('[EditableEventDetail] dateMode -> range');
                                 setDateMode('range');
                             } else {
+                                console.log('[EditableEventDetail] dateMode -> single');
                                 setDateMode('single');
                             }
                             setActiveModal('date');
@@ -839,7 +846,15 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                         <EditBadge isStatic />
 
                         {/* Date Picker Bottom Sheet Portal */}
-                        {activeModal === 'date' && setDate && setEndDate && setEventDates && createPortal(
+                        {(() => {
+                            const shouldRender = activeModal === 'date' && setDate && setEndDate && setEventDates;
+                            console.log('[EditableEventDetail] 날짜 모달 렌더링 조건:', shouldRender);
+                            console.log('[EditableEventDetail] activeModal:', activeModal);
+                            console.log('[EditableEventDetail] setDate:', !!setDate);
+                            console.log('[EditableEventDetail] setEndDate:', !!setEndDate);
+                            console.log('[EditableEventDetail] setEventDates:', !!setEventDates);
+                            return shouldRender;
+                        })() && createPortal(
                             <div className="bottom-sheet-portal">
                                 {/* Backdrop */}
                                 <div
@@ -874,18 +889,25 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                                 하루
                                             </button>
                                             {/* Hide individual date selection for class and club categories -> Removed restriction */}
-                                            {true && (
-                                                <button
-                                                    onClick={() => {
-                                                        setDateMode('dates');
-                                                        setDate && setDate(null);
-                                                        setEndDate && setEndDate(null);
-                                                    }}
-                                                    className={`date-mode-btn ${dateMode === 'dates' ? 'active' : ''}`}
-                                                >
-                                                    개별
-                                                </button>
-                                            )}
+                                            {(() => {
+                                                const shouldShow = true;
+                                                console.log('[EditableEventDetail] 개별 버튼 렌더링 조건:', shouldShow);
+                                                console.log('[EditableEventDetail] event.category:', event.category);
+                                                console.log('[EditableEventDetail] dateMode:', dateMode);
+                                                return shouldShow;
+                                            })() && (
+                                                    <button
+                                                        onClick={() => {
+                                                            console.log('[EditableEventDetail] 개별 버튼 클릭!');
+                                                            setDateMode('dates');
+                                                            setDate && setDate(null);
+                                                            setEndDate && setEndDate(null);
+                                                        }}
+                                                        className={`date-mode-btn ${dateMode === 'dates' ? 'active' : ''}`}
+                                                    >
+                                                        개별
+                                                    </button>
+                                                )}
                                         </div>
                                     </div>
 

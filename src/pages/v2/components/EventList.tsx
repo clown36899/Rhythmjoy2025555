@@ -1090,13 +1090,33 @@ export default function EventList({
           threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
           const cutoffDate = threeMonthsAgo.toISOString().split('T')[0];
 
+          // event_dates 배열의 마지막 날짜도 확인하기 위해 모든 이벤트를 가져온 후 필터링
           const result = await supabase
             .from("events")
             .select(columns)
-            .or(`end_date.gte.${cutoffDate},date.gte.${cutoffDate}`)
             .order("start_date", { ascending: true, nullsFirst: false })
             .order("date", { ascending: true, nullsFirst: false });
-          data = result.data;
+
+          // 클라이언트 측에서 필터링 (event_dates 고려)
+          if (result.data) {
+            data = result.data.filter((event: any) => {
+              // end_date가 cutoff 이후면 포함
+              if (event.end_date && event.end_date >= cutoffDate) return true;
+
+              // date가 cutoff 이후면 포함
+              if (event.date && event.date >= cutoffDate) return true;
+
+              // event_dates 배열의 마지막 날짜가 cutoff 이후면 포함
+              if (event.event_dates && Array.isArray(event.event_dates) && event.event_dates.length > 0) {
+                const lastEventDate = event.event_dates[event.event_dates.length - 1];
+                if (lastEventDate >= cutoffDate) return true;
+              }
+
+              return false;
+            });
+          } else {
+            data = [];
+          }
           error = result.error;
         }
       })();
@@ -1642,6 +1662,23 @@ export default function EventList({
     const result = events.filter(event => {
       if (event.category !== 'event') return false;
 
+      // event_dates 배열이 있으면 첫 번째 날짜 확인 (시작 날짜 기준)
+      if (event.event_dates && Array.isArray(event.event_dates) && event.event_dates.length > 0) {
+        const firstEventDate = event.event_dates[0];
+        if (firstEventDate >= today) {
+          // Genre Filter 적용
+          if (selectedEventGenre) {
+            if (!event.genre) return false;
+            const filterGenres = selectedEventGenre.split(',').map(s => s.trim()).filter(Boolean);
+            const eventGenres = event.genre.split(',').map(s => s.trim()).filter(Boolean);
+            const hasMatch = eventGenres.some(g => filterGenres.includes(g));
+            console.log(`[Filter] ID: ${event.id}, Event: ${event.title}, Genres: [${eventGenres}], Filter: [${filterGenres}], Match: ${hasMatch}`);
+            if (!hasMatch) return false;
+          }
+          return true;
+        }
+      }
+
       const startDate = event.start_date || event.date;
 
       if (!startDate) return false;
@@ -1707,6 +1744,12 @@ export default function EventList({
           // Note: 'club' category events are also processed here initially and then split later
           if (event.category !== 'class' && event.category !== 'club') return false;
 
+          // event_dates 배열이 있으면 첫 번째 날짜 확인 (시작 날짜 기준)
+          if (event.event_dates && Array.isArray(event.event_dates) && event.event_dates.length > 0) {
+            const firstEventDate = event.event_dates[0];
+            if (firstEventDate >= today) return true;
+          }
+
           const startDate = event.start_date || event.date;
           if (!startDate || startDate < today) return false;
 
@@ -1720,6 +1763,13 @@ export default function EventList({
       const missingEvents = events.filter(e => {
         if (existingIds.has(e.id)) return false; // 이미 있음
         if (e.category !== 'class' && e.category !== 'club') return false; // 카테고리 불일치
+
+        // event_dates 배열이 있으면 첫 번째 날짜 확인 (시작 날짜 기준)
+        if (e.event_dates && Array.isArray(e.event_dates) && e.event_dates.length > 0) {
+          const firstEventDate = e.event_dates[0];
+          if (firstEventDate >= today) return true;
+        }
+
         const startDate = e.start_date || e.date;
         if (!startDate || startDate < today) return false; // 날짜 지남
         return true;
@@ -1745,6 +1795,13 @@ export default function EventList({
     const result = events.filter(event => {
       // Include both 'class' and 'club' categories
       if (event.category !== 'class' && event.category !== 'club') return false;
+
+      // event_dates 배열이 있으면 첫 번째 날짜 확인 (시작 날짜 기준)
+      if (event.event_dates && Array.isArray(event.event_dates) && event.event_dates.length > 0) {
+        const firstEventDate = event.event_dates[0];
+        // 첫 번째 개별 날짜가 오늘 이후면 표시
+        if (firstEventDate >= today) return true;
+      }
 
       const startDate = event.start_date || event.date;
 

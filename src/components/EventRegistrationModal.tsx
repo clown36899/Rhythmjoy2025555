@@ -597,9 +597,14 @@ export default memo(function EventRegistrationModal({
           setLoadingMessage("데이터 저장 중... (자동 재시도)");
 
           // Determine effective start and end dates
+          // 개별 날짜가 있으면 개별 날짜를 우선 사용 (기간 날짜 무시)
           const sortedDates = eventDates.length > 0 ? [...eventDates].sort() : [];
-          const effectiveStartDate = date ? formatDateForInput(date) : (sortedDates.length > 0 ? sortedDates[0] : null);
-          const effectiveEndDate = endDate ? formatDateForInput(endDate) : (sortedDates.length > 0 ? sortedDates[sortedDates.length - 1] : null);
+          const effectiveStartDate = sortedDates.length > 0
+            ? sortedDates[0]
+            : (date ? formatDateForInput(date) : null);
+          const effectiveEndDate = sortedDates.length > 0
+            ? sortedDates[sortedDates.length - 1]
+            : (endDate ? formatDateForInput(endDate) : null);
 
           const eventData = {
             title,
