@@ -87,54 +87,86 @@ export const handler: Handler = async (event) => {
     }
 
     const tokenData = await tokenResponse.json();
-    const kakaoAccessToken = tokenData.access_token;
-    const kakaoRefreshToken = tokenData.refresh_token;
+    const { access_token: kakaoAccessToken, refresh_token: kakaoRefreshToken, id_token: kakaoIdToken } = tokenData;
 
     console.log('[kakao-login] ✅ 토큰 교환 성공:', {
       hasAccessToken: !!kakaoAccessToken,
       hasRefreshToken: !!kakaoRefreshToken,
-      accessTokenLength: kakaoAccessToken?.length,
-      refreshTokenLength: kakaoRefreshToken?.length
+      hasIdToken: !!kakaoIdToken
     });
 
-    // 2. 카카오 사용자 정보 가져오기
-    console.log('[kakao-login] 2단계: 카카오 사용자 정보 조회 시작');
-    const kakaoUserResponse = await fetch('https://kapi.kakao.com/v2/user/me', {
-      headers: {
-        Authorization: `Bearer ${kakaoAccessToken}`,
-        'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8'
+    // 2. 카카오 사용자 정보 조회 (OIDC 최적화 적용)
+    let kakaoId: BigInt | number | string = '';
+    let email: string = '';
+    let nickname: string = '';
+    let profileImage: string | null = null;
+    let usingOIDC = false;
+
+    // A. OIDC (ID Token) 시도
+    if (kakaoIdToken) {
+      try {
+        console.log('[kakao-login] 🆔 ID Token 발견 - OIDC 디코딩 시도');
+        const payloadBase64 = kakaoIdToken.split('.')[1];
+        const payloadDecoded = Buffer.from(payloadBase64, 'base64').toString('utf-8');
+        const idTokenPayload = JSON.parse(payloadDecoded);
+
+        console.log('[kakao-login] ID Token Payload (partial):', {
+          sub: idTokenPayload.sub,
+          email: idTokenPayload.email,
+          nickname: idTokenPayload.nickname
+        });
+
+        if (idTokenPayload.sub) {
+          kakaoId = idTokenPayload.sub;
+          email = idTokenPayload.email || `kakao_${kakaoId}@example.com`; // 이메일 없을 경우 대체
+          nickname = idTokenPayload.nickname || 'Unknown User';
+          profileImage = idTokenPayload.picture || null;
+          usingOIDC = true;
+          console.log('[kakao-login] ✅ OIDC 최적화 적용 성공! (API 호출 생략)');
+        }
+      } catch (e) {
+        console.warn('[kakao-login] ⚠️ ID Token 디코딩 실패 -> API 호출로 전환:', e);
       }
-    });
-
-    console.log('[kakao-login] 사용자 정보 조회 응답:', {
-      status: kakaoUserResponse.status,
-      ok: kakaoUserResponse.ok
-    });
-
-    if (!kakaoUserResponse.ok) {
-      console.error('[kakao-login] ❌ 카카오 사용자 정보 조회 실패');
-      return { statusCode: 401, body: JSON.stringify({ error: 'Invalid Kakao Token' }) };
     }
 
-    const kakaoUser = await kakaoUserResponse.json();
-    let email = kakaoUser.kakao_account?.email;
-    const realName = kakaoUser.kakao_account?.name;
-    const phone = kakaoUser.kakao_account?.phone_number;
-    const nickname = kakaoUser.kakao_account?.profile?.nickname || 'Unknown';
-    const profileImage = kakaoUser.kakao_account?.profile?.profile_image_url;
-    const kakaoId = kakaoUser.id.toString();
+    // B. 기존 API 호출 (OIDC 실패 또는 ID Token 없음)
+    if (!usingOIDC) {
+      console.log('[kakao-login] 2단계: 카카오 사용자 정보 조회 시작 (API 호출)');
+      const kakaoUserResponse = await fetch('https://kapi.kakao.com/v2/user/me', {
+        headers: {
+          Authorization: `Bearer ${kakaoAccessToken}`,
+          'Content-Type': 'application/x-www-form-urlencoded;charset=utf-8'
+        }
+      });
 
-    console.log('[kakao-login] ✅ 사용자 정보 조회 성공:', {
-      hasEmail: !!email,
-      email,
-      hasNickname: !!nickname,
-      hasKakaoId: !!kakaoId
-    });
+      const kakaoUser = await kakaoUserResponse.json();
+
+      if (!kakaoUserResponse.ok) {
+        console.error('[kakao-login] Failed to fetch user info:', kakaoUser);
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ error: 'Failed to fetch user info', details: kakaoUser }),
+        };
+      }
+
+      console.log('[kakao-login] ✅ 사용자 정보 조회 성공');
+
+      kakaoId = kakaoUser.id;
+      const kakaoAccount = kakaoUser.kakao_account || {};
+      email = kakaoAccount.email;
+      const properties = kakaoUser.properties || {};
+      nickname = properties.nickname || kakaoAccount.profile?.nickname || `User${kakaoId}`;
+      profileImage = properties.profile_image || kakaoAccount.profile?.profile_image_url || null;
+    }
 
     if (!email) {
-      console.error('[kakao-login] ❌ 카카오 이메일 없음');
-      return { statusCode: 400, body: JSON.stringify({ error: 'Kakao email not found' }) };
+      // 이메일 권한이 없는 경우, 카카오 ID 기반 가상 이메일 생성 (필수)
+      console.warn('[kakao-login] ⚠️ 이메일 정보 없음. 가상 이메일 생성.');
+      email = `kakao_${kakaoId}@swingenjoy.com`;
     }
+
+    // 3단계 진입 전 확인
+    console.log('[kakao-login] 정보 추출 완료:', { kakaoId, email, nickname, usingOIDC });
 
     // 2. Supabase 사용자 처리 (조회 또는 생성)
     console.log('[kakao-login] 3단계: Supabase 사용자 조회/생성 시작');

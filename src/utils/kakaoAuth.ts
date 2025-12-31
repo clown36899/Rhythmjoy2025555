@@ -76,7 +76,7 @@ export const loginWithKakao = (): void => {
 
   window.Kakao.Auth.authorize({
     redirectUri,
-    scope: 'account_email,profile_nickname,name,phone_number',
+    scope: 'account_email,profile_nickname,name,phone_number,openid',
   });
 
   console.log('[KakaoAuth.loginWithKakao] ➡️ 카카오 인증 페이지로 리다이렉트 중...');
