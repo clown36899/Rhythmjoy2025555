@@ -353,7 +353,6 @@ const EventList: React.FC<EventListProps> = ({
           isSocialSchedulesLoading={socialLoading}
           todaySocialSchedules={(() => {
             const todayStr = getLocalDateString();
-            const todayDay = getKSTDay(); // 0-6
 
             // A. Today's Events (category='event') -> Map to SocialSchedule
             const todayEventsAsSocial = events
@@ -379,18 +378,8 @@ const EventList: React.FC<EventListProps> = ({
             // B. One-time Social Schedules (Date match)
             const oneTimeSocials = socialSchedules.filter(s => s.date && s.date === todayStr);
 
-            // C. Recurring Social Schedules (Day match + No Date)
-            const recurringSocials = socialSchedules.filter(s => {
-              const hasNoDate = !s.date || s.date.trim() === '';
-              const scheduleDay = Number(s.day_of_week);
-              return hasNoDate && !isNaN(scheduleDay) && scheduleDay === todayDay;
-            });
-
-            // Logic: Always show (A + B). If count < 4, add (C).
-            let combined = [...todayEventsAsSocial, ...oneTimeSocials];
-            if (combined.length < 4) {
-              combined = [...combined, ...recurringSocials];
-            }
+            // Logic: Only show (A + B). Never add recurring schedules (C).
+            const combined = [...todayEventsAsSocial, ...oneTimeSocials];
 
             return combined;
           })()}

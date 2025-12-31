@@ -185,3 +185,176 @@
         height: 135px;
     }
 }
+
+/* 일정 개수에 따른 반응형 레이아웃 */
+/* 1개일 때: 전체 너비 사용, 가로 레이아웃, 프리미엄 디자인 */
+.today-scroller-count-1 {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 15px 20px 10px 20px;
+    overflow-x: visible;
+}
+
+.today-card-count-1 {
+    flex: unset;
+    max-width: unset;
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    height: 200px;
+    background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(251, 191, 36, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+@media (hover: hover) {
+    .today-card-count-1:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 25px 70px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(251, 191, 36, 0.3);
+        border-color: rgba(251, 191, 36, 0.4);
+    }
+}
+
+.today-card-count-1 .today-card-image {
+    aspect-ratio: 5 / 7;
+    height: 100%;
+    flex-shrink: 0;
+    background: radial-gradient(circle at top left, #1a1a1a 0%, #000 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+.today-card-count-1 .today-card-image::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(251, 191, 36, 0.08) 0%, transparent 70%);
+    animation: shimmer 8s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+
+    0%,
+    100% {
+        transform: translate(0, 0);
+        opacity: 0.3;
+    }
+
+    50% {
+        transform: translate(10%, 10%);
+        opacity: 0.6;
+    }
+}
+
+.today-card-count-1 .today-card-image::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 2px;
+    height: 100%;
+    background: linear-gradient(180deg, transparent 0%, rgba(251, 191, 36, 0.5) 50%, transparent 100%);
+    box-shadow: 0 0 20px rgba(251, 191, 36, 0.3);
+}
+
+.today-card-count-1 .today-card-image img {
+    object-fit: contain;
+    object-position: center center;
+    position: relative;
+    z-index: 1;
+    filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+}
+
+.today-card-count-1 .today-card-overlay {
+    top: 16px;
+    right: 16px;
+}
+
+.today-card-count-1 .today-time {
+    font-size: 0.95rem;
+    padding: 6px 14px;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(12px);
+    border: 1.5px solid rgba(251, 191, 36, 0.4);
+    box-shadow: 0 4px 12px rgba(251, 191, 36, 0.2);
+}
+
+.today-card-count-1 .today-card-info {
+    flex: 1;
+    padding: 32px 36px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 16px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.01) 0%, transparent 100%);
+    position: relative;
+}
+
+.today-card-count-1 .today-card-info::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 20%;
+    height: 60%;
+    width: 3px;
+    background: linear-gradient(180deg, transparent 0%, rgba(251, 191, 36, 0.6) 50%, transparent 100%);
+    border-radius: 0 2px 2px 0;
+}
+
+.today-card-count-1 .today-card-title {
+    font-size: clamp(1.2rem, 4vw, 1.75rem);
+    font-weight: 900;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    margin-bottom: 0;
+    line-height: 1.4;
+    letter-spacing: -0.03em;
+    color: #ffffff;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    word-break: keep-all;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.today-card-count-1 .today-card-place {
+    font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+    color: #d1d5db;
+    gap: 10px;
+    font-weight: 500;
+    line-height: 1.5;
+    letter-spacing: -0.01em;
+    word-break: keep-all;
+    word-wrap: break-word;
+}
+
+.today-card-count-1 .today-card-place i {
+    font-size: clamp(1rem, 3vw, 1.3rem);
+    color: #fbbf24;
+    filter: drop-shadow(0 2px 4px rgba(251, 191, 36, 0.4));
+    flex-shrink: 0;
+}
+
+/* 2개일 때: 반반 */
+.today-scroller-count-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    padding: 15px 20px 10px 20px;
+    overflow-x: visible;
+}
+
+.today-card-count-2 {
+    flex: unset;
+    max-width: unset;
+    width: 100%;
+}
+
+/* 3개 이상일 때: 기존 스크롤 방식 유지 */
+.today-scroller-count-3 {
+    display: flex;
+}

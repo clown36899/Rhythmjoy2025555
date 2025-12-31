@@ -105,11 +105,11 @@ const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll, on
             </div>
 
             <HorizontalScrollNav>
-                <div className="today-scroller">
+                <div className={`today-scroller today-scroller-count-${Math.min(shuffledSchedules.length, 3)}`}>
                     {shuffledSchedules.map((item) => (
                         <div
                             key={item.id}
-                            className="today-card"
+                            className={`today-card today-card-count-${Math.min(shuffledSchedules.length, 3)}`}
                             onClick={(e) => handleScheduleClick(e, item)}
                         >
                             <div className="today-card-image">

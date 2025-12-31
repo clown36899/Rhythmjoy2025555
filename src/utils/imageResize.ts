@@ -187,7 +187,7 @@ export async function createResizedImages(
     const [micro, thumbnail, medium, full] = await Promise.all([
       resizeImage(sourceUrl, 100, 0.7, fileName),
       resizeImage(sourceUrl, 300, 0.75, fileName),
-      resizeImage(sourceUrl, 650, 0.8, fileName),
+      resizeImage(sourceUrl, 650, 0.9, fileName),
       resizeImage(sourceUrl, 1300, 0.85, fileName),
     ]);
 
