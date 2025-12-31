@@ -8,6 +8,16 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '3.1.6',
+        date: '2026-01-01',
+        changes: [
+            '[🐛 Fix] 이미지 업로드 502(Bad Gateway) 오류 해결 (자동 재시도 로직 적용)',
+            '[🔧 개선] EventDetailModal 이미지 병렬 업로드로 속도 및 안정성 최적화',
+            '[🔧 개선] DB 업데이트 실패 시 자동 재시도 기능 추가',
+            '[🔧 개선] 데이터 업데이트 페이로드 무결성 강화 (undefined 필드 제거)'
+        ]
+    },
+    {
         version: '3.1.5',
         date: '2025-12-31',
         changes: [

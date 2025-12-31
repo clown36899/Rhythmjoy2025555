@@ -21,7 +21,7 @@ import "../styles/EventCard.css";
 import { EventFavoritesView } from "./EventList/components/EventFavoritesView";
 import { MyEventsView } from "./EventList/components/MyEventsView";
 import { EventPreviewSection } from "./EventList/components/EventPreviewSection";
-import { EventFilteredGridView } from "./EventList/components/EventFilteredGridView";
+import { EventHorizontalListView } from "./EventList/components/EventHorizontalListView";
 import { EventEditModal } from "./EventList/components/EventEditModal";
 import VenueSelectModal from "./VenueSelectModal";
 
@@ -42,6 +42,7 @@ interface EventListProps {
   adminType?: "super" | "sub" | null;
   highlightEvent?: Event | null;
   onEventHover?: (event: Event | null) => void;
+  onSectionViewModeChange: (mode: 'preview' | 'viewAll-events' | 'viewAll-classes') => void;
 }
 
 const EventList: React.FC<EventListProps> = ({
@@ -52,7 +53,8 @@ const EventList: React.FC<EventListProps> = ({
   isAdminMode = false,
   adminType = null,
   highlightEvent,
-  onEventHover
+  onEventHover,
+  onSectionViewModeChange
 }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
@@ -136,8 +138,15 @@ const EventList: React.FC<EventListProps> = ({
     };
   }, [events]);
 
-  // 5. Filtering Logic from Hook
-  const selectedCategory = searchParams.get("category") || "all";
+  // 5. Filtering Logic
+  const view = searchParams.get('view');
+
+  // 전체보기 모드일 경우 카테고리 강제 설정
+  const selectedCategory = useMemo(() => {
+    if (view === 'viewAll-events') return 'event';
+    if (view === 'viewAll-classes') return 'class';
+    return searchParams.get("category") || "all";
+  }, [view, searchParams]);
   const selectedGenre = searchParams.get("genre") || null;
   const searchTerm = searchParams.get("search") || "";
   const selectedWeekday = searchParams.get("weekday") ? parseInt(searchParams.get("weekday")!) : null;
@@ -226,8 +235,6 @@ const EventList: React.FC<EventListProps> = ({
     return <GlobalLoadingOverlay isLoading={true} />;
   }
 
-  const view = searchParams.get('view');
-
   return (
     <div className="no-select evt-flex-col-full">
       {(isDeleting || isFetchingDetail) && createPortal(
@@ -292,22 +299,13 @@ const EventList: React.FC<EventListProps> = ({
           effectiveFavoriteIds={favoriteEventIds}
           handleToggleFavorite={handleToggleFavorite}
         />
-      ) : (searchTerm.trim() || selectedDate || (selectedCategory !== 'all' && selectedCategory !== 'none')) ? (
-        <EventFilteredGridView
-          sortedEvents={sortedEvents}
-          selectedDate={selectedDate}
-          selectedCategory={selectedCategory}
-          onEventClick={(e) => onEventClick?.(e)}
-          onEventHover={(id) => {
-            if (id === null) onEventHover?.(null);
-            else onEventHover?.(events.find(ev => ev.id === id) ?? null);
-          }}
-          highlightEvent={highlightEvent ?? null}
-          defaultThumbnailClass="default-class"
+      ) : (view === 'viewAll-events' || view === 'viewAll-classes' || searchTerm.trim() || selectedDate || (selectedCategory !== 'all' && selectedCategory !== 'none')) ? (
+        <EventHorizontalListView
+          events={view?.startsWith('viewAll')
+            ? events.filter(e => e.category === (view === 'viewAll-events' ? 'event' : 'class') && (e.end_date || e.date || "") >= getLocalDateString())
+            : sortedEvents}
+          onEventClick={(e: Event) => onEventClick?.(e)}
           defaultThumbnailEvent="default-event"
-          effectiveFavoriteIds={favoriteEventIds}
-          handleToggleFavorite={handleToggleFavorite}
-          currentMonth={currentMonth}
         />
       ) : (
         <EventPreviewSection
@@ -320,7 +318,7 @@ const EventList: React.FC<EventListProps> = ({
             const todayEventsAsSocial = events
               .filter(e => e.category === 'event' && (e.end_date || e.date || "") >= todayStr && (e.start_date || e.date || "") <= todayStr)
               .map(e => ({
-                id: e.id * 10000, // Avoid ID collision
+                id: e.id * 10000, // Keep multiplication for UI/Key collision prevention
                 group_id: -1, // Flag as Event
                 title: e.title,
                 date: e.date,
@@ -334,6 +332,7 @@ const EventList: React.FC<EventListProps> = ({
                 updated_at: '',
                 description: e.description,
                 board_users: (e as any).board_users, // Preserve author info
+                is_mapped_event: true // Use flag to recover ID on click
               } as any));
 
             // B. One-time Social Schedules (Date match)
@@ -394,6 +393,7 @@ const EventList: React.FC<EventListProps> = ({
                 updated_at: '',
                 description: e.description,
                 board_users: (e as any).board_users, // Preserve author info
+                is_mapped_event: true
               } as any));
 
             // Return combined. AllSocialSchedules will do further fine-grained filtering if needed,
@@ -414,14 +414,27 @@ const EventList: React.FC<EventListProps> = ({
           selectedEventGenre={searchParams.get('event_genre')}
           selectedClassGenre={searchParams.get('class_genre')}
           selectedClubGenre={searchParams.get('club_genre')}
-          onEventClick={(e) => onEventClick?.(e)}
+          onEventClick={(e) => {
+            // 🎯 [SMOKING GUN FIX] 오늘의 일정 섹션에서 ID가 10,000배(예: 220 -> 2200000)가 된 경우 복원
+            if ((e as any).is_mapped_event) {
+              const originalId = Math.floor((e as any).id / 10000);
+              const originalEvent = events.find(ev => ev.id === originalId);
+              if (originalEvent) {
+                onEventClick?.(originalEvent);
+                return;
+              }
+            }
+            onEventClick?.(e);
+          }}
           onEventHover={(id: number | null) => {
             if (!onEventHover) return;
             if (id === null) {
               onEventHover(null);
               return;
             }
-            const found = events.find(ev => ev.id === id);
+            // If ID is inflated (mapped event), scale it back for lookup
+            const lookupId = id > 1000000 ? Math.floor(id / 10000) : id;
+            const found = events.find(ev => ev.id === lookupId);
             onEventHover(found ?? null);
           }}
           highlightEvent={highlightEvent ?? null}
@@ -431,6 +444,7 @@ const EventList: React.FC<EventListProps> = ({
           handleToggleFavorite={handleToggleFavorite}
           searchParams={searchParams}
           setSearchParams={setSearchParams}
+          onSectionViewModeChange={onSectionViewModeChange}
         />
       )}
 

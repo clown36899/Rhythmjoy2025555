@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 // Styles
 import "../../../styles/EventListSections.css";
 import "../../../styles/HorizontalScrollNav.css";
@@ -8,6 +8,7 @@ import TodaySocial from "../../../../social/components/TodaySocial";
 import AllSocialSchedules from "../../../../social/components/AllSocialSchedules";
 import { HorizontalScrollNav } from "../../HorizontalScrollNav";
 import PracticeRoomBanner from "../../PracticeRoomBanner";
+import ShoppingBanner from "../../ShoppingBanner";
 import type { Event } from "../../../utils/eventListUtils";
 import { EventCard } from "../../EventCard";
 import type { SocialSchedule } from "../../../../social/types";
@@ -37,6 +38,7 @@ interface EventPreviewSectionProps {
     handleToggleFavorite: (id: number, e: React.MouseEvent) => void;
     searchParams: URLSearchParams;
     setSearchParams: (params: URLSearchParams) => void;
+    onSectionViewModeChange: (mode: 'preview' | 'viewAll-events' | 'viewAll-classes') => void;
 }
 
 export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
@@ -62,7 +64,10 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
     handleToggleFavorite,
     searchParams,
     setSearchParams,
+    onSectionViewModeChange,
 }) => {
+    // 배너 위치 랜덤화를 위한 상태 (새로고침 시마다 결정)
+    const isBannerSwapped = useMemo(() => Math.random() > 0.5, []);
 
     const setGenreParam = (key: string, val: string | null) => {
         const p = new URLSearchParams(searchParams);
@@ -79,7 +84,7 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
             {/* 2. Today Social */}
             <TodaySocial
                 schedules={todaySocialSchedules}
-                onViewAll={() => { }}
+                onViewAll={() => window.location.href = '/social'}
                 onEventClick={onEventClick as any}
                 onRefresh={refreshSocialSchedules}
             />
@@ -91,8 +96,14 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                 onRefresh={refreshSocialSchedules}
             />
 
-            {/* 4. Advertisement Banner (Practice Room) */}
-            <PracticeRoomBanner />
+            {/* 4. Slot A: Random Banner (Practice Room or Shopping) */}
+            {isBannerSwapped ? (
+                <div style={{ padding: '0 16px', marginTop: '10px' }}>
+                    <ShoppingBanner />
+                </div>
+            ) : (
+                <PracticeRoomBanner />
+            )}
 
             {/* 5. Favorites (Horizontal) */}
             {favoriteEventsList.length > 0 && (
@@ -133,8 +144,8 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                         <span>예정된 행사</span>
                         <span className="evt-v2-count">{futureEvents.length}</span>
                     </div>
-                    <button onClick={() => window.location.href = '/calendar?scrollToToday=true'} className="evt-view-all-btn">
-                        전체달력 <i className="ri-arrow-right-s-line"></i>
+                    <button onClick={() => onSectionViewModeChange('viewAll-events')} className="evt-view-all-btn">
+                        전체보기 <i className="ri-arrow-right-s-line"></i>
                     </button>
                 </div>
 
@@ -229,6 +240,9 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                         <span>동호회 강습</span>
                         <span className="evt-v2-count">{clubLessons.length}</span>
                     </div>
+                    <button onClick={() => window.location.href = '/social'} className="evt-view-all-btn">
+                        이벤트등록 <i className="ri-arrow-right-s-line"></i>
+                    </button>
                 </div>
 
                 <HorizontalScrollNav>
@@ -297,6 +311,15 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                         ))}
                     </div>
                 </HorizontalScrollNav>
+            </div>
+
+            {/* 9. Slot B: Random Banner (Shopping or Practice Room) */}
+            <div style={{ padding: '0 16px', marginTop: '10px' }}>
+                {isBannerSwapped ? (
+                    <PracticeRoomBanner />
+                ) : (
+                    <ShoppingBanner />
+                )}
             </div>
         </div>
     );

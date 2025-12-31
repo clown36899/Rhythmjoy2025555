@@ -18,6 +18,7 @@ import "react-datepicker/dist/react-datepicker.css";
 
 registerLocale("ko", ko);
 import GlobalLoadingOverlay from '../../../components/GlobalLoadingOverlay';
+import { retryOperation } from '../../../utils/asyncUtils';
 
 
 interface Event extends BaseEvent {
@@ -643,44 +644,53 @@ export default function EventDetailModal({
         // Resize images
         const resizedImages = await createResizedImages(imageFile);
 
-        // Upload Full Size
-        const { error: uploadError } = await supabase.storage
-          .from('images')
-          .upload(`${basePath}/full.webp`, resizedImages.full, {
-            contentType: 'image/webp',
-            upsert: true
-          });
+        // [최적화] 병렬 업로드 및 재시도 로직 적용
+        console.log('[Image Upload] Starting parallel upload with retries:', basePath);
 
-        if (uploadError) throw uploadError;
-
-        // Upload Medium
-        if (resizedImages.medium) {
-          await supabase.storage
+        const uploadTasks = [
+          // Full Size
+          retryOperation(() => supabase.storage
             .from('images')
-            .upload(`${basePath}/medium.webp`, resizedImages.medium, {
+            .upload(`${basePath}/full.webp`, resizedImages.full, {
               contentType: 'image/webp',
               upsert: true
-            });
-        }
+            })
+          ).then(({ error }) => { if (error) throw error; }),
 
-        // Upload Thumbnail
-        if (resizedImages.thumbnail) {
-          await supabase.storage
+          // Medium
+          resizedImages.medium ? retryOperation(() => supabase.storage
             .from('images')
-            .upload(`${basePath}/thumbnail.webp`, resizedImages.thumbnail, {
+            .upload(`${basePath}/medium.webp`, resizedImages.medium!, {
               contentType: 'image/webp',
               upsert: true
-            });
-        }
+            })
+          ).then(({ error }) => { if (error) throw error; }) : Promise.resolve(),
 
-        // Upload Micro
-        if (resizedImages.micro) {
-          await supabase.storage
+          // Thumbnail
+          resizedImages.thumbnail ? retryOperation(() => supabase.storage
             .from('images')
-            .upload(`${basePath}/micro.webp`, resizedImages.micro, {
+            .upload(`${basePath}/thumbnail.webp`, resizedImages.thumbnail!, {
               contentType: 'image/webp',
               upsert: true
-            });
+            })
+          ).then(({ error }) => { if (error) throw error; }) : Promise.resolve(),
+
+          // Micro
+          resizedImages.micro ? retryOperation(() => supabase.storage
+            .from('images')
+            .upload(`${basePath}/micro.webp`, resizedImages.micro!, {
+              contentType: 'image/webp',
+              upsert: true
+            })
+          ).then(({ error }) => { if (error) throw error; }) : Promise.resolve()
+        ];
+
+        try {
+          await Promise.all(uploadTasks);
+          console.log('[Image Upload] All versions uploaded successfully');
+        } catch (uploadError) {
+          console.error('[Image Upload] Failed to upload one or more versions:', uploadError);
+          throw uploadError;
         }
 
         const publicUrl = supabase.storage
@@ -718,23 +728,41 @@ export default function EventDetailModal({
         originalEvent?.image_full
       ].filter(url => !!url);
 
-      // DB Update - Get updated data directly from the update query
-      console.log('[DB Update] About to update database with payload:', updates);
-      console.log('[DB Update] Event ID:', draftEvent.id);
-      const { data: updatedEvent, error } = await supabase
-        .from('events')
-        .update(updates)
-        .eq('id', draftEvent.id)
-        .select()
-        .single();
+      // 🎯 [PAYLOAD CLEANUP] Remove undefined values to prevent unexpected DB behavior
+      Object.keys(updates).forEach(key => {
+        if (updates[key] === undefined) {
+          delete updates[key];
+        }
+      });
 
-      console.log('[DB Update] Database response received');
+      // 🎯 [DB UPDATE] Reverted to Standard REST API (.update) for simplicity and reliability with retry
+      console.log('[DB Update] Updating events table with payload:', updates);
+      console.log('[DB Update] Event ID:', draftEvent.id);
+
+      const { data: updatedEvent, error } = await retryOperation(async () =>
+        await supabase
+          .from('events')
+          .update(updates)
+          .eq('id', draftEvent.id)
+          .select()
+          .maybeSingle()
+      ) as any;
+
+      console.log('[DB Update] REST response received');
       console.log('[DB Update] Error:', error);
       console.log('[DB Update] Updated event data:', updatedEvent);
 
       if (error) {
-        console.error('[Error] Supabase update failed:', error);
+        console.error('[Error] Supabase update failed after retries:', error);
         throw error;
+      }
+
+      // 🎯 [PERMISSION CHECK] If update returned null, it means RLS blocked the update (0 rows affected)
+      if (!updatedEvent) {
+        console.error('[Error] No rows updated. This usually means RLS permission denied.');
+        const permError = new Error('수정 권한이 없습니다. (DB 관리자 명부 확인 필요)');
+        (permError as any).code = 'PERMISSION_DENIED';
+        throw permError;
       }
 
       console.log('[Debug] Supabase update success');
