@@ -77,6 +77,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const lastProcessedEvent = useRef<string | null>(null);
   const profileLoadInProgress = useRef(false);
 
+  // 🔥 Broadcast Channel for cross-context sync (PWA ↔ Browser)
+  const authChannelRef = useRef<BroadcastChannel | null>(null);
+
   const cancelAuth = () => {
     console.warn('[AuthContext] 인증 프로세스 수동 취소됨');
     setIsAuthProcessing(false);
@@ -365,6 +368,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (event === 'SIGNED_OUT') {
         wipeLocalData();
+        // 🔥 Broadcast logout to other contexts (PWA/Browser)
+        if (authChannelRef.current) {
+          authChannelRef.current.postMessage({ type: 'LOGOUT' });
+          console.log('[AuthContext] 📡 Broadcasted LOGOUT to other contexts');
+        }
       } else if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
         const eventKey = `${event}-${currentUser?.id || 'none'}`;
         if (lastProcessedEvent.current === eventKey) return;
@@ -383,6 +391,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             sessionStorage.removeItem('kakao_login_in_progress');
             sessionStorage.removeItem('kakao_login_start_time');
             setIsAuthProcessing(false);
+            // 🔥 Broadcast login to other contexts
+            if (authChannelRef.current) {
+              authChannelRef.current.postMessage({ type: 'LOGIN', userId: currentUser.id });
+              console.log('[AuthContext] 📡 Broadcasted LOGIN to other contexts');
+            }
           }
         }
       } else if (event === 'USER_UPDATED' && !session) {
@@ -403,6 +416,55 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       subscription.unsubscribe();
     };
   }, [refreshAdminStatus]); // refreshAdminStatus가 useCallback 덕분에 안정적임
+
+  // 🔥 3. Broadcast Channel 초기화 및 메시지 리스너 (PWA ↔ Browser 동기화)
+  useEffect(() => {
+    // BroadcastChannel API 지원 확인
+    if (typeof BroadcastChannel === 'undefined') {
+      console.warn('[AuthContext] BroadcastChannel not supported in this browser');
+      return;
+    }
+
+    try {
+      // 채널 생성
+      authChannelRef.current = new BroadcastChannel('rhythmjoy-auth-sync');
+      console.log('[AuthContext] 📡 BroadcastChannel initialized');
+
+      // 다른 컨텍스트(PWA/브라우저)로부터 메시지 수신
+      authChannelRef.current.onmessage = async (event) => {
+        console.log('[AuthContext] 📨 Received message from other context:', event.data);
+
+        if (event.data.type === 'LOGOUT') {
+          console.log('[AuthContext] 🔄 Other context logged out - syncing local state');
+          // 다른 컨텍스트에서 로그아웃했으므로 현재 컨텍스트도 로그아웃
+          await cleanupStaleSession();
+          // 페이지 새로고침하여 완전히 동기화
+          window.location.reload();
+        } else if (event.data.type === 'LOGIN') {
+          console.log('[AuthContext] 🔄 Other context logged in - refreshing session');
+          // 다른 컨텍스트에서 로그인했으므로 세션 새로고침
+          const validSession = await validateAndRecoverSession();
+          if (validSession) {
+            setSession(validSession);
+            setUser(validSession.user);
+            setUserId(validSession.user.id);
+            refreshAdminStatus(validSession.user);
+          }
+        }
+      };
+
+      // 클린업
+      return () => {
+        if (authChannelRef.current) {
+          authChannelRef.current.close();
+          authChannelRef.current = null;
+          console.log('[AuthContext] 📡 BroadcastChannel closed');
+        }
+      };
+    } catch (error) {
+      console.error('[AuthContext] Failed to initialize BroadcastChannel:', error);
+    }
+  }, [refreshAdminStatus]);
 
 
 
