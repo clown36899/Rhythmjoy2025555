@@ -681,6 +681,9 @@ export function MobileShell() {
 
               localStorage.setItem('is_registered', 'true');
 
+              // 프로필 정보 즉시 갱신 (헤더 및 사이드바 반영)
+              refreshUserProfile();
+
               if ((window as any)._pendingAction) {
                 (window as any)._pendingAction();
                 (window as any)._pendingAction = null;

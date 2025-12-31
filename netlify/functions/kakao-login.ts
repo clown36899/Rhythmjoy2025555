@@ -117,7 +117,7 @@ export const handler: Handler = async (event) => {
     }
 
     const kakaoUser = await kakaoUserResponse.json();
-    const email = kakaoUser.kakao_account?.email;
+    let email = kakaoUser.kakao_account?.email;
     const realName = kakaoUser.kakao_account?.name;
     const phone = kakaoUser.kakao_account?.phone_number;
     const nickname = kakaoUser.kakao_account?.profile?.nickname || 'Unknown';
@@ -136,40 +136,81 @@ export const handler: Handler = async (event) => {
       return { statusCode: 400, body: JSON.stringify({ error: 'Kakao email not found' }) };
     }
 
-    // 2. Supabase 사용자 처리 (생성 시도)
-    // listUsers()는 50명 제한이 있으므로, 무조건 생성을 시도하고 "이미 존재함" 에러를 무시하는 방식으로 변경
-    const randomPassword = crypto.randomBytes(16).toString('hex');
-    const { error: createError } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password: randomPassword,
-      email_confirm: true,
-      user_metadata: {
-        name: nickname,
-        kakao_id: kakaoId
-      }
+    // 2. Supabase 사용자 처리 (조회 또는 생성)
+    console.log('[kakao-login] 3단계: Supabase 사용자 조회/생성 시작');
+    const startTimeAuth = Date.now();
+
+    // 2-1. 먼저 board_users에서 kakao_id로 기존 사용자 조회 (Auth Admin API 호출 줄이기)
+    const { data: existingBoardUser, error: boardUserError } = await supabaseAdmin
+      .from('board_users')
+      .select('user_id')
+      .eq('kakao_id', kakaoId)
+      .maybeSingle();
+
+    let userId = existingBoardUser?.user_id;
+    console.log('[kakao-login] 기존 board_user 조회 결과:', {
+      found: !!userId,
+      userId,
+      duration: Date.now() - startTimeAuth
     });
 
-    if (createError && !createError.message?.toLowerCase().includes("registered")) {
-      // "User already registered" 에러 외의 다른 에러는 실제 실패로 처리
-      console.error('[kakao-login] Create user failed:', createError);
-      throw createError;
+    if (userId) {
+      // [보완] 기존 사용자가 발견된 경우, Auth Admin API로 해당 사용자의 현재 이메일을 가져옵니다.
+      // 사용자가 카카오 이메일을 변경했더라도, 기존 Auth와 연동된 이메일을 사용하여 세션을 유지합니다.
+      try {
+        const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(userId);
+        if (authUser?.user?.email) {
+          console.log('[kakao-login] 📧 기존 Auth 이메일 사용:', authUser.user.email);
+          email = authUser.user.email;
+        }
+      } catch (e) {
+        console.warn('[kakao-login] Failed to fetch existing auth user email:', e);
+      }
+    } else {
+      // 2-2. board_users에 없으면 Auth에서 이메일로 조회 (혹시 수동 가입했을 가능성)
+      console.log('[kakao-login] board_user 없음, 이메일로 Auth 유저 생성 시도');
+      const randomPassword = crypto.randomBytes(16).toString('hex');
+      const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password: randomPassword,
+        email_confirm: true,
+        user_metadata: {
+          name: nickname,
+          kakao_id: kakaoId
+        }
+      });
+
+      if (createError) {
+        if (createError.message?.toLowerCase().includes("registered") || (createError as any).status === 422) {
+          console.log('[kakao-login] 이메일로 이미 가입된 사용자임이 확인됨');
+        } else {
+          console.error('[kakao-login] ❌ 사용자 생성 실패:', createError);
+          throw createError;
+        }
+      } else if (newUser?.user) {
+        userId = newUser.user.id;
+        console.log('[kakao-login] ✅ 새 Auth 사용자 생성됨:', userId);
+      }
     }
 
     // 3. 로그인 세션 생성을 위한 매직 링크 발급 (여기서 확실한 userId를 얻음)
     // createUser가 실패(이미 존재)했더라도 generateLink는 해당 이메일의 유저 정보를 반환함
+    const startTimeLink = Date.now();
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'magiclink',
       email,
     });
 
     if (linkError || !linkData || !linkData.user) {
-      console.error('[kakao-login] Link generation failed:', linkError);
+      console.error('[kakao-login] ❌ Link generation failed:', linkError);
       throw linkError;
     }
 
-    const userId = linkData.user.id;
+    if (!userId) userId = linkData.user.id;
+    console.log('[kakao-login] 매직링크 생성 완료. 최종 userId:', userId, '소요시간:', Date.now() - startTimeLink);
 
-    // 3. board_users 업데이트 (닉네임, 프로필페이지만 저장하며 PII는 저장하지 않음)
+    // 4. board_users 업데이트 (닉네임, 프로필페이지만 저장하며 PII는 저장하지 않음)
+    const startTimeUpsert = Date.now();
     const { error: upsertError } = await supabaseAdmin
       .from('board_users')
       .upsert({
@@ -177,14 +218,14 @@ export const handler: Handler = async (event) => {
         kakao_id: kakaoId,
         nickname: nickname,
         profile_image: profileImage,
-        gender: null, // gender 컬럼이 NOT NULL이면 null 명시
+        gender: null,
         updated_at: new Date().toISOString()
       }, { onConflict: 'user_id' });
 
     if (upsertError) {
       console.error('Error updating board_users:', upsertError);
-      console.error('HINT: SUPABASE_SERVICE_KEY 환경변수가 올바른 service_role key인지 확인하세요 (anon key 불가)');
-      // RLS 에러가 나도 로그인은 계속 진행 (사용자 정보가 없을 뿐)
+    } else {
+      console.log('[kakao-login] board_users 정보 갱신 완료. 소요시간:', Date.now() - startTimeUpsert);
     }
 
     // 4. 보안 토큰 처리 (RSA 암호화) - 현재 비활성화

@@ -42,8 +42,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return localStorage.getItem('billboardUserName');
   });
 
-  // User Profile State
-  const [userProfile, setUserProfile] = useState<{ nickname: string; profile_image: string | null } | null>(null);
+  // User Profile State - 초기값 localStorage에서 로드 (깜빡임 방지)
+  const [userProfile, setUserProfile] = useState<{ nickname: string; profile_image: string | null } | null>(() => {
+    const cached = localStorage.getItem('userProfile');
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  });
 
   // Deduplication refs
   const lastProcessedUserId = useRef<string | null>(null);
@@ -70,6 +80,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem(key);
     });
 
+    // 프로필 및 특수 캐시 제거
+    localStorage.removeItem('userProfile');
+    localStorage.removeItem('is_registered');
+    localStorage.removeItem('billboardUserId');
+    localStorage.removeItem('billboardUserName');
+
     // 2. sessionStorage도 정리
     sessionStorage.clear();
 
@@ -78,8 +94,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     setIsAdmin(false);
     setUserProfile(null);
-    // User ID 제거
     setUserId(null);
+    setBillboardUserId(null);
+    setBillboardUserName(null);
   };
 
   // 만료되거나 손상된 세션 정리 (좀비 토큰 제거)
@@ -122,6 +139,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // 1순위: 환경변수 이메일 체크 (즉시 판단 가능)
     const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
     if (currentUser.email && adminEmail && currentUser.email === adminEmail) {
+      if (!isAdmin) setIsAdmin(true);
+      return;
+    }
+
+    // 1-1순위: JWT 메타데이터 체크 (DB 호출 없이 즉시 판단 가능)
+    if (currentUser.app_metadata?.is_admin === true || currentUser.user_metadata?.is_admin === true) {
       if (!isAdmin) setIsAdmin(true);
       return;
     }
@@ -197,17 +220,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const result = await fetchProfileWithTimeout as any;
       const data = result.data;
 
+      let newProfile = null;
       if (data) {
-        setUserProfile({
+        newProfile = {
           nickname: data.nickname || user.user_metadata?.name || user.email?.split('@')[0] || '',
           profile_image: data.profile_image || user.user_metadata?.avatar_url || null
-        });
+        };
       } else {
         // Fallback to metadata if no board_user record yet or timeout
-        setUserProfile({
+        newProfile = {
           nickname: user.user_metadata?.name || user.email?.split('@')[0] || '',
           profile_image: user.user_metadata?.avatar_url || null
-        });
+        };
+      }
+
+      if (newProfile) {
+        setUserProfile(newProfile);
+        localStorage.setItem('userProfile', JSON.stringify(newProfile));
       }
     } catch (e) {
       console.warn('[AuthContext] Profile load failed or timed out, using fallback:', e);
@@ -444,7 +473,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
       keysToRemove.forEach(key => localStorage.removeItem(key));
-      logToStorage('[AuthContext.signOut] 4단계: localStorage 정리 완료: ' + keysToRemove.length + '개 항목');
+
+      // 사용자 프로필 캐시 명시적 제거
+      localStorage.removeItem('userProfile');
+
+      logToStorage('[AuthContext.signOut] 4단계: localStorage 정리 완료: ' + (keysToRemove.length + 1) + '개 항목');
 
       // 5. sessionStorage 완전 정리
       logToStorage('[AuthContext.signOut] 5단계: sessionStorage 정리 및 스크롤 위치 보존');
