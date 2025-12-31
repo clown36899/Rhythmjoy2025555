@@ -56,8 +56,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // 🔥 [개선] 모든 저장소 키에 환경별 접두사 부여 (완전 격리)
   const isStandalone = typeof window !== 'undefined' &&
-    (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone);
+    (window.matchMedia('(display-mode: standalone)').matches ||
+      window.matchMedia('(display-mode: fullscreen)').matches ||
+      window.matchMedia('(display-mode: minimal-ui)').matches ||
+      (window.navigator as any).standalone);
   const storagePrefix = isStandalone ? 'pwa-' : 'browser-';
+
+  if (typeof window !== 'undefined') {
+    console.log(`[AuthContext Init] Mode: ${isStandalone ? 'PWA' : 'Browser'}, Prefix: ${storagePrefix}`);
+  }
 
   const [billboardUserId, setBillboardUserId] = useState<string | null>(() => {
     return localStorage.getItem(`${storagePrefix}billboardUserId`);
