@@ -37,7 +37,7 @@ export default function QuickMemoEditor({
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Auth Check for Anonymous Board
-    const { user } = useAuth(); // Import useAuth hook at top if not present, or pass as prop
+    const { user, signOut } = useAuth(); // Import useAuth hook at top if not present, or pass as prop
     // Since useAuth is context, we should import it.
 
     // Effect early return for logged in users on mount/expand
@@ -48,9 +48,7 @@ export default function QuickMemoEditor({
             const timer = setTimeout(() => {
                 const shouldLogout = window.confirm("로그인 상태에서는 글을 쓸 수 없습니다.\n익명 글을 작성하려면 로그아웃 해주세요.\n\n[확인]을 누르면 로그아웃 됩니다.");
                 if (shouldLogout) {
-                    supabase.auth.signOut().then(() => {
-                        window.location.reload();
-                    });
+                    signOut();
                 } else {
                     onCancelEdit?.(); // Close modal or collapse
                     if (className.includes('modal-mode')) {

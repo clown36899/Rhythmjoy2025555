@@ -80,7 +80,6 @@ export const loginWithKakao = (): void => {
   });
 
   console.log('[KakaoAuth.loginWithKakao] ➡️ 카카오 인증 페이지로 리다이렉트 중...');
-  // 리다이렉트되므로 이 함수는 여기서 종료됨
 };
 
 

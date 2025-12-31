@@ -8,6 +8,16 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '3.1.4',
+        date: '2025-12-31',
+        changes: [
+            '[UX] 전역 로그인/로그아웃 스크롤 보존 시스템 도입 (.board-posts-container 대응)',
+            '[Fix] 로그인 모달 Z-Index 수정 (상세 페이지 뒤에 가려지는 문제 해결)',
+            '[Fix] 자유게시판 비로그인 댓글 작성 시 로그인 연동 버그 수정',
+            '[Refactor] AuthContext 기반으로 인증 관련 스크롤 로직 일원화'
+        ]
+    },
+    {
         version: '3.1.3',
         date: '2025-12-31',
         changes: [

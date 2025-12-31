@@ -287,6 +287,7 @@ export default function CommentSection({ postId, category }: CommentSectionProps
                                     isAnonymous={category === 'anonymous'}
                                     onEdit={handleEditStart}
                                     onDelete={handleDelete}
+                                    postId={postId}
                                 />
                             )}
                         </div>

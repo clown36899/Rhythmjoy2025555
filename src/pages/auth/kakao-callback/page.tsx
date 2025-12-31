@@ -150,14 +150,13 @@ export default function KakaoCallbackPage() {
                     console.log('[Kakao Callback] ✅ 세션 설정 함수 실행 완료');
                     console.log('[Kakao Callback] 🎉 로그인 성공!');
 
-                    // 4. 원래 페이지로 즉시 복귀 (모달 없이)
+                    // 4. 원래 페이지로 복귀
                     console.log('[Kakao Callback] 📍 리다이렉트 준비 시작');
                     const returnUrl = sessionStorage.getItem('kakao_login_return_url') || '/';
                     console.log('[Kakao Callback] 복귀 URL:', returnUrl);
-                    console.log('[Kakao Callback] 🧹 sessionStorage 정리 중...');
                     sessionStorage.removeItem('kakao_login_return_url');
 
-                    console.log('[Kakao Callback] ➡️ navigate() 호출 직전');
+                    console.log('[Kakao Callback] ➡️ navigate() 호출');
                     navigate(returnUrl, { replace: true });
                     console.log('[Kakao Callback] ✈️ navigate() 호출 완료');
                 } else {

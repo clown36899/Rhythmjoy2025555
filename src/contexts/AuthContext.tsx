@@ -351,6 +351,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signInWithKakao = async () => {
     setIsAuthProcessing(true); // 즉시 스피너 표시
     try {
+      // 로그인 전에 스크롤 위치 저장 (익명 게시판은 내부 컨테이너 스크롤 사용)
+      const boardContainer = document.querySelector('.board-posts-container');
+      const scrollY = boardContainer ? boardContainer.scrollTop : window.scrollY;
+      console.log('[AuthContext] Saving scroll position before login:', scrollY, 'from:', boardContainer ? 'container' : 'window');
+      sessionStorage.setItem('kakao_login_scroll_y', String(scrollY));
+
       console.log('[signInWithKakao] 카카오 로그인 시작 (리다이렉트 방식)');
 
       // SDK 초기화 및 로그인 실행
@@ -441,8 +447,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logToStorage('[AuthContext.signOut] 4단계: localStorage 정리 완료: ' + keysToRemove.length + '개 항목');
 
       // 5. sessionStorage 완전 정리
-      logToStorage('[AuthContext.signOut] 5단계: sessionStorage 정리');
+      logToStorage('[AuthContext.signOut] 5단계: sessionStorage 정리 및 스크롤 위치 보존');
+
+      // 스크롤 위치 미리 캡처
+      const boardContainer = document.querySelector('.board-posts-container');
+      const scrollY = boardContainer ? boardContainer.scrollTop : window.scrollY;
+
       sessionStorage.clear();
+
+      // 클리어 후 다시 저장 (리로딩 후 복원용)
+      sessionStorage.setItem('kakao_login_scroll_y', String(scrollY));
+      logToStorage(`[AuthContext.signOut] 스크롤 위치 다시 저장됨: ${scrollY}`);
 
       // 6. Service Worker 캐시 정리 (PWA)
       // [정석 해결] 서비스 워커 등록을 해제하지 않고, 인증 정보가 담겼을 수 있는 캐시만 비웁니다.

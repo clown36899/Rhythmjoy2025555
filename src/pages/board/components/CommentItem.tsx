@@ -9,9 +9,10 @@ interface CommentItemProps {
     isAnonymous?: boolean;
     onEdit: (comment: BoardComment, password?: string) => void;
     onDelete: (commentId: string, password?: string) => Promise<boolean>;
+    postId: number;  // Add postId for URL parameter
 }
 
-export default function CommentItem({ comment: initialComment, isAnonymous, onEdit, onDelete }: CommentItemProps) {
+export default function CommentItem({ comment: initialComment, isAnonymous, onEdit, onDelete, postId }: CommentItemProps) {
     const { user, isAdmin } = useAuth();
     const [comment, setComment] = useState(initialComment);
     const [userInteraction, setUserInteraction] = useState<'like' | 'dislike' | null>(null);
@@ -59,6 +60,12 @@ export default function CommentItem({ comment: initialComment, isAnonymous, onEd
             const message = isAnonymous
                 ? "글쓰기와 달리, 좋아요/싫어요는 1인 1표 정직한 투표를 위해 로그인이 필요합니다."
                 : "좋아요/싫어요는 로그인한 사용자만 이용할 수 있습니다.";
+
+            // Add URL parameter to keep comment section open after login
+            const params = new URLSearchParams(window.location.search);
+            params.set('comment', String(postId));
+            const newUrl = `${window.location.pathname}?${params.toString()}`;
+            window.history.replaceState({}, '', newUrl);
 
             window.dispatchEvent(new CustomEvent('requestProtectedAction', {
                 detail: {

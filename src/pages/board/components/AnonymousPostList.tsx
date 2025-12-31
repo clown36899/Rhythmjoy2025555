@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import type { AnonymousBoardPost } from '../../../types/board';
 import CommentSection from './CommentSection';
 import './BoardPostList.css';
@@ -26,9 +26,45 @@ export default function AnonymousPostList({
     onToggleDislike,
     onEditPost
 }: AnonymousPostListProps) {
-    const [expandedCommentPostId, setExpandedCommentPostId] = useState<number | null>(0);
+    const [expandedCommentPostId, setExpandedCommentPostId] = useState<number | null>(null);
     const [selectedImage, setSelectedImage] = useState<string | null>(null);
     const [unfoldedPostIds, setUnfoldedPostIds] = useState<Set<number>>(new Set());
+
+    // Restore expanded comment from URL parameter and scroll position
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const commentPostId = params.get('comment');
+        if (commentPostId) {
+            const postId = parseInt(commentPostId, 10);
+            console.log('[AnonymousPostList] Restoring comment section for post:', postId);
+            setExpandedCommentPostId(postId);
+            // Remove URL parameter after restoring
+            params.delete('comment');
+            const newUrl = `${window.location.pathname}?${params.toString()}`;
+            window.history.replaceState({}, '', newUrl);
+        }
+
+        // Restore scroll position (로그인 후 복귀 시)
+        const savedScrollY = sessionStorage.getItem('kakao_login_scroll_y');
+        if (savedScrollY) {
+            const scrollY = parseInt(savedScrollY, 10);
+            console.log('[AnonymousPostList] Restoring scroll position:', scrollY);
+
+            // DOM이 완전히 렌더링된 후 스크롤 복원 (애니메이션 없음)
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    const boardContainer = document.querySelector('.board-posts-container');
+                    console.log('[AnonymousPostList] Executing scroll restore to:', scrollY, 'targeting:', boardContainer ? 'container' : 'window');
+                    if (boardContainer) {
+                        boardContainer.scrollTo(0, scrollY);
+                    } else {
+                        window.scrollTo(0, scrollY);
+                    }
+                    sessionStorage.removeItem('kakao_login_scroll_y');
+                });
+            });
+        }
+    }, []);
 
     const isUnfolded = (postId: number) => unfoldedPostIds.has(postId);
 
@@ -57,7 +93,18 @@ export default function AnonymousPostList({
 
     const toggleComments = (postId: number, e: React.MouseEvent) => {
         e.stopPropagation();
-        setExpandedCommentPostId(prev => (prev === postId ? null : postId));
+        const newState = expandedCommentPostId === postId ? null : postId;
+        setExpandedCommentPostId(newState);
+
+        // Update URL parameter when opening/closing comments (for logout restoration)
+        const params = new URLSearchParams(window.location.search);
+        if (newState !== null) {
+            params.set('comment', String(newState));
+        } else {
+            params.delete('comment');
+        }
+        const newUrl = `${window.location.pathname}?${params.toString()}`;
+        window.history.replaceState({}, '', newUrl);
     };
 
     return (

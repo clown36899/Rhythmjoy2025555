@@ -15,7 +15,7 @@ interface CommentFormProps {
 }
 
 export default function CommentForm({ postId, category, onCommentAdded, editingComment, onCancelEdit, providedPassword, disabled }: CommentFormProps) {
-    const { user, isAdmin } = useAuth();
+    const { user, isAdmin, signOut } = useAuth();
     const [content, setContent] = useState(editingComment?.content || '');
     const [authorName, setAuthorName] = useState(editingComment?.author_name || '');
     const [password, setPassword] = useState('');
@@ -173,7 +173,12 @@ export default function CommentForm({ postId, category, onCommentAdded, editingC
         }
     };
 
-    const handleLoginClick = () => {
+    const handleLoginClick = (e?: React.MouseEvent) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        console.log('[CommentForm] Login clicked, category:', category);
         window.dispatchEvent(new CustomEvent('requestProtectedAction', {
             detail: {
                 action: () => {
@@ -188,9 +193,8 @@ export default function CommentForm({ postId, category, onCommentAdded, editingC
         const handleLogout = () => {
             const shouldLogout = window.confirm("로그인 상태에서는 댓글을 쓸 수 없습니다.\n익명 댓글을 작성하려면 로그아웃 해주세요.\n\n[확인]을 누르면 로그아웃 됩니다.");
             if (shouldLogout) {
-                supabase.auth.signOut().then(() => {
-                    window.location.reload();
-                });
+                // Save current comment state before logout (already saved by toggleComments)
+                signOut();
             }
         };
 
@@ -216,7 +220,7 @@ export default function CommentForm({ postId, category, onCommentAdded, editingC
                     <i className="ri-chat-3-line"></i>
                     <p>댓글을 작성하려면 로그인이 필요합니다</p>
                 </div>
-                <button className="comment-login-btn">
+                <button className="comment-login-btn" onClick={handleLoginClick}>
                     <i className="ri-kakao-talk-fill"></i>
                     카카오 로그인
                 </button>

@@ -653,7 +653,7 @@ export function MobileShell() {
             try {
               // 1. If not logged in, trigger Kakao Login first
               if (!user) {
-                // 로그인 시도 - 성공 시 리다이렉트되므로 스피너/모달 닫지 않음 (빈틈 제거)
+                // 로그인 시도 - 이제 signInWithKakao 내부에서 스크롤 위치를 자동으로 저장함
                 await signInWithKakao();
                 return;
               }
