@@ -1,17 +1,20 @@
-// 빌보드 PWA 서비스 워커 (Version: 20251231-1423 - Supabase API Network-First)
-const CACHE_NAME = 'rhythmjoy-cache-v15';
+// 빌보드 PWA 서비스 워커 (Version: 20251231-1823 - Non-Blocking Cache Clear)
+const CACHE_NAME = 'rhythmjoy-cache-v16';
 
 self.addEventListener('install', (event) => {
-  console.log('[SW] v15 - New content with Supabase Network-First! 🌐');
+  console.log('[SW] v16 - New content with Non-Blocking Activation! 🌐');
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  console.log('[SW] v15 - Activated with Supabase Network-First! 🌐');
-  event.waitUntil(
-    caches.keys().then(keys => Promise.all(keys.map(key => caches.delete(key))))
-  );
-  self.clients.claim();
+  console.log('[SW] v16 - Activated immediately! (Cache clear in background)');
+
+  // 🔥 중요: event.waitUntil을 제거하여 캐시 삭제가 완료될 때까지 기다리지 않음
+  // PWA가 캐시 락을 잡고 있어도 브라우저는 즉시 활성화되어 데이터를 불러올 수 있음
+  caches.keys().then(keys => Promise.all(keys.map(key => caches.delete(key))))
+    .catch(err => console.warn('[SW] Cache clear failed (non-fatal):', err));
+
+  event.waitUntil(self.clients.claim());
 });
 
 // Fetch 이벤트 핸들러 - Supabase API는 항상 네트워크 우선
