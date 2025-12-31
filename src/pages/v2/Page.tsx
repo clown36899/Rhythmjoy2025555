@@ -66,12 +66,8 @@ export default function HomePageV2() {
 
     // Search & Sort State
     const [showInputModal, setShowInputModal] = useState(false);
-    const [showSortModal, setShowSortModal] = useState(false);
-    const [sortBy, setSortBy] = useState<"random" | "time" | "title">("random");
-    const [searchTerm, setSearchTerm] = useState("");
-    const [selectedWeekday] = useState<number | null>(null); // Placeholder for EventList compatibility
     const [eventJustCreated, setEventJustCreated] = useState<number>(0);
-    const [allGenres, setAllGenres] = useState<{ class: string[]; event: string[] }>({ class: [], event: [] });
+    const [allGenres] = useState<{ class: string[]; event: string[] }>({ class: [], event: [] });
 
     // --------------------------------------------------------------------------------
     // 3. Custom Logic Hooks (Refactored)
@@ -98,14 +94,13 @@ export default function HomePageV2() {
 
     // Deep Link & QR Logic
     const {
-        qrLoading, highlightEvent, setHighlightEvent,
-        sharedEventId, setSharedEventId
+        qrLoading, highlightEvent, setHighlightEvent
     } = useDeepLinkLogic({ setCurrentMonth });
 
 
 
 
-    const handleSearchStart = () => navigateWithCategory("all");
+
 
     // Favorites Logic - Using centralized useUserInteractions
     const { interactions, refreshInteractions } = useUserInteractions(user?.id || null);
@@ -155,7 +150,7 @@ export default function HomePageV2() {
         }
     }, [user, favoriteEventIds, signInWithKakao, refreshInteractions]);
 
-    const refreshFavorites = refreshInteractions;
+
 
 
 
@@ -184,17 +179,9 @@ export default function HomePageV2() {
     CustomDateInput.displayName = "CustomDateInput";
 
     // Memoized EventList Handlers (Moved outside conditional for Rules of Hooks)
-    const handleHighlightComplete = useCallback(() => setHighlightEvent(null), [setHighlightEvent]);
-    const handleSharedEventOpened = useCallback(() => setSharedEventId(null), [setSharedEventId]);
-    const handleEventClickFullscreen = useCallback((event: any) => setSelectedEvent(event), [setSelectedEvent]);
     const handleEventClick = useCallback((event: any) => setSelectedEvent(event), [setSelectedEvent]);
-    const handleModalStateChange = useCallback((isModalOpen: boolean) => {
-        const container = containerRef.current;
-        if (container) container.inert = isModalOpen;
-    }, []);
 
-    // Derive sectionViewMode from URL parameters
-    const sectionViewMode = (searchParams.get('view') as 'preview' | 'viewAll-events' | 'viewAll-classes') || 'preview';
+
 
     // Handler to change section view mode via URL
     const handleSectionViewModeChange = useCallback((mode: 'preview' | 'viewAll-events' | 'viewAll-classes') => {
@@ -207,6 +194,8 @@ export default function HomePageV2() {
         }
 
         setSearchParams(newParams, { replace: false });
+        // 스크롤 초기화
+        window.scrollTo(0, 0);
     }, [searchParams, setSearchParams]);
 
     // --------------------------------------------------------------------------------
@@ -228,7 +217,7 @@ export default function HomePageV2() {
     // --------------------------------------------------------------------------------
     const containerRef = useRef<HTMLDivElement>(null!);
     const eventListElementRef = useRef<HTMLDivElement>(null!);
-    const eventListSlideContainerRef = useRef<HTMLDivElement | null>(null);
+
 
     // 모달이 열렸을 때 배경 컨텐츠의 상호작용을 막기 위한 `inert` 속성 관리
     useEffect(() => {
@@ -241,7 +230,7 @@ export default function HomePageV2() {
             container.inert = isAnyModalOpen;
         }
         return () => { if (container) container.inert = false; };
-    }, [showInputModal, showSortModal, showRegistrationModal, selectedEvent]);
+    }, [showInputModal, showRegistrationModal, selectedEvent]);
 
     const handleHorizontalSwipe = (direction: 'next' | 'prev') => {
         changeMonth(direction);
@@ -300,7 +289,7 @@ export default function HomePageV2() {
     // State Sync dispatchers
     useEffect(() => { window.dispatchEvent(new CustomEvent("viewModeChanged", { detail: { viewMode: "month" } })); }, []);
     useEffect(() => { window.dispatchEvent(new CustomEvent("calendarModeChanged", { detail: calendarMode })); }, [calendarMode]);
-    useEffect(() => { window.dispatchEvent(new CustomEvent("sortByChanged", { detail: sortBy })); }, [sortBy]);
+
 
     // Shell Command Listeners
     useEffect(() => {
@@ -310,7 +299,6 @@ export default function HomePageV2() {
         };
 
         const handleGoToToday = () => { moveToToday(); };
-        const handleOpenSortModal = () => setShowSortModal(true);
         const handleResetV2MainView = () => {
             const newParams = new URLSearchParams(searchParams);
             newParams.delete('view'); newParams.delete('calendar');
@@ -333,7 +321,6 @@ export default function HomePageV2() {
 
         window.addEventListener('toggleCalendarMode', handleToggleCalendarMode);
         window.addEventListener('goToToday', handleGoToToday);
-        window.addEventListener('openSortModal', handleOpenSortModal);
         window.addEventListener('openCalendarSearch', handleOpenCalendarSearch);
         window.addEventListener('resetV2MainView', handleResetV2MainView);
 
@@ -343,14 +330,13 @@ export default function HomePageV2() {
         return () => {
             window.removeEventListener('toggleCalendarMode', handleToggleCalendarMode);
             window.removeEventListener('goToToday', handleGoToToday);
-            window.removeEventListener('openSortModal', handleOpenSortModal);
             window.removeEventListener('openCalendarSearch', handleOpenCalendarSearch);
             window.removeEventListener('resetV2MainView', handleResetV2MainView);
 
             window.removeEventListener('prevMonth', handlePrevMonth);
             window.removeEventListener('nextMonth', handleNextMonth);
         };
-    }, [calendarMode, sortBy, navigateWithCategory, searchParams, setSearchParams, moveToToday, setCalendarMode, setShowInputModal]);
+    }, [calendarMode, navigateWithCategory, searchParams, setSearchParams, moveToToday, setCalendarMode, setShowInputModal]);
     useEffect(() => {
         const handleOpenEventSearch = () => {
             console.log('[Page.tsx] openEventSearch event received');
@@ -443,32 +429,12 @@ export default function HomePageV2() {
                             currentMonth={currentMonth}
                             isAdminMode={effectiveIsAdmin}
                             adminType={adminType}
-                            viewMode="month"
-                            searchTerm={searchTerm}
-                            setSearchTerm={setSearchTerm}
-                            onSearchStart={handleSearchStart}
-                            showSortModal={showSortModal}
-                            setShowSortModal={setShowSortModal}
-                            sortBy={sortBy}
-                            setSortBy={setSortBy}
+
                             highlightEvent={highlightEvent}
-                            onHighlightComplete={handleHighlightComplete}
-                            sharedEventId={sharedEventId}
-                            onSharedEventOpened={handleSharedEventOpened}
-                            isAnimating={isAnimating}
-                            onEventClickInFullscreen={handleEventClickFullscreen}
                             onEventClick={handleEventClick}
-                            slideContainerRef={eventListSlideContainerRef}
                             onMonthChange={setCurrentMonth}
                             calendarMode={calendarMode}
-
-                            onModalStateChange={handleModalStateChange} selectedWeekday={selectedWeekday}
-                            sectionViewMode={sectionViewMode}
                             onSectionViewModeChange={handleSectionViewModeChange}
-                            onGenresLoaded={(genres) => setAllGenres(genres as { class: string[]; event: string[] })}
-                            isFavoriteMap={favoriteEventIds}
-                            onToggleFavorite={toggleFavorite}
-                            refreshFavorites={refreshFavorites}
                         />
                     </div>
                 )}

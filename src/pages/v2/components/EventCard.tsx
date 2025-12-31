@@ -200,9 +200,12 @@ export const EventCard = memo(({
           <button
             className={`card-favorite-btn ${isFavorite ? 'is-active' : ''}`}
             onClick={(e) => {
+              e.preventDefault();
               e.stopPropagation();
               onToggleFavorite(e);
             }}
+            onMouseDown={(e) => e.stopPropagation()}
+            onTouchEnd={(e) => e.stopPropagation()}
             title={isFavorite ? "즐겨찾기 해제" : "즐겨찾기 추가"}
           >
             <i className={`card-favorite-icon ${isFavorite ? "ri-star-fill" : "ri-star-line"}`}></i>

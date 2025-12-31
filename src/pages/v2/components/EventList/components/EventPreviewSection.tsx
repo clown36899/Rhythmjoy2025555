@@ -31,7 +31,7 @@ interface EventPreviewSectionProps {
     selectedClubGenre: string | null;
     onEventClick: (event: Event) => void;
     onEventHover?: (id: number | null) => void;
-    highlightEvent: Event | null;
+    highlightEvent: { id: number } | null;
     defaultThumbnailClass: string;
     defaultThumbnailEvent: string;
     effectiveFavoriteIds: Set<number>;
@@ -110,8 +110,8 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                 <div className="evt-v2-section evt-v2-section-events">
                     <div className="evt-v2-section-title">
                         <div>
-                            <i className="ri-heart-3-fill" style={{ color: '#ff6b6b' }}></i>
-                            <span>즐겨찾는 이벤트</span>
+                            <i className="ri-star-fill" style={{ color: '#ffffff' }}></i>
+                            <span>즐겨찾기한 내 이벤트</span>
                         </div>
                     </div>
                     <HorizontalScrollNav>

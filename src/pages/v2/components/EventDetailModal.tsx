@@ -95,7 +95,7 @@ export default function EventDetailModal({
   const { user, signInWithKakao, isAdmin: isActualAdmin } = useAuth();
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
-  console.log('[EventDetailModal] 모달 열림 - event:', event?.title, 'isActualAdmin:', isActualAdmin, 'board_users:', (event as any)?.board_users);
+  // console.log('[EventDetailModal] 모달 열림 - event:', event?.title, 'isActualAdmin:', isActualAdmin, 'board_users:', (event as any)?.board_users);
 
 
 

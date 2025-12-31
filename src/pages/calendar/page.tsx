@@ -94,11 +94,28 @@ export default function CalendarPage() {
         const urlParams = new URLSearchParams(window.location.search);
         const shouldScrollToToday = urlParams.get('scrollToToday') === 'true';
 
+        // 사용자 개입 감지 Ref
+        const userInteracted = { current: false };
+        const handleUserInteraction = () => {
+            userInteracted.current = true;
+        };
+
+        // 스크롤 방해 요소 감지 리스너 (휠, 터치, 키보드)
+        window.addEventListener('wheel', handleUserInteraction, { passive: true });
+        window.addEventListener('touchmove', handleUserInteraction, { passive: true });
+        window.addEventListener('keydown', handleUserInteraction, { passive: true });
+
         let attempts = 0;
         const maxAttempts = 20; // 2초간 끈질기게 추적
         let stableCount = 0;
 
         const doScroll = () => {
+            // 사용자가 개입했다면 즉시 중단 (싸움 방지)
+            if (userInteracted.current) {
+                console.log('🛑 [ScrollLog] User interaction detected. Aborting auto-scroll.');
+                return;
+            }
+
             const todayEl = document.querySelector('.calendar-month-slide[data-active-month="true"] .calendar-date-number-today') as HTMLElement;
             const headerEl = document.querySelector('.calendar-page-weekday-header') as HTMLElement;
 
@@ -148,7 +165,12 @@ export default function CalendarPage() {
 
         // 지연 시간 최적화 (사용자의 500ms 제안 반영하여 400ms에 첫 시도)
         const timer = setTimeout(doScroll, 400);
-        return () => clearTimeout(timer);
+        return () => {
+            clearTimeout(timer);
+            window.removeEventListener('wheel', handleUserInteraction);
+            window.removeEventListener('touchmove', handleUserInteraction);
+            window.removeEventListener('keydown', handleUserInteraction);
+        };
     }, [currentMonth]);
 
 

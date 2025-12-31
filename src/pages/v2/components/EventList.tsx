@@ -10,6 +10,7 @@ import GlobalLoadingOverlay from "../../../components/GlobalLoadingOverlay";
 // Hooks
 import { useEventsQuery } from "../../../hooks/queries/useEventsQuery";
 import { useSocialSchedulesQuery } from "../../../hooks/queries/useSocialSchedulesQuery";
+import { useUserInteractions } from "../../../hooks/useUserInteractions";
 import { useEventFilters } from "./EventList/hooks/useEventFilters";
 import { useEventSelection } from "./EventList/hooks/useEventSelection";
 
@@ -40,7 +41,7 @@ interface EventListProps {
   calendarMode: 'collapsed' | 'expanded' | 'fullscreen';
   isAdminMode?: boolean;
   adminType?: "super" | "sub" | null;
-  highlightEvent?: Event | null;
+  highlightEvent?: { id: number } | null;
   onEventHover?: (event: Event | null) => void;
   onSectionViewModeChange: (mode: 'preview' | 'viewAll-events' | 'viewAll-classes') => void;
 }
@@ -167,12 +168,52 @@ const EventList: React.FC<EventListProps> = ({
   // Venue Modal State
   const [isVenueModalOpen, setIsVenueModalOpen] = useState(false);
 
-  // Favorite Handlers
-  const favoriteEventIds = (window as any).favoriteEventIds || new Set<number>();
+  // Favorite Handlers using useUserInteractions
+  const { interactions, refreshInteractions } = useUserInteractions(user?.id || null);
+
+  // Convert API array to Set for fast O(1) lookups
+  const favoriteEventIds = useMemo<Set<number>>(() => {
+    if (!interactions?.event_favorites) return new Set<number>();
+    return new Set(interactions.event_favorites.map(id => Number(id)));
+  }, [interactions?.event_favorites]);
+
   const handleToggleFavorite = useCallback(async (eventId: number, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    window.dispatchEvent(new CustomEvent('toggleEventFavorite', { detail: { eventId } }));
-  }, []);
+
+    if (!user) {
+      if (confirm('즐겨찾기는 로그인 후 이용 가능합니다.\n확인을 눌러서 로그인을 진행해주세요')) {
+        // CustomEvent for global login modal trigger if needed, or simple redirect
+        window.dispatchEvent(new CustomEvent('openLoginModal'));
+      }
+      return;
+    }
+
+    const isFav = favoriteEventIds.has(eventId);
+
+    try {
+      if (isFav) {
+        // Remove
+        const { error } = await supabase
+          .from('event_favorites')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('event_id', eventId);
+        if (error) throw error;
+      } else {
+        // Add
+        const { error } = await supabase
+          .from('event_favorites')
+          .insert({ user_id: user.id, event_id: eventId });
+        if (error) throw error;
+      }
+
+      // Refresh global state
+      await refreshInteractions();
+    } catch (err) {
+      console.error('Error toggling favorite:', err);
+      alert('즐겨찾기 변경 중 오류가 발생했습니다.');
+    }
+  }, [user, favoriteEventIds, refreshInteractions]);
 
   // Update logic (moved to EventList for orchestration)
   const handleSaveEvent = async (formData: any, imageFile: File | null) => {
