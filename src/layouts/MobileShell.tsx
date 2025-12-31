@@ -23,7 +23,7 @@ export function MobileShell() {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { isAdmin, user, signInWithKakao, isAuthProcessing, cancelAuth, userProfile, refreshUserProfile } = useAuth();
+  const { isAdmin, user, signInWithKakao, isAuthProcessing, cancelAuth, userProfile, refreshUserProfile, storagePrefix } = useAuth();
 
   const [eventCounts, setEventCounts] = useState({ class: 0, event: 0 });
 
@@ -679,7 +679,7 @@ export function MobileShell() {
                 if (error) throw error;
               }
 
-              localStorage.setItem('is_registered', 'true');
+              localStorage.setItem(`${storagePrefix}is_registered`, 'true');
 
               // 프로필 정보 즉시 갱신 (헤더 및 사이드바 반영)
               refreshUserProfile();

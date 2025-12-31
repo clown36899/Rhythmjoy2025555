@@ -25,6 +25,7 @@ interface AuthContextType {
   refreshUserProfile: () => Promise<void>;
   signInAsDevAdmin?: () => void; // 개발 환경 전용 - UI 플래그만
   validateSession: () => Promise<void>; // 수동 세션 검증
+  storagePrefix: string; // 저장소 접두사 노출 (PWA/브라우저 분리용)
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -52,16 +53,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return inProgress;
   });
   const [isAdmin, setIsAdmin] = useState(false);
+
+  // 🔥 [개선] 모든 저장소 키에 환경별 접두사 부여 (완전 격리)
+  const isStandalone = typeof window !== 'undefined' &&
+    (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone);
+  const storagePrefix = isStandalone ? 'pwa-' : 'browser-';
+
   const [billboardUserId, setBillboardUserId] = useState<string | null>(() => {
-    return localStorage.getItem('billboardUserId');
+    return localStorage.getItem(`${storagePrefix}billboardUserId`);
   });
   const [billboardUserName, setBillboardUserName] = useState<string | null>(() => {
-    return localStorage.getItem('billboardUserName');
+    return localStorage.getItem(`${storagePrefix}billboardUserName`);
   });
 
   // User Profile State - 초기값 localStorage에서 로드 (깜빡임 방지)
   const [userProfile, setUserProfile] = useState<{ nickname: string; profile_image: string | null } | null>(() => {
-    const cached = localStorage.getItem('userProfile');
+    const cached = localStorage.getItem(`${storagePrefix}userProfile`);
     if (cached) {
       try {
         return JSON.parse(cached);
@@ -84,24 +91,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // 로컬 데이터 및 상태 완전 초기화 (signOut 호출 없음)
   const wipeLocalData = () => {
-    // 1. localStorage의 Supabase 관련 항목 제거 (더 강력하게)
+    // 1. 현재 환경에 맞는 Supabase 세션 키 결정
+    const isStandalone = typeof window !== 'undefined' &&
+      (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone);
+    const currentStorageKey = isStandalone ? 'sb-pwa-auth-token' : 'sb-browser-auth-token';
+
+    // 2. localStorage에서 현재 프로세스의 Supabase 관련 항목만 제거
     const keysToRemove: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      if (key && (key.startsWith('sb-') || key.includes('supabase') || key.includes('auth-token'))) {
+      // 내 서랍(currentStorageKey)이거나, supabase-js에서 생성한 공용 유틸리티 키만 제거
+      if (key && (key === currentStorageKey || key.startsWith(currentStorageKey) || key.includes('supabase.auth.token'))) {
         keysToRemove.push(key);
       }
     }
     keysToRemove.forEach(key => {
-      console.log('[AuthContext] 🗑️ Removing stale key:', key);
+      console.log('[AuthContext] 🗑️ Removing process-specific key:', key);
       localStorage.removeItem(key);
     });
 
-    // 프로필 및 특수 캐시 제거
-    localStorage.removeItem('userProfile');
-    localStorage.removeItem('is_registered');
-    localStorage.removeItem('billboardUserId');
-    localStorage.removeItem('billboardUserName');
+    // 프로필 및 특수 캐시 제거 (prefix 사용)
+    localStorage.removeItem(`${storagePrefix}userProfile`);
+    localStorage.removeItem(`${storagePrefix}is_registered`);
+    localStorage.removeItem(`${storagePrefix}billboardUserId`);
+    localStorage.removeItem(`${storagePrefix}billboardUserName`);
+    localStorage.removeItem(`${storagePrefix}isLoggingOut`);
 
     // 2. sessionStorage도 정리
     sessionStorage.clear();
@@ -253,7 +267,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (newProfile) {
         setUserProfile(newProfile);
-        localStorage.setItem('userProfile', JSON.stringify(newProfile));
+        localStorage.setItem(`${storagePrefix}userProfile`, JSON.stringify(newProfile));
       }
     } catch (e) {
       console.warn('[AuthContext] Profile load failed or timed out, using fallback:', e);
@@ -265,7 +279,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       profileLoadInProgress.current = false;
     }
-  }, [user]);
+  }, [user, storagePrefix]);
 
   // Load profile and admin status when user changes
   useEffect(() => {
@@ -299,13 +313,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let isMounted = true;
 
-    const isLoggingOut = localStorage.getItem('isLoggingOut');
+    // 🔥 접두사 붙인 로그아웃 플래그 확인
+    const isLoggingOut = localStorage.getItem(`${storagePrefix}isLoggingOut`);
     if (isLoggingOut) {
-      console.log('[AuthContext] 🧹 Enforcing cleanup after logout reload');
-      localStorage.removeItem('isLoggingOut');
+      console.log(`[AuthContext] 🧹 Enforcing cleanup after logout reload (${storagePrefix})`);
+      localStorage.removeItem(`${storagePrefix}isLoggingOut`);
 
       // 저장소에 좀비 토큰이 부활했더라도, 메모리상에서는 확실히 날려버림
-      // (PWA 복구 토큰 방지)
       supabase.auth.signOut({ scope: 'local' }).then(() => {
         if (isMounted) setLoading(false);
       });
@@ -365,10 +379,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (event === 'SIGNED_OUT') {
         wipeLocalData();
-        // 🔥 다른 컨텍스트에 로그아웃 알림 (localStorage 타임스탬프)
-        localStorage.setItem('auth_logout_timestamp', String(Date.now()));
-        localStorage.removeItem('auth_login_user_id');
-        console.log('[AuthContext] 📡 Set logout timestamp for cross-context sync');
       } else if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
         const eventKey = `${event}-${currentUser?.id || 'none'}`;
         if (lastProcessedEvent.current === eventKey) return;
@@ -387,10 +397,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             sessionStorage.removeItem('kakao_login_in_progress');
             sessionStorage.removeItem('kakao_login_start_time');
             setIsAuthProcessing(false);
-            // 🔥 다른 컨텍스트에 로그인 알림 (localStorage)
-            localStorage.setItem('auth_login_user_id', currentUser.id);
-            localStorage.removeItem('auth_logout_timestamp');
-            console.log('[AuthContext] 📡 Set login user ID for cross-context sync');
           }
         }
       } else if (event === 'USER_UPDATED' && !session) {
@@ -411,58 +417,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       subscription.unsubscribe();
     };
   }, [refreshAdminStatus]); // refreshAdminStatus가 useCallback 덕분에 안정적임
-
-  // 🔥 3. localStorage 기반 크로스 컨텍스트 동기화 (PWA ↔ Browser)
-  // BroadcastChannel은 페이지 리로드 시 메시지 전송이 불안정하므로 localStorage 폴링 사용
-  useEffect(() => {
-    let lastLogoutTimestamp = localStorage.getItem('auth_logout_timestamp');
-    let lastLoginUserId = localStorage.getItem('auth_login_user_id');
-
-    const checkAuthSync = async () => {
-      const currentLogoutTimestamp = localStorage.getItem('auth_logout_timestamp');
-      const currentLoginUserId = localStorage.getItem('auth_login_user_id');
-
-      // 로그아웃 감지
-      if (currentLogoutTimestamp && currentLogoutTimestamp !== lastLogoutTimestamp) {
-        console.log('[AuthContext] 🔄 Detected logout in other context (PWA/Browser)');
-        lastLogoutTimestamp = currentLogoutTimestamp;
-
-        // 현재 로그인 상태라면 로그아웃 처리
-        if (user) {
-          console.log('[AuthContext] 🔄 Syncing logout...');
-          await cleanupStaleSession();
-          window.location.reload();
-        }
-      }
-
-      // 로그인 감지
-      if (currentLoginUserId && currentLoginUserId !== lastLoginUserId) {
-        console.log('[AuthContext] 🔄 Detected login in other context (PWA/Browser)');
-        lastLoginUserId = currentLoginUserId;
-
-        // 현재 로그아웃 상태라면 세션 복구
-        if (!user) {
-          console.log('[AuthContext] 🔄 Syncing login...');
-          const validSession = await validateAndRecoverSession();
-          if (validSession) {
-            setSession(validSession);
-            setUser(validSession.user);
-            setUserId(validSession.user.id);
-            refreshAdminStatus(validSession.user);
-          }
-        }
-      }
-    };
-
-    // 500ms마다 체크 (빠른 동기화)
-    const syncInterval = setInterval(checkAuthSync, 500);
-    console.log('[AuthContext] 📡 Cross-context sync polling started');
-
-    return () => {
-      clearInterval(syncInterval);
-      console.log('[AuthContext] 📡 Cross-context sync polling stopped');
-    };
-  }, [user, refreshAdminStatus]);
 
 
 
@@ -504,12 +458,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const setBillboardUser = (userId: string | null, userName: string | null) => {
     setBillboardUserId(userId);
     setBillboardUserName(userName);
-    if (userId && userName) {
-      localStorage.setItem('billboardUserId', userId);
-      localStorage.setItem('billboardUserName', userName);
+    if (userId) {
+      localStorage.setItem(`${storagePrefix}billboardUserId`, userId);
     } else {
-      localStorage.removeItem('billboardUserId');
-      localStorage.removeItem('billboardUserName');
+      localStorage.removeItem(`${storagePrefix}billboardUserId`);
+    }
+    if (userName) {
+      localStorage.setItem(`${storagePrefix}billboardUserName`, userName);
+    } else {
+      localStorage.removeItem(`${storagePrefix}billboardUserName`);
     }
   };
 
@@ -555,19 +512,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logToStorage('[AuthContext.signOut] 3단계: Billboard 사용자 정보 초기화');
       setBillboardUser(null, null);
 
-      // 4. localStorage 완전 정리 (Supabase 관련 항목)
-      logToStorage('[AuthContext.signOut] 4단계: localStorage 정리 시작');
+      // 4. localStorage 정리 (현재 프로세스의 Supabase 관련 항목만)
+      logToStorage(`[AuthContext.signOut] 4단계: 프로세스별 localStorage 정리 시작 (${storagePrefix})`);
+      const currentStorageKey = storagePrefix === 'pwa-' ? 'sb-pwa-auth-token' : 'sb-browser-auth-token';
+
       const keysToRemove = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        if (key && (key.startsWith('sb-') || key.includes('supabase'))) {
+        // 내 서랍(currentStorageKey)이거나 공용 키만 수집
+        if (key && (key === currentStorageKey || key.startsWith(currentStorageKey) || key.includes('supabase.auth.token'))) {
           keysToRemove.push(key);
         }
       }
       keysToRemove.forEach(key => localStorage.removeItem(key));
 
-      // 사용자 프로필 캐시 명시적 제거
-      localStorage.removeItem('userProfile');
+      // 사용자 프로필 및 기타 캐시 명시적 제거 (prefix 사용)
+      localStorage.removeItem(`${storagePrefix}userProfile`);
+      localStorage.removeItem(`${storagePrefix}is_registered`);
+      localStorage.removeItem(`${storagePrefix}billboardUserId`);
+      localStorage.removeItem(`${storagePrefix}billboardUserName`);
 
       logToStorage('[AuthContext.signOut] 4단계: localStorage 정리 완료: ' + (keysToRemove.length + 1) + '개 항목');
 
@@ -604,13 +567,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUserId(null);
       logEvent('Auth', 'Logout', 'Success');
 
-      logToStorage('[AuthContext.signOut] 8단계: 로그아웃 플래그 및 크로스 컨텍스트 동기화 설정');
-      // 🔥 중요: 새로고침 후 세션 검증 스킵을 위한 플래그 설정
-      localStorage.setItem('isLoggingOut', 'true');
-      // 🔥 다른 컨텍스트(PWA/브라우저)에 로그아웃 알림
-      localStorage.setItem('auth_logout_timestamp', String(Date.now()));
-      localStorage.removeItem('auth_login_user_id');
-      logToStorage('[AuthContext.signOut] 크로스 컨텍스트 동기화 타임스탬프 설정 완료');
+      logToStorage('[AuthContext.signOut] 8단계: 로그아웃 플래그 설정');
+      // 🔥 중요: 새로고침 후 세션 검증 스킵을 위한 플래그 설정 (접두사 포함)
+      localStorage.setItem(`${storagePrefix}isLoggingOut`, 'true');
 
       logToStorage('[AuthContext.signOut] 9단계: 페이지 새로고침 실행 - window.location.reload()');
       logToStorage('[AuthContext.signOut] ========== 리로드 직전 ==========');
@@ -669,6 +628,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signOut,
     cancelAuth,
     validateSession, // 새로 추가된 메서드
+    storagePrefix,
     ...(import.meta.env.DEV && { signInAsDevAdmin }),
   };
 

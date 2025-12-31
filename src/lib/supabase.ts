@@ -14,6 +14,12 @@ console.log('[Supabase] 환경변수 확인:', {
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+    // 🔥 PWA와 브라우저 세션 분리: 스토리지를 공유하면서 발생하는 좀비 세션 문제 해결
+    storageKey: typeof window !== 'undefined' ?
+      ((window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone)
+        ? 'sb-pwa-auth-token'
+        : 'sb-browser-auth-token')
+      : 'sb-auth-token',
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
