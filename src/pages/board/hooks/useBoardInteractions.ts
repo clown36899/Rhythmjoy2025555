@@ -18,9 +18,9 @@ export function useBoardInteractions({ user, category, isRealAdmin, loadPosts, s
     const { interactions } = useUserInteractions(user?.id || null);
 
     // Local state for UI (derived from interactions)
-    const [likedPostIds, setLikedPostIds] = useState<Set<number>>(new Set());
-    const [dislikedPostIds, setDislikedPostIds] = useState<Set<number>>(new Set());
-    const [favoritedPostIds, setFavoritedPostIds] = useState<Set<number>>(new Set());
+    const [likedPostIds, setLikedPostIds] = useState<Set<number | string>>(new Set());
+    const [dislikedPostIds, setDislikedPostIds] = useState<Set<number | string>>(new Set());
+    const [favoritedPostIds, setFavoritedPostIds] = useState<Set<number | string>>(new Set());
 
     // Sync local state from centralized interactions
     useEffect(() => {
@@ -33,12 +33,15 @@ export function useBoardInteractions({ user, category, isRealAdmin, loadPosts, s
 
         if (category !== 'anonymous') {
             // Standard board - use post_likes/dislikes/favorites
-            setLikedPostIds(new Set(interactions.post_likes || []));
-            setDislikedPostIds(new Set(interactions.post_dislikes || []));
-            setFavoritedPostIds(new Set(interactions.post_favorites || []));
+            // Cast to number[] as we expect numbers for standard posts
+            setLikedPostIds(new Set(interactions.post_likes as number[] || []));
+            setDislikedPostIds(new Set(interactions.post_dislikes as number[] || []));
+            setFavoritedPostIds(new Set(interactions.post_favorites as number[] || []));
         } else {
-            // Anonymous board - interactions are handled separately via RPC
-            // Keep existing anonymous logic
+            // Anonymous board - sync from anonymous_post_likes/dislikes
+            setLikedPostIds(new Set(interactions.anonymous_post_likes || []));
+            setDislikedPostIds(new Set(interactions.anonymous_post_dislikes || []));
+            setFavoritedPostIds(new Set()); // Anonymous board doesn't have favorites yet
         }
     }, [interactions, category]);
 
@@ -46,7 +49,7 @@ export function useBoardInteractions({ user, category, isRealAdmin, loadPosts, s
      * Unified Optimistic UI Update Helper for Standard Board
      */
     const updateStandardOptimisticUI = (
-        postId: number,
+        postId: number | string,
         type: 'like' | 'dislike' | 'favorite',
         undo: boolean = false
     ) => {

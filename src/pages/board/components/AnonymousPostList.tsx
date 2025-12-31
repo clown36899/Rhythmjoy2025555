@@ -9,9 +9,9 @@ interface AnonymousPostListProps {
     // currentUserId?: string; // Not strictly needed if handled by parent/context
     onPostCreated: () => void;
     isAdmin: boolean;
-    likedPostIds?: Set<number>;
+    likedPostIds?: Set<number | string>;
     onToggleLike?: (postId: number) => void;
-    dislikedPostIds?: Set<number>;
+    dislikedPostIds?: Set<number | string>;
     onToggleDislike?: (postId: number) => void;
     onEditPost?: (post: AnonymousBoardPost, password?: string) => void;
 }

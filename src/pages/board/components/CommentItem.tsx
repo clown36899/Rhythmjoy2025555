@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useBoardData } from '../../../contexts/BoardDataContext';
 import type { BoardComment } from '../../../lib/supabase';
 import './comment.css';
 
@@ -14,46 +15,32 @@ interface CommentItemProps {
 
 export default function CommentItem({ comment: initialComment, isAnonymous, onEdit, onDelete, postId }: CommentItemProps) {
     const { user, isAdmin } = useAuth();
+    const { interactions, refreshInteractions } = useBoardData();
     const [comment, setComment] = useState(initialComment);
-    const [userInteraction, setUserInteraction] = useState<'like' | 'dislike' | null>(null);
     const [isLoading, setIsLoading] = useState(false);
-
-    const canModify = isAdmin || isAnonymous || user?.id === comment.user_id;
-
-    useEffect(() => {
-        checkUserInteraction();
-    }, [user, comment.id]);
 
     // Sync local state with props when parent updates (Realtime/Optimistic)
     useEffect(() => {
         setComment(initialComment);
     }, [initialComment]);
 
-    const checkUserInteraction = async () => {
-        if (!user) {
-            setUserInteraction(null);
-            return;
-        }
+    const userInteraction = (() => {
+        if (!user || !interactions) return null;
 
+        const commentId = comment.id;
         if (isAnonymous) {
-            // Anonymous comments now use user_id (login required)
-            const [{ data: like }, { data: dislike }] = await Promise.all([
-                supabase.from('board_anonymous_comment_likes').select('id').eq('comment_id', comment.id).eq('user_id', user.id).maybeSingle(),
-                supabase.from('board_anonymous_comment_dislikes').select('id').eq('comment_id', comment.id).eq('user_id', user.id).maybeSingle(),
-            ]);
-            if (like) setUserInteraction('like');
-            else if (dislike) setUserInteraction('dislike');
-            else setUserInteraction(null);
+            if (interactions.anonymous_comment_likes?.includes(Number(commentId))) return 'like';
+            if (interactions.anonymous_comment_dislikes?.includes(Number(commentId))) return 'dislike';
         } else {
-            const [{ data: like }, { data: dislike }] = await Promise.all([
-                supabase.from('board_comment_likes').select('id').eq('comment_id', comment.id).eq('user_id', user.id).maybeSingle(),
-                supabase.from('board_comment_dislikes').select('id').eq('comment_id', comment.id).eq('user_id', user.id).maybeSingle(),
-            ]);
-            if (like) setUserInteraction('like');
-            else if (dislike) setUserInteraction('dislike');
-            else setUserInteraction(null);
+            if (interactions.comment_likes?.includes(String(commentId))) return 'like';
+            if (interactions.comment_dislikes?.includes(String(commentId))) return 'dislike';
         }
-    };
+        return null;
+    })();
+
+    const canModify = isAdmin || isAnonymous || user?.id === comment.user_id;
+
+    // Sync local state with props when parent updates (Realtime/Optimistic)
 
     const handleInteraction = async (type: 'like' | 'dislike') => {
         if (!user) {
@@ -81,7 +68,7 @@ export default function CommentItem({ comment: initialComment, isAnonymous, onEd
 
         try {
             // Both anonymous and standard comments now use user_id
-            const { data, error } = await supabase.rpc('toggle_comment_interaction', {
+            const { error } = await supabase.rpc('toggle_comment_interaction', {
                 p_comment_id: comment.id,
                 p_type: type,
                 p_is_anonymous: isAnonymous,
@@ -100,11 +87,8 @@ export default function CommentItem({ comment: initialComment, isAnonymous, onEd
 
             if (updatedComment) {
                 setComment(updatedComment);
-                if (data.status === 'added') {
-                    setUserInteraction(type);
-                } else {
-                    setUserInteraction(null);
-                }
+                // Refresh global interactions after change
+                if (user) refreshInteractions(user.id);
             }
         } catch (err) {
             console.error('Interaction toggle failed:', err);

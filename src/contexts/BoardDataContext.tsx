@@ -74,13 +74,19 @@ interface Shop {
 }
 
 export interface UserInteractions {
-    post_likes: number[];
-    post_dislikes: number[];
-    post_favorites: number[];
-    event_favorites: number[];
-    social_group_favorites: number[];
-    practice_room_favorites: number[];
-    shop_favorites: number[];
+    post_likes: (number | string)[];
+    post_dislikes: (number | string)[];
+    post_favorites: (number | string)[];
+    anonymous_post_likes: number[];
+    anonymous_post_dislikes: number[];
+    comment_likes: string[];
+    comment_dislikes: string[];
+    anonymous_comment_likes: number[];
+    anonymous_comment_dislikes: number[];
+    event_favorites: (number | string)[];
+    social_group_favorites: (number | string)[];
+    practice_room_favorites: (number | string)[];
+    shop_favorites: (number | string)[];
 }
 
 interface BoardStaticData {
@@ -122,6 +128,9 @@ export const BoardDataProvider = ({ children }: { children: ReactNode }) => {
             // Fallback to empty
             setInteractions({
                 post_likes: [], post_dislikes: [], post_favorites: [],
+                anonymous_post_likes: [], anonymous_post_dislikes: [],
+                comment_likes: [], comment_dislikes: [],
+                anonymous_comment_likes: [], anonymous_comment_dislikes: [],
                 event_favorites: [], social_group_favorites: [],
                 practice_room_favorites: [], shop_favorites: []
             });

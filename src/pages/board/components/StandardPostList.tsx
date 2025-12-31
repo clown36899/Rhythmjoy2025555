@@ -28,13 +28,13 @@ interface StandardPostListProps {
     posts: StandardBoardPost[];
     onPostClick: (post: StandardBoardPost) => void;
     category: BoardCategory;
-    likedPostIds?: Set<number>;
+    likedPostIds?: Set<number | string>;
     onToggleLike?: (postId: number) => void;
     // Standard posts might not use dislikes heavily but let's keep it generally or omit if not needed.
     // BoardMainContainer has handleToggleDislike.
-    dislikedPostIds?: Set<number>;
+    dislikedPostIds?: Set<number | string>;
     onToggleDislike?: (postId: number) => void;
-    favoritedPostIds?: Set<number>; // Added for favorites
+    favoritedPostIds?: Set<number | string>; // Added for favorites
     onToggleFavorite?: (postId: number) => void;
     isAdmin: boolean;
     onWriteClick?: () => void;
