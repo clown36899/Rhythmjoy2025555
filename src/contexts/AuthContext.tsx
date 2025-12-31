@@ -32,8 +32,25 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isAuthProcessing, setIsAuthProcessing] = useState(false);
+  const [loading, setLoading] = useState(false); // Always false to prevent black screen
+  const [isAuthProcessing, setIsAuthProcessing] = useState(() => {
+    // Check if login is in progress from sessionStorage
+    const inProgress = sessionStorage.getItem('kakao_login_in_progress') === 'true';
+    if (inProgress) {
+      // Check if login has been stuck for too long (> 60 seconds)
+      const startTime = sessionStorage.getItem('kakao_login_start_time');
+      if (startTime) {
+        const elapsed = Date.now() - parseInt(startTime);
+        if (elapsed > 60000) {
+          // Clear stuck login state
+          sessionStorage.removeItem('kakao_login_in_progress');
+          sessionStorage.removeItem('kakao_login_start_time');
+          return false;
+        }
+      }
+    }
+    return inProgress;
+  });
   const [isAdmin, setIsAdmin] = useState(false);
   const [billboardUserId, setBillboardUserId] = useState<string | null>(() => {
     return localStorage.getItem('billboardUserId');
@@ -360,7 +377,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (currentUser) {
           setUserProperties({ login_status: 'logged_in' });
           setUserId(currentUser.id);
-          if (event === 'SIGNED_IN') logEvent('Auth', 'Login', 'Success');
+          if (event === 'SIGNED_IN') {
+            logEvent('Auth', 'Login', 'Success');
+            // Clear login in progress flag
+            sessionStorage.removeItem('kakao_login_in_progress');
+            sessionStorage.removeItem('kakao_login_start_time');
+            setIsAuthProcessing(false);
+          }
         }
       } else if (event === 'USER_UPDATED' && !session) {
         await cleanupStaleSession();
@@ -385,12 +408,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithKakao = async () => {
     setIsAuthProcessing(true); // 즉시 스피너 표시
+    sessionStorage.setItem('kakao_login_in_progress', 'true'); // Persist across page navigation
+    sessionStorage.setItem('kakao_login_start_time', String(Date.now())); // Track start time
     try {
       // 로그인 전에 스크롤 위치 저장 (익명 게시판은 내부 컨테이너 스크롤 사용)
       const boardContainer = document.querySelector('.board-posts-container');
       const scrollY = boardContainer ? boardContainer.scrollTop : window.scrollY;
       console.log('[AuthContext] Saving scroll position before login:', scrollY, 'from:', boardContainer ? 'container' : 'window');
-      sessionStorage.setItem('kakao_login_scroll_y', String(scrollY));
 
       console.log('[signInWithKakao] 카카오 로그인 시작 (리다이렉트 방식)');
 
@@ -411,6 +435,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       alert(error.message || '카카오 로그인에 실패했습니다.');
       // 에러가 났을 때만 스피너를 꺼줌
       setIsAuthProcessing(false);
+      sessionStorage.removeItem('kakao_login_in_progress');
+      sessionStorage.removeItem('kakao_login_start_time');
       throw error; // MobileShell에서 잡아서 처리하도록 전달
     }
   };
@@ -583,6 +609,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   // 로딩 중일 때는 앱 렌더링을 차단하여, 하위 컴포넌트가 불안정한 세션 상태(좀비 토큰 등)로 API를 호출하는 것을 방지
+  // DISABLED for login optimization - no spinner during initial load
+  /*
   if (loading) {
     return (
       <div style={{
@@ -596,6 +624,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       </div>
     );
   }
+  */
 
   return (
     <AuthContext.Provider value={contextValue}>

@@ -1,11 +1,13 @@
 import { useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase';
+import { useAuth } from '../../../contexts/AuthContext';
 import '../../../styles/pages/auth-callback.css';
 
 export default function KakaoCallbackPage() {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
+    const { } = useAuth();
 
     // Ref to track processing state within a single mount (still useful for manual double-invoke protection)
     const processingRef = useRef(false);
@@ -38,6 +40,7 @@ export default function KakaoCallbackPage() {
             if (error) {
                 if (cancelled) return;
                 console.error('[Kakao Callback] ❌ 카카오 에러 발생:', error, errorDescription);
+                sessionStorage.removeItem('kakao_login_in_progress');
                 alert(errorDescription || '카카오 로그인에 실패했습니다.');
                 navigate('/', { replace: true });
                 return;
@@ -47,6 +50,7 @@ export default function KakaoCallbackPage() {
             if (!code) {
                 if (cancelled) return;
                 console.error('[Kakao Callback] ❌ 인증 코드 없음');
+                sessionStorage.removeItem('kakao_login_in_progress');
                 alert('인증 코드가 없습니다.');
                 navigate('/', { replace: true });
                 return;
@@ -154,6 +158,9 @@ export default function KakaoCallbackPage() {
                     console.log('[Kakao Callback] 📍 리다이렉트 준비 시작');
                     const returnUrl = sessionStorage.getItem('kakao_login_return_url') || '/';
                     console.log('[Kakao Callback] 복귀 URL:', returnUrl);
+
+                    // Set flag to prevent EventList spinner during login
+                    sessionStorage.setItem('just_logged_in', 'true');
                     sessionStorage.removeItem('kakao_login_return_url');
 
                     console.log('[Kakao Callback] ➡️ navigate() 호출');
@@ -168,6 +175,9 @@ export default function KakaoCallbackPage() {
                 console.error('[Kakao Callback] ❌ 에러 발생:', error);
                 console.error('[Kakao Callback] 에러 메시지:', error.message);
                 console.error('[Kakao Callback] 에러 스택:', error.stack);
+
+                // Clear login in progress flag on error
+                sessionStorage.removeItem('kakao_login_in_progress');
 
                 // KOE320 에러는 이미 사용된 코드라는 뜻이므로, 사용자에게는 조용히 넘어가거나 재로그인 유도
                 if (error.message?.includes('KOE320')) {
@@ -200,9 +210,7 @@ export default function KakaoCallbackPage() {
     return (
         <div className="auth-callback-container">
             <div className="auth-callback-content">
-                <div className="auth-callback-spinner"></div>
-                <h2>로그인 처리 중...</h2>
-                <p>잠시만 기다려주세요</p>
+                {/* Spinner handled by MobileShell GlobalLoadingOverlay */}
             </div>
         </div>
     );

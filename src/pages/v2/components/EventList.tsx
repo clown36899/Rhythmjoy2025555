@@ -3036,7 +3036,12 @@ export default function EventList({
   }
 
   // 로딩 중이고 데이터가 없는 경우 (초기 로딩)
-  if (loading && events.length === 0) {
+  // 단, 로그인 직후는 스피너 표시 안 함
+  const justLoggedIn = sessionStorage.getItem('just_logged_in') === 'true';
+  if (justLoggedIn) {
+    sessionStorage.removeItem('just_logged_in'); // Clear flag after check
+  }
+  if (loading && events.length === 0 && !justLoggedIn) {
     return <GlobalLoadingOverlay isLoading={true} />;
   }
 
