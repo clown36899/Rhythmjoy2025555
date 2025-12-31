@@ -101,21 +101,25 @@ export default async (request: Request, context: any) => {
             profileImage = userData.properties?.profile_image || userData.kakao_account?.profile?.profile_image_url;
         }
 
-        // 6. Supabase User Lookup/Creation
-        console.log('[kakao-login-edge] 3. Supabase User Check');
-        const { data: existingBoardUser } = await supabaseAdmin
-            .from('board_users')
-            .select('user_id')
-            .eq('kakao_id', kakaoId)
+        // 6. Supabase User Lookup/Creation (RPC Optimized: 1 RT)
+        console.log('[kakao-login-edge] 3. Supabase User Check (RPC)');
+
+        let userId: string | undefined;
+
+        const { data: rpcData, error: rpcError } = await supabaseAdmin
+            .rpc('get_kakao_user_info', { p_kakao_id: kakaoId })
             .maybeSingle();
 
-        let userId = existingBoardUser?.user_id;
-
-        if (userId) {
-            // Fetch existing auth email
-            const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(userId);
-            if (authUser?.user?.email) email = authUser.user.email;
+        if (rpcData) {
+            userId = rpcData.user_id;
+            // Use email from Auth if available, otherwise trust RPC or fallback
+            if (rpcData.email) email = rpcData.email;
+            console.log('[kakao-login-edge] ✅ User found via RPC');
         } else {
+            console.log('[kakao-login-edge] ⚠️ User not found via RPC');
+        }
+
+        if (!userId) {
             // Create new user
             console.log('[kakao-login-edge] Creating new user');
             const randomPassword = crypto.randomUUID(); // Web API
