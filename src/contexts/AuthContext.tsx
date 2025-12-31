@@ -284,8 +284,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const isLoggingOut = localStorage.getItem('isLoggingOut');
     if (isLoggingOut) {
+      console.log('[AuthContext] 🧹 Enforcing cleanup after logout reload');
       localStorage.removeItem('isLoggingOut');
-      setLoading(false);
+
+      // 저장소에 좀비 토큰이 부활했더라도, 메모리상에서는 확실히 날려버림
+      // (PWA 복구 토큰 방지)
+      supabase.auth.signOut({ scope: 'local' }).then(() => {
+        if (isMounted) setLoading(false);
+      });
       return;
     }
 
