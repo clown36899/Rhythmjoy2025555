@@ -595,3 +595,37 @@
 .evt-favorites-view-container .ri-star-line {
     color: #ffffff !important;
 }
+
+/* Secondary Menu - Wrapping & Button Style Restore */
+.evt-v2-genre-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0 14px 10px 14px;
+}
+
+.evt-genre-btn {
+    padding: 6px 14px;
+    border-radius: 20px;
+    background-color: #27272a;
+    /* Dark gray background */
+    color: #a1a1aa;
+    /* Light gray text */
+    border: 1px solid #3f3f46;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.evt-genre-btn:hover {
+    background-color: #3f3f46;
+    color: #e4e4e7;
+}
+
+.evt-genre-btn.active {
+    background-color: #fafafa;
+    color: #000000;
+    border-color: #fafafa;
+    font-weight: 600;
+}

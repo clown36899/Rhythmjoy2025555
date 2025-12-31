@@ -149,20 +149,17 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                     </button>
                 </div>
 
-                <HorizontalScrollNav>
-                    <div className="evt-v2-genre-scroll" style={{ paddingBottom: '0.5rem', marginBottom: '0.5rem' }}>
-                        {['전체', ...allGenresStructured.event].map(g => (
-                            <button
-                                key={g}
-                                className={`activity-tab-btn ${((selectedEventGenre || '전체') === g) ? 'active' : ''}`}
-                                onClick={() => setGenreParam('event_genre', g === '전체' ? null : g)}
-                                style={{ flex: '0 0 auto', padding: '6px 12px', fontSize: '13px', minWidth: 'auto' }}
-                            >
-                                {g}
-                            </button>
-                        ))}
-                    </div>
-                </HorizontalScrollNav>
+                <div className="evt-v2-genre-wrap">
+                    {['전체', ...allGenresStructured.event].map(g => (
+                        <button
+                            key={g}
+                            className={`evt-genre-btn ${((selectedEventGenre || '전체') === g) ? 'active' : ''}`}
+                            onClick={() => setGenreParam('event_genre', g === '전체' ? null : g)}
+                        >
+                            {g}
+                        </button>
+                    ))}
+                </div>
 
                 <HorizontalScrollNav>
                     <div className="evt-v2-horizontal-scroll">
@@ -197,20 +194,17 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                     </button>
                 </div>
 
-                <HorizontalScrollNav>
-                    <div className="evt-v2-genre-scroll" style={{ paddingBottom: '0.5rem', marginBottom: '0.5rem' }}>
-                        {['전체', ...allGenresStructured.class].map(g => (
-                            <button
-                                key={g}
-                                className={`activity-tab-btn ${((selectedClassGenre || '전체') === g) ? 'active' : ''}`}
-                                onClick={() => setGenreParam('class_genre', g === '전체' ? null : g)}
-                                style={{ flex: '0 0 auto', padding: '6px 12px', fontSize: '13px', minWidth: 'auto' }}
-                            >
-                                {g}
-                            </button>
-                        ))}
-                    </div>
-                </HorizontalScrollNav>
+                <div className="evt-v2-genre-wrap">
+                    {['전체', ...allGenresStructured.class].map(g => (
+                        <button
+                            key={g}
+                            className={`evt-genre-btn ${((selectedClassGenre || '전체') === g) ? 'active' : ''}`}
+                            onClick={() => setGenreParam('class_genre', g === '전체' ? null : g)}
+                        >
+                            {g}
+                        </button>
+                    ))}
+                </div>
 
                 <HorizontalScrollNav>
                     <div className="evt-v2-horizontal-scroll">
@@ -245,20 +239,17 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                     </button>
                 </div>
 
-                <HorizontalScrollNav>
-                    <div className="evt-v2-genre-scroll" style={{ paddingBottom: '0.5rem', marginBottom: '0.5rem' }}>
-                        {['전체', ...allGenresStructured.club].map(g => (
-                            <button
-                                key={g}
-                                className={`activity-tab-btn ${((selectedClubGenre || '전체') === g) ? 'active' : ''}`}
-                                onClick={() => setGenreParam('club_genre', g === '전체' ? null : g)}
-                                style={{ flex: '0 0 auto', padding: '6px 12px', fontSize: '13px', minWidth: 'auto' }}
-                            >
-                                {g}
-                            </button>
-                        ))}
-                    </div>
-                </HorizontalScrollNav>
+                <div className="evt-v2-genre-wrap">
+                    {['전체', ...allGenresStructured.club].map(g => (
+                        <button
+                            key={g}
+                            className={`evt-genre-btn ${((selectedClubGenre || '전체') === g) ? 'active' : ''}`}
+                            onClick={() => setGenreParam('club_genre', g === '전체' ? null : g)}
+                        >
+                            {g}
+                        </button>
+                    ))}
+                </div>
 
                 <HorizontalScrollNav>
                     <div className="evt-v2-horizontal-scroll">
