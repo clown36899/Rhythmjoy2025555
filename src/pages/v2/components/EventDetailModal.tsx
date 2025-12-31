@@ -1043,62 +1043,51 @@ export default function EventDetailModal({
                   >
                     {hasImage ? (
                       <>
-                        {/* 1. Base Layer: Thumbnail */}
-                        {thumbnailSrc && (
-                          <img
-                            src={thumbnailSrc}
-                            alt={selectedEvent.title}
-                            className="detail-image"
-                            loading="eager"
-                            style={{
-                              ...imageStyle,
-                              width: '100%', // Force full width to dictate container height
-                              opacity: 1, // Always visible underneath
-                              position: 'relative', // Dictates the container size
-                              zIndex: 1,
-                              display: 'block' // Prevent descender gap
-                            }}
-                          />
-                        )}
 
-                        {/* 2. Overlay Layer: HighRes (Cross-fade) */}
-                        {highResSrc && highResSrc !== thumbnailSrc && (
-                          <img
-                            src={highResSrc}
-                            alt={selectedEvent.title}
-                            className="detail-image"
-                            loading="eager"
-                            decoding="async"
-                            style={{
-                              ...imageStyle,
-                              position: 'absolute',
-                              top: 0,
-                              left: 0,
-                              width: '100%',
-                              height: '100%',
-                              objectFit: 'contain',
-                              opacity: isHighResLoaded ? 1 : 0,
-                              transition: 'opacity 0.4s ease-in-out',
-                              zIndex: 2,
-                              display: 'block', // Match base image behavior
-                              // Desktop Alignment Fix: Center the absolute image
-                              margin: 'auto',
-                              bottom: 0,
-                              right: 0
-                            }}
-                          />
-                        )}
+                        <div className="detail-image-wrapper">
+                          {/* 1. Base Layer: Thumbnail */}
+                          {thumbnailSrc && (
+                            <img
+                              src={thumbnailSrc}
+                              alt={selectedEvent.title}
+                              className="detail-image-content"
+                              loading="eager"
+                              style={{
+                                ...imageStyle,
+                                zIndex: 1,
+                                opacity: 1,
+                              }}
+                            />
+                          )}
 
-                        {/* Fallback if only HighRes exists and no thumbnail (Rare) */}
-                        {!thumbnailSrc && highResSrc && (
-                          <img
-                            src={highResSrc}
-                            alt={selectedEvent.title}
-                            className="detail-image"
-                            loading="eager"
-                            style={{ ...imageStyle, zIndex: 1 }}
-                          />
-                        )}
+                          {/* 2. Overlay Layer: HighRes (Cross-fade) */}
+                          {highResSrc && highResSrc !== thumbnailSrc && (
+                            <img
+                              src={highResSrc}
+                              alt={selectedEvent.title}
+                              className="detail-image-content"
+                              loading="eager"
+                              decoding="async"
+                              style={{
+                                ...imageStyle,
+                                zIndex: 2,
+                                opacity: isHighResLoaded ? 1 : 0,
+                                transition: "opacity 0.4s ease-in-out",
+                              }}
+                            />
+                          )}
+
+                          {/* Fallback if only HighRes exists and no thumbnail (Rare) */}
+                          {!thumbnailSrc && highResSrc && (
+                            <img
+                              src={highResSrc}
+                              alt={selectedEvent.title}
+                              className="detail-image-content"
+                              loading="eager"
+                              style={{ ...imageStyle, zIndex: 1 }}
+                            />
+                          )}
+                        </div>
 
                         {/* Gradient Overlay */}
                         <div className="image-gradient-overlay" style={{ zIndex: 10 }} />
@@ -1252,14 +1241,24 @@ export default function EventDetailModal({
                     <div className="info-flex-gap-1" style={{ flex: 1, alignItems: 'center', display: 'flex' }}>
                       <span>
                         {(() => {
+                          // Helper for safe date parsing
+                          const safeDate = (d: string | null | undefined) => {
+                            if (!d) return null;
+                            const date = new Date(d);
+                            return isNaN(date.getTime()) ? null : date;
+                          };
+
                           // 특정 날짜 모드: event_dates 배열이 있으면 개별 날짜 표시
                           if (
                             selectedEvent.event_dates &&
                             selectedEvent.event_dates.length > 0
                           ) {
-                            const dates = selectedEvent.event_dates.map(
-                              (dateStr) => new Date(dateStr),
-                            );
+                            const dates = selectedEvent.event_dates
+                              .map(d => safeDate(d))
+                              .filter((d): d is Date => d !== null);
+
+                            if (dates.length === 0) return "날짜 정보 없음";
+
                             const firstDate = dates[0];
                             const year = firstDate.getFullYear();
                             const month = firstDate.toLocaleDateString("ko-KR", {
@@ -1295,7 +1294,9 @@ export default function EventDetailModal({
 
                           if (!startDate) return "날짜 미정";
 
-                          const start = new Date(startDate);
+                          const start = safeDate(startDate);
+                          if (!start) return "날짜 형식 오류";
+
                           const startYear = start.getFullYear();
                           const startMonth = start.toLocaleDateString("ko-KR", {
                             month: "long",
@@ -1303,19 +1304,21 @@ export default function EventDetailModal({
                           const startDay = start.getDate();
 
                           if (endDate && endDate !== startDate) {
-                            const end = new Date(endDate);
-                            const endYear = end.getFullYear();
-                            const endMonth = end.toLocaleDateString("ko-KR", {
-                              month: "long",
-                            });
-                            const endDay = end.getDate();
+                            const end = safeDate(endDate);
+                            if (end) {
+                              const endYear = end.getFullYear();
+                              const endMonth = end.toLocaleDateString("ko-KR", {
+                                month: "long",
+                              });
+                              const endDay = end.getDate();
 
-                            if (startYear === endYear && startMonth === endMonth) {
-                              return `${startYear}년 ${startMonth} ${startDay}~${endDay}일`;
-                            } else if (startYear === endYear) {
-                              return `${startYear}년 ${startMonth} ${startDay}일~${endMonth} ${endDay}일`;
-                            } else {
-                              return `${startYear}년 ${startMonth} ${startDay}일~${endYear}년 ${endMonth} ${endDay}일`;
+                              if (startYear === endYear && startMonth === endMonth) {
+                                return `${startYear}년 ${startMonth} ${startDay}~${endDay}일`;
+                              } else if (startYear === endYear) {
+                                return `${startYear}년 ${startMonth} ${startDay}일~${endMonth} ${endDay}일`;
+                              } else {
+                                return `${startYear}년 ${startMonth} ${startDay}일~${endYear}년 ${endMonth} ${endDay}일`;
+                              }
                             }
                           }
 
