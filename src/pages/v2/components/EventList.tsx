@@ -9,10 +9,25 @@ import { logEvent } from "../../../lib/analytics";
 import { HorizontalScrollNav } from "./HorizontalScrollNav";
 
 // 컴포넌트 리마운트 시에도 순서 유지를 위한 전역 변수
+// [Optimization] Initialize from sessionStorage to survive page reloads (e.g. login redirect)
+const loadCachedEvents = () => {
+  try {
+    const cached = sessionStorage.getItem('globalLastFetchedEvents');
+    if (cached) return JSON.parse(cached);
+  } catch (e) {
+    console.warn('Failed to parse cached events:', e);
+  }
+  return [];
+};
+
+let globalLastFetchedEvents: Event[] = loadCachedEvents();
+let globalLastFetchTime: number = Number(sessionStorage.getItem('globalLastFetchTime') || 0);
+
+// Admin mode changes should invalidate or use different cache, but for now we basically rely on fetch logic to override if needed.
+// Ideally we should key cache by admin mode, but since login forces reload, we can just clear/overwrite.
+
 let globalLastSortedEvents: Event[] = [];
 let globalLastFutureClasses: Event[] = [];
-let globalLastFetchedEvents: Event[] = [];
-let globalLastFetchTime: number = 0;
 const EVENT_CACHE_DURATION = 30 * 1000; // 30 seconds
 // Cache weights globally - removed in favor of Context
 
@@ -198,13 +213,17 @@ export default function EventList({
       setGenreWeights(DEFAULT_GENRE_WEIGHTS);
     }
   }, [boardData?.genre_weights]);
-  const [events, setEvents] = useState<Event[]>([]);
+
+  // [Persistent Cache Logic]
+  // Initialize from global variable which is now loaded from sessionStorage
+  const [events, setEvents] = useState<Event[]>(globalLastFetchedEvents);
+
   const [pendingFocusId, setPendingFocusId] = useState<number | null>(null);
   const isPartialUpdate = useRef(false); // 부분 업데이트 플래그
 
 
 
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!globalLastFetchedEvents || globalLastFetchedEvents.length === 0);
   const [loadError, setLoadError] = useState<string | null>(null);
 
 
@@ -215,6 +234,18 @@ export default function EventList({
       console.log('[📋 EventList] 컴포넌트 언마운트됨');
     };
   }, []);
+
+  // Cache saving helper
+  const saveEventsToCache = (newEvents: Event[]) => {
+    globalLastFetchedEvents = newEvents;
+    globalLastFetchTime = Date.now();
+    try {
+      sessionStorage.setItem('globalLastFetchedEvents', JSON.stringify(newEvents));
+      sessionStorage.setItem('globalLastFetchTime', String(globalLastFetchTime));
+    } catch (e) {
+      console.warn('Failed to save events to storage (quota exceeded?):', e);
+    }
+  };
 
 
   // Global modals
@@ -1050,7 +1081,7 @@ export default function EventList({
       let error: unknown = undefined;
 
       const fetchPromise = (async () => {
-        const columns = "id,title,description,date,start_date,end_date,event_dates,time,location,location_link,category,price,image,image_thumbnail,image_micro,organizer,organizer_name,contact,created_at,updated_at,genre,user_id,venue_id,venue_name,venue_custom_link";
+        const columns = "id,title,date,start_date,end_date,event_dates,time,location,location_link,category,price,image,image_thumbnail,image_micro,organizer,organizer_name,contact,created_at,updated_at,genre,user_id,venue_id,venue_name,venue_custom_link";
 
         if (isAdminMode) {
           const result = await supabase
@@ -1099,9 +1130,8 @@ export default function EventList({
       } else {
         const eventList: Event[] = data || [];
         setEvents(eventList);
-        // Update global cache
-        globalLastFetchedEvents = eventList;
-        globalLastFetchTime = Date.now();
+        // Update global cache (and storage)
+        saveEventsToCache(eventList);
       }
     } catch (error: unknown) {
       const errorMessage = (error as Error).message;

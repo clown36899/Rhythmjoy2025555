@@ -45,6 +45,14 @@ export function useSocialSchedulesNew(groupId?: number) {
 
             if (groupId) {
                 query = query.eq('group_id', groupId);
+            } else {
+                // Global fetch (Home Page): Optimize by fetching only future/today events or recurring schedules
+                const today = new Date();
+                const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+                // Fetch if: (date >= today) OR (day_of_week is not null/recurring)
+                // Note: .or() filter string syntax 'column.operator.value,column.operator.value'
+                query = query.or(`date.gte.${todayStr},day_of_week.neq.null`);
             }
 
             const { data, error } = await query
