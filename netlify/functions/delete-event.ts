@@ -136,9 +136,13 @@ export const handler: Handler = async (event) => {
             if (favError) console.warn(`[delete-event] ⚠️ Error deleting event_favorites:`, favError.message);
             else console.log(`[delete-event] ✅ event_favorites cleaned up`);
 
-            const { error: commentError } = await supabaseAdmin.from('comments').delete().eq('event_id', eventId);
-            if (commentError) console.warn(`[delete-event] ⚠️ Error deleting comments:`, commentError.message);
-            else console.log(`[delete-event] ✅ comments cleaned up`);
+            if (favError) console.warn(`[delete-event] ⚠️ Error deleting event_favorites:`, favError.message);
+            else console.log(`[delete-event] ✅ event_favorites cleaned up`);
+
+            // comments 테이블은 존재하지 않음 (이벤트 댓글 기능이 아직 없거나 다른 테이블 사용)
+            // const { error: commentError } = await supabaseAdmin.from('comments').delete().eq('event_id', eventId);
+            // if (commentError) console.warn(`[delete-event] ⚠️ Error deleting comments:`, commentError.message);
+            // else console.log(`[delete-event] ✅ comments cleaned up`);
         } catch (depError) {
             console.error(`[delete-event] ⚠️ Unexpected error during dependency cleanup:`, depError);
         }
