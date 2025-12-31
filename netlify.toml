@@ -17,3 +17,7 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+[[edge_functions]]
+  path = "/api/kakao-login"
+  function = "kakao-login"

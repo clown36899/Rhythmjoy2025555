@@ -60,7 +60,7 @@ export default function KakaoCallbackPage() {
                 console.log('[Kakao Callback] 🧹 URL에서 인증 코드 제거 완료');
 
                 // 2. 서버로 인증 코드 전송
-                const authEndpoint = '/.netlify/functions/kakao-login';
+                const authEndpoint = '/api/kakao-login';
                 const redirectUri = `${window.location.origin}/auth/kakao-callback`;
 
                 console.log('[Kakao Callback] 📤 서버로 인증 코드 전송 시작');
