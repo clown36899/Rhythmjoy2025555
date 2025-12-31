@@ -1023,9 +1023,9 @@ export default function EventList({
   }, [events]);
 
 
-  const fetchEvents = useCallback(async (silent = false) => {
+  const fetchEvents = useCallback(async (silent = false, forceRefresh = false) => {
     // SWR Strategy: Use cache if not expired and silent/background fetch
-    const isManualRefresh = silent === false; // If not silent, we treat it as manual/initial load
+    const isManualRefresh = silent === false || forceRefresh === true; // manual refresh or forced refresh bypasses cache
     if (!isManualRefresh && globalLastFetchedEvents.length > 0 && (Date.now() - globalLastFetchTime < EVENT_CACHE_DURATION)) {
       console.log('[EventList] Using cached events (SWR)');
       setEvents(globalLastFetchedEvents);
@@ -1139,22 +1139,35 @@ export default function EventList({
   // 이벤트 업데이트/삭제 감지
   useEffect(() => {
     const handleEventUpdate = (e: any) => {
-      console.log('[📋 이벤트 목록] 이벤트 변경 감지');
+      console.log('[📋 이벤트 목록] 이벤트 변경 감지:', e.type);
+
+      // 삭제 이벤트인 경우 즉시 상태에서 제거 (낙관적 업데이트)
+      if (e.type === "eventDeleted" && e.detail?.eventId) {
+        const deletedId = e.detail.eventId;
+        setEvents(prev => prev.filter(ev => ev.id !== deletedId));
+        globalLastFetchedEvents = globalLastFetchedEvents.filter(ev => ev.id !== deletedId);
+        console.log('[📋 이벤트 목록] 삭제된 이벤트 ID', deletedId, '제거 완료');
+        return;
+      }
 
       // 업데이트된 이벤트 데이터가 있으면 해당 이벤트만 교체
       if (e.detail?.event) {
         isPartialUpdate.current = true; // 부분 업데이트 플래그 설정
-        setEvents(prevEvents =>
-          prevEvents.map(event =>
+        setEvents(prevEvents => {
+          const nextEvents = prevEvents.map(event =>
             event.id === e.detail.id ? e.detail.event : event
-          )
-        );
+          );
+          // 캐시도 함께 업데이트
+          globalLastFetchedEvents = globalLastFetchedEvents.map(event =>
+            event.id === e.detail.id ? e.detail.event : event
+          );
+          return nextEvents;
+        });
         console.log('[📋 이벤트 목록] 이벤트 ID', e.detail.id, '만 업데이트됨 (정렬 유지)');
-        // 플래그는 useEffect에서 리셋됨
       } else {
-        // 데이터가 없으면 전체 새로고침 (삭제 등의 경우)
+        // 데이터가 없으면 전체 새로고침 (생성 등의 경우, 캐시 우회)
         isPartialUpdate.current = false;
-        fetchEvents(true);
+        fetchEvents(true, true); // silent=true, forceRefresh=true
       }
     };
 

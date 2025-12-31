@@ -110,17 +110,16 @@ export default function EventDetailModal({
     setDraftEvent(event);
     setOriginalEvent(event); // Reset baseline to prop
 
-    // On-Demand Fetching: description이나 link1이 없으면 상세 데이터 조회
-    if (event?.id && (event.description === undefined || event.link1 === undefined)) {
+    // On-Demand Fetching: 필수 필드(description, user_id 등)가 없으면 상세 데이터 조회
+    if (event?.id && (event.description === undefined || !event.user_id || event.link1 === undefined)) {
       const fetchDetail = async () => {
         try {
           setIsFetchingDetail(true);
 
-          // [최적화] DB 외래키 설정을 통해 한 번의 요청(Join)으로 닉네임까지 가져옴
-          const selectFields = isAdminMode ? '*, board_users(nickname)' : '*';
+          // [최적화] 작성자 닉네임을 항상 가져와서 본인 확인 및 정보 표시를 가능하게 함
           const { data, error } = await supabase
             .from('events')
-            .select(selectFields)
+            .select('*, board_users(nickname)')
             .eq('id', event.id)
             .maybeSingle();
 
@@ -1448,7 +1447,20 @@ export default function EventDetailModal({
                       );
                     })()}
 
-                  {isAdminMode &&
+                  {/* Debug Permission Info */}
+                  {(() => {
+                    const effectiveUserId = currentUserId || user?.id;
+                    const isOwner = effectiveUserId && selectedEvent.user_id === effectiveUserId;
+                    console.log('[EventDetail] ✅ Permission Check:', {
+                      isAdminMode,
+                      effectiveUserId,
+                      eventUserId: selectedEvent.user_id,
+                      isMatch: isOwner
+                    });
+                    return null;
+                  })()}
+
+                  {(isAdminMode || ((currentUserId || user?.id) && selectedEvent.user_id === (currentUserId || user?.id))) &&
                     (selectedEvent.organizer_name ||
                       selectedEvent.organizer_phone) && (
                       <div className="admin-info-section">
@@ -1473,7 +1485,7 @@ export default function EventDetailModal({
 
                   {/* Link section removed as per user request */}
 
-                  {isAdminMode && selectedEvent.created_at && (
+                  {(isAdminMode || ((currentUserId || user?.id) && selectedEvent.user_id === (currentUserId || user?.id))) && selectedEvent.created_at && (
                     <div className="created-at-text">
                       <span>
                         등록:{" "}
@@ -1639,8 +1651,8 @@ export default function EventDetailModal({
                   </button>
                 )}
 
-                {/* Edit/Save Button - Only show if authorized */}
-                {(isAdminMode || (currentUserId && selectedEvent.user_id === currentUserId) || !selectedEvent.user_id) && (
+                {/* Edit/Save Button - Only show if authorized (Admin or Owner) */}
+                {(isAdminMode || ((currentUserId || user?.id) && selectedEvent.user_id === (currentUserId || user?.id))) && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
