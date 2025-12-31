@@ -1,5 +1,7 @@
-
 import type { Event as BaseEvent } from "../../../lib/supabase";
+import { parseVideoUrl, isValidVideoUrl } from "../../../utils/videoEmbed";
+
+export { parseVideoUrl, isValidVideoUrl };
 
 export interface Event extends Omit<BaseEvent, 'description' | 'video_url' | 'organizer_phone' | 'capacity' | 'registered' | 'link1' | 'link2' | 'link3' | 'link_name1' | 'link_name2' | 'link_name3' | 'password' | 'show_title_on_billboard' | 'storage_path'> {
     description?: string | null;
@@ -49,6 +51,14 @@ export const getLocalDateString = (date: Date = new Date()) => {
     const y = kstDate.getUTCFullYear();
     const m = String(kstDate.getUTCMonth() + 1).padStart(2, '0');
     const d = String(kstDate.getUTCDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+};
+
+// DatePicker용 날짜 포맷 (YYYY-MM-DD)
+export const formatDateForInput = (date: Date): string => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
     return `${y}-${m}-${d}`;
 };
 

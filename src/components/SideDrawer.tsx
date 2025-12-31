@@ -26,6 +26,9 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
     const [isAdminExpanded, setIsAdminExpanded] = useState(false); // 관리자 메뉴 기본 접힘 상태
     const [boardCategories, setBoardCategories] = useState<BoardCategory[]>([]);
     const [memberCount, setMemberCount] = useState<number | null>(null);
+    const [showDevTools, setShowDevTools] = useState(() => {
+        return localStorage.getItem('showDevTools') === 'true';
+    });
 
     // Modals
     const boardManagementModal = useModal('boardManagement');
@@ -253,6 +256,15 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                                     <div className="drawer-submenu-item" onClick={() => { noticeModal.open(); }}>
                                         <i className="ri-megaphone-line"></i>
                                         <span>공지사항 관리</span>
+                                    </div>
+                                    <div className="drawer-submenu-item" onClick={() => {
+                                        const newValue = !showDevTools;
+                                        setShowDevTools(newValue);
+                                        localStorage.setItem('showDevTools', String(newValue));
+                                        window.dispatchEvent(new CustomEvent('toggleDevTools', { detail: newValue }));
+                                    }}>
+                                        <i className={showDevTools ? "ri-bug-fill" : "ri-bug-line"}></i>
+                                        <span>DevTools {showDevTools ? 'ON' : 'OFF'}</span>
                                     </div>
                                 </div>
                             )}

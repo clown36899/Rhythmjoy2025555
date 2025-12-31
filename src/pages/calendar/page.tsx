@@ -89,36 +89,67 @@ export default function CalendarPage() {
         // For now, syncing from useAuth is safest.
     }, [authIsAdmin]);
 
-    // 초기 마운트 시 오늘 날짜로 스크롤 (Retry 로직 추가)
+    // 초기 마운트 시 오늘 날짜로 스크롤 (Window 기반 하이브리드 보정 로직)
     useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const shouldScrollToToday = urlParams.get('scrollToToday') === 'true';
+
         let attempts = 0;
-        const maxAttempts = 20; // 2초 동안 시도 (100ms * 20)
+        const maxAttempts = 20; // 2초간 끈질기게 추적
+        let stableCount = 0;
 
-        const tryScroll = () => {
-            if (containerRef.current) {
-                const todayElement = containerRef.current.querySelector('.calendar-date-number-today') as HTMLElement;
-                if (todayElement) {
-                    // 헤더 높이만큼 여유를 두고 스크롤 (scrollMarginTop 활용)
-                    todayElement.style.scrollMarginTop = '110px';
+        const doScroll = () => {
+            const todayEl = document.querySelector('.calendar-month-slide[data-active-month="true"] .calendar-date-number-today') as HTMLElement;
+            const headerEl = document.querySelector('.calendar-page-weekday-header') as HTMLElement;
 
-                    todayElement.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start',
-                        inline: 'nearest'
+            if (todayEl && headerEl) {
+                // Window 전체 좌표 기준 계산
+                const todayRect = todayEl.getBoundingClientRect();
+                const headerRect = headerEl.getBoundingClientRect();
+                const currentScrollY = window.pageYOffset || document.documentElement.scrollTop;
+
+                // 오차: 오늘 날짜 상단 - 요일 헤더 하단
+                // (오늘 날짜 요소가 요일 헤더 바로 아래에 딱 붙도록 정교하게 계산)
+                const offsetError = todayRect.top - headerRect.bottom;
+
+                if (Math.abs(offsetError) > 0.5) {
+                    // Window 강제 즉시 스크롤 (behavior: 'auto'는 브라우저 기본 즉시 이동)
+                    window.scrollTo({
+                        top: currentScrollY + offsetError,
+                        behavior: 'auto'
                     });
-                    return; // 성공 시 중단
+                    stableCount = 0;
+                } else {
+                    stableCount++;
+                }
+
+                // 로깅
+                if (attempts % 5 === 0 || Math.abs(offsetError) > 0.5) {
+                    console.log(`🎯 [ScrollLog] #${attempts} Window Hybrid Chasing: Error(${offsetError.toFixed(2)}px), ScrollY(${currentScrollY.toFixed(1)}), Stable(${stableCount})`);
+                }
+
+                // 안정화 조건 (5회 연속 오차 범위 내 고정)
+                if (stableCount >= 5 && attempts > 8) {
+                    console.log('✅ [ScrollLog] Final Alignment Stabilized.');
+                    if (shouldScrollToToday) {
+                        const newUrl = window.location.pathname;
+                        window.history.replaceState({}, '', newUrl);
+                    }
+                    return;
                 }
             }
 
             attempts++;
             if (attempts < maxAttempts) {
-                setTimeout(tryScroll, 100);
+                // 사용자가 효과를 본 500ms, 800ms, 1100ms 타이밍을 모두 커버하는 100ms 정밀 루프
+                setTimeout(doScroll, 100);
             }
         };
 
-        // 약간의 지연 후 시작
-        setTimeout(tryScroll, 300);
-    }, []);
+        // 지연 시간 최적화 (사용자의 500ms 제안 반영하여 400ms에 첫 시도)
+        const timer = setTimeout(doScroll, 400);
+        return () => clearTimeout(timer);
+    }, [currentMonth]);
 
 
 

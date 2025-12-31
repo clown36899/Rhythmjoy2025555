@@ -37,9 +37,8 @@ export function useSocialSchedulesNew(groupId?: number) {
         user_id, created_at, updated_at
       `;
 
-            if (isAdmin) {
-                selectFields += `, board_users(nickname)`;
-            }
+            // 작성자 정보는 항상 가져옵니다. (UI에서 노출 제어)
+            selectFields += `, board_users(nickname)`;
 
             let query = supabase.from('social_schedules').select(selectFields);
 

@@ -4,6 +4,7 @@ import './AllSocialSchedules.css';
 import { useModalActions } from '../../../contexts/ModalContext';
 import { HorizontalScrollNav } from '../../v2/components/HorizontalScrollNav';
 import { useAuth } from '../../../contexts/AuthContext';
+import { getLocalDateString, getKSTDay } from '../../v2/utils/eventListUtils';
 
 interface AllSocialSchedulesProps {
     schedules: SocialSchedule[];
@@ -16,42 +17,40 @@ const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules,
     const { openModal } = useModalActions();
     const { isAdmin, user } = useAuth();
 
-    // Get today's date in YYYY-MM-DD format (local timezone)
-    const today = new Date();
-    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    // Get today's date in KST (Consistent with other components)
+    const todayStr = getLocalDateString();
 
-    // Calculate this week's date range (Monday to Sunday)
-    const currentDayOfWeek = today.getDay(); // 0 (Sunday) to 6 (Saturday)
-    const daysFromMonday = currentDayOfWeek === 0 ? 6 : currentDayOfWeek - 1; // If Sunday, go back 6 days; otherwise go back (day - 1)
+    // Calculate this week's date range (Monday to Sunday) based on KST
+    const kstDay = getKSTDay(); // 0 (Sun) - 6 (Sat)
+    const daysFromMonday = kstDay === 0 ? 6 : kstDay - 1;
 
-    const weekStart = new Date(today);
-    weekStart.setDate(today.getDate() - daysFromMonday); // Go back to Monday
-    weekStart.setHours(0, 0, 0, 0);
+    const todayDate = new Date(todayStr);
+    const weekStart = new Date(todayDate);
+    weekStart.setDate(todayDate.getDate() - daysFromMonday);
 
     const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekStart.getDate() + 6); // Sunday
-    weekEnd.setHours(23, 59, 59, 999);
+    weekEnd.setDate(weekStart.getDate() + 6);
 
-    const weekStartStr = `${weekStart.getFullYear()}-${String(weekStart.getMonth() + 1).padStart(2, '0')}-${String(weekStart.getDate()).padStart(2, '0')}`;
-    const weekEndStr = `${weekEnd.getFullYear()}-${String(weekEnd.getMonth() + 1).padStart(2, '0')}-${String(weekEnd.getDate()).padStart(2, '0')}`;
+    const weekEndStr = getLocalDateString(weekEnd);
 
     // Filter schedules:
     // 1. Exclude regular schedules (those with day_of_week set)
     // 2. Only show one-time event schedules (those with specific dates)
-    // 3. Exclude today - only show tomorrow and future dates
-    // 4. Only show schedules within this week (Monday to Sunday)
+    // 3. Show from today until end of week
+    // 4. Must be within this week (Monday to Sunday)
     const nonRegularSchedules = schedules.filter(schedule => {
         // Must not have day_of_week (exclude regular schedules)
+        // Note: Some legacy data might have day_of_week=null, so we check explicitly
         if (schedule.day_of_week !== null && schedule.day_of_week !== undefined) return false;
 
         // Must have a date
         if (!schedule.date) return false;
 
-        // Must be after today (exclude today)
+        // Show from TOMORROW until end of week (Exclude Today)
         if (schedule.date <= todayStr) return false;
 
-        // Must be within this week
-        if (schedule.date < weekStartStr || schedule.date > weekEndStr) return false;
+        // Must be within this week (Monday to Sunday)
+        if (schedule.date > weekEndStr) return false;
 
         return true;
     });

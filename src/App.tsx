@@ -3,13 +3,22 @@ import { routes } from "./router/routes";
 import { Suspense, useEffect } from "react";
 import { logPageView } from "./lib/analytics";
 import { useOnlinePresence } from "./hooks/useOnlinePresence";
+import { useAuth } from "./contexts/AuthContext";
+import { QueryClientProvider } from '@tanstack/react-query';
+import { CustomDevtools } from './components/CustomDevtools';
+import { queryClient } from './lib/queryClient';
+import { useRealtimeSync } from './hooks/useRealtimeSync';
+import './styles/devtools.css';
 
-function App() {
+function AppContent() {
   const element = useRoutes(routes);
   const location = useLocation();
 
   // Track online presence for all users
   useOnlinePresence();
+
+  // Sync queries with Supabase Realtime
+  useRealtimeSync();
 
   // 페이지 변경 시 자동으로 페이지뷰 추적
   useEffect(() => {
@@ -28,6 +37,18 @@ function App() {
     }>
       {element}
     </Suspense>
+  );
+}
+
+function App() {
+  const { isAdmin } = useAuth();
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AppContent />
+      {/* DevTools는 관리자만 볼 수 있음 */}
+      {isAdmin && <CustomDevtools />}
+    </QueryClientProvider>
   );
 }
 

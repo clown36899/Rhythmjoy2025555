@@ -489,6 +489,7 @@ export default memo(function FullEventCalendar({
                     key={`${month.getFullYear()}-${month.getMonth()}`}
                     className="calendar-month-slide"
                     style={{ width: "33.3333%" }}
+                    data-active-month={idx === 1}
                   >
                     <div
                       className="calendar-grid-container"

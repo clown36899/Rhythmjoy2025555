@@ -91,8 +91,10 @@ export default function EventDetailModal({
     ? { class: [], event: [] } // Fallback or logic to distribute if we really needed, but generally we expect structured now
     : allGenres;
 
-  const { user, signInWithKakao } = useAuth();
+  const { user, signInWithKakao, isAdmin: isActualAdmin } = useAuth();
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+
+  console.log('[EventDetailModal] 모달 열림 - event:', event?.title, 'isActualAdmin:', isActualAdmin, 'board_users:', (event as any)?.board_users);
 
 
 
@@ -109,39 +111,7 @@ export default function EventDetailModal({
   useEffect(() => {
     setDraftEvent(event);
     setOriginalEvent(event); // Reset baseline to prop
-
-    // On-Demand Fetching: 필수 필드(description, user_id 등)가 없으면 상세 데이터 조회
-    if (event?.id && (event.description === undefined || !event.user_id || event.link1 === undefined)) {
-      const fetchDetail = async () => {
-        try {
-          setIsFetchingDetail(true);
-
-          // [최적화] 작성자 닉네임을 항상 가져와서 본인 확인 및 정보 표시를 가능하게 함
-          const { data, error } = await supabase
-            .from('events')
-            .select('*, board_users(nickname)')
-            .eq('id', event.id)
-            .maybeSingle();
-
-          if (!error && data) {
-            // Merge prop with fetched data
-            const fullEvent = { ...event, ...(data as any) } as Event;
-            setDraftEvent(fullEvent);
-            setOriginalEvent(fullEvent); // Update baseline to full data
-
-            // 조인된 데이터에서 닉네임 추출
-            const nickname = (data as any).board_users?.nickname;
-            if (nickname) setAuthorNickname(nickname);
-          }
-        } catch (err) {
-          console.error('Failed to fetch event detail:', err);
-        } finally {
-          setIsFetchingDetail(false);
-        }
-      };
-      fetchDetail();
-    }
-  }, [event, isAdminMode]);
+  }, [event]);
 
   const { defaultThumbnailClass, defaultThumbnailEvent } = useDefaultThumbnail();
 
@@ -348,6 +318,57 @@ export default function EventDetailModal({
   const [isSaving, setIsSaving] = useState(false);
   const [isImageLoading, setIsImageLoading] = useState(false);
   const [authorNickname, setAuthorNickname] = useState<string | null>(null);
+
+  // Extract authorNickname from board_users if already present
+  useEffect(() => {
+    const nickname = (event as any)?.board_users?.nickname;
+    if (nickname && !authorNickname) {
+      setAuthorNickname(nickname);
+    }
+  }, [event, authorNickname]);
+
+  // Moved fetching logic here to access authorNickname
+  useEffect(() => {
+    // On-Demand Fetching: 필수 필드 누락 시 또는 권한이 있는데 작성자 닉네임이 없을 때 조회
+    const shouldFetch = event?.id && (
+      event.description === undefined ||
+      !event.user_id ||
+      event.link1 === undefined ||
+      // 관리자거나 본인인데 닉네임이 없으면 정보 조회를 위해 fetch
+      ((isAdminMode || (user && user.id === event.user_id)) && !authorNickname && !(event as any).board_users)
+    );
+
+    if (shouldFetch) {
+      const fetchDetail = async () => {
+        try {
+          setIsFetchingDetail(true);
+
+          // [최적화] 작성자 닉네임을 항상 가져와서 본인 확인 및 정보 표시를 가능하게 함
+          const { data, error } = await supabase
+            .from('events')
+            .select('*, board_users(nickname)')
+            .eq('id', event.id)
+            .maybeSingle();
+
+          if (!error && data) {
+            // Merge prop with fetched data
+            const fullEvent = { ...event, ...(data as any) } as Event;
+            setDraftEvent(fullEvent);
+            setOriginalEvent(fullEvent); // Update baseline to full data
+
+            // 조인된 데이터에서 닉네임 추출
+            const nickname = (data as any).board_users?.nickname;
+            if (nickname) setAuthorNickname(nickname);
+          }
+        } catch (err) {
+          console.error('Failed to fetch event detail:', err);
+        } finally {
+          setIsFetchingDetail(false);
+        }
+      };
+      fetchDetail();
+    }
+  }, [event, isAdminMode, user, authorNickname]);
 
   // Genre Management State (Moved down to access editCategory/editValue)
   const [allHistoricalGenres, setAllHistoricalGenres] = useState<string[]>([]);
@@ -1485,7 +1506,7 @@ export default function EventDetailModal({
 
                   {/* Link section removed as per user request */}
 
-                  {(isAdminMode || ((currentUserId || user?.id) && selectedEvent.user_id === (currentUserId || user?.id))) && selectedEvent.created_at && (
+                  {(isActualAdmin || ((currentUserId || user?.id) && selectedEvent.user_id === (currentUserId || user?.id))) && selectedEvent.created_at && (
                     <div className="created-at-text">
                       <span>
                         등록:{" "}

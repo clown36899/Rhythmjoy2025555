@@ -22,6 +22,7 @@
     /* 이벤트 카드 스크롤 영역 전용 스타일 */
     /* 테스트: 이벤트 카드 간격 조정 */
     gap: 0.8rem;
+    padding-left: 14px;
 }
 
 /* 진행중인 강습 섹션 - 독립 스타일 */
@@ -36,8 +37,9 @@
 
 .evt-v2-section-classes .evt-v2-horizontal-scroll {
     /* 강습 카드 스크롤 영역 전용 스타일 */
-    /* 테스트: 강습 카드 간격 조정 */
-    gap: 0.6rem;
+    /* 테스트: 강습 카드 간격 조정 - 이벤트와 동일하게 맞춤 */
+    gap: 0.8rem;
+    padding-left: 14px;
 }
 
 /* Section Title */
@@ -91,8 +93,9 @@
     display: flex;
     gap: 0.75rem;
     overflow-x: auto;
+
     overflow-y: visible;
-    padding: 0.5rem 1rem 0.75rem 0rem;
+    padding: 0.5rem 1rem 0.75rem 14px;
 
     /* iOS 모멘텀 스크롤 */
     -webkit-overflow-scrolling: touch;
@@ -114,6 +117,23 @@
     touch-action: pan-x pan-y;
 }
 
+/* Secondary Menu (Genre Tabs) Scroll Container */
+.evt-v2-genre-scroll {
+    display: flex;
+    gap: 0rem;
+    overflow-x: auto;
+    overflow-y: visible;
+    padding: 0 1rem 0.5rem 14px;
+
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.evt-v2-genre-scroll::-webkit-scrollbar {
+    display: none;
+}
+
 .evt-v2-horizontal-scroll::-webkit-scrollbar {
     display: none;
 }
@@ -122,6 +142,7 @@
 .evt-v2-horizontal-scroll>.card-container {
     flex: 0 0 auto;
     width: 32%;
+    max-width: 137px;
 }
 
 /* Empty State */
@@ -538,25 +559,29 @@
 }
 
 /* Tab Buttons (Copied from MyActivitiesPage) */
+/* Tab Buttons (Restored to match submenu.css legacy style) */
 .activity-tab-btn {
-    flex: 1;
-    padding: 12px 0;
+    flex: 0 0 auto;
+    padding: 0.75rem 1rem;
     text-align: center;
     font-weight: 500;
-    background: transparent;
+    background-color: transparent;
     border: none;
     cursor: pointer;
-    font-size: 1rem;
-    color: #9ca3af;
-    /* gray-400 */
-    transition: color 0.2s, border-bottom 0.2s;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
     border-bottom: 2px solid transparent;
+    border-radius: 0;
+    transition: color 0.2s ease, border-color 0.2s ease;
+    white-space: nowrap;
 }
 
 .activity-tab-btn.active {
-    color: #3b82f6;
-    /* blue-500 */
-    border-bottom-color: #3b82f6;
+    color: #10b981;
+    border-bottom: 2px solid #10b981;
+    background-color: transparent;
+    box-shadow: none;
+    font-weight: 700;
 }
 
 /* Override favorite icon color to white for EventCard and Post items in Favorites View */

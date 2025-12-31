@@ -17,11 +17,6 @@ html {
     /* 웹 기본값 */
 }
 
-/* 모바일에서는 120px */
-
-
-
-
 /* Sticky Weekday Header */
 .calendar-page-weekday-header {
     position: fixed;
@@ -50,5 +45,4 @@ html {
     max-width: 650px;
     margin: 0 auto;
     padding-top: 120px;
-    /* 60px(헤더) + 60px(요일헤더 영역) */
 }

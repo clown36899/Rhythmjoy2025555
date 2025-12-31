@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import type { SocialSchedule } from '../types';
 import './SocialDetailModal.css';
 import { useModalHistory } from '../../../hooks/useModalHistory';
+import { useAuth } from '../../../contexts/AuthContext';
 
 import { getDayName } from '../../v2/utils/eventListUtils';
 
@@ -25,6 +26,7 @@ const SocialDetailModal: React.FC<SocialDetailModalProps> = ({
     isAdmin,
     showCopyButton = false
 }) => {
+    const { user, isAdmin: isActualAdmin } = useAuth();
     // Enable mobile back gesture to close modal
     useModalHistory(isOpen, onClose);
 
@@ -169,15 +171,25 @@ const SocialDetailModal: React.FC<SocialDetailModalProps> = ({
                                     {schedule.start_time ? schedule.start_time.substring(0, 5) : ''}
                                 </span>
                             </div>
-                            {/* 관리자 전용 작성자 및 등록일 정보 표시 */}
-                            {isAdmin && (
-                                <div className="detail-admin-author">
-                                    <i className="ri-user-settings-line"></i>
-                                    <span>
-                                        등록: {schedule.created_at ? new Date(schedule.created_at).toLocaleDateString() : '날짜 없음'} | 계정: {schedule.board_users?.nickname || '정보 없음'}
-                                    </span>
-                                </div>
-                            )}
+                            {/* 작성자 정보 표시 (전체 공개) */}
+                            {/* 관리자 및 작성자 본인에게만 작성자 정보 표시 */}
+                            {(() => {
+                                const shouldShow = isActualAdmin || (user && user.id === schedule.user_id);
+                                console.log('[SocialDetailModal] Author info visibility check:', {
+                                    isActualAdmin,
+                                    userId: user?.id,
+                                    scheduleUserId: schedule.user_id,
+                                    shouldShow
+                                });
+                                return shouldShow;
+                            })() && (
+                                    <div className="detail-admin-author">
+                                        <i className="ri-user-settings-line"></i>
+                                        <span>
+                                            등록: {schedule.created_at ? new Date(schedule.created_at).toLocaleDateString() : '날짜 없음'} | 계정: {schedule.board_users?.nickname || '정보 없음'}
+                                        </span>
+                                    </div>
+                                )}
                         </div>
 
                         <div className="detail-description">
