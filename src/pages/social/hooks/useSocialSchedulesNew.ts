@@ -51,8 +51,8 @@ export function useSocialSchedulesNew(groupId?: number) {
                 const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
 
                 // Fetch if: (date >= today) OR (day_of_week is not null/recurring)
-                // Note: .or() filter string syntax 'column.operator.value,column.operator.value'
-                query = query.or(`date.gte.${todayStr},day_of_week.neq.null`);
+                // Note: .or() filter string syntax using Supabase PostgREST format
+                query = query.or(`date.gte.${todayStr},day_of_week.not.is.null`);
             }
 
             const { data, error } = await query

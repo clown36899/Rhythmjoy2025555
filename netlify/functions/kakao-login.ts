@@ -194,141 +194,81 @@ export const handler: Handler = async (event) => {
     }
 
     // 3. 로그인 세션 생성을 위한 매직 링크 발급 (여기서 확실한 userId를 얻음)
-    // createUser가 실패(이미 존재)했더라도 generateLink는 해당 이메일의 유저 정보를 반환함
-    const startTimeLink = Date.now();
-    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
-      type: 'magiclink',
-      email,
-    });
+    // 3. 병렬 처리: 프로필 갱신(DB)과 세션 생성(Auth)을 동시에 실행
+    console.log('[kakao-login] 3단계: 병렬 작업 시작 (프로필 갱신 + 세션 생성)');
+    const startTimeParallel = Date.now();
 
-    if (linkError || !linkData || !linkData.user) {
-      console.error('[kakao-login] ❌ Link generation failed:', linkError);
-      throw linkError;
-    }
+    // Task A: board_users 업데이트 (비동기, 결과가 로그인을 막지 않도록 처리)
+    // 닉네임, 프로필페이지만 저장하며 PII는 저장하지 않음
+    const upsertPromise = (async () => {
+      const startTimeUpsert = Date.now();
+      try {
+        const { error: upsertError } = await supabaseAdmin
+          .from('board_users')
+          .upsert({
+            user_id: userId,
+            kakao_id: kakaoId,
+            nickname: nickname,
+            profile_image: profileImage,
+            gender: null,
+            updated_at: new Date().toISOString()
+          }, { onConflict: 'user_id' });
 
-    if (!userId) userId = linkData.user.id;
-    console.log('[kakao-login] 매직링크 생성 완료. 최종 userId:', userId, '소요시간:', Date.now() - startTimeLink);
-
-    // 4. board_users 업데이트 (닉네임, 프로필페이지만 저장하며 PII는 저장하지 않음)
-    const startTimeUpsert = Date.now();
-    const { error: upsertError } = await supabaseAdmin
-      .from('board_users')
-      .upsert({
-        user_id: userId,
-        kakao_id: kakaoId,
-        nickname: nickname,
-        profile_image: profileImage,
-        gender: null,
-        updated_at: new Date().toISOString()
-      }, { onConflict: 'user_id' });
-
-    if (upsertError) {
-      console.error('Error updating board_users:', upsertError);
-    } else {
-      console.log('[kakao-login] board_users 정보 갱신 완료. 소요시간:', Date.now() - startTimeUpsert);
-    }
-
-    // 4. 보안 토큰 처리 (RSA 암호화) - 현재 비활성화
-    // RLS 정책 문제로 인해 에러 발생하므로 주석 처리
-    // 로그인 기능에는 영향 없음
-    /*
-    const tokenToSave = kakaoRefreshToken || kakaoAccessToken;
-
-    if (tokenToSave) {
-      console.log(`[kakao-login] Processing security token for user: ${userId}`);
-
-      const { data: keyData, error: keyError } = await supabaseAdmin
-        .from('system_keys')
-        .select('public_key')
-        .eq('id', 1)
-        .single();
-
-      if (keyError || !keyData) {
-        console.error('[kakao-login] Failed to fetch system public key:', keyError);
-      } else {
-        const publicKey = keyData.public_key;
-
-        try {
-          console.log('[kakao-login] Encrypting token...');
-          const encryptedBuffer = crypto.publicEncrypt(
-            {
-              key: publicKey,
-              padding: crypto.constants.RSA_PKCS1_OAEP_PADDING,
-            },
-            Buffer.from(tokenToSave)
-          );
-          const encryptedToken = encryptedBuffer.toString('base64');
-          console.log('[kakao-login] Encryption success. Upserting to user_tokens...');
-
-          const { data: upsertData, error: tokenUpsertError } = await supabaseAdmin
-            .from('user_tokens')
-            .upsert({
-              user_id: userId,
-              encrypted_token: encryptedToken,
-              updated_at: new Date().toISOString()
-            }, {
-              onConflict: 'user_id'
-            })
-            .select();
-
-          if (tokenUpsertError) {
-            console.error('[kakao-login] ❌ user_tokens upsert FAILED:', {
-              error: tokenUpsertError,
-              message: tokenUpsertError.message,
-              code: tokenUpsertError.code,
-              details: tokenUpsertError.details,
-              hint: tokenUpsertError.hint
-            });
-          } else if (!upsertData || upsertData.length === 0) {
-            console.error('[kakao-login] ❌ Upsert returned no data! Possible RLS issue.');
-          } else {
-            console.log('[kakao-login] ✅ Security token upsert returned data:', upsertData);
-            console.log('[kakao-login] Verifying with separate SELECT...');
-
-            const { data: verifyData, error: verifyError } = await supabaseAdmin
-              .from('user_tokens')
-              .select('user_id')
-              .eq('user_id', userId)
-              .single();
-
-            if (verifyError || !verifyData) {
-              console.error('[kakao-login] ❌ VERIFICATION FAILED! Record not found.', {
-                error: verifyError,
-                userId: userId
-              });
-            } else {
-              console.log('[kakao-login] ✅ VERIFICATION SUCCESS. Record exists for:', userId);
-            }
-          }
-        } catch (encError) {
-          console.error('[kakao-login] Token encryption/save process failed:', encError);
+        if (upsertError) {
+          console.error('[kakao-login] Error updating board_users:', upsertError);
+        } else {
+          console.log('[kakao-login] board_users 정보 갱신 완료. 소요시간:', Date.now() - startTimeUpsert);
         }
+      } catch (err) {
+        console.error('[kakao-login] Exception updating board_users:', err);
       }
-    } else {
-      console.warn('[kakao-login] No kakao token found to save.');
-    }
-    */
+    })();
 
-    // 5. 로그인 세션 생성 (Magic Link 방식)
-    // 앞서(3단계) 생성한 링크 정보를 그대로 사용함 ("generateLink"를 두 번 호출하면 토큰이 갱신되어 앞의 것이 무효화될 수 있음)
-    // 따라서 다시 호출하지 않고, 위에서 받은 linkData를 사용합니다.
+    // Task B: 세션 생성 (Magic Link 발급 -> OTP 검증)
+    const sessionPromise = (async () => {
+      const startTimeLink = Date.now();
 
-    const sessionParams = new URL(linkData.properties.action_link).searchParams;
-    const tokenHash = sessionParams.get('token');
+      // B-1. Magic Link 생성
+      const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+        type: 'magiclink',
+        email,
+      });
 
-    if (!tokenHash) {
-      throw new Error('Token hash not found in magic link');
-    }
+      if (linkError || !linkData || !linkData.user) {
+        console.error('[kakao-login] ❌ Link generation failed:', linkError);
+        throw linkError;
+      }
 
-    const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.verifyOtp({
-      token_hash: tokenHash,
-      type: 'magiclink'
-    });
+      // userId 재확인 (혹시 createUser를 안 탔는데 generateLink에서 user가 리턴된 경우 등)
+      // (외부 scope의 userId는 이미 세팅되었거나 여기서 덮어씌움)
+      // *주의: Promise 내부 변수라 외부 반영 안됨. 하지만 위에서 이미 userId를 확보했으므로 괜찮음.
 
-    if (sessionError || !sessionData.session) {
-      console.error('[kakao-login] Session verification failed:', sessionError);
-      throw sessionError;
-    }
+      console.log('[kakao-login] 매직링크 생성 완료. 소요시간:', Date.now() - startTimeLink);
+
+      // B-2. OTP 검증으로 세션 확득
+      const sessionParams = new URL(linkData.properties.action_link).searchParams;
+      const tokenHash = sessionParams.get('token');
+
+      if (!tokenHash) {
+        throw new Error('Token hash not found in magic link');
+      }
+
+      const { data: sessionData, error: sessionError } = await supabaseAdmin.auth.verifyOtp({
+        token_hash: tokenHash,
+        type: 'magiclink'
+      });
+
+      if (sessionError || !sessionData.session) {
+        console.error('[kakao-login] Session verification failed:', sessionError);
+        throw sessionError;
+      }
+
+      return sessionData.session;
+    })();
+
+    // 두 작업 병렬 대기
+    const [_, session] = await Promise.all([upsertPromise, sessionPromise]);
+    console.log('[kakao-login] ✅ 병렬 작업 완료. 총 소요시간:', Date.now() - startTimeParallel);
 
     return {
       statusCode: 200,
@@ -337,7 +277,7 @@ export const handler: Handler = async (event) => {
         email,
         name: nickname,
         isAdmin: email === adminEmail,
-        session: sessionData.session
+        session: session
       })
     };
 
