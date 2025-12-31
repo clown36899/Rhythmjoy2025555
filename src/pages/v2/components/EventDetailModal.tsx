@@ -1055,7 +1055,8 @@ export default function EventDetailModal({
                               width: '100%', // Force full width to dictate container height
                               opacity: 1, // Always visible underneath
                               position: 'relative', // Dictates the container size
-                              zIndex: 1
+                              zIndex: 1,
+                              display: 'block' // Prevent descender gap
                             }}
                           />
                         )}
@@ -1078,7 +1079,12 @@ export default function EventDetailModal({
                               objectFit: 'contain',
                               opacity: isHighResLoaded ? 1 : 0,
                               transition: 'opacity 0.4s ease-in-out',
-                              zIndex: 2
+                              zIndex: 2,
+                              display: 'block', // Match base image behavior
+                              // Desktop Alignment Fix: Center the absolute image
+                              margin: 'auto',
+                              bottom: 0,
+                              right: 0
                             }}
                           />
                         )}
