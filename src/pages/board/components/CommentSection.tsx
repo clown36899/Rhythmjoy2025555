@@ -178,7 +178,7 @@ export default function CommentSection({ postId, category }: CommentSectionProps
                 return true;
             } else {
                 if (category === 'anonymous') {
-                    // Secure server-side verification using RPC
+                    // 1. 익명 전용 게시판: 오직 비밀번호로만 삭제 (RPC)
                     const { data: success, error } = await supabase.rpc('delete_anonymous_comment_with_password', {
                         p_comment_id: commentId,
                         p_password: password
@@ -187,35 +187,22 @@ export default function CommentSection({ postId, category }: CommentSectionProps
                     if (error) throw error;
 
                     if (success) {
-                        // Optimistic Delete (Anonymous)
                         setComments(prev => prev.filter(c => String(c.id) !== String(commentId)));
                         return true;
                     } else {
                         return false;
                     }
                 } else {
-                    // Standard comments (keep existing logic for now, or TODO: migrate to RPC too if needed)
-                    // But for now, standard comments usually rely on Auth RLS or simple owner check if logged in.
-                    // Assuming standard flow for now is simple delete if owner (RLS handles it).
-                    // But if it uses password? Standard comments usually don't use password in this system (they are logged in).
-                    // However, the original code had a password check block for everything if not admin.
-                    // "Check password for anonymous or non-admin" was the comment.
-                    // If standard board comments are indeed user-linked, they shouldn't use password.
-                    // The original code was: 
-                    // const { data: comment } = await supabase.from(table).select('password')...
+                    // 2. 일반 게시판: 오직 로그인 기반 RLS로 삭제 (비밀번호 사용 안 함)
+                    const { error: directError } = await supabase.from(table).delete().eq('id', commentId);
 
-                    // For non-anonymous (standard), we should rely on RLS (user_id match).
-                    // Let's safe-guard:
-                    const { error } = await supabase.from(table).delete().eq('id', commentId);
-                    if (error) {
-                        // If RLS fails, it throws error usually or returns error
-                        console.error("Standard delete failed", error);
-                        return false;
+                    if (!directError) {
+                        setComments(prev => prev.filter(c => String(c.id) !== String(commentId)));
+                        return true;
                     }
-                    loadComments(); // Standard comments might rely on reload if we don't trust local, but let's be consistent
-                    // Actually, let's do Optimistic Delete here too
-                    setComments(prev => prev.filter(c => String(c.id) !== String(commentId)));
-                    return true;
+
+                    // RLS 삭제 실패 시 관리자 권한 등 다른 이유가 없다면 실패 처리
+                    return false;
                 }
             }
         } catch (error) {
