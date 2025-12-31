@@ -8,6 +8,16 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '3.1.5',
+        date: '2025-12-31',
+        changes: [
+            '[✨ 기능] 익명 게시글 상호작용(좋아요/싫어요) UI 시각화 반영',
+            '[🚀 성능] get_user_interactions RPC 확장으로 모든 상호작용 데이터 통합 조회 최적화',
+            '[🔧 개선] 전역 상호작용 데이터 관리로 댓글 N+1 쿼리 문제 해결',
+            '[🔧 안정성] 게시판 ID 타입(UUID/BigInt) 혼용에 대한 TypeScript 타입 시스템 보강'
+        ]
+    },
+    {
         version: '3.1.4',
         date: '2025-12-31',
         changes: [
