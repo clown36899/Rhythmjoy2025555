@@ -1,21 +1,33 @@
-// 빌보드 PWA 서비스 워커 (Version: 20251231-0255 - Push Notifications)
-const CACHE_NAME = 'rhythmjoy-cache-v14';
+// 빌보드 PWA 서비스 워커 (Version: 20251231-1423 - Supabase API Network-First)
+const CACHE_NAME = 'rhythmjoy-cache-v15';
 
 self.addEventListener('install', (event) => {
-  console.log('[SW] v14 - New content detected with Push support! 🔔');
+  console.log('[SW] v15 - New content with Supabase Network-First! 🌐');
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  console.log('[SW] v14 - Activated with Push Notifications! 🔔');
+  console.log('[SW] v15 - Activated with Supabase Network-First! 🌐');
   event.waitUntil(
     caches.keys().then(keys => Promise.all(keys.map(key => caches.delete(key))))
   );
   self.clients.claim();
 });
 
-// Fetch 이벤트 핸들러를 완전히 제거하여 브라우저의 기본 네트워크 동작을 방해하지 않게 합니다.
-// PWA 기능(이미지 캐싱)은 나중에 안정화된 후 다시 추가할 예정입니다.
+// Fetch 이벤트 핸들러 - Supabase API는 항상 네트워크 우선
+self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+
+  // Supabase API 요청은 항상 네트워크 우선 (캐시 사용 안 함)
+  // 이를 통해 로그아웃 후에도 캐시된 인증 정보가 사용되지 않음
+  if (url.hostname.includes('supabase.co')) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  // 나머지 요청은 기본 동작 (브라우저가 처리)
+  // 이 핸들러는 Chrome이 PWA로 인식하기 위한 최소 요구사항
+});
 
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();

@@ -2473,7 +2473,7 @@
 }
 
 .evt-spacer-5 {
-  width: 5px;
+  width: 0px;
   height: 1px;
   flex-shrink: 0;
 }

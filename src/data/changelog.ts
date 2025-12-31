@@ -8,6 +8,16 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '3.1.3',
+        date: '2025-12-31',
+        changes: [
+            '[🔒 보안] 익명 게시판 댓글 작성 로그인 제한 적용 (본문과 동일)',
+            '[🔒 보안] 익명 댓글 좋아요/싫어요 로그인 필수로 변경',
+            '[🔧 개선] 익명 댓글 상호작용을 fingerprint 기반에서 user_id 기반으로 전환',
+            '[UX] 로그인 사용자에게 로그아웃 버튼 및 안내 메시지 표시'
+        ]
+    },
+    {
         version: '3.1.2',
         date: '2025-12-31',
         changes: [

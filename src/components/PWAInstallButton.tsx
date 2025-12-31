@@ -1,90 +1,38 @@
-import { useState, useEffect } from 'react';
+import { useInstallPrompt } from '../contexts/InstallPromptContext';
 import './PWAInstallButton.css';
 
-interface BeforeInstallPromptEvent extends Event {
-    prompt: () => Promise<void>;
-    userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
-}
-
 export const PWAInstallButton = () => {
-    const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-    const [isInstalled, setIsInstalled] = useState(false);
-
-    useEffect(() => {
-        // PWA가 이미 설치되었는지 확인
-        const checkIfInstalled = () => {
-            // Standalone 모드 = PWA로 실행 중
-            if (window.matchMedia('(display-mode: standalone)').matches) {
-                setIsInstalled(true);
-                return true;
-            }
-            // iOS Safari standalone 모드
-            if ((window.navigator as any).standalone === true) {
-                setIsInstalled(true);
-                return true;
-            }
-            return false;
-        };
-
-        if (checkIfInstalled()) {
-            return;
-        }
-
-        // beforeinstallprompt 이벤트 리스너
-        const handleBeforeInstallPrompt = (e: Event) => {
-            console.log('📱 PWA 설치 프롬프트 감지됨');
-            // 기본 브라우저 설치 배너 방지
-            e.preventDefault();
-            // 나중에 사용하기 위해 이벤트 저장
-            setDeferredPrompt(e as BeforeInstallPromptEvent);
-        };
-
-        // PWA 설치 완료 감지
-        const handleAppInstalled = () => {
-            console.log('✅ PWA 설치 완료!');
-            setIsInstalled(true);
-            setDeferredPrompt(null);
-        };
-
-        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-        window.addEventListener('appinstalled', handleAppInstalled);
-
-        return () => {
-            window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-            window.removeEventListener('appinstalled', handleAppInstalled);
-        };
-    }, []);
+    const { promptEvent, setPromptEvent, isInstalled } = useInstallPrompt();
 
     const handleInstallClick = async () => {
-        if (!deferredPrompt) {
-            console.log('설치 프롬프트를 사용할 수 없습니다');
-            return;
-        }
+        if (!promptEvent) return; // Type guard
 
         console.log('📱 PWA 설치 프롬프트 표시');
-        // 설치 프롬프트 표시
-        await deferredPrompt.prompt();
+        try {
+            await promptEvent.prompt();
+            const { outcome } = await promptEvent.userChoice;
+            console.log(`사용자 선택: ${outcome}`);
 
-        // 사용자 선택 결과 대기
-        const { outcome } = await deferredPrompt.userChoice;
-        console.log(`사용자 선택: ${outcome}`);
+            if (outcome === 'accepted') {
+                console.log('✅ 사용자가 PWA 설치를 수락했습니다');
+            } else {
+                console.log('❌ 사용자가 PWA 설치를 거부했습니다');
+            }
 
-        if (outcome === 'accepted') {
-            console.log('✅ 사용자가 PWA 설치를 수락했습니다');
-        } else {
-            console.log('❌ 사용자가 PWA 설치를 거부했습니다');
+            setPromptEvent(null);
+        } catch (error) {
+            console.error('설치 프롬프트 오류:', error);
         }
-
-        // 프롬프트는 한 번만 사용 가능
-        setDeferredPrompt(null);
     };
 
-    // 설치 버튼을 표시하지 않는 경우:
-    // 1. 이미 설치됨
-    // 2. 설치 프롬프트가 없음 (iOS Safari 등)
-    if (isInstalled || !deferredPrompt) {
+    // 설치 불가능한 경우 버튼 숨김 (이미 설치됨 OR 프롬프트 없음)
+    if (isInstalled || !promptEvent) {
+        console.log('[PWA Install Button] Button hidden -',
+            isInstalled ? 'Already installed' : 'Install prompt not available');
         return null;
     }
+
+    console.log('✨ [PWA Install Button] Button visible with install prompt!');
 
     return (
         <button

@@ -4,6 +4,7 @@ import { createRoot } from 'react-dom/client'
 import { AuthProvider } from './contexts/AuthContext';
 import { ModalProvider } from './contexts/ModalContext';
 import { BoardDataProvider } from './contexts/BoardDataContext';
+import { InstallPromptProvider } from './contexts/InstallPromptContext';
 import { BrowserRouter } from 'react-router-dom'
 import './index.css'
 import App from './App.tsx'
@@ -96,18 +97,20 @@ function RootApp() {
   }, []);
 
   return (
-    <BrowserRouter basename={basename}>
-      <AuthProvider>
-        <BoardDataProvider>
-          <ModalProvider>
-            <GlobalErrorBoundary>
-              <App />
-              <ModalRegistry />
-            </GlobalErrorBoundary>
-          </ModalProvider>
-        </BoardDataProvider>
-      </AuthProvider>
-    </BrowserRouter>
+    <InstallPromptProvider>
+      <BrowserRouter basename={basename}>
+        <AuthProvider>
+          <BoardDataProvider>
+            <ModalProvider>
+              <GlobalErrorBoundary>
+                <App />
+                <ModalRegistry />
+              </GlobalErrorBoundary>
+            </ModalProvider>
+          </BoardDataProvider>
+        </AuthProvider>
+      </BrowserRouter>
+    </InstallPromptProvider>
   );
 }
 

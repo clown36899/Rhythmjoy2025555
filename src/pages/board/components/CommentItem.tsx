@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
-import { getStableFingerprint } from '../../../utils/fingerprint';
 import type { BoardComment } from '../../../lib/supabase';
 import './comment.css';
 
@@ -30,17 +29,21 @@ export default function CommentItem({ comment: initialComment, isAnonymous, onEd
     }, [initialComment]);
 
     const checkUserInteraction = async () => {
-        const fingerprint = getStableFingerprint();
+        if (!user) {
+            setUserInteraction(null);
+            return;
+        }
 
         if (isAnonymous) {
+            // Anonymous comments now use user_id (login required)
             const [{ data: like }, { data: dislike }] = await Promise.all([
-                supabase.from('board_anonymous_comment_likes').select('id').eq('comment_id', comment.id).eq('fingerprint', fingerprint).maybeSingle(),
-                supabase.from('board_anonymous_comment_dislikes').select('id').eq('comment_id', comment.id).eq('fingerprint', fingerprint).maybeSingle(),
+                supabase.from('board_anonymous_comment_likes').select('id').eq('comment_id', comment.id).eq('user_id', user.id).maybeSingle(),
+                supabase.from('board_anonymous_comment_dislikes').select('id').eq('comment_id', comment.id).eq('user_id', user.id).maybeSingle(),
             ]);
             if (like) setUserInteraction('like');
             else if (dislike) setUserInteraction('dislike');
             else setUserInteraction(null);
-        } else if (user) {
+        } else {
             const [{ data: like }, { data: dislike }] = await Promise.all([
                 supabase.from('board_comment_likes').select('id').eq('comment_id', comment.id).eq('user_id', user.id).maybeSingle(),
                 supabase.from('board_comment_dislikes').select('id').eq('comment_id', comment.id).eq('user_id', user.id).maybeSingle(),
@@ -52,8 +55,17 @@ export default function CommentItem({ comment: initialComment, isAnonymous, onEd
     };
 
     const handleInteraction = async (type: 'like' | 'dislike') => {
-        if (!isAnonymous && !user) {
-            alert('로그인이 필요한 서비스입니다.');
+        if (!user) {
+            const message = isAnonymous
+                ? "글쓰기와 달리, 좋아요/싫어요는 1인 1표 정직한 투표를 위해 로그인이 필요합니다."
+                : "좋아요/싫어요는 로그인한 사용자만 이용할 수 있습니다.";
+
+            window.dispatchEvent(new CustomEvent('requestProtectedAction', {
+                detail: {
+                    action: () => handleInteraction(type),
+                    message: message
+                }
+            }));
             return;
         }
 
@@ -61,12 +73,12 @@ export default function CommentItem({ comment: initialComment, isAnonymous, onEd
         setIsLoading(true);
 
         try {
-            const fingerprint = getStableFingerprint();
+            // Both anonymous and standard comments now use user_id
             const { data, error } = await supabase.rpc('toggle_comment_interaction', {
                 p_comment_id: comment.id,
                 p_type: type,
                 p_is_anonymous: isAnonymous,
-                p_fingerprint: isAnonymous ? fingerprint : null
+                p_fingerprint: null  // No longer using fingerprint
             });
 
             if (error) throw error;

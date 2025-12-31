@@ -183,6 +183,32 @@ export default function CommentForm({ postId, category, onCommentAdded, editingC
         }));
     };
 
+    // Anonymous room: Logged-in users cannot write comments (same pattern as QuickMemoEditor)
+    if (user && isAnonymousRoom && !isAdmin) {
+        const handleLogout = () => {
+            const shouldLogout = window.confirm("로그인 상태에서는 댓글을 쓸 수 없습니다.\n익명 댓글을 작성하려면 로그아웃 해주세요.\n\n[확인]을 누르면 로그아웃 됩니다.");
+            if (shouldLogout) {
+                supabase.auth.signOut().then(() => {
+                    window.location.reload();
+                });
+            }
+        };
+
+        return (
+            <div className="comment-form-login-required">
+                <div className="comment-login-content">
+                    <i className="ri-user-forbid-line"></i>
+                    <p>익명 댓글은 로그아웃 상태에서만 작성할 수 있습니다</p>
+                </div>
+                <button className="comment-login-btn" onClick={handleLogout}>
+                    <i className="ri-logout-box-line"></i>
+                    로그아웃
+                </button>
+            </div>
+        );
+    }
+
+    // Standard room: Non-logged-in users need to login
     if (!user && !isAnonymousRoom) {
         return (
             <div className="comment-form-login-required" onClick={handleLoginClick} style={{ cursor: 'pointer' }}>

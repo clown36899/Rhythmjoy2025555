@@ -17,6 +17,7 @@ import { useOnlineUsers } from "../hooks/useOnlineUsers";
 import { useTotalUserCount } from "../hooks/useTotalUserCount";
 import GlobalNoticePopup from "../components/GlobalNoticePopup";
 import { useBoardData } from "../contexts/BoardDataContext";
+// import { PWAInstallButton } from "../components/PWAInstallButton"; // 임시 비활성화
 
 export function MobileShell() {
   const location = useLocation();
@@ -245,11 +246,11 @@ export function MobileShell() {
     const data = boardData.theme_settings;
 
     // CSS 변수 업데이트 (DB 색상으로 덮어씀)
-    document.documentElement.style.setProperty("--bg-color", data.background_color);
+    document.documentElement.style.setProperty("--bg-color", data.background_color ?? null);
     document.documentElement.style.setProperty("--header-bg-color", data.header_bg_color || "#1f2937");
-    document.documentElement.style.setProperty("--calendar-bg-color", data.calendar_bg_color);
-    document.documentElement.style.setProperty("--event-list-bg-color", data.event_list_bg_color);
-    document.documentElement.style.setProperty("--event-list-outer-bg-color", data.event_list_outer_bg_color);
+    document.documentElement.style.setProperty("--calendar-bg-color", data.calendar_bg_color ?? null);
+    document.documentElement.style.setProperty("--event-list-bg-color", data.event_list_bg_color ?? null);
+    document.documentElement.style.setProperty("--event-list-outer-bg-color", data.event_list_outer_bg_color ?? null);
     document.documentElement.style.setProperty("--page-bg-color", data.page_bg_color || "#111827");
   }, [boardData?.theme_settings]);
 
@@ -371,6 +372,9 @@ export function MobileShell() {
 
         {/* Right Side - Always Visible Buttons */}
         <div className="header-right-buttons">
+          {/* PWA Install Button - 임시 비활성화 */}
+          {/* <PWAInstallButton /> */}
+
           {/* Search Button - Always Visible */}
           <button
             onClick={() => {
