@@ -7,6 +7,7 @@ interface OnlineUser {
     nickname: string | null;
     profile_image_url: string | null;
     type: 'logged_in' | 'anonymous';
+    is_admin?: boolean; // 관리자 여부 추가
     online_at: string;
 }
 
@@ -35,13 +36,14 @@ export function useOnlineUsers(): OnlineUsersData {
                 presences.forEach((p: any) => allUsers.push(p));
             });
 
-            const loggedIn = allUsers.filter(u => u.type === 'logged_in');
-            const anonymous = allUsers.filter(u => u.type === 'anonymous');
+            // 관리자 제외 필터링 (is_admin이 true인 사용자는 카운트에서 제외)
+            const loggedIn = allUsers.filter(u => u.type === 'logged_in' && !u.is_admin);
+            const anonymous = allUsers.filter(u => u.type === 'anonymous' && !u.is_admin);
 
             setOnlineUsers({
                 loggedInUsers: loggedIn,
                 anonymousCount: anonymous.length,
-                totalCount: allUsers.length
+                totalCount: loggedIn.length + anonymous.length // 관리자 제외된 총합
             });
         });
 

@@ -14,7 +14,7 @@ const sessionId = typeof crypto.randomUUID === 'function'
     : Math.random().toString(36).substring(2) + Date.now().toString(36);
 
 export function useOnlinePresence() {
-    const { user, userProfile } = useAuth();
+    const { user, userProfile, isAdmin } = useAuth();
     const [isSubscribed, setIsSubscribed] = useState(false);
 
     // 중복 전송 방지용 Ref
@@ -32,7 +32,7 @@ export function useOnlinePresence() {
         const type = user ? 'logged_in' : 'anonymous';
 
         // 데이터 식별 키 생성 (타입이나 프로필이 바뀌었을 때만 전송)
-        const dataKey = `${type}-${user?.id}-${userProfile?.nickname}`;
+        const dataKey = `${type}-${user?.id}-${userProfile?.nickname}-${isAdmin}`;
 
         if (lastTrackedRef.current === dataKey) {
             console.log('[Presence] 🚫 중복 트래킹 방지:', type);
@@ -45,6 +45,7 @@ export function useOnlinePresence() {
             nickname: userProfile?.nickname || null,
             profile_image_url: userProfile?.profile_image || null,
             type: type,
+            is_admin: !!isAdmin, // 관리자 여부 전송
             online_at: new Date().toISOString(),
         };
 
@@ -87,7 +88,7 @@ export function useOnlinePresence() {
         if (isSubscribed) {
             trackUser();
         }
-    }, [isSubscribed, user, userProfile]);
+    }, [isSubscribed, user, userProfile, isAdmin]);
 
     // 3. 탭 활성화 감지 (Page Visibility API)
     useEffect(() => {
@@ -102,7 +103,7 @@ export function useOnlinePresence() {
 
         document.addEventListener('visibilitychange', handleVisibilityChange);
         return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    }, [isSubscribed, user, userProfile]);
+    }, [isSubscribed, user, userProfile, isAdmin]);
 }
 
 export function subscribeToPresence(callback: (state: any) => void) {
