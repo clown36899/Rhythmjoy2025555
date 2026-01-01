@@ -106,11 +106,11 @@ export default function GlobalNoticePopup() {
                             checked={dontShowToday}
                             onChange={toggleDontShow}
                         />
-                        <span className="checkbox-custom"></span>
+                        {/* <span className="checkbox-custom"></span> */}
                         오늘 하루 보지 않기
                     </label>
                     <button className="notice-confirm-btn" onClick={handleClose}>
-                        확인
+                        입장
                     </button>
                 </div>
             </div>
