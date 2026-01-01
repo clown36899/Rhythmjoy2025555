@@ -73,19 +73,50 @@ export default function ScheduleModal({ placeId, date, onClose, onSuccess }: Sch
   };
 
   const handleDelete = async (scheduleId: number) => {
-    if (!confirm('이 일정을 삭제하시겠습니까?')) return;
+    if (!confirm('이 일정을 삭제하시겠습니까? 관련 이미지도 모두 삭제됩니다.')) return;
+
+    setLoading(true);
+    console.error('[ScheduleModal] 🔥 Starting delete process for schedule:', scheduleId);
 
     try {
-      const { error } = await supabase
-        .from('social_schedules')
-        .delete()
-        .eq('id', scheduleId);
+      // Get session for token
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      console.error('[ScheduleModal] 🔑 Auth token obtained:', !!token);
 
-      if (error) throw error;
+      const requestBody = {
+        type: 'schedule',
+        id: scheduleId
+      };
+      console.error('[ScheduleModal] 📤 Sending delete request:', requestBody);
+
+      const response = await fetch('/.netlify/functions/delete-social-item', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      console.error('[ScheduleModal] 📥 Response status:', response.status, response.statusText);
+
+      if (!response.ok) {
+        const errData = await response.json();
+        console.error('[ScheduleModal] ❌ Delete failed:', errData);
+        throw new Error(errData.error || '삭제 요청 실패');
+      }
+
+      const result = await response.json();
+      console.error('[ScheduleModal] ✅ Delete success:', result);
+
+      alert('일정이 삭제되었습니다.');
       loadSchedules();
-    } catch (error) {
-      console.error('일정 삭제 실패:', error);
-      alert('일정 삭제에 실패했습니다.');
+    } catch (error: any) {
+      console.error('[ScheduleModal] 💥 Error deleting schedule:', error);
+      alert(`삭제 도중 오류가 발생했습니다: ${error.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 

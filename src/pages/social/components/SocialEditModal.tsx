@@ -139,18 +139,45 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
     if (!confirm('정말로 삭제하시겠습니까?')) return;
 
     setLoading(true);
-    try {
-      const { error: deleteError } = await supabase
-        .from('social_schedules')
-        .delete()
-        .eq('id', item.id);
+    console.error('[SocialEditModal] 🔥 Starting delete process for item:', item.id);
 
-      if (deleteError) throw deleteError;
+    try {
+      // Get session for token
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      console.error('[SocialEditModal] 🔑 Auth token obtained:', !!token);
+
+      const requestBody = {
+        type: 'schedule',
+        id: item.id
+      };
+      console.error('[SocialEditModal] 📤 Sending delete request:', requestBody);
+
+      const response = await fetch('/.netlify/functions/delete-social-item', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      console.error('[SocialEditModal] 📥 Response status:', response.status, response.statusText);
+
+      if (!response.ok) {
+        const errData = await response.json();
+        console.error('[SocialEditModal] ❌ Delete failed:', errData);
+        throw new Error(errData.error || '삭제 요청 실패');
+      }
+
+      const result = await response.json();
+      console.error('[SocialEditModal] ✅ Delete success:', result);
 
       onSuccess(null, true); // true = deleted
       onClose(); // Close modal after successful delete
       alert('삭제되었습니다.');
     } catch (err: any) {
+      console.error('[SocialEditModal] 💥 Error deleting schedule:', err);
       setError(err.message || '삭제 중 오류가 발생했습니다.');
     } finally {
       setLoading(false);

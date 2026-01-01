@@ -122,13 +122,14 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
 
         setIsSubmitting(true);
         setLoadingMessage('삭제 중...');
-        console.log('[handleDelete] Starting deletion process for group:', editGroup.id);
+        console.error('[handleDelete] 🔥 Starting deletion process for group:', editGroup.id);
 
         try {
             const { data: { session } } = await supabase.auth.getSession();
             const token = session?.access_token;
+            console.error('[handleDelete] 🔑 Auth token obtained:', !!token);
 
-            console.log('[handleDelete] Sending request to /.netlify/functions/delete-social-item');
+            console.error('[handleDelete] 📤 Sending request to /.netlify/functions/delete-social-item');
             const response = await fetch('/.netlify/functions/delete-social-item', {
                 method: 'POST',
                 headers: {
@@ -142,22 +143,22 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
                 })
             });
 
-            console.log('[handleDelete] Server response status:', response.status);
+            console.error('[handleDelete] 📥 Server response status:', response.status, response.statusText);
 
             if (!response.ok) {
                 const errData = await response.json();
-                console.error('[handleDelete] Server error data:', errData);
+                console.error('[handleDelete] ❌ Server error data:', errData);
                 throw new Error(errData.error || errData.message || '삭제 요청 실패');
             }
 
             const result = await response.json();
-            console.log('[handleDelete] Success result:', result);
+            console.error('[handleDelete] ✅ Success result:', result);
 
             alert('단체가 삭제되었습니다.');
             onSuccess(null);
             onClose();
         } catch (error: any) {
-            console.error('Error deleting group:', error);
+            console.error('[handleDelete] 💥 Error deleting group:', error);
             alert(`삭제 실패: ${error.message}`);
         } finally {
             setIsSubmitting(false);

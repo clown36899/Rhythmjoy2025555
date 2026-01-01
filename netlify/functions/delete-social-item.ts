@@ -41,47 +41,64 @@ const extractStoragePath = (fullUrl: string | null): string | null => {
     return null;
 };
 
-// Helper: Recursive/Iterative folder cleanup
-const deleteFolderContents = async (storagePath: string) => {
-    console.error(`[delete-social-item] 📦 Cleaning up folder: ${storagePath}`);
+// Helper: Recursive/Iterative folder cleanup - Wipes EVERYTHING under a path
+const wipeStorageFolder = async (storagePath: string) => {
+    console.error(`[delete-social-item] 🌪️ STARTING NUCLEAR FOLDER WIPE: ${storagePath}`);
 
-    // 1. Profile images
-    const { data: profileFiles, error: pError } = await supabaseAdmin.storage.from('images').list(`${storagePath}/profile`);
-    if (pError) console.error('[delete-social-item] Error listing profile:', pError);
-    if (profileFiles && profileFiles.length > 0) {
-        const paths = profileFiles.map(f => `${storagePath}/profile/${f.name}`);
-        await supabaseAdmin.storage.from('images').remove(paths);
-        console.error(`[delete-social-item] 🗑️ Removed profile images:`, paths);
-    }
+    try {
+        // 1. Get all files in the root of the storage path
+        const { data: rootItems, error: rootError } = await supabaseAdmin.storage.from('images').list(storagePath);
+        if (rootError) {
+            console.error(`[delete-social-item] ❌ Error listing root path ${storagePath}:`, rootError);
+            return;
+        }
 
-    // 2. Schedule images
-    const { data: scheduleFolders, error: sError } = await supabaseAdmin.storage.from('images').list(`${storagePath}/schedules`);
-    if (sError) console.error('[delete-social-item] Error listing schedules:', sError);
+        const allFilePaths: string[] = [];
 
-    if (scheduleFolders) {
-        for (const folder of scheduleFolders) {
-            const scheduleBasePath = `${storagePath}/schedules/${folder.name}`;
-            const { data: sFiles } = await supabaseAdmin.storage.from('images').list(scheduleBasePath);
-            if (sFiles && sFiles.length > 0) {
-                const sPaths = sFiles.map(f => `${scheduleBasePath}/${f.name}`);
-                await supabaseAdmin.storage.from('images').remove(sPaths);
-                console.error(`[delete-social-item] 🗑️ Removed schedule images in ${folder.name}:`, sPaths);
-            }
-            // Try to remove the folder/file itself just in case it's a flat file
-            if (folder.id) {
-                await supabaseAdmin.storage.from('images').remove([scheduleBasePath]);
+        if (rootItems) {
+            for (const item of rootItems) {
+                const itemPath = `${storagePath}/${item.name}`;
+                if (item.id) {
+                    // It's a file
+                    allFilePaths.push(itemPath);
+                } else {
+                    // It's a folder (like 'profile' or 'schedules')
+                    console.error(`[delete-social-item] 📁 Found sub-folder: ${itemPath}. Listing...`);
+                    const { data: subItems } = await supabaseAdmin.storage.from('images').list(itemPath);
+                    if (subItems) {
+                        for (const subItem of subItems) {
+                            const subItemPath = `${itemPath}/${subItem.name}`;
+                            if (subItem.id) {
+                                allFilePaths.push(subItemPath);
+                            } else {
+                                // It's another level (like schedules/id)
+                                console.error(`[delete-social-item] 📁 Found nested sub-folder: ${subItemPath}. Listing...`);
+                                const { data: nestedItems } = await supabaseAdmin.storage.from('images').list(subItemPath);
+                                if (nestedItems) {
+                                    for (const nestedItem of nestedItems) {
+                                        allFilePaths.push(`${subItemPath}/${nestedItem.name}`);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
-    }
 
-    // 3. Loose files
-    const { data: rootFiles } = await supabaseAdmin.storage.from('images').list(storagePath);
-    if (rootFiles && rootFiles.length > 0) {
-        const rootPaths = rootFiles.filter(f => !!f.id).map(f => `${storagePath}/${f.name}`);
-        if (rootPaths.length > 0) {
-            await supabaseAdmin.storage.from('images').remove(rootPaths);
-            console.error(`[delete-social-item] 🗑️ Removed loose root files:`, rootPaths);
+        if (allFilePaths.length > 0) {
+            console.error(`[delete-social-item] 🗑️ Wiping ${allFilePaths.length} files found in hierarchy:`, allFilePaths);
+            const { error: removeError } = await supabaseAdmin.storage.from('images').remove(allFilePaths);
+            if (removeError) {
+                console.error('[delete-social-item] ❌ Bulk remove error:', removeError);
+            } else {
+                console.error('[delete-social-item] ✅ Hierarchy wipe successful.');
+            }
+        } else {
+            console.error('[delete-social-item] ℹ️ Wipe completed: No files found to delete.');
         }
+    } catch (e) {
+        console.error('[delete-social-item] 💥 Fatal error during wipe:', e);
     }
 };
 
@@ -168,18 +185,30 @@ export const handler: Handler = async (event) => {
 
             console.error(`[delete-social-item] 🚀 Authorized (${authReason}). Deleting Group...`);
 
-            // 3. Delete Images (Folder cleanup)
+            // 3. Delete Images (Wipe the whole root folder)
             if (group.storage_path) {
-                await deleteFolderContents(group.storage_path);
+                await wipeStorageFolder(group.storage_path);
             } else {
-                console.error('[delete-social-item] No storage_path for group. Skipping folder cleanup.');
+                console.error('[delete-social-item] ⚠️ No storage_path for group. Skipping folder wipe.');
             }
 
-            // 4. Delete DB Record
+            // 4. Delete DB Records Hierarchy
+            console.error(`[delete-social-item] 🗑️ Deleting all associated schedules for group ID: ${id}`);
+            const { error: schedulesError } = await supabaseAdmin.from('social_schedules').delete().eq('group_id', id);
+            if (schedulesError) {
+                console.error('[delete-social-item] ❌ Schedules Delete Error:', schedulesError);
+                // We proceed anyway to try and delete the group
+            } else {
+                console.error('[delete-social-item] ✅ All associated schedules deleted from DB.');
+            }
+
+            console.error(`[delete-social-item] 🗑️ Deleting DB record for group ID: ${id}`);
             const { error: delError } = await supabaseAdmin.from('social_groups').delete().eq('id', id);
             if (delError) {
-                console.error('[delete-social-item] DB Delete Error:', delError);
+                console.error('[delete-social-item] ❌ Group DB Delete Error:', delError);
                 throw delError;
+            } else {
+                console.error('[delete-social-item] ✅ Group record deleted from DB.');
             }
 
         } else if (type === 'schedule') {
@@ -227,7 +256,7 @@ export const handler: Handler = async (event) => {
 
             console.error(`[delete-social-item] 🚀 Authorized (${authReason}). Deleting Schedule...`);
 
-            // 3. Delete Images (Specific files)
+            // 3. Delete Images (Folder wipe if folder detected, else individual files)
             const filesToDelete = [
                 schedule.image_full, schedule.image_medium,
                 schedule.image_thumbnail, schedule.image_micro, schedule.image_url
@@ -235,18 +264,35 @@ export const handler: Handler = async (event) => {
 
             const uniquePaths = [...new Set(filesToDelete)];
             if (uniquePaths.length > 0) {
-                console.error(`[delete-social-item] 🗑️ Deleting ${uniquePaths.length} schedule images from list:`, uniquePaths);
-                const { error: remImgErr } = await supabaseAdmin.storage.from('images').remove(uniquePaths);
-                if (remImgErr) console.error('[delete-social-item] Image delete error:', remImgErr);
+                // Infer the folder path from the first file
+                // If path is 'social-groups/X/schedules/Y/full.webp', folder is 'social-groups/X/schedules/Y'
+                const firstPath = uniquePaths[0];
+                const parts = firstPath.split('/');
+                if (parts.length > 1) {
+                    const folderPath = parts.slice(0, -1).join('/');
+                    console.error(`[delete-social-item] 📁 Inferred schedule folder: ${folderPath}`);
+                    await wipeStorageFolder(folderPath);
+                } else {
+                    console.error(`[delete-social-item] 🗑️ Deleting ${uniquePaths.length} schedule images from list:`, uniquePaths);
+                    const { error: remImgErr } = await supabaseAdmin.storage.from('images').remove(uniquePaths);
+                    if (remImgErr) {
+                        console.error('[delete-social-item] ❌ Image delete error:', remImgErr);
+                    } else {
+                        console.error('[delete-social-item] ✅ Images deleted successfully.');
+                    }
+                }
             } else {
                 console.error('[delete-social-item] ℹ️ No images found to delete for this schedule.');
             }
 
             // 4. Delete DB Record
+            console.error(`[delete-social-item] 🗑️ Deleting DB record for schedule ID: ${id}`);
             const { error: delError } = await supabaseAdmin.from('social_schedules').delete().eq('id', id);
             if (delError) {
-                console.error('[delete-social-item] DB Delete Error:', delError);
+                console.error('[delete-social-item] ❌ DB Delete Error:', delError);
                 throw delError;
+            } else {
+                console.error('[delete-social-item] ✅ DB record deleted.');
             }
 
         } else {

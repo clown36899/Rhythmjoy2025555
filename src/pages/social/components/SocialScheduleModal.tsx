@@ -159,12 +159,19 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
 
         setIsSubmitting(true);
         setLoadingMessage('일정 삭제 중...');
-        console.log('[SocialScheduleModal] Deleting schedule:', editSchedule.id);
+        console.error('[SocialScheduleModal] 🔥 Starting delete process for schedule:', editSchedule.id);
 
         try {
             // Get session for token
             const { data: { session } } = await supabase.auth.getSession();
             const token = session?.access_token;
+            console.error('[SocialScheduleModal] 🔑 Auth token obtained:', !!token);
+
+            const requestBody = {
+                type: 'schedule',
+                id: editSchedule.id
+            };
+            console.error('[SocialScheduleModal] 📤 Sending delete request:', requestBody);
 
             const response = await fetch('/.netlify/functions/delete-social-item', {
                 method: 'POST',
@@ -172,25 +179,25 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                     'Content-Type': 'application/json',
                     ...(token ? { 'Authorization': `Bearer ${token}` } : {})
                 },
-                body: JSON.stringify({
-                    type: 'schedule',
-                    id: editSchedule.id
-                })
+                body: JSON.stringify(requestBody)
             });
+
+            console.error('[SocialScheduleModal] 📥 Response status:', response.status, response.statusText);
 
             if (!response.ok) {
                 const errData = await response.json();
+                console.error('[SocialScheduleModal] ❌ Delete failed with error:', errData);
                 throw new Error(errData.error || '삭제 요청 실패');
             }
 
             const result = await response.json();
-            console.log('[SocialScheduleModal] Delete success:', result);
+            console.error('[SocialScheduleModal] ✅ Delete success:', result);
 
             alert('일정이 삭제되었습니다.');
             onSuccess(null); // 삭제되었음을 알림
             onClose();
         } catch (error: any) {
-            console.error('Error deleting schedule:', error);
+            console.error('[SocialScheduleModal] 💥 Error deleting schedule:', error);
             alert(`삭제 중 오류가 발생했습니다: ${error.message}`);
         } finally {
             setIsSubmitting(false);
