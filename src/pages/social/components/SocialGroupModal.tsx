@@ -480,11 +480,11 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
                 imageUrl={tempImageSrc}
                 onCropComplete={handleCropComplete}
                 onChangeImage={() => {
-                    console.log('[SocialGroupModal] onChangeImage callback triggered - clicking file input');
+                    console.error('[SocialGroupModal] onChangeImage callback triggered - clicking file input');
                     fileInputRef.current?.click();
                 }}
                 onImageUpdate={(file: File) => {
-                    console.log('[SocialGroupModal] onImageUpdate callback triggered:', {
+                    console.error('[SocialGroupModal] onImageUpdate callback triggered:', {
                         fileName: file.name,
                         fileSize: file.size,
                         fileType: file.type
@@ -492,7 +492,7 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
                     // Convert file to data URL for preview
                     const reader = new FileReader();
                     reader.onload = (e) => {
-                        console.log('[SocialGroupModal] FileReader completed - updating tempImageSrc');
+                        console.error('[SocialGroupModal] FileReader completed - updating tempImageSrc');
                         setTempImageSrc(e.target?.result as string);
                     };
                     reader.onerror = (error) => {

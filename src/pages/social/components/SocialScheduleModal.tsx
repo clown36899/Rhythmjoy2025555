@@ -530,6 +530,30 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                 onClose={() => setIsCropModalOpen(false)}
                 imageUrl={tempImageSrc}
                 onCropComplete={handleCropComplete}
+                onChangeImage={() => {
+                    console.error('[SocialScheduleModal] onChangeImage callback triggered - clicking file input');
+                    fileInputRef.current?.click();
+                }}
+                onImageUpdate={(file: File) => {
+                    if (!isImageFile(file)) {
+                        alert('이미지 파일만 업로드 가능합니다.');
+                        return;
+                    }
+                    console.error('[SocialScheduleModal] onImageUpdate callback triggered:', {
+                        fileName: file.name,
+                        fileSize: file.size,
+                        fileType: file.type
+                    });
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        console.error('[SocialScheduleModal] FileReader completed - updating tempImageSrc');
+                        setTempImageSrc(e.target?.result as string);
+                    };
+                    reader.onerror = (error) => {
+                        console.error('[SocialScheduleModal] FileReader error in onImageUpdate:', error);
+                    };
+                    reader.readAsDataURL(file);
+                }}
             />
 
             <VenueSelectModal
