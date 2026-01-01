@@ -63,13 +63,21 @@ const SocialPage: React.FC = () => {
   // Fetch today's regular events for matching V2 logic
   useEffect(() => {
     const fetchTodayEvents = async () => {
+      // V2와 동일한 로직: 오늘 진행 중인 행사를 모두 가져오기 위해 넉넉한 쿼리 후 JS 필터링
       const { data } = await supabase
         .from('events')
-        .select('id, title, date, start_date, time, description, image, image_micro, image_thumbnail, image_medium, image_full, location, user_id, created_at, category, event_dates')
-        .or(`start_date.eq.${today},date.eq.${today}`);
+        .select('*, board_users(nickname)') // board_users 정보 포함
+        .eq('category', 'event')
+        .or(`date.gte.${today},end_date.gte.${today}`); // 오늘 이후 종료되는 것들 중
 
       if (data) {
-        setEventsToday(data);
+        // JS 정밀 필터링 (V2 로직과 동일)
+        const filtered = data.filter(e => {
+          const effectiveStart = e.start_date || e.date || "";
+          const effectiveEnd = e.end_date || e.date || "";
+          return effectiveEnd >= today && effectiveStart <= today;
+        });
+        setEventsToday(filtered);
       }
     };
     fetchTodayEvents();
@@ -91,19 +99,26 @@ const SocialPage: React.FC = () => {
       weekEnd.setDate(weekStart.getDate() + 6);
       weekEnd.setHours(23, 59, 59, 999);
 
-      const weekStartStr = `${weekStart.getFullYear()}-${String(weekStart.getMonth() + 1).padStart(2, '0')}-${String(weekStart.getDate()).padStart(2, '0')}`;
-      const weekEndStr = `${weekEnd.getFullYear()}-${String(weekEnd.getMonth() + 1).padStart(2, '0')}-${String(weekEnd.getDate()).padStart(2, '0')}`;
+      const weekStartStr = getLocalDateString(weekStart);
+      const weekEndStr = getLocalDateString(weekEnd);
 
+      // 해당 주간에 걸쳐 있는 모든 행사 페칭
       const { data } = await supabase
         .from('events')
-        .select('id, title, date, start_date, time, description, image, image_micro, image_thumbnail, image_medium, image_full, location, user_id, created_at, category, event_dates')
-        .gte('start_date', weekStartStr)
-        .lte('start_date', weekEndStr)
+        .select('*, board_users(nickname)')
         .neq('category', 'class')
-        .neq('category', 'club');
+        .neq('category', 'club')
+        .or(`date.gte.${weekStartStr},end_date.gte.${weekStartStr}`);
 
       if (data) {
-        setEventsThisWeek(data);
+        // 해당 주간 범위 내에 시작하거나 끝나는 행사 필터링
+        const filtered = data.filter(e => {
+          const effectiveStart = e.start_date || e.date || "";
+          const effectiveEnd = e.end_date || e.date || "";
+          // 주간 범위와 겹치는지 확인
+          return effectiveEnd >= weekStartStr && effectiveStart <= weekEndStr;
+        });
+        setEventsThisWeek(filtered);
       }
     };
     fetchThisWeekEvents();
@@ -132,8 +147,6 @@ const SocialPage: React.FC = () => {
       .single();
     return !!data;
   };
-
-  // Derived Data (KST 한국 시간 강제 고정 - Intl 방식)
 
   const todaySchedules = useMemo(() => {
     // 1. 오늘 날짜의 일회성 소셜 일정들
@@ -165,6 +178,7 @@ const SocialPage: React.FC = () => {
         user_id: e.user_id,
         created_at: e.created_at,
         updated_at: e.created_at,
+        board_users: e.board_users, // Author info
       } as SocialSchedule;
     });
 
