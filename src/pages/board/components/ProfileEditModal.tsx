@@ -82,6 +82,11 @@ export default function ProfileEditModal({
 
     useEffect(() => {
         if (isOpen) {
+            console.log('[프로필 수정 모달] 열림', {
+                nickname: currentUser.nickname,
+                profile_image: currentUser.profile_image,
+                userId
+            });
             setNickname(currentUser.nickname || '');
             setPreviewImage(currentUser.profile_image || null);
             setSelectedFile(null);
@@ -89,8 +94,13 @@ export default function ProfileEditModal({
             // 기존 이미지 경로 저장 (삭제용)
             if (currentUser.profile_image) {
                 const path = extractStoragePath(currentUser.profile_image);
+                console.log('[프로필 수정 모달] 기존 이미지 경로 추출', {
+                    original: currentUser.profile_image,
+                    extracted: path
+                });
                 setOldImagePath(path);
             } else {
+                console.log('[프로필 수정 모달] 기존 이미지 없음');
                 setOldImagePath(null);
             }
         }
@@ -99,6 +109,11 @@ export default function ProfileEditModal({
     const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+            console.log('[프로필 이미지] 파일 선택', {
+                name: file.name,
+                size: `${(file.size / 1024).toFixed(2)}KB`,
+                type: file.type
+            });
             if (file.size > 5 * 1024 * 1024) { // 5MB limit
                 alert('이미지 크기는 5MB 이하여야 합니다.');
                 return;
@@ -107,6 +122,7 @@ export default function ProfileEditModal({
             setImageDeleted(false); // 새 이미지 선택 시 삭제 플래그 해제
             const reader = new FileReader();
             reader.onloadend = () => {
+                console.log('[프로필 이미지] 미리보기 생성 완료');
                 setPreviewImage(reader.result as string);
             };
             reader.readAsDataURL(file);
@@ -114,6 +130,7 @@ export default function ProfileEditModal({
     };
 
     const handleDeleteImage = () => {
+        console.log('[프로필 이미지] 삭제 요청', { oldImagePath });
         // 화면에서만 제거, 실제 삭제는 저장 시
         setPreviewImage(null);
         setSelectedFile(null);
@@ -144,39 +161,58 @@ export default function ProfileEditModal({
         setIsSubmitting(true);
 
         try {
+            console.log('[프로필 저장] 시작', {
+                nickname,
+                imageDeleted,
+                hasSelectedFile: !!selectedFile,
+                oldImagePath,
+                currentProfileImage: currentUser.profile_image
+            });
             let profileImageUrl: string | null | undefined = currentUser.profile_image;
 
             // 1. 이미지 처리
             if (imageDeleted) {
+                console.log('[프로필 이미지] 삭제 처리 시작');
                 // 이미지 삭제가 요청된 경우
                 if (oldImagePath) {
+                    console.log('[프로필 이미지] 스토리지에서 삭제', { path: oldImagePath });
                     const { error: deleteError } = await supabase.storage
                         .from('images')
                         .remove([oldImagePath]);
 
                     if (deleteError) {
-                        console.error('이미지 삭제 실패:', deleteError);
+                        console.error('[프로필 이미지] 삭제 실패:', deleteError);
+                    } else {
+                        console.log('[프로필 이미지] 삭제 성공');
                     }
                 }
                 profileImageUrl = null; // DB에 null 저장
+                console.log('[프로필 이미지] DB에 null 저장 예정');
             } else if (selectedFile) {
+                console.log('[프로필 이미지] 새 이미지 업로드 시작');
                 // 새 이미지 업로드
                 // 기존 이미지 삭제
                 if (oldImagePath) {
+                    console.log('[프로필 이미지] 기존 이미지 삭제', { path: oldImagePath });
                     const { error: deleteError } = await supabase.storage
                         .from('images')
                         .remove([oldImagePath]);
 
                     if (deleteError) {
-                        console.error('기존 이미지 삭제 실패:', deleteError);
+                        console.error('[프로필 이미지] 기존 이미지 삭제 실패:', deleteError);
+                    } else {
+                        console.log('[프로필 이미지] 기존 이미지 삭제 성공');
                     }
                 }
 
                 // WebP로 변환 및 압축
+                console.log('[프로필 이미지] WebP 변환 시작');
                 const webpBlob = await convertToWebP(selectedFile, 200, 200, 0.8);
+                console.log('[프로필 이미지] WebP 변환 완료', { size: `${(webpBlob.size / 1024).toFixed(2)}KB` });
                 const fileName = `${userId}-${Date.now()}.webp`;
                 const filePath = `profiles/${fileName}`;
 
+                console.log('[프로필 이미지] 업로드 시작', { filePath });
                 const { error: uploadError } = await supabase.storage
                     .from('images')
                     .upload(filePath, webpBlob, {
@@ -184,28 +220,66 @@ export default function ProfileEditModal({
                         upsert: false
                     });
 
-                if (uploadError) throw uploadError;
+                if (uploadError) {
+                    console.error('[프로필 이미지] 업로드 실패:', uploadError);
+                    throw uploadError;
+                }
+                console.log('[프로필 이미지] 업로드 성공');
 
                 const { data: { publicUrl } } = supabase.storage
                     .from('images')
                     .getPublicUrl(filePath);
 
+                console.log('[프로필 이미지] Public URL 생성', { publicUrl });
                 profileImageUrl = publicUrl;
+            } else {
+                console.log('[프로필 이미지] 변경 없음, 기존 이미지 유지', { profileImageUrl });
             }
-            // else: 이미지 변경 없음, 기존 이미지 유지
 
             // 2. DB 업데이트 (board_users 테이블)
-            const { error } = await supabase
+            // 세션 확인
+            const { data: { session } } = await supabase.auth.getSession();
+            console.log('[프로필 저장] 현재 세션 확인', {
+                hasSession: !!session,
+                sessionUserId: session?.user?.id,
+                targetUserId: userId,
+                isMatch: session?.user?.id === userId
+            });
+
+            console.log('[프로필 저장] DB 업데이트 시작', {
+                nickname,
+                profile_image: profileImageUrl,
+                userId
+            });
+            const { error, data, status, statusText } = await supabase
                 .from('board_users')
                 .update({
                     nickname: nickname,
                     profile_image: profileImageUrl,
                     updated_at: new Date().toISOString()
                 })
-                .eq('user_id', userId);
+                .eq('user_id', userId)
+                .select(); // SELECT를 추가하여 업데이트된 행 반환
 
-            if (error) throw error;
+            console.log('[프로필 저장] DB 업데이트 결과', {
+                error,
+                data,
+                status,
+                statusText,
+                affectedRows: data?.length || 0
+            });
 
+            if (error) {
+                console.error('[프로필 저장] DB 업데이트 실패:', error);
+                throw error;
+            }
+
+            if (!data || data.length === 0) {
+                console.error('[프로필 저장] ❌ 업데이트된 행이 없습니다! RLS 정책 문제일 수 있습니다.');
+                throw new Error('프로필 업데이트에 실패했습니다. 권한을 확인해주세요.');
+            }
+
+            console.log('[프로필 저장] 성공');
             alert('프로필이 수정되었습니다.');
             onProfileUpdated();
             onClose();

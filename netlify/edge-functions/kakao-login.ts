@@ -138,13 +138,26 @@ export default async (request: Request, context: any) => {
         // 7. Parallel: Upsert & Session Generation
         console.log('[kakao-login-edge] 4. Parallel Processing');
 
-        const upsertPromise = supabaseAdmin.from('board_users').upsert({
+        // ⚠️ profile_image는 신규 사용자에게만 설정하고, 기존 사용자는 덮어쓰지 않음
+        const isNewUser = !rpcData;
+        const updateData: any = {
             user_id: userId,
             kakao_id: kakaoId,
             nickname: nickname,
-            profile_image: profileImage,
             updated_at: new Date().toISOString()
-        }, { onConflict: 'user_id' });
+        };
+
+        // profile_image는 신규 사용자이고 카카오에서 이미지를 제공한 경우에만 설정
+        if (isNewUser && profileImage) {
+            updateData.profile_image = profileImage;
+            console.log('[kakao-login-edge] 신규 사용자 - 카카오 프로필 이미지 설정');
+        } else if (isNewUser) {
+            console.log('[kakao-login-edge] 신규 사용자 - 카카오 프로필 이미지 없음');
+        } else {
+            console.log('[kakao-login-edge] 기존 사용자 - profile_image 유지 (덮어쓰지 않음)');
+        }
+
+        const upsertPromise = supabaseAdmin.from('board_users').upsert(updateData, { onConflict: 'user_id' });
 
         const sessionPromise = (async () => {
             const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({

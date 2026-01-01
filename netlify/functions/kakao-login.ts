@@ -231,20 +231,35 @@ export const handler: Handler = async (event) => {
     const startTimeParallel = Date.now();
 
     // Task A: board_users 업데이트 (비동기, 결과가 로그인을 막지 않도록 처리)
-    // 닉네임, 프로필페이지만 저장하며 PII는 저장하지 않음
+    // 닉네임, 프로필이미지만 저장하며 PII는 저장하지 않음
+    // ⚠️ profile_image는 최초 가입 시에만 설정하고, 기존 사용자는 덮어쓰지 않음
     const upsertPromise = (async () => {
       const startTimeUpsert = Date.now();
       try {
+        // 기존 사용자인지 확인
+        const isNewUser = !existingBoardUser;
+
+        const updateData: any = {
+          user_id: userId,
+          kakao_id: kakaoId,
+          nickname: nickname,
+          gender: null,
+          updated_at: new Date().toISOString()
+        };
+
+        // profile_image는 신규 사용자이고 카카오에서 이미지를 제공한 경우에만 설정
+        if (isNewUser && profileImage) {
+          updateData.profile_image = profileImage;
+          console.log('[kakao-login] 신규 사용자 - 카카오 프로필 이미지 설정:', profileImage);
+        } else if (isNewUser) {
+          console.log('[kakao-login] 신규 사용자 - 카카오 프로필 이미지 없음');
+        } else {
+          console.log('[kakao-login] 기존 사용자 - profile_image 유지 (덮어쓰지 않음)');
+        }
+
         const { error: upsertError } = await supabaseAdmin
           .from('board_users')
-          .upsert({
-            user_id: userId,
-            kakao_id: kakaoId,
-            nickname: nickname,
-            profile_image: profileImage,
-            gender: null,
-            updated_at: new Date().toISOString()
-          }, { onConflict: 'user_id' });
+          .upsert(updateData, { onConflict: 'user_id' });
 
         if (upsertError) {
           console.error('[kakao-login] Error updating board_users:', upsertError);
