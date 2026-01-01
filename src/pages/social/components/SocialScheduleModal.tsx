@@ -153,20 +153,38 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
     const handleDelete = async () => {
         if (!editSchedule || !user) return;
 
-        if (!window.confirm('정말로 이 일정을 삭제하시겠습니까?')) {
+        if (!window.confirm('정말로 이 일정을 삭제하시겠습니까? 관련 이미지도 모두 삭제됩니다.')) {
             return;
         }
 
         setIsSubmitting(true);
         setLoadingMessage('일정 삭제 중...');
+        console.log('[SocialScheduleModal] Deleting schedule:', editSchedule.id);
 
         try {
-            const { error } = await supabase
-                .from('social_schedules')
-                .delete()
-                .eq('id', editSchedule.id);
+            // Get session for token
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
 
-            if (error) throw error;
+            const response = await fetch('/.netlify/functions/delete-social-item', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
+                body: JSON.stringify({
+                    type: 'schedule',
+                    id: editSchedule.id
+                })
+            });
+
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.error || '삭제 요청 실패');
+            }
+
+            const result = await response.json();
+            console.log('[SocialScheduleModal] Delete success:', result);
 
             alert('일정이 삭제되었습니다.');
             onSuccess(null); // 삭제되었음을 알림

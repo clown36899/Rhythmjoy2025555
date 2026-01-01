@@ -116,31 +116,42 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
             deletePassword = input;
         }
 
-        if (!window.confirm('정말로 이 단체를 삭제하시겠습니까?\n관련된 모든 일정과 이미지도 함께 삭제됩니다.\n삭제후 복구 불가능합니다.')) {
+        if (!window.confirm("삭제된 데이터는 복구할 수 없습니다.\n정말로 삭제하시겠습니까?")) {
             return;
         }
 
         setIsSubmitting(true);
-        setLoadingMessage('단체 및 관련 데이터 삭제 중...');
+        setLoadingMessage('삭제 중...');
+        console.log('[handleDelete] Starting deletion process for group:', editGroup.id);
 
         try {
-            // Call Netlify Function for secure deletion (bypassing RLS for storage cleanup)
-            const response = await fetch('/.netlify/functions/delete-social-group', {
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+
+            console.log('[handleDelete] Sending request to /.netlify/functions/delete-social-item');
+            const response = await fetch('/.netlify/functions/delete-social-item', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
                 },
                 body: JSON.stringify({
-                    groupId: editGroup.id,
+                    type: 'group',
+                    id: editGroup.id,
                     password: deletePassword
                 })
             });
 
+            console.log('[handleDelete] Server response status:', response.status);
+
             if (!response.ok) {
                 const errData = await response.json();
-                throw new Error(errData.error || '삭제 요청 실패');
+                console.error('[handleDelete] Server error data:', errData);
+                throw new Error(errData.error || errData.message || '삭제 요청 실패');
             }
+
+            const result = await response.json();
+            console.log('[handleDelete] Success result:', result);
 
             alert('단체가 삭제되었습니다.');
             onSuccess(null);
