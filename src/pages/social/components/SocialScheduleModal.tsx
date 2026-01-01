@@ -210,11 +210,40 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                 const resized = await createResizedImages(imageFile);
                 const timestamp = Date.now();
                 const rand = Math.random().toString(36).substring(2, 7);
-                const basePath = `social-schedules/${groupId}/${user.id}`;
+
+                let basePath = '';
+
+                // Determine storage path
+                // 1. Try to get parent group's storage_path
+                const targetGroupId = (groupId && groupId !== 0) ? groupId : (editSchedule?.group_id || null);
+
+                if (targetGroupId) {
+                    const { data: groupData } = await supabase
+                        .from('social_groups')
+                        .select('storage_path')
+                        .eq('id', targetGroupId)
+                        .single();
+
+                    if (groupData && groupData.storage_path) {
+                        // New Structure: social-groups/{folder}/schedules/{scheduleFolder}
+                        // We create a subfolder for this specific schedule upload to keep versions organized 
+                        // or just put files directly? v2 puts them in timestamp folder.
+                        // Let's make a schedule-specific folder to be safe.
+                        basePath = `${groupData.storage_path}/schedules/${timestamp}_${rand}`;
+                    }
+                }
+
+                // 2. Fallback to Legacy path
+                if (!basePath) {
+                    basePath = `social-schedules/${targetGroupId || 'personal'}/${user.id}/${timestamp}_${rand}`;
+                }
 
                 const upload = async (name: string, blob: Blob) => {
-                    const path = `${basePath}/${name}/${timestamp}_${rand}.webp`;
-                    const { error } = await supabase.storage.from('images').upload(path, blob);
+                    const path = `${basePath}/${name}.webp`;
+                    const { error } = await supabase.storage.from('images').upload(path, blob, {
+                        contentType: 'image/webp',
+                        upsert: true
+                    });
                     if (error) throw error;
                     return supabase.storage.from('images').getPublicUrl(path).data.publicUrl;
                 };

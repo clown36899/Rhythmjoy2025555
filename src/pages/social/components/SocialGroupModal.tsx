@@ -105,56 +105,49 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
     const handleDelete = async () => {
         if (!editGroup || !user) return;
 
-        // 권한 체크: 생성자나 관리자가 아니면 비밀번호 확인
-        const isCreator = editGroup.user_id === user.id;
+        // 비밀번호 확인 (생성자/관리자가 아닐 경우)
+        const isOwner = user.id === editGroup.user_id;
+        const isAdmin = user.app_metadata?.is_admin === true || (user.email === 'admin@rhythmjoy.com');
 
-        if (!isCreator) {
-            alert('단체 삭제는 생성자(Owner)만 가능합니다.');
-            return;
+        let deletePassword = '';
+        if (!isOwner && !isAdmin) {
+            const input = prompt('삭제하려면 비밀번호를 입력하세요:');
+            if (input === null) return; // Cancel
+            deletePassword = input;
         }
 
-        if (!window.confirm(`'${editGroup.name}' 단체를 삭제하시겠습니까?`)) {
+        if (!window.confirm('정말로 이 단체를 삭제하시겠습니까?\n관련된 모든 일정과 이미지도 함께 삭제됩니다.\n삭제후 복구 불가능합니다.')) {
             return;
         }
 
         setIsSubmitting(true);
-        setLoadingMessage('권한 확인 및 삭제 처리 중...');
+        setLoadingMessage('단체 및 관련 데이터 삭제 중...');
 
         try {
-            // 생성자가 아니라면 이미 Auth Flow에서 검증되었으나, 
-            // 안전을 위해 여기서 password state가 비어있지 않다면 한 번 더 검증하거나
-            // 모달 진입 시 전달된 password를 신뢰할 수 있음.
-            // 여기서는 중복 검증 생략하고 바로 삭제 시도.
+            // Call Netlify Function for secure deletion (bypassing RLS for storage cleanup)
+            const response = await fetch('/.netlify/functions/delete-social-group', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
+                },
+                body: JSON.stringify({
+                    groupId: editGroup.id,
+                    password: deletePassword
+                })
+            });
 
-            // 2단계 경고 (최종 확인)
-            const finalWarningMsg = `[⚠️ 최종 경고]\n\n단체를 삭제하면 이 단체에 등록된 '모든 일정'이 함께 삭제됩니다.\n삭제된 데이터는 복구할 수 없습니다.\n\n진짜로 삭제하시겠습니까?`;
-            if (!window.confirm(finalWarningMsg)) {
-                setIsSubmitting(false);
-                return;
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.error || '삭제 요청 실패');
             }
 
-            // 1. 연동된 일정 삭제
-            const { error: scheduleError } = await supabase
-                .from('social_schedules')
-                .delete()
-                .eq('group_id', editGroup.id);
-
-            if (scheduleError) console.error("일정 삭제 중 권한/에러:", scheduleError);
-
-            // 2. 단체 삭제
-            const { error: groupError } = await supabase
-                .from('social_groups')
-                .delete()
-                .eq('id', editGroup.id);
-
-            if (groupError) throw groupError;
-
-            alert('삭제되었습니다.');
+            alert('단체가 삭제되었습니다.');
             onSuccess(null);
             onClose();
         } catch (error: any) {
             console.error('Error deleting group:', error);
-            alert(`삭제 실패 (관리자 권한이 없거나 오류 발생): ${error.message}`);
+            alert(`삭제 실패: ${error.message}`);
         } finally {
             setIsSubmitting(false);
         }
@@ -185,27 +178,41 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
         setLoadingMessage('저장 중...');
 
         try {
-            // 상위 컴포넌트(SocialPage)에서 이미 verifyPassword를 거쳐서 진입했으므로
-            // 여기서는 중복 검증을 생략하거나, password 필드가 비어있지 않은지만 체크.
-            // 단, 모달 내에서 비밀번호를 바꾼 경우 등을 고려해 로직 단순화.
-
             let finalImageUrl = imagePreview;
             let imageMicro = editGroup?.image_micro || null;
             let imageThumbnail = editGroup?.image_thumbnail || null;
             let imageMedium = editGroup?.image_medium || null;
             let imageFull = editGroup?.image_full || null;
+            let storagePath = editGroup?.storage_path || null;
 
+            // 이미지가 새로 업로드된 경우
             if (imageFile) {
                 setLoadingMessage('이미지 최적화 및 업로드 중...');
                 const resized = await createResizedImages(imageFile);
+
+                // v2 Style: Create folder first
                 const timestamp = Date.now();
-                const fileName = `${timestamp}_${Math.random().toString(36).substring(2, 7)}.webp`;
-                const basePath = `social-groups/${user.id}`;
+                const randomStr = Math.random().toString(36).substring(2, 7);
+                // 기존 storage_path가 있으면 그것을 재사용할 수도 있으나, 
+                // 새 이미지는 항상 새 폴더(타임스탬프)에 저장하는 것이 캐싱 등에서 안전함.
+                // 하지만 여기선 v2 방식을 따라 '한 번 생성된 storage_path'를 계속 쓰는 게 아니라
+                // '매 업로드 시' 새로운 경로를 따거나, 아니면 그룹 고유 경로를 유지하거나 결정해야 함.
+                // v2는 이벤트 수정 시에도 이미지가 바뀌면 새 폴더를 팜. (delete-event 로직 참고 시)
+                // 따라서 여기도 매번 새 폴더를 생성하고 DB 업데이트.
+
+                const folderName = `${timestamp}_${randomStr}`;
+                const newStoragePath = `social-groups/${folderName}`;
+
+                // Upload to /profile subfolder
+                const basePath = `${newStoragePath}/profile`;
 
                 // Upload all 4 sizes
                 const uploadImage = async (size: string, blob: Blob) => {
-                    const path = `${basePath}/${size}/${fileName}`;
-                    const { error } = await supabase.storage.from('images').upload(path, blob);
+                    const path = `${basePath}/${size}.webp`;
+                    const { error } = await supabase.storage.from('images').upload(path, blob, {
+                        contentType: 'image/webp',
+                        upsert: true
+                    });
                     if (error) throw error;
                     return supabase.storage.from('images').getPublicUrl(path).data.publicUrl;
                 };
@@ -222,6 +229,7 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
                 imageThumbnail = thumbUrl;
                 imageMedium = medUrl;
                 imageFull = fullUrl;
+                storagePath = newStoragePath;
             }
 
             const groupData: any = {
@@ -237,6 +245,7 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
                 groupData.image_thumbnail = imageThumbnail;
                 groupData.image_medium = imageMedium;
                 groupData.image_full = imageFull;
+                groupData.storage_path = storagePath;
             }
 
             // 신규 등록이면 비번/소유자 설정
@@ -259,7 +268,12 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
                     .eq('id', editGroup.id);
 
                 if (error) throw error;
-                result = { ...editGroup, ...groupData }; // Return merged data
+                // 이전 이미지 폴더 청소는 Delete Function이 담당? 아니면 여기서?
+                // 여기서는 복잡도를 낮추기 위해 생략. (v2도 수정 시 즉시 삭제는 선택적)
+                // Delete Function이 나중에 최종 삭제 때 처리하거나, 별도 정리 로직 필요.
+                // 일단은 새 경로로 업데이트됨.
+
+                result = { ...editGroup, ...groupData };
             } else {
                 const { data, error } = await supabase
                     .from('social_groups')
