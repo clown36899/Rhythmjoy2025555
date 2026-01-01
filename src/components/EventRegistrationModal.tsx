@@ -423,11 +423,9 @@ export default memo(function EventRegistrationModal({
     }
   };
 
-  const handleCropComplete = async (croppedFile: File, _previewUrl: string, _isModified: boolean) => {
+  const handleCropComplete = async (croppedFile: File, previewUrl: string, _isModified: boolean) => {
     setImageFile(croppedFile);
-
-    // Update stable preview
-    fileToDataURL(croppedFile).then(setImagePreview).catch(console.error);
+    setImagePreview(previewUrl);
 
     setTempImageSrc(null);
     setIsCropModalOpen(false);

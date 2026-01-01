@@ -76,19 +76,19 @@ export default function ScheduleModal({ placeId, date, onClose, onSuccess }: Sch
     if (!confirm('이 일정을 삭제하시겠습니까? 관련 이미지도 모두 삭제됩니다.')) return;
 
     setLoading(true);
-    console.error('[ScheduleModal] 🔥 Starting delete process for schedule:', scheduleId);
+    console.log('[ScheduleModal] Starting delete process for schedule:', scheduleId);
 
     try {
       // Get session for token
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
-      console.error('[ScheduleModal] 🔑 Auth token obtained:', !!token);
+      console.log('[ScheduleModal] Auth token obtained:', !!token);
 
       const requestBody = {
         type: 'schedule',
         id: scheduleId
       };
-      console.error('[ScheduleModal] 📤 Sending delete request:', requestBody);
+      console.log('[ScheduleModal] Sending delete request:', requestBody);
 
       const response = await fetch('/.netlify/functions/delete-social-item', {
         method: 'POST',
@@ -99,7 +99,7 @@ export default function ScheduleModal({ placeId, date, onClose, onSuccess }: Sch
         body: JSON.stringify(requestBody)
       });
 
-      console.error('[ScheduleModal] 📥 Response status:', response.status, response.statusText);
+      console.log('[ScheduleModal] Response status:', response.status, response.statusText);
 
       if (!response.ok) {
         const errData = await response.json();
@@ -108,7 +108,7 @@ export default function ScheduleModal({ placeId, date, onClose, onSuccess }: Sch
       }
 
       const result = await response.json();
-      console.error('[ScheduleModal] ✅ Delete success:', result);
+      console.log('[ScheduleModal] Delete success:', result);
 
       alert('일정이 삭제되었습니다.');
       loadSchedules();

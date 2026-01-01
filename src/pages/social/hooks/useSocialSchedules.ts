@@ -12,13 +12,8 @@ const mapScheduleToEvent = (schedule: any): UnifiedSocialEvent | null => {
 
     if (dow === null || dow === undefined) return null;
 
-    const imageUrl = schedule.image;
-    let imageUrlThumbnail = imageUrl;
-    if (imageUrl && typeof imageUrl === 'string') {
-        if (imageUrl.includes('/social/full/')) {
-            imageUrlThumbnail = imageUrl.replace('/social/full/', '/social/thumbnail/');
-        }
-    }
+    const imageUrl = schedule.image_url;
+    let imageUrlThumbnail = schedule.image_thumbnail || imageUrl;
 
     return {
         id: `schedule-${schedule.id}`,
@@ -54,7 +49,8 @@ export function useSocialSchedules() {
                 .from('social_schedules')
                 .select(`
           id, title, date, start_time, day_of_week, 
-          inquiry_contact, link_name, link_url, description, place_name, address, category, image, venue_id
+          inquiry_contact, link_name, link_url, description, place_name, address, category, 
+          image_url, image_micro, image_thumbnail, image_medium, image_full, venue_id
         `)
                 .order('day_of_week', { ascending: true })
                 .order('start_time', { ascending: true });

@@ -23,7 +23,11 @@ interface FormDataType {
   inquiry_contact?: string;
   link_name?: string;
   link_url?: string;
-  image?: string;
+  image_url?: string;
+  image_micro?: string;
+  image_thumbnail?: string;
+  image_medium?: string;
+  image_full?: string;
   venue_id?: string | null;
 }
 
@@ -55,7 +59,11 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
         inquiry_contact: item.inquiry_contact || '',
         link_name: item.link_name || '',
         link_url: item.link_url || '',
-        image: item.image || '',
+        image_url: item.image_url || '',
+        image_micro: item.image_micro || '',
+        image_thumbnail: item.image_thumbnail || '',
+        image_medium: item.image_medium || '',
+        image_full: item.image_full || '',
         venue_id: item.venue_id || null,
       });
     }
@@ -97,7 +105,11 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
           inquiry_contact: formData.inquiry_contact || null,
           link_name: formData.link_name || null,
           link_url: formData.link_url || null,
-          image: formData.image || null,
+          image_url: formData.image_url || null,
+          image_micro: formData.image_micro || null,
+          image_thumbnail: formData.image_thumbnail || null,
+          image_medium: formData.image_medium || null,
+          image_full: formData.image_full || null,
           venue_id: formData.venue_id || null,
         })
         .eq('id', item.id)
@@ -139,19 +151,19 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
     if (!confirm('정말로 삭제하시겠습니까?')) return;
 
     setLoading(true);
-    console.error('[SocialEditModal] 🔥 Starting delete process for item:', item.id);
+    console.log('[SocialEditModal] Starting delete process for item:', item.id);
 
     try {
       // Get session for token
       const { data: { session } } = await supabase.auth.getSession();
       const token = session?.access_token;
-      console.error('[SocialEditModal] 🔑 Auth token obtained:', !!token);
+      console.log('[SocialEditModal] Auth token obtained:', !!token);
 
       const requestBody = {
         type: 'schedule',
         id: item.id
       };
-      console.error('[SocialEditModal] 📤 Sending delete request:', requestBody);
+      console.log('[SocialEditModal] Sending delete request:', requestBody);
 
       const response = await fetch('/.netlify/functions/delete-social-item', {
         method: 'POST',
@@ -162,16 +174,16 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
         body: JSON.stringify(requestBody)
       });
 
-      console.error('[SocialEditModal] 📥 Response status:', response.status, response.statusText);
+      console.log('[SocialEditModal] Response status:', response.status, response.statusText);
 
       if (!response.ok) {
         const errData = await response.json();
-        console.error('[SocialEditModal] ❌ Delete failed:', errData);
+        console.log('[SocialEditModal] Delete failed (intended as log):', errData);
         throw new Error(errData.error || '삭제 요청 실패');
       }
 
       const result = await response.json();
-      console.error('[SocialEditModal] ✅ Delete success:', result);
+      console.log('[SocialEditModal] Delete success:', result);
 
       onSuccess(null, true); // true = deleted
       onClose(); // Close modal after successful delete
@@ -306,12 +318,26 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
 
                     if (thumbError) throw thumbError;
 
-                    // Get Public URL for Full image
-                    const { data: { publicUrl } } = supabase.storage
+                    // Get Public URLs
+                    const { data: { publicUrl: fullUrl } } = supabase.storage
                       .from('images')
                       .getPublicUrl(`${basePath}/full/${fileName}`);
 
-                    setFormData(prev => ({ ...prev, image: publicUrl }));
+                    const { data: { publicUrl: thumbUrl } } = supabase.storage
+                      .from('images')
+                      .getPublicUrl(`${basePath}/thumbnail/${fileName}`);
+
+                    // Since we don't have specialized resizes for all types here yet, 
+                    // we'll map them reasonably to avoid nulls if possible, or just set what we have.
+                    // Ideally SocialScheduleModal logic should be unified here too.
+                    setFormData(prev => ({
+                      ...prev,
+                      image_url: fullUrl,
+                      image_full: fullUrl,
+                      image_thumbnail: thumbUrl,
+                      image_medium: fullUrl, // Fallback
+                      image_micro: thumbUrl, // Fallback
+                    }));
                   } catch (error) {
                     console.error('Image upload failed:', error);
                     alert('이미지 업로드에 실패했습니다.');
@@ -321,16 +347,23 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
                 id="social-edit-image-upload"
               />
               <label htmlFor="social-edit-image-upload" className="sed-form-input" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', minHeight: '100px', border: '1px dashed #555' }}>
-                {formData.image ? (
-                  <img src={formData.image} alt="Preview" style={{ maxHeight: '100px', objectFit: 'contain' }} />
+                {formData.image_url ? (
+                  <img src={formData.image_thumbnail || formData.image_url} alt="Preview" style={{ maxHeight: '100px', objectFit: 'contain' }} />
                 ) : (
                   <span style={{ color: '#888' }}>+ 이미지 변경</span>
                 )}
               </label>
-              {formData.image && (
+              {formData.image_url && (
                 <button
                   type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, image: '' }))}
+                  onClick={() => setFormData(prev => ({
+                    ...prev,
+                    image_url: '',
+                    image_micro: '',
+                    image_thumbnail: '',
+                    image_medium: '',
+                    image_full: ''
+                  }))}
                   style={{
                     marginTop: '5px',
                     background: 'none',

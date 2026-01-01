@@ -122,14 +122,14 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
 
         setIsSubmitting(true);
         setLoadingMessage('삭제 중...');
-        console.error('[handleDelete] 🔥 Starting deletion process for group:', editGroup.id);
+        console.log('[SocialGroupModal] Starting deletion process for group:', editGroup.id);
 
         try {
             const { data: { session } } = await supabase.auth.getSession();
             const token = session?.access_token;
-            console.error('[handleDelete] 🔑 Auth token obtained:', !!token);
+            console.log('[SocialGroupModal] Auth token obtained:', !!token);
 
-            console.error('[handleDelete] 📤 Sending request to /.netlify/functions/delete-social-item');
+            console.log('[SocialGroupModal] Sending request to /.netlify/functions/delete-social-item');
             const response = await fetch('/.netlify/functions/delete-social-item', {
                 method: 'POST',
                 headers: {
@@ -143,7 +143,7 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
                 })
             });
 
-            console.error('[handleDelete] 📥 Server response status:', response.status, response.statusText);
+            console.log('[SocialGroupModal] Server response status:', response.status, response.statusText);
 
             if (!response.ok) {
                 const errData = await response.json();
@@ -152,7 +152,7 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
             }
 
             const result = await response.json();
-            console.error('[handleDelete] ✅ Success result:', result);
+            console.log('[SocialGroupModal] Success result:', result);
 
             alert('단체가 삭제되었습니다.');
             onSuccess(null);
@@ -480,11 +480,11 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
                 imageUrl={tempImageSrc}
                 onCropComplete={handleCropComplete}
                 onChangeImage={() => {
-                    console.error('[SocialGroupModal] onChangeImage callback triggered - clicking file input');
+                    console.log('[SocialGroupModal] onChangeImage callback triggered');
                     fileInputRef.current?.click();
                 }}
                 onImageUpdate={(file: File) => {
-                    console.error('[SocialGroupModal] onImageUpdate callback triggered:', {
+                    console.log('[SocialGroupModal] onImageUpdate callback triggered:', {
                         fileName: file.name,
                         fileSize: file.size,
                         fileType: file.type
@@ -492,7 +492,7 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
                     // Convert file to data URL for preview
                     const reader = new FileReader();
                     reader.onload = (e) => {
-                        console.error('[SocialGroupModal] FileReader completed - updating tempImageSrc');
+                        console.log('[SocialGroupModal] FileReader completed - updating tempImageSrc');
                         setTempImageSrc(e.target?.result as string);
                     };
                     reader.onerror = (error) => {

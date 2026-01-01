@@ -159,19 +159,19 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
 
         setIsSubmitting(true);
         setLoadingMessage('일정 삭제 중...');
-        console.error('[SocialScheduleModal] 🔥 Starting delete process for schedule:', editSchedule.id);
+        console.log('[SocialScheduleModal] Starting delete process for schedule:', editSchedule.id);
 
         try {
             // Get session for token
             const { data: { session } } = await supabase.auth.getSession();
             const token = session?.access_token;
-            console.error('[SocialScheduleModal] 🔑 Auth token obtained:', !!token);
+            console.log('[SocialScheduleModal] Auth token obtained:', !!token);
 
             const requestBody = {
                 type: 'schedule',
                 id: editSchedule.id
             };
-            console.error('[SocialScheduleModal] 📤 Sending delete request:', requestBody);
+            console.log('[SocialScheduleModal] Sending delete request:', requestBody);
 
             const response = await fetch('/.netlify/functions/delete-social-item', {
                 method: 'POST',
@@ -182,7 +182,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                 body: JSON.stringify(requestBody)
             });
 
-            console.error('[SocialScheduleModal] 📥 Response status:', response.status, response.statusText);
+            console.log('[SocialScheduleModal] Response status:', response.status, response.statusText);
 
             if (!response.ok) {
                 const errData = await response.json();
@@ -191,7 +191,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
             }
 
             const result = await response.json();
-            console.error('[SocialScheduleModal] ✅ Delete success:', result);
+            console.log('[SocialScheduleModal] Delete success:', result);
 
             alert('일정이 삭제되었습니다.');
             onSuccess(null); // 삭제되었음을 알림
@@ -531,7 +531,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                 imageUrl={tempImageSrc}
                 onCropComplete={handleCropComplete}
                 onChangeImage={() => {
-                    console.error('[SocialScheduleModal] onChangeImage callback triggered - clicking file input');
+                    console.log('[SocialScheduleModal] onChangeImage callback triggered');
                     fileInputRef.current?.click();
                 }}
                 onImageUpdate={(file: File) => {
@@ -539,14 +539,14 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                         alert('이미지 파일만 업로드 가능합니다.');
                         return;
                     }
-                    console.error('[SocialScheduleModal] onImageUpdate callback triggered:', {
+                    console.log('[SocialScheduleModal] onImageUpdate callback triggered:', {
                         fileName: file.name,
                         fileSize: file.size,
                         fileType: file.type
                     });
                     const reader = new FileReader();
                     reader.onload = (e) => {
-                        console.error('[SocialScheduleModal] FileReader completed - updating tempImageSrc');
+                        console.log('[SocialScheduleModal] FileReader completed - updating tempImageSrc');
                         setTempImageSrc(e.target?.result as string);
                     };
                     reader.onerror = (error) => {

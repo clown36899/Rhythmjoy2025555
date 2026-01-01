@@ -67,7 +67,11 @@ export default function SocialEventModal({ onClose, onEventCreated, preselectedD
           inquiry_contact: inquiryContact,
           link_name: linkName || null,
           link_url: linkUrl || null,
-          image: imageUrl
+          image_url: imageUrl,
+          image_thumbnail: imageUrl, // Fallback since we only have one URL here
+          image_full: imageUrl,
+          image_medium: imageUrl,
+          image_micro: imageUrl
         })
         .select()
         .single();
