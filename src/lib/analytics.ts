@@ -1,7 +1,40 @@
 import ReactGA from 'react-ga4';
 
 // Google Analytics 측정 ID
-const MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID || 'G-N4JPZTNZE4';
+// Google Analytics 측정 ID (환경별 분리 지원)
+const PROD_ID = import.meta.env.VITE_GA_MEASUREMENT_ID || 'G-N4JPZTNZE4';
+const DEV_ID = import.meta.env.VITE_GA_MEASUREMENT_ID_DEV || ''; // 개발용 전용 ID 지원
+const MEASUREMENT_ID = (typeof window !== 'undefined' && window.location.hostname === 'localhost' && DEV_ID) ? DEV_ID : PROD_ID;
+
+// 관리자(개발자) 여부 상태 - 초기 로딩 시 레이스 컨디션 방지를 위해 localStorage에서 즉시 로드
+const ADMIN_SHIELD_KEY = 'ga-admin-shield';
+let isAdminUser = typeof window !== 'undefined' ? localStorage.getItem(ADMIN_SHIELD_KEY) === 'true' : false;
+
+/**
+ * 관리자 상태 설정 (AuthContext에서 호출)
+ */
+export const setAdminStatus = (isAdmin: boolean) => {
+    if (isAdminUser !== isAdmin) {
+        console.log(`[Analytics] 👤 관리자 상태 변경: ${isAdminUser} -> ${isAdmin}`);
+        isAdminUser = isAdmin;
+
+        // 다음 새로고침 시 즉각 반영을 위해 저장소 영속화
+        if (typeof window !== 'undefined') {
+            if (isAdmin) {
+                localStorage.setItem(ADMIN_SHIELD_KEY, 'true');
+            } else {
+                localStorage.removeItem(ADMIN_SHIELD_KEY);
+            }
+
+            // [Layer 2] GA4 글로벌 파라미터 업데이트 (이미 초기화된 경우 대비)
+            try {
+                ReactGA.set({ traffic_type: isAdmin ? 'internal' : 'production' });
+            } catch (e) {
+                // 아직 미초기화 시 무시
+            }
+        }
+    }
+};
 
 // 개발 환경 감지 (localhost, 127.0.0.1, .local 도메인, 로컬 네트워크 IP)
 const isDevelopment = () => {
@@ -27,7 +60,7 @@ const isDevelopment = () => {
     return false;
 };
 
-// 봇/자동화 도구 감지
+// 봇/자동화 도구 감지 (Deep Inspection)
 const isBot = () => {
     if (typeof window === 'undefined') return false;
 
@@ -48,14 +81,27 @@ const isBot = () => {
         return true;
     }
 
-    // 2. WebDriver 속성 체크 (Headless 브라우저, 자동화 도구)
-    if (navigator.webdriver) {
-        return true;
-    }
+    // 2. Headless 브라우저 및 자동화 도구 정밀 감지
+    const isHeadless =
+        navigator.webdriver ||
+        !navigator.languages ||
+        navigator.languages.length === 0 ||
+        // @ts-ignore
+        (navigator.plugins && navigator.plugins.length === 0) ||
+        // @ts-ignore
+        window.outerWidth === 0 || window.outerHeight === 0;
+
+    if (isHeadless) return true;
 
     // 3. 특정 브라우저 속성 체크 (봇이 흔히 위장하는 방식 필터링)
     // @ts-ignore
-    if (window._phantom || window.callPhantom || window.__setter__) {
+    if (window._phantom || window.callPhantom || window.__setter__ || window.Buffer || window.emit) {
+        return true;
+    }
+
+    // 4. Chrome Headless 특정 속성 (모바일 에뮬레이션 등 제외한 순수 봇 감지)
+    // @ts-ignore
+    if (userAgent.includes('chrome') && !window.chrome) {
         return true;
     }
 
@@ -69,18 +115,55 @@ const isBillboardPage = () => {
 };
 
 /**
+ * 로깅 허용 여부 통합 확인 (Layer 1: 클라이언트 원천 차단)
+ * @returns {boolean} 로깅 가능 여부
+ */
+const isAllowedEnvironment = () => {
+    if (typeof window === 'undefined') return false;
+
+    // 1. 봇 트래킹 체크
+    if (isBot()) {
+        console.log('[Analytics] 🤖 Bot detected. Action skipped.');
+        return false;
+    }
+
+    // 2. 관리자(개발자) 세션 체크 (가장 강력한 Layer 1 차단)
+    if (isAdminUser) {
+        console.log('[Analytics] 🛡️ Admin session detected. Action skipped to keep stats clean.');
+        return false;
+    }
+
+    // 3. 개발 환경 체크 (로컬/스테이징)
+    if (isDevelopment()) {
+        if (!DEV_ID) {
+            console.log('[Analytics] ⚠️ Development environment detected. Action skipped.');
+            return false;
+        }
+        console.log('[Analytics] 🛠️ Development mode with dedicated ID.');
+    }
+
+    // 4. 공식 도메인 화이트리스트 체크 (Prod Only)
+    const hostname = window.location.hostname;
+    const allowedDomains = ['swingenjoy.com', 'swingandjoy.com', 'www.swingenjoy.com', 'www.swingandjoy.com'];
+    if (!allowedDomains.includes(hostname) && !isDevelopment()) {
+        console.log(`[Analytics] ⚠️ Non-production domain detected (${hostname}). Action skipped.`);
+        return false;
+    }
+
+    return true;
+};
+
+/**
  * Google Analytics 초기화 (사용자 참여 기반)
- * 앱 시작 시 직접 호출하지 않고, 실제 사용자 이벤트(스크롤, 이동 등) 발생 시 초기화
  */
 export const initGAWithEngagement = () => {
     let initialized = false;
-    const initTimeout = 5000; // 5초 후 자동 초기화 (백그라운드 탭 등 고려)
+    const initTimeout = 5000;
 
     const triggerInit = () => {
         if (!initialized) {
             initialized = true;
             initGA();
-            // 이벤트 리스너 제거
             window.removeEventListener('scroll', triggerInit);
             window.removeEventListener('mousemove', triggerInit);
             window.removeEventListener('touchstart', triggerInit);
@@ -88,65 +171,37 @@ export const initGAWithEngagement = () => {
         }
     };
 
-    // 1. 사용자 활동 감지 시 초기화
     if (typeof window !== 'undefined') {
         window.addEventListener('scroll', triggerInit, { passive: true });
         window.addEventListener('mousemove', triggerInit, { passive: true });
         window.addEventListener('touchstart', triggerInit, { passive: true });
         window.addEventListener('click', triggerInit);
-
-        // 2. 활동이 없더라도 일정 시간 후에는 초기화 (데이터 유실 방지)
         setTimeout(triggerInit, initTimeout);
     }
 };
 
 // 기본 Google Analytics 초기화 로직 (내부용)
 const initGA = () => {
-    console.log('[Analytics.initGA] 🚀 GA4 초기화 시작 (Engagement Triggered)');
-    console.log('[Analytics.initGA] Measurement ID:', MEASUREMENT_ID);
-    console.log('[Analytics.initGA] Hostname:', window.location.hostname);
-
-    // 1. 봇 트래픽 체크
-    if (isBot()) {
-        console.log('[Analytics.initGA] 🤖 Bot detected. GA4 initialization skipped.');
-        return;
-    }
-
-    // 2. 개발 환경 차단 (빌보드는 모니터링을 위해 허용하되, PageView는 아래 logPageView에서 차단)
-    const devMode = isDevelopment();
-    console.log('[Analytics.initGA] 개발 환경 감지:', devMode);
-
-    if (devMode) {
-        console.log('[Analytics.initGA] ⚠️ Analytics disabled (Dev)');
-        return;
-    }
-
-    // 3. 도메인 화이트리스트 체크 (Prod Only)
-    const hostname = window.location.hostname;
-    const allowedDomains = ['swingenjoy.com', 'swingandjoy.com', 'www.swingenjoy.com', 'www.swingandjoy.com'];
-    console.log('[Analytics.initGA] 허용된 도메인:', allowedDomains);
-    console.log('[Analytics.initGA] 현재 도메인 허용 여부:', allowedDomains.includes(hostname));
-
-    // 리듬앤조이 공식 도메인이 아니면 차단 (Netlify Preview, Replit 등)
-    if (!allowedDomains.includes(hostname)) {
-        console.log(`[Analytics.initGA] ⚠️ Analytics disabled (Non-production domain: ${hostname})`);
-        return;
-    }
+    if (!isAllowedEnvironment()) return;
 
     if (MEASUREMENT_ID) {
-        console.log('[Analytics.initGA] ReactGA.initialize 호출 중...');
         try {
+            // [Layer 2 & 3] 업계 표준 파라미터 적용
             ReactGA.initialize(MEASUREMENT_ID, {
                 gaOptions: {
-                    anonymizeIp: true, // IP 익명화 (개인정보 보호)
+                    anonymizeIp: true,
                 },
+                gtagOptions: {
+                    traffic_type: isAdminUser || isDevelopment() ? 'internal' : 'production',
+                    debug_mode: isDevelopment() || isAdminUser
+                }
             });
-            console.log('[Analytics.initGA] ✅ Google Analytics initialized with ID:', MEASUREMENT_ID);
+            console.log(`[Analytics] ✅ GA4 Initialized (${MEASUREMENT_ID === DEV_ID ? 'DEV' : 'PROD'})`);
         } catch (error) {
-            console.error('[Analytics.initGA] ❌ 초기화 실패:', error);
+            console.error('[Analytics] ❌ 초기화 실패:', error);
         }
     } else {
-        console.warn('[Analytics.initGA] ⚠️ GA Measurement ID not configured');
+        console.warn('[Analytics] ⚠️ GA Measurement ID not configured');
     }
 };
 
@@ -156,26 +211,20 @@ const initGA = () => {
  * @param title - 페이지 제목 (선택사항, 가상 페이지뷰 시 사용)
  */
 export const logPageView = (path: string, title?: string) => {
-    console.log('[Analytics.logPageView] 📄 페이지뷰 로깅 시도:', { path, title });
+    if (!isAllowedEnvironment()) return;
 
     // 빌보드 페이지는 PageView 수집 제외 (별도 모니터링 이벤트만 수집)
-    const isBillboard = isBillboardPage();
-    console.log('[Analytics.logPageView] 빌보드 페이지:', isBillboard);
-
-    if (isBillboard) {
-        console.log('[Analytics.logPageView] ⚠️ PageView skipped (Billboard)');
+    if (isBillboardPage()) {
         return;
     }
 
     if (MEASUREMENT_ID) {
         try {
             ReactGA.send({ hitType: 'pageview', page: path, title: title });
-            console.log('[Analytics.logPageView] ✅ Page view sent:', { path, title });
+            console.log('[Analytics] ✅ Page view sent:', { path, title });
         } catch (error) {
-            console.error('[Analytics.logPageView] ❌ 페이지뷰 전송 실패:', error);
+            console.error('[Analytics] ❌ 페이지뷰 전송 실패:', error);
         }
-    } else {
-        console.warn('[Analytics.logPageView] ⚠️ MEASUREMENT_ID 없음');
     }
 };
 
@@ -186,7 +235,7 @@ export const logPageView = (path: string, title?: string) => {
  * @param label - 이벤트 라벨 (선택사항)
  */
 export const logEvent = (category: string, action: string, label?: string) => {
-    console.log('[Analytics.logEvent] 📊 이벤트 로깅:', { category, action, label });
+    if (!isAllowedEnvironment()) return;
 
     if (MEASUREMENT_ID) {
         try {
@@ -195,12 +244,10 @@ export const logEvent = (category: string, action: string, label?: string) => {
                 action,
                 label,
             });
-            console.log('[Analytics.logEvent] ✅ Event sent:', { category, action, label });
+            console.log('[Analytics] ✅ Event sent:', { category, action, label });
         } catch (error) {
-            console.error('[Analytics.logEvent] ❌ 이벤트 전송 실패:', error);
+            console.error('[Analytics] ❌ 이벤트 전송 실패:', error);
         }
-    } else {
-        console.warn('[Analytics.logEvent] ⚠️ MEASUREMENT_ID 없음');
     }
 };
 
@@ -230,13 +277,19 @@ export const logUserInteraction = (element: string, action: string, label?: stri
  * @param errorLocation - 에러 발생 위치 (선택사항)
  */
 export const logError = (errorType: string, errorMessage: string, errorLocation?: string) => {
+    if (!isAllowedEnvironment()) return;
+
     if (MEASUREMENT_ID) {
-        ReactGA.event({
-            category: 'Error',
-            action: errorType,
-            label: errorLocation ? `${errorLocation}: ${errorMessage}` : errorMessage,
-        });
-        console.log('[Analytics] Error:', { errorType, errorMessage, errorLocation });
+        try {
+            ReactGA.event({
+                category: 'Error',
+                action: errorType,
+                label: errorLocation ? `${errorLocation}: ${errorMessage}` : errorMessage,
+            });
+            console.log('[Analytics] Error logged:', { errorType, errorMessage, errorLocation });
+        } catch (error) {
+            console.error('[Analytics] ❌ 에러 로깅 실패:', error);
+        }
     }
 };
 
@@ -248,14 +301,20 @@ export const logError = (errorType: string, errorMessage: string, errorLocation?
  * @param label - 라벨 (선택사항)
  */
 export const logTiming = (category: string, variable: string, value: number, label?: string) => {
+    if (!isAllowedEnvironment()) return;
+
     if (MEASUREMENT_ID) {
-        ReactGA.event({
-            category: 'Timing',
-            action: `${category}-${variable}`,
-            label,
-            value: Math.round(value),
-        });
-        console.log('[Analytics] Timing:', { category, variable, value, label });
+        try {
+            ReactGA.event({
+                category: 'Timing',
+                action: `${category}-${variable}`,
+                label,
+                value: Math.round(value),
+            });
+            console.log('[Analytics] Timing logged:', { category, variable, value, label });
+        } catch (error) {
+            console.error('[Analytics] ❌ 성능 로깅 실패:', error);
+        }
     }
 };
 
@@ -264,17 +323,15 @@ export const logTiming = (category: string, variable: string, value: number, lab
  * @param properties - 사용자 속성 객체
  */
 export const setUserProperties = (properties: Record<string, string | number | boolean>) => {
-    console.log('[Analytics.setUserProperties] 🔧 사용자 속성 설정:', properties);
+    if (!isAllowedEnvironment()) return;
 
     if (MEASUREMENT_ID) {
         try {
             ReactGA.set(properties);
-            console.log('[Analytics.setUserProperties] ✅ User properties set:', properties);
+            console.log('[Analytics] ✅ User properties set:', properties);
         } catch (error) {
-            console.error('[Analytics.setUserProperties] ❌ 속성 설정 실패:', error);
+            console.error('[Analytics] ❌ 속성 설정 실패:', error);
         }
-    } else {
-        console.warn('[Analytics.setUserProperties] ⚠️ MEASUREMENT_ID 없음');
     }
 };
 
@@ -284,36 +341,19 @@ export const setUserProperties = (properties: Record<string, string | number | b
  * @param userId - 사용자 ID (Supabase User ID), null이면 제거
  */
 export const setUserId = (userId: string | null) => {
-    console.log('[Analytics.setUserId] 👤 사용자 ID 설정:', userId ? '설정' : '제거');
-    console.log('[Analytics.setUserId] User ID:', userId);
-
-    // 개발 환경에서는 콘솔 로그만 출력
-    const devMode = isDevelopment();
-    console.log('[Analytics.setUserId] 개발 환경:', devMode);
-
-    if (devMode) {
-        if (userId) {
-            console.log('[Analytics.setUserId] ✅ User ID set (Dev only):', userId);
-        } else {
-            console.log('[Analytics.setUserId] ✅ User ID cleared (Dev only)');
-        }
-        return;
-    }
+    if (!isAllowedEnvironment()) return;
 
     if (MEASUREMENT_ID) {
         try {
             if (userId) {
                 ReactGA.set({ userId: userId });
-                console.log('[Analytics.setUserId] ✅ User ID set:', userId);
+                console.log('[Analytics] ✅ User ID set:', userId);
             } else {
-                // 로그아웃 시 User ID 제거
                 ReactGA.set({ userId: undefined });
-                console.log('[Analytics.setUserId] ✅ User ID cleared');
+                console.log('[Analytics] ✅ User ID cleared');
             }
         } catch (error) {
-            console.error('[Analytics.setUserId] ❌ User ID 설정 실패:', error);
+            console.error('[Analytics] ❌ User ID 설정 실패:', error);
         }
-    } else {
-        console.warn('[Analytics.setUserId] ⚠️ MEASUREMENT_ID 없음');
     }
 };

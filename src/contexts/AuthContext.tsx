@@ -4,7 +4,7 @@ import { supabase, validateAndRecoverSession } from '../lib/supabase';
 import type { User, Session } from '@supabase/supabase-js';
 import { initKakaoSDK, loginWithKakao, logoutKakao } from '../utils/kakaoAuth';
 
-import { setUserProperties, logEvent, setUserId } from '../lib/analytics';
+import { setUserProperties, logEvent, setUserId, setAdminStatus } from '../lib/analytics';
 
 
 
@@ -123,6 +123,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem(`${storagePrefix}billboardUserId`);
     localStorage.removeItem(`${storagePrefix}billboardUserName`);
     localStorage.removeItem(`${storagePrefix}isLoggingOut`);
+    localStorage.removeItem('ga-admin-shield');
 
     // 2. sessionStorage도 정리
     sessionStorage.clear();
@@ -319,6 +320,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       lastProcessedUserId.current = null;
       setUserProfile(null);
       setIsAdmin(false);
+      setAdminStatus(false);
     }
   }, [user]);
 
@@ -625,8 +627,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     console.log('[개발 프리패스] 활성화됨 - UI 전용 모드');
   } : undefined;
 
-  // 디버깅 로그 (상세)
+  // 디버깅 로그 (상세) 및 GA4 관리자 상태 동기화
   useEffect(() => {
+    // GA4 관리자 상태 동기화
+    setAdminStatus(isAdmin);
+
     console.log('[AuthContext] 상태 업데이트:', {
       userEmail: user?.email,
       appMetadataIsAdmin: user?.app_metadata?.is_admin,
