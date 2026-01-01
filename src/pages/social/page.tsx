@@ -381,7 +381,7 @@ const SocialPage: React.FC = () => {
         isAdmin={!!user}
       />
 
-      {/* 3단: 등록된 단체 (standalone) */}
+      {/* 3단: 단체 (standalone) */}
       <GroupDirectory
         groups={groups}
         favorites={favorites}

@@ -51,7 +51,7 @@ const GroupDirectory: React.FC<GroupDirectoryProps> = ({
         <section className={`group-directory-container ${hideTitle ? 'no-title' : ''}`}>
             {!hideTitle && (
                 <div className="section-header-area">
-                    <h2 className="section-title">등록된 단체</h2>
+                    <h2 className="section-title">단체</h2>
                     <span className="count-badge">{groups.length}개 단체</span>
                 </div>
             )}
@@ -156,7 +156,7 @@ const GroupDirectory: React.FC<GroupDirectoryProps> = ({
                     })
                 ) : (
                     <div className="empty-filter-result">
-                        해당 분류로 등록된 단체가 없습니다.
+                        해당 분류의 단체가 없습니다.
                     </div>
                 )}
             </div>
