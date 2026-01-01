@@ -388,25 +388,25 @@ const EventList: React.FC<EventListProps> = ({
             const kstDay = getKSTDay();
             const daysFromMonday = kstDay === 0 ? 6 : kstDay - 1;
 
-            // Calculate Week Range for Filter (Mon - Sun)
-            // We need this to pre-filter events so we don't map EVERYTHING
-            const todayDate = new Date(todayStr); // Approximate local
+            // Calculate Week Range for Filter (Mon - Next Next Sun, 2 weeks)
+            const todayDate = new Date(todayStr);
             const weekStart = new Date(todayDate);
             weekStart.setDate(todayDate.getDate() - daysFromMonday);
-            const weekEnd = new Date(weekStart);
-            weekEnd.setDate(weekStart.getDate() + 6);
+
+            // 2 weeks after Monday of this week
+            const twoWeeksLater = new Date(weekStart);
+            twoWeeksLater.setDate(weekStart.getDate() + 13); // +13 = Next Sunday
 
             const weekStartStr = getLocalDateString(weekStart);
-            const weekEndStr = getLocalDateString(weekEnd);
+            const twoWeeksEndStr = getLocalDateString(twoWeeksLater);
 
-            // A. This Week's Events (category='event') -> Map to SocialSchedule
+            // Fetch 2 weeks of events (category='event') -> Map to SocialSchedule
             const weekEventsAsSocial = events
               .filter(e => {
                 if (e.category !== 'event') return false;
-                // Event must overlap with this week or be on a specific date
-                // Simple check: if date is in range
                 const eDate = e.date || "";
-                return eDate >= weekStartStr && eDate <= weekEndStr;
+                // Include this week AND next week
+                return eDate >= weekStartStr && eDate <= twoWeeksEndStr;
               })
               .map(e => ({
                 id: e.id * 10000,
@@ -422,14 +422,10 @@ const EventList: React.FC<EventListProps> = ({
                 created_at: e.created_at,
                 updated_at: '',
                 description: e.description,
-                board_users: (e as any).board_users, // Preserve author info
+                board_users: (e as any).board_users,
                 is_mapped_event: true
               } as any));
 
-            // Return combined. AllSocialSchedules will do further fine-grained filtering if needed,
-            // but we must pass the source data.
-            // Note: We pass ALL socialSchedules because AllSocialSchedules filters them internally.
-            // But for Events, we pre-filter and map them.
             return [...weekEventsAsSocial, ...socialSchedules];
           })()}
           refreshSocialSchedules={refreshSocial}

@@ -16,73 +16,67 @@ interface AllSocialSchedulesProps {
 const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules, onViewAll, onEventClick, onRefresh }) => {
     const { openModal } = useModalActions();
     const { isAdmin, user } = useAuth();
+    const [weekMode, setWeekMode] = React.useState<'this' | 'next'>('this');
 
-    // Get today's date in KST (Consistent with other components)
+    // Get today's date in KST
     const todayStr = getLocalDateString();
 
-    // Calculate this week's date range (Monday to Sunday) based on KST
-    const kstDay = getKSTDay(); // 0 (Sun) - 6 (Sat)
+    // Calculate ranges
+    const kstDay = getKSTDay();
     const daysFromMonday = kstDay === 0 ? 6 : kstDay - 1;
 
     const todayDate = new Date(todayStr);
-    const weekStart = new Date(todayDate);
-    weekStart.setDate(todayDate.getDate() - daysFromMonday);
+    const thisWeekStart = new Date(todayDate);
+    thisWeekStart.setDate(todayDate.getDate() - daysFromMonday);
+    const thisWeekEnd = new Date(thisWeekStart);
+    thisWeekEnd.setDate(thisWeekStart.getDate() + 6);
 
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekStart.getDate() + 6);
+    const nextWeekStart = new Date(thisWeekStart);
+    nextWeekStart.setDate(thisWeekStart.getDate() + 7);
+    const nextWeekEnd = new Date(nextWeekStart);
+    nextWeekEnd.setDate(nextWeekStart.getDate() + 6);
 
-    const weekEndStr = getLocalDateString(weekEnd);
+    const thisWeekEndStr = getLocalDateString(thisWeekEnd);
+    const nextWeekStartStr = getLocalDateString(nextWeekStart);
+    const nextWeekEndStr = getLocalDateString(nextWeekEnd);
 
-    // Filter schedules:
-    // 1. Exclude regular schedules (those with day_of_week set)
-    // 2. Only show one-time event schedules (those with specific dates)
-    // 3. Show from today until end of week
-    // 4. Must be within this week (Monday to Sunday)
-    const nonRegularSchedules = schedules.filter(schedule => {
-        // Must not have day_of_week (exclude regular schedules)
-        // Note: Some legacy data might have day_of_week=null, so we check explicitly
+    // Filter schedules based on weekMode
+    const filteredSchedules = schedules.filter(schedule => {
         if (schedule.day_of_week !== null && schedule.day_of_week !== undefined) return false;
-
-        // Must have a date
         if (!schedule.date) return false;
 
-        // Show from TOMORROW until end of week (Exclude Today)
-        if (schedule.date <= todayStr) return false;
-
-        // Must be within this week (Monday to Sunday)
-        if (schedule.date > weekEndStr) return false;
+        if (weekMode === 'this') {
+            // Show from today until end of this week
+            // Note: We show >= todayStr to include today's but AllSocialSchedules is usually "remaining"
+            // Original logic was > todayStr. Let's keep it to avoid overlap with TodaySocial if desired, 
+            // but user said "elements from next week", implying we follow the same pattern.
+            if (schedule.date <= todayStr) return false;
+            if (schedule.date > thisWeekEndStr) return false;
+        } else {
+            // Show next week (Mon to Sun)
+            if (schedule.date < nextWeekStartStr) return false;
+            if (schedule.date > nextWeekEndStr) return false;
+        }
 
         return true;
     });
 
-    if (nonRegularSchedules.length === 0) return null;
+    if (filteredSchedules.length === 0 && weekMode === 'this') return null;
 
     const getMediumImage = (item: SocialSchedule) => {
         if (item.image_thumbnail) return item.image_thumbnail;
         if (item.image_medium) return item.image_medium;
-        if (item.image_micro) return item.image_micro;
-        if (item.image_full) return item.image_full;
-        if (item.image_url) return item.image_url;
-        return '';
+        return item.image_url || '';
     };
 
     const handleScheduleClick = (e: React.MouseEvent, item: SocialSchedule) => {
         e.stopPropagation();
-
-        // 1. 일반 이벤트(group_id === -1)인 경우
         if (item.group_id === -1) {
-            // 일반 이벤트 상세 모달 열기 (onEventClick이 있다면 사용)
-            if (onEventClick) {
-                // Event 타입으로 캐스팅하여 전달
-                onEventClick(item as unknown as Event); // item은 SocialSchedule이지만 구조가 비슷함
-            }
+            if (onEventClick) onEventClick(item as unknown as Event);
             return;
         }
 
-        // Helper to open modal (can be called recursively)
         const openDetailModal = (scheduleItem: SocialSchedule) => {
-            // 2. 소셜 일정인 경우
-            // 일회성 일정만 수정 가능
             const isOneTimeSchedule = !!scheduleItem.date;
             const isOwner = user && scheduleItem.user_id === user.id;
             const canEdit = (isOwner || isAdmin) && isOneTimeSchedule;
@@ -96,83 +90,96 @@ const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules,
                     groupId: s.group_id,
                     onSuccess: (data: any) => {
                         if (onRefresh) onRefresh();
-                        // 수정 후 변경된 데이터로 상세 모달 다시 열기 (UI 즉시 반영)
-                        if (data) {
-                            openDetailModal(data);
-                        }
+                        if (data) openDetailModal(data);
                     }
                 })
             });
         };
-
         openDetailModal(item);
     };
 
-    // Sort schedules by date and start_time
-    const sortedSchedules = [...nonRegularSchedules].sort((a, b) => {
-        // First sort by date
+    const sortedSchedules = [...filteredSchedules].sort((a, b) => {
         const dateA = a.date || '';
         const dateB = b.date || '';
         if (dateA !== dateB) return dateA.localeCompare(dateB);
-
-        // Then sort by start_time
-        const timeA = a.start_time || '';
-        const timeB = b.start_time || '';
-        return timeA.localeCompare(timeB);
+        return (a.start_time || '').localeCompare(b.start_time || '');
     });
 
     return (
         <section className="all-social-container">
-            <div className="all-social-title-area">
-                <i className="ri-calendar-line" style={{ color: '#4a9eff', fontSize: '1.2rem' }}></i>
-                <h2 className="all-social-title">이번주 소셜 일정</h2>
-                <span className="all-social-count">{nonRegularSchedules.length}</span>
+            <div className="all-social-header">
+                <div className="all-social-menu-group">
+                    <i className="ri-calendar-line" style={{ color: '#4a9eff', fontSize: '1.2rem' }}></i>
+                    <h2 className="all-social-title-menu">
+                        <span
+                            className={`menu-item ${weekMode === 'this' ? 'active' : ''}`}
+                            onClick={() => setWeekMode('this')}
+                        >
+                            이번주
+                        </span>
+                        <span className="menu-sep">|</span>
+                        <span
+                            className={`menu-item ${weekMode === 'next' ? 'active' : ''}`}
+                            onClick={() => setWeekMode('next')}
+                        >
+                            다음주
+                        </span>
+                        <span className="title-suffix">소셜일정</span>
+                    </h2>
+                    <span className="all-social-count">{filteredSchedules.length}</span>
+                </div>
+
                 {onViewAll && (
                     <button className="evt-view-all-btn" onClick={onViewAll}>
-                        전체보기 ❯
+                        전체 ❯
                     </button>
                 )}
             </div>
 
             <HorizontalScrollNav>
                 <div className="all-social-scroller">
-                    {sortedSchedules.map((item) => (
-                        <div
-                            key={item.id}
-                            className="all-social-card"
-                            onClick={(e) => handleScheduleClick(e, item)}
-                        >
-                            <div className="all-social-card-image">
-                                {getMediumImage(item) ? (
-                                    <img src={getMediumImage(item)} alt={item.title} loading="lazy" />
-                                ) : (
-                                    <div className="all-social-placeholder">
-                                        <i className="ri-calendar-event-line"></i>
-                                    </div>
-                                )}
-                                {item.start_time && (
-                                    <div className="all-social-card-overlay">
-                                        <span className="all-social-time">{item.start_time.substring(0, 5)}</span>
-                                    </div>
-                                )}
-                            </div>
-                            <div className="all-social-card-info">
-                                <h3 className="all-social-card-title">{item.title}</h3>
-                                <p className="all-social-card-meta">
-                                    {item.date && (
-                                        <span className="all-social-day-badge">
-                                            {new Date(item.date + 'T00:00:00').toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric', weekday: 'short' })}
-                                        </span>
+                    {sortedSchedules.length > 0 ? (
+                        sortedSchedules.map((item) => (
+                            <div
+                                key={item.id}
+                                className="all-social-card"
+                                onClick={(e) => handleScheduleClick(e, item)}
+                            >
+                                <div className="all-social-card-image">
+                                    {getMediumImage(item) ? (
+                                        <img src={getMediumImage(item)} alt={item.title} loading="lazy" />
+                                    ) : (
+                                        <div className="all-social-placeholder">
+                                            <i className="ri-calendar-event-line"></i>
+                                        </div>
                                     )}
-                                    <span className="all-social-place">
-                                        <i className="ri-map-pin-line"></i>
-                                        {item.place_name || '장소 미정'}
-                                    </span>
-                                </p>
+                                    {item.start_time && (
+                                        <div className="all-social-card-overlay">
+                                            <span className="all-social-time">{item.start_time.substring(0, 5)}</span>
+                                        </div>
+                                    )}
+                                </div>
+                                <div className="all-social-card-info">
+                                    <h3 className="all-social-card-title">{item.title}</h3>
+                                    <p className="all-social-card-meta">
+                                        {item.date && (
+                                            <span className="all-social-day-badge">
+                                                {new Date(item.date + 'T00:00:00').toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric', weekday: 'short' })}
+                                            </span>
+                                        )}
+                                        <span className="all-social-place">
+                                            <i className="ri-map-pin-line"></i>
+                                            {item.place_name || '장소 미정'}
+                                        </span>
+                                    </p>
+                                </div>
                             </div>
+                        ))
+                    ) : (
+                        <div className="all-social-empty">
+                            일정이 없습니다.
                         </div>
-                    ))}
-                    {/* Spacer for last item padding */}
+                    )}
                     <div className="all-social-scroller-spacer"></div>
                 </div>
             </HorizontalScrollNav>
