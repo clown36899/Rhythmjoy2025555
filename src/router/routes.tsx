@@ -50,6 +50,7 @@ export const prefetchHistoryTimelinePage = () => import('../pages/history/Histor
 const HistoryTimelinePage = lazy(prefetchHistoryTimelinePage);
 
 const PushNotificationTestPage = lazy(() => import('../pages/PushNotificationTestPage'));
+const TestDeletePage = lazy(() => import('../pages/TestDeletePage'));
 
 
 export const routes: RouteObject[] = [
@@ -75,7 +76,7 @@ export const routes: RouteObject[] = [
             { path: '/debug', element: <DebugLogPage /> },
             { path: '/history', element: <HistoryTimelinePage /> },
             { path: '/push-test', element: <PushNotificationTestPage /> },
-
+            { path: '/test-delete', element: <TestDeletePage /> },
         ],
     },
     {
