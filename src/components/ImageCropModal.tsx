@@ -145,9 +145,22 @@ export default memo(function ImageCropModal({
   }, [imageUrl]); // Removed croppedPreviewUrl to prevent spinner on crop apply
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    console.log('[ImageCropModal] handleFileInputChange called');
     const file = e.target.files?.[0];
-    if (file && onImageUpdate) {
-      onImageUpdate(file);
+    if (file) {
+      console.log('[ImageCropModal] File selected in crop modal:', {
+        name: file.name,
+        type: file.type,
+        size: file.size
+      });
+      if (onImageUpdate) {
+        console.log('[ImageCropModal] Calling onImageUpdate with file');
+        onImageUpdate(file);
+      } else {
+        console.warn('[ImageCropModal] onImageUpdate callback not provided');
+      }
+    } else {
+      console.log('[ImageCropModal] No file selected');
     }
     // Clear input so same file can be selected again
     if (fileInputRef.current) {
@@ -156,6 +169,7 @@ export default memo(function ImageCropModal({
   };
 
   const handleChangeImageClick = () => {
+    console.log('[ImageCropModal] handleChangeImageClick called - triggering file input click');
     fileInputRef.current?.click();
   };
 
@@ -334,9 +348,21 @@ export default memo(function ImageCropModal({
 
   // 저장 버튼 핸들러 - 크롭된 이미지를 부모 컴포넌트로 전달
   const handleSave = () => {
+    console.log('[ImageCropModal] handleSave called:', {
+      hasCroppedFile: !!croppedFile,
+      hasCroppedPreviewUrl: !!croppedPreviewUrl,
+      isModified
+    });
     if (croppedFile && croppedPreviewUrl) {
+      console.log('[ImageCropModal] Calling onCropComplete with:', {
+        fileName: croppedFile.name,
+        fileSize: croppedFile.size,
+        previewUrlLength: croppedPreviewUrl.length
+      });
       onCropComplete(croppedFile, croppedPreviewUrl, isModified);
       onClose();
+    } else {
+      console.warn('[ImageCropModal] Cannot save - missing croppedFile or croppedPreviewUrl');
     }
   };
 
@@ -566,7 +592,15 @@ export default memo(function ImageCropModal({
               {/* Source Selection */}
               <div className="grid grid-cols-2 gap-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
                 <button
-                  onClick={onChangeImage}
+                  onClick={() => {
+                    console.log('[ImageCropModal] Upload button clicked');
+                    if (onChangeImage) {
+                      console.log('[ImageCropModal] Calling onChangeImage callback');
+                      onChangeImage();
+                    } else {
+                      console.warn('[ImageCropModal] onChangeImage callback not provided');
+                    }
+                  }}
                   className="crop-action-btn crop-change-btn"
                   style={{ justifyContent: 'center' }}
                 >

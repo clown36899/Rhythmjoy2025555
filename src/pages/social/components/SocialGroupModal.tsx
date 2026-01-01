@@ -56,24 +56,46 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
     }, [isOpen, editGroup]);
 
     const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        console.log('[SocialGroupModal] handleImageSelect called');
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
+            console.log('[SocialGroupModal] File selected:', {
+                name: file.name,
+                type: file.type,
+                size: file.size
+            });
+
             if (!isImageFile(file)) {
+                console.error('[SocialGroupModal] Invalid file type:', file.type);
                 alert('이미지 파일만 업로드 가능합니다.');
                 return;
             }
 
+            console.log('[SocialGroupModal] Starting FileReader...');
             const reader = new FileReader();
             reader.onload = (event) => {
+                console.log('[SocialGroupModal] FileReader onload - setting tempImageSrc and opening crop modal');
                 setTempImageSrc(event.target?.result as string);
                 setIsCropModalOpen(true);
             };
+            reader.onerror = (error) => {
+                console.error('[SocialGroupModal] FileReader error:', error);
+            };
             reader.readAsDataURL(file);
+        } else {
+            console.log('[SocialGroupModal] No file selected');
         }
         e.target.value = '';
     };
 
     const handleCropComplete = (croppedFile: File, previewUrl: string, _isModified: boolean) => {
+        console.log('[SocialGroupModal] handleCropComplete called:', {
+            fileName: croppedFile.name,
+            fileSize: croppedFile.size,
+            fileType: croppedFile.type,
+            previewUrlLength: previewUrl?.length,
+            isModified: _isModified
+        });
         setImageFile(croppedFile);
         setImagePreview(previewUrl);
         setIsCropModalOpen(false);
@@ -294,6 +316,10 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
                         <div
                             className="image-preview-box"
                             onClick={() => {
+                                console.log('[SocialGroupModal] Image preview box clicked:', {
+                                    hasImagePreview: !!imagePreview,
+                                    imagePreviewLength: imagePreview?.length
+                                });
                                 // Always open crop modal (with existing image or null)
                                 setTempImageSrc(imagePreview);
                                 setIsCropModalOpen(true);
@@ -427,7 +453,27 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
                 onClose={() => setIsCropModalOpen(false)}
                 imageUrl={tempImageSrc}
                 onCropComplete={handleCropComplete}
-                onChangeImage={() => fileInputRef.current?.click()}
+                onChangeImage={() => {
+                    console.log('[SocialGroupModal] onChangeImage callback triggered - clicking file input');
+                    fileInputRef.current?.click();
+                }}
+                onImageUpdate={(file: File) => {
+                    console.log('[SocialGroupModal] onImageUpdate callback triggered:', {
+                        fileName: file.name,
+                        fileSize: file.size,
+                        fileType: file.type
+                    });
+                    // Convert file to data URL for preview
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        console.log('[SocialGroupModal] FileReader completed - updating tempImageSrc');
+                        setTempImageSrc(e.target?.result as string);
+                    };
+                    reader.onerror = (error) => {
+                        console.error('[SocialGroupModal] FileReader error in onImageUpdate:', error);
+                    };
+                    reader.readAsDataURL(file);
+                }}
             />
         </>
     );
