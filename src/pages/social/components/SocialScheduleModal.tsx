@@ -355,6 +355,8 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                 </div>
 
                 <form onSubmit={handleSubmit} className="social-schedule-modal-form">
+                    {/* Schedule Type Selection Hidden as per user request */}
+                    {/*
                     <div className="form-section">
                         <label>일정 유형</label>
                         <div className="schedule-type-selector">
@@ -363,13 +365,16 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                                 className={scheduleType === 'once' ? 'active' : ''}
                                 onClick={() => { setScheduleType('once'); setDayOfWeek(null); }}
                             >단발성 (날짜)</button>
-                            <button
-                                type="button"
-                                className={scheduleType === 'regular' ? 'active' : ''}
-                                onClick={() => { setScheduleType('regular'); setDate(''); }}
-                            >정규 (요일)</button>
+                            {(editSchedule && !editSchedule.date) && (
+                                <button
+                                    type="button"
+                                    className={scheduleType === 'regular' ? 'active' : ''}
+                                    onClick={() => { setScheduleType('regular'); setDate(''); }}
+                                >정규 (요일)</button>
+                            )}
                         </div>
                     </div>
+                    */}
 
                     <div className="form-section multi-row">
                         <div className="form-item">
