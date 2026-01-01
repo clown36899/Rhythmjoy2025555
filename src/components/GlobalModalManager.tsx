@@ -104,12 +104,12 @@ export default function GlobalModalManager() {
 
                 {selectedSocialEvent && (
                     <SocialDetailModal
-                        item={selectedSocialEvent}
+                        isOpen={!!selectedSocialEvent}
+                        schedule={selectedSocialEvent}
                         onClose={closeModal}
-                        onVenueClick={handleVenueClick}
-                        onEdit={() => {
-                            setEditingSocialEvent(selectedSocialEvent);
-                        }}
+                        onCopy={() => { }}
+                        onEdit={() => setEditingSocialEvent(selectedSocialEvent)}
+                        isAdmin={!!(isAdmin || (user && selectedSocialEvent.user_id === user.id))}
                     />
                 )}
 
@@ -165,13 +165,16 @@ function renderModal(modal: any, context: any) {
                 />
             );
 
+        case 'socialDetail':
         case 'social_detail':
             return (
                 <SocialDetailModal
-                    item={props.item}
+                    isOpen={true}
+                    schedule={props.schedule || props.item}
                     onClose={props.onClose}
-                    onVenueClick={context.handleVenueClick}
-                    onEdit={() => context.setEditingSocialEvent(props.item)}
+                    onCopy={props.onCopy || (() => { })}
+                    onEdit={props.onEdit || (() => context.setEditingSocialEvent(props.schedule || props.item))}
+                    isAdmin={props.isAdmin !== undefined ? props.isAdmin : !!(context.isAdmin || (context.user && (props.schedule || props.item)?.user_id === context.user.id))}
                 />
             );
 

@@ -235,7 +235,7 @@ const SocialPage: React.FC = () => {
       schedule,
       onCopy: handleCopySchedule,
       onEdit: handleEditSchedule,
-      isAdmin: !!user
+      isAdmin: isAdmin || (user && schedule.user_id === user.id)
     });
   };
 
@@ -279,7 +279,7 @@ const SocialPage: React.FC = () => {
 
     const isCreator = group.user_id === user.id;
 
-    if (!isCreator) {
+    if (!isCreator && !isAdmin) {
       const inputPw = prompt("일정을 추가하려면 단체 관리 비밀번호가 필요합니다.");
       if (!inputPw) return;
 
@@ -307,7 +307,7 @@ const SocialPage: React.FC = () => {
 
     const isCreator = schedule.user_id === user.id;
 
-    if (!isCreator) {
+    if (!isCreator && !isAdmin) {
       const inputPw = prompt("일정을 수정하려면 단체 관리 비밀번호가 필요합니다.");
       if (!inputPw) return;
 

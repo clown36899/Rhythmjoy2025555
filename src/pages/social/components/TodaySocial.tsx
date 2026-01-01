@@ -63,12 +63,9 @@ const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll, on
         // Helper to open modal (can be called recursively)
         const openDetailModal = (scheduleItem: SocialSchedule) => {
             // This is a social schedule
-            // 일회성 일정만 수정 가능 (date가 있는 경우)
-            const isOneTimeSchedule = !!scheduleItem.date;
-
             // 등록자 본인이거나 관리자인 경우 수정 가능
             const isOwner = user && scheduleItem.user_id === user.id;
-            const canEdit = (isOwner || isAdmin) && isOneTimeSchedule;
+            const canEdit = (isOwner || isAdmin);
 
             openModal('socialDetail', {
                 schedule: scheduleItem,
