@@ -25,17 +25,17 @@ const extractStoragePath = (fullUrl: string | null): string | null => {
         return null;
     }
     try {
-        console.log(`[delete-social-item] 🔍 Parsing URL for path check: ${fullUrl}`);
+        console.error(`[delete-social-item] 🔍 Parsing URL for path check: ${fullUrl}`);
         const url = new URL(fullUrl);
         // Path parts: /storage/v1/object/public/images/...
         // We want everything after /images/
         const parts = url.pathname.split('/images/');
         if (parts.length > 1) {
             const path = decodeURIComponent(parts[1]);
-            // console.log(`[delete-social-item] ✅ Extracted Path: ${path}`);
+            // console.error(`[delete-social-item] ✅ Extracted Path: ${path}`);
             return path;
         } else {
-            console.log('[delete-social-item] ⚠️ URL structure differs from expectation (no /images/ split):', url.pathname);
+            console.error('[delete-social-item] ⚠️ URL structure differs from expectation (no /images/ split):', url.pathname);
         }
     } catch (e) { console.error('Error parsing URL:', fullUrl, e); }
     return null;
@@ -43,7 +43,7 @@ const extractStoragePath = (fullUrl: string | null): string | null => {
 
 // Helper: Recursive/Iterative folder cleanup
 const deleteFolderContents = async (storagePath: string) => {
-    console.log(`[delete-social-item] 📦 Cleaning up folder: ${storagePath}`);
+    console.error(`[delete-social-item] 📦 Cleaning up folder: ${storagePath}`);
 
     // 1. Profile images
     const { data: profileFiles, error: pError } = await supabaseAdmin.storage.from('images').list(`${storagePath}/profile`);
@@ -51,7 +51,7 @@ const deleteFolderContents = async (storagePath: string) => {
     if (profileFiles && profileFiles.length > 0) {
         const paths = profileFiles.map(f => `${storagePath}/profile/${f.name}`);
         await supabaseAdmin.storage.from('images').remove(paths);
-        console.log(`[delete-social-item] 🗑️ Removed profile images:`, paths);
+        console.error(`[delete-social-item] 🗑️ Removed profile images:`, paths);
     }
 
     // 2. Schedule images
@@ -65,7 +65,7 @@ const deleteFolderContents = async (storagePath: string) => {
             if (sFiles && sFiles.length > 0) {
                 const sPaths = sFiles.map(f => `${scheduleBasePath}/${f.name}`);
                 await supabaseAdmin.storage.from('images').remove(sPaths);
-                console.log(`[delete-social-item] 🗑️ Removed schedule images in ${folder.name}:`, sPaths);
+                console.error(`[delete-social-item] 🗑️ Removed schedule images in ${folder.name}:`, sPaths);
             }
             // Try to remove the folder/file itself just in case it's a flat file
             if (folder.id) {
@@ -80,7 +80,7 @@ const deleteFolderContents = async (storagePath: string) => {
         const rootPaths = rootFiles.filter(f => !!f.id).map(f => `${storagePath}/${f.name}`);
         if (rootPaths.length > 0) {
             await supabaseAdmin.storage.from('images').remove(rootPaths);
-            console.log(`[delete-social-item] 🗑️ Removed loose root files:`, rootPaths);
+            console.error(`[delete-social-item] 🗑️ Removed loose root files:`, rootPaths);
         }
     }
 };
@@ -91,14 +91,18 @@ export const handler: Handler = async (event) => {
     }
 
     try {
-        const { type, id, password } = JSON.parse(event.body || '{}');
-        console.log(`[delete-social-item] 🔥 Request: Type=${type}, ID=${id}`);
+        const { type, id: rawId, password } = JSON.parse(event.body || '{}');
 
-        if (!type || !id) {
+        // Convert ID to number (critical for DB comparison)
+        const id = typeof rawId === 'string' ? parseInt(rawId, 10) : rawId;
+
+        console.error(`[delete-social-item] 🔥 Request: Type=${type}, ID=${id} (raw: ${rawId}, type: ${typeof id})`);
+
+        if (!type || !id || isNaN(id)) {
             return {
                 statusCode: 400,
                 headers: corsHeaders,
-                body: JSON.stringify({ error: 'Type and ID are required.' })
+                body: JSON.stringify({ error: 'Type and valid numeric ID are required.' })
             };
         }
 
@@ -127,7 +131,7 @@ export const handler: Handler = async (event) => {
                 }
             }
         } else {
-            console.log('[delete-social-item] No Auth header provided.');
+            console.error('[delete-social-item] No Auth header provided.');
         }
 
         // --- LOGIC PER TYPE ---
@@ -141,7 +145,7 @@ export const handler: Handler = async (event) => {
                 .single();
 
             if (fetchError || !group) {
-                console.log(`[delete-social-item] Group ${id} not found.`);
+                console.error(`[delete-social-item] Group ${id} not found.`);
                 return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ message: 'Group not found or already deleted.' }) };
             }
 
@@ -154,7 +158,7 @@ export const handler: Handler = async (event) => {
                     isAuthorized = true;
                     authReason = "Password";
                 } else {
-                    console.log(`[delete-social-item] Group Auth Failed. User: ${authUserId}, Owner: ${group.user_id}`);
+                    console.error(`[delete-social-item] Group Auth Failed. User: ${authUserId}, Owner: ${group.user_id}`);
                 }
             }
 
@@ -162,13 +166,13 @@ export const handler: Handler = async (event) => {
                 return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: 'Unauthorized.' }) };
             }
 
-            console.log(`[delete-social-item] 🚀 Authorized (${authReason}). Deleting Group...`);
+            console.error(`[delete-social-item] 🚀 Authorized (${authReason}). Deleting Group...`);
 
             // 3. Delete Images (Folder cleanup)
             if (group.storage_path) {
                 await deleteFolderContents(group.storage_path);
             } else {
-                console.log('[delete-social-item] No storage_path for group. Skipping folder cleanup.');
+                console.error('[delete-social-item] No storage_path for group. Skipping folder cleanup.');
             }
 
             // 4. Delete DB Record
@@ -187,7 +191,7 @@ export const handler: Handler = async (event) => {
                 .single();
 
             if (fetchError || !schedule) {
-                console.log(`[delete-social-item] Schedule ${id} not found.`);
+                console.error(`[delete-social-item] Schedule ${id} not found.`);
                 return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ message: 'Schedule not found or already deleted.' }) };
             }
 
@@ -217,11 +221,11 @@ export const handler: Handler = async (event) => {
             }
 
             if (!isAuthorized) {
-                console.log(`[delete-social-item] Schedule Auth Failed. User: ${authUserId}, ScheduleOwner: ${schedule.user_id}`);
+                console.error(`[delete-social-item] Schedule Auth Failed. User: ${authUserId}, ScheduleOwner: ${schedule.user_id}`);
                 return { statusCode: 403, headers: corsHeaders, body: JSON.stringify({ error: 'Unauthorized.' }) };
             }
 
-            console.log(`[delete-social-item] 🚀 Authorized (${authReason}). Deleting Schedule...`);
+            console.error(`[delete-social-item] 🚀 Authorized (${authReason}). Deleting Schedule...`);
 
             // 3. Delete Images (Specific files)
             const filesToDelete = [
@@ -231,11 +235,11 @@ export const handler: Handler = async (event) => {
 
             const uniquePaths = [...new Set(filesToDelete)];
             if (uniquePaths.length > 0) {
-                console.log(`[delete-social-item] 🗑️ Deleting ${uniquePaths.length} schedule images from list:`, uniquePaths);
+                console.error(`[delete-social-item] 🗑️ Deleting ${uniquePaths.length} schedule images from list:`, uniquePaths);
                 const { error: remImgErr } = await supabaseAdmin.storage.from('images').remove(uniquePaths);
                 if (remImgErr) console.error('[delete-social-item] Image delete error:', remImgErr);
             } else {
-                console.log('[delete-social-item] ℹ️ No images found to delete for this schedule.');
+                console.error('[delete-social-item] ℹ️ No images found to delete for this schedule.');
             }
 
             // 4. Delete DB Record
@@ -249,7 +253,7 @@ export const handler: Handler = async (event) => {
             return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Invalid type.' }) };
         }
 
-        console.log(`[delete-social-item] 🎉 Success: ${type} ${id} deleted.`);
+        console.error(`[delete-social-item] 🎉 Success: ${type} ${id} deleted.`);
         return {
             statusCode: 200,
             headers: corsHeaders,

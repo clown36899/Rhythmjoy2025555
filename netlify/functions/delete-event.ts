@@ -26,7 +26,7 @@ export const handler: Handler = async (event) => {
 
     try {
         const { eventId, password } = JSON.parse(event.body || '{}');
-        console.log(`[delete-event] 🔥 Request received for Event ID: ${eventId}`);
+        console.error(`[delete-event] 🔥 Request received for Event ID: ${eventId}`);
 
         if (!eventId) {
             console.error('[delete-event] Missing eventId in request body');
@@ -38,7 +38,7 @@ export const handler: Handler = async (event) => {
         }
 
         // 1. DB에서 이벤트 정보 조회
-        console.log(`[delete-event] 🔍 Fetching event ${eventId} details...`);
+        console.error(`[delete-event] 🔍 Fetching event ${eventId} details...`);
         const { data: eventData, error: fetchError } = await supabaseAdmin
             .from('events')
             .select('password, storage_path, image, image_thumbnail, image_medium, image_full, user_id, title')
@@ -46,7 +46,7 @@ export const handler: Handler = async (event) => {
             .single();
 
         if (fetchError) {
-            console.log(`[delete-event] ℹ️ Event ${eventId} not found (might already be deleted):`, fetchError.message);
+            console.error(`[delete-event] ℹ️ Event ${eventId} not found (might already be deleted):`, fetchError.message);
             // 이미 삭제된 것으로 간주하고 200 반환 (클라이언트 에러 방지)
             return {
                 statusCode: 200,
@@ -56,7 +56,7 @@ export const handler: Handler = async (event) => {
         }
 
         if (!eventData) {
-            console.log(`[delete-event] ℹ️ Event ${eventId} returned no data.`);
+            console.error(`[delete-event] ℹ️ Event ${eventId} returned no data.`);
             return {
                 statusCode: 200,
                 headers: corsHeaders,
@@ -64,7 +64,7 @@ export const handler: Handler = async (event) => {
             };
         }
 
-        console.log(`[delete-event] ✅ Event found: "${eventData.title}" (Storage Path: ${eventData.storage_path}, Created By: ${eventData.user_id})`);
+        console.error(`[delete-event] ✅ Event found: "${eventData.title}" (Storage Path: ${eventData.storage_path}, Created By: ${eventData.user_id})`);
 
         // 2. 권한 확인
         let isAuthorized = false;
@@ -72,7 +72,7 @@ export const handler: Handler = async (event) => {
         const authHeader = event.headers.authorization;
 
         if (authHeader) {
-            console.log(`[delete-event] 🔑 Auth header present, verifying token...`);
+            console.error(`[delete-event] 🔑 Auth header present, verifying token...`);
             const userSupabase = createClient(supabaseUrl, supabaseAnonKey, {
                 global: { headers: { Authorization: authHeader } },
                 auth: { persistSession: false }
@@ -84,20 +84,20 @@ export const handler: Handler = async (event) => {
             }
 
             if (user) {
-                console.log(`[delete-event] 👤 Authenticated user: ${user.id} (${user.email})`);
+                console.error(`[delete-event] 👤 Authenticated user: ${user.id} (${user.email})`);
 
                 // 관리자 권한 확인
                 const isAdmin = user.app_metadata?.is_admin === true ||
                     (adminEmailEnv && user.email === adminEmailEnv);
 
                 if (isAdmin) {
-                    console.log(`[delete-event] 🎖️ Authorized as ADMIN`);
+                    console.error(`[delete-event] 🎖️ Authorized as ADMIN`);
                     isAuthorized = true;
                     authReason = "Admin Privileges";
                 }
 
                 if (eventData.user_id && user.id === eventData.user_id) {
-                    console.log(`[delete-event] 🎖️ Authorized as OWNER`);
+                    console.error(`[delete-event] 🎖️ Authorized as OWNER`);
                     isAuthorized = true;
                     authReason = "Resource Owner";
                 }
@@ -106,13 +106,13 @@ export const handler: Handler = async (event) => {
 
         // 비밀번호 확인 (비로그인/대리 삭제용)
         if (!isAuthorized && eventData.password) {
-            console.log(`[delete-event] 🔐 Checking password authorization...`);
+            console.error(`[delete-event] 🔐 Checking password authorization...`);
             if (eventData.password === password) {
-                console.log(`[delete-event] 🎖️ Authorized via PASSWORD`);
+                console.error(`[delete-event] 🎖️ Authorized via PASSWORD`);
                 isAuthorized = true;
                 authReason = "Valid Password";
             } else {
-                console.log(`[delete-event] ❌ Password mismatch. Provided: ${password}, DB: ${eventData.password}`);
+                console.error(`[delete-event] ❌ Password mismatch. Provided: ${password}, DB: ${eventData.password}`);
             }
         }
 
@@ -125,24 +125,24 @@ export const handler: Handler = async (event) => {
             };
         }
 
-        console.log(`[delete-event] 🚀 Starting deletion process (Reason: ${authReason})...`);
+        console.error(`[delete-event] 🚀 Starting deletion process (Reason: ${authReason})...`);
 
         // 3. 종속 데이터 삭제 (Foreign Key 제약 해결)
         // 에러가 나더라도 진행 (로그만 남김)
-        console.log(`[delete-event] 🗑️ Cleaning up dependent data...`);
+        console.error(`[delete-event] 🗑️ Cleaning up dependent data...`);
 
         try {
             const { error: favError } = await supabaseAdmin.from('event_favorites').delete().eq('event_id', eventId);
             if (favError) console.warn(`[delete-event] ⚠️ Error deleting event_favorites:`, favError.message);
-            else console.log(`[delete-event] ✅ event_favorites cleaned up`);
+            else console.error(`[delete-event] ✅ event_favorites cleaned up`);
 
             if (favError) console.warn(`[delete-event] ⚠️ Error deleting event_favorites:`, favError.message);
-            else console.log(`[delete-event] ✅ event_favorites cleaned up`);
+            else console.error(`[delete-event] ✅ event_favorites cleaned up`);
 
             // comments 테이블은 존재하지 않음 (이벤트 댓글 기능이 아직 없거나 다른 테이블 사용)
             // const { error: commentError } = await supabaseAdmin.from('comments').delete().eq('event_id', eventId);
             // if (commentError) console.warn(`[delete-event] ⚠️ Error deleting comments:`, commentError.message);
-            // else console.log(`[delete-event] ✅ comments cleaned up`);
+            // else console.error(`[delete-event] ✅ comments cleaned up`);
         } catch (depError) {
             console.error(`[delete-event] ⚠️ Unexpected error during dependency cleanup:`, depError);
         }
@@ -152,7 +152,7 @@ export const handler: Handler = async (event) => {
 
         // 4-A. 폴더 단위 삭제 시도
         if (eventData.storage_path) {
-            console.log(`[delete-event] 📦 [Method A] Attempting folder cleanup: ${eventData.storage_path}`);
+            console.error(`[delete-event] 📦 [Method A] Attempting folder cleanup: ${eventData.storage_path}`);
             try {
                 const { data: files, error: listError } = await supabaseAdmin.storage.from('images').list(eventData.storage_path);
 
@@ -160,16 +160,16 @@ export const handler: Handler = async (event) => {
                     console.warn(`[delete-event] ⚠️ Method A failed (list):`, listError.message);
                 } else if (files && files.length > 0) {
                     const filePaths = files.map((file) => `${eventData.storage_path}/${file.name}`);
-                    console.log(`[delete-event] 🗑️ Method A removing ${files.length} files:`, filePaths);
+                    console.error(`[delete-event] 🗑️ Method A removing ${files.length} files:`, filePaths);
 
                     const { error: removeError } = await supabaseAdmin.storage.from('images').remove(filePaths);
                     if (removeError) {
                         console.error(`[delete-event] ❌ Method A failed (remove):`, removeError.message);
                     } else {
-                        console.log(`[delete-event] ✅ Method A successful`);
+                        console.error(`[delete-event] ✅ Method A successful`);
                     }
                 } else {
-                    console.log(`[delete-event] ℹ️ Method A found no files in folder.`);
+                    console.error(`[delete-event] ℹ️ Method A found no files in folder.`);
                 }
             } catch (folderError) {
                 console.error(`[delete-event] ⚠️ Method A Unexpected Error:`, folderError);
@@ -195,24 +195,24 @@ export const handler: Handler = async (event) => {
             .filter((p): p is string => !!p);
 
         if (imagePaths.length > 0) {
-            console.log(`[delete-event] 🗑️ [Method B] Attempting unconditional individual file cleanup:`, imagePaths);
+            console.error(`[delete-event] 🗑️ [Method B] Attempting unconditional individual file cleanup:`, imagePaths);
             try {
                 // 이전에 폴더 삭제로 지워졌더라도, 다시 요청 보내는 것은 안전함 (Supabase/S3는 없는 파일 삭제 시 에러 없이 성공 처리하거나 무시함)
                 const { error: legacyRemoveError } = await supabaseAdmin.storage.from('images').remove(imagePaths);
                 if (legacyRemoveError) {
                     console.error(`[delete-event] ❌ Method B failed:`, legacyRemoveError.message);
                 } else {
-                    console.log(`[delete-event] ✅ Method B successful (Redundant safety check passed)`);
+                    console.error(`[delete-event] ✅ Method B successful (Redundant safety check passed)`);
                 }
             } catch (fileError) {
                 console.error(`[delete-event] ⚠️ Method B Unexpected Error:`, fileError);
             }
         } else {
-            console.log(`[delete-event] ℹ️ Method B: No individual image paths found in DB records.`);
+            console.error(`[delete-event] ℹ️ Method B: No individual image paths found in DB records.`);
         }
 
         // 5. 이벤트 최종 삭제
-        console.log(`[delete-event] 💥 Finally deleting event record ${eventId} from DB...`);
+        console.error(`[delete-event] 💥 Finally deleting event record ${eventId} from DB...`);
         const { error: deleteError } = await supabaseAdmin.from('events').delete().eq('id', eventId);
 
         if (deleteError) {
@@ -221,7 +221,7 @@ export const handler: Handler = async (event) => {
             throw deleteError;
         }
 
-        console.log(`[delete-event] 🎉 SUCCESS: Event ${eventId} and associated resources deleted.`);
+        console.error(`[delete-event] 🎉 SUCCESS: Event ${eventId} and associated resources deleted.`);
         return {
             statusCode: 200,
             headers: corsHeaders,
