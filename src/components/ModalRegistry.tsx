@@ -59,6 +59,7 @@ import BoardUserManagementModal from '../components/BoardUserManagementModal';
 import AdminFavoritesModal from '../components/AdminFavoritesModal';
 import AdminSecureMembersModal from '../components/AdminSecureMembersModal';
 import GenreWeightSettingsModal from '../components/GenreWeightSettingsModal';
+import SiteAnalyticsModal from '../components/SiteAnalyticsModal';
 
 /**
  * 모든 모달 컴포넌트를 ID로 매핑
@@ -123,6 +124,7 @@ const MODAL_COMPONENTS: Record<string, any> = {
     'adminSecureMembers': AdminSecureMembersModal,
     'genreWeightSettings': GenreWeightSettingsModal,
     'globalNoticeEditor': GlobalNoticeEditor,
+    'siteAnalytics': SiteAnalyticsModal,
 };
 
 /**

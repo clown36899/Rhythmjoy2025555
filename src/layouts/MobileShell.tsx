@@ -291,6 +291,10 @@ export function MobileShell() {
               className="header-events-content"
               onClick={isEventsPage ? () => window.location.reload() : undefined}
               style={{ cursor: isEventsPage ? 'pointer' : 'default' }}
+              data-analytics-id="logo_home"
+              data-analytics-type="nav_item"
+              data-analytics-title="댄스빌보드 로고"
+              data-analytics-section="header"
             >
               <img src="/logo.png" alt="RhythmJoy Logo" className="header-logo" />
 
@@ -388,6 +392,10 @@ export function MobileShell() {
               }
             }}
             className="header-search-btn"
+            data-analytics-id="header_search"
+            data-analytics-type="action"
+            data-analytics-title="검색"
+            data-analytics-section="header"
           >
             <i className="ri-search-line"></i>
           </button>
@@ -405,6 +413,10 @@ export function MobileShell() {
             }}
             className="header-user-btn"
             title={user ? "프로필" : "로그인"}
+            data-analytics-id="header_user"
+            data-analytics-type="action"
+            data-analytics-title={user ? "프로필" : "로그인"}
+            data-analytics-section="header"
           >
             {user ? (
               userProfile?.profile_image ? (
@@ -425,6 +437,10 @@ export function MobileShell() {
           <button
             onClick={() => setIsDrawerOpen(true)}
             className="header-hamburger-btn"
+            data-analytics-id="header_hamburger"
+            data-analytics-type="action"
+            data-analytics-title="사이드 메뉴"
+            data-analytics-section="header"
           >
             <i className="ri-menu-line"></i>
           </button>
@@ -502,6 +518,10 @@ export function MobileShell() {
                     window.dispatchEvent(new CustomEvent('createEventForDate', { detail: { source: 'floatingBtn', calendarMode } }));
                   }}
                   className="shell-btn-register-topbar"
+                  data-analytics-id="register_event"
+                  data-analytics-type="action"
+                  data-analytics-title="이벤트 등록"
+                  data-analytics-section="top_bar"
                 >
                   <i className="ri-add-line"></i>
                   <span>이벤트 등록</span>

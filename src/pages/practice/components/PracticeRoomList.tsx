@@ -375,6 +375,10 @@ export default function PracticeRoomList({
                 key={room.id}
                 onClick={() => handleRoomClick(room)}
                 className="prl-card"
+                data-analytics-id={room.id}
+                data-analytics-type="venue"
+                data-analytics-title={room.name}
+                data-analytics-section="practice_room_list"
                 style={{
                   animationDelay: `${index * 100}ms`,
                   position: 'relative'
@@ -385,6 +389,10 @@ export default function PracticeRoomList({
                   className="prl-favorite-btn"
                   onClick={(e) => handleToggleFavorite(room.id, e)}
                   title={favoritePracticeRoomIds.has(room.id) ? "즐겨찾기 해제" : "즐겨찾기 추가"}
+                  data-analytics-id={room.id}
+                  data-analytics-type="favorite_toggle"
+                  data-analytics-title={`Practice: ${room.name}`}
+                  data-analytics-section="practice_room_list"
                 >
                   <i className={favoritePracticeRoomIds.has(room.id) ? "ri-star-fill" : "ri-star-line"}></i>
                 </button>

@@ -31,7 +31,12 @@ function ShoppingBanner() {
 
     useEffect(() => {
         if (boardData?.shops) {
-            setShops(boardData.shops);
+            setShops(boardData.shops.map(shop => ({
+                ...shop,
+                description: shop.description || undefined,
+                logo_url: shop.logo_url || undefined,
+                featured_items: shop.featured_items || []
+            })));
             setLoading(false);
         }
     }, [boardData]);
@@ -123,6 +128,10 @@ function ShoppingBanner() {
         <div
             ref={ref}
             className="shopping-banner"
+            data-analytics-id={currentShop.id}
+            data-analytics-type="shop"
+            data-analytics-title={currentShop.name}
+            data-analytics-section="shopping_banner"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             onClick={() => handleShopClick(currentShop)}

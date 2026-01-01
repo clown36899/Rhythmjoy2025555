@@ -143,6 +143,10 @@ const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules,
                             <div
                                 key={item.id}
                                 className="all-social-card"
+                                data-analytics-id={item.id > 1000000 ? Math.floor(item.id / 10000) : item.id}
+                                data-analytics-type={item.group_id === -1 ? 'event' : 'social_schedule'}
+                                data-analytics-title={item.title}
+                                data-analytics-section={`weekly_social_${weekMode}`}
                                 onClick={(e) => handleScheduleClick(e, item)}
                             >
                                 <div className="all-social-card-image">

@@ -8,6 +8,7 @@ import { QueryClientProvider } from '@tanstack/react-query';
 import { CustomDevtools } from './components/CustomDevtools';
 import { queryClient } from './lib/queryClient';
 import { useRealtimeSync } from './hooks/useRealtimeSync';
+import { SiteAnalyticsProvider } from './components/SiteAnalyticsProvider';
 import './styles/devtools.css';
 
 function AppContent() {
@@ -45,7 +46,9 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AppContent />
+      <SiteAnalyticsProvider>
+        <AppContent />
+      </SiteAnalyticsProvider>
       {/* DevTools는 관리자만 볼 수 있음 */}
       {isAdmin && <CustomDevtools />}
     </QueryClientProvider>

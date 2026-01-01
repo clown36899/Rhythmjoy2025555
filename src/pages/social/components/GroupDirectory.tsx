@@ -81,6 +81,10 @@ const GroupDirectory: React.FC<GroupDirectoryProps> = ({
                             <div
                                 key={group.id}
                                 className="group-wide-card"
+                                data-analytics-id={group.id}
+                                data-analytics-type="group"
+                                data-analytics-title={group.name}
+                                data-analytics-section="group_directory"
                                 onClick={() => {
                                     if (onGroupDetailClick) {
                                         onGroupDetailClick(group);

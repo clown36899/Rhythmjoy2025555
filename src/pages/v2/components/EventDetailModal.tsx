@@ -1434,6 +1434,10 @@ export default function EventDetailModal({
                                           rel="noopener noreferrer"
                                           className="info-link"
                                           onClick={(e) => e.stopPropagation()}
+                                          data-analytics-id={selectedEvent.id}
+                                          data-analytics-type="bio_link"
+                                          data-analytics-title={part}
+                                          data-analytics-section="event_detail_bio"
                                         >
                                           {part}
                                         </a>
@@ -1483,6 +1487,10 @@ export default function EventDetailModal({
                                   key={index}
                                   onClick={handleContactClick}
                                   className="contact-button"
+                                  data-analytics-id={selectedEvent.id}
+                                  data-analytics-type="contact_click"
+                                  data-analytics-title={contactInfo.displayText}
+                                  data-analytics-section="event_detail_body"
                                 >
                                   <i
                                     className={`${contactInfo.icon} contact-icon`}
@@ -1574,6 +1582,10 @@ export default function EventDetailModal({
                     rel="noopener noreferrer"
                     className="footer-link"
                     title={selectedEvent.link_name1 || "바로가기 1"}
+                    data-analytics-id={selectedEvent.id}
+                    data-analytics-type="external_link"
+                    data-analytics-title={selectedEvent.link_name1 || "링크1"}
+                    data-analytics-section="event_detail_footer"
                   >
                     <i className="ri-external-link-line footer-link-icon"></i>
                     <span className="footer-link-text">
@@ -1588,6 +1600,10 @@ export default function EventDetailModal({
                     rel="noopener noreferrer"
                     className="footer-link"
                     title={selectedEvent.link_name2 || "바로가기 2"}
+                    data-analytics-id={selectedEvent.id}
+                    data-analytics-type="external_link"
+                    data-analytics-title={selectedEvent.link_name2 || "링크2"}
+                    data-analytics-section="event_detail_footer"
                   >
                     <i className="ri-external-link-line footer-link-icon"></i>
                     <span className="footer-link-text">
@@ -1602,6 +1618,10 @@ export default function EventDetailModal({
                     rel="noopener noreferrer"
                     className="footer-link"
                     title={selectedEvent.link_name3 || "바로가기 3"}
+                    data-analytics-id={selectedEvent.id}
+                    data-analytics-type="external_link"
+                    data-analytics-title={selectedEvent.link_name3 || "링크3"}
+                    data-analytics-section="event_detail_footer"
                   >
                     <i className="ri-external-link-line footer-link-icon"></i>
                     <span className="footer-link-text">
@@ -1686,6 +1706,10 @@ export default function EventDetailModal({
                   }}
                   className="action-button share"
                   title="공유하기"
+                  data-analytics-id={selectedEvent.id}
+                  data-analytics-type="share"
+                  data-analytics-title={selectedEvent.title}
+                  data-analytics-section="event_detail_footer"
                 >
                   <i className="ri-share-line action-icon"></i>
                 </button>

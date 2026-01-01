@@ -210,6 +210,10 @@ export default memo(function FullscreenBillboard({
                     {/* 투명 오버레이: 인스타 클릭 차단 및 상세보기로 이동 */}
                     <div
                       className="fsb-video-overlay"
+                      data-analytics-id={currentEvent.id}
+                      data-analytics-type="billboard"
+                      data-analytics-title={currentEvent.title}
+                      data-analytics-section="fullscreen_billboard"
                       onClick={handleImageClick}
                       title="클릭하여 상세보기"
                     ></div>
@@ -222,6 +226,10 @@ export default memo(function FullscreenBillboard({
               <img
                 src={sortedImages[currentIndex]}
                 alt={sortedEvents[currentIndex]?.title || "Event Billboard"}
+                data-analytics-id={sortedEvents[currentIndex]?.id}
+                data-analytics-type="billboard"
+                data-analytics-title={sortedEvents[currentIndex]?.title}
+                data-analytics-section="fullscreen_billboard"
                 className={`fsb-image ${isTransitioning ? "fsb-transitioning" : "fsb-visible"
                   }`}
                 style={{ transitionDuration: `${transitionDuration}ms` }}
@@ -302,6 +310,10 @@ export default memo(function FullscreenBillboard({
             <div className="fsb-actions-container">
               <button
                 onClick={handleImageClick}
+                data-analytics-id={sortedEvents[currentIndex]?.id}
+                data-analytics-type="billboard"
+                data-analytics-title={sortedEvents[currentIndex]?.title}
+                data-analytics-section="fullscreen_billboard_button"
                 style={{
                   transitionDuration: `${transitionDuration}ms`,
                   transitionDelay: isTransitioning ? '0ms' : '300ms',

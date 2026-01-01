@@ -43,6 +43,7 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
     const onlineUsersModal = useModal('onlineUsers');
     const genreWeightSettingsModal = useModal('genreWeightSettings');
     const noticeModal = useModal('globalNoticeEditor');
+    const siteAnalyticsModal = useModal('siteAnalytics');
 
     // Derive display values from userProfile or fallback to user metadata
     const nickname = userProfile?.nickname || billboardUserName || user?.user_metadata?.name || user?.email?.split('@')[0] || 'Guest';
@@ -182,17 +183,29 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                     {user && (
                         <>
                             <div className="drawer-section-title">MY MENU</div>
-                            <div className="drawer-menu-item" onClick={() => {
-                                onClose();
-                                navigate('/v2?view=favorites');
-                            }}>
+                            <div className="drawer-menu-item"
+                                onClick={() => {
+                                    onClose();
+                                    navigate('/v2?view=favorites');
+                                }}
+                                data-analytics-id="my_favorites"
+                                data-analytics-type="nav_item"
+                                data-analytics-title="내 즐겨찾기"
+                                data-analytics-section="side_drawer_my"
+                            >
                                 <i className="ri-star-line" style={{ color: '#ffffff' }}></i>
                                 <span>내 즐겨찾기</span>
                             </div>
-                            <div className="drawer-menu-item" onClick={() => {
-                                onClose();
-                                navigate('/my-activities?tab=posts');
-                            }}>
+                            <div className="drawer-menu-item"
+                                onClick={() => {
+                                    onClose();
+                                    navigate('/my-activities?tab=posts');
+                                }}
+                                data-analytics-id="my_activities"
+                                data-analytics-type="nav_item"
+                                data-analytics-title="내 활동"
+                                data-analytics-section="side_drawer_my"
+                            >
                                 <i className="ri-file-list-3-line"></i>
                                 <span>내가 쓴 글 / 등록한 행사</span>
                             </div>
@@ -215,47 +228,117 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
 
                             {isAdminExpanded && (
                                 <div className="drawer-submenu">
-                                    <div className="drawer-submenu-item" onClick={() => { adminFavoritesModal.open(); }}>
+                                    <div className="drawer-submenu-item"
+                                        onClick={() => { adminFavoritesModal.open(); }}
+                                        data-analytics-id="admin_favorites"
+                                        data-analytics-type="admin_action"
+                                        data-analytics-title="즐겨찾기 현황"
+                                        data-analytics-section="side_drawer_admin"
+                                    >
                                         <i className="ri-heart-pulse-line"></i>
                                         <span>즐겨찾기 현황</span>
                                     </div>
-                                    <div className="drawer-submenu-item" onClick={() => { adminSecureMembersModal.open(); }}>
+                                    <div className="drawer-submenu-item"
+                                        onClick={() => { adminSecureMembersModal.open(); }}
+                                        data-analytics-id="admin_members"
+                                        data-analytics-type="admin_action"
+                                        data-analytics-title="회원관리"
+                                        data-analytics-section="side_drawer_admin"
+                                    >
                                         <i className="ri-shield-user-line"></i>
                                         <span>회원관리 {memberCount !== null ? `(${memberCount}명)` : ''}</span>
                                     </div>
-                                    <div className="drawer-submenu-item" onClick={() => { boardManagementModal.open(); }}>
+                                    <div className="drawer-submenu-item"
+                                        onClick={() => { boardManagementModal.open(); }}
+                                        data-analytics-id="admin_board_mgmt"
+                                        data-analytics-type="admin_action"
+                                        data-analytics-title="게시판 관리"
+                                        data-analytics-section="side_drawer_admin"
+                                    >
                                         <i className="ri-layout-masonry-line"></i>
                                         <span>게시판 관리</span>
                                     </div>
-                                    <div className="drawer-submenu-item" onClick={() => { boardPrefixModal.open(); }}>
+                                    <div className="drawer-submenu-item"
+                                        onClick={() => { boardPrefixModal.open(); }}
+                                        data-analytics-id="admin_prefix_mgmt"
+                                        data-analytics-type="admin_action"
+                                        data-analytics-title="머릿말 관리"
+                                        data-analytics-section="side_drawer_admin"
+                                    >
                                         <i className="ri-text-spacing"></i>
                                         <span>머릿말 관리</span>
                                     </div>
-                                    <div className="drawer-submenu-item" onClick={() => { billboardUserModal.open(); }}>
+                                    <div className="drawer-submenu-item"
+                                        onClick={() => { billboardUserModal.open(); }}
+                                        data-analytics-id="admin_billboard_user"
+                                        data-analytics-type="admin_action"
+                                        data-analytics-title="빌보드 회원 관리"
+                                        data-analytics-section="side_drawer_admin"
+                                    >
                                         <i className="ri-user-settings-line"></i>
                                         <span>빌보드 회원 관리</span>
                                     </div>
 
-                                    <div className="drawer-submenu-item" onClick={() => { thumbnailModal.open(); }}>
+                                    <div className="drawer-submenu-item"
+                                        onClick={() => { thumbnailModal.open(); }}
+                                        data-analytics-id="admin_thumbnail_settings"
+                                        data-analytics-type="admin_action"
+                                        data-analytics-title="기본 썸네일 설정"
+                                        data-analytics-section="side_drawer_admin"
+                                    >
                                         <i className="ri-image-line"></i>
                                         <span>기본 썸네일 설정</span>
                                     </div>
 
-                                    <div className="drawer-submenu-item" onClick={() => { invitationModal.open(); }}>
+                                    <div className="drawer-submenu-item"
+                                        onClick={() => { invitationModal.open(); }}
+                                        data-analytics-id="admin_invitation_mgmt"
+                                        data-analytics-type="admin_action"
+                                        data-analytics-title="초대 관리"
+                                        data-analytics-section="side_drawer_admin"
+                                    >
                                         <i className="ri-mail-send-line"></i>
                                         <span>초대 관리</span>
                                     </div>
-                                    <div className="drawer-submenu-item" onClick={() => { genreWeightSettingsModal.open(); }}>
+                                    <div className="drawer-submenu-item"
+                                        onClick={() => { genreWeightSettingsModal.open(); }}
+                                        data-analytics-id="admin_genre_weight"
+                                        data-analytics-type="admin_action"
+                                        data-analytics-title="강습 확률 설정"
+                                        data-analytics-section="side_drawer_admin"
+                                    >
                                         <i className="ri-equalizer-line"></i>
                                         <span>강습 노출 확률 설정</span>
                                     </div>
-                                    <div className="drawer-submenu-item" onClick={() => { onlineUsersModal.open(); }}>
+                                    <div className="drawer-submenu-item"
+                                        onClick={() => { onlineUsersModal.open(); }}
+                                        data-analytics-id="admin_online_users"
+                                        data-analytics-type="admin_action"
+                                        data-analytics-title="현재 접속자"
+                                        data-analytics-section="side_drawer_admin"
+                                    >
                                         <i className="ri-user-line"></i>
                                         <span>현재 접속자</span>
                                     </div>
-                                    <div className="drawer-submenu-item" onClick={() => { noticeModal.open(); }}>
+                                    <div className="drawer-submenu-item"
+                                        onClick={() => { noticeModal.open(); }}
+                                        data-analytics-id="admin_notice_mgmt"
+                                        data-analytics-type="admin_action"
+                                        data-analytics-title="공지사항 관리"
+                                        data-analytics-section="side_drawer_admin"
+                                    >
                                         <i className="ri-megaphone-line"></i>
                                         <span>공지사항 관리</span>
+                                    </div>
+                                    <div className="drawer-submenu-item"
+                                        onClick={() => { siteAnalyticsModal.open(); }}
+                                        data-analytics-id="admin_site_analytics"
+                                        data-analytics-type="admin_action"
+                                        data-analytics-title="운영 통합 통계"
+                                        data-analytics-section="side_drawer_admin"
+                                    >
+                                        <i className="ri-bar-chart-box-line"></i>
+                                        <span style={{ fontWeight: 'bold', color: '#3b82f6' }}>운영 통합 통계</span>
                                     </div>
                                     <div className="drawer-submenu-item" onClick={() => {
                                         const newValue = !showDevTools;
@@ -293,19 +376,43 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
 
                     {/* 3. 전체 메뉴 */}
                     <div className="drawer-section-title">SERVICE</div>
-                    <div className="drawer-menu-item" onClick={() => handleNavigation('/v2')}>
+                    <div className="drawer-menu-item"
+                        onClick={() => handleNavigation('/v2')}
+                        data-analytics-id="nav_home"
+                        data-analytics-type="nav_item"
+                        data-analytics-title="홈"
+                        data-analytics-section="side_drawer_service"
+                    >
                         <i className="ri-home-4-line"></i>
                         <span>홈</span>
                     </div>
-                    <div className="drawer-menu-item" onClick={() => handleNavigation('/social')}>
+                    <div className="drawer-menu-item"
+                        onClick={() => handleNavigation('/social')}
+                        data-analytics-id="nav_social"
+                        data-analytics-type="nav_item"
+                        data-analytics-title="소셜"
+                        data-analytics-section="side_drawer_service"
+                    >
                         <i className="ri-calendar-event-line"></i>
                         <span>소셜 (이벤트)</span>
                     </div>
-                    <div className="drawer-menu-item" onClick={() => handleNavigation('/calendar')}>
+                    <div className="drawer-menu-item"
+                        onClick={() => handleNavigation('/calendar')}
+                        data-analytics-id="nav_calendar"
+                        data-analytics-type="nav_item"
+                        data-analytics-title="전체 일정"
+                        data-analytics-section="side_drawer_service"
+                    >
                         <i className="ri-calendar-line"></i>
                         <span>전체 일정</span>
                     </div>
-                    <div className="drawer-menu-item" onClick={() => handleNavigation('/practice')}>
+                    <div className="drawer-menu-item"
+                        onClick={() => handleNavigation('/practice')}
+                        data-analytics-id="nav_practice"
+                        data-analytics-type="nav_item"
+                        data-analytics-title="연습실"
+                        data-analytics-section="side_drawer_service"
+                    >
                         <i className="ri-building-line"></i>
                         <span>연습실</span>
                     </div>
@@ -327,6 +434,10 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                                     key={category.code}
                                     className="drawer-submenu-item"
                                     onClick={() => handleNavigation(`/board?category=${category.code}`)}
+                                    data-analytics-id={`nav_board_${category.code}`}
+                                    data-analytics-type="nav_item"
+                                    data-analytics-title={category.name}
+                                    data-analytics-section="side_drawer_board"
                                 >
                                     <i className={getIconForCategory(category.code)}></i>
                                     <span>{category.name}</span>
@@ -342,11 +453,23 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                             </div>
                         </div>
                     )}
-                    <div className="drawer-menu-item" onClick={() => handleNavigation('/shopping')}>
+                    <div className="drawer-menu-item"
+                        onClick={() => handleNavigation('/shopping')}
+                        data-analytics-id="nav_shopping"
+                        data-analytics-type="nav_item"
+                        data-analytics-title="쇼핑"
+                        data-analytics-section="side_drawer_service"
+                    >
                         <i className="ri-shopping-bag-3-line"></i>
                         <span>쇼핑</span>
                     </div>
-                    <div className="drawer-menu-item" onClick={() => handleNavigation('/guide')}>
+                    <div className="drawer-menu-item"
+                        onClick={() => handleNavigation('/guide')}
+                        data-analytics-id="nav_guide"
+                        data-analytics-type="nav_item"
+                        data-analytics-title="이용가이드"
+                        data-analytics-section="side_drawer_service"
+                    >
                         <i className="ri-book-open-line"></i>
                         <span>이용가이드</span>
                     </div>

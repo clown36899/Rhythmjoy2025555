@@ -434,7 +434,7 @@ const EventList: React.FC<EventListProps> = ({
           clubLessons={events.filter(e => e.category === 'club' && !e.genre?.includes('정규강습') && (e.end_date || e.date || "") >= getLocalDateString())}
           clubRegularClasses={events.filter(e => e.category === 'club' && e.genre?.includes('정규강습'))}
           favoriteEventsList={events.filter(e => favoriteEventIds.has(e.id))}
-          events={events}
+          // events={events} // Removed
           allGenres={allGenres}
           allGenresStructured={allGenresStructured}
           selectedEventGenre={searchParams.get('event_genre')}

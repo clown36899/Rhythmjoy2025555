@@ -3,7 +3,6 @@ import React, { useMemo } from "react";
 import "../../../styles/EventListSections.css";
 import "../../../styles/HorizontalScrollNav.css";
 
-import BillboardSection from "../../BillboardSection";
 import TodaySocial from "../../../../social/components/TodaySocial";
 import AllSocialSchedules from "../../../../social/components/AllSocialSchedules";
 import { HorizontalScrollNav } from "../../HorizontalScrollNav";
@@ -23,7 +22,7 @@ interface EventPreviewSectionProps {
     clubLessons: Event[];
     clubRegularClasses: Event[];
     favoriteEventsList: Event[];
-    events: Event[];
+    // events: Event[]; // Removed for BillboardSection
     allGenres: string[];
     allGenresStructured: { class: string[]; club: string[]; event: string[] };
     selectedEventGenre: string | null;
@@ -50,7 +49,7 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
     clubLessons,
     clubRegularClasses,
     favoriteEventsList,
-    events,
+    // events, // Removed
     allGenresStructured,
     selectedEventGenre,
     selectedClassGenre,
@@ -78,9 +77,6 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
 
     return (
         <div style={{ paddingBottom: '100px' }}>
-            {/* 1. Billboard Section */}
-            <BillboardSection events={events as any} />
-
             {/* 2. Today Social */}
             <TodaySocial
                 schedules={todaySocialSchedules}

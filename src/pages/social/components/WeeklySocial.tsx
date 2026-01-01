@@ -184,6 +184,10 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
         <div
             key={item.id}
             className="weekly-item"
+            data-analytics-id={item.id}
+            data-analytics-type={item.group_id === -1 ? 'event' : 'social'}
+            data-analytics-title={item.title}
+            data-analytics-section="weekly_list"
             onClick={() => onScheduleClick(item)}
         >
             <div className="weekly-image-box">
@@ -216,6 +220,10 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
         <div
             key={item.id}
             className="regular-compact-card"
+            data-analytics-id={item.id}
+            data-analytics-type="social_regular"
+            data-analytics-title={item.title}
+            data-analytics-section="regular_kanban"
             onClick={() => onScheduleClick(item)}
         >
             <div className="compact-image-area">
@@ -369,7 +377,15 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
             {/* 공유 버튼 (탭 메뉴 밖) */}
             {activeTab === 'weekly' && isAdmin && (
                 <div className="share-btn-wrapper">
-                    <button className="share-schedule-btn" onClick={handleShareImage} disabled={isSharing} title="일정 이미지로 공유">
+                    <button
+                        className="share-schedule-btn"
+                        onClick={handleShareImage}
+                        disabled={isSharing}
+                        title="일정 이미지로 공유"
+                        data-analytics-id="share_weekly_image"
+                        data-analytics-type="action"
+                        data-analytics-section="weekly_social"
+                    >
                         {isSharing ? (
                             <i className="ri-loader-4-line spin"></i>
                         ) : (
@@ -380,16 +396,40 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
             )}
 
             <div className="view-tab-menu-v3">
-                <button className={`tab-btn ${activeTab === 'weekly' ? 'active' : ''}`} onClick={() => setActiveTab('weekly')}>
+                <button
+                    className={`tab-btn ${activeTab === 'weekly' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('weekly')}
+                    data-analytics-id="tab_weekly"
+                    data-analytics-type="tab"
+                    data-analytics-section="social_tabs"
+                >
                     금주의 일정
                 </button>
-                <button className={`tab-btn ${activeTab === 'all' ? 'active' : ''}`} onClick={() => setActiveTab('all')}>
+                <button
+                    className={`tab-btn ${activeTab === 'all' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('all')}
+                    data-analytics-id="tab_all"
+                    data-analytics-type="tab"
+                    data-analytics-section="social_tabs"
+                >
                     전체일정
                 </button>
-                <button className={`tab-btn ${activeTab === 'regular' ? 'active' : ''}`} onClick={() => setActiveTab('regular')}>
+                <button
+                    className={`tab-btn ${activeTab === 'regular' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('regular')}
+                    data-analytics-id="tab_regular"
+                    data-analytics-type="tab"
+                    data-analytics-section="social_tabs"
+                >
                     정기소셜
                 </button>
-                <button className={`tab-btn ${activeTab === 'register' ? 'active' : ''}`} onClick={() => setActiveTab('register')}>
+                <button
+                    className={`tab-btn ${activeTab === 'register' ? 'active' : ''}`}
+                    onClick={() => setActiveTab('register')}
+                    data-analytics-id="tab_register"
+                    data-analytics-type="tab"
+                    data-analytics-section="social_tabs"
+                >
                     등록단체
                 </button>
                 <div className={`tab-indicator-v4 ${activeTab}`} />
@@ -413,6 +453,10 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                                     key={item.day}
                                     className={`day-btn-v5 ${isSelected ? 'active' : ''}`}
                                     onClick={() => setSelectedDay(item.day)}
+                                    data-analytics-id={`day_${item.isoDate}`}
+                                    data-analytics-type="day_select"
+                                    data-analytics-title={item.name}
+                                    data-analytics-section="weekly_calendar"
                                 >
                                     <span className="day-name" style={isToday ? { color: '#FFD700', fontWeight: 'bold' } : undefined}>
                                         {isToday ? '오늘' : item.name}

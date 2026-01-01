@@ -15,7 +15,14 @@ export default function ShopCard({ shop, onUpdate, isFavorite = false, onToggleF
 
   return (
     <>
-      <div className="shopcard-banner" onClick={() => setShowModal(true)}>
+      <div
+        className="shopcard-banner"
+        onClick={() => setShowModal(true)}
+        data-analytics-id={shop.id}
+        data-analytics-type="shop"
+        data-analytics-title={shop.name}
+        data-analytics-section="shopping_list"
+      >
         {/* Favorite Button */}
         {onToggleFavorite && (
           <button

@@ -169,11 +169,25 @@ export default function VenueDetailModal({ venueId, onClose, onSelect, onEdit }:
                                     <div className="venue-compact-content">
                                         <span>{venue.address}</span>
                                         <div className="venue-compact-actions">
-                                            <button onClick={copyAddress} className="venue-xs-btn">
+                                            <button
+                                                onClick={copyAddress}
+                                                className="venue-xs-btn"
+                                                data-analytics-id={venue.id}
+                                                data-analytics-type="action"
+                                                data-analytics-title="copy_address"
+                                                data-analytics-section="venue_detail"
+                                            >
                                                 <i className="ri-file-copy-line"></i> 복사
                                             </button>
                                             {venue.map_url && (
-                                                <button onClick={openMap} className="venue-xs-btn">
+                                                <button
+                                                    onClick={openMap}
+                                                    className="venue-xs-btn"
+                                                    data-analytics-id={venue.id}
+                                                    data-analytics-type="map_link"
+                                                    data-analytics-title={venue.name}
+                                                    data-analytics-section="venue_detail"
+                                                >
                                                     <i className="ri-map-2-line"></i> 지도
                                                 </button>
                                             )}
@@ -200,6 +214,10 @@ export default function VenueDetailModal({ venueId, onClose, onSelect, onEdit }:
                                         rel="noopener noreferrer"
                                         className="venue-xs-btn"
                                         style={{ marginTop: '-2px' }}
+                                        data-analytics-id={venue.id}
+                                        data-analytics-type="external_link"
+                                        data-analytics-title="website"
+                                        data-analytics-section="venue_detail"
                                     >
                                         웹사이트 방문 <i className="ri-external-link-line"></i>
                                     </a>

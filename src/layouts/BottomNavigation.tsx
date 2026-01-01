@@ -101,6 +101,10 @@ export function BottomNavigation() {
                         key={`${item.path}-${item.label}`}
                         onClick={() => handleNavigation(item.path, item.action)}
                         className={`bottom-nav-item ${isActive ? 'active' : 'inactive'}`}
+                        data-analytics-id={item.path}
+                        data-analytics-type="nav_item"
+                        data-analytics-title={item.label}
+                        data-analytics-section="bottom_navigation"
                     >
                         <i
                             className={`${isActive ? item.iconFilled : item.icon} bottom-nav-icon`}

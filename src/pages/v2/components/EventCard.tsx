@@ -129,6 +129,11 @@ export const EventCard = memo(({
     <div
       key={event.id}
       data-event-id={event.id}
+      data-analytics-id={event.id}
+      data-analytics-type={event.category === 'class' ? 'class' : 'event'}
+      data-analytics-title={event.title}
+      data-analytics-section={variant === 'favorite' ? 'favorites' : (variant === 'sliding' ? 'upcoming_events' : 'filtered_grid')}
+      data-analytics-category={event.category}
       className={`card-container ${isPast ? 'card-container-past' : ''} ${variant === 'favorite' ? 'evt-card-favorite' : categoryClass} ${isHighlighted ? 'qr-highlighted' : ''} ${className}`}
       onClick={onClick}
       onMouseEnter={() => onMouseEnter?.(event.id)}

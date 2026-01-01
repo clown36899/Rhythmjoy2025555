@@ -107,7 +107,14 @@ const SocialDetailModal: React.FC<SocialDetailModalProps> = ({
                     <i className="ri-close-line"></i>
                 </button>
                 <div className="detail-share-box">
-                    <button className="icon-btn-circle" onClick={handleShare}>
+                    <button
+                        className="icon-btn-circle"
+                        onClick={handleShare}
+                        data-analytics-id={schedule.id}
+                        data-analytics-type="share"
+                        data-analytics-title={schedule.title}
+                        data-analytics-section="social_detail_header"
+                    >
                         <i className="ri-share-forward-line"></i>
                     </button>
                 </div>
@@ -200,7 +207,14 @@ const SocialDetailModal: React.FC<SocialDetailModalProps> = ({
                             )}
                         </div>
 
-                        <div className="detail-place-box" onClick={openMap}>
+                        <div
+                            className="detail-place-box"
+                            onClick={openMap}
+                            data-analytics-id={schedule.id}
+                            data-analytics-type="map_link"
+                            data-analytics-title={schedule.place_name}
+                            data-analytics-section="social_detail_content"
+                        >
                             <div className="place-icon">
                                 <i className="ri-map-pin-2-fill"></i>
                             </div>
@@ -214,7 +228,14 @@ const SocialDetailModal: React.FC<SocialDetailModalProps> = ({
                         </div>
 
                         {schedule.link_url && (
-                            <div className="detail-place-box detail-link-box" onClick={() => window.open(schedule.link_url, '_blank')}>
+                            <div
+                                className="detail-place-box detail-link-box"
+                                onClick={() => window.open(schedule.link_url, '_blank')}
+                                data-analytics-id={schedule.id}
+                                data-analytics-type="external_link"
+                                data-analytics-title={schedule.link_name || '관련 링크'}
+                                data-analytics-section="social_detail_content"
+                            >
                                 <div className="place-icon link-icon">
                                     <i className="ri-link"></i>
                                 </div>

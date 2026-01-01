@@ -107,6 +107,10 @@ const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll, on
                         <div
                             key={item.id}
                             className={`today-card today-card-count-${Math.min(shuffledSchedules.length, 3)}`}
+                            data-analytics-id={item.id > 1000000 ? Math.floor(item.id / 10000) : item.id}
+                            data-analytics-type={item.group_id === -1 ? 'event' : 'social_schedule'}
+                            data-analytics-title={item.title}
+                            data-analytics-section="today_social"
                             onClick={(e) => handleScheduleClick(e, item)}
                         >
                             <div className="today-card-image">

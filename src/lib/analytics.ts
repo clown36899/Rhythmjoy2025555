@@ -127,19 +127,17 @@ const isAllowedEnvironment = () => {
         return false;
     }
 
-    // 2. 관리자(개발자) 세션 체크 (가장 강력한 Layer 1 차단)
+    // 2. 관리자(개발자) 세션 체크 - DB 용량 절약을 위해 관리자는 로깅 제외
     if (isAdminUser) {
-        console.log('[Analytics] 🛡️ Admin session detected. Action skipped to keep stats clean.');
+        console.log('[Analytics] 🛡️ Admin session detected. Action skipped.');
         return false;
     }
 
     // 3. 개발 환경 체크 (로컬/스테이징)
     if (isDevelopment()) {
-        if (!DEV_ID) {
-            console.log('[Analytics] ⚠️ Development environment detected. Action skipped.');
-            return false;
-        }
-        console.log('[Analytics] 🛠️ Development mode with dedicated ID.');
+        // [MODIFIED] 개발 모드에서도 테스트를 위해 트래킹 허용 (GA ID 없으면 경고만 뜨고 진행됨)
+        console.log('[Analytics] 🛠️ Development mode - Tracking allowed for testing.');
+        return true;
     }
 
     // 4. 공식 도메인 화이트리스트 체크 (Prod Only)

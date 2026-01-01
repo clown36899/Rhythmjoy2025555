@@ -67,6 +67,10 @@ export default function PracticeRoomBanner() {
                         <div
                             key={room.id}
                             className="practice-banner-item"
+                            data-analytics-id={room.id}
+                            data-analytics-type="venue"
+                            data-analytics-title={room.name}
+                            data-analytics-section="practice_banner"
                             onClick={() => handleRoomClick(room)}
                         >
                             <div className="practice-banner-image-wrapper">
