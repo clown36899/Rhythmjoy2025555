@@ -169,17 +169,7 @@ const SocialPage: React.FC = () => {
     });
 
     // 3. 일회성 항목(소셜 + 행사) 합계 계산
-    const totalOneTimeCount = socialOneTime.length + convertedEvents.length;
     let finalSchedules = [...socialOneTime, ...convertedEvents];
-
-    // 4. 일회성 항목이 3개 이하인 경우에만 정규(요일) 일정 추가 (V2 로직과 동기화)
-    if (totalOneTimeCount <= 3) {
-      const regularScheds = schedules.filter(s => {
-        const hasDate = s.date && s.date.trim() !== '';
-        return !hasDate && s.day_of_week === todayDayOfWeek;
-      });
-      finalSchedules = [...finalSchedules, ...regularScheds];
-    }
 
     return finalSchedules;
   }, [schedules, eventsToday, today, todayDayOfWeek]);
