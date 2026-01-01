@@ -523,31 +523,15 @@ export function MobileShell() {
               minHeight: '32px'
             }}
           >
-            <div className="shell-top-bar-content">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-                {/* Calendar Search Button */}
-                <button
-                  onClick={() => window.dispatchEvent(new CustomEvent('openCalendarSearch'))}
-                  className="shell-top-bar-btn"
-                  style={{
-                    backgroundColor: 'transparent', border: 'none', display: 'flex', alignItems: 'center', gap: '4px',
-                    padding: '0 4px', height: '24px', color: '#fff'
-                  }}
-                >
-                  <i className="ri-search-line shell-icon-sm"></i>
-                  <span style={{ fontSize: '12px', fontWeight: 500 }}>검색</span>
-                </button>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {/* Event Registration Button */}
-                <button
-                  onClick={() => window.dispatchEvent(new CustomEvent('openCalendarRegistration'))}
-                  className="shell-btn-register-topbar"
-                >
-                  <i className="ri-add-line"></i>
-                  <span>이벤트 등록</span>
-                </button>
-              </div>
+            <div className="shell-top-bar-content" style={{ justifyContent: 'flex-end' }}>
+              {/* Event Registration Button */}
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent('openCalendarRegistration'))}
+                className="shell-btn-register-topbar"
+              >
+                <i className="ri-add-line"></i>
+                <span>이벤트 등록</span>
+              </button>
             </div>
           </div>
         )}
@@ -562,8 +546,9 @@ export function MobileShell() {
               minHeight: '32px'
             }}
           >
-            {isShoppingPage ? (
-              <div className="shell-top-bar-content" style={{ justifyContent: 'flex-end' }}>
+            <div className="shell-top-bar-content" style={{ justifyContent: 'flex-end' }}>
+              {/* Shopping: Register Button */}
+              {isShoppingPage && (
                 <button
                   onClick={() => {
                     logUserInteraction('Button', 'Click', 'ShopRegistration');
@@ -574,17 +559,7 @@ export function MobileShell() {
                   <i className="ri-add-line"></i>
                   <span>쇼핑몰 등록</span>
                 </button>
-              </div>
-            ) : (
-              <span className="shell-text-label no-select">
-                {isSocialPage && '소셜'}
-                {isPracticePage && '연습실'}
-                {isBoardPage && '자유게시판'}
-                {isShoppingPage && '쇼핑'}
-                {isGuidePage && '안내'}
-              </span>
-            )}
-            <div className="shell-flex-center shell-gap-2">
+              )}
 
               {/* Social: Register Button */}
               {isSocialPage && (
@@ -632,8 +607,10 @@ export function MobileShell() {
             profile_image: userProfile.profile_image
           }}
           onProfileUpdated={() => {
+            console.log('[MobileShell] 프로필 업데이트 완료, 새로고침 시작');
             // Refresh user profile in global state instead of reloading page
             refreshUserProfile();
+            console.log('[MobileShell] refreshUserProfile() 호출 완료');
           }}
           userId={user!.id}
         />

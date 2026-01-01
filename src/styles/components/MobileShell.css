@@ -463,8 +463,8 @@
   align-items: center;
   justify-content: center;
   transition: opacity 0.2s;
-  width: 32px;
-  height: 32px;
+  /* width: 32px;
+  height: 32px; */
   border-radius: 50%;
   position: relative;
 }
@@ -478,7 +478,7 @@
   height: 35px;
   border-radius: 50%;
   object-fit: cover;
-  /* border: 2px solid rgba(255, 255, 255, 0.3); */
+  border: 1px solid rgba(255, 255, 255, 0.469);
 }
 
 
