@@ -203,3 +203,67 @@
         font-size: clamp(0.55rem, 3vw, 0.75rem);
     }
 }
+
+/* Tabs Styling */
+.group-tabs-container {
+    margin-bottom: 24px;
+    padding: 0 4px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.group-tabs-container::-webkit-scrollbar {
+    display: none;
+}
+
+.group-tabs {
+    display: flex;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.group-tab {
+    padding: 10px 20px;
+    border-radius: 100px;
+    background: #1a1a1a;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    color: #9ca3af;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.group-tab:hover {
+    background: #2d2d2d;
+    color: white;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.group-tab.active {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    color: #1a1a1a;
+    border: none;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
+}
+
+.tab-count {
+    background: rgba(0, 0, 0, 0.15);
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 800;
+}
+
+.empty-filter-result {
+    padding: 60px 20px;
+    text-align: center;
+    color: #4b5563;
+    font-size: 1rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 24px;
+    border: 1px dashed rgba(255, 255, 255, 0.1);
+}
