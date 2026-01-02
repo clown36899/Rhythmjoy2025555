@@ -117,10 +117,10 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
         });
     };
 
-    const fetchAnalytics = async () => {
-        // [PHASE 18] 캐싱 체크
+    const fetchAnalytics = async (forceRefresh = false) => {
+        // [PHASE 18] 캐싱 체크 (forceRefresh가 true면 캐시 무시)
         const cacheKey = `${viewMode}-${dateRange.start}-${dateRange.end}`;
-        if (cache.has(cacheKey)) {
+        if (!forceRefresh && cache.has(cacheKey)) {
             console.log('[Analytics] Using cached data');
             setSummary(cache.get(cacheKey)!);
             setLoading(false);
@@ -503,7 +503,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                     <i className="ri-download-line"></i>
                                 </button>
                             )}
-                            <button className="refresh-btn" onClick={fetchAnalytics} disabled={loading}>
+                            <button className="refresh-btn" onClick={() => fetchAnalytics(true)} disabled={loading} title="새로고침">
                                 <i className={loading ? "ri-refresh-line spinning" : "ri-refresh-line"}></i>
                             </button>
                         </div>
