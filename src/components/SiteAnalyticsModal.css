@@ -51,9 +51,10 @@
 }
 
 .title-left h2 {
-    font-size: 1.25rem;
+    font-size: clamp(1rem, 3vw, 1.25rem);
     color: #fafafa;
     margin: 0;
+    white-space: nowrap;
 }
 
 .refresh-btn {
@@ -98,11 +99,12 @@
     background: transparent;
     border: none;
     color: #a1a1aa;
-    padding: 6px 16px;
+    padding: clamp(4px, 1vw, 6px) clamp(10px, 2.5vw, 16px);
     border-radius: 6px;
-    font-size: 0.85rem;
+    font-size: clamp(0.7rem, 2vw, 0.85rem);
     cursor: pointer;
     transition: all 0.2s;
+    white-space: nowrap;
 }
 
 .view-mode-tabs button.active {
@@ -127,11 +129,12 @@
     background: #27272a;
     border: 1px solid #3f3f46;
     color: #a1a1aa;
-    padding: 4px 12px;
+    padding: clamp(3px, 0.8vw, 4px) clamp(8px, 2vw, 12px);
     border-radius: 6px;
-    font-size: 0.75rem;
+    font-size: clamp(0.6rem, 1.8vw, 0.75rem);
     cursor: pointer;
     transition: all 0.2s;
+    white-space: nowrap;
 }
 
 .range-shortcuts button:hover {
@@ -143,18 +146,49 @@
 .range-inputs {
     display: flex;
     align-items: center;
-    gap: 12px;
-    color: #71717a;
+    gap: clamp(6px, 1.5vw, 12px);
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(96, 165, 250, 0.05));
+    padding: clamp(8px, 2vw, 12px) clamp(10px, 2.5vw, 16px);
+    border-radius: 10px;
+    border: 1px solid rgba(96, 165, 250, 0.2);
 }
 
 .range-inputs input[type="date"] {
-    background: #18181b;
-    border: 1px solid #27272a;
-    color: #fafafa;
-    padding: 6px 12px;
-    border-radius: 6px;
-    font-size: 0.85rem;
+    background: rgba(0, 0, 0, 0.3);
+    border: 2px solid rgba(96, 165, 250, 0.3);
+    color: #f0f0f0;
+    padding: clamp(6px, 1.5vw, 10px) clamp(8px, 2vw, 12px);
+    border-radius: 8px;
+    font-size: clamp(0.65rem, 2vw, 0.95rem);
+    font-weight: 500;
     color-scheme: dark;
+    width: 100%;
+    max-width: 160px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.range-inputs input[type="date"]:hover {
+    background: rgba(0, 0, 0, 0.4);
+    border-color: rgba(96, 165, 250, 0.6);
+    transform: translateY(-1px);
+}
+
+.range-inputs input[type="date"]:focus {
+    outline: none;
+    background: rgba(0, 0, 0, 0.5);
+    border-color: #60a5fa;
+    box-shadow: 0 0 0 4px rgba(96, 165, 250, 0.2), 0 4px 12px rgba(96, 165, 250, 0.3);
+    transform: translateY(-1px);
+}
+
+.range-inputs span {
+    color: #60a5fa;
+    font-weight: 700;
+    font-size: clamp(0.9rem, 2vw, 1.1rem);
+    user-select: none;
+    text-shadow: 0 0 10px rgba(96, 165, 250, 0.5);
+    flex-shrink: 0;
 }
 
 .analytics-modal-body {
@@ -329,11 +363,41 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+.daily-header-left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.daily-badges {
+    display: flex;
+    gap: 8px;
+    font-size: 0.8rem;
+}
+
+.badge-user {
+    color: #60a5fa;
+    background: rgba(96, 165, 250, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+.badge-guest {
+    color: #9ca3af;
+    background: rgba(156, 163, 175, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
 }
 
 .daily-date {
+    font-size: 0.85rem;
+    color: #3b82f6;
     font-weight: 600;
-    color: #fafafa;
 }
 
 .daily-total {
@@ -537,4 +601,420 @@
 .trend-label {
     font-size: 11px;
     color: #71717a;
+}
+
+/* [PHASE 10] User List Modal */
+.clickable-stat {
+    transition: opacity 0.2s;
+}
+
+.clickable-stat:hover {
+    opacity: 0.8;
+}
+
+.user-list-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10002;
+}
+
+.user-list-modal {
+    background: #1a1a1a;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 400px;
+    max-height: 500px;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+}
+
+.user-list-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.user-list-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: #fff;
+}
+
+.user-list-header button {
+    background: none;
+    border: none;
+    color: #999;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    transition: all 0.2s;
+}
+
+.user-list-header button:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.user-list-body {
+    padding: 12px;
+    overflow-y: auto;
+    max-height: 400px;
+}
+
+.user-list-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    transition: background 0.2s;
+}
+
+.user-list-item:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.user-index {
+    color: #666;
+    font-size: 0.9rem;
+    min-width: 24px;
+}
+
+.user-name {
+    flex: 1;
+    color: #fff;
+    font-weight: 500;
+}
+
+.user-id {
+    color: #666;
+    font-size: 0.85rem;
+    font-family: monospace;
+}
+
+/* [PHASE 11] Type Breakdown */
+.type-breakdown-mini {
+    display: flex;
+    gap: 16px;
+    padding: 8px 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    margin-top: 8px;
+    flex-wrap: wrap;
+}
+
+.type-stat {
+    font-size: 0.9rem;
+    color: #9ca3af;
+}
+
+.type-stat strong {
+    color: #60a5fa;
+    margin-left: 4px;
+}
+
+/* [PHASE 15-17] Advanced Analytics */
+.advanced-view-content {
+    padding: 16px;
+}
+
+.analytics-section {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.analytics-section h3 {
+    margin: 0 0 16px 0;
+    font-size: 1.1rem;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.analytics-section h3 i {
+    color: #60a5fa;
+}
+
+/* Referrer Stats */
+.referrer-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.referrer-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+}
+
+.referrer-source {
+    color: #e5e7eb;
+    font-weight: 500;
+}
+
+.referrer-count {
+    color: #60a5fa;
+    font-weight: 600;
+}
+
+/* Session Metrics */
+.session-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 16px;
+}
+
+.metric-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+}
+
+.metric-label {
+    color: #9ca3af;
+    font-size: 0.85rem;
+    margin-bottom: 8px;
+}
+
+.metric-value {
+    color: #60a5fa;
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+/* User Journey */
+.journey-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.journey-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+}
+
+.journey-path {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+}
+
+.journey-step {
+    background: rgba(96, 165, 250, 0.2);
+    color: #60a5fa;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.journey-path i {
+    color: #6b7280;
+    font-size: 1.2rem;
+}
+
+.journey-count {
+    color: #10b981;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+/* [PHASE 18] Export Button - Compact Version */
+.analytics-export-btn-mini {
+    background: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: #10b981;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: auto;
+}
+
+.analytics-export-btn-mini:hover {
+    background: rgba(16, 185, 129, 0.25);
+    border-color: #10b981;
+    transform: translateY(-1px);
+}
+
+.analytics-export-btn-mini i {
+    font-size: 1rem;
+}
+
+/* [PHASE 18] Mobile Optimization */
+@media (max-width: 768px) {
+    .analytics-modal-content {
+        max-width: 100%;
+        width: 100%;
+        height: 100vh;
+        margin: 0;
+        border-radius: 0;
+        border: none;
+    }
+
+    .analytics-modal-header {
+        padding: 16px;
+        gap: 12px;
+    }
+
+    /* Title Group */
+    .header-title-group {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+        width: 100%;
+    }
+
+    .title-left {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .title-left h2 {
+        font-size: 1.1rem;
+    }
+
+    /* Move tabs to separate row */
+    .view-mode-tabs {
+        width: 100%;
+        display: flex;
+        padding: 3px;
+    }
+
+    .view-mode-tabs button {
+        flex: 1;
+        padding: 6px 4px;
+        font-size: 0.8rem;
+        text-align: center;
+        justify-content: center;
+    }
+
+    /* Range Picker Area */
+    .range-picker {
+        width: 100%;
+        gap: 8px;
+    }
+
+    .range-shortcuts {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        /* 4 buttons in one row */
+        gap: 6px;
+        width: 100%;
+    }
+
+    .range-shortcuts button {
+        width: 100%;
+        text-align: center;
+        padding: 6px 2px;
+        font-size: 0.75rem;
+    }
+
+    /* Date Inputs - Mobile Optimized */
+    .range-inputs {
+        width: 100%;
+        gap: 8px;
+        padding: 8px 10px;
+        box-sizing: border-box;
+    }
+
+    /* Hide labels on mobile to save space */
+    .date-input-group label {
+        display: none;
+    }
+
+    .date-input-group {
+        flex: 1;
+        min-width: 0;
+        /* Enable shrinking */
+        width: 50%;
+        /* Force 50% width */
+    }
+
+    .range-inputs input[type="date"] {
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+        padding: 8px 4px;
+        font-size: 0.8rem;
+        text-align: center;
+    }
+
+    .range-inputs span {
+        font-size: 0.9rem;
+        margin: 0 2px;
+    }
+
+    /* Content Layout */
+    .analytics-modal-body {
+        padding: 16px;
+    }
+
+    .analytics-summary-mini {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .analytics-summary-mini span {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .chart-container,
+    .trend-chart-container,
+    .hourly-chart-container {
+        pointer-events: none;
+        /* Disable chart interactions on scroll if needed */
+    }
+}
+/* Ensure close button is positioned correctly on mobile */
+@media (max-width: 768px) {
+    .analytics-close-btn {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+    }
+    
+    .analytics-modal-header {
+        padding-right: 50px; /* Space for close button */
+    }
 }

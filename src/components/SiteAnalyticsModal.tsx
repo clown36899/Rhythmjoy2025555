@@ -2,31 +2,74 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import './SiteAnalyticsModal.css';
 
+// [PHASE 18] 타입명 한글화
+const TYPE_NAMES: Record<string, string> = {
+    'nav_item': '네비게이션',
+    'event': '이벤트',
+    'group': '그룹',
+    'social': '소셜',
+    'tab': '탭 전환',
+    'external_link': '외부 링크',
+    'shop': '쇼핑',
+    'venue': '연습실',
+    'bio_link': '바이오 링크',
+    'auto_link': '자동 링크',
+    'action': '액션',
+    'social_regular': '정기 소셜',
+    'day_select': '날짜 선택'
+};
+
+const getTypeName = (type: string): string => TYPE_NAMES[type] || type;
+
 interface AnalyticsSummary {
     total_clicks: number;
     user_clicks: number;
     anon_clicks: number;
     admin_clicks: number;
+    type_breakdown: { type: string; count: number }[];
     daily_details: {
         date: string;
         displayDate: string;
         total: number;
+        user: number;  // [PHASE 7]
+        guest: number; // [PHASE 7]
         events: { title: string; type: string; count: number }[];
     }[];
     total_top_items: { title: string; type: string; count: number }[];
     total_sections: { section: string; count: number }[];
+    // [PHASE 15-17] Advanced analytics
+    referrer_stats?: { source: string; count: number }[];
+    session_stats?: {
+        total_sessions: number;
+        avg_duration: number;
+        bounce_rate: number;
+    };
+    journey_patterns?: { path: string[]; count: number }[];
+}
+
+interface UserInfo {
+    user_id: string;
+    nickname: string | null;
 }
 
 export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
     const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
     const [loading, setLoading] = useState(true);
-    const [viewMode, setViewMode] = useState<'summary' | 'daily'>('summary');
+    const [viewMode, setViewMode] = useState<'summary' | 'daily' | 'advanced'>('summary');
+    const [userList, setUserList] = useState<UserInfo[]>([]);
+    const [showUserList, setShowUserList] = useState(false);
+    // [PHASE 18] 캐싱
+    const [cache, setCache] = useState<Map<string, AnalyticsSummary>>(new Map());
 
     // Helper: Get YYYY-MM-DD in Korean Time (UTC+9)
     const getKRDateString = (date: Date) => {
-        const krOffset = 9 * 60 * 60 * 1000;
-        const krTime = new Date(date.getTime() + krOffset);
-        return krTime.toISOString().split('T')[0];
+        // Use Intl API for accurate timezone conversion
+        return new Intl.DateTimeFormat('fr-CA', {
+            timeZone: 'Asia/Seoul',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit'
+        }).format(date);
     };
 
     const [dateRange, setDateRange] = useState({
@@ -38,32 +81,74 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
         if (isOpen) {
             fetchAnalytics();
         }
-    }, [isOpen, dateRange.start, dateRange.end]);
+    }, [isOpen, dateRange.start, dateRange.end, viewMode]);
 
     const setShortcutRange = (days: number) => {
-        const end = new Date();
-        const start = new Date();
+        // [FIX] KST 기준으로 날짜 계산
+        const today = new Date();
+        const todayKST = getKRDateString(today);
+
+        let startKST, endKST;
 
         if (days === 0) {
             // Today
+            startKST = todayKST;
+            endKST = todayKST;
         } else if (days === 1) {
-            start.setDate(start.getDate() - 1);
-            end.setDate(end.getDate() - 1);
+            // Yesterday
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayKST = getKRDateString(yesterday);
+            startKST = yesterdayKST;
+            endKST = yesterdayKST;
         } else {
-            start.setDate(start.getDate() - (days - 1));
+            // Last N days
+            const pastDate = new Date(today);
+            pastDate.setDate(pastDate.getDate() - (days - 1));
+            startKST = getKRDateString(pastDate);
+            endKST = todayKST;
         }
 
+        console.log(`[Analytics] Setting range: ${startKST} ~ ${endKST} (${days === 0 ? 'Today' : days === 1 ? 'Yesterday' : days + ' days'})`);
+
         setDateRange({
-            start: getKRDateString(start),
-            end: getKRDateString(end)
+            start: startKST,
+            end: endKST
         });
     };
 
     const fetchAnalytics = async () => {
+        // [PHASE 18] 캐싱 체크
+        const cacheKey = `${viewMode}-${dateRange.start}-${dateRange.end}`;
+        if (cache.has(cacheKey)) {
+            console.log('[Analytics] Using cached data');
+            setSummary(cache.get(cacheKey)!);
+            setLoading(false);
+            return;
+        }
+
         setLoading(true);
         try {
-            const startStr = dateRange.start + 'T00:00:00+09:00';
-            const endStr = dateRange.end + 'T23:59:59+09:00';
+            let startStr, endStr;
+
+            // [PHASE 9] View Mode 분리
+            // Summary Mode: "전체 요약"은 기간 선택과 무관하게 최근 1년(또는 전체) 데이터를 가져옴
+            // Daily Mode: "날짜별 상세"는 사용자가 선택한 기간(dateRange)을 따름
+            if (viewMode === 'summary') {
+                // Summary: 최근 365일 (사실상 전체)
+                const today = new Date();
+                const past = new Date();
+                past.setDate(today.getDate() - 365);
+
+                startStr = getKRDateString(past) + 'T00:00:00+09:00';
+                endStr = getKRDateString(today) + 'T23:59:59+09:00';
+                console.log(`[Analytics] Summary Mode: Fetching All-Time (Last 365 Days)`);
+            } else {
+                // Daily: 선택한 기간
+                startStr = dateRange.start + 'T00:00:00+09:00';
+                endStr = dateRange.end + 'T23:59:59+09:00';
+                console.log(`[Analytics] Daily Mode: Fetching Range ${startStr} ~ ${endStr}`);
+            }
 
             const { data, error } = await supabase
                 .from('site_analytics_logs')
@@ -74,9 +159,14 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
 
             if (error) throw error;
 
+            console.log(`[Analytics DEBUG] Raw data fetched: ${data.length} rows`);
+            console.log(`[Analytics DEBUG] Sample data:`, data.slice(0, 3));
+
             // [PHASE 5] Admin Exclusion
             // 사용자의 요청으로 관리자 데이터는 통계에서 완전히 제외합니다.
             const validData = data.filter(d => !d.is_admin);
+
+            console.log(`[Analytics DEBUG] After admin filter: ${validData.length} rows (removed ${data.length - validData.length} admin)`);
 
             // 2. 중복 클릭 제거 (Unique Count: 동일 유저가 동일 타겟을 여러 번 클릭해도 1회로 집계)
             const uniqueSet = new Set<string>();
@@ -94,13 +184,160 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 return true;
             });
 
+            console.log(`[Analytics DEBUG] After unique filter: ${uniqueData.length} rows (removed ${validData.length - uniqueData.length} duplicates)`);
+
+            // [NEW] 고유 사용자 추적 및 이름 조회
+            const uniqueUserIds = new Set<string>();
+            const uniqueFingerprints = new Set<string>();
+
+            uniqueData.forEach(d => {
+                if (d.user_id) {
+                    uniqueUserIds.add(d.user_id);
+                } else if (d.fingerprint) {
+                    uniqueFingerprints.add(d.fingerprint);
+                }
+            });
+
+            console.log(`[Analytics DEBUG] Unique logged-in users: ${uniqueUserIds.size}`);
+            console.log(`[Analytics DEBUG] Unique guest fingerprints: ${uniqueFingerprints.size}`);
+
+            // 사용자 정보 추출 - uniqueUserIds Set을 직접 사용
+            if (uniqueUserIds.size > 0) {
+                const userIdsArray = Array.from(uniqueUserIds);
+
+                // board_users 테이블에서 실제 사용자 정보 조회
+                // user_id (text/UUID)로 조회해야 함 (id는 serial integer)
+                const { data: users, error: userError } = await supabase
+                    .from('board_users')
+                    .select('user_id, nickname')
+                    .in('user_id', userIdsArray);
+
+                if (!userError && users && users.length > 0) {
+                    setUserList(users);
+                    console.log(`[Analytics DEBUG] 로그인 사용자 목록 (${users.length}명):`);
+                    users.forEach(u => {
+                        console.log(`  - ${u.nickname || u.user_id.substring(0, 8)} (ID: ${u.user_id.substring(0, 8)}...)`);
+                    });
+                } else {
+                    // RLS 에러 또는 조회 실패시 fallback: ID만 표시
+                    const fallbackUsers = userIdsArray.map(user_id => ({
+                        user_id,
+                        nickname: null
+                    }));
+                    setUserList(fallbackUsers);
+                    console.log(`[Analytics DEBUG] Fallback user list (${fallbackUsers.length}명) - RLS 에러:`, userError);
+                }
+            } else {
+                setUserList([]);
+            }
+
             // 통계 집계는 이제 '순수 유니크 데이터(uniqueData)'를 기준으로 함
             const processedData = uniqueData;
 
             const total = processedData.length;
-            const loggedIn = processedData.filter(d => d.user_id && !d.is_admin).length;
-            const anon = processedData.filter(d => !d.user_id && !d.is_admin).length;
+            // [FIX] user_clicks는 "고유 사용자 수"여야 함 (클릭 수가 아님)
+            const loggedIn = uniqueUserIds.size;
+            const anon = uniqueFingerprints.size;
             const admin = processedData.filter(d => d.is_admin).length;
+
+            // [PHASE 11] 타입별 클릭 수 집계
+            const typeBreakdown = new Map<string, number>();
+            processedData.forEach(d => {
+                const type = d.target_type || 'unknown';
+                typeBreakdown.set(type, (typeBreakdown.get(type) || 0) + 1);
+            });
+            const typeStats = Array.from(typeBreakdown.entries())
+                .sort((a, b) => b[1] - a[1])
+                .map(([type, count]) => ({ type, count }));
+
+            // [PHASE 15] Referrer 통계 (분류 개선)
+            const getReferrerCategory = (ref: string): string => {
+                if (!ref) return '직접 입력';
+                try {
+                    const url = new URL(ref);
+                    const hostname = url.hostname;
+                    if (hostname === window.location.hostname) return '내부 이동';
+                    if (hostname.includes('google')) return 'Google 검색';
+                    if (hostname.includes('naver')) return 'Naver 검색';
+                    if (hostname.includes('daum')) return 'Daum 검색';
+                    if (hostname.includes('kakao')) return 'Kakao';
+                    if (hostname.includes('instagram')) return 'Instagram';
+                    if (hostname.includes('facebook')) return 'Facebook';
+                    return hostname;
+                } catch {
+                    return '알 수 없음';
+                }
+            };
+
+            const referrerMap = new Map<string, number>();
+            data.forEach(d => {
+                const category = getReferrerCategory(d.referrer || '');
+                referrerMap.set(category, (referrerMap.get(category) || 0) + 1);
+            });
+            const referrerStats = Array.from(referrerMap.entries())
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10)
+                .map(([source, count]) => ({ source, count }));
+
+            // [PHASE 16] 세션 통계 (이탈률 정확도 개선)
+            const { data: sessions, error: sessionError } = await supabase
+                .from('session_logs')
+                .select('*')
+                .gte('session_start', startStr)
+                .lte('session_start', endStr)
+                .not('is_admin', 'eq', 1);
+
+            let sessionStats = {
+                total_sessions: 0,
+                avg_duration: 0,
+                bounce_rate: 0
+            };
+
+            if (!sessionError && sessions) {
+                const completedSessions = sessions.filter(s => s.duration_seconds !== null);
+                const totalDuration = completedSessions.reduce((sum, s) => sum + (s.duration_seconds || 0), 0);
+
+                // [PHASE 18] 이탈률 개선: 클릭 1회 이하 AND 체류 시간 30초 미만
+                const bouncedSessions = completedSessions.filter(s => {
+                    const clicks = s.total_clicks || 0;
+                    const duration = s.duration_seconds || 0;
+                    return clicks <= 1 && duration < 30;
+                });
+
+                sessionStats = {
+                    total_sessions: sessions.length,
+                    avg_duration: completedSessions.length > 0 ? Math.round(totalDuration / completedSessions.length) : 0,
+                    bounce_rate: completedSessions.length > 0 ? (bouncedSessions.length / completedSessions.length) * 100 : 0
+                };
+            }
+
+            // [PHASE 17] 사용자 여정 패턴 (세션별 클릭 순서)
+            const journeyMap = new Map<string, number>();
+            const sessionGroups = new Map<string, any[]>();
+
+            data.forEach(d => {
+                if (d.session_id) {
+                    if (!sessionGroups.has(d.session_id)) {
+                        sessionGroups.set(d.session_id, []);
+                    }
+                    sessionGroups.get(d.session_id)!.push(d);
+                }
+            });
+
+            sessionGroups.forEach(logs => {
+                const sorted = logs.sort((a, b) => (a.sequence_number || 0) - (b.sequence_number || 0));
+                const path = sorted.slice(0, 5).map(l => l.target_type);
+                const pathKey = path.join(' → ');
+                journeyMap.set(pathKey, (journeyMap.get(pathKey) || 0) + 1);
+            });
+
+            const journeyPatterns = Array.from(journeyMap.entries())
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10)
+                .map(([pathStr, count]) => ({
+                    path: pathStr.split(' → '),
+                    count
+                }));
 
             const totalItemMap = new Map<string, { title: string, type: string, count: number }>();
             const totalSectionMap = new Map<string, number>();
@@ -119,7 +356,10 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
 
             const dateGroups = new Map<string, any[]>();
             processedData.forEach(d => {
-                const dateKey = d.created_at.split('T')[0];
+                // [FIX] UTC 날짜가 아니라 KST 날짜로 그룹핑해야 정확함 (새벽 00~09시 데이터가 전날로 가는 문제 해결)
+                const kstDate = getKRDateString(new Date(d.created_at));
+                const dateKey = kstDate;
+
                 const group = dateGroups.get(dateKey) || [];
                 group.push(d);
                 dateGroups.set(dateKey, group);
@@ -128,8 +368,16 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             const dailyDetails = Array.from(dateGroups.entries())
                 .sort((a, b) => b[0].localeCompare(a[0]))
                 .map(([date, logs]) => {
+                    // [PHASE 7] 날짜별 회원/게스트 구분 집계
+                    let dUser = 0;
+                    let dGuest = 0;
+
                     const eventMap = new Map<string, { title: string, type: string, count: number }>();
                     logs.forEach(l => {
+                        // 날짜별 회원/게스트 카운트
+                        if (l.user_id && !l.is_admin) dUser++;
+                        else if (!l.user_id && !l.is_admin) dGuest++;
+
                         const key = l.target_type + ':' + l.target_id;
                         const existing = eventMap.get(key) || { title: l.target_title || l.target_id, type: l.target_type, count: 0 };
                         eventMap.set(key, { ...existing, count: existing.count + 1 });
@@ -144,19 +392,32 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                         date,
                         displayDate,
                         total: logs.length,
+                        user: dUser,
+                        guest: dGuest,
                         events: Array.from(eventMap.values()).sort((a, b) => b.count - a.count)
                     };
                 });
 
-            setSummary({
+            const newSummary = {
                 total_clicks: total,
                 user_clicks: loggedIn,
                 anon_clicks: anon,
                 admin_clicks: admin,
+                type_breakdown: typeStats,
                 daily_details: dailyDetails,
                 total_top_items: totalTopItems,
-                total_sections: totalSections
-            });
+                total_sections: totalSections,
+                // [PHASE 15-17] Advanced analytics
+                referrer_stats: referrerStats,
+                session_stats: sessionStats,
+                journey_patterns: journeyPatterns
+            };
+
+            setSummary(newSummary);
+
+            // [PHASE 18] 캐시에 저장
+            const cacheKey = `${viewMode}-${dateRange.start}-${dateRange.end}`;
+            setCache(new Map(cache.set(cacheKey, newSummary)));
 
             // [PHASE 3] Auto Snapshot: 오늘치 스냅샷이 없으면 조용히 생성
             if (dateRange.end === getKRDateString(new Date())) {
@@ -171,6 +432,29 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
         } finally {
             setLoading(false);
         }
+    };
+
+    // [PHASE 18] CSV Export 기능
+    const exportToCSV = () => {
+        if (!summary) return;
+
+        const csv = [
+            ['날짜', '총 클릭', '로그인 사용자', 'Guest'],
+            ...summary.daily_details.map(d => [
+                d.date,
+                d.total.toString(),
+                d.user.toString(),
+                d.guest.toString()
+            ])
+        ].map(row => row.join(',')).join('\n');
+
+        const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' }); // UTF-8 BOM
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `analytics-${dateRange.start}-${dateRange.end}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
     };
 
     const checkAndAutoSnapshot = async (currentStats: { user_clicks: number, anon_clicks: number, admin_clicks: number }) => {
@@ -214,6 +498,11 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                     <div className="header-title-group">
                         <div className="title-left">
                             <h2><i className="ri-bar-chart-2-line"></i> 운영 통계 리포트</h2>
+                            {summary && summary.daily_details.length > 0 && (
+                                <button className="analytics-export-btn-mini" onClick={exportToCSV} title="CSV로 내보내기">
+                                    <i className="ri-download-line"></i>
+                                </button>
+                            )}
                             <button className="refresh-btn" onClick={fetchAnalytics} disabled={loading}>
                                 <i className={loading ? "ri-refresh-line spinning" : "ri-refresh-line"}></i>
                             </button>
@@ -221,22 +510,32 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                         <div className="view-mode-tabs">
                             <button className={viewMode === 'summary' ? 'active' : ''} onClick={() => setViewMode('summary')}>전체 요약</button>
                             <button className={viewMode === 'daily' ? 'active' : ''} onClick={() => setViewMode('daily')}>날짜별 상세</button>
+                            <button className={viewMode === 'advanced' ? 'active' : ''} onClick={() => setViewMode('advanced')}>고급 분석</button>
                         </div>
                     </div>
 
-                    <div className="range-picker">
-                        <div className="range-shortcuts">
-                            <button onClick={() => setShortcutRange(0)}>오늘</button>
-                            <button onClick={() => setShortcutRange(1)}>어제</button>
-                            <button onClick={() => setShortcutRange(7)}>7일</button>
-                            <button onClick={() => setShortcutRange(30)}>30일</button>
+                    {/* [PHASE 9] 날짜 선택기: '날짜별 상세' 모드에서만 표시 */}
+                    {viewMode === 'daily' && (
+                        <div className="range-picker">
+                            <div className="range-shortcuts">
+                                <button onClick={() => setShortcutRange(0)}>오늘</button>
+                                <button onClick={() => setShortcutRange(1)}>어제</button>
+                                <button onClick={() => setShortcutRange(7)}>7일</button>
+                                <button onClick={() => setShortcutRange(30)}>30일</button>
+                            </div>
+                            <div className="range-inputs">
+                                <div className="date-input-group">
+                                    <label>시작일</label>
+                                    <input type="date" value={dateRange.start} onChange={e => setDateRange(prev => ({ ...prev, start: e.target.value }))} />
+                                </div>
+                                <span>→</span>
+                                <div className="date-input-group">
+                                    <label>종료일</label>
+                                    <input type="date" value={dateRange.end} onChange={e => setDateRange(prev => ({ ...prev, end: e.target.value }))} />
+                                </div>
+                            </div>
                         </div>
-                        <div className="range-inputs">
-                            <input type="date" value={dateRange.start} onChange={e => setDateRange(prev => ({ ...prev, start: e.target.value }))} />
-                            <span>~</span>
-                            <input type="date" value={dateRange.end} onChange={e => setDateRange(prev => ({ ...prev, end: e.target.value }))} />
-                        </div>
-                    </div>
+                    )}
 
                     <button className="analytics-close-btn" onClick={onClose}><i className="ri-close-line"></i></button>
                 </div>
@@ -248,9 +547,52 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                         <div className="analytics-scroll-container">
                             <div className="analytics-summary-mini">
                                 <span>기간 내 총 클릭: <strong>{summary.total_clicks}</strong></span>
-                                <span>로그인: <strong className="highlight-blue">{summary.user_clicks}</strong></span>
+                                <span
+                                    className="clickable-stat"
+                                    onClick={() => userList.length > 0 && setShowUserList(true)}
+                                    style={{ cursor: userList.length > 0 ? 'pointer' : 'default' }}
+                                    title={userList.length > 0 ? '사용자 목록 보기' : ''}
+                                >
+                                    로그인: <strong className="highlight-blue">{summary.user_clicks}</strong>
+                                    {userList.length > 0 && <i className="ri-user-line" style={{ marginLeft: '4px', fontSize: '0.9em' }}></i>}
+                                </span>
                                 <span>Guest: <strong className="highlight-gray">{summary.anon_clicks}</strong></span>
                             </div>
+
+                            {/* [PHASE 11] 타입별 통계 */}
+                            {summary.type_breakdown.length > 0 && (
+                                <div className="type-breakdown-mini">
+                                    {summary.type_breakdown.map((item, idx) => {
+                                        const percent = ((item.count / summary.total_clicks) * 100).toFixed(1);
+                                        return (
+                                            <span key={idx} className="type-stat">
+                                                {getTypeName(item.type)}: <strong>{item.count}</strong> ({percent}%)
+                                            </span>
+                                        );
+                                    })}
+                                </div>
+                            )}
+
+                            {/* 사용자 목록 팝업 */}
+                            {showUserList && (
+                                <div className="user-list-overlay" onClick={() => setShowUserList(false)}>
+                                    <div className="user-list-modal" onClick={e => e.stopPropagation()}>
+                                        <div className="user-list-header">
+                                            <h3>로그인 사용자 목록 ({userList.length}명)</h3>
+                                            <button onClick={() => setShowUserList(false)}><i className="ri-close-line"></i></button>
+                                        </div>
+                                        <div className="user-list-body">
+                                            {userList.map((user, idx) => (
+                                                <div key={user.user_id} className="user-list-item">
+                                                    <span className="user-index">{idx + 1}</span>
+                                                    <span className="user-name">{user.nickname || `User ${user.user_id.substring(0, 8)}`}</span>
+                                                    <span className="user-id">{user.user_id.substring(0, 8)}...</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
 
                             {/* [PHASE 2] 트렌드 미니 차트 */}
                             <div className="analytics-trend-section">
@@ -321,7 +663,13 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                         {summary.daily_details.map((day, dIdx) => (
                                             <div key={dIdx} className="daily-section">
                                                 <div className="daily-header">
-                                                    <span className="daily-date">{day.displayDate}</span>
+                                                    <div className="daily-header-left">
+                                                        <span className="daily-date">{day.displayDate}</span>
+                                                        <div className="daily-badges">
+                                                            <span className="badge-user">회원 {day.user}</span>
+                                                            <span className="badge-guest">Guest {day.guest}</span>
+                                                        </div>
+                                                    </div>
                                                     <span className="daily-total">{day.total} clicks</span>
                                                 </div>
                                                 <div className="daily-events-grid">
