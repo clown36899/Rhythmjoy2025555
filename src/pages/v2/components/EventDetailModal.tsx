@@ -1356,7 +1356,7 @@ export default function EventDetailModal({
                     </div>
                   )} */}
 
-                  {selectedEvent.location && (
+                  {(selectedEvent.location || isSelectionMode) && (
                     <div className="info-item">
                       <i className="ri-map-pin-line info-icon"></i>
                       <div className="info-flex-gap-1" style={{ flex: 1, alignItems: 'center', display: 'flex' }}>
@@ -1374,7 +1374,7 @@ export default function EventDetailModal({
                             <i className="ri-arrow-right-s-line" style={{ fontSize: '1.1em' }}></i>
                           </button>
                         ) : (
-                          <span>{selectedEvent.location}</span>
+                          <span>{selectedEvent.location || "장소 미정"}</span>
                         )}
                         {!(selectedEvent as any).venue_id && (selectedEvent.location_link || (selectedEvent as any).venue_custom_link) && (
                           <a
