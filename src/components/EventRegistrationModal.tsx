@@ -1147,11 +1147,15 @@ export default memo(function EventRegistrationModal({
         isOpen={showVenueSelectModal}
         onClose={() => setShowVenueSelectModal(false)}
         onSelect={handleVenueSelect}
-        onManualInput={() => {
-          console.log('🔘 Manual input clicked - opening location modal');
+        onManualInput={(name: string, link: string) => {
+          console.log('🔘 Manual input submitted:', name, link);
           setShowVenueSelectModal(false);
-          // Open the manual location input modal
-          detailRef.current?.openModal('location');
+          // Update state directly instead of opening another modal
+          setLocation(name);
+          setLocationLink(link);
+          setVenueId(null);
+          setVenueName("");
+          setVenueCustomLink("");
         }}
       />
     </div >,

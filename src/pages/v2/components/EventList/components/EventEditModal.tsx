@@ -80,7 +80,7 @@ export const EventEditModal: React.FC<EventEditModalProps> = ({
                 genre: event.genre || "",
                 category: event.category || "event",
                 location: event.location || "",
-                locationLink: event.link1 || "",
+                locationLink: (event as any).location_link || "",
                 start_date: event.start_date || event.date || "",
                 end_date: event.end_date || event.date || "",
                 dateMode: (event.event_dates && event.event_dates.length > 0) ? "specific" : "range",
@@ -260,14 +260,26 @@ export const EventEditModal: React.FC<EventEditModalProps> = ({
                                     />
                                 </div>
                                 <div>
-                                    <label className="evt-form-label">주소 링크</label>
+                                    <label className="evt-form-label">주소 링크 (지도)</label>
                                     <input
                                         type="text"
                                         value={formData.locationLink}
                                         onChange={(e) => setFormData((prev: any) => ({ ...prev, locationLink: e.target.value }))}
                                         className="evt-form-input"
+                                        placeholder="https://map.naver.com/..."
                                     />
                                 </div>
+                            </div>
+
+                            <div>
+                                <label className="evt-form-label">신청/상세 페이지 링크</label>
+                                <input
+                                    type="text"
+                                    value={formData.link1}
+                                    onChange={(e) => setFormData((prev: any) => ({ ...prev, link1: e.target.value }))}
+                                    className="evt-form-input"
+                                    placeholder="https://..."
+                                />
                             </div>
 
                             <div className="evt-billboard-option-box evt-space-y-3">

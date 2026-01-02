@@ -34,6 +34,8 @@ export default function VenueSelectModal({ isOpen, onClose, onSelect, onManualIn
 
     const handleManualSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+        e.stopPropagation();
+
         if (!venueName.trim()) {
             alert('장소 이름을 입력해주세요.');
             return;
@@ -72,8 +74,8 @@ export default function VenueSelectModal({ isOpen, onClose, onSelect, onManualIn
                                     onClick={() => setActiveCategory(cat)}
                                 >
                                     <i className={`${cat === '연습실' ? 'ri-music-2-line' :
-                                            cat === '스윙바' ? 'ri-goblet-line' :
-                                                'ri-edit-line'
+                                        cat === '스윙바' ? 'ri-goblet-line' :
+                                            'ri-edit-line'
                                         } venue-tab-icon`}></i>
                                     <span className="venue-tab-label">{cat}</span>
                                 </button>
@@ -134,6 +136,7 @@ export default function VenueSelectModal({ isOpen, onClose, onSelect, onManualIn
                                 <button
                                     type="submit"
                                     className="venue-manual-btn venue-manual-btn-submit"
+                                    onClick={(e) => e.stopPropagation()}
                                 >
                                     확인
                                 </button>
