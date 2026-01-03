@@ -238,9 +238,14 @@ html {
   display: none !important;
 }
 
-/* Default: Show KO in Korean mode */
-html[lang^="ko"] .fixed-part.ko {
+/* Default: Show KO (Force visibility unless explicitly other lang) */
+.fixed-part.ko {
   display: inline-block !important;
+}
+
+/* Hide KO in other modes */
+html:not([lang^="ko"]) .fixed-part.ko {
+  display: none !important;
 }
 
 /* Show EN in other modes (Global Strategy: EN, ZH, JA all use EN labels) */
