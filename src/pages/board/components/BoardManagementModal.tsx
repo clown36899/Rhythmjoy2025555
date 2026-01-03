@@ -76,11 +76,20 @@ export default function BoardManagementModal({ isOpen, onClose, onUpdate }: Boar
                 .eq('code', code);
 
             if (error) throw error;
+
+            // Optimistic update
+            setCategories(prev => prev.map(c =>
+                c.code === code ? { ...c, name: newName } : c
+            ));
+
+            alert('저장되었습니다.');
         } catch (error) {
             console.error('Name update failed:', error);
             alert('이름 변경 실패');
         }
     };
+
+
 
     const handleMoveCategory = async (index: number, direction: 'up' | 'down') => {
         if (loading) return;
@@ -164,16 +173,36 @@ export default function BoardManagementModal({ isOpen, onClose, onUpdate }: Boar
                                         </td>
                                         <td style={{ color: '#888', fontSize: '0.85rem' }}>{cat.code}</td>
                                         <td>
-                                            <input
-                                                type="text"
-                                                defaultValue={cat.name}
-                                                onBlur={(e) => {
-                                                    if (e.target.value !== cat.name) {
-                                                        handleNameChange(cat.code, e.target.value);
-                                                    }
-                                                }}
-                                                className="bmm-input"
-                                            />
+                                            <div style={{ display: 'flex', gap: '4px', alignItems: 'center' }}>
+                                                <input
+                                                    id={`bmm-name-input-${cat.code}`}
+                                                    type="text"
+                                                    defaultValue={cat.name}
+                                                    className="bmm-input"
+                                                    style={{ flex: 1 }}
+                                                />
+                                                <button
+                                                    onClick={() => {
+                                                        const input = document.getElementById(`bmm-name-input-${cat.code}`) as HTMLInputElement;
+                                                        if (input && input.value !== cat.name) {
+                                                            handleNameChange(cat.code, input.value);
+                                                        }
+                                                    }}
+                                                    className="bmm-save-btn"
+                                                    style={{
+                                                        backgroundColor: '#333',
+                                                        color: 'white',
+                                                        border: 'none',
+                                                        borderRadius: '4px',
+                                                        padding: '4px 8px',
+                                                        fontSize: '0.8rem',
+                                                        cursor: 'pointer',
+                                                        whiteSpace: 'nowrap'
+                                                    }}
+                                                >
+                                                    저장
+                                                </button>
+                                            </div>
                                         </td>
                                         <td style={{ textAlign: 'center' }}>
                                             <button

@@ -12,7 +12,7 @@ interface BoardTabBarProps {
 // Fallback categories in case DB fetch fails
 const DEFAULT_CATEGORIES = [
     { id: 'free', label: '자유게시판', icon: 'ri-chat-1-line' },
-    { id: 'anonymous', label: '익명게시판', icon: 'ri-user-secret-line' },
+    { id: 'anonymous', label: '익명 게시판', icon: 'ri-user-secret-line' },
     { id: 'trade', label: '양도/양수', icon: 'ri-exchange-line' },
     { id: 'notice', label: '건의/공지', icon: 'ri-megaphone-line' },
     { id: 'history', label: '히스토리', icon: 'ri-history-line' },
@@ -52,11 +52,19 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
             const dbCategories = data?.categories;
             if (dbCategories && dbCategories.length > 0) {
                 // Map DB data to UI format
-                const mapped = dbCategories.map((item: any) => ({
-                    id: item.code,
-                    label: item.name,
-                    icon: getIconForCategory(item.code)
-                }));
+                const mapped = dbCategories.map((item: any) => {
+                    let label = item.name;
+
+                    // Translation optimization: ambiguous terms mapping
+                    if (label === '익명게시판') label = '익명 게시판'; // anonymity -> Anonymous Board
+                    if (label === '제작중') label = '준비중'; // In production -> Preparing/Coming Soon
+
+                    return {
+                        id: item.code,
+                        label: label,
+                        icon: getIconForCategory(item.code)
+                    };
+                });
 
                 // Add history tab
                 mapped.push({
@@ -165,7 +173,7 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
                     >
                         <i className={`${cat.icon} board-tab-icon`}></i>
                         <span className="board-tab-label">{cat.label}</span>
-                        {cat.id === 'history' && <span className="tab-wip-badge">제작중</span>}
+                        {cat.id === 'history' && <span className="tab-wip-badge">준비중</span>}
                     </button>
                 ))}
                 <div

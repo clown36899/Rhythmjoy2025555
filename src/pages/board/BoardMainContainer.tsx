@@ -25,7 +25,7 @@ export default function BoardMainContainer() {
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
     const { user, isAdmin } = useAuth();
-    const { data: boardData } = useBoardData();
+    const { data: boardData, refreshData } = useBoardData();
     const [isRealAdmin, setIsRealAdmin] = useState(false);
     const [isAdminChecked, setIsAdminChecked] = useState(false);
 
@@ -421,7 +421,10 @@ export default function BoardMainContainer() {
                 <BoardManagementModal
                     isOpen={isManagementOpen}
                     onClose={() => setIsManagementOpen(false)}
-                    onUpdate={() => window.dispatchEvent(new Event('refreshBoardCategories'))}
+                    onUpdate={() => {
+                        refreshData(); // Refresh context data
+                        window.dispatchEvent(new Event('refreshBoardCategories'));
+                    }}
                 />
             )}
 
