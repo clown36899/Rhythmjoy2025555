@@ -1,0 +1,329 @@
+.container {
+    padding: 20px;
+    color: white;
+    padding-bottom: 100px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.title {
+    font-size: 24px;
+    font-weight: bold;
+}
+
+.headerButtons {
+    display: flex;
+    gap: 12px;
+}
+
+.syncAllButton {
+    background-color: #4b5563;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background-color 0.2s;
+}
+
+.syncAllButton:hover {
+    background-color: #374151;
+}
+
+.importButton {
+    background-color: #2563eb;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: background-color 0.2s;
+    box-shadow: 0 4px 6px -1px rgba(30, 58, 138, 0.2);
+}
+
+.importButton:hover {
+    background-color: #1d4ed8;
+}
+
+.section {
+    background-color: rgba(31, 41, 55, 0.5);
+    border: 1px solid #374151;
+    border-radius: 12px;
+    padding: 24px;
+}
+
+.sectionTitle {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.countBadge {
+    font-size: 14px;
+    font-weight: normal;
+    color: #9ca3af;
+    background-color: #374151;
+    padding: 2px 8px;
+    border-radius: 9999px;
+}
+
+/* Empty State */
+.emptyState {
+    text-align: center;
+    padding: 48px 0;
+    background-color: rgba(17, 24, 39, 0.5);
+    border-radius: 8px;
+    border: 1px dashed #1f2937;
+}
+
+.emptyIcon {
+    font-size: 36px;
+    margin-bottom: 12px;
+}
+
+.emptyText {
+    color: #9ca3af;
+}
+
+.emptySubtext {
+    font-size: 14px;
+    color: #6b7280;
+    margin-top: 4px;
+}
+
+/* Main Layout (Vertical Stack for Full Width Category Manager) */
+.mainLayout {
+    display: flex;
+    flex-direction: column;
+    /* Stack vertically */
+    gap: 32px;
+}
+
+.sidebar {
+    width: 100%;
+    /* Full width */
+    position: static;
+    /* No longer sticky sidebar */
+}
+
+.content {
+    width: 100%;
+    /* Fix flex child overflow issues */
+}
+
+/* Grid within content */
+.grid {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(1, 1fr);
+}
+
+@media (max-width: 768px) {
+    .mainLayout {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+        position: static;
+    }
+}
+
+@media (min-width: 1024px) {
+
+    /* Adjust breakpoints for 2-col layout */
+    .grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (min-width: 1400px) {
+    .grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* Card */
+.card {
+    background-color: #111827;
+    border: 1px solid #374151;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+}
+
+.card:hover {
+    border-color: rgba(59, 130, 246, 0.5);
+}
+
+.thumbnailContainer {
+    aspect-ratio: 16 / 9;
+    background-color: black;
+    position: relative;
+}
+
+.thumbnail {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.noImage {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #374151;
+}
+
+.videoCount {
+    position: absolute;
+    bottom: 8px;
+    right: 8px;
+    background-color: rgba(0, 0, 0, 0.8);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-family: monospace;
+}
+
+.cardContent {
+    padding: 16px;
+}
+
+.cardTitle {
+    font-weight: bold;
+    font-size: 18px;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: white;
+}
+
+.card:hover .cardTitle {
+    color: #60a5fa;
+}
+
+.cardFooter {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 12px;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.actionButtons {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #374151;
+}
+
+.actionButton {
+    flex: 1;
+    padding: 6px;
+    font-size: 12px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    background-color: #374151;
+    color: #e5e7eb;
+    transition: background-color 0.2s;
+}
+
+.actionButton:hover {
+    background-color: #4b5563;
+}
+
+.actionButton:hover {
+    background-color: #4b5563;
+}
+
+.moveButton {
+    background-color: rgba(234, 179, 8, 0.3);
+    color: #fde047;
+    border: 1px solid rgba(253, 224, 71, 0.3);
+}
+
+.moveButton:hover {
+    background-color: rgba(234, 179, 8, 0.5);
+}
+
+.deleteButton {
+    background-color: rgba(153, 27, 27, 0.3);
+    color: #fca5a5;
+    border: 1px solid rgba(248, 113, 113, 0.3);
+}
+
+.deleteButton:hover {
+    background-color: rgba(153, 27, 27, 0.5);
+}
+
+.syncButton {
+    background-color: rgba(30, 64, 175, 0.3);
+    color: #93c5fd;
+    border: 1px solid rgba(96, 165, 250, 0.3);
+}
+
+.syncButton:hover {
+    background-color: rgba(30, 64, 175, 0.5);
+}
+
+.statusButton {
+    font-size: 12px;
+    padding: 4px 8px;
+    border-radius: 9999px;
+    border: 1px solid;
+    cursor: pointer;
+    background: none;
+    transition: opacity 0.2s;
+}
+
+.statusButton:hover {
+    opacity: 0.8;
+}
+
+.statusPublic {
+    background-color: rgba(20, 83, 45, 0.3);
+    border-color: rgba(34, 197, 94, 0.3);
+    color: #4ade80;
+}
+
+.statusPrivate {
+    background-color: #1f2937;
+    border-color: #4b5563;
+    color: #9ca3af;
+}
+
+.date {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.loading {
+    text-align: center;
+    padding: 32px 0;
+    color: #9ca3af;
+}

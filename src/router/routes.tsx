@@ -53,6 +53,12 @@ const PushNotificationTestPage = lazy(() => import('../pages/PushNotificationTes
 const TestDeletePage = lazy(() => import('../pages/TestDeletePage'));
 
 
+
+export const prefetchLearningPage = () => import('../pages/learning/Page');
+const LearningPage = lazy(prefetchLearningPage);
+const LearningDetailPage = lazy(() => import('../pages/learning/detail/Page'));
+const LearningAdminPage = lazy(() => import("../pages/learning/admin/Page"));
+
 export const routes: RouteObject[] = [
     {
         element: <MobileShell />,
@@ -86,5 +92,17 @@ export const routes: RouteObject[] = [
     {
         path: '/event-photo-finder',
         element: <EventPhotoFinderPage />,
+    },
+    {
+        path: '/learning',
+        element: <LearningPage />,
+    },
+    {
+        path: '/learning/:listId',
+        element: <LearningDetailPage />,
+    },
+    {
+        path: '/learning/admin',
+        element: <LearningAdminPage />,
     },
 ];

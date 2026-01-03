@@ -1,0 +1,83 @@
+.categoryTreeContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px;
+    background-color: #1f2937;
+    /* gray-800 */
+    border-radius: 12px;
+    border: 1px solid #374151;
+    /* gray-700 */
+    min-height: 300px;
+}
+
+.treeItem {
+    display: flex;
+    flex-direction: column;
+}
+
+.treeItemContent {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    color: #d1d5db;
+    /* gray-300 */
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.treeItemContent:hover {
+    background-color: #374151;
+    /* gray-700 */
+    color: white;
+}
+
+.treeItemContent.selected {
+    background-color: rgba(59, 130, 246, 0.2);
+    /* blue-500/20 */
+    color: #60a5fa;
+    /* blue-400 */
+    font-weight: 600;
+}
+
+.expandIcon {
+    font-size: 10px;
+    width: 14px;
+    display: flex;
+    justify-content: center;
+    color: #9ca3af;
+    /* gray-400 */
+    cursor: pointer;
+}
+
+.expandIcon:hover {
+    color: white;
+}
+
+.expandIcon.invisible {
+    visibility: hidden;
+}
+
+.folderIcon {
+    font-size: 16px;
+}
+
+.categoryName {
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.rootItem {
+    font-weight: 600;
+}
+
+.treeDivider {
+    height: 1px;
+    background-color: #374151;
+    margin: 8px 0;
+}

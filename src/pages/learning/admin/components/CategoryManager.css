@@ -1,0 +1,399 @@
+.container {
+    background-color: #1f2937;
+    border: 1px solid #374151;
+    border-radius: 8px;
+    padding: 16px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.title {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 16px;
+    color: white;
+}
+
+.createForm {
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #374151;
+}
+
+.targetFolder {
+    font-size: 12px;
+    color: #9ca3af;
+    margin-bottom: 8px;
+}
+
+.targetName {
+    color: #60a5fa;
+    font-weight: bold;
+}
+
+.targetRoot {
+    color: #34d399;
+    font-weight: bold;
+}
+
+.inputGroup {
+    display: flex;
+    gap: 8px;
+}
+
+.createInput {
+    flex: 1;
+    background-color: #374151;
+    border: 1px solid #4b5563;
+    border-radius: 4px;
+    padding: 6px 12px;
+    color: white;
+    font-size: 14px;
+}
+
+.createBtn {
+    background-color: #2563eb;
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.createBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+/* Horizontal Tree Container */
+.treeContainer {
+    display: flex;
+    flex-direction: row;
+    /* Horizontal columns */
+    align-items: flex-start;
+    gap: 16px;
+    overflow-x: auto;
+    padding-bottom: 16px;
+    /* Space for scrollbar */
+    flex: 1;
+}
+
+/* Column Panel Style */
+.treeColumn {
+    min-width: 260px;
+    max-width: 320px;
+    flex-shrink: 0;
+    background-color: #111827;
+    /* Darker bg for column */
+    border: 1px solid #374151;
+    border-radius: 8px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    max-height: 100%;
+    overflow-y: auto;
+}
+
+.treeItem {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 2px;
+}
+
+/* Root Header in Column */
+.columnHeader {
+    font-weight: bold;
+    font-size: 15px;
+    color: white;
+    padding: 8px;
+    border-bottom: 1px solid #374151;
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+}
+
+.columnHeader.selected {
+    background-color: rgba(37, 99, 235, 0.2);
+    color: #93c5fd;
+    border-color: #3b82f6;
+}
+
+/* Tree Items */
+.itemContent {
+    /* The Row itself */
+    display: flex;
+    align-items: center;
+    padding: 6px 8px;
+    border-radius: 4px;
+    background-color: #1f2937;
+    /* Dark Background */
+    border: 1px solid #374151;
+    /* Dark Border */
+    transition: all 0.2s;
+    position: relative;
+    /* Critical for absolute drag lines */
+
+    cursor: pointer;
+    color: #d1d5db;
+    /* Restore text color */
+}
+
+/* Optional: First item border? standard border handling */
+.treeItem>.itemContent {
+    border: 1px solid #374151;
+    margin-bottom: 0px;
+    border-radius: 4px;
+}
+
+.itemContent:hover {
+    background-color: rgba(55, 65, 81, 0.5);
+    /* Restore darker hover */
+    z-index: 10;
+    /* Bring to front on hover */
+}
+
+/* First item radius */
+.treeColumn>div>.treeItem:first-child>.itemContent {
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+}
+
+/* Last item radius (if no children) - Simplification */
+.treeItem:last-child>.itemContent {
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
+}
+
+.itemContent.selected {
+    background-color: rgba(37, 99, 235, 0.2);
+    color: #93c5fd;
+}
+
+.folderIcon {
+    margin-right: 8px;
+    font-size: 16px;
+}
+
+.categoryName {
+    flex: 1;
+    font-size: 14px;
+}
+
+.actions {
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.itemContent:hover .actions,
+.columnHeader:hover .actions {
+    opacity: 1;
+}
+
+.actionBtn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 2px;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.actionBtn:hover {
+    opacity: 1;
+}
+
+.deleteBtn:hover {
+    filter: grayscale(0) hue-rotate(0);
+}
+
+.editForm {
+    display: flex;
+    flex: 1;
+    gap: 4px;
+}
+
+.editInput {
+    flex: 1;
+    background-color: #111827;
+    border: 1px solid #60a5fa;
+    border-radius: 2px;
+    color: white;
+    padding: 2px 4px;
+    font-size: 13px;
+}
+
+.saveBtn,
+.cancelBtn {
+    border: none;
+    border-radius: 2px;
+    padding: 2px 6px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.saveBtn {
+    background-color: #059669;
+    color: white;
+}
+
+.cancelBtn {
+    background-color: #dc2626;
+    color: white;
+}
+
+.loading,
+.empty {
+    text-align: center;
+    color: #6b7280;
+    font-size: 14px;
+    margin-top: 20px;
+    width: 100%;
+}
+
+.dragging {
+    opacity: 0.5;
+    border: 2px dashed #60a5fa;
+}
+
+/* Pro Standard DnD Visuals */
+
+/* Insertion Lines - No Layout Shift */
+.dragOver-reorder-top::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    /* Overlap border perfectly */
+    left: 0;
+    right: 0;
+    height: 3px;
+    background-color: #3b82f6;
+    z-index: 1000;
+    /* Max Z */
+    pointer-events: none;
+    /* Critical: Ignore mouse */
+    border-radius: 1.5px;
+}
+
+.dragOver-reorder-bottom::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    /* Overlap border perfectly */
+    left: 0;
+    right: 0;
+    height: 3px;
+    background-color: #3b82f6;
+    z-index: 1000;
+    pointer-events: none;
+    border-radius: 1.5px;
+}
+
+/* Horizontal Column Lines */
+.treeColumn.dragOver-reorder-top::before {
+    top: 0;
+    bottom: 0;
+    left: -2px;
+    /* Gap logic */
+    width: 4px;
+    height: auto;
+    background-color: #3b82f6;
+    pointer-events: none;
+    z-index: 1000;
+}
+
+.treeColumn.dragOver-reorder-bottom::after {
+    top: 0;
+    bottom: 0;
+    right: -2px;
+    width: 4px;
+    height: auto;
+    background-color: #3b82f6;
+    left: auto;
+    pointer-events: none;
+}
+
+/* Hide top/bottom lines if unused on columns? Logic matches class names */
+
+
+
+/* 2. Reparent: Clean Highlight + Dummy */
+.dragOver-reparent {
+    background-color: rgba(59, 130, 246, 0.15) !important;
+    /* Subtle blue tint */
+    border-radius: 4px;
+}
+
+/* Dummy Child - Keep it but ensure no pointer events */
+.dummy-child {
+    margin-left: 12px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 8px;
+    border: 1px dashed #3b82f6;
+    border-radius: 6px;
+    background-color: rgba(59, 130, 246, 0.05);
+    color: #3b82f6;
+    font-size: 0.9em;
+    pointer-events: none;
+    /* Ignore clicks */
+}
+
+.dummy-child .arrow {
+    transform: rotate(90deg);
+    /* Down arrowish */
+    font-weight: bold;
+}
+
+/* Root Container Drop Zone */
+.treeContainer {
+    position: relative;
+    min-height: 400px;
+    /* Ensure drop area exists */
+    padding: 16px;
+    transition: background-color 0.2s;
+}
+
+.treeContainer.dragOver-root {
+    background-color: rgba(250, 204, 21, 0.05);
+    /* Subtle Yellow/Warning tint */
+    border: 2px dashed #facc15;
+}
+
+.root-drop-cue {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    background: #facc15;
+    color: black;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: bold;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+    from {
+        transform: translate(-50%, -50%) scale(0.8);
+        opacity: 0;
+    }
+
+    to {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+}

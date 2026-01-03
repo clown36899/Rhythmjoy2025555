@@ -1,0 +1,154 @@
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(4px);
+    padding: 16px;
+}
+
+.modal {
+    background-color: #1f2937;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 512px;
+    overflow: hidden;
+    border: 1px solid #374151;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+.header {
+    padding: 16px;
+    border-bottom: 1px solid #374151;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.title {
+    font-size: 20px;
+    font-weight: bold;
+    color: white;
+}
+
+.closeButton {
+    background: none;
+    border: none;
+    color: #9ca3af;
+    font-size: 20px;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.closeButton:hover {
+    color: white;
+}
+
+.content {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.formGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #d1d5db;
+}
+
+.required {
+    color: #f87171;
+    margin-left: 2px;
+}
+
+.input,
+.select {
+    width: 100%;
+    background-color: #111827;
+    border: 1px solid #374151;
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: white;
+    outline: none;
+    transition: border-color 0.2s;
+    font-size: 14px;
+    /* Ensure font size matches */
+}
+
+.input:focus,
+.select:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.message {
+    padding: 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    border: 1px solid;
+}
+
+.error {
+    background-color: rgba(127, 29, 29, 0.5);
+    border-color: rgba(239, 68, 68, 0.5);
+    color: #fecaca;
+}
+
+.status {
+    background-color: rgba(30, 58, 138, 0.3);
+    border-color: rgba(59, 130, 246, 0.3);
+    color: #bfdbfe;
+}
+
+.footer {
+    padding: 16px;
+    background-color: #111827;
+    border-top: 1px solid #374151;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.cancelButton {
+    padding: 8px 16px;
+    background-color: #1f2937;
+    color: #d1d5db;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.cancelButton:hover {
+    background-color: #374151;
+}
+
+.importButton {
+    padding: 8px 16px;
+    background-color: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.importButton:hover {
+    background-color: #1d4ed8;
+}
+
+.importButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
