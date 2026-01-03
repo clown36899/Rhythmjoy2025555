@@ -423,6 +423,7 @@ export default function UniversalPostEditor({
                                 name="prefix_id"
                                 onChange={(e) => setFormData(prev => ({ ...prev, prefix_id: e.target.value ? Number(e.target.value) : null }))}
                                 className="pem-select half-width lang-ko-only"
+                                disabled={formData.is_notice}
                             >
                                 <option value="">머릿말 선택</option>
                                 {prefixes.filter((p: any) => !p.admin_only).map((p: any) => (
@@ -435,6 +436,7 @@ export default function UniversalPostEditor({
                                 name="prefix_id"
                                 onChange={(e) => setFormData(prev => ({ ...prev, prefix_id: e.target.value ? Number(e.target.value) : null }))}
                                 className="pem-select half-width lang-en-only"
+                                disabled={formData.is_notice}
                             >
                                 <option value="">Select a heading</option>
                                 {prefixes.filter((p: any) => !p.admin_only).map((p: any) => (
@@ -505,9 +507,17 @@ export default function UniversalPostEditor({
                                 <input
                                     type="checkbox"
                                     checked={formData.is_notice}
-                                    onChange={(e) => setFormData(prev => ({ ...prev, is_notice: e.target.checked }))}
+                                    onChange={(e) => setFormData(prev => ({
+                                        ...prev,
+                                        is_notice: e.target.checked,
+                                        prefix_id: e.target.checked ? 1 : prev.prefix_id
+                                    }))}
                                 />
-                                <span>공지사항으로 등록</span>
+                                <span className="manual-label-wrapper">
+                                    <span className="translated-part">Register as Notice</span>
+                                    <span className="fixed-part ko" translate="no">공지사항으로 등록</span>
+                                    <span className="fixed-part en" translate="no">Register as Notice</span>
+                                </span>
                             </label>
                         )}
 
