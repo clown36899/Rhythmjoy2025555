@@ -49,6 +49,25 @@ const LearningPage = () => {
     });
     const [isSyncing, setIsSyncing] = useState(false);
 
+    // Layout Override: Escape the 650px mobile limit
+    // Layout Override: Escape the 650px mobile limit
+    useEffect(() => {
+        const root = document.getElementById('root');
+        const html = document.documentElement;
+
+        // 1. Override styles with !important priority
+        html.style.setProperty('max-width', 'none', 'important');
+        document.body.style.setProperty('max-width', 'none', 'important');
+        if (root) root.style.setProperty('max-width', 'none', 'important');
+
+        // 2. Restore on cleanup
+        return () => {
+            html.style.removeProperty('max-width');
+            document.body.style.removeProperty('max-width');
+            if (root) root.style.removeProperty('max-width');
+        };
+    }, []);
+
     useEffect(() => {
         checkAdmin();
         fetchData();
@@ -130,19 +149,7 @@ const LearningPage = () => {
         if (!selectedCategoryId) return playlists; // Show all at root (or modify to hide if desired)
 
         // Helper to get all descendant IDs including self
-        const getDescendantIds = (cats: any[], targetId: string): string[] => {
-            // Simple recursive find
-            let ids = [targetId];
-            const findChildren = (parentId: string) => {
-                const children = cats.filter(c => c.parent_id === parentId);
-                children.forEach(c => {
-                    ids.push(c.id);
-                    findChildren(c.id);
-                });
-            };
-            findChildren(targetId);
-            return ids;
-        };
+
 
         // const targetIds = getDescendantIds(flatCategories, selectedCategoryId);
 
