@@ -298,19 +298,37 @@ export default function CalendarPage() {
                     className={`calendar-tab-btn ${tabFilter === 'all' ? 'active' : ''}`}
                     onClick={() => setTabFilter('all')}
                 >
-                    All
+                    <div className="tab-label-wrapper">
+                        <span className="translated-part">{t('all')}</span>
+                        <span className="fixed-part ko" translate="no">전체</span>
+                        <span className="fixed-part en" translate="no">ALL</span>
+                        <span className="fixed-part ja" translate="no">ALL</span>
+                        <span className="fixed-part zh" translate="no">ALL</span>
+                    </div>
                 </button>
                 <button
                     className={`calendar-tab-btn ${tabFilter === 'social-events' ? 'active' : ''}`}
                     onClick={() => setTabFilter('social-events')}
                 >
-                    소셜&행사
+                    <div className="tab-label-wrapper">
+                        <span className="translated-part">{t('socialEvents')}</span>
+                        <span className="fixed-part ko" translate="no">소셜&행사</span>
+                        <span className="fixed-part en" translate="no">Social</span>
+                        <span className="fixed-part ja" translate="no">Social</span>
+                        <span className="fixed-part zh" translate="no">Social</span>
+                    </div>
                 </button>
                 <button
                     className={`calendar-tab-btn ${tabFilter === 'classes' ? 'active' : ''}`}
                     onClick={() => setTabFilter('classes')}
                 >
-                    class
+                    <div className="tab-label-wrapper">
+                        <span className="translated-part">{t('classes')}</span>
+                        <span className="fixed-part ko" translate="no">강습</span>
+                        <span className="fixed-part en" translate="no">Class</span>
+                        <span className="fixed-part ja" translate="no">Class</span>
+                        <span className="fixed-part zh" translate="no">Class</span>
+                    </div>
                 </button>
             </div>
 
@@ -333,16 +351,26 @@ export default function CalendarPage() {
                                 }
                             }}
                         >
-                            <span
-                                className="weekday-label"
-                                data-ko={{
-                                    sun: '일', mon: '월', tue: '화', wed: '수', thu: '목', fri: '금', sat: '토'
-                                }[dayKey as 'sun' | 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat']}
-                            >
-                                {t(`weekdays.${dayKey}`)}
-                            </span>
+                            <div className="weekday-wrapper">
+                                <span className="translated-part">
+                                    {t(`weekdays.${dayKey}`)}
+                                </span>
+                                {/* User defined short forms for each language */}
+                                <span className="fixed-part ko" translate="no">
+                                    {{ sun: '일', mon: '월', tue: '화', wed: '수', thu: '목', fri: '금', sat: '토' }[dayKey as 'sun' | 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat']}
+                                </span>
+                                <span className="fixed-part en" translate="no">
+                                    {{ sun: 'Sun', mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat' }[dayKey as 'sun' | 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat']}
+                                </span>
+                                <span className="fixed-part ja" translate="no">
+                                    {{ sun: '日', mon: '月', tue: '火', wed: '水', thu: '木', fri: '金', sat: '土' }[dayKey as 'sun' | 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat']}
+                                </span>
+                                <span className="fixed-part zh" translate="no">
+                                    {{ sun: '周日', mon: '周一', tue: '周二', wed: '周三', thu: '周四', fri: '周五', sat: '周六' }[dayKey as 'sun' | 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat']}
+                                </span>
+                            </div>
                             {selectedWeekday === index && (
-                                <i className="ri-close-line" style={{ fontSize: '10px', marginLeft: '1px', opacity: 0.8 }}></i>
+                                <i className="ri-close-line absolute-icon"></i>
                             )}
                         </div>
                     ))}
@@ -361,7 +389,7 @@ export default function CalendarPage() {
                     calendarHeightPx={window.innerHeight - 100} // 대략적인 높이 계산
                     dragOffset={dragOffset}
                     isAnimating={isAnimating}
-                    onEventClick={(event) => eventModal.setSelectedEvent(event)}
+                    onEventClick={(event: any) => eventModal.setSelectedEvent(event)}
                     highlightedEventId={highlightedEventId}
                     tabFilter={tabFilter}
                 />
@@ -376,10 +404,10 @@ export default function CalendarPage() {
                     isAdminMode={isAdmin}
                     // @ts-ignore - adminType prop mismatch fix pending in component
                     adminType={adminType}
-                    onDelete={(id) => eventModal.handleDeleteEvent(typeof id === 'number' ? id : id.id)}
-                    onEdit={(event) => eventModal.handleEditClick(event)}
+                    onDelete={(id: any) => eventModal.handleDeleteEvent(typeof id === 'number' ? id : id.id)}
+                    onEdit={(event: any) => eventModal.handleEditClick(event)}
                     isFavorite={favoriteEventIds.has(eventModal.selectedEvent.id)}
-                    onToggleFavorite={(e) => eventModal.selectedEvent && toggleFavorite(eventModal.selectedEvent.id, e)}
+                    onToggleFavorite={(e: any) => eventModal.selectedEvent && toggleFavorite(eventModal.selectedEvent.id, e)}
                 />
             )}
 
@@ -404,7 +432,7 @@ export default function CalendarPage() {
                         isOpen={showRegisterModal}
                         onClose={() => setShowRegisterModal(false)}
                         selectedDate={selectedDate || new Date()}
-                        onEventCreated={(createdDate, eventId) => {
+                        onEventCreated={(createdDate: any, eventId: any) => {
                             setShowRegisterModal(false);
                             if (eventId) {
                                 console.log('Event created:', eventId, createdDate);
@@ -443,7 +471,7 @@ export default function CalendarPage() {
             <CalendarSearchModal
                 isOpen={showCalendarSearch}
                 onClose={() => setShowCalendarSearch(false)}
-                onSelectEvent={(event) => {
+                onSelectEvent={(event: any) => {
                     setShowCalendarSearch(false);
                     // Navigate to event's month
                     const eventDate = new Date(event.start_date || event.date || new Date());

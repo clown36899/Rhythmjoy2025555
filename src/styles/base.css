@@ -212,3 +212,60 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* ===== Multi-Language Manual Labels (Double-Span) ===== */
+.manual-label-wrapper {
+  display: inline-flex;
+  align-items: center;
+  /* justify-content: center; 제거하여 기본 왼쪽 정렬 유지 */
+  vertical-align: middle;
+}
+
+/* Screen Reader Only (for Translators) - Takes no space, invisible */
+.translated-part {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.fixed-part {
+  display: none !important;
+}
+
+/* Default: Show KO in Korean mode */
+html[lang^="ko"] .fixed-part.ko {
+  display: inline-block !important;
+}
+
+/* Show EN in other modes (Global Strategy: EN, ZH, JA all use EN labels) */
+html:not([lang^="ko"]) .fixed-part.en {
+  display: inline-block !important;
+}
+
+/* Proper Noun Protection */
+[translate="no"],
+.notranslate {
+  display: inline-block;
+}
+
+/* ===== Google Translate UI Cleanup ===== */
+/* Hide Google Translate widget, spinner, and banners */
+[class*="VIpgJd-ZVi9od-aZ2wEe"],
+.goog-te-banner-frame,
+#goog-gt-tt,
+.goog-te-balloon-frame,
+.goog-tooltip,
+.goog-tooltip:hover {
+  display: none !important;
+}
+
+/* Prevent body from shifting down when Google banner is hidden */
+body {
+  top: 0 !important;
+}

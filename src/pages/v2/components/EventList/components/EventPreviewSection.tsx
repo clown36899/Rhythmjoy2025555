@@ -105,9 +105,11 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
             {favoriteEventsList.length > 0 && (
                 <div className="evt-v2-section evt-v2-section-events">
                     <div className="evt-v2-section-title">
-                        <div>
-                            <i className="ri-star-fill" style={{ color: '#ffffff' }}></i>
-                            <span>즐겨찾기한 내 이벤트</span>
+                        <div className="manual-label-wrapper" style={{ justifyContent: 'flex-start' }}>
+                            <i className="ri-star-fill" style={{ color: '#ffffff', marginRight: 'min(1vw, 6px)' }}></i>
+                            <span className="translated-part">My Favorite Events</span>
+                            <span className="fixed-part ko" translate="no">즐겨찾기한 내 이벤트</span>
+                            <span className="fixed-part en" translate="no">My Favorites</span>
                         </div>
                     </div>
                     <HorizontalScrollNav>
@@ -135,13 +137,18 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
             {/* 6. Events Horizontal */}
             <div className="evt-v2-section evt-v2-section-events">
                 <div className="evt-v2-section-title">
-                    <div>
-                        <i className="ri-calendar-event-fill"></i>
-                        <span>예정된 행사</span>
-                        <span className="evt-v2-count">{futureEvents.length}</span>
+                    <div className="manual-label-wrapper" style={{ justifyContent: 'flex-start' }}>
+                        <i className="ri-calendar-event-fill" style={{ marginRight: 'min(1vw, 6px)' }}></i>
+                        <span className="translated-part">Upcoming Events</span>
+                        <span className="fixed-part ko" translate="no">예정된 행사</span>
+                        <span className="fixed-part en" translate="no">Upcoming Events</span>
+                        <span className="evt-v2-count" style={{ marginLeft: 'min(1vw, 6px)' }}>{futureEvents.length}</span>
                     </div>
-                    <button onClick={() => onSectionViewModeChange('viewAll-events')} className="evt-view-all-btn">
-                        전체보기 <i className="ri-arrow-right-s-line"></i>
+                    <button onClick={() => onSectionViewModeChange('viewAll-events')} className="evt-view-all-btn manual-label-wrapper">
+                        <span className="translated-part">View All</span>
+                        <span className="fixed-part ko" translate="no">전체보기</span>
+                        <span className="fixed-part en" translate="no">All</span>
+                        <i className="ri-arrow-right-s-line" style={{ marginLeft: 'min(0.5vw, 4px)' }}></i>
                     </button>
                 </div>
 
@@ -180,13 +187,18 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
             {/* 7. Classes Horizontal */}
             <div className="evt-v2-section evt-v2-section-classes">
                 <div className="evt-v2-section-title">
-                    <div>
-                        <i className="ri-calendar-check-fill" style={{ color: '#10b981' }}></i>
-                        <span>강습</span>
-                        <span className="evt-v2-count">{regularClasses.length}</span>
+                    <div className="manual-label-wrapper" style={{ justifyContent: 'flex-start' }}>
+                        <i className="ri-calendar-check-fill" style={{ color: '#10b981', marginRight: 'min(1vw, 6px)' }}></i>
+                        <span className="translated-part">Classes</span>
+                        <span className="fixed-part ko" translate="no">강습</span>
+                        <span className="fixed-part en" translate="no">Classes</span>
+                        <span className="evt-v2-count" style={{ marginLeft: 'min(1vw, 6px)' }}>{regularClasses.length}</span>
                     </div>
-                    <button onClick={() => window.location.href = '/calendar?scrollToToday=true'} className="evt-view-all-btn">
-                        전체달력 <i className="ri-arrow-right-s-line"></i>
+                    <button onClick={() => window.location.href = '/calendar?scrollToToday=true'} className="evt-view-all-btn manual-label-wrapper">
+                        <span className="translated-part">Calendar</span>
+                        <span className="fixed-part ko" translate="no">전체달력</span>
+                        <span className="fixed-part en" translate="no">Calendar</span>
+                        <i className="ri-arrow-right-s-line" style={{ marginLeft: 'min(0.5vw, 4px)' }}></i>
                     </button>
                 </div>
 
@@ -225,13 +237,18 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
             {/* 8. Club Horizontal */}
             <div className="evt-v2-section evt-v2-section-classes">
                 <div className="evt-v2-section-title">
-                    <div>
-                        <i className="ri-group-fill"></i>
-                        <span>동호회 강습</span>
-                        <span className="evt-v2-count">{clubLessons.length}</span>
+                    <div className="manual-label-wrapper" style={{ justifyContent: 'flex-start' }}>
+                        <i className="ri-group-fill" style={{ marginRight: 'min(1vw, 6px)' }}></i>
+                        <span className="translated-part">Club Events</span>
+                        <span className="fixed-part ko" translate="no">동호회 강습</span>
+                        <span className="fixed-part en" translate="no">Club Classes</span>
+                        <span className="evt-v2-count" style={{ marginLeft: 'min(1vw, 6px)' }}>{clubLessons.length}</span>
                     </div>
-                    <button onClick={() => window.location.href = '/social'} className="evt-view-all-btn">
-                        이벤트등록 <i className="ri-arrow-right-s-line"></i>
+                    <button onClick={() => window.location.href = '/social'} className="evt-view-all-btn manual-label-wrapper">
+                        <span className="translated-part">Register Event</span>
+                        <span className="fixed-part ko" translate="no">이벤트등록</span>
+                        <span className="fixed-part en" translate="no">Register</span>
+                        <i className="ri-arrow-right-s-line" style={{ marginLeft: 'min(0.5vw, 4px)' }}></i>
                     </button>
                 </div>
 
@@ -273,10 +290,12 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
             {/* Section 4: 동호회 정규 강습 (Horizontal Scroll) */}
             <div className="evt-v2-section evt-v2-section-club-classes">
                 <div className="evt-v2-section-title">
-                    <div>
-                        <i className="ri-group-2-fill"></i>
-                        <span>동호회 정규강습</span>
-                        <span className="evt-v2-count">{clubRegularClasses.length}</span>
+                    <div className="manual-label-wrapper" style={{ justifyContent: 'flex-start' }}>
+                        <i className="ri-group-2-fill" style={{ marginRight: 'min(1vw, 6px)' }}></i>
+                        <span className="translated-part">Club Regular Classes</span>
+                        <span className="fixed-part ko" translate="no">동호회 정규강습</span>
+                        <span className="fixed-part en" translate="no">Regular Classes</span>
+                        <span className="evt-v2-count" style={{ marginLeft: 'min(1vw, 6px)' }}>{clubRegularClasses.length}</span>
                     </div>
                 </div>
 

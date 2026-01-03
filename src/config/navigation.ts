@@ -1,5 +1,6 @@
 export interface NavigationItem {
     label: string;
+    labelEn: string;
     path: string;
     icon: string;
     iconFilled: string; // Filled version for active state
@@ -12,6 +13,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
 
     {
         label: '이벤트',
+        labelEn: 'Events',
         path: '/v2',
         icon: 'ri-ticket-line',
         iconFilled: 'ri-ticket-fill',
@@ -19,6 +21,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
     },
     {
         label: '전체달력',
+        labelEn: 'Calendar',
         path: '/calendar',
         icon: 'ri-calendar-event-line',
         iconFilled: 'ri-calendar-event-fill',
@@ -26,6 +29,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
     },
     {
         label: '자유게시판',
+        labelEn: 'Board',
         path: '/board',
         icon: 'ri-chat-3-line',
         iconFilled: 'ri-chat-3-fill',
@@ -33,6 +37,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
     },
     {
         label: '소셜 /동호회',
+        labelEn: 'Social',
         path: '/social',
         icon: 'ri-map-pin-line',
         iconFilled: 'ri-map-pin-fill',
@@ -40,6 +45,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
     },
     {
         label: '연습실 / 바',
+        labelEn: 'Studio',
         path: '/practice',
         icon: 'ri-music-2-line',
         iconFilled: 'ri-music-2-fill',
@@ -47,6 +53,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
     },
     {
         label: '쇼핑',
+        labelEn: 'Shop',
         path: '/shopping',
         icon: 'ri-shopping-bag-line',
         iconFilled: 'ri-shopping-bag-fill',
@@ -54,6 +61,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
     },
     {
         label: '안내',
+        labelEn: 'Guide',
         path: '/guide',
         icon: 'ri-information-line',
         iconFilled: 'ri-information-fill',

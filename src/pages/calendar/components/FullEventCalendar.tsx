@@ -424,16 +424,24 @@ export default memo(function FullEventCalendar({
                 }`}
             >
               <span style={{ marginRight: '2px' }}>{day.getDate()}</span>
-              <span
-                className="weekday-label"
-                data-ko={(() => {
-                  const days = ['일', '월', '화', '수', '목', '금', '토'];
-                  return todayFlag ? '오늘' : days[day.getDay()];
-                })()}
-                style={{ fontSize: '10px', fontWeight: 'normal', opacity: 0.8 }}
-              >
-                {todayFlag ? t('today') : t(`weekdays.${['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][day.getDay()]}`)}
-              </span>
+              <div className="weekday-wrapper" style={{ fontSize: '10px', fontWeight: 'normal', opacity: 0.8 }}>
+                <span className="translated-part">
+                  {todayFlag ? t('today') : t(`weekdays.${['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][day.getDay()]}`)}
+                </span>
+                {/* User defined short forms for each language */}
+                <span className="fixed-part ko" translate="no">
+                  {(() => { const days = ['일', '월', '화', '수', '목', '금', '토']; return todayFlag ? '오늘' : days[day.getDay()]; })()}
+                </span>
+                <span className="fixed-part en" translate="no">
+                  {(() => { const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']; return todayFlag ? 'Today' : days[day.getDay()]; })()}
+                </span>
+                <span className="fixed-part ja" translate="no">
+                  {(() => { const days = ['日', '月', '火', '수', '목', '金', '土']; return todayFlag ? '今日' : days[day.getDay()]; })()}
+                </span>
+                <span className="fixed-part zh" translate="no">
+                  {(() => { const days = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']; return todayFlag ? '今天' : days[day.getDay()]; })()}
+                </span>
+              </div>
             </span>
           </div>
 

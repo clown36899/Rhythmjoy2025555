@@ -110,28 +110,39 @@ const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules,
             <div className="all-social-header">
                 <div className="all-social-menu-group">
                     <i className="ri-calendar-line" style={{ color: '#4a9eff', fontSize: '1.2rem' }}></i>
-                    <h2 className="all-social-title-menu">
+                    <h2 className="all-social-title-menu manual-label-wrapper">
                         <span
                             className={`menu-item ${weekMode === 'this' ? 'active' : ''}`}
                             onClick={() => setWeekMode('this')}
                         >
-                            이번주
+                            <span className="translated-part">This Week</span>
+                            <span className="fixed-part ko" translate="no">이번주</span>
+                            <span className="fixed-part en" translate="no">This Week</span>
                         </span>
                         <span className="menu-sep">|</span>
                         <span
                             className={`menu-item ${weekMode === 'next' ? 'active' : ''}`}
                             onClick={() => setWeekMode('next')}
                         >
-                            다음주
+                            <span className="translated-part">Next Week</span>
+                            <span className="fixed-part ko" translate="no">다음주</span>
+                            <span className="fixed-part en" translate="no">Next Week</span>
                         </span>
-                        <span className="title-suffix">소셜일정</span>
+                        <span className="title-suffix manual-label-wrapper">
+                            <span className="translated-part">Social Schedule</span>
+                            <span className="fixed-part ko" translate="no">소셜일정</span>
+                            <span className="fixed-part en" translate="no">Schedule</span>
+                        </span>
                     </h2>
                     <span className="all-social-count">{filteredSchedules.length}</span>
                 </div>
 
                 {onViewAll && (
-                    <button className="evt-view-all-btn" onClick={onViewAll}>
-                        전체 ❯
+                    <button className="evt-view-all-btn manual-label-wrapper" onClick={onViewAll}>
+                        <span className="translated-part">View All</span>
+                        <span className="fixed-part ko" translate="no">전체</span>
+                        <span className="fixed-part en" translate="no">All</span>
+                        <span style={{ marginLeft: 'min(0.5vw, 4px)' }}>❯</span>
                     </button>
                 )}
             </div>

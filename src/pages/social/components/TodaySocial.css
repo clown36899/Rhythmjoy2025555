@@ -6,27 +6,36 @@
 .section-title-area {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 0 20px;
-    /* margin-bottom: 16px; */
+    gap: min(1vw, 6px);
+    padding: 0 min(3.5vw, 20px);
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .section-title {
-    font-size: 1.3rem;
+    font-size: min(4.5vw, 1.45rem) !important;
     font-weight: 800;
     color: white;
     margin: 0;
     letter-spacing: -0.5px;
+    white-space: nowrap;
+    flex-shrink: 1 !important;
+    min-width: 0 !important;
+    overflow: hidden;
 }
 
 .live-badge {
     background: linear-gradient(90deg, #ff4b2b, #ff416c);
     color: white;
-    font-size: 0.65rem;
+    font-size: min(2vw, 0.62rem);
     font-weight: 900;
-    padding: 2px 6px;
+    padding: 1px min(0.8vw, 5px);
     border-radius: 4px;
     animation: pulse 2s infinite;
+    white-space: nowrap;
+    flex-shrink: 1;
+    min-width: 0;
 }
 
 @keyframes pulse {

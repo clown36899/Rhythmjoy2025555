@@ -30,7 +30,7 @@ html {
     display: flex;
     gap: 8px;
     padding: 12px 16px;
-    border-bottom: 1px solid #222;
+    /* border-bottom: 1px solid #222; */
 }
 
 .calendar-tab-btn {
@@ -72,7 +72,7 @@ html {
     /* BoardTabBar와 동일한 레벨 */
     background-color: #000000;
     padding-top: 10px;
-    padding-bottom: 10px;
+    /* padding-bottom: 10px; */
     border-bottom: 1px solid #333;
 }
 
@@ -90,34 +90,58 @@ html {
     /* 글로벌 헤더(60px) + 탭 메뉴(50px) + 요일 헤더(60px) */
 }
 
-/* Explicit Mapping Switch logic:
-   1. The DOM contains 'Mon', 'Tue' etc. (translated or native).
-   2. When NOT translated and in Korean mode, hide 'Mon' and show '월' via data-ko.
-   3. When translated (lang changes or .translated-ltr added), reveal 'Mon'.
-*/
+/* 요일 헤더 레이아웃 스타일 */
+.calendar-weekday-header {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0;
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #c7c7c7;
+    flex-shrink: 0;
+    background-color: #000000;
+}
 
-/* [Native Korean & Not Translated] */
-html[lang^="ko"]:not(.translated-ltr) .weekday-label {
-    font-size: 0 !important;
+.calendar-weekday-item {
+    padding: 10px 0;
+    /* Padding restored */
+    height: 42px;
+    /* Fixed height to prevent any layout shifts */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #c7c7c7;
+    transition: all 0.2s ease;
+    position: relative;
+    /* For absolute icon */
+}
+
+.calendar-weekday-item.selected {
+    color: #4a9eff !important;
+    font-weight: bold;
+}
+
+/* Close Icon: Positioned absolutely to never affect height */
+.absolute-icon {
+    position: absolute;
+    bottom: 2px;
+    font-size: 10px;
+    opacity: 0.8;
+}
+
+/* Stable Switch Logic (Multi-Language Fixed Labels) */
+.weekday-wrapper,
+.tab-label-wrapper {
     position: relative;
     display: inline-block;
+    width: 100%;
+    /* Ensure full width for centering */
 }
 
-html[lang^="ko"]:not(.translated-ltr) .weekday-label::before {
-    content: attr(data-ko);
-    font-size: 14px;
-    /* Native UI size */
-    visibility: visible;
-    text-transform: none;
-}
-
-/* [Translated or English Mode] */
-html:not([lang^="ko"]) .weekday-label,
-html.translated-ltr .weekday-label {
-    font-size: inherit !important;
-}
-
-html:not([lang^="ko"]) .weekday-label::before,
-html.translated-ltr .weekday-label::before {
+.fixed-part {
     display: none !important;
 }
+
+/* All other multi-language logic is now centralized in base.css */

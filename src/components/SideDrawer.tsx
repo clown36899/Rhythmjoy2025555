@@ -169,7 +169,11 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                             <div className="drawer-avatar placeholder">
                                 <i className="ri-user-add-line"></i>
                             </div>
-                            <span>로그인해주세요</span>
+                            <span className="manual-label-wrapper">
+                                <span className="translated-part">Please Login</span>
+                                <span className="fixed-part ko" translate="no">로그인해주세요</span>
+                                <span className="fixed-part en" translate="no">Please Login</span>
+                            </span>
                             <i className="ri-arrow-right-s-line"></i>
                         </div>
                     )}
@@ -194,7 +198,11 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                                 data-analytics-section="side_drawer_my"
                             >
                                 <i className="ri-star-line" style={{ color: '#ffffff' }}></i>
-                                <span>내 즐겨찾기</span>
+                                <span className="manual-label-wrapper">
+                                    <span className="translated-part">My Favorites</span>
+                                    <span className="fixed-part ko" translate="no">내 즐겨찾기</span>
+                                    <span className="fixed-part en" translate="no">My Favorites</span>
+                                </span>
                             </div>
                             <div className="drawer-menu-item"
                                 onClick={() => {
@@ -207,7 +215,11 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                                 data-analytics-section="side_drawer_my"
                             >
                                 <i className="ri-file-list-3-line"></i>
-                                <span>내가 쓴 글 / 등록한 행사</span>
+                                <span className="manual-label-wrapper">
+                                    <span className="translated-part">My Posts</span>
+                                    <span className="fixed-part ko" translate="no">내가 쓴 글 / 등록한 행사</span>
+                                    <span className="fixed-part en" translate="no">My Posts</span>
+                                </span>
                             </div>
                             <div className="drawer-divider"></div>
                         </>
@@ -384,7 +396,11 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                         data-analytics-section="side_drawer_service"
                     >
                         <i className="ri-home-4-line"></i>
-                        <span>홈</span>
+                        <span className="manual-label-wrapper">
+                            <span className="translated-part">Home</span>
+                            <span className="fixed-part ko" translate="no">홈</span>
+                            <span className="fixed-part en" translate="no">Home</span>
+                        </span>
                     </div>
                     <div className="drawer-menu-item"
                         onClick={() => handleNavigation('/social')}
@@ -394,7 +410,11 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                         data-analytics-section="side_drawer_service"
                     >
                         <i className="ri-calendar-event-line"></i>
-                        <span>소셜 (이벤트)</span>
+                        <span className="manual-label-wrapper">
+                            <span className="translated-part">Social</span>
+                            <span className="fixed-part ko" translate="no">소셜 (이벤트)</span>
+                            <span className="fixed-part en" translate="no">Social</span>
+                        </span>
                     </div>
                     <div className="drawer-menu-item"
                         onClick={() => handleNavigation('/calendar')}
@@ -404,7 +424,11 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                         data-analytics-section="side_drawer_service"
                     >
                         <i className="ri-calendar-line"></i>
-                        <span>전체 일정</span>
+                        <span className="manual-label-wrapper">
+                            <span className="translated-part">Calendar</span>
+                            <span className="fixed-part ko" translate="no">전체 일정</span>
+                            <span className="fixed-part en" translate="no">All Schedule</span>
+                        </span>
                     </div>
                     <div className="drawer-menu-item"
                         onClick={() => handleNavigation('/practice')}
@@ -414,7 +438,11 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                         data-analytics-section="side_drawer_service"
                     >
                         <i className="ri-building-line"></i>
-                        <span>연습실</span>
+                        <span className="manual-label-wrapper">
+                            <span className="translated-part">Studio</span>
+                            <span className="fixed-part ko" translate="no">연습실</span>
+                            <span className="fixed-part en" translate="no">Studio</span>
+                        </span>
                     </div>
                     {/* 게시판 - 펼침/접힘 가능 */}
                     <div
@@ -422,7 +450,11 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                         onClick={() => setIsBoardExpanded(!isBoardExpanded)}
                     >
                         <i className="ri-discuss-line"></i>
-                        <span>게시판</span>
+                        <span className="manual-label-wrapper">
+                            <span className="translated-part">Boards</span>
+                            <span className="fixed-part ko" translate="no">게시판</span>
+                            <span className="fixed-part en" translate="no">Forums</span>
+                        </span>
                         <i className={`ri-arrow-${isBoardExpanded ? 'down' : 'right'}-s-line drawer-expand-icon`}></i>
                     </div>
 
@@ -461,7 +493,11 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                         data-analytics-section="side_drawer_service"
                     >
                         <i className="ri-shopping-bag-3-line"></i>
-                        <span>쇼핑</span>
+                        <span className="manual-label-wrapper">
+                            <span className="translated-part">Shop</span>
+                            <span className="fixed-part ko" translate="no">쇼핑</span>
+                            <span className="fixed-part en" translate="no">Shop</span>
+                        </span>
                     </div>
                     <div className="drawer-menu-item"
                         onClick={() => handleNavigation('/guide')}
@@ -471,7 +507,11 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                         data-analytics-section="side_drawer_service"
                     >
                         <i className="ri-book-open-line"></i>
-                        <span>이용가이드</span>
+                        <span className="manual-label-wrapper">
+                            <span className="translated-part">Guide</span>
+                            <span className="fixed-part ko" translate="no">이용가이드</span>
+                            <span className="fixed-part en" translate="no">Guide</span>
+                        </span>
                     </div>
                 </nav>
 
@@ -479,7 +519,11 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                     {user && (
                         <button className="drawer-logout-btn" onClick={handleLogout}>
                             <i className="ri-logout-box-r-line"></i>
-                            로그아웃
+                            <span className="manual-label-wrapper">
+                                <span className="translated-part">Logout</span>
+                                <span className="fixed-part ko" translate="no">로그아웃</span>
+                                <span className="fixed-part en" translate="no">Logout</span>
+                            </span>
                         </button>
                     )}
                     <div className="drawer-version">

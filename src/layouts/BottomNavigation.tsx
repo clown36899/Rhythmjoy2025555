@@ -1,4 +1,5 @@
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { NAVIGATION_ITEMS } from '../config/navigation';
 import '../styles/components/BottomNavigation.css';
 import {
@@ -14,6 +15,7 @@ import { logUserInteraction } from '../lib/analytics';
 export function BottomNavigation() {
     const navigate = useNavigate();
     const location = useLocation();
+    const { t } = useTranslation();
     const currentPath = location.pathname;
 
 
@@ -109,10 +111,10 @@ export function BottomNavigation() {
                         <i
                             className={`${isActive ? item.iconFilled : item.icon} bottom-nav-icon`}
                         ></i>
-                        <span
-                            className="bottom-nav-label"
-                        >
-                            {item.label}
+                        <span className={`bottom-nav-label manual-label-wrapper ${isActive ? 'active' : ''}`}>
+                            <span className="translated-part">{t(item.label)}</span>
+                            <span className="fixed-part ko" translate="no">{item.label}</span>
+                            <span className="fixed-part en" translate="no">{item.labelEn}</span>
                         </span>
 
                         {item.badge && (

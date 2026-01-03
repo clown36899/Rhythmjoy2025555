@@ -47,35 +47,41 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 8px;
-    padding: 8px 13px 8px 15px;
-    font-size: 1.3rem;
+    gap: min(0.8vw, 6px);
+    padding: min(1vw, 6px) min(2.5vw, 15px);
+    font-size: min(4.5vw, 1.45rem);
     font-weight: 600;
     color: #fff;
-    /* border-top: 1px solid #2d2d2d; */
+    width: 100%;
+    min-width: 0;
+    overflow: hidden;
 }
 
 .evt-v2-section-title>div {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: min(1vw, 6px);
+    min-width: 0;
+    overflow: hidden;
+    flex: 1;
+    flex-shrink: 1;
 }
 
 .evt-v2-section-title i {
-    font-size: 20px;
+    font-size: min(4.2vw, 19px);
     color: #6366f1;
+    flex-shrink: 1;
 }
 
 .evt-v2-count {
-
-    font-size: 14px;
+    font-size: min(3vw, 14px);
     color: #9ca3af;
     font-weight: 400;
 }
 
 .evt-view-all-btn {
-    margin-left: auto;
-    padding: 7px 8px 6px 10px;
+    margin-left: min(0.8vw, 6px);
+    padding: min(0.8vw, 6px) min(1.8vw, 10px);
     color: var(--text-secondary);
     background: transparent;
     border-radius: 1rem;
@@ -84,7 +90,11 @@
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    font-size: 14px;
+    font-size: min(2.8vw, 13px);
+    white-space: nowrap;
+    flex-shrink: 1;
+    /* 극한 상황에서 버튼도 작아지도록 허용 */
+    min-width: 0;
 }
 
 
@@ -605,17 +615,18 @@
 }
 
 .evt-genre-btn {
-    padding: 6px 14px;
+    padding: min(1.5vw, 6px) min(3.5vw, 14px);
     border-radius: 20px;
     background-color: #27272a;
     /* Dark gray background */
     color: #a1a1aa;
     /* Light gray text */
     border: 1px solid #3f3f46;
-    font-size: 13px;
+    font-size: min(3.5vw, 13px);
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
+    white-space: nowrap;
 }
 
 .evt-genre-btn:hover {

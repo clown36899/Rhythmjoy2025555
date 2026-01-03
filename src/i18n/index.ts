@@ -17,13 +17,11 @@ i18n
   });
 
 // Synchronize html[lang] attribute with current i18next language
-i18n.on('languageChanged', (lng) => {
-  document.documentElement.lang = lng;
+i18n.on('languageChanged', (lang) => {
+  document.documentElement.lang = lang;
 });
 
-// Initial synchronization
-if (i18n.language) {
-  document.documentElement.lang = i18n.language;
-}
+// Initial sync
+document.documentElement.lang = i18n.language || 'ko';
 
 export default i18n;

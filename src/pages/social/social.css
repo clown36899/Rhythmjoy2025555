@@ -71,11 +71,15 @@
 
 /* Section Common Title (이미 컴포넌트 내부에서 사용하지만 보조용) */
 .section-title {
-  font-size: 1.3rem;
+  font-size: min(4.5vw, 1.45rem);
   font-weight: 800;
   color: white;
   margin: 0;
   letter-spacing: -0.5px;
+  white-space: nowrap;
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
 }
 
 @media (max-width: 480px) {

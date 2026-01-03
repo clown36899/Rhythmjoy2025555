@@ -90,13 +90,24 @@ const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll, on
 
     return (
         <section className="today-social-container">
-            <div className="section-title-area">
-                <i className="ri-fire-fill" style={{ color: '#ff4b2b', fontSize: '1.2rem' }}></i>
-                <h2 className="section-title">오늘 일정</h2>
-                <span className="live-badge">LIVE {schedules.length}</span>
+            <div className="section-title-area" style={{ display: 'flex', alignItems: 'center', width: '100%', minWidth: 0, overflow: 'hidden' }}>
+                <i className="ri-fire-fill" style={{ color: '#ff4b2b', fontSize: 'min(4vw, 1.15rem)', flexShrink: 1 }}></i>
+                <h2 className="section-title manual-label-wrapper" style={{ flexShrink: 1, minWidth: 0, overflow: 'hidden', justifyContent: 'flex-start' }}>
+                    <span className="translated-part">Today Schedule</span>
+                    <span className="fixed-part ko" translate="no">오늘 일정</span>
+                    <span className="fixed-part en" translate="no">Today</span>
+                </h2>
+                <span className="live-badge manual-label-wrapper">
+                    <span className="translated-part">LIVE {schedules.length}</span>
+                    <span className="fixed-part ko" translate="no">LIVE {schedules.length}</span>
+                    <span className="fixed-part en" translate="no">LIVE {schedules.length}</span>
+                </span>
                 {onViewAll && (
-                    <button className="evt-view-all-btn" onClick={onViewAll}>
-                        전체보기 ❯
+                    <button className="evt-view-all-btn manual-label-wrapper" onClick={onViewAll}>
+                        <span className="translated-part">View All</span>
+                        <span className="fixed-part ko" translate="no">전체보기</span>
+                        <span className="fixed-part en" translate="no">All</span>
+                        <span style={{ marginLeft: 'min(0.5vw, 4px)' }}>❯</span>
                     </button>
                 )}
             </div>

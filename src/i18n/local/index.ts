@@ -7,12 +7,12 @@ Object.keys(modules).forEach((path) => {
   if (match) {
     const [, lang] = match;
     const module = modules[path] as { default?: Record<string, string> };
-    
+
     if (!messages[lang]) {
       messages[lang] = { translation: {} };
     }
-    
-    // 合并翻译内容
+
+    // 합병 번역 내용
     if (module.default) {
       messages[lang].translation = {
         ...messages[lang].translation,
@@ -22,4 +22,4 @@ Object.keys(modules).forEach((path) => {
   }
 });
 
-export default messages; 
+export default messages;

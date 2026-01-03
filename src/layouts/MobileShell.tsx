@@ -334,14 +334,24 @@ export function MobileShell() {
     return (
       <span
         key="admin-stats"
-        style={{ fontSize: '10px', color: '#00ff88', fontWeight: 'bold', display: 'flex', gap: '3px', marginLeft: '4px', minWidth: '30px' }}
+        style={{
+          fontSize: 'min(1.8vw, 11px)', /* 320px에서 약 5.7px, 650px에서 약 11.7px */
+          color: '#00ff88',
+          fontWeight: 'bold',
+          display: 'flex',
+          alignItems: 'baseline',
+          gap: 'min(0.4vw, 3px)',
+          marginLeft: 'min(0.8vw, 6px)',
+          whiteSpace: 'nowrap',
+          flexShrink: 1
+        }}
       >
         <span key={`logged-in-${loggedInCount}`} style={{ color: '#00ddff' }}>{loggedInCount}</span>
-        <span key="separator" style={{ color: '#888' }}>/</span>
+        <span key="separator" style={{ color: '#888', opacity: 0.6 }}>/</span>
         <span key={`anonymous-${anonymousCount}`} style={{ color: '#ffaa00' }}>{anonymousCount}</span>
 
         {totalUserCount !== null && (
-          <span key={`total-count-${totalUserCount}`} style={{ fontSize: '10px', color: '#aaa', fontWeight: 'normal', marginLeft: '4px' }}>
+          <span key={`total-count-${totalUserCount}`} style={{ fontSize: 'min(0.85em, 10px)', color: '#aaa', fontWeight: 'normal', marginLeft: 'min(0.3vw, 2px)' }}>
             ({totalUserCount})
           </span>
         )}
@@ -373,15 +383,18 @@ export function MobileShell() {
               {/* 콘텐츠 분기 처리 */}
               {isEventsPage || isMyActivitiesPage ? (
                 /* 홈(이벤트) 페이지 및 내 활동 페이지 콘텐츠 */
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: '1' }}>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
-                    <h1 className="header-title" style={{ margin: 0, fontSize: '1.6rem' }}>
-                      <span>댄스빌보드</span>
+                <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: '1', minWidth: 0, overflow: 'hidden', width: 'fit-content' }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 'min(0.8vw, 6px)', flexWrap: 'nowrap', minWidth: 0 }}>
+                    <h1 className="header-title manual-label-wrapper" style={{ margin: 0, fontSize: 'min(6vw, 1.45rem)', minWidth: 0, flexShrink: 1, overflow: 'hidden' }}>
+                      <span className="translated-part">Dance Billboard</span>
+                      <span className="fixed-part ko" translate="no" style={{ minWidth: 0, whiteSpace: 'nowrap' }}>댄스빌보드</span>
+                      <span className="fixed-part en" translate="no" style={{ display: 'inline-flex', alignItems: 'baseline', minWidth: 0, whiteSpace: 'nowrap' }}>
+                        Dance Billboard&nbsp;<span style={{ fontSize: '0.55em', opacity: 0.85, fontWeight: 400 }}>korea</span>
+                      </span>
                     </h1>
                     {adminStats}
-
                   </div>
-                  <span style={{ fontSize: '9px', width: '100%', display: 'flex', justifyContent: 'space-between', color: '#ffffffcc' }}>
+                  <span style={{ fontSize: 'min(2.5vw, 11px)', width: '100%', display: 'flex', justifyContent: 'space-between', color: '#ffffffcc', marginTop: 'min(0.3vw, 2px)', fontWeight: 500 }}>
                     {'swingenjoy.com'.split('').map((char, i) => (
                       <span key={`char-${i}-${char}`}>{char}</span>
                     ))}
@@ -389,12 +402,42 @@ export function MobileShell() {
                 </div>
               ) : (
                 /* 그 외 페이지 타이틀 */
-                <h1 className="header-title">
-                  {isBoardPage && <span key="title-board">자유게시판</span>}
-                  {isSocialPage && <span key="title-social">소셜 이벤트</span>}
-                  {isPracticePage && <span key="title-practice">연습실</span>}
-                  {isShoppingPage && <span key="title-shop">쇼핑</span>}
-                  {isGuidePage && <span key="title-guide">이용가이드</span>}
+                <h1 className="header-title" style={{ fontSize: 'min(3.8vw, 1.35rem)', margin: 0, minWidth: 0, overflow: 'hidden' }}>
+                  {isBoardPage && (
+                    <span className="manual-label-wrapper" style={{ minWidth: 0 }}>
+                      <span className="translated-part">Board</span>
+                      <span className="fixed-part ko" translate="no" style={{ minWidth: 0, whiteSpace: 'nowrap' }}>자유게시판</span>
+                      <span className="fixed-part en" translate="no" style={{ minWidth: 0, whiteSpace: 'nowrap' }}>Board</span>
+                    </span>
+                  )}
+                  {isSocialPage && (
+                    <span className="manual-label-wrapper" style={{ minWidth: 0 }}>
+                      <span className="translated-part">Social</span>
+                      <span className="fixed-part ko" translate="no" style={{ minWidth: 0, whiteSpace: 'nowrap' }}>소셜 이벤트</span>
+                      <span className="fixed-part en" translate="no" style={{ minWidth: 0, whiteSpace: 'nowrap' }}>Social Events</span>
+                    </span>
+                  )}
+                  {isPracticePage && (
+                    <span className="manual-label-wrapper" style={{ minWidth: 0 }}>
+                      <span className="translated-part">Studio</span>
+                      <span className="fixed-part ko" translate="no" style={{ minWidth: 0, whiteSpace: 'nowrap' }}>연습실</span>
+                      <span className="fixed-part en" translate="no" style={{ minWidth: 0, whiteSpace: 'nowrap' }}>Studio</span>
+                    </span>
+                  )}
+                  {isShoppingPage && (
+                    <span className="manual-label-wrapper" style={{ minWidth: 0 }}>
+                      <span className="translated-part">Shop</span>
+                      <span className="fixed-part ko" translate="no" style={{ minWidth: 0, whiteSpace: 'nowrap' }}>쇼핑</span>
+                      <span className="fixed-part en" translate="no" style={{ minWidth: 0, whiteSpace: 'nowrap' }}>Shopping</span>
+                    </span>
+                  )}
+                  {isGuidePage && (
+                    <span className="manual-label-wrapper" style={{ minWidth: 0 }}>
+                      <span className="translated-part">Guide</span>
+                      <span className="fixed-part ko" translate="no" style={{ minWidth: 0, whiteSpace: 'nowrap' }}>이용가이드</span>
+                      <span className="fixed-part en" translate="no" style={{ minWidth: 0, whiteSpace: 'nowrap' }}>Guide</span>
+                    </span>
+                  )}
                 </h1>
               )}
             </div>
@@ -583,7 +626,11 @@ export function MobileShell() {
                       padding: '2px 8px', fontSize: '10px', height: '24px', display: 'flex', alignItems: 'center', gap: '2px'
                     }}
                   >
-                    <span>오늘</span>
+                    <span className="manual-label-wrapper">
+                      <span className="translated-part">Today</span>
+                      <span className="fixed-part ko" translate="no">오늘</span>
+                      <span className="fixed-part en" translate="no">Today</span>
+                    </span>
                     <i className="ri-calendar-check-line" style={{ fontSize: '10px' }}></i>
                   </button>
                 )}
@@ -603,7 +650,11 @@ export function MobileShell() {
                   data-analytics-section="top_bar"
                 >
                   <i className="ri-add-line"></i>
-                  <span>이벤트 등록</span>
+                  <span className="manual-label-wrapper">
+                    <span className="translated-part">Register</span>
+                    <span className="fixed-part ko" translate="no">이벤트 등록</span>
+                    <span className="fixed-part en" translate="no">Register</span>
+                  </span>
                 </button>
 
 

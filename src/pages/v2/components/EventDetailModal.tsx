@@ -1126,7 +1126,11 @@ export default function EventDetailModal({
                             }}
                           >
                             <i className="ri-image-edit-line" style={{ fontSize: '48px', marginBottom: '8px' }}></i>
-                            <span style={{ fontSize: '16px', fontWeight: 600 }}>이미지 수정</span>
+                            <span className="manual-label-wrapper" style={{ fontSize: '16px', fontWeight: 600 }}>
+                              <span className="translated-part">Edit Image</span>
+                              <span className="fixed-part ko" translate="no">이미지 수정</span>
+                              <span className="fixed-part en" translate="no">Edit Image</span>
+                            </span>
                           </div>
                         )}
                         {/* 크게보기 버튼 */}
@@ -1134,7 +1138,11 @@ export default function EventDetailModal({
                           onClick={() => setShowFullscreenImage(true)}
                           className="fullscreen-button"
                         >
-                          크게 보기
+                          <span className="manual-label-wrapper">
+                            <span className="translated-part">Full View</span>
+                            <span className="fixed-part ko" translate="no">크게 보기</span>
+                            <span className="fixed-part en" translate="no">Full View</span>
+                          </span>
                         </button>
 
                         {/* 즐겨찾기 버튼 (이미지 좌측 하단) */}
@@ -1188,7 +1196,7 @@ export default function EventDetailModal({
                 >
                   {/* 장르 표시 */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <h2 className="modal-title">
+                    <h2 className="modal-title" translate="no">
                       {selectedEvent.title}
                     </h2>
 
@@ -1211,7 +1219,7 @@ export default function EventDetailModal({
                   {(selectedEvent.genre || isSelectionMode) && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '8px' }}>
                       {selectedEvent.genre ? (
-                        <p className={`genre-text ${getGenreColor(selectedEvent.genre)}`}>
+                        <p className={`genre-text ${getGenreColor(selectedEvent.genre)}`} translate="no">
                           {selectedEvent.genre}
                         </p>
                       ) : (

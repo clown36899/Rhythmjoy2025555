@@ -328,8 +328,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-left: 13px;
-  padding-right: 13px;
+  padding-left: 2vw;
+  /* 고정 픽셀 제거 */
+  padding-right: 2vw;
   /* border-bottom: 0.3px solid #37415199; */
 }
 
@@ -360,6 +361,8 @@
   display: flex;
   align-items: center;
   flex: 1;
+  min-width: 0;
+  /* 박스 크기를 0까지 줄일 수 있게 허용 */
   overflow: hidden;
 }
 
@@ -367,52 +370,28 @@
 .header-events-content {
   display: flex;
   align-items: center;
-  width: 100%;
-  gap: 8px;
+  gap: 1.5vw;
+  min-width: 0;
+  flex: 1;
 }
 
 .header-logo {
-  height: 39px;
-  min-height: 30px;
-  /* 최소 높이 */
+  height: min(10vw, 44px);
+  /* 650px 이상에서 44px로 고정 */
   width: auto;
   object-fit: contain;
+  flex-shrink: 1;
+  /* 로고도 줄어들 수 있게 허용 */
 }
 
 .header-title {
-  font-size: 1.2rem;
+  font-size: min(4vw, 1.45rem);
   font-weight: bold;
   color: white;
   white-space: nowrap;
-  /* 줄바꿈 방지 */
-  /* margin-right: auto; removed as wrapper handles it */
 }
 
-/* 작은 화면에서 헤더 크기 조정 */
-@media (max-width: 640px) {
-  .header-logo {
-    height: max(35px, 8vw);
-    /* 최소 35px */
-    min-height: 28px;
-  }
-
-  .header-title {
-    font-size: max(1rem, 4vw);
-    /* 최소 1rem (16px) */
-  }
-}
-
-@media (max-width: 360px) {
-  .header-logo {
-    height: 30px !important;
-    min-height: 26px;
-  }
-
-  .header-title {
-    font-size: 0.95rem !important;
-    /* 강제 최소 크기 */
-  }
-}
+/* 작은 화면에서 헤더 크기 무제한 축소 (삭제 - 기본 vw 단위가 무제한 축소 담당) */
 
 .header-search-btn {
   background: none;
@@ -431,14 +410,16 @@
 .header-translate-btn {
   background: rgba(59, 130, 246, 0.15);
   border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: 6px;
+  border-radius: min(1vw, 6px);
   color: white;
   cursor: pointer;
-  padding: 6px 10px;
+  padding: min(1vw, 6px) min(1.5vw, 10px);
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: min(0.8vw, 5px);
   transition: all 0.2s;
+  flex-shrink: 1;
+  /* 축소 허용 */
 }
 
 .header-translate-btn:hover {
@@ -447,11 +428,11 @@
 }
 
 .header-translate-btn i {
-  font-size: 1.1rem;
+  font-size: min(3.5vw, 1.1rem);
 }
 
 .header-translate-btn span {
-  font-size: 0.75rem;
+  font-size: min(2.5vw, 0.75rem);
   font-weight: 600;
   letter-spacing: 0.5px;
 }
@@ -460,19 +441,25 @@
 .header-right-buttons {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 2vw;
+  /* 고정 clamp 제거, 순수 vw 사용 */
+  flex-shrink: 1;
+  /* 전체가 같이 줄어들도록 설정 */
+  min-width: 0;
 }
 
 .header-hamburger-btn {
   background: none;
   border: none;
   color: white;
-  font-size: 1.5rem;
+  font-size: min(4.5vw, 1.5rem);
+  /* rem -> vw */
   cursor: pointer;
-  padding: 4px;
+  padding: min(1vw, 4px);
   display: flex;
   align-items: center;
   transition: opacity 0.2s;
+  flex-shrink: 1;
 }
 
 .header-hamburger-btn:hover {
@@ -484,17 +471,16 @@
   background: none;
   border: none;
   color: white;
-  font-size: 1.3rem;
+  font-size: min(4vw, 1.3rem);
   cursor: pointer;
-  padding: 4px;
+  padding: min(1vw, 4px);
   display: flex;
   align-items: center;
   justify-content: center;
   transition: opacity 0.2s;
-  /* width: 32px;
-  height: 32px; */
   border-radius: 50%;
   position: relative;
+  flex-shrink: 1;
 }
 
 .header-user-btn:hover {
@@ -502,8 +488,9 @@
 }
 
 .header-user-avatar {
-  width: 35px;
-  height: 35px;
+  width: min(7vw, 35px);
+  /* 35px -> 7vw */
+  height: min(7vw, 35px);
   border-radius: 50%;
   object-fit: cover;
   border: 1px solid rgba(255, 255, 255, 0.469);
