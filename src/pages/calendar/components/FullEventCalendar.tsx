@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, memo, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import type { CSSProperties } from "react";
 import { supabase } from "../../../lib/supabase";
 import type { Event as AppEvent } from "../../../lib/supabase";
@@ -43,6 +44,7 @@ export default memo(function FullEventCalendar({
   highlightedEventId = null,
   tabFilter = 'all',
 }: FullEventCalendarProps) {
+  const { t } = useTranslation();
   const [events, setEvents] = useState<AppEvent[]>([]);
   const [socialSchedules, setSocialSchedules] = useState<any[]>([]);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
@@ -422,8 +424,15 @@ export default memo(function FullEventCalendar({
                 }`}
             >
               <span style={{ marginRight: '2px' }}>{day.getDate()}</span>
-              <span style={{ fontSize: '10px', fontWeight: 'normal', opacity: 0.8 }}>
-                {todayFlag ? "오늘" : ["일", "월", "화", "수", "목", "금", "토"][day.getDay()]}
+              <span
+                className="weekday-label"
+                data-ko={(() => {
+                  const days = ['일', '월', '화', '수', '목', '금', '토'];
+                  return todayFlag ? '오늘' : days[day.getDay()];
+                })()}
+                style={{ fontSize: '10px', fontWeight: 'normal', opacity: 0.8 }}
+              >
+                {todayFlag ? t('today') : t(`weekdays.${['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][day.getDay()]}`)}
               </span>
             </span>
           </div>

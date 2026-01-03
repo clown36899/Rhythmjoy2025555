@@ -7,13 +7,23 @@ i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    lng: 'en',
-    fallbackLng: 'en',
+    // lng: 'ko', // Remove fixed language to allow browser auto-detection
+    fallbackLng: 'ko',
     debug: false,
     resources: messages,
     interpolation: {
       escapeValue: false,
     },
   });
+
+// Synchronize html[lang] attribute with current i18next language
+i18n.on('languageChanged', (lng) => {
+  document.documentElement.lang = lng;
+});
+
+// Initial synchronization
+if (i18n.language) {
+  document.documentElement.lang = i18n.language;
+}
 
 export default i18n;

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { lazy, Suspense } from "react";
 
@@ -17,6 +18,7 @@ const EventRegistrationModal = lazy(() => import("../../components/EventRegistra
 
 
 export default function CalendarPage() {
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const { user, signInWithKakao, isAdmin: authIsAdmin } = useAuth();
 
@@ -315,10 +317,10 @@ export default function CalendarPage() {
             {/* Sticky Weekday Header */}
             <div className="calendar-page-weekday-header">
                 <div className="calendar-weekday-header no-select">
-                    {["일", "월", "화", "수", "목", "금", "토"].map((day, index) => (
+                    {['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'].map((dayKey, index) => (
                         <div
-                            key={day}
-                            className={`calendar - weekday - item ${selectedWeekday === index ? 'selected' : ''} `}
+                            key={dayKey}
+                            className={`calendar-weekday-item ${selectedWeekday === index ? 'selected' : ''}`}
                             style={{
                                 cursor: 'pointer'
                             }}
@@ -331,7 +333,14 @@ export default function CalendarPage() {
                                 }
                             }}
                         >
-                            {day}
+                            <span
+                                className="weekday-label"
+                                data-ko={{
+                                    sun: '일', mon: '월', tue: '화', wed: '수', thu: '목', fri: '금', sat: '토'
+                                }[dayKey as 'sun' | 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat']}
+                            >
+                                {t(`weekdays.${dayKey}`)}
+                            </span>
                             {selectedWeekday === index && (
                                 <i className="ri-close-line" style={{ fontSize: '10px', marginLeft: '1px', opacity: 0.8 }}></i>
                             )}
