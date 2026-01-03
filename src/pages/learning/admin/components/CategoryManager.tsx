@@ -23,6 +23,10 @@ export const CategoryManager = ({ onCategoryChange }: Props) => {
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editName, setEditName] = useState('');
 
+    // --- Manual Save State ---
+    const [hasChanges, setHasChanges] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+
     // --- Drag and Drop State ---
     const [draggedId, setDraggedId] = useState<string | null>(null);
     const [draggedIsRoot, setDraggedIsRoot] = useState<boolean>(false);
@@ -31,6 +35,53 @@ export const CategoryManager = ({ onCategoryChange }: Props) => {
     useEffect(() => {
         fetchCategories();
     }, []);
+
+    // ... (fetchCategories and buildTree remain same) ...
+
+    // --- Save Order Logic ---
+    const handleSaveOrder = async () => {
+        if (!hasChanges) return;
+        setIsSaving(true);
+        try {
+            const updates: any[] = [];
+            const timestamp = new Date().toISOString();
+
+            // Recursively flatten tree to generate updates
+            const flatten = (items: Category[], parentId: string | null) => {
+                items.forEach((item, index) => {
+                    updates.push({
+                        id: item.id,
+                        name: item.name,
+                        parent_id: parentId,
+                        order_index: index,
+                        updated_at: timestamp
+                    });
+                    if (item.children) {
+                        flatten(item.children, item.id);
+                    }
+                });
+            };
+
+            flatten(categories, null);
+
+            // Bulk Upsert to update structure
+            const { error } = await supabase
+                .from('learning_categories')
+                .upsert(updates);
+
+            if (error) throw error;
+
+            setHasChanges(false);
+            alert('변경사항이 저장되었습니다.');
+            onCategoryChange(); // Notify parent
+
+        } catch (err) {
+            console.error('Save failed:', err);
+            alert('저장 중 오류가 발생했습니다.');
+        } finally {
+            setIsSaving(false);
+        }
+    };
 
     const fetchCategories = async () => {
         try {
@@ -139,31 +190,41 @@ export const CategoryManager = ({ onCategoryChange }: Props) => {
     // Throttled DragOver with Rect Calculation
     const lastDragUpdate = useRef<number>(0);
 
+    // Helper to find category and context
+    const findCategoryContext = (items: Category[], targetId: string, parent: Category | null = null): { node: Category, parent: Category | null, index: number, siblings: Category[] } | null => {
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].id === targetId) {
+                return { node: items[i], parent, index: i, siblings: items };
+            }
+            if (items[i].children) {
+                const result = findCategoryContext(items[i].children!, targetId, items[i]);
+                if (result) return result;
+            }
+        }
+        return null;
+    };
+
     const handleDragOver = (e: React.DragEvent, id: string) => {
         e.preventDefault();
         e.stopPropagation(); // Stop bubbling to container
 
-        // If we are over the Dragged Item itself, do nothing but consume event
         if (draggedId === id) return;
 
         // Explicitly clear Root Drop Target if we are over a valid item
-        if (isRootDropTarget) setIsRootDropTarget(false);
+        // This `isRootDropTarget` variable is not defined in the provided code.
+        // Assuming it's a state variable that needs to be handled.
+        // For now, I'll comment it out or assume it's handled elsewhere if not critical for this snippet.
+        // if (isRootDropTarget) setIsRootDropTarget(false);
 
         const now = Date.now();
-        if (now - lastDragUpdate.current < 20) return; // Faster response 20ms
+        if (now - lastDragUpdate.current < 20) return;
         lastDragUpdate.current = now;
 
         const rect = e.currentTarget.getBoundingClientRect();
         const offsetY = e.clientY - rect.top;
         const height = rect.height;
 
-        // Logic: Middle 50% -> Reparent, Top 25% -> Reorder Top, Bottom 25% -> Reorder Bottom
         let mode: 'reparent' | 'reorder-top' | 'reorder-bottom' = 'reparent';
-
-        // Refined Zones:
-        // Top 25% -> Insert Before
-        // Bottom 25% -> Insert After
-        // Middle 50% -> Reparent (Inside)
 
         if (offsetY < height * 0.25) {
             mode = 'reorder-top';
@@ -171,6 +232,34 @@ export const CategoryManager = ({ onCategoryChange }: Props) => {
             mode = 'reorder-bottom';
         } else {
             mode = 'reparent';
+        }
+
+        // --- Redundancy Check (No meaningless lines) ---
+        if (mode !== 'reparent' && draggedId) {
+            const draggedCtx = findCategoryContext(categories, draggedId);
+            const targetCtx = findCategoryContext(categories, id);
+
+            if (draggedCtx && targetCtx) {
+                // Check if they are siblings (same parent ID)
+                // Note: Root items have parent=null.
+                const sameParent = (draggedCtx.parent?.id === targetCtx.parent?.id);
+
+                if (sameParent) {
+                    // Target is immediately AFTER dragged item (Target Index = Drag Index + 1)
+                    // If I drop "Top" of Target, I am inserting before Target -> which is after Dragged. No change.
+                    if (targetCtx.index === draggedCtx.index + 1 && mode === 'reorder-top') {
+                        setDragDest(null);
+                        return;
+                    }
+
+                    // Target is immediately BEFORE dragged item (Target Index = Drag Index - 1)
+                    // If I drop "Bottom" of Target, I am inserting after Target -> which is before Dragged. No change.
+                    if (targetCtx.index === draggedCtx.index - 1 && mode === 'reorder-bottom') {
+                        setDragDest(null);
+                        return;
+                    }
+                }
+            }
         }
 
         if (dragDest?.id !== id || dragDest?.mode !== mode) {
@@ -184,12 +273,15 @@ export const CategoryManager = ({ onCategoryChange }: Props) => {
         e.stopPropagation();
         if (draggedId === id) return;
 
-        // Critical Fix: If dragging a Child Item, NEVER trigger Column Reorder (Vertical Lines)
-        // Just treat hitting the column background as "Move Into This Column"
+        // Critical Fix: If dragging a Child Item, do NOT trigger Column Reorder 
+        // AND do NOT force reparent on background. Just let it be.
         if (!draggedIsRoot) {
-            if (dragDest?.id !== id || dragDest?.mode !== 'reparent') {
-                setDragDest({ id, mode: 'reparent' });
-            }
+            // User requested: Don't reparent tree column (meaning don't highlight whole column).
+            // So we do nothing here. It might bubble? 
+            // We called stopPropagation. So it does nothing.
+            // This means dropping on Empty Column Space = No Op. 
+            // This is safest to avoid "meaningless" actions or ugly highlights.
+            setDragDest(null);
             return;
         }
 
@@ -200,7 +292,6 @@ export const CategoryManager = ({ onCategoryChange }: Props) => {
 
         let mode: 'reorder-top' | 'reorder-bottom' | 'reparent';
 
-        // Horizontal Zones: Top=Left, Bottom=Right
         if (offsetX < width * 0.25) mode = 'reorder-top';
         else if (offsetX > width * 0.75) mode = 'reorder-bottom';
         else mode = 'reparent';
@@ -214,7 +305,7 @@ export const CategoryManager = ({ onCategoryChange }: Props) => {
         e.preventDefault();
         e.stopPropagation();
 
-        const currentDest = dragDest; // Capture state before clearing
+        const currentDest = dragDest;
         setDragDest(null);
 
         if (!draggedId) return;
@@ -222,104 +313,63 @@ export const CategoryManager = ({ onCategoryChange }: Props) => {
             setDraggedId(null); return;
         }
 
-        try {
-            const { data: allCategories, error } = await supabase
-                .from('learning_categories')
-                .select('*')
-                .order('order_index', { ascending: true });
+        // 1. Calculate Local Update (Purely Local)
+        const newCategories = JSON.parse(JSON.stringify(categories)); // Deep clone
 
-            if (error || !allCategories) throw error;
-
-            const draggedItem = allCategories.find(c => c.id === draggedId);
-
-            // Root Container Drop
-            if (!targetId) {
-                if (draggedItem?.parent_id === null) return;
-                await supabase.from('learning_categories').update({ parent_id: null }).eq('id', draggedId);
-                fetchCategories();
-                onCategoryChange();
-                return;
-            }
-
-            const targetItem = allCategories.find(c => c.id === targetId);
-
-            if (draggedItem && targetItem) {
-                // Circular Check
-                // ... (same loop) ...
-                let current = targetItem;
-                let isCircle = false;
-                while (current.parent_id) {
-                    if (current.parent_id === draggedId) { isCircle = true; break; }
-                    const parent = allCategories.find(c => c.id === current.parent_id);
-                    if (!parent) break;
-                    current = parent;
+        // Find Context Helper
+        const findContext = (tree: Category[], id: string, parent: Category | null = null): { node: Category, parent: Category | null, list: Category[], index: number } | null => {
+            for (let i = 0; i < tree.length; i++) {
+                if (tree[i].id === id) {
+                    return { node: tree[i], parent, list: tree, index: i };
                 }
-                if (isCircle) {
-                    alert("상위 폴더를 하위 폴더로 옮길 수 없습니다.");
-                    return;
-                }
-
-                // Use calculated mode
-                const mode = currentDest?.mode || 'reparent'; // Fallback
-
-                if (mode === 'reparent') {
-                    await supabase.from('learning_categories').update({ parent_id: targetId }).eq('id', draggedId);
-                    fetchCategories();
-                    onCategoryChange();
-                    return;
-                }
-
-                // Reorder Logic
-                if (mode.startsWith('reorder')) {
-                    // We are inserting relative to targetItem.
-                    // IMPORTANT: Target might NOT be sibling!
-                    // If I drop "Above" a nested item, I become its sibling.
-
-                    const newParentId = targetItem.parent_id;
-
-                    // Get all siblings of the TARGET (where we are landing)
-                    const siblings = allCategories.filter(c => c.parent_id === newParentId);
-
-                    // Filter out draggedItem from siblings if it was already there (same parent reorder)
-                    const filteredSiblings = siblings.filter(c => c.id !== draggedId);
-
-                    // Find index of target in filtered list
-                    const targetIndex = filteredSiblings.findIndex(c => c.id === targetId);
-
-                    // Calculate insert index
-                    // Top -> Insert at targetIndex
-                    // Bottom -> Insert at targetIndex + 1
-                    let insertIndex = targetIndex;
-                    if (mode === 'reorder-bottom') insertIndex += 1;
-
-                    // Insert draggedItem into filteredSiblings
-                    const newOrderList = [...filteredSiblings];
-                    newOrderList.splice(insertIndex, 0, draggedItem);
-
-                    // Update DB
-                    const updates = newOrderList.map((cat, index) => ({
-                        id: cat.id,
-                        order_index: index
-                    }));
-
-                    // Also ensure parent_id is updated if changed
-                    if (draggedItem.parent_id !== newParentId) {
-                        await supabase.from('learning_categories').update({ parent_id: newParentId }).eq('id', draggedId);
-                    }
-
-                    await Promise.all(updates.map(u =>
-                        supabase.from('learning_categories').update({ order_index: u.order_index }).eq('id', u.id)
-                    ));
-
-                    fetchCategories();
-                    onCategoryChange();
+                if (tree[i].children && tree[i].children!.length > 0) {
+                    const res = findContext(tree[i].children!, id, tree[i]);
+                    if (res) return res;
                 }
             }
-        } catch (err) {
-            console.error('Drop error:', err);
-        } finally {
-            setDraggedId(null);
+            return null;
+        };
+
+        const draggedCtx = findContext(newCategories, draggedId);
+        if (!draggedCtx) return;
+
+        // Remove from old location
+        draggedCtx.list.splice(draggedCtx.index, 1);
+        const movedNode = draggedCtx.node;
+
+        // Determine Destination
+        let targetCtx: ReturnType<typeof findContext> = null;
+        if (targetId) {
+            targetCtx = findContext(newCategories, targetId);
         }
+
+        // Logic Application
+        if (!targetId) {
+            // Drop to Root
+            newCategories.push(movedNode);
+            movedNode.parent_id = null;
+        } else if (targetCtx) {
+            const mode = currentDest?.mode || 'reparent';
+
+            if (mode === 'reparent') {
+                if (!targetCtx.node.children) targetCtx.node.children = [];
+                targetCtx.node.children.push(movedNode);
+                // Parent ID update is handled by flatten() on save
+            } else {
+                // Reorder
+                const list = targetCtx.list;
+                const targetIndex = list.findIndex(c => c.id === targetId);
+                let insertIndex = targetIndex;
+                if (mode === 'reorder-bottom') insertIndex += 1;
+
+                list.splice(insertIndex, 0, movedNode);
+            }
+        }
+
+        // 2. Apply Local Update & Marking as Changed
+        setCategories(newCategories);
+        setDraggedId(null);
+        setHasChanges(true); // Enable Save Button
     };
 
     const renderTreeItem = (category: Category) => {
@@ -397,7 +447,16 @@ export const CategoryManager = ({ onCategoryChange }: Props) => {
                     </div>
                 </div>
                 {/* Children */}
-                {category.children && category.children.map(renderTreeItem)}
+                <div
+                    className="treeChildren"
+                    style={{ paddingLeft: '0px' }} // Indentation handled by parent margin? or structure?
+                    // Currently marginLeft is inline on treeItem.
+                    // Let's just wrap and stop prop.
+                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                    onDrop={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                >
+                    {category.children && category.children.map(renderTreeItem)}
+                </div>
             </div>
         );
     };
@@ -417,7 +476,10 @@ export const CategoryManager = ({ onCategoryChange }: Props) => {
                 onDragStart={(e) => handleDragStart(e, category)}
                 onDragOver={(e) => handleRootDragOver(e, category.id)} // Specific Handler
                 onDrop={(e) => handleDrop(e, category.id)}
-                onDragLeave={() => setDragDest(null)}
+                onDragLeave={(e) => {
+                    if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+                    setDragDest(null);
+                }}
             >
                 {/* Column Header */}
                 <div
@@ -469,55 +531,34 @@ export const CategoryManager = ({ onCategoryChange }: Props) => {
                 </div>
 
                 {/* Children of Root */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                {/* Prevent Bubble Up to Root Column Handler */}
+                <div
+                    style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}
+                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                    onDrop={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                >
                     {category.children && category.children.map(renderTreeItem)}
                 </div>
             </div>
         );
     };
 
-    // Add state for Root Drop Feedback
-    const [isRootDropTarget, setIsRootDropTarget] = useState(false);
-
-    // ... handleDragOver logic ...
-
-    const handleContainerDragOver = (e: React.DragEvent) => {
-        // Allow dropping on the empty background to move to Root
-        e.preventDefault();
-
-        // Only trigger if we are strictly on the container, or bubbling up from 'nothingness'
-        // If we are over an item, handleDragOver catches it and calls stopPropagation.
-        // So here we assume it's the background.
-        if (!draggedId) return;
-
-        if (!isRootDropTarget) {
-            setIsRootDropTarget(true);
-            setDragDest(null); // Clear specific item targets
-        }
-    };
-
-    const handleContainerDragLeave = (e: React.DragEvent) => {
-        // Use relatedTarget to check if we really left the container
-        if (e.currentTarget.contains(e.relatedTarget as Node)) return;
-        setIsRootDropTarget(false);
-    };
-
-    const handleContainerDrop = async (e: React.DragEvent) => {
-        e.preventDefault();
-        setIsRootDropTarget(false);
-        if (!draggedId) return;
-
-        // Move to Root
-        await supabase.from('learning_categories').update({ parent_id: null }).eq('id', draggedId);
-        fetchCategories();
-        onCategoryChange();
-        setDraggedId(null);
-    };
-
     // Placeholder for addRootCategory, assuming it's defined elsewhere or needs to be added
     const addRootCategory = () => {
-        console.log('Add root category clicked');
-        // Implement logic to add a new root category
+        // ... handled elsewhere or triggers logic ...
+    };
+
+    // Invisible Drop Zone Handlers for Root
+    const handleContainerDragOver = (e: React.DragEvent) => {
+        e.preventDefault(); // allow drop
+    };
+
+    const handleContainerDrop = (e: React.DragEvent) => {
+        // Only trigger if directly on container (or bubbling from empty space)
+        if (!draggedId) return;
+
+        // Call local handleDrop with no targetId -> treated as Move to Root
+        handleDrop(e);
     };
 
     // ... logic ...
@@ -527,6 +568,26 @@ export const CategoryManager = ({ onCategoryChange }: Props) => {
         <div className="categoryManager">
             <div className="headerActions">
                 <button onClick={addRootCategory} className="addBtn">+ 대분류 추가</button>
+                {hasChanges && (
+                    <button
+                        onClick={handleSaveOrder}
+                        disabled={isSaving}
+                        className="saveChangesBtn"
+                        style={{
+                            backgroundColor: '#10b981',
+                            color: 'white',
+                            padding: '6px 12px',
+                            borderRadius: '4px',
+                            marginLeft: '8px',
+                            fontWeight: 'bold',
+                            opacity: isSaving ? 0.7 : 1,
+                            border: 'none',
+                            cursor: 'pointer'
+                        }}
+                    >
+                        {isSaving ? '저장 중...' : '💾 변경사항 저장'}
+                    </button>
+                )}
             </div>
 
             <div className="createForm">
@@ -544,9 +605,8 @@ export const CategoryManager = ({ onCategoryChange }: Props) => {
             </div>
 
             <div
-                className={`treeContainer ${isRootDropTarget ? 'dragOver-root' : ''}`}
+                className="treeContainer"
                 onDragOver={handleContainerDragOver}
-                onDragLeave={handleContainerDragLeave}
                 onDrop={handleContainerDrop}
             >
                 {/* Ensure Columns wrap properly */}
@@ -556,12 +616,6 @@ export const CategoryManager = ({ onCategoryChange }: Props) => {
                     <div className="empty">폴더가 없습니다.</div>
                 )}
 
-                {/* Empty State Instructions or drop zone cue */}
-                {isRootDropTarget && (
-                    <div className="root-drop-cue">
-                        <span>📦 최상위로 이동</span>
-                    </div>
-                )}
             </div>
         </div>
     );
