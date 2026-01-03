@@ -302,8 +302,6 @@ export default function CalendarPage() {
                         <span className="translated-part">{t('all')}</span>
                         <span className="fixed-part ko" translate="no">전체</span>
                         <span className="fixed-part en" translate="no">ALL</span>
-                        <span className="fixed-part ja" translate="no">ALL</span>
-                        <span className="fixed-part zh" translate="no">ALL</span>
                     </div>
                 </button>
                 <button
@@ -314,8 +312,6 @@ export default function CalendarPage() {
                         <span className="translated-part">{t('socialEvents')}</span>
                         <span className="fixed-part ko" translate="no">소셜&행사</span>
                         <span className="fixed-part en" translate="no">Social</span>
-                        <span className="fixed-part ja" translate="no">Social</span>
-                        <span className="fixed-part zh" translate="no">Social</span>
                     </div>
                 </button>
                 <button
@@ -326,8 +322,6 @@ export default function CalendarPage() {
                         <span className="translated-part">{t('classes')}</span>
                         <span className="fixed-part ko" translate="no">강습</span>
                         <span className="fixed-part en" translate="no">Class</span>
-                        <span className="fixed-part ja" translate="no">Class</span>
-                        <span className="fixed-part zh" translate="no">Class</span>
                     </div>
                 </button>
             </div>
@@ -361,12 +355,6 @@ export default function CalendarPage() {
                                 </span>
                                 <span className="fixed-part en" translate="no">
                                     {{ sun: 'Sun', mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat' }[dayKey as 'sun' | 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat']}
-                                </span>
-                                <span className="fixed-part ja" translate="no">
-                                    {{ sun: '日', mon: '月', tue: '火', wed: '水', thu: '木', fri: '金', sat: '土' }[dayKey as 'sun' | 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat']}
-                                </span>
-                                <span className="fixed-part zh" translate="no">
-                                    {{ sun: '周日', mon: '周一', tue: '周二', wed: '周三', thu: '周四', fri: '周五', sat: '周六' }[dayKey as 'sun' | 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat']}
                                 </span>
                             </div>
                             {selectedWeekday === index && (

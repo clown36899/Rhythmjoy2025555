@@ -351,14 +351,6 @@
       style="width: 100%; padding: 10px 12px; background: transparent; border: none; color: #fff; text-align: left; cursor: pointer; border-radius: 6px; font-size: 14px;"
       onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">🇺🇸
       English</button>
-    <button onclick="changeLanguage('ja')"
-      style="width: 100%; padding: 10px 12px; background: transparent; border: none; color: #fff; text-align: left; cursor: pointer; border-radius: 6px; font-size: 14px;"
-      onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">🇯🇵
-      日本語</button>
-    <button onclick="changeLanguage('zh-CN')"
-      style="width: 100%; padding: 10px 12px; background: transparent; border: none; color: #fff; text-align: left; cursor: pointer; border-radius: 6px; font-size: 14px;"
-      onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">🇨🇳
-      中文</button>
   </div>
 
   <div id="google_translate_element" style="display: none;"></div>
@@ -372,7 +364,7 @@
       new google.translate.TranslateElement(
         {
           pageLanguage: 'ko',
-          includedLanguages: 'en,ja,zh-CN',
+          includedLanguages: 'en',
           autoDisplay: false
           // layout 제거: HORIZONTAL이 기본값이며 .goog-te-combo 요소를 생성함
         },

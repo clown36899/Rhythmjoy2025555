@@ -98,9 +98,22 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
             case 'market': return 'ri-store-2-line';
             case 'trade': return 'ri-exchange-line';
             case 'free': return 'ri-chat-1-line';
+            case 'anonymous': return 'ri-user-secret-line';
             case 'dev-log': return 'ri-code-box-line';
             default: return 'ri-chat-3-line';
         }
+    };
+
+    const getCategoryEn = (code: string, name: string) => {
+        const mapping: Record<string, string> = {
+            'notice': 'Notice',
+            'market': 'Market',
+            'trade': 'Trade',
+            'free': 'Free Board',
+            'anonymous': 'Anonymous',
+            'dev-log': 'Dev Log',
+        };
+        return mapping[code] || name;
     };
 
     const handleNavigation = (path: string) => {
@@ -472,7 +485,11 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                                     data-analytics-section="side_drawer_board"
                                 >
                                     <i className={getIconForCategory(category.code)}></i>
-                                    <span>{category.name}</span>
+                                    <span className="manual-label-wrapper">
+                                        <span className="translated-part">{getCategoryEn(category.code, category.name)}</span>
+                                        <span className="fixed-part ko" translate="no">{category.name}</span>
+                                        <span className="fixed-part en" translate="no">{getCategoryEn(category.code, category.name)}</span>
+                                    </span>
                                 </div>
                             ))}
                             {/* 개발일지 - 하드코딩 */}
@@ -481,7 +498,11 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                                 onClick={() => handleNavigation('/board?category=dev-log')}
                             >
                                 <i className="ri-code-box-line"></i>
-                                <span>개발일지</span>
+                                <span className="manual-label-wrapper">
+                                    <span className="translated-part">Dev Log</span>
+                                    <span className="fixed-part ko" translate="no">개발일지</span>
+                                    <span className="fixed-part en" translate="no">Dev Log</span>
+                                </span>
                             </div>
                         </div>
                     )}

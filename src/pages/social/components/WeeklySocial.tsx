@@ -458,8 +458,36 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                                     data-analytics-title={item.name}
                                     data-analytics-section="weekly_calendar"
                                 >
-                                    <span className="day-name" style={isToday ? { color: '#FFD700', fontWeight: 'bold' } : undefined}>
-                                        {isToday ? '오늘' : item.name}
+                                    <span className="day-name manual-label-wrapper" style={isToday ? { color: '#FFD700', fontWeight: 'bold' } : undefined}>
+                                        {isToday ? (
+                                            <>
+                                                <span className="translated-part">Today</span>
+                                                <span className="fixed-part ko" translate="no">오늘</span>
+                                                <span className="fixed-part en" translate="no">Today</span>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span className="translated-part">{
+                                                    item.name === '일' ? 'Sun' :
+                                                        item.name === '월' ? 'Mon' :
+                                                            item.name === '화' ? 'Tue' :
+                                                                item.name === '수' ? 'Wed' :
+                                                                    item.name === '목' ? 'Thu' :
+                                                                        item.name === '금' ? 'Fri' :
+                                                                            item.name === '토' ? 'Sat' : item.name
+                                                }</span>
+                                                <span className="fixed-part ko" translate="no">{item.name}</span>
+                                                <span className="fixed-part en" translate="no">{
+                                                    item.name === '일' ? 'Sun' :
+                                                        item.name === '월' ? 'Mon' :
+                                                            item.name === '화' ? 'Tue' :
+                                                                item.name === '수' ? 'Wed' :
+                                                                    item.name === '목' ? 'Thu' :
+                                                                        item.name === '금' ? 'Fri' :
+                                                                            item.name === '토' ? 'Sat' : item.name
+                                                }</span>
+                                            </>
+                                        )}
                                     </span>
                                     <span className="day-date">{item.dateNum}</span>
                                     {isSelected && <div className="active-dot" />}

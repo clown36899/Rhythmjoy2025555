@@ -1196,7 +1196,7 @@ export default function EventDetailModal({
                 >
                   {/* 장르 표시 */}
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <h2 className="modal-title" translate="no">
+                    <h2 className="modal-title">
                       {selectedEvent.title}
                     </h2>
 
@@ -1219,7 +1219,7 @@ export default function EventDetailModal({
                   {(selectedEvent.genre || isSelectionMode) && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '8px' }}>
                       {selectedEvent.genre ? (
-                        <p className={`genre-text ${getGenreColor(selectedEvent.genre)}`} translate="no">
+                        <p className={`genre-text ${getGenreColor(selectedEvent.genre)}`}>
                           {selectedEvent.genre}
                         </p>
                       ) : (

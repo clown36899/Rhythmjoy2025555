@@ -385,12 +385,8 @@ export function MobileShell() {
                 /* 홈(이벤트) 페이지 및 내 활동 페이지 콘텐츠 */
                 <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: '1', minWidth: 0, overflow: 'hidden', width: 'fit-content' }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: 'min(0.8vw, 6px)', flexWrap: 'nowrap', minWidth: 0 }}>
-                    <h1 className="header-title manual-label-wrapper" style={{ margin: 0, fontSize: 'min(6vw, 1.45rem)', minWidth: 0, flexShrink: 1, overflow: 'hidden' }}>
-                      <span className="translated-part">Dance Billboard</span>
-                      <span className="fixed-part ko" translate="no" style={{ minWidth: 0, whiteSpace: 'nowrap' }}>댄스빌보드</span>
-                      <span className="fixed-part en" translate="no" style={{ display: 'inline-flex', alignItems: 'baseline', minWidth: 0, whiteSpace: 'nowrap' }}>
-                        Dance Billboard&nbsp;<span style={{ fontSize: '0.55em', opacity: 0.85, fontWeight: 400 }}>korea</span>
-                      </span>
+                    <h1 className="header-title" style={{ margin: 0, fontSize: 'min(4vw, 1.45rem)', minWidth: 0, flexShrink: 1, overflow: 'hidden' }}>
+                      댄스빌보드
                     </h1>
                     {adminStats}
                   </div>
@@ -403,41 +399,11 @@ export function MobileShell() {
               ) : (
                 /* 그 외 페이지 타이틀 */
                 <h1 className="header-title" style={{ fontSize: 'min(3.8vw, 1.35rem)', margin: 0, minWidth: 0, overflow: 'hidden' }}>
-                  {isBoardPage && (
-                    <span className="manual-label-wrapper" style={{ minWidth: 0 }}>
-                      <span className="translated-part">Board</span>
-                      <span className="fixed-part ko" translate="no" style={{ minWidth: 0, whiteSpace: 'nowrap' }}>자유게시판</span>
-                      <span className="fixed-part en" translate="no" style={{ minWidth: 0, whiteSpace: 'nowrap' }}>Board</span>
-                    </span>
-                  )}
-                  {isSocialPage && (
-                    <span className="manual-label-wrapper" style={{ minWidth: 0 }}>
-                      <span className="translated-part">Social</span>
-                      <span className="fixed-part ko" translate="no" style={{ minWidth: 0, whiteSpace: 'nowrap' }}>소셜 이벤트</span>
-                      <span className="fixed-part en" translate="no" style={{ minWidth: 0, whiteSpace: 'nowrap' }}>Social Events</span>
-                    </span>
-                  )}
-                  {isPracticePage && (
-                    <span className="manual-label-wrapper" style={{ minWidth: 0 }}>
-                      <span className="translated-part">Studio</span>
-                      <span className="fixed-part ko" translate="no" style={{ minWidth: 0, whiteSpace: 'nowrap' }}>연습실</span>
-                      <span className="fixed-part en" translate="no" style={{ minWidth: 0, whiteSpace: 'nowrap' }}>Studio</span>
-                    </span>
-                  )}
-                  {isShoppingPage && (
-                    <span className="manual-label-wrapper" style={{ minWidth: 0 }}>
-                      <span className="translated-part">Shop</span>
-                      <span className="fixed-part ko" translate="no" style={{ minWidth: 0, whiteSpace: 'nowrap' }}>쇼핑</span>
-                      <span className="fixed-part en" translate="no" style={{ minWidth: 0, whiteSpace: 'nowrap' }}>Shopping</span>
-                    </span>
-                  )}
-                  {isGuidePage && (
-                    <span className="manual-label-wrapper" style={{ minWidth: 0 }}>
-                      <span className="translated-part">Guide</span>
-                      <span className="fixed-part ko" translate="no" style={{ minWidth: 0, whiteSpace: 'nowrap' }}>이용가이드</span>
-                      <span className="fixed-part en" translate="no" style={{ minWidth: 0, whiteSpace: 'nowrap' }}>Guide</span>
-                    </span>
-                  )}
+                  {isBoardPage && <span>자유게시판</span>}
+                  {isSocialPage && <span>소셜 이벤트</span>}
+                  {isPracticePage && <span>연습실</span>}
+                  {isShoppingPage && <span>쇼핑</span>}
+                  {isGuidePage && <span>이용가이드</span>}
                 </h1>
               )}
             </div>

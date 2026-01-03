@@ -228,7 +228,7 @@ export const EventCard = memo(({
           </p>
         )}
         <h3 className={`card-title-text ${event.category === 'class' ? 'card-title-text-class' : 'card-title-text-event'
-          }`} translate="no">{event.title}</h3>
+          }`}>{event.title}</h3>
         {!hideDate && (
           <div className="card-date-container">
             {isOnSelectedDate && (

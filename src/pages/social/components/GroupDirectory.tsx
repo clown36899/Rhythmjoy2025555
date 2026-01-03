@@ -65,7 +65,15 @@ const GroupDirectory: React.FC<GroupDirectoryProps> = ({
                             className={`group-tab ${activeTab === cat ? 'active' : ''}`}
                             onClick={() => setActiveTab(cat)}
                         >
-                            {typeLabels[cat] || cat}
+                            {cat === 'all' ? (
+                                <span className="manual-label-wrapper">
+                                    <span className="translated-part">All</span>
+                                    <span className="fixed-part ko" translate="no">전체</span>
+                                    <span className="fixed-part en" translate="no">All</span>
+                                </span>
+                            ) : (
+                                typeLabels[cat] || cat
+                            )}
                             {activeTab === cat && <span className="tab-count">{filteredGroups.length}</span>}
                         </button>
                     ))}

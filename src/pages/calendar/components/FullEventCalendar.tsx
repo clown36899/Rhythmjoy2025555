@@ -435,12 +435,6 @@ export default memo(function FullEventCalendar({
                 <span className="fixed-part en" translate="no">
                   {(() => { const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']; return todayFlag ? 'Today' : days[day.getDay()]; })()}
                 </span>
-                <span className="fixed-part ja" translate="no">
-                  {(() => { const days = ['日', '月', '火', '수', '목', '金', '土']; return todayFlag ? '今日' : days[day.getDay()]; })()}
-                </span>
-                <span className="fixed-part zh" translate="no">
-                  {(() => { const days = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']; return todayFlag ? '今天' : days[day.getDay()]; })()}
-                </span>
               </div>
             </span>
           </div>

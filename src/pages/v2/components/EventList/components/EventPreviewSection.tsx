@@ -65,6 +65,49 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
     setSearchParams,
     onSectionViewModeChange,
 }) => {
+    // 장르명을 영문으로 매핑하는 헬퍼 함수
+    const getGenreEn = (genre: string) => {
+        const mapping: Record<string, string> = {
+            '전체': 'All',
+            '대회': 'Competition',
+            '소셜': 'Social',
+            '파티': 'Party',
+            '공연': 'Performance',
+            '워크숍': 'Workshop',
+            '강습': 'Class',
+            '동호회': 'Club',
+            '정기소셜': 'Regular Social',
+            '라이브': 'Live',
+        };
+        return mapping[genre] || genre;
+    };
+
+    // 장르 라벨 렌더러 - '전체'와 '대회'만 Double-Span 적용
+    const renderGenreLabel = (genre: string) => {
+        // '전체' 특별 처리
+        if (genre === '전체') {
+            return (
+                <span className="manual-label-wrapper">
+                    <span className="translated-part">All</span>
+                    <span className="fixed-part ko" translate="no">전체</span>
+                    <span className="fixed-part en" translate="no">All</span>
+                </span>
+            );
+        }
+        // '대회' 특별 처리
+        if (genre === '대회') {
+            return (
+                <span className="manual-label-wrapper">
+                    <span className="translated-part">Competition</span>
+                    <span className="fixed-part ko" translate="no">대회</span>
+                    <span className="fixed-part en" translate="no">Competition</span>
+                </span>
+            );
+        }
+        // 나머지는 그냥 일반 텍스트 (Google Translate가 번역)
+        return <span>{genre}</span>;
+    };
+
     // 배너 위치 랜덤화를 위한 상태 (새로고침 시마다 결정)
     const isBannerSwapped = useMemo(() => Math.random() > 0.5, []);
 
@@ -137,17 +180,13 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
             {/* 6. Events Horizontal */}
             <div className="evt-v2-section evt-v2-section-events">
                 <div className="evt-v2-section-title">
-                    <div className="manual-label-wrapper" style={{ justifyContent: 'flex-start' }}>
-                        <i className="ri-calendar-event-fill" style={{ marginRight: 'min(1vw, 6px)' }}></i>
-                        <span className="translated-part">Upcoming Events</span>
-                        <span className="fixed-part ko" translate="no">예정된 행사</span>
-                        <span className="fixed-part en" translate="no">Upcoming Events</span>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
+                        <i className="ri-fire-fill" style={{ color: '#f97316', marginRight: 'min(1vw, 6px)' }}></i>
+                        <span>예정된 행사</span>
                         <span className="evt-v2-count" style={{ marginLeft: 'min(1vw, 6px)' }}>{futureEvents.length}</span>
                     </div>
-                    <button onClick={() => onSectionViewModeChange('viewAll-events')} className="evt-view-all-btn manual-label-wrapper">
-                        <span className="translated-part">View All</span>
-                        <span className="fixed-part ko" translate="no">전체보기</span>
-                        <span className="fixed-part en" translate="no">All</span>
+                    <button onClick={() => onSectionViewModeChange('viewAll-events')} className="evt-view-all-btn">
+                        <span>전체보기</span>
                         <i className="ri-arrow-right-s-line" style={{ marginLeft: 'min(0.5vw, 4px)' }}></i>
                     </button>
                 </div>
@@ -159,7 +198,7 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                             className={`evt-genre-btn ${((selectedEventGenre || '전체') === g) ? 'active' : ''}`}
                             onClick={() => setGenreParam('event_genre', g === '전체' ? null : g)}
                         >
-                            {g}
+                            {renderGenreLabel(g)}
                         </button>
                     ))}
                 </div>
@@ -187,11 +226,9 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
             {/* 7. Classes Horizontal */}
             <div className="evt-v2-section evt-v2-section-classes">
                 <div className="evt-v2-section-title">
-                    <div className="manual-label-wrapper" style={{ justifyContent: 'flex-start' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
                         <i className="ri-calendar-check-fill" style={{ color: '#10b981', marginRight: 'min(1vw, 6px)' }}></i>
-                        <span className="translated-part">Classes</span>
-                        <span className="fixed-part ko" translate="no">강습</span>
-                        <span className="fixed-part en" translate="no">Classes</span>
+                        <span>강습</span>
                         <span className="evt-v2-count" style={{ marginLeft: 'min(1vw, 6px)' }}>{regularClasses.length}</span>
                     </div>
                     <button onClick={() => window.location.href = '/calendar?scrollToToday=true'} className="evt-view-all-btn manual-label-wrapper">
@@ -209,7 +246,7 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                             className={`evt-genre-btn ${((selectedClassGenre || '전체') === g) ? 'active' : ''}`}
                             onClick={() => setGenreParam('class_genre', g === '전체' ? null : g)}
                         >
-                            {g}
+                            {renderGenreLabel(g)}
                         </button>
                     ))}
                 </div>
@@ -237,11 +274,9 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
             {/* 8. Club Horizontal */}
             <div className="evt-v2-section evt-v2-section-classes">
                 <div className="evt-v2-section-title">
-                    <div className="manual-label-wrapper" style={{ justifyContent: 'flex-start' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
                         <i className="ri-group-fill" style={{ marginRight: 'min(1vw, 6px)' }}></i>
-                        <span className="translated-part">Club Events</span>
-                        <span className="fixed-part ko" translate="no">동호회 강습</span>
-                        <span className="fixed-part en" translate="no">Club Classes</span>
+                        <span>동호회 강습</span>
                         <span className="evt-v2-count" style={{ marginLeft: 'min(1vw, 6px)' }}>{clubLessons.length}</span>
                     </div>
                     <button onClick={() => window.location.href = '/social'} className="evt-view-all-btn manual-label-wrapper">
@@ -259,7 +294,7 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                             className={`evt-genre-btn ${((selectedClubGenre || '전체') === g) ? 'active' : ''}`}
                             onClick={() => setGenreParam('club_genre', g === '전체' ? null : g)}
                         >
-                            {g}
+                            {renderGenreLabel(g)}
                         </button>
                     ))}
                 </div>
@@ -290,11 +325,9 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
             {/* Section 4: 동호회 정규 강습 (Horizontal Scroll) */}
             <div className="evt-v2-section evt-v2-section-club-classes">
                 <div className="evt-v2-section-title">
-                    <div className="manual-label-wrapper" style={{ justifyContent: 'flex-start' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
                         <i className="ri-group-2-fill" style={{ marginRight: 'min(1vw, 6px)' }}></i>
-                        <span className="translated-part">Club Regular Classes</span>
-                        <span className="fixed-part ko" translate="no">동호회 정규강습</span>
-                        <span className="fixed-part en" translate="no">Regular Classes</span>
+                        <span>동호회 정규강습</span>
                         <span className="evt-v2-count" style={{ marginLeft: 'min(1vw, 6px)' }}>{clubRegularClasses.length}</span>
                     </div>
                 </div>
