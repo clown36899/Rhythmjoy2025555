@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8" />
-  <!-- Google Translate 테스트를 위해 notranslate 제거 -->
+  <meta name="google" content="notranslate" />
   <base href="/" />
   <link rel="icon" type="image/svg+xml" href="/vite.svg" />
   <meta name="viewport"
@@ -372,7 +372,8 @@
       new google.translate.TranslateElement(
         {
           pageLanguage: 'ko',
-          includedLanguages: 'en,ja,zh-CN'
+          includedLanguages: 'en,ja,zh-CN',
+          autoDisplay: false
           // layout 제거: HORIZONTAL이 기본값이며 .goog-te-combo 요소를 생성함
         },
         'google_translate_element'
