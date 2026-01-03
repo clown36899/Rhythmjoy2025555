@@ -1,5 +1,5 @@
 import { Outlet, useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../contexts/AuthContext";
 import '../styles/components/MobileShell.css';
@@ -32,6 +32,8 @@ export function MobileShell() {
   // Total user count
   const totalUserCount = useTotalUserCount();
 
+  // Translation state
+  const [currentLang, setCurrentLang] = useState('KO');
 
   const [calendarView, setCalendarView] = useState<{ year: number; month: number; viewMode: 'month' | 'year' }>({
     year: new Date().getFullYear(),
@@ -277,6 +279,76 @@ export function MobileShell() {
     return () => window.removeEventListener('openSideDrawer', handleOpenSideDrawer);
   }, []);
 
+  // Translation language detection
+  useEffect(() => {
+    const detectLanguage = () => {
+      const cookies = document.cookie.split(';');
+      for (let cookie of cookies) {
+        const [name, value] = cookie.trim().split('=');
+        if (name === 'googtrans') {
+          const parts = value.split('/');
+          if (parts.length >= 3) {
+            const targetLang = parts[2];
+            const langMap: { [key: string]: string } = {
+              'en': 'EN',
+              'ja': 'JP',
+              'zh-CN': 'CN'
+            };
+            setCurrentLang(langMap[targetLang] || 'KO');
+            return;
+          }
+        }
+      }
+      setCurrentLang('KO');
+    };
+
+    // Initial detection
+    const timer = setTimeout(detectLanguage, 1000);
+
+    // Listen for language changes from index.html
+    const handleLangChange = (e: any) => {
+      if (e.detail?.lang) {
+        const langMap: { [key: string]: string } = {
+          'ko': 'KO',
+          'en': 'EN',
+          'ja': 'JP',
+          'zh-CN': 'CN'
+        };
+        setCurrentLang(langMap[e.detail.lang] || 'KO');
+      }
+    };
+    window.addEventListener('languageChanged', handleLangChange);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener('languageChanged', handleLangChange);
+    };
+  }, []);
+
+  // Memoize admin stats to prevent re-render conflicts with Google Translate
+  const adminStats = useMemo(() => {
+    if (!isAdmin) return null;
+    const loggedInCount = onlineUsersData.loggedInUsers?.length || 0;
+    const anonymousCount = onlineUsersData.anonymousCount || 0;
+
+    return (
+      <span
+        key="admin-stats"
+        style={{ fontSize: '10px', color: '#00ff88', fontWeight: 'bold', display: 'flex', gap: '3px', marginLeft: '4px', minWidth: '30px' }}
+      >
+        <span key={`logged-in-${loggedInCount}`} style={{ color: '#00ddff' }}>{loggedInCount}</span>
+        <span key="separator" style={{ color: '#888' }}>/</span>
+        <span key={`anonymous-${anonymousCount}`} style={{ color: '#ffaa00' }}>{anonymousCount}</span>
+
+        {totalUserCount !== null && (
+          <span key={`total-count-${totalUserCount}`} style={{ fontSize: '10px', color: '#aaa', fontWeight: 'normal', marginLeft: '4px' }}>
+            ({totalUserCount})
+          </span>
+        )}
+      </span>
+    );
+  }, [isAdmin, onlineUsersData.loggedInUsers?.length, onlineUsersData.anonymousCount, totalUserCount]);
+
   return (
     <div className="shell-container">
       {/* Global Fixed Header */}
@@ -304,37 +376,25 @@ export function MobileShell() {
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: '1' }}>
                   <div style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
                     <h1 className="header-title" style={{ margin: 0, fontSize: '1.6rem' }}>
-                      댄스빌보드
+                      <span>댄스빌보드</span>
                     </h1>
-                    {isAdmin && (
-                      <span style={{ fontSize: '10px', color: '#00ff88', fontWeight: 'bold', display: 'flex', gap: '3px', marginLeft: '4px', minWidth: '30px' }}>
-                        <span style={{ color: '#00ddff' }}>{onlineUsersData.loggedInUsers?.length || 0}</span>
-                        <span style={{ color: '#888' }}>/</span>
-                        <span style={{ color: '#ffaa00' }}>{onlineUsersData.anonymousCount || 0}</span>
-
-                        {totalUserCount !== null && (
-                          <span style={{ fontSize: '10px', color: '#aaa', fontWeight: 'normal', marginLeft: '4px' }}>
-                            ({totalUserCount})
-                          </span>
-                        )}
-                      </span>
-                    )}
+                    {adminStats}
 
                   </div>
                   <span style={{ fontSize: '9px', width: '100%', display: 'flex', justifyContent: 'space-between', color: '#ffffffcc' }}>
                     {'swingenjoy.com'.split('').map((char, i) => (
-                      <span key={i}>{char}</span>
+                      <span key={`char-${i}-${char}`}>{char}</span>
                     ))}
                   </span>
                 </div>
               ) : (
                 /* 그 외 페이지 타이틀 */
                 <h1 className="header-title">
-                  {isBoardPage && '자유게시판'}
-                  {isSocialPage && '소셜 이벤트'}
-                  {isPracticePage && '연습실'}
-                  {isShoppingPage && '쇼핑'}
-                  {isGuidePage && '이용가이드'}
+                  {isBoardPage && <span key="title-board">자유게시판</span>}
+                  {isSocialPage && <span key="title-social">소셜 이벤트</span>}
+                  {isPracticePage && <span key="title-practice">연습실</span>}
+                  {isShoppingPage && <span key="title-shop">쇼핑</span>}
+                  {isGuidePage && <span key="title-guide">이용가이드</span>}
                 </h1>
               )}
             </div>
@@ -395,7 +455,7 @@ export function MobileShell() {
             data-analytics-section="header"
           >
             <i className="ri-translate-2"></i>
-            <span id="current-lang-display">KO</span>
+            <span>{currentLang}</span>
           </button>
 
           {/* Search Button - Always Visible */}

@@ -338,7 +338,7 @@
     min-width: 150px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.516);
     display: none;
     z-index: 9999;
   ">
@@ -382,7 +382,6 @@
     // 언어 변경 함수
     function changeLanguage(lang) {
       const select = document.querySelector('.goog-te-combo');
-      const langDisplay = document.getElementById('current-lang-display');
 
       if (select) {
         // 한국어 선택 시 번역 끄기 (구글 번역 X 버튼과 동일한 방식)
@@ -397,53 +396,14 @@
           select.dispatchEvent(new Event('change'));
           document.getElementById('language_menu').style.display = 'none';
 
-          // 버튼 텍스트 업데이트
-          if (langDisplay) {
-            const langMap = {
-              'en': 'EN',
-              'ja': 'JP',
-              'zh-CN': 'CN'
-            };
-            langDisplay.textContent = langMap[lang] || 'KO';
-          }
+          // React 컴포넌트에 언어 변경 알림
+          window.dispatchEvent(new CustomEvent('languageChanged', { detail: { lang } }));
         }
       } else {
         // Google Translate가 아직 로드되지 않았으면 재시도
         setTimeout(() => changeLanguage(lang), 500);
       }
     }
-
-    // 페이지 로드 시 현재 언어 감지 및 표시
-    window.addEventListener('load', function () {
-      setTimeout(function () {
-        const langDisplay = document.getElementById('current-lang-display');
-        if (langDisplay) {
-          // 쿠키에서 현재 언어 확인
-          const cookies = document.cookie.split(';');
-          let currentLang = 'KO';
-
-          for (let cookie of cookies) {
-            const [name, value] = cookie.trim().split('=');
-            if (name === 'googtrans') {
-              // googtrans 형식: /ko/en (원본언어/번역언어)
-              const parts = value.split('/');
-              if (parts.length >= 3) {
-                const targetLang = parts[2];
-                const langMap = {
-                  'en': 'EN',
-                  'ja': 'JP',
-                  'zh-CN': 'CN'
-                };
-                currentLang = langMap[targetLang] || 'KO';
-              }
-              break;
-            }
-          }
-
-          langDisplay.textContent = currentLang;
-        }
-      }, 1000);
-    });
 
     // 메뉴 외부 클릭 시 닫기
     setTimeout(function () {
