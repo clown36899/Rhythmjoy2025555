@@ -186,6 +186,29 @@
     color: white;
 }
 
+.venue-xs-btn.naver {
+    background-color: #03C75A;
+    color: white;
+    border: none;
+}
+
+.venue-xs-btn.naver:hover {
+    background-color: #02b350;
+    opacity: 1;
+}
+
+.venue-xs-btn.google {
+    background-color: white;
+    color: #333;
+    border: none;
+}
+
+.venue-xs-btn.google:hover {
+    background-color: #f0f0f0;
+    color: #333;
+    opacity: 1;
+}
+
 .room-description-box {
     margin-top: 1.5rem;
     background-color: rgba(255, 255, 255, 0.03);
@@ -968,6 +991,7 @@
         padding: 1rem;
     }
 }
+
 /* Admin Info Section */
 .created-at-text {
     padding-top: 0.75rem;
