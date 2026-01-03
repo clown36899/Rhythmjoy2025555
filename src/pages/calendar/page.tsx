@@ -25,6 +25,7 @@ export default function CalendarPage() {
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [viewMode, setViewMode] = useState<"month" | "year">("month");
     const [selectedWeekday, setSelectedWeekday] = useState<number | null>(null);
+    const [tabFilter, setTabFilter] = useState<'all' | 'social-events' | 'classes'>('all');
 
     // Event Modal States - using Hook
     const eventModal = useEventModal();
@@ -289,6 +290,28 @@ export default function CalendarPage() {
                 />
             </div> */}
 
+            {/* Tab Menu */}
+            <div className="calendar-tab-menu">
+                <button
+                    className={`calendar-tab-btn ${tabFilter === 'all' ? 'active' : ''}`}
+                    onClick={() => setTabFilter('all')}
+                >
+                    All
+                </button>
+                <button
+                    className={`calendar-tab-btn ${tabFilter === 'social-events' ? 'active' : ''}`}
+                    onClick={() => setTabFilter('social-events')}
+                >
+                    소셜&행사
+                </button>
+                <button
+                    className={`calendar-tab-btn ${tabFilter === 'classes' ? 'active' : ''}`}
+                    onClick={() => setTabFilter('classes')}
+                >
+                    class
+                </button>
+            </div>
+
             {/* Sticky Weekday Header */}
             <div className="calendar-page-weekday-header">
                 <div className="calendar-weekday-header no-select">
@@ -331,6 +354,7 @@ export default function CalendarPage() {
                     isAnimating={isAnimating}
                     onEventClick={(event) => eventModal.setSelectedEvent(event)}
                     highlightedEventId={highlightedEventId}
+                    tabFilter={tabFilter}
                 />
             </div>
 

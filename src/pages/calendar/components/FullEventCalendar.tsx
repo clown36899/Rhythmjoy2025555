@@ -23,6 +23,7 @@ interface FullEventCalendarProps {
   selectedCategory?: string;
   highlightedEventId?: number | null;
   hoveredEventId?: number | null;
+  tabFilter?: 'all' | 'social-events' | 'classes';
 }
 
 export default memo(function FullEventCalendar({
@@ -40,8 +41,10 @@ export default memo(function FullEventCalendar({
   isAdminMode: _isAdminMode = false,
   selectedCategory = "all",
   highlightedEventId = null,
+  tabFilter = 'all',
 }: FullEventCalendarProps) {
   const [events, setEvents] = useState<AppEvent[]>([]);
+  const [socialSchedules, setSocialSchedules] = useState<any[]>([]);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [yearRangeBase, setYearRangeBase] = useState(new Date().getFullYear());
   // const { defaultThumbnailClass, defaultThumbnailEvent } = useDefaultThumbnail(); // Removed unused hook
@@ -72,8 +75,8 @@ export default memo(function FullEventCalendar({
     return Math.max(30, (calendarHeightPx - 16) / getActualWeeksCount(monthDate));
   };
 
-  // 카테고리에 따라 이벤트 필터링
-  const filteredEvents = useMemo(() => {
+  // 카테고리에 따라 이벤트 필터링 (기존 로직 유지)
+  const categoryFilteredEvents = useMemo(() => {
     if (!selectedCategory || selectedCategory === 'all') {
       return events;
     }
@@ -82,6 +85,44 @@ export default memo(function FullEventCalendar({
     }
     return events.filter(event => event.category === selectedCategory);
   }, [events, selectedCategory]);
+
+  // 탭 필터에 따라 이벤트와 소셜 스케줄 결합 및 필터링
+  const filteredEvents = useMemo(() => {
+    // 소셜 스케줄을 이벤트 형식으로 변환 (정규 스케줄 제외)
+    const socialEvents = socialSchedules
+      .filter(schedule => schedule.day_of_week === null || schedule.day_of_week === undefined)
+      .map(schedule => ({
+        id: schedule.id + 10000000, // ID 충돌 방지를 위해 큰 숫자 추가
+        title: schedule.title,
+        date: schedule.date,
+        start_date: schedule.date,
+        end_date: schedule.date,
+        event_dates: schedule.date ? [schedule.date] : [],
+        category: 'social',
+        image_micro: schedule.image_micro || schedule.image_thumbnail || schedule.image_medium,
+        source: 'social_schedules' as const,
+      })) as any[];
+
+    let combined: any[] = [];
+
+    if (tabFilter === 'all') {
+      // 전체: V2 이벤트 + 소셜 스케줄 (정규 제외)
+      combined = [...categoryFilteredEvents, ...socialEvents];
+    } else if (tabFilter === 'social-events') {
+      // 소셜&행사: V2 이벤트 중 강습/동호회 제외 + 소셜 스케줄 (정규 제외)
+      const nonClassEvents = categoryFilteredEvents.filter(event =>
+        event.category !== 'class' && event.category !== 'regular' && event.category !== 'club'
+      );
+      combined = [...nonClassEvents, ...socialEvents];
+    } else if (tabFilter === 'classes') {
+      // 강습: V2 이벤트 중 강습만
+      combined = categoryFilteredEvents.filter(event =>
+        event.category === 'class' || event.category === 'regular'
+      );
+    }
+
+    return combined as AppEvent[];
+  }, [categoryFilteredEvents, socialSchedules, tabFilter]);
 
   // 현재 달의 이벤트별 색상 맵 생성
   const eventColorMap = useMemo(() => {
@@ -171,8 +212,6 @@ export default memo(function FullEventCalendar({
 
     return () => {
       window.removeEventListener("eventDeleted", handleEventDeleted);
-      window.removeEventListener("eventUpdated", handleEventChanged);
-      window.removeEventListener("eventCreated", handleEventChanged);
     };
   }, []);
 
@@ -184,24 +223,42 @@ export default memo(function FullEventCalendar({
       const endDateStr = endOfRange.toISOString().split('T')[0];
       const columns = "id,title,date,start_date,end_date,event_dates,category,image_micro";
 
-      const { data, error } = await supabase
+      // Fetch V2 events
+      const eventsPromise = supabase
         .from("events")
         .select(columns)
         .or(`and(start_date.gte.${startDateStr},start_date.lte.${endDateStr}),and(end_date.gte.${startDateStr},end_date.lte.${endDateStr}),and(date.gte.${startDateStr},date.lte.${endDateStr})`)
         .order("start_date", { ascending: true, nullsFirst: false })
         .order("date", { ascending: true, nullsFirst: false });
 
-      if (error) {
-        console.error("Error fetching events:", error);
+      // Fetch social schedules (excluding regular schedules with day_of_week)
+      const socialSchedulesPromise = supabase
+        .from("social_schedules")
+        .select("id,title,date,image_micro,image_thumbnail,image_medium,day_of_week")
+        .gte("date", startDateStr)
+        .lte("date", endDateStr)
+        .order("date", { ascending: true });
+
+      const [eventsResult, socialResult] = await Promise.all([eventsPromise, socialSchedulesPromise]);
+
+      if (eventsResult.error) {
+        console.error("Error fetching events:", eventsResult.error);
       } else {
-        console.log("📅 [FullEventCalendar] Fetched events:", data?.length);
-        if (data && data.length > 0) {
+        console.log("📅 [FullEventCalendar] Fetched events:", eventsResult.data?.length);
+        if (eventsResult.data && eventsResult.data.length > 0) {
           // 디버깅: 처음 5개 이벤트의 image_micro 확인
-          data.slice(0, 5).forEach((evt: any) => {
+          eventsResult.data.slice(0, 5).forEach((evt: any) => {
             console.log(`- Event: ${evt.title}, Micro: ${evt.image_micro ? '✅ Exist' : '❌ NULL'}, URL: ${evt.image_micro}`);
           });
         }
-        setEvents((data || []) as AppEvent[]);
+        setEvents((eventsResult.data || []) as AppEvent[]);
+      }
+
+      if (socialResult.error) {
+        console.error("Error fetching social schedules:", socialResult.error);
+      } else {
+        console.log("📅 [FullEventCalendar] Fetched social schedules:", socialResult.data?.length);
+        setSocialSchedules(socialResult.data || []);
       }
     } catch (error) {
       console.error("Error:", error);
