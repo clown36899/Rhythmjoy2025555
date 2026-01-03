@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="UTF-8" />
-  <meta name="google" content="notranslate" />
+  <!-- Google Translate 테스트를 위해 notranslate 제거 -->
   <base href="/" />
   <link rel="icon" type="image/svg+xml" href="/vite.svg" />
   <meta name="viewport"
@@ -255,12 +255,209 @@
       background-color: #3b82f6 !important;
       color: #ffffff !important;
     }
+
+    /* Google Translate iframe 툴바 위치 조정 */
+    .VIpgJd-ZVi9od-ORHb-OEVmcd {
+      top: auto !important;
+      bottom: 0 !important;
+    }
+
+    /* Google Translate 툴바 스타일 */
+    .skiptranslate iframe {
+      top: auto !important;
+      bottom: 0 !important;
+    }
+
+    /* Google Translate 드롭다운 스타일 */
+    .goog-te-gadget {
+      font-family: inherit !important;
+      font-size: 14px !important;
+    }
+
+    .goog-te-gadget-simple {
+      background-color: transparent !important;
+      border: none !important;
+      padding: 4px 8px !important;
+      color: #ffffff !important;
+    }
+
+    .goog-te-gadget-icon {
+      display: none !important;
+    }
+
+    /* Google Translate 기본 툴바 완전히 숨기기 */
+    body {
+      top: 0 !important;
+    }
+
+    .goog-te-banner-frame {
+      display: none !important;
+    }
+
+    #goog-gt-tt {
+      display: none !important;
+    }
+
+    .goog-te-balloon-frame {
+      display: none !important;
+    }
+
+    /* 번역 후 body에 추가되는 top 여백 제거 */
+    body.translated-ltr {
+      top: 0 !important;
+    }
+
+    body.translated-rtl {
+      top: 0 !important;
+    }
+
+    /* 구글 번역 툴바 iframe 완전히 숨기기 */
+    .skiptranslate iframe,
+    iframe.VIpgJd-ZVi9od-ORHb-OEVmcd,
+    iframe.skiptranslate {
+      display: none !important;
+      visibility: hidden !important;
+    }
+
+    /* 툴바를 감싸는 div도 숨기기 */
+    body>.skiptranslate {
+      display: none !important;
+    }
   </style>
 </head>
 
 <body style="background-color: #000000; margin: 0; padding: 0;">
+  <!-- 언어 선택 메뉴 (헤더 번역 버튼과 연동) -->
+  <div id="language_menu" style="
+    position: fixed;
+    top: 65px;
+    right: 20px;
+    background: rgba(0, 0, 0, 0.95);
+    border-radius: 12px;
+    padding: 8px;
+    min-width: 150px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: none;
+    z-index: 9999;
+  ">
+    <div style="padding: 8px 12px; color: #888; font-size: 12px; font-weight: 600;">언어 선택</div>
+    <button onclick="changeLanguage('ko')"
+      style="width: 100%; padding: 10px 12px; background: transparent; border: none; color: #fff; text-align: left; cursor: pointer; border-radius: 6px; font-size: 14px;"
+      onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">🇰🇷
+      한국어</button>
+    <button onclick="changeLanguage('en')"
+      style="width: 100%; padding: 10px 12px; background: transparent; border: none; color: #fff; text-align: left; cursor: pointer; border-radius: 6px; font-size: 14px;"
+      onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">🇺🇸
+      English</button>
+    <button onclick="changeLanguage('ja')"
+      style="width: 100%; padding: 10px 12px; background: transparent; border: none; color: #fff; text-align: left; cursor: pointer; border-radius: 6px; font-size: 14px;"
+      onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">🇯🇵
+      日本語</button>
+    <button onclick="changeLanguage('zh-CN')"
+      style="width: 100%; padding: 10px 12px; background: transparent; border: none; color: #fff; text-align: left; cursor: pointer; border-radius: 6px; font-size: 14px;"
+      onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">🇨🇳
+      中文</button>
+  </div>
+
+  <div id="google_translate_element" style="display: none;"></div>
+
   <div id="root"></div>
   <script type="module" src="/src/main.tsx"></script>
+
+  <!-- Google Translate Script -->
+  <script type="text/javascript">
+    function googleTranslateElementInit() {
+      new google.translate.TranslateElement(
+        {
+          pageLanguage: 'ko',
+          includedLanguages: 'en,ja,zh-CN'
+          // layout 제거: HORIZONTAL이 기본값이며 .goog-te-combo 요소를 생성함
+        },
+        'google_translate_element'
+      );
+    }
+
+    // 언어 변경 함수
+    function changeLanguage(lang) {
+      const select = document.querySelector('.goog-te-combo');
+      const langDisplay = document.getElementById('current-lang-display');
+
+      if (select) {
+        // 한국어 선택 시 번역 끄기 (구글 번역 X 버튼과 동일한 방식)
+        if (lang === 'ko') {
+          // googtrans 쿠키 삭제 (모든 경로에서)
+          document.cookie = 'googtrans=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; domain=' + window.location.hostname;
+          document.cookie = 'googtrans=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
+          // 페이지 새로고침하여 원본 언어로 복원
+          window.location.reload();
+        } else {
+          select.value = lang;
+          select.dispatchEvent(new Event('change'));
+          document.getElementById('language_menu').style.display = 'none';
+
+          // 버튼 텍스트 업데이트
+          if (langDisplay) {
+            const langMap = {
+              'en': 'EN',
+              'ja': 'JP',
+              'zh-CN': 'CN'
+            };
+            langDisplay.textContent = langMap[lang] || 'KO';
+          }
+        }
+      } else {
+        // Google Translate가 아직 로드되지 않았으면 재시도
+        setTimeout(() => changeLanguage(lang), 500);
+      }
+    }
+
+    // 페이지 로드 시 현재 언어 감지 및 표시
+    window.addEventListener('load', function () {
+      setTimeout(function () {
+        const langDisplay = document.getElementById('current-lang-display');
+        if (langDisplay) {
+          // 쿠키에서 현재 언어 확인
+          const cookies = document.cookie.split(';');
+          let currentLang = 'KO';
+
+          for (let cookie of cookies) {
+            const [name, value] = cookie.trim().split('=');
+            if (name === 'googtrans') {
+              // googtrans 형식: /ko/en (원본언어/번역언어)
+              const parts = value.split('/');
+              if (parts.length >= 3) {
+                const targetLang = parts[2];
+                const langMap = {
+                  'en': 'EN',
+                  'ja': 'JP',
+                  'zh-CN': 'CN'
+                };
+                currentLang = langMap[targetLang] || 'KO';
+              }
+              break;
+            }
+          }
+
+          langDisplay.textContent = currentLang;
+        }
+      }, 1000);
+    });
+
+    // 메뉴 외부 클릭 시 닫기
+    setTimeout(function () {
+      document.addEventListener('click', function (e) {
+        const menu = document.getElementById('language_menu');
+        const translateBtn = document.querySelector('.header-translate-btn');
+        if (menu && translateBtn && !menu.contains(e.target) && !translateBtn.contains(e.target)) {
+          menu.style.display = 'none';
+        }
+      });
+    }, 100);
+  </script>
+  <script type="text/javascript"
+    src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
   <!-- PWA Service Worker 등록 -->
   <script>
