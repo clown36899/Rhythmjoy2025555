@@ -100,7 +100,28 @@
 .treeItem {
     display: flex;
     flex-direction: column;
-    margin-bottom: 2px;
+    margin-bottom: 4px;
+    /* Default spacing */
+}
+
+/* Tree Line Implementation */
+.treeChildren {
+    margin-left: 20px;
+    /* Indentation */
+    padding-left: 12px;
+    /* Spacing from line */
+    border-left: 2px solid #374151;
+    /* The Guide Line */
+    margin-top: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    /* Gap between children */
+}
+
+/* Optional: Hover effect on line? */
+.treeChildren:hover {
+    border-left-color: #4b5563;
 }
 
 /* Root Header in Column */

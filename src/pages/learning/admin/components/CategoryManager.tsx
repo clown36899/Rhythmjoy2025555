@@ -384,8 +384,7 @@ export const CategoryManager = ({ onCategoryChange }: Props) => {
         return (
             <div
                 key={category.id}
-                className={`treeItem ${isDragging ? 'dragging' : ''}`} // Removed wrapper Drag handlers
-                style={{ marginLeft: `${12}px` }}
+                className={`treeItem ${isDragging ? 'dragging' : ''}`}
             >
                 <div
                     className={`itemContent ${isSelected ? 'selected' : ''} ${activeMode ? `dragOver-${activeMode}` : ''}`}
@@ -449,9 +448,6 @@ export const CategoryManager = ({ onCategoryChange }: Props) => {
                 {/* Children */}
                 <div
                     className="treeChildren"
-                    style={{ paddingLeft: '0px' }} // Indentation handled by parent margin? or structure?
-                    // Currently marginLeft is inline on treeItem.
-                    // Let's just wrap and stop prop.
                     onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
                     onDrop={(e) => { e.preventDefault(); e.stopPropagation(); }}
                 >
@@ -533,7 +529,8 @@ export const CategoryManager = ({ onCategoryChange }: Props) => {
                 {/* Children of Root */}
                 {/* Prevent Bubble Up to Root Column Handler */}
                 <div
-                    style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}
+                    className="treeChildren"
+                    // Removed suppression: Now allows indentation + line for root items too
                     onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
                     onDrop={(e) => { e.preventDefault(); e.stopPropagation(); }}
                 >
