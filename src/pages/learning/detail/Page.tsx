@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase';
 import YouTube from 'react-youtube';
 import styles from './Page.module.css';
+import { BookmarkList } from '../components/BookmarkList';
 
 interface Video {
     id: string;
@@ -18,10 +19,21 @@ interface Playlist {
     description: string;
 }
 
+// ... imports including BookmarkList ...
+
+interface Bookmark {
+    id: string;
+    video_id: string;
+    timestamp: number;
+    label: string;
+}
+
 interface Props {
     playlistId?: string;
     onClose?: () => void;
 }
+
+// ... Props interface ...
 
 const LearningDetailPage = ({ playlistId, onClose }: Props) => {
     const { listId } = useParams();
@@ -34,11 +46,113 @@ const LearningDetailPage = ({ playlistId, onClose }: Props) => {
     const [isLoading, setIsLoading] = useState(true);
     const playerRef = useRef<any>(null);
 
+    // Bookmark State
+    const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
+    const [isAdmin, setIsAdmin] = useState(false);
+
+    useEffect(() => {
+        checkAdmin();
+    }, []);
+
+    const checkAdmin = async () => {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) setIsAdmin(true);
+    };
+
     useEffect(() => {
         if (id) fetchPlaylistData(id);
     }, [id]);
 
+    // Fetch bookmarks when video changes
+    useEffect(() => {
+        if (videos.length > 0 && videos[currentVideoIndex]) {
+            fetchBookmarks(videos[currentVideoIndex].id);
+        }
+    }, [currentVideoIndex, videos]);
+
+    const fetchBookmarks = async (videoId: string) => {
+        const { data, error } = await supabase
+            .from('learning_video_bookmarks')
+            .select('*')
+            .eq('video_id', videoId)
+            .order('timestamp', { ascending: true });
+
+        if (!error && data) {
+            setBookmarks(data);
+        } else {
+            setBookmarks([]);
+        }
+    };
+
+    // Helper: Format seconds to MM:SS (Moved out or duplicated for simplicity)
+    const formatTime = (seconds: number) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    const handleAddBookmark = async () => {
+        if (!playerRef.current || !videos[currentVideoIndex]) return;
+
+        const timestamp = await playerRef.current.getCurrentTime();
+        // Immediate Add with default name
+        const label = formatTime(timestamp);
+
+        const { error } = await supabase
+            .from('learning_video_bookmarks')
+            .insert({
+                video_id: videos[currentVideoIndex].id,
+                timestamp,
+                label
+            });
+
+        if (error) {
+            console.error('Bookmark add failed', error);
+            alert('북마크 추가 실패');
+        } else {
+            fetchBookmarks(videos[currentVideoIndex].id);
+        }
+    };
+
+    const handleEditBookmark = async (id: string, currentLabel: string) => {
+        const newLabel = prompt('북마크 이름을 수정하세요', currentLabel);
+        if (newLabel === null || newLabel === currentLabel) return;
+
+        const { error } = await supabase
+            .from('learning_video_bookmarks')
+            .update({ label: newLabel })
+            .eq('id', id);
+
+        if (error) {
+            alert('수정 실패');
+        } else {
+            if (videos[currentVideoIndex]) fetchBookmarks(videos[currentVideoIndex].id);
+        }
+    };
+
+    const handleDeleteBookmark = async (id: string) => {
+        if (!confirm('정말 삭제하시겠습니까?')) return;
+
+        const { error } = await supabase
+            .from('learning_video_bookmarks')
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            alert('삭제 실패');
+        } else {
+            if (videos[currentVideoIndex]) fetchBookmarks(videos[currentVideoIndex].id);
+        }
+    };
+
+    const seekTo = (seconds: number) => {
+        if (playerRef.current) {
+            playerRef.current.seekTo(seconds, true);
+        }
+    };
+
     const fetchPlaylistData = async (targetId: string) => {
+        // ... existing fetch logic ...
         try {
             setIsLoading(true);
 
@@ -74,10 +188,7 @@ const LearningDetailPage = ({ playlistId, onClose }: Props) => {
     };
 
     const onPlayerStateChange = (event: any) => {
-        // 0 = Ended
-        if (event.data === 0) {
-            playNext();
-        }
+        if (event.data === 0) playNext();
     };
 
     const playNext = () => {
@@ -115,6 +226,16 @@ const LearningDetailPage = ({ playlistId, onClose }: Props) => {
                     >
                         {onClose ? '✕ 닫기' : '← 갤러리로'}
                     </button>
+
+                    {isAdmin && (
+                        <button
+                            onClick={handleAddBookmark}
+                            className={styles.backButton}
+                            style={{ marginLeft: 'auto', backgroundColor: 'rgba(37, 99, 235, 0.6)' }}
+                        >
+                            + 북마크 추가
+                        </button>
+                    )}
                 </div>
 
                 {/* YouTube Player Wrapper */}
@@ -136,6 +257,17 @@ const LearningDetailPage = ({ playlistId, onClose }: Props) => {
                     />
                 </div>
 
+                {/* Bookmark List */}
+                <div style={{ padding: '0 16px', backgroundColor: '#111827' }}>
+                    <BookmarkList
+                        bookmarks={bookmarks}
+                        onSeek={seekTo}
+                        onDelete={handleDeleteBookmark}
+                        onEdit={handleEditBookmark}
+                        isAdmin={isAdmin}
+                    />
+                </div>
+
                 {/* Video Info (Mobile only) */}
                 <div className={styles.mobileInfo}>
                     <h2 className={styles.mobileTitle}>{currentVideo.title}</h2>
@@ -150,6 +282,7 @@ const LearningDetailPage = ({ playlistId, onClose }: Props) => {
 
             {/* Right: Sidebar */}
             <div className={styles.sidebar}>
+                {/* ... existing sidebar content ... */}
                 <div className={styles.sidebarHeader}>
                     <h1 className={styles.playlistTitle}>{playlist.title}</h1>
                     <div className={styles.progressLabel}>
