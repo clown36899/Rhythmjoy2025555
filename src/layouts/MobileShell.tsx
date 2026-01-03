@@ -464,7 +464,11 @@ export function MobileShell() {
             data-analytics-title="번역 토글"
             data-analytics-section="header"
           >
-            <i className="ri-translate-2"></i>
+            <div className="translate-icon-custom" translate="no">
+              <span className="ko-char">가</span>
+              <span className="divider">/</span>
+              <span className="en-char">A</span>
+            </div>
             <span>{currentLang}</span>
           </button>
 

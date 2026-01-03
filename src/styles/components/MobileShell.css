@@ -437,6 +437,44 @@
   letter-spacing: 0.5px;
 }
 
+/* Custom Translation Icon (가/A) */
+.translate-icon-custom {
+  position: relative;
+  width: min(4vw, 18px);
+  height: min(3.5vw, 14px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  margin-top: -1px;
+}
+
+.ko-char {
+  position: absolute;
+  top: -1px;
+  left: -2px;
+  font-size: min(2.8vw, 0.85rem);
+  line-height: 1;
+  z-index: 2;
+}
+
+.divider {
+  font-size: min(3.2vw, 0.9rem);
+  opacity: 0.3;
+  font-weight: 300;
+  transform: rotate(15deg);
+  margin-top: 1px;
+}
+
+.en-char {
+  position: absolute;
+  bottom: -2px;
+  right: 1px;
+  font-size: min(2.5vw, 0.72rem);
+  line-height: 1;
+  z-index: 2;
+}
+
 /* Header Right Buttons */
 .header-right-buttons {
   display: flex;
