@@ -78,11 +78,15 @@ const LearningPage = () => {
         // For now, we will assume true for testing if session exists, 
         // or strictly check specific email/ID as requested "관리자빼고는 수정못하게"
         const { data: { session } } = await supabase.auth.getSession();
+        console.log('🔍 Admin Check - Session:', session ? 'EXISTS' : 'NULL');
         if (session) {
             // TODO: Replace with real admin permission check (e.g. from profiles or custom claims)
             // For now, allow any logged in user to see the button (but acting as admin should probably be restricted)
             // Or better, check specific email if known or just set true for dev
             setIsAdmin(true);
+            console.log('✅ Admin status set to TRUE');
+        } else {
+            console.log('❌ No session - Admin status remains FALSE');
         }
     };
 
@@ -144,22 +148,22 @@ const LearningPage = () => {
             }));
     };
 
-    // Filter playlists
+    // Filter playlists - include subcategories recursively
     const filteredPlaylists = useMemo(() => {
-        if (!selectedCategoryId) return playlists; // Show all at root (or modify to hide if desired)
+        if (!selectedCategoryId) return playlists;
 
-        // Helper to get all descendant IDs including self
+        // Helper to get all descendant category IDs including self
+        const getDescendantIds = (categoryId: string): string[] => {
+            const result = [categoryId];
+            const children = flatCategories.filter(c => c.parent_id === categoryId);
+            children.forEach(child => {
+                result.push(...getDescendantIds(child.id));
+            });
+            return result;
+        };
 
-
-        // const targetIds = getDescendantIds(flatCategories, selectedCategoryId);
-
-        // Allow playlists in subcategories to show? Or just strict match?
-        // Usually "Folder" implies content within. Let's do strict match for now as per original logic,
-        // or improve to include subcategories if requested. Original logic was strictly `p.category_id === selectedCategoryId`.
-        // Let's stick to strict match to match original behavior, or switch if user wants recursive.
-        // The original one had `if (!selectedCategoryId) return []`.
-        // Let's keep strict match for now.
-        return playlists.filter(p => p.category_id === selectedCategoryId);
+        const targetIds = getDescendantIds(selectedCategoryId);
+        return playlists.filter(p => p.category_id && targetIds.includes(p.category_id));
     }, [playlists, selectedCategoryId, flatCategories]);
 
     // Admin Actions
@@ -343,97 +347,98 @@ const LearningPage = () => {
                 </div>
             </div>
 
-            {/* Split Layout */}
-            <div className="contentWrapper splitLayout">
+            {/* Content Wrapper */}
+            <div className="contentWrapper">
+                {/* Split Layout */}
+                <div className="splitLayout">
 
-                {/* LEFT: Tree Navigation */}
-                <div className="leftSidebar">
-                    <CategoryManager
-                        onCategoryChange={fetchData}
-                        readOnly={!adminMode}
-                        selectedId={selectedCategoryId}
-                        onSelect={setSelectedCategoryId}
-                        categories={categories}
-                    />
-                </div>
-
-                {/* RIGHT: Content Grid */}
-                <div className="rightContent">
-                    {/* Path title */}
-                    <div className="currentPath">
-                        {selectedCategoryId ? (
-                            <span className="pathText">
-                                {flatCategories.find(c => c.id === selectedCategoryId)?.name}
-                            </span>
-                        ) : (
-                            <span className="pathText">📂 폴더를 선택하세요</span>
-                        )}
-                        {/* Show count of playlists in this folder */}
-                        {selectedCategoryId && (
-                            <span className="countBadge" style={{ marginLeft: '8px', fontSize: '0.8em', color: '#888' }}>
-                                ({filteredPlaylists.length})
-                            </span>
-                        )}
+                    {/* LEFT: Tree Navigation */}
+                    <div className="leftSidebar">
+                        <CategoryManager
+                            onCategoryChange={fetchData}
+                            readOnly={!adminMode}
+                            selectedId={selectedCategoryId}
+                            onSelect={setSelectedCategoryId}
+                            categories={categories}
+                        />
                     </div>
 
-                    {/* Playlist Grid */}
-                    {isLoading ? (
-                        <div className="loadingContainer">
-                            <div className="spinner"></div>
-                            <p className="loadingText">로딩 중...</p>
+                    {/* RIGHT: Content Grid */}
+                    <div className="rightContent">
+                        {/* Path title */}
+                        <div className="currentPath">
+                            {selectedCategoryId ? (
+                                <span className="pathText">
+                                    {flatCategories.find(c => c.id === selectedCategoryId)?.name}
+                                </span>
+                            ) : (
+                                <span className="pathText">📂 폴더를 선택하세요</span>
+                            )}
+                            {/* Show count of playlists in this folder */}
+                            {selectedCategoryId && (
+                                <span className="countBadge" style={{ marginLeft: '8px', fontSize: '0.8em', color: '#888' }}>
+                                    ({filteredPlaylists.length})
+                                </span>
+                            )}
                         </div>
-                    ) : filteredPlaylists.length === 0 ? (
-                        <div className="emptyState">
-                            <div className="emptyIcon">📂</div>
-                            <h3 className="emptyTitle">영상 없음</h3>
-                            <p className="emptyText">
-                                {selectedCategoryId ? '이 폴더에는 영상이 없습니다.' : '왼쪽 목록에서 폴더를 선택해주세요.'}
-                            </p>
-                        </div>
-                    ) : (
-                        <div className="grid">
-                            {filteredPlaylists.map((playlist) => (
-                                <div
-                                    key={playlist.id}
-                                    onClick={() => navigate(`/learning/${playlist.id}`)}
-                                    className="card"
-                                >
-                                    <div className="thumbnailContainer">
-                                        {playlist.thumbnail_url ? (
-                                            <img
-                                                src={playlist.thumbnail_url}
-                                                alt={playlist.title}
-                                                className="thumbnail"
-                                            />
-                                        ) : (
-                                            <div className="noImage">No Image</div>
-                                        )}
-                                        <div className="videoCountBadge">
-                                            <span className="videoCountIcon">▶</span>
-                                            <span className="videoCountText">{playlist.video_count}</span>
+
+                        {/* Playlist Grid */}
+                        {isLoading ? (
+                            <div className="loadingContainer">
+                                <div className="spinner"></div>
+                                <p className="loadingText">로딩 중...</p>
+                            </div>
+                        ) : filteredPlaylists.length === 0 ? (
+                            <div className="emptyState">
+                                <div className="emptyIcon">📂</div>
+                                <h3 className="emptyTitle">영상 없음</h3>
+                                <p className="emptyText">
+                                    {selectedCategoryId ? '이 폴더에는 영상이 없습니다.' : '왼쪽 목록에서 폴더를 선택해주세요.'}
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="grid">
+                                {filteredPlaylists.map((playlist) => (
+                                    <div
+                                        key={playlist.id}
+                                        onClick={() => navigate(`/learning/${playlist.id}`)}
+                                        className="card"
+                                    >
+                                        <div className="thumbnailContainer">
+                                            {playlist.thumbnail_url ? (
+                                                <img
+                                                    src={playlist.thumbnail_url}
+                                                    alt={playlist.title}
+                                                    className="thumbnail"
+                                                />
+                                            ) : (
+                                                <div className="noImage">No Image</div>
+                                            )}
+                                            <div className="videoCountBadge">
+                                                <span className="videoCountIcon">▶</span>
+                                                <span className="videoCountText">{playlist.video_count}</span>
+                                            </div>
+
+                                            {adminMode && playlist.youtube_playlist_id && (
+                                                <div className="adminBadge ytLinked">YT Linked</div>
+                                            )}
+                                            {adminMode && !playlist.is_public && (
+                                                <div className="adminBadge private">Private</div>
+                                            )}
                                         </div>
 
-                                        {adminMode && playlist.youtube_playlist_id && (
-                                            <div className="adminBadge ytLinked">YT Linked</div>
-                                        )}
-                                        {adminMode && !playlist.is_public && (
-                                            <div className="adminBadge private">Private</div>
-                                        )}
-                                    </div>
+                                        <div className="cardBody">
+                                            <div className="cardHeader">
+                                                <h3 className="cardTitle">{playlist.title}</h3>
+                                            </div>
+                                            <div className="cardFooter">
+                                                <span className="categoryBadge">
+                                                    {flatCategories.find(c => c.id === playlist.category_id)?.name || '기타'}
+                                                </span>
+                                                <span>{new Date(playlist.created_at).toLocaleDateString()}</span>
+                                            </div>
 
-                                    <div className="cardBody">
-                                        <div className="cardHeader">
-                                            <h3 className="cardTitle">{playlist.title}</h3>
-                                        </div>
-                                        <div className="cardFooter">
-                                            <span className="categoryBadge">
-                                                {flatCategories.find(c => c.id === playlist.category_id)?.name || '기타'}
-                                            </span>
-                                            <span>{new Date(playlist.created_at).toLocaleDateString()}</span>
-                                        </div>
-
-                                        {/* Admin Actions Overlay within Card */}
-                                        {adminMode && (
+                                            {/* Admin Actions Overlay within Card */}
                                             <div className="adminActions">
                                                 <button
                                                     onClick={(e) => togglePublic(playlist, e)}
@@ -478,12 +483,12 @@ const LearningPage = () => {
                                                     🗑
                                                 </button>
                                             </div>
-                                        )}
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 

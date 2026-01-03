@@ -20,6 +20,7 @@ export const PlaylistImportModal = ({ onClose, onSuccess }: Props) => {
     const [url, setUrl] = useState('');
     const [categoryId, setCategoryId] = useState<string | null>(null);
     const [categories, setCategories] = useState<Category[]>([]);
+    const [isPublic, setIsPublic] = useState(true); // 기본값: 공개
 
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -85,7 +86,7 @@ export const PlaylistImportModal = ({ onClose, onSuccess }: Props) => {
                     description: playlistInfo.description,
                     thumbnail_url: playlistInfo.thumbnail,
                     author_id: user.id,
-                    is_public: false, // 기본값 비공개
+                    is_public: isPublic, // 사용자가 선택한 공개/비공개 설정
                     youtube_playlist_id: playlistInfo.id,
                     category_id: categoryId // 선택한 폴더 ID
                 })
@@ -160,6 +161,18 @@ export const PlaylistImportModal = ({ onClose, onSuccess }: Props) => {
                                 </option>
                             ))}
                         </select>
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label className={styles.checkboxLabel}>
+                            <input
+                                type="checkbox"
+                                checked={isPublic}
+                                onChange={(e) => setIsPublic(e.target.checked)}
+                                className={styles.checkbox}
+                            />
+                            <span>공개 재생목록으로 설정 (체크 해제 시 비공개)</span>
+                        </label>
                     </div>
 
                     <div className={styles.formGroup}>

@@ -51,6 +51,21 @@ export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId
     const [draggedIsRoot, setDraggedIsRoot] = useState<boolean>(false);
     const [dragDest, setDragDest] = useState<{ id: string, mode: 'reorder-top' | 'reparent' } | null>(null);
 
+    // --- Collapse State ---
+    const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
+
+    const toggleCollapse = (id: string) => {
+        setCollapsedIds(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(id)) {
+                newSet.delete(id);
+            } else {
+                newSet.add(id);
+            }
+            return newSet;
+        });
+    };
+
     // Use localCategories for rendering to allow immediate DnD feedback
     const categoriesToUse = localCategories;
 
@@ -375,6 +390,19 @@ export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId
                     onClick={() => !isEditing && handleSelect(isSelected ? null : category.id)}
                     style={{ cursor: 'pointer' }}
                 >
+                    {/* Collapse toggle for folders with children */}
+                    {category.children && category.children.length > 0 && (
+                        <span
+                            className="collapseToggle"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                toggleCollapse(category.id);
+                            }}
+                        >
+                            {collapsedIds.has(category.id) ? '▶' : '▼'}
+                        </span>
+                    )}
+
                     <span className="folderIcon">
                         {isSelected ? '📂' : '📁'}
                     </span>
@@ -424,6 +452,7 @@ export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId
                 <div
                     className="treeChildren"
                     onDragOver={(e) => { e.preventDefault(); }}
+                    style={{ display: collapsedIds.has(category.id) ? 'none' : 'flex' }}
                 >
                     {category.children && category.children.map(renderTreeItem)}
                 </div>
@@ -436,6 +465,7 @@ export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId
         const isSelected = effectiveSelectedId === category.id;
         const isDragging = draggedId === category.id;
         const activeMode = (dragDest?.id === category.id) ? dragDest.mode : null;
+        const isCollapsed = collapsedIds.has(category.id);
 
         return (
             <div
@@ -469,6 +499,18 @@ export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId
                         </div>
                     ) : (
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
+                            {category.children && category.children.length > 0 && (
+                                <span
+                                    className="collapseToggle"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleCollapse(category.id);
+                                    }}
+                                    style={{ padding: '4px', cursor: 'pointer', fontSize: '12px' }}
+                                >
+                                    {isCollapsed ? '▶' : '▼'}
+                                </span>
+                            )}
                             <span style={{ fontSize: '20px' }}>📦</span>
                             <span style={{ fontWeight: 'bold' }}>{category.name}</span>
                         </div>
@@ -503,23 +545,18 @@ export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId
                 <div
                     className="treeChildren"
                     onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                    style={{
+                        display: isCollapsed ? 'none' : 'flex'
+                    }}
                 // Empty space in column after children
                 >
                     {category.children && category.children.map(renderTreeItem)}
                     {/* Drop Zone for Appending to Root Column */}
-                    {!readOnly && draggedId && category.children && (
+                    {!readOnly && draggedId && category.children && !isCollapsed && (
                         <div
                             style={{ height: '20px', flex: 1 }}
                             onDragOver={(e) => {
                                 e.preventDefault(); e.stopPropagation();
-                                // Manual logic to set dest as "Append to this parent"
-                                // Reuse handleDragOver logic but force Reparent?
-                                // Actually, handleDragOver on the PARENT (Root) handles reparent.
-                                // But stopPropagation above blocks it.
-                                // We need a way to say "Drop HERE means append to this column's children list"
-                                // Simplest: Let it bubble? 
-                                // Taking out stopPropagation allows dragging to empty space -> Root reparent.
-                                // Let's try removing stopPropagation on this container for Root.
                             }}
                         />
                     )}

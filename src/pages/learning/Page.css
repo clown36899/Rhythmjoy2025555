@@ -29,28 +29,23 @@
 .contentWrapper {
     width: 100%;
     max-width: none;
-    /* No limit */
     margin: 0;
-    padding: 0 24px;
-    /* Default horizontal padding */
     flex: 1;
     display: flex;
-    flex-direction: column;
 }
 
 /* Split Layout */
 .splitLayout {
     display: flex;
     gap: 32px;
-    /* Increased gap for full width */
     align-items: flex-start;
-    padding-top: 24px;
     flex: 1;
+    padding: 24px;
 }
 
 .leftSidebar {
-    width: 100%;
-    /* Slightly wider for better tree readability */
+    width: 400px;
+    /* Wider for better readability */
     flex-shrink: 0;
     position: sticky;
     top: 24px;
@@ -59,8 +54,25 @@
 
     /* Panel styling for sidebar */
     background-color: #111827;
-    border: 1px solid #374151;
-    border-radius: 12px;
+}
+
+/* Custom scrollbar for sidebar */
+.leftSidebar::-webkit-scrollbar {
+    width: 8px;
+}
+
+.leftSidebar::-webkit-scrollbar-track {
+    background: #1f2937;
+    border-radius: 4px;
+}
+
+.leftSidebar::-webkit-scrollbar-thumb {
+    background: #374151;
+    border-radius: 4px;
+}
+
+.leftSidebar::-webkit-scrollbar-thumb:hover {
+    background: #4b5563;
 }
 
 .rightContent {
@@ -68,16 +80,19 @@
     min-width: 0;
 }
 
+
 @media (max-width: 768px) {
     .splitLayout {
         flex-direction: column;
+        gap: 16px;
+        padding: 16px;
     }
 
     .leftSidebar {
         width: 100%;
+        /* Full width on mobile */
         position: static;
-        max-height: 400px;
-        margin-bottom: 24px;
+        max-height: none;
     }
 }
 
@@ -171,15 +186,14 @@
     background-color: #111827;
     border: 1px solid #1f2937;
     border-radius: 12px;
-    overflow: hidden;
     cursor: pointer;
-    transition: all 0.3s;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .card:hover {
-    border-color: rgba(59, 130, 246, 0.5);
-    box-shadow: 0 20px 25px -5px rgba(30, 58, 138, 0.1), 0 8px 10px -6px rgba(30, 58, 138, 0.1);
-    transform: translateY(-4px);
+    border-color: rgba(59, 130, 246, 0.6);
+    box-shadow: 0 20px 25px -5px rgba(30, 58, 138, 0.15), 0 8px 10px -6px rgba(30, 58, 138, 0.15);
+    transform: translateY(-6px);
 }
 
 .thumbnailContainer {
@@ -187,17 +201,18 @@
     background-color: black;
     position: relative;
     overflow: hidden;
+    border-radius: 12px 12px 0 0;
 }
 
 .thumbnail {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    transition: transform 0.5s;
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .card:hover .thumbnail {
-    transform: scale(1.05);
+    transform: scale(1.08);
 }
 
 .noImage {
@@ -400,52 +415,93 @@
 /* Overlay Actions */
 .adminActions {
     display: flex;
-    gap: 4px;
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px dashed #374151;
+    gap: 12px;
+    margin-top: 16px;
+    padding: 16px;
+    border-top: 2px solid #4b5563;
     justify-content: flex-end;
+    background: linear-gradient(135deg, rgba(31, 41, 55, 0.98), rgba(17, 24, 39, 0.98));
+    border-radius: 8px;
+    position: relative;
+    z-index: 10;
+    pointer-events: auto;
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .miniBtn {
-    width: 28px;
-    height: 28px;
-    border-radius: 4px;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border: none;
+    border: 2px solid rgba(255, 255, 255, 0.2);
     cursor: pointer;
-    font-size: 14px;
-    transition: all 0.2s;
+    font-size: 18px;
+    transition: all 0.25s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    pointer-events: auto;
 }
 
 .miniBtn:hover {
-    transform: scale(1.1);
+    transform: scale(1.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    border-color: rgba(255, 255, 255, 0.4);
 }
 
 .miniBtn.public {
-    background-color: rgba(16, 185, 129, 0.2);
+    background-color: rgba(16, 185, 129, 0.3);
     color: #10b981;
 }
 
+.miniBtn.public:hover {
+    background-color: rgba(16, 185, 129, 0.5);
+    color: #34d399;
+}
+
 .miniBtn.private {
-    background-color: rgba(220, 38, 38, 0.2);
+    background-color: rgba(220, 38, 38, 0.3);
     color: #ef4444;
 }
 
+.miniBtn.private:hover {
+    background-color: rgba(220, 38, 38, 0.5);
+    color: #f87171;
+}
+
 .miniBtn.move {
-    background-color: rgba(245, 158, 11, 0.2);
+    background-color: rgba(245, 158, 11, 0.3);
     color: #f59e0b;
 }
 
+.miniBtn.move:hover {
+    background-color: rgba(245, 158, 11, 0.5);
+    color: #fbbf24;
+}
+
 .miniBtn.sync {
-    background-color: rgba(59, 130, 246, 0.2);
+    background-color: rgba(59, 130, 246, 0.3);
+    color: #3b82f6;
+}
+
+.miniBtn.sync:hover {
+    background-color: rgba(59, 130, 246, 0.5);
+    color: #60a5fa;
+}
+
+.miniBtn.sync:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.miniBtn.sync:disabled:hover {
+    transform: none;
+    background-color: rgba(59, 130, 246, 0.3);
     color: #3b82f6;
 }
 
 .miniBtn.delete {
-    background-color: rgba(107, 114, 128, 0.2);
+    background-color: rgba(107, 114, 128, 0.3);
     color: #9ca3af;
 }
 

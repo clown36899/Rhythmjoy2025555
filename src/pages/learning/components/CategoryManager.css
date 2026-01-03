@@ -2,7 +2,7 @@
     background-color: #1f2937;
     border: 1px solid #374151;
     border-radius: 8px;
-    padding: 16px;
+    padding: 20px;
     height: 100%;
     display: flex;
     flex-direction: column;
@@ -67,145 +67,140 @@
     cursor: not-allowed;
 }
 
-/* Horizontal Tree Container */
+/* Vertical Tree Container - Stack folders vertically */
 .treeContainer {
     display: flex;
-    flex-direction: row;
-    /* Horizontal columns */
-    align-items: flex-start;
-    gap: 16px;
-    overflow-x: auto;
-    padding-bottom: 16px;
-    /* Space for scrollbar */
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    overflow-y: auto;
+    padding: 8px;
     flex: 1;
 }
 
-/* Column Panel Style */
+/* Mobile: Keep column layout */
+@media (max-width: 768px) {
+    .treeContainer {
+        gap: 8px;
+        padding: 4px;
+    }
+}
+
+/* Collapse toggle button */
+.collapseToggle {
+    font-size: 10px;
+    margin-right: 4px;
+    cursor: pointer;
+    user-select: none;
+    opacity: 0.6;
+    transition: opacity 0.2s;
+}
+
+.collapseToggle:hover {
+    opacity: 1;
+}
+
+/* Column Panel Style - Full width for vertical stacking */
 .treeColumn {
-    min-width: 260px;
-    max-width: 320px;
-    flex-shrink: 0;
+    width: 100%;
     background-color: #111827;
-    /* Darker bg for column */
     border: 1px solid #374151;
     border-radius: 8px;
-    padding: 8px;
+    padding: 12px;
     display: flex;
     flex-direction: column;
     gap: 4px;
-    max-height: 100%;
-    overflow-y: auto;
 }
 
 
 
 /* Tree Line Implementation */
 .treeChildren {
-    margin-left: 20px;
-    /* Indentation */
-    padding-left: 12px;
-    /* Spacing from line */
-    border-left: 2px solid #374151;
-    /* The Guide Line */
+    margin-left: 24px;
+    padding-left: 16px;
+    border-left: 2px solid #4b5563;
     display: flex;
     flex-direction: column;
-    /* Gap between children - removed, using itemGap elements instead */
+    margin-top: 4px;
 }
 
-/* Optional: Hover effect on line? */
 .treeChildren:hover {
-    border-left-color: #4b5563;
+    border-left-color: #60a5fa;
 }
 
 /* Root Header in Column */
 .columnHeader {
-    font-weight: bold;
-    font-size: 15px;
+    font-weight: 600;
+    font-size: 16px;
     color: white;
-    padding: 8px;
+    padding: 12px;
     border-bottom: 1px solid #374151;
-    margin-bottom: 4px;
+    margin-bottom: 8px;
     display: flex;
     align-items: center;
     justify-content: space-between;
     background-color: rgba(255, 255, 255, 0.05);
     border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.columnHeader:hover {
+    background-color: rgba(255, 255, 255, 0.08);
 }
 
 .columnHeader.selected {
-    background-color: rgba(37, 99, 235, 0.2);
+    background-color: rgba(37, 99, 235, 0.25);
     color: #93c5fd;
     border-color: #3b82f6;
+    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.3);
 }
 
 
 
 /* Tree Items */
 .itemContent {
-    /* The Row itself */
     display: flex;
     align-items: center;
-    padding: 6px 8px;
-    border-radius: 4px;
+    padding: 10px 12px;
+    border-radius: 6px;
     background-color: #1f2937;
-    /* Dark Background */
     border: 1px solid #374151;
-    /* Dark Border */
-    transition: all 0.2s;
+    transition: all 0.2s ease;
     position: relative;
-    /* Critical for absolute drag lines */
-
     cursor: pointer;
     color: #d1d5db;
-    /* Restore text color */
-}
-
-/* Optional: First item border? standard border handling */
-.treeItem>.itemContent {
-    border: 1px solid #374151;
-    margin-bottom: 0px;
-    border-radius: 4px;
 }
 
 .itemContent:hover {
-    background-color: rgba(55, 65, 81, 0.5);
-    /* Restore darker hover */
-    z-index: 10;
-    /* Bring to front on hover */
-}
-
-/* First item radius */
-.treeColumn>div>.treeItem:first-child>.itemContent {
-    border-top-left-radius: 6px;
-    border-top-right-radius: 6px;
-}
-
-/* Last item radius (if no children) - Simplification */
-.treeItem:last-child>.itemContent {
-    border-bottom-left-radius: 6px;
-    border-bottom-right-radius: 6px;
+    background-color: rgba(55, 65, 81, 0.7);
+    border-color: #4b5563;
+    transform: translateX(2px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .itemContent.selected {
-    background-color: rgba(37, 99, 235, 0.2);
+    background-color: rgba(37, 99, 235, 0.25);
     color: #93c5fd;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.3);
 }
 
 .folderIcon {
-    margin-right: 8px;
-    font-size: 16px;
+    margin-right: 10px;
+    font-size: 18px;
 }
 
 .categoryName {
     flex: 1;
-    font-size: 14px;
+    font-size: 15px;
+    font-weight: 500;
 }
 
 .actions {
     display: flex;
-    gap: 4px;
+    gap: 6px;
     opacity: 0;
-    transition: opacity 0.2s;
+    transition: opacity 0.2s ease;
 }
 
 .itemContent:hover .actions,
@@ -217,14 +212,17 @@
     background: none;
     border: none;
     cursor: pointer;
-    font-size: 12px;
-    padding: 2px;
+    font-size: 14px;
+    padding: 4px;
     opacity: 0.7;
-    transition: opacity 0.2s;
+    transition: all 0.2s ease;
+    border-radius: 4px;
 }
 
 .actionBtn:hover {
     opacity: 1;
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: scale(1.1);
 }
 
 .deleteBtn:hover {
