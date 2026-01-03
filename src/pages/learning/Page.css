@@ -45,7 +45,7 @@
 }
 
 .leftSidebar {
-    width: 320px;
+    width: 100%;
     /* Slightly wider for better tree readability */
     flex-shrink: 0;
     position: sticky;
@@ -301,4 +301,151 @@
     display: flex;
     align-items: center;
     gap: 4px;
+}
+
+/* Admin Styles */
+.adminToggleBtn {
+    background-color: transparent;
+    border: 1px solid #374151;
+    color: #9ca3af;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.adminToggleBtn:hover {
+    background-color: #1f2937;
+    color: white;
+}
+
+.adminToggleBtn.active {
+    background-color: #dc2626;
+    border-color: #dc2626;
+    color: white;
+}
+
+.headerRight {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.explorerHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Admin Buttons in Header */
+.syncAllButton,
+.importButton {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: background-color 0.2s;
+}
+
+.syncAllButton {
+    background-color: #2563eb;
+    color: white;
+}
+
+.syncAllButton:hover {
+    background-color: #1d4ed8;
+}
+
+.importButton {
+    background-color: #10b981;
+    color: white;
+}
+
+.importButton:hover {
+    background-color: #059669;
+}
+
+/* Badge Styles */
+.adminBadge {
+    position: absolute;
+    top: 12px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: bold;
+    color: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.adminBadge.ytLinked {
+    right: 12px;
+    background-color: rgba(37, 99, 235, 0.9);
+}
+
+.adminBadge.private {
+    left: 12px;
+    background-color: rgba(220, 38, 38, 0.9);
+}
+
+/* Overlay Actions */
+.adminActions {
+    display: flex;
+    gap: 4px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed #374151;
+    justify-content: flex-end;
+}
+
+.miniBtn {
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.2s;
+}
+
+.miniBtn:hover {
+    transform: scale(1.1);
+}
+
+.miniBtn.public {
+    background-color: rgba(16, 185, 129, 0.2);
+    color: #10b981;
+}
+
+.miniBtn.private {
+    background-color: rgba(220, 38, 38, 0.2);
+    color: #ef4444;
+}
+
+.miniBtn.move {
+    background-color: rgba(245, 158, 11, 0.2);
+    color: #f59e0b;
+}
+
+.miniBtn.sync {
+    background-color: rgba(59, 130, 246, 0.2);
+    color: #3b82f6;
+}
+
+.miniBtn.delete {
+    background-color: rgba(107, 114, 128, 0.2);
+    color: #9ca3af;
+}
+
+.miniBtn.delete:hover {
+    background-color: rgba(220, 38, 38, 0.8);
+    color: white;
 }

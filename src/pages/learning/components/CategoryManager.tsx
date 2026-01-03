@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { supabase } from '../../../../lib/supabase';
+import { supabase } from '../../../lib/supabase';
 import './CategoryManager.css';
 
 interface Category {
@@ -118,10 +118,7 @@ export const CategoryManager = ({ onCategoryChange }: Props) => {
         if (!newItemName.trim()) return;
         try {
             // Get max order index for new item
-            const { data: siblings } = await supabase
-                .from('learning_categories')
-                .select('order_index')
-                .eq('parent_id', selectedParentId || null as any) // handle null safely if easy, else loop check
+            // const { data: siblings } = await supabase
             // RLS or simpler: just fetch all and max
 
             // Simpler: Just random or 0, let user reorder. Default 0 is fine.

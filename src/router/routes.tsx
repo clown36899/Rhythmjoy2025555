@@ -57,7 +57,7 @@ const TestDeletePage = lazy(() => import('../pages/TestDeletePage'));
 export const prefetchLearningPage = () => import('../pages/learning/Page');
 const LearningPage = lazy(prefetchLearningPage);
 const LearningDetailPage = lazy(() => import('../pages/learning/detail/Page'));
-const LearningAdminPage = lazy(() => import("../pages/learning/admin/Page"));
+
 
 export const routes: RouteObject[] = [
     {
@@ -101,8 +101,5 @@ export const routes: RouteObject[] = [
         path: '/learning/:listId',
         element: <LearningDetailPage />,
     },
-    {
-        path: '/learning/admin',
-        element: <LearningAdminPage />,
-    },
+
 ];
