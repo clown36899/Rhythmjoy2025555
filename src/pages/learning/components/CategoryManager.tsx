@@ -19,9 +19,11 @@ interface Props {
     selectedId?: string | null;
     onSelect?: (id: string | null) => void;
     categories?: Category[]; // Optional injection
+    onMovePlaylist?: (playlistId: string, targetCategoryId: string) => void;
+    highlightedSourceId?: string | null;
 }
 
-export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId, onSelect, categories: injectedCategories }: Props) => {
+export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId, onSelect, categories: injectedCategories, onMovePlaylist, highlightedSourceId }: Props) => {
     // Initialize state with injected categories or empty
     const [localCategories, setLocalCategories] = useState<Category[]>(injectedCategories || []);
     const [isLoading, setIsLoading] = useState(!injectedCategories);
@@ -230,6 +232,18 @@ export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId
     const handleDragOver = (e: React.DragEvent, id: string) => {
         e.preventDefault();
         if (readOnly) return;
+
+        // Check if dragging a playlist (external drag)
+        if (!draggedId && e.dataTransfer.types.includes('application/json')) {
+            e.dataTransfer.dropEffect = 'move';
+            // Only allow reparenting (dropping INTO a folder), not reordering
+            const mode = 'reparent';
+            if (dragDest?.id !== id || dragDest?.mode !== mode) {
+                setDragDest({ id, mode });
+            }
+            return;
+        }
+
         if (draggedId === id) return;
 
         const now = Date.now();
@@ -259,6 +273,18 @@ export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId
         e.preventDefault();
         e.stopPropagation();
         if (readOnly) return;
+
+        // Check if dragging a playlist (external drag)
+        if (!draggedId && e.dataTransfer.types.includes('application/json')) {
+            e.dataTransfer.dropEffect = 'move';
+            // Root columns can accept playlists as children
+            const mode = 'reparent';
+            if (dragDest?.id !== id || dragDest?.mode !== mode) {
+                setDragDest({ id, mode });
+            }
+            return;
+        }
+
         if (draggedId === id) return;
 
         const rect = e.currentTarget.getBoundingClientRect();
@@ -283,6 +309,19 @@ export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId
 
         const currentDest = dragDest;
         setDragDest(null); // Clear highlight immediately
+
+        // Handle External Playlist Drop
+        if (!draggedId && e.dataTransfer.types.includes('application/json')) {
+            try {
+                const data = JSON.parse(e.dataTransfer.getData('application/json'));
+                if (data.type === 'PLAYLIST_MOVE' && data.playlistId && targetId && onMovePlaylist) {
+                    onMovePlaylist(data.playlistId, targetId);
+                }
+            } catch (err) {
+                console.error('Failed to parse dropped data', err);
+            }
+            return;
+        }
 
         if (!draggedId) return;
         if (targetId && draggedId === targetId) {
@@ -378,9 +417,8 @@ export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId
                     onDragOver={(e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        if (draggedId && draggedId !== category.id) {
-                            setDragDest({ id: category.id, mode: 'reparent' });
-                        }
+                        // Use unified handler which supports external playlist dragging (draggedId is null)
+                        handleDragOver(e, category.id);
                     }}
                     onDrop={(e) => {
                         e.preventDefault();
@@ -419,8 +457,11 @@ export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId
                             <button onClick={() => setEditingId(null)} className="cancelBtn">X</button>
                         </div>
                     ) : (
-                        <span className="categoryName">
+                        <span className="categoryName" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                             {category.name}
+                            {highlightedSourceId === category.id && (
+                                <span className="source-dot" title="이동할 항목의 원래 위치">●</span>
+                            )}
                         </span>
                     )}
 
@@ -470,7 +511,7 @@ export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId
         return (
             <div
                 key={category.id}
-                className={`treeColumn ${isDragging ? 'dragging' : ''} ${activeMode ? `dragOver-${activeMode}` : ''}`}
+                className={`treeColumn ${isDragging ? 'dragging' : ''} ${activeMode === 'reorder-top' ? 'dragOver-reorder-top' : ''}`}
                 draggable={!readOnly}
                 onDragStart={(e) => handleDragStart(e, category)}
                 onDragOver={(e) => handleRootDragOver(e, category.id)}
@@ -482,7 +523,7 @@ export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId
             >
                 {/* Column Header */}
                 <div
-                    className={`columnHeader ${isSelected ? 'selected' : ''}`} // Feedback now on container
+                    className={`columnHeader ${isSelected ? 'selected' : ''} ${activeMode === 'reparent' ? 'dragOver-reparent' : ''}`}
                     onClick={() => !isEditing && handleSelect(isSelected ? null : category.id)}
                     style={{ cursor: 'pointer' }}
                 >
@@ -513,6 +554,9 @@ export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId
                             )}
                             <span style={{ fontSize: '20px' }}>📦</span>
                             <span style={{ fontWeight: 'bold' }}>{category.name}</span>
+                            {highlightedSourceId === category.id && (
+                                <span className="source-dot" title="이동할 항목의 원래 위치">●</span>
+                            )}
                         </div>
                     )}
                     <div className="actions" onClick={(e) => e.stopPropagation()}>

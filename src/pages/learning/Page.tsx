@@ -309,6 +309,26 @@ const LearningPage = () => {
         }
     };
 
+    const handleMovePlaylist = async (playlistId: string, targetCategoryId: string) => {
+        try {
+            const { error } = await supabase
+                .from('learning_playlists')
+                .update({ category_id: targetCategoryId })
+                .eq('id', playlistId);
+
+            if (error) throw error;
+
+            // Optimistic update or fetch
+            fetchData();
+        } catch (err) {
+            console.error('Failed to move playlist:', err);
+            alert('이동 실패');
+        }
+    };
+
+    // Drag Source Visuals
+    const [draggedPlaylistSourceId, setDraggedPlaylistSourceId] = useState<string | null>(null);
+
     return (
         <div className="container">
             {/* Header */}
@@ -319,29 +339,30 @@ const LearningPage = () => {
 
                 <div className="headerRight">
                     {isAdmin && (
-                        <button
-                            className={`adminToggleBtn ${adminMode ? 'active' : ''}`}
-                            onClick={() => setAdminMode(!adminMode)}
-                        >
-                            {adminMode ? '관리자 모드 종료' : '⚙️ 관리자 모드'}
-                        </button>
-                    )}
-
-                    {adminMode && (
                         <>
                             <button
-                                onClick={handleSyncAll}
-                                className="syncAllButton"
-                                disabled={isSyncing}
+                                className={`adminToggleBtn ${adminMode ? 'active' : ''}`}
+                                onClick={() => setAdminMode(!adminMode)}
                             >
-                                <span>🔄</span> 전체 동기화
+                                {adminMode ? '관리자 모드 종료' : '⚙️ 관리자 모드'}
                             </button>
-                            <button
-                                onClick={() => setShowImportModal(true)}
-                                className="importButton"
-                            >
-                                <span>📺</span> 가져오기
-                            </button>
+                            {adminMode && (
+                                <>
+                                    <button
+                                        onClick={handleSyncAll}
+                                        className="syncAllButton"
+                                        disabled={isSyncing}
+                                    >
+                                        <span>🔄</span> 전체 동기화
+                                    </button>
+                                    <button
+                                        onClick={() => setShowImportModal(true)}
+                                        className="importButton"
+                                    >
+                                        <span>📺</span> 가져오기
+                                    </button>
+                                </>
+                            )}
                         </>
                     )}
                 </div>
@@ -350,148 +371,160 @@ const LearningPage = () => {
             {/* Content Wrapper */}
             <div className="contentWrapper">
                 {/* Split Layout */}
-                <div className="splitLayout">
 
-                    {/* LEFT: Tree Navigation */}
-                    <div className="leftSidebar">
-                        <CategoryManager
-                            onCategoryChange={fetchData}
-                            readOnly={!adminMode}
-                            selectedId={selectedCategoryId}
-                            onSelect={setSelectedCategoryId}
-                            categories={categories}
-                        />
-                    </div>
+                {/* LEFT: Tree Navigation */}
+                <div className="leftSidebar">
+                    <CategoryManager
+                        onCategoryChange={fetchData}
+                        readOnly={!adminMode}
+                        selectedId={selectedCategoryId}
+                        onSelect={setSelectedCategoryId}
+                        categories={categories}
+                        onMovePlaylist={handleMovePlaylist}
+                        highlightedSourceId={draggedPlaylistSourceId}
+                    />
+                </div>
 
-                    {/* RIGHT: Content Grid */}
-                    <div className="rightContent">
-                        {/* Path title */}
-                        <div className="currentPath">
-                            {selectedCategoryId ? (
-                                <span className="pathText">
-                                    {flatCategories.find(c => c.id === selectedCategoryId)?.name}
-                                </span>
-                            ) : (
-                                <span className="pathText">📂 폴더를 선택하세요</span>
-                            )}
-                            {/* Show count of playlists in this folder */}
-                            {selectedCategoryId && (
-                                <span className="countBadge" style={{ marginLeft: '8px', fontSize: '0.8em', color: '#888' }}>
-                                    ({filteredPlaylists.length})
-                                </span>
-                            )}
-                        </div>
-
-                        {/* Playlist Grid */}
-                        {isLoading ? (
-                            <div className="loadingContainer">
-                                <div className="spinner"></div>
-                                <p className="loadingText">로딩 중...</p>
-                            </div>
-                        ) : filteredPlaylists.length === 0 ? (
-                            <div className="emptyState">
-                                <div className="emptyIcon">📂</div>
-                                <h3 className="emptyTitle">영상 없음</h3>
-                                <p className="emptyText">
-                                    {selectedCategoryId ? '이 폴더에는 영상이 없습니다.' : '왼쪽 목록에서 폴더를 선택해주세요.'}
-                                </p>
-                            </div>
+                {/* RIGHT: Content Grid */}
+                <div className="rightContent">
+                    {/* Path title */}
+                    <div className="currentPath">
+                        {selectedCategoryId ? (
+                            <span className="pathText">
+                                {flatCategories.find(c => c.id === selectedCategoryId)?.name}
+                            </span>
                         ) : (
-                            <div className="grid">
-                                {filteredPlaylists.map((playlist) => (
-                                    <div
-                                        key={playlist.id}
-                                        onClick={() => navigate(`/learning/${playlist.id}`)}
-                                        className="card"
-                                    >
-                                        <div className="thumbnailContainer">
-                                            {playlist.thumbnail_url ? (
-                                                <img
-                                                    src={playlist.thumbnail_url}
-                                                    alt={playlist.title}
-                                                    className="thumbnail"
-                                                />
-                                            ) : (
-                                                <div className="noImage">No Image</div>
-                                            )}
-                                            <div className="videoCountBadge">
-                                                <span className="videoCountIcon">▶</span>
-                                                <span className="videoCountText">{playlist.video_count}</span>
-                                            </div>
-
-                                            {adminMode && playlist.youtube_playlist_id && (
-                                                <div className="adminBadge ytLinked">YT Linked</div>
-                                            )}
-                                            {adminMode && !playlist.is_public && (
-                                                <div className="adminBadge private">Private</div>
-                                            )}
-                                        </div>
-
-                                        <div className="cardBody">
-                                            <div className="cardHeader">
-                                                <h3 className="cardTitle">{playlist.title}</h3>
-                                            </div>
-                                            <div className="cardFooter">
-                                                <span className="categoryBadge">
-                                                    {flatCategories.find(c => c.id === playlist.category_id)?.name || '기타'}
-                                                </span>
-                                                <span>{new Date(playlist.created_at).toLocaleDateString()}</span>
-                                            </div>
-
-                                            {/* Admin Actions Overlay within Card */}
-                                            <div className="adminActions">
-                                                <button
-                                                    onClick={(e) => togglePublic(playlist, e)}
-                                                    className={`miniBtn ${playlist.is_public ? 'public' : 'private'}`}
-                                                    title={playlist.is_public ? '공개됨 (클릭하여 비공개)' : '비공개 (클릭하여 공개)'}
-                                                >
-                                                    {playlist.is_public ? '👀' : '🔒'}
-                                                </button>
-                                                <button
-                                                    className="miniBtn move"
-                                                    title="이동"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        setMoveModal({
-                                                            isOpen: true,
-                                                            playlistId: playlist.id,
-                                                            categoryId: playlist.category_id || null
-                                                        });
-                                                    }}
-                                                >
-                                                    📂
-                                                </button>
-                                                <button
-                                                    className="miniBtn sync"
-                                                    title="동기화"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleSync(playlist);
-                                                    }}
-                                                    disabled={!playlist.youtube_playlist_id}
-                                                >
-                                                    🔄
-                                                </button>
-                                                <button
-                                                    className="miniBtn delete"
-                                                    title="삭제"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        handleDelete(playlist.id);
-                                                    }}
-                                                >
-                                                    🗑
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
+                            <span className="pathText">📂 폴더를 선택하세요</span>
+                        )}
+                        {/* Show count of playlists in this folder */}
+                        {selectedCategoryId && (
+                            <span className="countBadge" style={{ marginLeft: '8px', fontSize: '0.8em', color: '#888' }}>
+                                ({filteredPlaylists.length})
+                            </span>
                         )}
                     </div>
+
+                    {/* Playlist Grid */}
+                    {isLoading ? (
+                        <div className="loadingContainer">
+                            <div className="spinner"></div>
+                            <p className="loadingText">로딩 중...</p>
+                        </div>
+                    ) : filteredPlaylists.length === 0 ? (
+                        <div className="emptyState">
+                            <div className="emptyIcon">📂</div>
+                            <h3 className="emptyTitle">영상 없음</h3>
+                            <p className="emptyText">
+                                {selectedCategoryId ? '이 폴더에는 영상이 없습니다.' : '왼쪽 목록에서 폴더를 선택해주세요.'}
+                            </p>
+                        </div>
+                    ) : (
+                        <div className="grid">
+                            {filteredPlaylists.map((playlist) => (
+                                <div
+                                    key={playlist.id}
+                                    onClick={() => navigate(`/learning/${playlist.id}`)}
+                                    className="card"
+                                    draggable={adminMode}
+                                    onDragStart={(e) => {
+                                        if (!adminMode) return;
+                                        setDraggedPlaylistSourceId(playlist.category_id || null);
+                                        e.dataTransfer.setData('application/json', JSON.stringify({
+                                            type: 'PLAYLIST_MOVE',
+                                            playlistId: playlist.id
+                                        }));
+                                        e.dataTransfer.effectAllowed = 'move';
+                                    }}
+                                    onDragEnd={() => {
+                                        setDraggedPlaylistSourceId(null);
+                                    }}
+                                >
+                                    <div className="thumbnailContainer">
+                                        {playlist.thumbnail_url ? (
+                                            <img
+                                                src={playlist.thumbnail_url}
+                                                alt={playlist.title}
+                                                className="thumbnail"
+                                            />
+                                        ) : (
+                                            <div className="noImage">No Image</div>
+                                        )}
+                                        <div className="videoCountBadge">
+                                            <span className="videoCountIcon">▶</span>
+                                            <span className="videoCountText">{playlist.video_count}</span>
+                                        </div>
+
+                                        {adminMode && playlist.youtube_playlist_id && (
+                                            <div className="adminBadge ytLinked">YT Linked</div>
+                                        )}
+                                        {adminMode && !playlist.is_public && (
+                                            <div className="adminBadge private">Private</div>
+                                        )}
+                                    </div>
+
+                                    <div className="cardBody">
+                                        <div className="cardHeader">
+                                            <h3 className="cardTitle">{playlist.title}</h3>
+                                        </div>
+                                        <div className="cardFooter">
+                                            <span className="categoryBadge">
+                                                {flatCategories.find(c => c.id === playlist.category_id)?.name || '기타'}
+                                            </span>
+                                            <span>{new Date(playlist.created_at).toLocaleDateString()}</span>
+                                        </div>
+
+                                        {/* Admin Actions Overlay within Card */}
+                                        <div className="adminActions">
+                                            <button
+                                                onClick={(e) => togglePublic(playlist, e)}
+                                                className={`miniBtn ${playlist.is_public ? 'public' : 'private'}`}
+                                                title={playlist.is_public ? '공개됨 (클릭하여 비공개)' : '비공개 (클릭하여 공개)'}
+                                            >
+                                                {playlist.is_public ? '👀' : '🔒'}
+                                            </button>
+                                            <button
+                                                className="miniBtn move"
+                                                title="이동"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setMoveModal({
+                                                        isOpen: true,
+                                                        playlistId: playlist.id,
+                                                        categoryId: playlist.category_id || null
+                                                    });
+                                                }}
+                                            >
+                                                📂
+                                            </button>
+                                            <button
+                                                className="miniBtn sync"
+                                                title="동기화"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleSync(playlist);
+                                                }}
+                                                disabled={!playlist.youtube_playlist_id}
+                                            >
+                                                🔄
+                                            </button>
+                                            <button
+                                                className="miniBtn delete"
+                                                title="삭제"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    handleDelete(playlist.id);
+                                                }}
+                                            >
+                                                🗑
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             </div>
-
             {/* Modals */}
             {showImportModal && (
                 <PlaylistImportModal
