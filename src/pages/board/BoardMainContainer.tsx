@@ -168,7 +168,7 @@ export default function BoardMainContainer() {
     }, [category]);
 
     // Swipe Navigation Logic
-    const [categories, setCategories] = useState<any[]>([]);
+
     // Scroll Position Preservation
     useEffect(() => {
         // Restore scroll position when returning to board list
@@ -190,16 +190,7 @@ export default function BoardMainContainer() {
         };
     }, []);
 
-    useEffect(() => {
-        // Use categories from BoardDataContext
-        const dbCategories = boardData?.categories;
-        if (dbCategories && dbCategories.length > 0) {
-            const mapped = dbCategories.map((item: any) => ({ id: item.code, label: item.name }));
-            mapped.push({ id: 'history', label: '히스토리' });
-            mapped.push({ id: 'dev-log', label: '개발일지' });
-            setCategories(mapped);
-        }
-    }, [boardData]);
+
 
     const [touchStart, setTouchStart] = useState<{ x: number, y: number } | null>(null);
     const [touchEnd, setTouchEnd] = useState<{ x: number, y: number } | null>(null);
@@ -233,10 +224,13 @@ export default function BoardMainContainer() {
 
         const isLeftSwipe = deltaX > minSwipeDistance;
         const isRightSwipe = deltaX < -minSwipeDistance;
-        const currentIndex = categories.findIndex((cat: any) => cat.id === category);
 
-        if (isLeftSwipe && currentIndex < categories.length - 1) handleCategoryChange(categories[currentIndex + 1].id);
-        if (isRightSwipe && currentIndex > 0) handleCategoryChange(categories[currentIndex - 1].id);
+        // Only allow swipe between free and anonymous boards
+        if (category === 'free' && isLeftSwipe) {
+            handleCategoryChange('anonymous');
+        } else if (category === 'anonymous' && isRightSwipe) {
+            handleCategoryChange('free');
+        }
     };
 
     // Anonymous Editing State
