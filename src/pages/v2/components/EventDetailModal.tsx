@@ -21,9 +21,13 @@ import GlobalLoadingOverlay from '../../../components/GlobalLoadingOverlay';
 import { retryOperation } from '../../../utils/asyncUtils';
 
 
-interface Event extends BaseEvent {
+interface Event extends Omit<BaseEvent, 'date' | 'start_date' | 'end_date' | 'event_dates'> {
   storage_path?: string | null;
   genre?: string | null;
+  date?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  event_dates?: string[] | null;
 }
 
 const genreColorPalette = [
@@ -504,20 +508,30 @@ export default function EventDetailModal({
       if (dateMode === 'dates') {
         // Multiple dates mode
         console.log('[Date Save] Multiple dates mode detected');
-        const dates = editValue.split(',').filter(Boolean);
+        const dates = editValue.split(',').filter(Boolean).sort();
         updates.event_dates = dates;
-        updates.start_date = undefined;
-        updates.date = undefined;
-        updates.end_date = undefined;
-        console.log('[Date Save] Updates for multiple dates:', { event_dates: updates.event_dates });
+        if (dates.length > 0) {
+          updates.start_date = dates[0];
+          updates.date = dates[0];
+          updates.end_date = dates[dates.length - 1];
+        } else {
+          updates.start_date = null;
+          updates.date = null;
+          updates.end_date = null;
+        }
+        console.log('[Date Save] Updates for multiple dates:', {
+          event_dates: updates.event_dates,
+          start_date: updates.start_date,
+          end_date: updates.end_date
+        });
       } else {
         // Single date mode
         console.log('[Date Save] Single date mode detected');
-        const singleDate = editValue || undefined;
+        const singleDate = editValue || null;
         updates.start_date = singleDate;
         updates.date = singleDate;
         updates.end_date = singleDate;
-        updates.event_dates = [];
+        updates.event_dates = null;
         console.log('[Date Save] Updates for single date:', { start_date: singleDate, date: singleDate, end_date: singleDate });
       }
     }
@@ -729,6 +743,7 @@ export default function EventDetailModal({
       ].filter(url => !!url);
 
       // 🎯 [PAYLOAD CLEANUP] Remove undefined values to prevent unexpected DB behavior
+      // but keep null values to allow clearing fields in DB
       Object.keys(updates).forEach(key => {
         if (updates[key] === undefined) {
           delete updates[key];
