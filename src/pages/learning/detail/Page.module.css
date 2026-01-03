@@ -15,6 +15,12 @@
     }
 }
 
+.modalContainer {
+    min-height: 0 !important;
+    height: 100% !important;
+    border-radius: 12px;
+}
+
 /* Left: Player Area */
 .playerArea {
     flex: 1;

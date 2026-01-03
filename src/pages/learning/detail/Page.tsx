@@ -18,9 +18,15 @@ interface Playlist {
     description: string;
 }
 
-const LearningDetailPage = () => {
+interface Props {
+    playlistId?: string;
+    onClose?: () => void;
+}
+
+const LearningDetailPage = ({ playlistId, onClose }: Props) => {
     const { listId } = useParams();
     const navigate = useNavigate();
+    const id = playlistId || listId;
 
     const [playlist, setPlaylist] = useState<Playlist | null>(null);
     const [videos, setVideos] = useState<Video[]>([]);
@@ -29,10 +35,10 @@ const LearningDetailPage = () => {
     const playerRef = useRef<any>(null);
 
     useEffect(() => {
-        if (listId) fetchPlaylistData(listId);
-    }, [listId]);
+        if (id) fetchPlaylistData(id);
+    }, [id]);
 
-    const fetchPlaylistData = async (id: string) => {
+    const fetchPlaylistData = async (targetId: string) => {
         try {
             setIsLoading(true);
 
@@ -40,7 +46,7 @@ const LearningDetailPage = () => {
             const { data: listData, error: listError } = await supabase
                 .from('learning_playlists')
                 .select('*')
-                .eq('id', id)
+                .eq('id', targetId)
                 .single();
 
             if (listError) throw listError;
@@ -50,7 +56,7 @@ const LearningDetailPage = () => {
             const { data: videoData, error: videoError } = await supabase
                 .from('learning_videos')
                 .select('*')
-                .eq('playlist_id', id)
+                .eq('playlist_id', targetId)
                 .order('order_index', { ascending: true });
 
             if (videoError) throw videoError;
@@ -84,22 +90,30 @@ const LearningDetailPage = () => {
         setCurrentVideoIndex(index);
     };
 
+    const handleBack = () => {
+        if (onClose) {
+            onClose();
+        } else {
+            navigate('/learning');
+        }
+    };
+
     if (isLoading) return <div className={styles.messageContainer}>로딩 중...</div>;
     if (!playlist || videos.length === 0) return <div className={styles.messageContainer}>콘텐츠를 찾을 수 없습니다.</div>;
 
     const currentVideo = videos[currentVideoIndex];
 
     return (
-        <div className={styles.container}>
+        <div className={`${styles.container} ${playlistId ? styles.modalContainer : ''}`}>
             {/* Left: Player Area */}
             <div className={styles.playerArea}>
                 {/* Header */}
                 <div className={styles.header}>
                     <button
-                        onClick={() => navigate('/learning')}
+                        onClick={handleBack}
                         className={styles.backButton}
                     >
-                        ← 갤러리로
+                        {onClose ? '✕ 닫기' : '← 갤러리로'}
                     </button>
                 </div>
 

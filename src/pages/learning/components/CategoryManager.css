@@ -446,3 +446,47 @@
         opacity: 1;
     }
 }
+
+/* Playlist Items in Tree */
+/* Playlist Items in Tree */
+.treeItem.playlistItem {
+    margin-left: 0;
+    padding-left: 12px;
+    border-left: 2px solid transparent;
+    border-radius: 0 4px 4px 0;
+    margin-top: 1px;
+    margin-bottom: 1px;
+    display: flex;
+    position: relative;
+    flex-direction: row;
+}
+
+/* Connector Line visual trick if needed, but simple alignment is cleaner */
+
+.treeItem.playlistItem:hover {
+    background-color: rgba(59, 130, 246, 0.1);
+    border-left-color: #60a5fa;
+    /* Solid accent line on hover */
+}
+
+.treeItem.playlistItem .folderIcon {
+    font-size: 14px;
+    margin-right: 10px;
+    opacity: 0.7;
+    filter: none;
+    /* Use raw icon or maybe replace with emoji if needed */
+}
+
+.treeItem.playlistItem .categoryName {
+    font-size: 0.9rem;
+    color: #9ca3af;
+    /* Muted text by default */
+    transition: all 0.2s;
+    font-weight: 400;
+}
+
+.treeItem.playlistItem:hover .categoryName {
+    color: #e2e8f0;
+    /* Brighter text on hover */
+    transform: translateX(2px);
+}

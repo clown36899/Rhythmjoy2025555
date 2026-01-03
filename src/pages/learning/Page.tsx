@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { CategoryManager } from './components/CategoryManager';
 import { PlaylistImportModal } from './components/PlaylistImportModal';
 import { MovePlaylistModal } from './components/MovePlaylistModal';
+import { PlaylistModal } from './components/PlaylistModal';
 import { fetchPlaylistVideos } from './utils/youtube';
 import './Page.css';
 
@@ -14,7 +15,7 @@ interface Playlist {
     thumbnail_url: string;
     description: string;
     category: string;
-    category_id?: string;
+    category_id: string | null;
     is_public: boolean;
     author_id: string;
     created_at: string;
@@ -48,6 +49,9 @@ const LearningPage = () => {
         categoryId: null
     });
     const [isSyncing, setIsSyncing] = useState(false);
+
+    // Modal State
+    const [viewingPlaylistId, setViewingPlaylistId] = useState<string | null>(null);
 
     // Layout Override: Escape the 650px mobile limit
     // Layout Override: Escape the 650px mobile limit
@@ -326,6 +330,16 @@ const LearningPage = () => {
         }
     };
 
+    // Handling Playlist Click (Modal on Desktop, Navigate on Mobile)
+    const handlePlaylistClick = (playlistId: string) => {
+        const isDesktop = window.innerWidth > 768; // Simple check, match CSS media query
+        if (isDesktop) {
+            setViewingPlaylistId(playlistId);
+        } else {
+            navigate(`/learning/${playlistId}`);
+        }
+    }; // Added semicolon
+
     // Drag Source Visuals
     const [draggedPlaylistSourceId, setDraggedPlaylistSourceId] = useState<string | null>(null);
 
@@ -368,6 +382,14 @@ const LearningPage = () => {
                 </div>
             </div>
 
+            {/* Playlist Modal */}
+            {viewingPlaylistId && (
+                <PlaylistModal
+                    playlistId={viewingPlaylistId}
+                    onClose={() => setViewingPlaylistId(null)}
+                />
+            )}
+
             {/* Content Wrapper */}
             <div className="contentWrapper">
                 {/* Split Layout */}
@@ -380,7 +402,9 @@ const LearningPage = () => {
                         selectedId={selectedCategoryId}
                         onSelect={setSelectedCategoryId}
                         categories={categories}
+                        playlists={playlists}
                         onMovePlaylist={handleMovePlaylist}
+                        onPlaylistClick={handlePlaylistClick}
                         highlightedSourceId={draggedPlaylistSourceId}
                     />
                 </div>
@@ -423,7 +447,7 @@ const LearningPage = () => {
                             {filteredPlaylists.map((playlist) => (
                                 <div
                                     key={playlist.id}
-                                    onClick={() => navigate(`/learning/${playlist.id}`)}
+                                    onClick={() => handlePlaylistClick(playlist.id)}
                                     className="card"
                                     draggable={adminMode}
                                     onDragStart={(e) => {
