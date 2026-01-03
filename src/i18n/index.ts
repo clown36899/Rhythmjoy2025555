@@ -8,7 +8,8 @@ i18n
   .use(initReactI18next)
   .init({
     // lng: 'ko', // Remove fixed language to allow browser auto-detection
-    fallbackLng: 'ko',
+    fallbackLng: 'en',
+    supportedLngs: ['ko', 'en'],
     debug: false,
     resources: messages,
     interpolation: {

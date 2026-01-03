@@ -327,32 +327,6 @@
 </head>
 
 <body style="background-color: #000000; margin: 0; padding: 0;">
-  <!-- 언어 선택 메뉴 (헤더 번역 버튼과 연동) -->
-  <div id="language_menu" style="
-    position: fixed;
-    top: 65px;
-    right: 20px;
-    background: rgba(0, 0, 0, 0.95);
-    border-radius: 12px;
-    padding: 8px;
-    min-width: 150px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.516);
-    display: none;
-    z-index: 9999;
-  ">
-    <div style="padding: 8px 12px; color: #888; font-size: 12px; font-weight: 600;">언어 선택</div>
-    <button onclick="changeLanguage('ko')"
-      style="width: 100%; padding: 10px 12px; background: transparent; border: none; color: #fff; text-align: left; cursor: pointer; border-radius: 6px; font-size: 14px;"
-      onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">🇰🇷
-      한국어</button>
-    <button onclick="changeLanguage('en')"
-      style="width: 100%; padding: 10px 12px; background: transparent; border: none; color: #fff; text-align: left; cursor: pointer; border-radius: 6px; font-size: 14px;"
-      onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">🇺🇸
-      English</button>
-  </div>
-
   <div id="google_translate_element" style="display: none;"></div>
 
   <div id="root"></div>
@@ -387,7 +361,6 @@
         } else {
           select.value = lang;
           select.dispatchEvent(new Event('change'));
-          document.getElementById('language_menu').style.display = 'none';
 
           // React 컴포넌트에 언어 변경 알림
           window.dispatchEvent(new CustomEvent('languageChanged', { detail: { lang } }));
@@ -398,16 +371,8 @@
       }
     }
 
-    // 메뉴 외부 클릭 시 닫기
-    setTimeout(function () {
-      document.addEventListener('click', function (e) {
-        const menu = document.getElementById('language_menu');
-        const translateBtn = document.querySelector('.header-translate-btn');
-        if (menu && translateBtn && !menu.contains(e.target) && !translateBtn.contains(e.target)) {
-          menu.style.display = 'none';
-        }
-      });
-    }, 100);
+    // 메뉴 외부 클릭 감지 제거 (토글 방식으로 변경됨)
+
   </script>
   <script type="text/javascript"
     src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>

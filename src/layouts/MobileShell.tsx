@@ -452,16 +452,16 @@ export function MobileShell() {
           {/* Translation Button - Always Visible */}
           <button
             onClick={() => {
-              const menu = document.getElementById('language_menu');
-              if (menu) {
-                menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+              const targetLang = currentLang === 'KO' ? 'en' : 'ko';
+              if ((window as any).changeLanguage) {
+                (window as any).changeLanguage(targetLang);
               }
             }}
             className="header-translate-btn"
-            title="언어 변경"
+            title={currentLang === 'KO' ? "Switch to English" : "한국어로 변경"}
             data-analytics-id="header_translate"
             data-analytics-type="action"
-            data-analytics-title="번역"
+            data-analytics-title="번역 토글"
             data-analytics-section="header"
           >
             <i className="ri-translate-2"></i>
