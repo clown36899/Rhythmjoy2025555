@@ -1,5 +1,5 @@
 import React from 'react';
-import styles from './BookmarkList.module.css';
+import './BookmarkList.css';
 
 interface Bookmark {
     id: string;
@@ -27,22 +27,22 @@ export const BookmarkList = ({ bookmarks, onSeek, onDelete, onEdit, isAdmin }: P
     if (bookmarks.length === 0) return null;
 
     return (
-        <div className={styles.container}>
-            <h3 className={styles.title}>📌 북마크</h3>
-            <div className={styles.list}>
+        <div className="ld-bookmark-container">
+            <h3 className="ld-bookmark-title">📌 북마크</h3>
+            <div className="ld-bookmark-list">
                 {bookmarks.map((mark) => (
                     <div
                         key={mark.id}
-                        className={styles.item}
+                        className="ld-bookmark-item"
                         onClick={() => onSeek(mark.timestamp)}
                     >
-                        <span className={styles.timeBadge}>{formatTime(mark.timestamp)}</span>
-                        <span className={styles.label}>{mark.label}</span>
+                        <span className="ld-bookmark-time">{formatTime(mark.timestamp)}</span>
+                        <span className="ld-bookmark-label">{mark.label}</span>
 
                         {isAdmin && (
                             <>
                                 <button
-                                    className={styles.deleteBtn}
+                                    className="ld-bookmark-action-btn"
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         onEdit(mark.id, mark.label);
@@ -52,7 +52,7 @@ export const BookmarkList = ({ bookmarks, onSeek, onDelete, onEdit, isAdmin }: P
                                     ✎
                                 </button>
                                 <button
-                                    className={styles.deleteBtn}
+                                    className="ld-bookmark-action-btn"
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         if (confirm('이 북마크를 삭제하시겠습니까?')) onDelete(mark.id);

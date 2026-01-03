@@ -1,0 +1,51 @@
+/* PlaylistModal/Standard CSS */
+.pm-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.85);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(5px);
+    animation: pm-fadeIn 0.2s ease-out;
+}
+
+.pm-modal-content {
+    width: 90%;
+    max-width: 1200px;
+    height: 85vh;
+    background-color: #111827;
+    /* gray-900 */
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    animation: pm-slideUp 0.3s ease-out;
+    border: 1px solid #374151;
+    /* gray-700 */
+}
+
+@keyframes pm-fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes pm-slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}

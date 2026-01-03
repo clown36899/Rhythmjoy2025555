@@ -90,3 +90,34 @@ export const fetchPlaylistVideos = async (playlistId: string): Promise<YouTubeVi
         video.title !== 'Private video' && video.title !== 'Deleted video' // 비공개/삭제된 영상 제외
     );
 };
+
+/**
+ * 단일 비디오 상세 정보 가져오기
+ */
+export const fetchVideoDetails = async (videoId: string): Promise<YouTubeVideoInfo | null> => {
+    if (!API_KEY) return null;
+
+    try {
+        const response = await fetch(
+            `${BASE_URL}/videos?part=snippet&id=${videoId}&key=${API_KEY}`
+        );
+
+        if (!response.ok) return null;
+
+        const data = await response.json();
+        if (!data.items || data.items.length === 0) return null;
+
+        const item = data.items[0];
+        return {
+            id: item.id,
+            title: item.snippet.title,
+            description: item.snippet.description,
+            thumbnail: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.medium?.url,
+            position: 0,
+            resourceId: { videoId: item.id }
+        };
+    } catch (e) {
+        console.error('Failed to fetch video details:', e);
+        return null;
+    }
+};

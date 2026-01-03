@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import LearningDetailPage from '../detail/Page';
-import styles from './PlaylistModal.module.css';
+import './PlaylistModal.css';
 
 interface Props {
     playlistId: string;
@@ -18,8 +18,8 @@ export const PlaylistModal = ({ playlistId, onClose }: Props) => {
     }, [onClose]);
 
     return (
-        <div className={styles.overlay} onClick={onClose}>
-            <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+        <div className="pm-overlay" onClick={onClose}>
+            <div className="pm-modal-content" onClick={e => e.stopPropagation()}>
                 <LearningDetailPage
                     playlistId={playlistId}
                     onClose={onClose}
