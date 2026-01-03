@@ -97,12 +97,7 @@
     overflow-y: auto;
 }
 
-.treeItem {
-    display: flex;
-    flex-direction: column;
-    margin-bottom: 4px;
-    /* Default spacing */
-}
+
 
 /* Tree Line Implementation */
 .treeChildren {
@@ -112,11 +107,9 @@
     /* Spacing from line */
     border-left: 2px solid #374151;
     /* The Guide Line */
-    margin-top: 4px;
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    /* Gap between children */
+    /* Gap between children - removed, using itemGap elements instead */
 }
 
 /* Optional: Hover effect on line? */
@@ -144,6 +137,8 @@
     color: #93c5fd;
     border-color: #3b82f6;
 }
+
+
 
 /* Tree Items */
 .itemContent {
@@ -281,65 +276,70 @@
 }
 
 .dragging {
-    opacity: 0.5;
-    border: 2px dashed #60a5fa;
+    opacity: 0.1 !important;
+    background-color: rgba(31, 41, 55, 0.1) !important;
+    /* border: 1px dashed #60a5fa; */
 }
 
 /* Pro Standard DnD Visuals */
 
-/* Insertion Lines - No Layout Shift */
-.dragOver-reorder-top::before {
-    content: '';
-    position: absolute;
-    top: -1px;
-    /* Overlap border perfectly */
-    left: 0;
-    right: 0;
-    height: 3px;
-    background-color: #3b82f6;
-    z-index: 1000;
-    /* Max Z */
-    pointer-events: none;
-    /* Critical: Ignore mouse */
-    border-radius: 1.5px;
+.treeItem {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 0;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    position: relative;
 }
 
-.dragOver-reorder-bottom::after {
+/* ... existing code ... */
+
+/* Insertion Lines - No Layout Shift */
+.treeItem.dragOver-reorder-top::before {
     content: '';
     position: absolute;
-    bottom: -1px;
-    /* Overlap border perfectly */
+    /* Line in the top padding area */
+    top: 0;
     left: 0;
     right: 0;
-    height: 3px;
+    height: 4px;
     background-color: #3b82f6;
     z-index: 1000;
     pointer-events: none;
-    border-radius: 1.5px;
+    border-radius: 2px;
+    box-shadow: 0 0 4px rgba(59, 130, 246, 0.5);
+}
+
+/* Hide line when in reparent mode */
+.treeItem.dragOver-reparent::before {
+    display: none;
 }
 
 /* Horizontal Column Lines */
 .treeColumn.dragOver-reorder-top::before {
     top: 0;
     bottom: 0;
-    left: -2px;
-    /* Gap logic */
+    left: -8px;
+    /* Center in gap */
     width: 4px;
     height: auto;
     background-color: #3b82f6;
     pointer-events: none;
     z-index: 1000;
+    box-shadow: 0 0 4px rgba(59, 130, 246, 0.5);
 }
 
 .treeColumn.dragOver-reorder-bottom::after {
     top: 0;
     bottom: 0;
-    right: -2px;
+    right: -8px;
+    /* Center in gap */
     width: 4px;
     height: auto;
     background-color: #3b82f6;
     left: auto;
     pointer-events: none;
+    box-shadow: 0 0 4px rgba(59, 130, 246, 0.5);
 }
 
 /* Hide top/bottom lines if unused on columns? Logic matches class names */

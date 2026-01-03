@@ -1,0 +1,29 @@
+/* Gap element between folders */
+.itemGap {
+    height: 8px;
+    width: 100%;
+    position: relative;
+    /* Invisible by default */
+}
+
+/* Show blue line when dragging over gap */
+.itemGap.dragOver-active::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 4px;
+    transform: translateY(-50%);
+    background-color: #3b82f6;
+    z-index: 1000;
+    pointer-events: none;
+    border-radius: 2px;
+    box-shadow: 0 0 4px rgba(59, 130, 246, 0.5);
+}
+
+/* Reparent highlight on folder */
+.itemContent.dragOver-reparent {
+    background-color: rgba(59, 130, 246, 0.15) !important;
+    border-radius: 4px;
+}

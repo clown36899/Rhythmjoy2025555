@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../lib/supabase';
 import './CategoryManager.css';
+import './CategoryManager_gap.css';
 
 interface Category {
     id: string;
@@ -13,13 +14,31 @@ interface Category {
 
 interface Props {
     onCategoryChange: () => void;
+    // New props for unification
+    readOnly?: boolean;
+    selectedId?: string | null;
+    onSelect?: (id: string | null) => void;
+    categories?: Category[]; // Optional injection
 }
 
-export const CategoryManager = ({ onCategoryChange }: Props) => {
-    const [categories, setCategories] = useState<Category[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId, onSelect, categories: injectedCategories }: Props) => {
+    // Initialize state with injected categories or empty
+    const [localCategories, setLocalCategories] = useState<Category[]>(injectedCategories || []);
+    const [isLoading, setIsLoading] = useState(!injectedCategories);
     const [newItemName, setNewItemName] = useState('');
-    const [selectedParentId, setSelectedParentId] = useState<string | null>(null);
+
+    // Use external selection if provided, else local (though we should prefer external now)
+    const [localSelectedId, setLocalSelectedId] = useState<string | null>(null);
+    const effectiveSelectedId = selectedId !== undefined ? selectedId : localSelectedId;
+
+    const handleSelect = (id: string | null) => {
+        if (onSelect) {
+            onSelect(id);
+        } else {
+            setLocalSelectedId(id);
+        }
+    };
+
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editName, setEditName] = useState('');
 
@@ -30,11 +49,19 @@ export const CategoryManager = ({ onCategoryChange }: Props) => {
     // --- Drag and Drop State ---
     const [draggedId, setDraggedId] = useState<string | null>(null);
     const [draggedIsRoot, setDraggedIsRoot] = useState<boolean>(false);
-    const [dragDest, setDragDest] = useState<{ id: string, mode: 'reorder-top' | 'reorder-bottom' | 'reparent' } | null>(null);
+    const [dragDest, setDragDest] = useState<{ id: string, mode: 'reorder-top' | 'reparent' } | null>(null);
+
+    // Use localCategories for rendering to allow immediate DnD feedback
+    const categoriesToUse = localCategories;
 
     useEffect(() => {
-        fetchCategories();
-    }, []);
+        if (injectedCategories) {
+            setLocalCategories(injectedCategories);
+            setIsLoading(false);
+        } else {
+            fetchCategories();
+        }
+    }, [injectedCategories]);
 
     // ... (fetchCategories and buildTree remain same) ...
 
@@ -62,7 +89,7 @@ export const CategoryManager = ({ onCategoryChange }: Props) => {
                 });
             };
 
-            flatten(categories, null);
+            flatten(categoriesToUse, null);
 
             // Bulk Upsert to update structure
             const { error } = await supabase
@@ -95,7 +122,7 @@ export const CategoryManager = ({ onCategoryChange }: Props) => {
             if (error) throw error;
 
             const builtTree = buildTree(data || []);
-            setCategories(builtTree);
+            setLocalCategories(builtTree);
         } catch (err) {
             console.error('Error fetching categories:', err);
         } finally {
@@ -115,25 +142,20 @@ export const CategoryManager = ({ onCategoryChange }: Props) => {
     };
 
     const handleCreate = async () => {
+        if (readOnly) return;
         if (!newItemName.trim()) return;
         try {
-            // Get max order index for new item
-            // const { data: siblings } = await supabase
-            // RLS or simpler: just fetch all and max
-
-            // Simpler: Just random or 0, let user reorder. Default 0 is fine.
-
             const { error } = await supabase
                 .from('learning_categories')
                 .insert({
                     name: newItemName.trim(),
-                    parent_id: selectedParentId
+                    parent_id: effectiveSelectedId
                 });
 
             if (error) throw error;
 
             setNewItemName('');
-            fetchCategories();
+            if (!injectedCategories) fetchCategories();
             onCategoryChange();
         } catch (err) {
             console.error('Error creating category:', err);
@@ -142,6 +164,7 @@ export const CategoryManager = ({ onCategoryChange }: Props) => {
     };
 
     const handleDelete = async (id: string, name: string) => {
+        if (readOnly) return;
         if (!confirm(`'${name}' 폴더를 삭제하시겠습니까?\n하위 폴더가 있다면 함께 삭제될 수 있습니다.`)) return;
         try {
             const { error } = await supabase
@@ -150,7 +173,7 @@ export const CategoryManager = ({ onCategoryChange }: Props) => {
                 .eq('id', id);
 
             if (error) throw error;
-            fetchCategories();
+            if (!injectedCategories) fetchCategories();
             onCategoryChange();
         } catch (err) {
             console.error('Error deleting category:', err);
@@ -159,6 +182,7 @@ export const CategoryManager = ({ onCategoryChange }: Props) => {
     };
 
     const handleUpdate = async (id: string) => {
+        if (readOnly) return;
         if (!editName.trim()) return;
         try {
             const { error } = await supabase
@@ -168,7 +192,7 @@ export const CategoryManager = ({ onCategoryChange }: Props) => {
 
             if (error) throw error;
             setEditingId(null);
-            fetchCategories();
+            if (!injectedCategories) fetchCategories();
             onCategoryChange();
         } catch (err) {
             console.error(err);
@@ -178,6 +202,7 @@ export const CategoryManager = ({ onCategoryChange }: Props) => {
 
     // --- DnD Handlers ---
     const handleDragStart = (e: React.DragEvent, category: Category) => {
+        if (readOnly) return;
         setDraggedId(category.id);
         setDraggedIsRoot(category.parent_id === null); // Check if root
         e.dataTransfer.effectAllowed = 'move';
@@ -187,76 +212,26 @@ export const CategoryManager = ({ onCategoryChange }: Props) => {
     // Throttled DragOver with Rect Calculation
     const lastDragUpdate = useRef<number>(0);
 
-    // Helper to find category and context
-    const findCategoryContext = (items: Category[], targetId: string, parent: Category | null = null): { node: Category, parent: Category | null, index: number, siblings: Category[] } | null => {
-        for (let i = 0; i < items.length; i++) {
-            if (items[i].id === targetId) {
-                return { node: items[i], parent, index: i, siblings: items };
-            }
-            if (items[i].children) {
-                const result = findCategoryContext(items[i].children!, targetId, items[i]);
-                if (result) return result;
-            }
-        }
-        return null;
-    };
-
     const handleDragOver = (e: React.DragEvent, id: string) => {
         e.preventDefault();
-        e.stopPropagation(); // Stop bubbling to container
-
+        if (readOnly) return;
         if (draggedId === id) return;
-
-        // Explicitly clear Root Drop Target if we are over a valid item
-        // This `isRootDropTarget` variable is not defined in the provided code.
-        // Assuming it's a state variable that needs to be handled.
-        // For now, I'll comment it out or assume it's handled elsewhere if not critical for this snippet.
-        // if (isRootDropTarget) setIsRootDropTarget(false);
 
         const now = Date.now();
         if (now - lastDragUpdate.current < 20) return;
         lastDragUpdate.current = now;
 
-        const rect = e.currentTarget.getBoundingClientRect();
-        const offsetY = e.clientY - rect.top;
-        const height = rect.height;
+        const target = e.target as HTMLElement;
+        const currentTarget = e.currentTarget as HTMLElement;
 
-        let mode: 'reparent' | 'reorder-top' | 'reorder-bottom' = 'reparent';
+        let mode: 'reparent' | 'reorder-top' = 'reparent';
 
-        if (offsetY < height * 0.25) {
+        // If target is the treeItem itself (gap/padding area), show insert line
+        // If target is itemContent or its children, reparent mode
+        if (target === currentTarget || target.classList.contains('treeItem')) {
             mode = 'reorder-top';
-        } else if (offsetY > height * 0.75) {
-            mode = 'reorder-bottom';
         } else {
             mode = 'reparent';
-        }
-
-        // --- Redundancy Check (No meaningless lines) ---
-        if (mode !== 'reparent' && draggedId) {
-            const draggedCtx = findCategoryContext(categories, draggedId);
-            const targetCtx = findCategoryContext(categories, id);
-
-            if (draggedCtx && targetCtx) {
-                // Check if they are siblings (same parent ID)
-                // Note: Root items have parent=null.
-                const sameParent = (draggedCtx.parent?.id === targetCtx.parent?.id);
-
-                if (sameParent) {
-                    // Target is immediately AFTER dragged item (Target Index = Drag Index + 1)
-                    // If I drop "Top" of Target, I am inserting before Target -> which is after Dragged. No change.
-                    if (targetCtx.index === draggedCtx.index + 1 && mode === 'reorder-top') {
-                        setDragDest(null);
-                        return;
-                    }
-
-                    // Target is immediately BEFORE dragged item (Target Index = Drag Index - 1)
-                    // If I drop "Bottom" of Target, I am inserting after Target -> which is before Dragged. No change.
-                    if (targetCtx.index === draggedCtx.index - 1 && mode === 'reorder-bottom') {
-                        setDragDest(null);
-                        return;
-                    }
-                }
-            }
         }
 
         if (dragDest?.id !== id || dragDest?.mode !== mode) {
@@ -268,29 +243,17 @@ export const CategoryManager = ({ onCategoryChange }: Props) => {
     const handleRootDragOver = (e: React.DragEvent, id: string) => {
         e.preventDefault();
         e.stopPropagation();
+        if (readOnly) return;
         if (draggedId === id) return;
 
-        // Critical Fix: If dragging a Child Item, do NOT trigger Column Reorder 
-        // AND do NOT force reparent on background. Just let it be.
-        if (!draggedIsRoot) {
-            // User requested: Don't reparent tree column (meaning don't highlight whole column).
-            // So we do nothing here. It might bubble? 
-            // We called stopPropagation. So it does nothing.
-            // This means dropping on Empty Column Space = No Op. 
-            // This is safest to avoid "meaningless" actions or ugly highlights.
-            setDragDest(null);
-            return;
-        }
-
-        // Horizontal Logic for Root Column Reordering
         const rect = e.currentTarget.getBoundingClientRect();
         const offsetX = e.clientX - rect.left;
         const width = rect.width;
 
-        let mode: 'reorder-top' | 'reorder-bottom' | 'reparent';
+        let mode: 'reorder-top' | 'reparent';
 
-        if (offsetX < width * 0.25) mode = 'reorder-top';
-        else if (offsetX > width * 0.75) mode = 'reorder-bottom';
+        // Horizontal: Left 30% -> Insert Before. Rest -> Reparent.
+        if (offsetX < width * 0.3) mode = 'reorder-top'; // Left
         else mode = 'reparent';
 
         if (dragDest?.id !== id || dragDest?.mode !== mode) {
@@ -301,19 +264,20 @@ export const CategoryManager = ({ onCategoryChange }: Props) => {
     const handleDrop = async (e: React.DragEvent, targetId?: string) => {
         e.preventDefault();
         e.stopPropagation();
+        if (readOnly) return;
 
         const currentDest = dragDest;
-        setDragDest(null);
+        setDragDest(null); // Clear highlight immediately
 
         if (!draggedId) return;
         if (targetId && draggedId === targetId) {
             setDraggedId(null); return;
         }
 
-        // 1. Calculate Local Update (Purely Local)
-        const newCategories = JSON.parse(JSON.stringify(categories)); // Deep clone
+        // 1. Snapshot State
+        const newCategories = JSON.parse(JSON.stringify(categoriesToUse));
 
-        // Find Context Helper
+        // Find Helpers
         const findContext = (tree: Category[], id: string, parent: Category | null = null): { node: Category, parent: Category | null, list: Category[], index: number } | null => {
             for (let i = 0; i < tree.length; i++) {
                 if (tree[i].id === id) {
@@ -327,79 +291,96 @@ export const CategoryManager = ({ onCategoryChange }: Props) => {
             return null;
         };
 
+        // 2. Remove Old
         const draggedCtx = findContext(newCategories, draggedId);
         if (!draggedCtx) return;
-
-        // Remove from old location
         draggedCtx.list.splice(draggedCtx.index, 1);
         const movedNode = draggedCtx.node;
 
-        // Determine Destination
-        let targetCtx: ReturnType<typeof findContext> = null;
-        if (targetId) {
-            targetCtx = findContext(newCategories, targetId);
-        }
-
-        // Logic Application
+        // 3. Insert New
         if (!targetId) {
-            // Drop to Root
+            // Container Drop -> Append to Root
             newCategories.push(movedNode);
             movedNode.parent_id = null;
-        } else if (targetCtx) {
-            const mode = currentDest?.mode || 'reparent';
+        } else {
+            const targetCtx = findContext(newCategories, targetId);
+            if (targetCtx) {
+                const mode = currentDest?.mode || 'reparent';
 
-            if (mode === 'reparent') {
-                if (!targetCtx.node.children) targetCtx.node.children = [];
-                targetCtx.node.children.push(movedNode);
-                // Parent ID update is handled by flatten() on save
-            } else {
-                // Reorder
-                const list = targetCtx.list;
-                const targetIndex = list.findIndex(c => c.id === targetId);
-                let insertIndex = targetIndex;
-                if (mode === 'reorder-bottom') insertIndex += 1;
-
-                list.splice(insertIndex, 0, movedNode);
+                if (mode === 'reparent') {
+                    if (!targetCtx.node.children) targetCtx.node.children = [];
+                    targetCtx.node.children.push(movedNode);
+                    // Parent ID updated on save
+                } else if (mode === 'reorder-top') {
+                    // Insert Before Target
+                    targetCtx.list.splice(targetCtx.index, 0, movedNode);
+                }
             }
         }
 
-        // 2. Apply Local Update & Marking as Changed
-        setCategories(newCategories);
+        setLocalCategories(newCategories);
         setDraggedId(null);
-        setHasChanges(true); // Enable Save Button
+        setHasChanges(true);
     };
 
     const renderTreeItem = (category: Category) => {
         const isEditing = editingId === category.id;
-        const isSelected = selectedParentId === category.id;
+        const isSelected = effectiveSelectedId === category.id;
         const isDragging = draggedId === category.id;
-
-        // Destructure drag feedback
-        // Now applies to itemContent
         const activeMode = (dragDest?.id === category.id) ? dragDest.mode : null;
 
         return (
             <div
                 key={category.id}
                 className={`treeItem ${isDragging ? 'dragging' : ''}`}
+                draggable={!readOnly}
+                onDragStart={(e) => { e.stopPropagation(); handleDragStart(e, category); }}
             >
+                {/* Gap before this item - for insertion */}
                 <div
-                    className={`itemContent ${isSelected ? 'selected' : ''} ${activeMode ? `dragOver-${activeMode}` : ''}`}
-                    draggable="true"
-                    onDragStart={(e) => { e.stopPropagation(); handleDragStart(e, category); }}
-                    onDragOver={(e) => handleDragOver(e, category.id)}
-                    onDrop={(e) => handleDrop(e, category.id)}
-                // No separate dragLeave needed usually if handleDragOver handles clean up or global leave
+                    className={`itemGap ${!readOnly && activeMode === 'reorder-top' ? 'dragOver-active' : ''}`}
+                    onDragOver={!readOnly ? (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (draggedId && draggedId !== category.id) {
+                            setDragDest({ id: category.id, mode: 'reorder-top' });
+                        }
+                    } : undefined}
+                    onDrop={!readOnly ? (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleDrop(e, category.id);
+                    } : undefined}
+                    onDragLeave={!readOnly ? () => {
+                        if (dragDest?.id === category.id && dragDest?.mode === 'reorder-top') {
+                            setDragDest(null);
+                        }
+                    } : undefined}
+                />
+
+                <div
+                    className={`itemContent ${isSelected ? 'selected' : ''} ${activeMode === 'reparent' ? 'dragOver-reparent' : ''}`}
+                    onDragOver={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (draggedId && draggedId !== category.id) {
+                            setDragDest({ id: category.id, mode: 'reparent' });
+                        }
+                    }}
+                    onDrop={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleDrop(e, category.id);
+                    }}
+                    onClick={() => !isEditing && handleSelect(isSelected ? null : category.id)}
+                    style={{ cursor: 'pointer' }}
                 >
-                    <span
-                        className="folderIcon"
-                        onClick={() => setSelectedParentId(isSelected ? null : category.id)}
-                    >
+                    <span className="folderIcon">
                         {isSelected ? '📂' : '📁'}
                     </span>
 
                     {isEditing ? (
-                        <div className="editForm">
+                        <div className="editForm" onClick={(e) => e.stopPropagation()}>
                             <input
                                 value={editName}
                                 onChange={(e) => setEditName(e.target.value)}
@@ -410,16 +391,13 @@ export const CategoryManager = ({ onCategoryChange }: Props) => {
                             <button onClick={() => setEditingId(null)} className="cancelBtn">X</button>
                         </div>
                     ) : (
-                        <span
-                            className="categoryName"
-                            onClick={() => setSelectedParentId(isSelected ? null : category.id)}
-                        >
+                        <span className="categoryName">
                             {category.name}
                         </span>
                     )}
 
-                    <div className="actions">
-                        {!isEditing && (
+                    <div className="actions" onClick={(e) => e.stopPropagation()}>
+                        {!readOnly && !isEditing && (
                             <>
                                 <button
                                     onClick={() => {
@@ -445,8 +423,7 @@ export const CategoryManager = ({ onCategoryChange }: Props) => {
                 {/* Children */}
                 <div
                     className="treeChildren"
-                    onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                    onDrop={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                    onDragOver={(e) => { e.preventDefault(); }}
                 >
                     {category.children && category.children.map(renderTreeItem)}
                 </div>
@@ -456,30 +433,31 @@ export const CategoryManager = ({ onCategoryChange }: Props) => {
 
     const renderRootColumn = (category: Category) => {
         const isEditing = editingId === category.id;
-        const isSelected = selectedParentId === category.id;
+        const isSelected = effectiveSelectedId === category.id;
         const isDragging = draggedId === category.id;
-
         const activeMode = (dragDest?.id === category.id) ? dragDest.mode : null;
 
         return (
             <div
                 key={category.id}
                 className={`treeColumn ${isDragging ? 'dragging' : ''} ${activeMode ? `dragOver-${activeMode}` : ''}`}
-                draggable="true"
+                draggable={!readOnly}
                 onDragStart={(e) => handleDragStart(e, category)}
-                onDragOver={(e) => handleRootDragOver(e, category.id)} // Specific Handler
+                onDragOver={(e) => handleRootDragOver(e, category.id)}
                 onDrop={(e) => handleDrop(e, category.id)}
                 onDragLeave={(e) => {
                     if (e.currentTarget.contains(e.relatedTarget as Node)) return;
-                    setDragDest(null);
+                    // setDragDest(null); // Optional: keep selection stable
                 }}
             >
                 {/* Column Header */}
                 <div
-                    className={`columnHeader ${isSelected ? 'selected' : ''} ${activeMode === 'reparent' ? 'dragOver-reparent' : ''}`}
+                    className={`columnHeader ${isSelected ? 'selected' : ''}`} // Feedback now on container
+                    onClick={() => !isEditing && handleSelect(isSelected ? null : category.id)}
+                    style={{ cursor: 'pointer' }}
                 >
                     {isEditing ? (
-                        <div className="editForm">
+                        <div className="editForm" onClick={(e) => e.stopPropagation()}>
                             <input
                                 value={editName}
                                 onChange={(e) => setEditName(e.target.value)}
@@ -490,16 +468,13 @@ export const CategoryManager = ({ onCategoryChange }: Props) => {
                             <button onClick={() => setEditingId(null)} className="cancelBtn">X</button>
                         </div>
                     ) : (
-                        <div
-                            style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'grab', flex: 1 }}
-                            onClick={() => setSelectedParentId(isSelected ? null : category.id)}
-                        >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
                             <span style={{ fontSize: '20px' }}>📦</span>
                             <span style={{ fontWeight: 'bold' }}>{category.name}</span>
                         </div>
                     )}
-                    <div className="actions">
-                        {!isEditing && (
+                    <div className="actions" onClick={(e) => e.stopPropagation()}>
+                        {!readOnly && !isEditing && (
                             <>
                                 <button
                                     onClick={() => {
@@ -524,14 +499,30 @@ export const CategoryManager = ({ onCategoryChange }: Props) => {
                 </div>
 
                 {/* Children of Root */}
-                {/* Prevent Bubble Up to Root Column Handler */}
+                {/* Root children container: allows dropping to append at end of list */}
                 <div
                     className="treeChildren"
-                    // Removed suppression: Now allows indentation + line for root items too
                     onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
-                    onDrop={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                // Empty space in column after children
                 >
                     {category.children && category.children.map(renderTreeItem)}
+                    {/* Drop Zone for Appending to Root Column */}
+                    {!readOnly && draggedId && category.children && (
+                        <div
+                            style={{ height: '20px', flex: 1 }}
+                            onDragOver={(e) => {
+                                e.preventDefault(); e.stopPropagation();
+                                // Manual logic to set dest as "Append to this parent"
+                                // Reuse handleDragOver logic but force Reparent?
+                                // Actually, handleDragOver on the PARENT (Root) handles reparent.
+                                // But stopPropagation above blocks it.
+                                // We need a way to say "Drop HERE means append to this column's children list"
+                                // Simplest: Let it bubble? 
+                                // Taking out stopPropagation allows dragging to empty space -> Root reparent.
+                                // Let's try removing stopPropagation on this container for Root.
+                            }}
+                        />
+                    )}
                 </div>
             </div>
         );
@@ -560,43 +551,49 @@ export const CategoryManager = ({ onCategoryChange }: Props) => {
     // Fix JSX Structure and Render
     return (
         <div className="categoryManager">
-            <div className="headerActions">
-                <button onClick={addRootCategory} className="addBtn">+ 대분류 추가</button>
-                {hasChanges && (
-                    <button
-                        onClick={handleSaveOrder}
-                        disabled={isSaving}
-                        className="saveChangesBtn"
-                        style={{
-                            backgroundColor: '#10b981',
-                            color: 'white',
-                            padding: '6px 12px',
-                            borderRadius: '4px',
-                            marginLeft: '8px',
-                            fontWeight: 'bold',
-                            opacity: isSaving ? 0.7 : 1,
-                            border: 'none',
-                            cursor: 'pointer'
-                        }}
-                    >
-                        {isSaving ? '저장 중...' : '💾 변경사항 저장'}
-                    </button>
-                )}
-            </div>
+            {!readOnly && (
+                <div className="headerActions">
+                    {/* addRootCategory should be implemented or simplified. Let's just use the form below for now or enable this if needed */}
+                    {/* <button onClick={addRootCategory} className="addBtn">+ 대분류 추가</button> */}
 
-            <div className="createForm">
-                <div className="inputGroup">
-                    <input
-                        value={newItemName}
-                        onChange={(e) => setNewItemName(e.target.value)}
-                        placeholder="새 폴더 이름"
-                        className="createInput"
-                    />
-                    <button onClick={handleCreate} className="createBtn" disabled={!newItemName}>
-                        추가
-                    </button>
+                    {hasChanges && (
+                        <button
+                            onClick={handleSaveOrder}
+                            disabled={isSaving}
+                            className="saveChangesBtn"
+                            style={{
+                                backgroundColor: '#10b981',
+                                color: 'white',
+                                padding: '6px 12px',
+                                borderRadius: '4px',
+                                marginLeft: '8px',
+                                fontWeight: 'bold',
+                                opacity: isSaving ? 0.7 : 1,
+                                border: 'none',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            {isSaving ? '저장 중...' : '💾 변경사항 저장'}
+                        </button>
+                    )}
                 </div>
-            </div>
+            )}
+
+            {!readOnly && (
+                <div className="createForm">
+                    <div className="inputGroup">
+                        <input
+                            value={newItemName}
+                            onChange={(e) => setNewItemName(e.target.value)}
+                            placeholder="새 폴더 이름"
+                            className="createInput"
+                        />
+                        <button onClick={handleCreate} className="createBtn" disabled={!newItemName}>
+                            추가
+                        </button>
+                    </div>
+                </div>
+            )}
 
             <div
                 className="treeContainer"
@@ -604,8 +601,8 @@ export const CategoryManager = ({ onCategoryChange }: Props) => {
                 onDrop={handleContainerDrop}
             >
                 {/* Ensure Columns wrap properly */}
-                {isLoading ? <div className="loading">로딩 중...</div> : categories.length > 0 ? (
-                    categories.map((category) => renderRootColumn(category))
+                {isLoading ? <div className="loading">로딩 중...</div> : categoriesToUse.length > 0 ? (
+                    categoriesToUse.map((category) => renderRootColumn(category))
                 ) : (
                     <div className="empty">폴더가 없습니다.</div>
                 )}

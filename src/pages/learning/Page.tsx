@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useNavigate } from 'react-router-dom';
-import { PublicCategoryTree } from './components/PublicCategoryTree';
+
 import { CategoryManager } from './components/CategoryManager';
 import { PlaylistImportModal } from './components/PlaylistImportModal';
 import { MovePlaylistModal } from './components/MovePlaylistModal';
@@ -348,15 +348,13 @@ const LearningPage = () => {
 
                 {/* LEFT: Tree Navigation */}
                 <div className="leftSidebar">
-                    {adminMode ? (
-                        <CategoryManager onCategoryChange={fetchData} />
-                    ) : (
-                        <PublicCategoryTree
-                            categories={categories}
-                            selectedCategoryId={selectedCategoryId}
-                            onSelect={setSelectedCategoryId}
-                        />
-                    )}
+                    <CategoryManager
+                        onCategoryChange={fetchData}
+                        readOnly={!adminMode}
+                        selectedId={selectedCategoryId}
+                        onSelect={setSelectedCategoryId}
+                        categories={categories}
+                    />
                 </div>
 
                 {/* RIGHT: Content Grid */}
