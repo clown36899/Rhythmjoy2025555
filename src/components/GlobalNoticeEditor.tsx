@@ -143,7 +143,7 @@ export default function GlobalNoticeEditor({ isOpen, onClose, noticeId: propNoti
 
     return createPortal(
         <div className="pem-modal-overlay" onClick={onClose} style={{ zIndex: 100001 }}>
-            <div className="pem-modal-container" onClick={e => e.stopPropagation()}>
+            <div className="pem-modal-container" translate="no" onClick={e => e.stopPropagation()}>
                 <div className="pem-modal-header">
                     <h2 className="pem-modal-title">{currentNoticeId ? '기존 공지 수정' : '새 공지 작성'}</h2>
                     <button className="pem-close-btn" onClick={onClose}>

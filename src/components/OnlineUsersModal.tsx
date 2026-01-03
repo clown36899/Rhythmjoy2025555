@@ -13,7 +13,7 @@ export function OnlineUsersModal({ isOpen, onClose }: OnlineUsersModalProps) {
 
     return (
         <div className="online-users-overlay" onClick={onClose}>
-            <div className="online-users-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="online-users-modal" translate="no" onClick={(e) => e.stopPropagation()}>
                 {/* Header */}
                 <div className="online-users-header">
                     <h2 className="online-users-title">📊 현재 접속자</h2>

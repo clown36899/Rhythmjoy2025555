@@ -64,7 +64,7 @@ export default function AdminUserInfoModal({ userId, userName, onClose }: AdminU
 
     return createPortal(
         <div className="admin-modal-overlay">
-            <div className="admin-modal">
+            <div className="admin-modal" translate="no">
                 <div className="admin-modal-header">
                     <h3>비상 연락처 조회 보안 접속</h3>
                     <button className="close-btn" onClick={onClose}><i className="ri-close-line"></i></button>

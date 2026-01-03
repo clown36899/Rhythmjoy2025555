@@ -240,7 +240,7 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
 
                     {/* 1.5 관리자 메뉴 (관리자 전용) - 접힘/펼침 가능 */}
                     {isAdmin && (
-                        <>
+                        <div translate="no">
                             <div
                                 className="drawer-menu-item expandable"
                                 onClick={() => setIsAdminExpanded(!isAdminExpanded)}
@@ -377,7 +377,7 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                                 </div>
                             )}
                             <div className="drawer-divider"></div>
-                        </>
+                        </div>
                     )}
 
                     {/* 2. 베타/테스트 기능 */}

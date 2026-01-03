@@ -225,7 +225,7 @@ export default function BoardPrefixManagementModal({
 
   const modalContent = (
     <div className="bpm-overlay">
-      <div className="bpm-container">
+      <div className="bpm-container" translate="no">
         <div className="bpm-header">
           <h2 className="bpm-title">머릿말 관리</h2>
           <button onClick={onClose} className="bpm-close-btn">

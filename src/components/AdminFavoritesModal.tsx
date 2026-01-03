@@ -138,7 +138,7 @@ export default function AdminFavoritesModal({ isOpen, onClose }: AdminFavoritesM
 
     return createPortal(
         <div className="admin-modal-overlay">
-            <div className="boum-container secure-container-override" style={{
+            <div className="boum-container secure-container-override" translate="no" style={{
                 maxWidth: '900px',
                 width: '95%',
                 height: '80vh',

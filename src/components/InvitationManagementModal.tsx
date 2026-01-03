@@ -142,7 +142,7 @@ export default function InvitationManagementModal({ isOpen, onClose }: Invitatio
 
   return (
     <div className="im-modal-overlay">
-      <div className="im-modal-container">
+      <div className="im-modal-container" translate="no">
         {/* Header */}
         <div className="im-header">
           <h3 className="im-header-title">

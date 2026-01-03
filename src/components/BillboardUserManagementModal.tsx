@@ -95,16 +95,16 @@ export default function BillboardUserManagementModal({
       const koreaOffset = 9 * 60;
       const koreaTime = new Date(today.getTime() + (koreaOffset + today.getTimezoneOffset()) * 60000);
       koreaTime.setHours(0, 0, 0, 0);
-      
+
       const filteredEvents = (data || []).filter((event) => {
         if (!event?.image_full && !event?.image && !event?.video_url) return false;
         const eventDate = new Date(event.start_date || event.date || "");
         const weekday = eventDate.getDay();
         if (excludedWeekdays.includes(weekday)) return false;
-        
+
         const eventStartDate = new Date(event.start_date || event.date || "");
         eventStartDate.setHours(0, 0, 0, 0);
-        
+
         if (dateFilterStart) {
           const filterStart = new Date(dateFilterStart);
           filterStart.setHours(0, 0, 0, 0);
@@ -115,7 +115,7 @@ export default function BillboardUserManagementModal({
           filterEnd.setHours(0, 0, 0, 0);
           if (eventStartDate > filterEnd) return false;
         }
-        
+
         if (!dateFilterStart && !dateFilterEnd) {
           if (eventStartDate < koreaTime) return false;
         }
@@ -129,7 +129,7 @@ export default function BillboardUserManagementModal({
         날짜필터종료: dateFilterEnd || 'null',
         제외요일: excludedWeekdays
       });
-      
+
       setEvents(filteredEvents);
     } catch (error) {
       console.error('이벤트 로드 실패:', error);
@@ -149,7 +149,7 @@ export default function BillboardUserManagementModal({
 
     try {
       const passwordHash = await hashPassword(newUserPassword);
-      
+
       const { data: newUser, error: userError } = await supabase
         .from('billboard_users')
         .insert({
@@ -209,12 +209,12 @@ export default function BillboardUserManagementModal({
       setPlayOrder(data.play_order);
       setDateFilterStart(data.date_filter_start || '');
       setDateFilterEnd(data.date_filter_end || '');
-      
+
       console.log('[빌보드 편집] 로드 완료:', {
         excluded_event_ids: data.excluded_event_ids || [],
         count: (data.excluded_event_ids || []).length
       });
-      
+
       setShowEditModal(true);
     } catch (error) {
       console.error('설정 로드 실패:', error);
@@ -263,40 +263,40 @@ export default function BillboardUserManagementModal({
 
   const toggleEvent = (eventId: number) => {
     console.log('[이벤트 토글] 시작:', eventId);
-    
+
     setExcludedEventIds((prev) => {
       const isCurrentlyExcluded = prev.includes(eventId);
       const newList = isCurrentlyExcluded
         ? prev.filter((id) => id !== eventId)
         : [...prev, eventId];
-      
+
       console.log('[이벤트 토글] 완료:', {
         eventId,
         action: isCurrentlyExcluded ? '제거' : '추가',
         이전: prev,
         새로운: newList
       });
-      
+
       return newList;
     });
   };
 
   const copyBillboardUrl = async (userId: string) => {
     const url = `${window.location.origin}/billboard/${userId}`;
-    
+
     try {
       await navigator.clipboard.writeText(url);
       alert(`빌보드 URL이 복사되었습니다.\n\n${url}`);
     } catch (error) {
       console.error('클립보드 복사 실패:', error);
-      
+
       const textarea = document.createElement('textarea');
       textarea.value = url;
       textarea.style.position = 'fixed';
       textarea.style.opacity = '0';
       document.body.appendChild(textarea);
       textarea.select();
-      
+
       try {
         document.execCommand('copy');
         alert(`빌보드 URL이 복사되었습니다.\n\n${url}`);
@@ -372,7 +372,7 @@ export default function BillboardUserManagementModal({
 
   return createPortal(
     <div className="bum-overlay">
-      <div className="bum-container">
+      <div className="bum-container" translate="no">
         <div className="bum-header">
           <h3 className="bum-title">빌보드 사용자 관리</h3>
           <button onClick={onClose} className="bum-close-btn">
@@ -424,7 +424,7 @@ export default function BillboardUserManagementModal({
           <div className="bum-create-overlay">
             <div className="bum-create-container">
               <h4 className="bum-create-title">새 빌보드 사용자 생성</h4>
-              
+
               <div className="bum-create-form">
                 <div className="bum-form-group">
                   <label className="bum-form-label">이름</label>
@@ -455,11 +455,10 @@ export default function BillboardUserManagementModal({
                       <button
                         key={index}
                         onClick={() => toggleWeekday(index)}
-                        className={`bum-weekday-btn ${
-                          excludedWeekdays.includes(index)
+                        className={`bum-weekday-btn ${excludedWeekdays.includes(index)
                             ? 'bum-weekday-btn-excluded'
                             : 'bum-weekday-btn-normal'
-                        }`}
+                          }`}
                       >
                         {day}
                       </button>
@@ -493,7 +492,7 @@ export default function BillboardUserManagementModal({
               <div className="bum-edit-header">
                 <h4 className="bum-edit-title">{selectedUser.name} 설정</h4>
               </div>
-              
+
               <div className="bum-edit-content">
                 <div className="bum-edit-form">
                   <div className="bum-form-group">
@@ -503,11 +502,10 @@ export default function BillboardUserManagementModal({
                         <button
                           key={index}
                           onClick={() => toggleWeekday(index)}
-                          className={`bum-weekday-btn ${
-                            excludedWeekdays.includes(index)
+                          className={`bum-weekday-btn ${excludedWeekdays.includes(index)
                               ? 'bum-weekday-btn-excluded'
                               : 'bum-weekday-btn-normal'
-                          }`}
+                            }`}
                         >
                           {day}
                         </button>
@@ -541,8 +539,8 @@ export default function BillboardUserManagementModal({
                       </div>
                     </div>
                     <p className="bum-exclude-stats">
-                      총 <span className="bum-exclude-stats-blue">{events.length}개</span> 이벤트 / 
-                      제외 <span className="bum-exclude-stats-red">{excludedEventIds.length}개</span> 
+                      총 <span className="bum-exclude-stats-blue">{events.length}개</span> 이벤트 /
+                      제외 <span className="bum-exclude-stats-red">{excludedEventIds.length}개</span>
                       (미디어 있는 이벤트만 표시)
                     </p>
                     <div className="bum-exclude-list">
@@ -556,17 +554,16 @@ export default function BillboardUserManagementModal({
                             const weekday = weekdayNames[eventDate.getDay()];
                             const hasMedia = !!(event?.image_full || event?.image || event?.video_url);
                             const isExcluded = excludedEventIds.includes(event.id);
-                            
+
                             return (
                               <label
                                 key={event.id}
-                                className={`bum-exclude-item ${
-                                  hasMedia 
-                                    ? (isExcluded 
-                                        ? 'bum-exclude-item-media bum-exclude-item-excluded' 
-                                        : 'bum-exclude-item-media')
+                                className={`bum-exclude-item ${hasMedia
+                                    ? (isExcluded
+                                      ? 'bum-exclude-item-media bum-exclude-item-excluded'
+                                      : 'bum-exclude-item-media')
                                     : 'bum-exclude-item-disabled'
-                                }`}
+                                  }`}
                               >
                                 {hasMedia ? (
                                   <i className={`bum-exclude-icon ${isExcluded ? 'ri-close-circle-fill bum-exclude-icon-excluded' : 'ri-checkbox-circle-line bum-exclude-icon-normal'}`}></i>
@@ -580,11 +577,10 @@ export default function BillboardUserManagementModal({
                                   disabled={!hasMedia}
                                   className="bum-exclude-checkbox"
                                 />
-                                <span className={`bum-exclude-text ${
-                                  hasMedia 
+                                <span className={`bum-exclude-text ${hasMedia
                                     ? (isExcluded ? 'bum-exclude-text-excluded' : 'bum-exclude-text-media')
                                     : 'bum-exclude-text-disabled'
-                                }`}>
+                                  }`}>
                                   {event.title}
                                   <span className="bum-exclude-date">
                                     ({event.start_date || event.date} {weekday})
@@ -656,21 +652,19 @@ export default function BillboardUserManagementModal({
                     <div className="bum-play-order-buttons">
                       <button
                         onClick={() => setPlayOrder('sequential')}
-                        className={`bum-play-order-btn ${
-                          playOrder === 'sequential'
+                        className={`bum-play-order-btn ${playOrder === 'sequential'
                             ? 'bum-play-order-btn-active'
                             : 'bum-play-order-btn-inactive'
-                        }`}
+                          }`}
                       >
                         순서대로
                       </button>
                       <button
                         onClick={() => setPlayOrder('random')}
-                        className={`bum-play-order-btn ${
-                          playOrder === 'random'
+                        className={`bum-play-order-btn ${playOrder === 'random'
                             ? 'bum-play-order-btn-active'
                             : 'bum-play-order-btn-inactive'
-                        }`}
+                          }`}
                       >
                         랜덤
                       </button>

@@ -126,7 +126,7 @@ export default function GenreWeightSettingsModal({ isOpen, onClose }: GenreWeigh
 
     return createPortal(
         <div className="genre-settings-overlay">
-            <div className="genre-settings-container">
+            <div className="genre-settings-container" translate="no">
                 <div className="genre-settings-header">
                     <h3>강습 노출 확률 설정</h3>
                     <button onClick={onClose} className="close-btn">

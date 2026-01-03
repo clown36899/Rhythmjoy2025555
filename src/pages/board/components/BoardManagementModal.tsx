@@ -124,7 +124,7 @@ export default function BoardManagementModal({ isOpen, onClose, onUpdate }: Boar
 
     const modalContent = (
         <div className="bmm-overlay" onClick={onClose}>
-            <div className="bmm-container" onClick={e => e.stopPropagation()}>
+            <div className="bmm-container" translate="no" onClick={e => e.stopPropagation()}>
                 <div className="bmm-header">
                     <h2 className="bmm-title">게시판 관리</h2>
                     <button onClick={() => { if (onUpdate) onUpdate(); onClose(); }} className="bmm-close-btn">

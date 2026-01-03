@@ -79,7 +79,7 @@ export default function AdminSecureMembersModal({ isOpen, onClose }: AdminSecure
     return createPortal(
         <div className="admin-modal-overlay">
             {/* Reuse boum-container style with overrides for sizing */}
-            <div className="boum-container secure-container-override" style={{
+            <div className="boum-container secure-container-override" translate="no" style={{
                 maxWidth: '1000px',
                 width: '95%',
                 height: '85vh',

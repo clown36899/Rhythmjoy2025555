@@ -102,7 +102,7 @@ export default function BoardUserManagementModal({
 
   const modalContent = (
     <div className="boum-overlay">
-      <div className="boum-container">
+      <div className="boum-container" translate="no">
         <div className="boum-header">
           <div className="boum-header-top">
             <h2 className="boum-title">게시판 회원 관리</h2>

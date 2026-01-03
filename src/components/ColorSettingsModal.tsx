@@ -93,7 +93,7 @@ export default function ColorSettingsModal({ isOpen, onClose }: ColorSettingsMod
 
     return createPortal(
         <div className="header-color-panel-overlay">
-            <div className="header-color-panel">
+            <div className="header-color-panel" translate="no">
                 <div className="header-color-panel-header">
                     <h3 className="header-color-panel-title">색상 설정</h3>
                     <button

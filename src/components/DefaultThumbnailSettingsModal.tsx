@@ -122,7 +122,7 @@ export default function DefaultThumbnailSettingsModal({
         const uploadedUrl = await uploadImage(classImageFile, "class");
         if (uploadedUrl) {
           finalClassUrl = uploadedUrl;
-          
+
           if (classThumbnailUrl && classThumbnailUrl.includes("supabase")) {
             const oldPath = classThumbnailUrl.split("/").slice(-2).join("/");
             await supabase.storage.from("images").remove([oldPath]);
@@ -130,7 +130,7 @@ export default function DefaultThumbnailSettingsModal({
         }
       } else if (!classImagePreview) {
         finalClassUrl = "";
-        
+
         if (classThumbnailUrl && classThumbnailUrl.includes("supabase")) {
           const oldPath = classThumbnailUrl.split("/").slice(-2).join("/");
           await supabase.storage.from("images").remove([oldPath]);
@@ -142,7 +142,7 @@ export default function DefaultThumbnailSettingsModal({
         const uploadedUrl = await uploadImage(eventImageFile, "event");
         if (uploadedUrl) {
           finalEventUrl = uploadedUrl;
-          
+
           if (eventThumbnailUrl && eventThumbnailUrl.includes("supabase")) {
             const oldPath = eventThumbnailUrl.split("/").slice(-2).join("/");
             await supabase.storage.from("images").remove([oldPath]);
@@ -150,7 +150,7 @@ export default function DefaultThumbnailSettingsModal({
         }
       } else if (!eventImagePreview) {
         finalEventUrl = "";
-        
+
         if (eventThumbnailUrl && eventThumbnailUrl.includes("supabase")) {
           const oldPath = eventThumbnailUrl.split("/").slice(-2).join("/");
           await supabase.storage.from("images").remove([oldPath]);
@@ -185,7 +185,7 @@ export default function DefaultThumbnailSettingsModal({
 
   return createPortal(
     <div className="dtm-modal-overlay">
-      <div className="dtm-modal-container">
+      <div className="dtm-modal-container" translate="no">
         <div className="dtm-modal-body">
           <h2 className="dtm-main-title">
             기본 썸네일 설정
@@ -196,7 +196,7 @@ export default function DefaultThumbnailSettingsModal({
             <h3 className="dtm-section-title dtm-section-title-purple">
               강습 기본 이미지
             </h3>
-            
+
             <div className="dtm-preview-container">
               {classImagePreview ? (
                 <div className="dtm-image-wrapper">
@@ -232,7 +232,7 @@ export default function DefaultThumbnailSettingsModal({
             <h3 className="dtm-section-title dtm-section-title-blue">
               행사 기본 이미지
             </h3>
-            
+
             <div className="dtm-preview-container">
               {eventImagePreview ? (
                 <div className="dtm-image-wrapper">

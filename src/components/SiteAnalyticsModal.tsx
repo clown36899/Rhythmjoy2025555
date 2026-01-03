@@ -493,7 +493,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
 
     return (
         <div className="analytics-modal-overlay" onClick={onClose}>
-            <div className="analytics-modal-content" onClick={e => e.stopPropagation()}>
+            <div className="analytics-modal-content" translate="no" onClick={e => e.stopPropagation()}>
                 <div className="analytics-modal-header">
                     <div className="header-title-group">
                         <div className="title-left">
