@@ -490,6 +490,9 @@ const LearningPage = () => {
                                         <div className="cardHeader">
                                             <h3 className="cardTitle">{playlist.title}</h3>
                                         </div>
+                                        {playlist.description && (
+                                            <p className="cardDescription">{playlist.description}</p>
+                                        )}
                                         <div className="cardFooter">
                                             <span className="categoryBadge">
                                                 {flatCategories.find(c => c.id === playlist.category_id)?.name || '기타'}

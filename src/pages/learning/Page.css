@@ -264,6 +264,7 @@
 
 .cardBody {
     padding: 20px;
+    /* Restored comfortable whitespace */
     display: flex;
     flex-direction: column;
     height: 100%;
@@ -273,15 +274,19 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    gap: 16px;
+    gap: 12px;
     margin-bottom: 8px;
 }
 
 .cardTitle {
-    font-weight: bold;
-    font-size: 18px;
-    line-height: 1.375;
-    color: #f3f4f6;
+    font-weight: 600;
+    /* Sophisticated weight */
+    font-size: 1.125rem;
+    /* 18px */
+    line-height: 1.4;
+    color: #f9fafb;
+    /* Gray-50 */
+    margin: 0;
     transition: color 0.2s;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -296,31 +301,45 @@
 
 .cardDescription {
     color: #9ca3af;
-    font-size: 14px;
-    margin-bottom: 16px;
-    height: 40px;
+    font-size: 0.875rem;
+    /* 14px */
+    margin-bottom: 20px;
+    /* Space before footer */
+    height: 42px;
+    /* Consistent height */
     display: -webkit-box;
     -webkit-line-clamp: 2;
     line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    line-height: 1.5;
 }
 
 .cardFooter {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-size: 12px;
+    font-size: 0.75rem;
+    /* 12px */
     color: #6b7280;
-    border-top: 1px solid #1f2937;
-    padding-top: 12px;
     margin-top: auto;
+    /* Removed border-top for cleanliness */
 }
 
 .categoryBadge {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: 4px;
+    padding: 4px 10px;
+    background-color: rgba(55, 65, 81, 0.4);
+    border-radius: 9999px;
+    color: #d1d5db;
+    font-weight: 500;
+    transition: background-color 0.2s;
+}
+
+.card:hover .categoryBadge {
+    background-color: rgba(55, 65, 81, 0.8);
+    color: white;
 }
 
 /* Admin Styles */
@@ -403,6 +422,19 @@
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
+/* Card Component */
+.card {
+    background-color: #111827;
+    border: 1px solid #1f2937;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    /* Context for absolute positioning */
+    overflow: hidden;
+    /* Clip contents including admin actions */
+}
+
 .adminBadge.ytLinked {
     right: 12px;
     background-color: rgba(37, 99, 235, 0.9);
@@ -415,23 +447,35 @@
 
 /* Overlay Actions */
 .adminActions {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
     display: flex;
-    gap: 12px;
-    margin-top: 16px;
-    padding: 16px;
-    border-top: 2px solid #4b5563;
-    justify-content: flex-end;
-    background: linear-gradient(135deg, rgba(31, 41, 55, 0.98), rgba(17, 24, 39, 0.98));
-    border-radius: 8px;
-    position: relative;
-    z-index: 10;
-    pointer-events: auto;
-    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.3);
+    gap: 8px;
+    padding: 12px;
+    justify-content: center;
+    /* Center buttons */
+    background: rgba(17, 24, 39, 0.95);
+    border-top: 1px solid #374151;
+    z-index: 20;
+    backdrop-filter: blur(8px);
+
+    /* Reset margins since we use absolute positioning */
+    margin: 0;
+    border-radius: 0;
+    box-shadow: none;
 }
 
 .miniBtn {
-    width: 40px;
-    height: 40px;
+    flex: 1;
+    /* Allow shrinking/growing */
+    min-width: 0;
+    /* Allow infinite shrinking */
+    max-width: 40px;
+    /* Keep original max size */
+    aspect-ratio: 1;
+    /* Keep square ratio */
     border-radius: 8px;
     display: flex;
     align-items: center;

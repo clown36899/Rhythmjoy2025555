@@ -49,6 +49,10 @@ const LearningDetailPage = ({ playlistId, onClose }: Props) => {
     // Bookmark State
     const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
     const [isAdmin, setIsAdmin] = useState(false);
+    // Playlist Edit State
+    const [isEditingInfo, setIsEditingInfo] = useState(false);
+    const [editTitle, setEditTitle] = useState('');
+    const [editDesc, setEditDesc] = useState('');
 
     useEffect(() => {
         checkAdmin();
@@ -57,6 +61,37 @@ const LearningDetailPage = ({ playlistId, onClose }: Props) => {
     const checkAdmin = async () => {
         const { data: { session } } = await supabase.auth.getSession();
         if (session) setIsAdmin(true);
+    };
+
+    const startEditing = () => {
+        if (!playlist) return;
+        setEditTitle(playlist.title);
+        setEditDesc(playlist.description || '');
+        setIsEditingInfo(true);
+    };
+
+    const cancelEditing = () => {
+        setIsEditingInfo(false);
+    };
+
+    const handleUpdatePlaylist = async () => {
+        if (!playlist) return;
+
+        const { error } = await supabase
+            .from('learning_playlists')
+            .update({
+                title: editTitle,
+                description: editDesc
+            })
+            .eq('id', playlist.id);
+
+        if (error) {
+            alert('수정 실패');
+            console.error(error);
+        } else {
+            setPlaylist({ ...playlist, title: editTitle, description: editDesc });
+            setIsEditingInfo(false);
+        }
     };
 
     useEffect(() => {
@@ -257,6 +292,42 @@ const LearningDetailPage = ({ playlistId, onClose }: Props) => {
                     />
                 </div>
 
+                {/* Playlist Info Section (Youtube Style) */}
+                <div className={styles.infoSection}>
+                    {isEditingInfo ? (
+                        <div className={styles.editContainer}>
+                            <input
+                                className={styles.editInput}
+                                value={editTitle}
+                                onChange={(e) => setEditTitle(e.target.value)}
+                                placeholder="재생목록 제목"
+                            />
+                            <textarea
+                                className={styles.editTextarea}
+                                value={editDesc}
+                                onChange={(e) => setEditDesc(e.target.value)}
+                                placeholder="설명 (선택사항)"
+                            />
+                            <div className={styles.editActions}>
+                                <button onClick={cancelEditing} className={styles.cancelButton}>취소</button>
+                                <button onClick={handleUpdatePlaylist} className={styles.saveButton}>저장</button>
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            <h1 className={styles.infoTitle}>
+                                {playlist.title}
+                                {isAdmin && (
+                                    <button onClick={startEditing} className={styles.editButton} title="정보 수정">✎</button>
+                                )}
+                            </h1>
+                            {playlist.description && (
+                                <p className={styles.infoDescription}>{playlist.description}</p>
+                            )}
+                        </>
+                    )}
+                </div>
+
                 {/* Bookmark List */}
                 <div style={{ padding: '0 16px', backgroundColor: '#111827' }}>
                     <BookmarkList
@@ -282,9 +353,11 @@ const LearningDetailPage = ({ playlistId, onClose }: Props) => {
 
             {/* Right: Sidebar */}
             <div className={styles.sidebar}>
-                {/* ... existing sidebar content ... */}
                 <div className={styles.sidebarHeader}>
-                    <h1 className={styles.playlistTitle}>{playlist.title}</h1>
+                    <h2 className={styles.playlistTitle} style={{ fontSize: '16px', marginBottom: '12px' }}>
+                        Play List ({currentVideoIndex + 1}/{videos.length})
+                    </h2>
+
                     <div className={styles.progressLabel}>
                         PROGRESS: {Math.round(((currentVideoIndex + 1) / videos.length) * 100)}%
                     </div>
