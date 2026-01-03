@@ -13,6 +13,8 @@ import { useSocialSchedulesQuery } from "../../../hooks/queries/useSocialSchedul
 import { useUserInteractions } from "../../../hooks/useUserInteractions";
 import { useEventFilters } from "./EventList/hooks/useEventFilters";
 import { useEventSelection } from "./EventList/hooks/useEventSelection";
+import { useBoardData } from "../../../contexts/BoardDataContext";
+import { useRandomizedEvents } from "./EventList/hooks/useRandomizedEvents";
 
 // Styles
 import "../styles/EventListSections.css";
@@ -85,6 +87,24 @@ const EventList: React.FC<EventListProps> = ({
     isAdminMode,
     adminType,
     fetchEvents
+  });
+
+  // 3.5 Genre Weights from BoardDataContext
+  const { data: boardData } = useBoardData();
+  const genreWeights = boardData?.genre_weights || null;
+
+  // 3.6 Memoized Randomized Lists (Moved to custom hook for cleanliness and re-randomization on menu click)
+  const {
+    randomizedFutureEvents,
+    randomizedRegularClasses,
+    randomizedClubLessons,
+    randomizedClubRegularClasses
+  } = useRandomizedEvents({
+    events,
+    genreWeights,
+    eventGenre: searchParams.get('event_genre'),
+    classGenre: searchParams.get('class_genre'),
+    clubGenre: searchParams.get('club_genre')
   });
 
   // 4. Derived States (Genres, etc.)
@@ -430,10 +450,10 @@ const EventList: React.FC<EventListProps> = ({
             return [...weekEventsAsSocial, ...socialSchedules];
           })()}
           refreshSocialSchedules={refreshSocial}
-          futureEvents={events.filter(e => e.category === 'event' && (e.end_date || e.date || "") >= getLocalDateString())}
-          regularClasses={events.filter(e => e.category === 'class' && (e.end_date || e.date || "") >= getLocalDateString())}
-          clubLessons={events.filter(e => e.category === 'club' && !e.genre?.includes('정규강습') && (e.end_date || e.date || "") >= getLocalDateString())}
-          clubRegularClasses={events.filter(e => e.category === 'club' && e.genre?.includes('정규강습'))}
+          futureEvents={randomizedFutureEvents}
+          regularClasses={randomizedRegularClasses}
+          clubLessons={randomizedClubLessons}
+          clubRegularClasses={randomizedClubRegularClasses}
           favoriteEventsList={events.filter(e => favoriteEventIds.has(e.id))}
           // events={events} // Removed
           allGenres={allGenres}
