@@ -165,8 +165,14 @@ export const EventCard = memo(({
             />
             {variant === "sliding" && !event?.image && !event?.image_thumbnail && (
               <div className="card-overlay-center">
-                <span className="card-overlay-text-semi">
-                  {event.category === "class" ? "강습" : "행사"}
+                <span className="card-overlay-text-semi manual-label-wrapper">
+                  {event.category === "class" ? (
+                    <>
+                      <span className="translated-part">Class</span>
+                      <span className="fixed-part ko" translate="no">강습</span>
+                      <span className="fixed-part en" translate="no">Class</span>
+                    </>
+                  ) : "행사"}
                 </span>
               </div>
             )}
@@ -184,21 +190,33 @@ export const EventCard = memo(({
                 : "card-bg-overlay-blue"
                 }`}
             ></div>
-            <span className="card-overlay-text-faint">
-              {event.category === "class" ? "강습" : "행사"}
+            <span className="card-overlay-text-faint manual-label-wrapper">
+              {event.category === "class" ? (
+                <>
+                  <span className="translated-part">Class</span>
+                  <span className="fixed-part ko" translate="no">강습</span>
+                  <span className="fixed-part en" translate="no">Class</span>
+                </>
+              ) : "행사"}
             </span>
           </div>
         )}
 
         <div
-          className={`card-badge ${isPast
+          className={`card-badge manual-label-wrapper ${isPast
             ? "card-badge-past"
             : event.category === "class"
               ? "card-badge-class"
               : "card-badge-event"
             }`}
         >
-          {isPast ? "종료" : event.category === "class" ? "강습" : "행사"}
+          {isPast ? "종료" : event.category === "class" ? (
+            <>
+              <span className="translated-part">Class</span>
+              <span className="fixed-part ko" translate="no">강습</span>
+              <span className="fixed-part en" translate="no">Class</span>
+            </>
+          ) : "행사"}
         </div>
 
         {onToggleFavorite && (

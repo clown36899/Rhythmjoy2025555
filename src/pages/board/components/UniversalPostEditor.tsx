@@ -417,15 +417,37 @@ export default function UniversalPostEditor({
 
                         {/* Metadata Row (Prefix & Author) */}
                         <div className="form-row">
+                            {/* Korean Select */}
                             <select
                                 value={formData.prefix_id || ''}
                                 name="prefix_id"
                                 onChange={(e) => setFormData(prev => ({ ...prev, prefix_id: e.target.value ? Number(e.target.value) : null }))}
-                                className="pem-select half-width"
+                                className="pem-select half-width lang-ko-only"
                             >
                                 <option value="">머릿말 선택</option>
                                 {prefixes.filter((p: any) => !p.admin_only).map((p: any) => (
                                     <option key={p.id} value={p.id}>{p.name}</option>
+                                ))}
+                            </select>
+                            {/* English Select */}
+                            <select
+                                value={formData.prefix_id || ''}
+                                name="prefix_id"
+                                onChange={(e) => setFormData(prev => ({ ...prev, prefix_id: e.target.value ? Number(e.target.value) : null }))}
+                                className="pem-select half-width lang-en-only"
+                            >
+                                <option value="">Select a heading</option>
+                                {prefixes.filter((p: any) => !p.admin_only).map((p: any) => (
+                                    <option key={p.id} value={p.id}>
+                                        {p.name === '강습' ? 'Class' :
+                                            p.name === '건의/신청' ? 'Requests' :
+                                                p.name === '잡담' ? 'General' :
+                                                    p.name === '행사' ? 'Event' :
+                                                        p.name === '후기' ? 'Review' :
+                                                            p.name === '토론' ? 'Discussion' :
+                                                                p.name === '구인' ? 'Jobs' :
+                                                                    p.name}
+                                    </option>
                                 ))}
                             </select>
                             {!post && (

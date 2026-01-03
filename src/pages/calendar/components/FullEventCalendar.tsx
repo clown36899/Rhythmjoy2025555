@@ -483,11 +483,12 @@ export default memo(function FullEventCalendar({
                       </div>
                     )}
 
-                    {dateIndex >= 0 && (
+                    {/* 시퀀스 배지 숨김 처리 */}
+                    {/* {dateIndex >= 0 && (
                       <div className="calendar-event-sequence-badge">
                         {dateIndex + 1}주차
                       </div>
-                    )}
+                    )} */}
                   </div>
 
                   <div className="calendar-fullscreen-title-container">

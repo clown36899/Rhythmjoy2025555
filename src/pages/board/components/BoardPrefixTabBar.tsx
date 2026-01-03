@@ -33,7 +33,11 @@ export default function BoardPrefixTabBar({ prefixes, selectedPrefixId, onPrefix
                     onClick={() => onPrefixChange(null)}
                     ref={selectedPrefixId === null ? activeRef : null}
                 >
-                    전체
+                    <span className="manual-label-wrapper">
+                        <span className="translated-part">All</span>
+                        <span className="fixed-part ko" translate="no">전체</span>
+                        <span className="fixed-part en" translate="no">All</span>
+                    </span>
                 </button>
                 {prefixes.map((prefix) => (
                     <button
@@ -46,7 +50,29 @@ export default function BoardPrefixTabBar({ prefixes, selectedPrefixId, onPrefix
                             borderColor: selectedPrefixId === prefix.id ? prefix.color : undefined
                         }}
                     >
-                        {prefix.name}
+                        <span className="manual-label-wrapper">
+                            <span className="translated-part">{
+                                prefix.name === '공지' ? 'Notice' :
+                                    prefix.name === '잡담' ? 'Discussion' :
+                                        prefix.name === '질문' ? 'Question' :
+                                            prefix.name === '정보' ? 'Info' :
+                                                prefix.name === '후기' ? 'Review' :
+                                                    prefix.name === '건의/신청' ? 'Suggestion' :
+                                                        prefix.name === '기타' ? 'Other' :
+                                                            prefix.name
+                            }</span>
+                            <span className="fixed-part ko" translate="no">{prefix.name}</span>
+                            <span className="fixed-part en" translate="no">{
+                                prefix.name === '공지' ? 'Notice' :
+                                    prefix.name === '잡담' ? 'Discussion' :
+                                        prefix.name === '질문' ? 'Question' :
+                                            prefix.name === '정보' ? 'Info' :
+                                                prefix.name === '후기' ? 'Review' :
+                                                    prefix.name === '건의/신청' ? 'Suggestion' :
+                                                        prefix.name === '기타' ? 'Other' :
+                                                            prefix.name
+                            }</span>
+                        </span>
                     </button>
                 ))}
             </div>

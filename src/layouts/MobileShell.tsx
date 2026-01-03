@@ -388,6 +388,7 @@ export function MobileShell() {
                     <h1 className="header-title" style={{ margin: 0, fontSize: 'min(4vw, 1.45rem)', minWidth: 0, flexShrink: 1, overflow: 'hidden' }}>
                       댄스빌보드
                     </h1>
+                    <span style={{ fontSize: 'min(2.2vw, 0.8rem)', color: '#9ca3af', fontWeight: 400, whiteSpace: 'nowrap' }}>korea</span>
                     {adminStats}
                   </div>
                   <span style={{ fontSize: 'min(2.5vw, 11px)', width: '100%', display: 'flex', justifyContent: 'space-between', color: '#ffffffcc', marginTop: 'min(0.3vw, 2px)', fontWeight: 500 }}>

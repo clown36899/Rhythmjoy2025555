@@ -114,10 +114,24 @@ export default function BoardDetailModal({ postId, isOpen, onClose }: BoardDetai
                                 <div className="board-detail-title-section">
                                     {post.prefix && (
                                         <span
-                                            className="board-detail-prefix"
+                                            className="board-detail-prefix manual-label-wrapper"
                                             style={{ backgroundColor: post.prefix.color }}
                                         >
-                                            {post.prefix.name}
+                                            <span className="translated-part">{
+                                                post.prefix.name === '잡담' ? 'Discussion' :
+                                                    post.prefix.name === '질문' ? 'Question' :
+                                                        post.prefix.name === '정보' ? 'Info' :
+                                                            post.prefix.name === '후기' ? 'Review' :
+                                                                post.prefix.name
+                                            }</span>
+                                            <span className="fixed-part ko" translate="no">{post.prefix.name}</span>
+                                            <span className="fixed-part en" translate="no">{
+                                                post.prefix.name === '잡담' ? 'Discussion' :
+                                                    post.prefix.name === '질문' ? 'Question' :
+                                                        post.prefix.name === '정보' ? 'Info' :
+                                                            post.prefix.name === '후기' ? 'Review' :
+                                                                post.prefix.name
+                                            }</span>
                                         </span>
                                     )}
                                     {post.is_hidden && (

@@ -224,8 +224,14 @@ export default function CalendarSearchModal({ isOpen, onClose, onSelectEvent, se
                                                     </div>
                                                 )}
                                             </div>
-                                            <div className="cal-search-item-category">
-                                                {event.category === 'class' ? '강습' : '행사'}
+                                            <div className="cal-search-item-category manual-label-wrapper">
+                                                {event.category === 'class' ? (
+                                                    <>
+                                                        <span className="translated-part">Class</span>
+                                                        <span className="fixed-part ko" translate="no">강습</span>
+                                                        <span className="fixed-part en" translate="no">Class</span>
+                                                    </>
+                                                ) : '행사'}
                                             </div>
                                         </div>
                                     ))}

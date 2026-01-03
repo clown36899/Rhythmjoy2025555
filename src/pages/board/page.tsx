@@ -470,10 +470,24 @@ export default function BoardPage() {
                   <div className="board-post-header">
                     {post.prefix && (
                       <span
-                        className="board-post-prefix"
+                        className="board-post-prefix manual-label-wrapper"
                         style={{ backgroundColor: post.prefix.color }}
                       >
-                        {post.prefix.name}
+                        <span className="translated-part">{
+                          post.prefix.name === '잡담' ? 'Discussion' :
+                            post.prefix.name === '질문' ? 'Question' :
+                              post.prefix.name === '정보' ? 'Info' :
+                                post.prefix.name === '후기' ? 'Review' :
+                                  post.prefix.name
+                        }</span>
+                        <span className="fixed-part ko" translate="no">{post.prefix.name}</span>
+                        <span className="fixed-part en" translate="no">{
+                          post.prefix.name === '잡담' ? 'Discussion' :
+                            post.prefix.name === '질문' ? 'Question' :
+                              post.prefix.name === '정보' ? 'Info' :
+                                post.prefix.name === '후기' ? 'Review' :
+                                  post.prefix.name
+                        }</span>
                       </span>
                     )}
                     <h3
@@ -590,10 +604,24 @@ export default function BoardPage() {
                     <div className="board-search-item-content">
                       {post.prefix && (
                         <span
-                          className="board-search-item-prefix"
+                          className="board-search-item-prefix manual-label-wrapper"
                           style={{ backgroundColor: post.prefix.color }}
                         >
-                          {post.prefix.name}
+                          <span className="translated-part">{
+                            post.prefix.name === '잡담' ? 'Discussion' :
+                              post.prefix.name === '질문' ? 'Question' :
+                                post.prefix.name === '정보' ? 'Info' :
+                                  post.prefix.name === '후기' ? 'Review' :
+                                    post.prefix.name
+                          }</span>
+                          <span className="fixed-part ko" translate="no">{post.prefix.name}</span>
+                          <span className="fixed-part en" translate="no">{
+                            post.prefix.name === '잡담' ? 'Discussion' :
+                              post.prefix.name === '질문' ? 'Question' :
+                                post.prefix.name === '정보' ? 'Info' :
+                                  post.prefix.name === '후기' ? 'Review' :
+                                    post.prefix.name
+                          }</span>
                         </span>
                       )}
                       <div className="board-search-item-title">{post.title}</div>

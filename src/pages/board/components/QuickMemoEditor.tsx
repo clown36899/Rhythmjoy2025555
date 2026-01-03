@@ -365,7 +365,11 @@ export default function QuickMemoEditor({
                                     checked={isNotice}
                                     onChange={handleNoticeChange}
                                 />
-                                <span>공지</span>
+                                <span className="manual-label-wrapper">
+                                    <span className="translated-part">Notice</span>
+                                    <span className="fixed-part ko" translate="no">공지</span>
+                                    <span className="fixed-part en" translate="no">Notice</span>
+                                </span>
                             </label>
                         )}
                         <input

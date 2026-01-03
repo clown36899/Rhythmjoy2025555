@@ -1094,10 +1094,14 @@ export default function EventDetailModal({
 
                         {isDefaultThumbnail && (
                           <div className="default-thumbnail-overlay">
-                            <span className="default-thumbnail-text">
-                              {selectedEvent.category === "class"
-                                ? "강습"
-                                : "행사"}
+                            <span className="default-thumbnail-text manual-label-wrapper">
+                              {selectedEvent.category === "class" ? (
+                                <>
+                                  <span className="translated-part">Class</span>
+                                  <span className="fixed-part ko" translate="no">강습</span>
+                                  <span className="fixed-part en" translate="no">Class</span>
+                                </>
+                              ) : "행사"}
                             </span>
                           </div>
                         )}
@@ -1172,17 +1176,29 @@ export default function EventDetailModal({
                         <div
                           className={`category-bg-overlay ${selectedEvent.category === "class" ? "class" : "event"}`}
                         ></div>
-                        <span className="category-bg-text">
-                          {selectedEvent.category === "class" ? "강습" : "행사"}
+                        <span className="category-bg-text manual-label-wrapper">
+                          {selectedEvent.category === "class" ? (
+                            <>
+                              <span className="translated-part">Class</span>
+                              <span className="fixed-part ko" translate="no">강습</span>
+                              <span className="fixed-part en" translate="no">Class</span>
+                            </>
+                          ) : "행사"}
                         </span>
                       </>
                     )}
 
                     {/* 카테고리 배지 - 좌측 하단 */}
                     <div
-                      className={`category-badge ${selectedEvent.category === "class" ? "class" : "event"}`}
+                      className={`category-badge manual-label-wrapper ${selectedEvent.category === "class" ? "class" : "event"}`}
                     >
-                      {selectedEvent.category === "class" ? "강습" : "행사"}
+                      {selectedEvent.category === "class" ? (
+                        <>
+                          <span className="translated-part">Class</span>
+                          <span className="fixed-part ko" translate="no">강습</span>
+                          <span className="fixed-part en" translate="no">Class</span>
+                        </>
+                      ) : "행사"}
                     </div>
                   </div>
                 );
@@ -2037,7 +2053,11 @@ export default function EventDetailModal({
                                 fontWeight: 600
                               }}
                             >
-                              강습
+                              <span className="manual-label-wrapper">
+                                <span className="translated-part">Class</span>
+                                <span className="fixed-part ko" translate="no">강습</span>
+                                <span className="fixed-part en" translate="no">Class</span>
+                              </span>
                             </button>
                             <button
                               onClick={() => {

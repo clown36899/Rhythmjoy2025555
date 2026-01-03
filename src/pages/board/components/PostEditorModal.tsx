@@ -226,8 +226,14 @@ export default function PostEditorModal({
                 {prefixes
                   .filter(prefix => !prefix.admin_only)
                   .map(prefix => (
-                    <option key={prefix.id} value={prefix.id}>
-                      {prefix.name}
+                    <option key={prefix.id} value={prefix.id} translate="no">
+                      {prefix.name === '잡담' ? 'Discussion' :
+                        prefix.name === '질문' ? 'Question' :
+                          prefix.name === '정보' ? 'Info' :
+                            prefix.name === '후기' ? 'Review' :
+                              prefix.name === '건의/신청' ? 'Suggestion' :
+                                prefix.name === '기타' ? 'Other' :
+                                  prefix.name}
                     </option>
                   ))
                 }

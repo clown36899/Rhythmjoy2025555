@@ -82,12 +82,13 @@
     padding: 8px 0;
     cursor: pointer;
 }
+
 @media (max-width: 640px) {
     .image-upload-area {
         height: 120px;
         margin-bottom: 12px;
     }
-    
+
     .universal-editor-container {
         border-top-left-radius: 1.5rem;
         border-top-right-radius: 1.5rem;
@@ -96,4 +97,13 @@
     .image-placeholder span {
         font-size: 0.8rem;
     }
+}
+
+/* Language-specific visibility */
+html[lang="ko"] .lang-en-only {
+    display: none !important;
+}
+
+html[lang="en"] .lang-ko-only {
+    display: none !important;
 }

@@ -77,7 +77,13 @@ export default function StandardPostList({
 
                 <div className="board-post-main-content">
                     <div className="board-post-header">
-                        {post.is_notice && <span className="board-notice-badge">공지</span>}
+                        {post.is_notice && (
+                            <span className="board-notice-badge manual-label-wrapper">
+                                <span className="translated-part">Notice</span>
+                                <span className="fixed-part ko" translate="no">공지</span>
+                                <span className="fixed-part en" translate="no">Notice</span>
+                            </span>
+                        )}
                         {isAdmin && post.is_hidden && (
                             <span className="board-hidden-badge" style={{
                                 backgroundColor: '#6c757d', color: 'white', fontSize: '11px', padding: '2px 6px',
@@ -87,8 +93,26 @@ export default function StandardPostList({
                             </span>
                         )}
                         {post.prefix && !post.is_notice && (
-                            <span className="board-post-prefix" style={{ color: post.prefix.color || '#fff' }}>
-                                {post.prefix.name}
+                            <span className="board-post-prefix manual-label-wrapper" style={{ color: post.prefix.color || '#fff' }}>
+                                <span className="translated-part">{
+                                    post.prefix.name === '잡담' ? 'Discussion' :
+                                        post.prefix.name === '질문' ? 'Question' :
+                                            post.prefix.name === '정보' ? 'Info' :
+                                                post.prefix.name === '후기' ? 'Review' :
+                                                    post.prefix.name === '건의/신청' ? 'Suggestion' :
+                                                        post.prefix.name === '기타' ? 'Other' :
+                                                            post.prefix.name
+                                }</span>
+                                <span className="fixed-part ko" translate="no">{post.prefix.name}</span>
+                                <span className="fixed-part en" translate="no">{
+                                    post.prefix.name === '잡담' ? 'Discussion' :
+                                        post.prefix.name === '질문' ? 'Question' :
+                                            post.prefix.name === '정보' ? 'Info' :
+                                                post.prefix.name === '후기' ? 'Review' :
+                                                    post.prefix.name === '건의/신청' ? 'Suggestion' :
+                                                        post.prefix.name === '기타' ? 'Other' :
+                                                            post.prefix.name
+                                }</span>
                             </span>
                         )}
                         <h3 className={`board-post-title ${post.is_notice ? 'board-post-title-notice' : 'board-post-title-normal'}`}>

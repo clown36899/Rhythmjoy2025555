@@ -83,7 +83,7 @@ export default function PostDetailModal({
             <h2 className="pdm-modal-title">
               {post.prefix && (
                 <span
-                  className="pdm-prefix-badge"
+                  className="pdm-prefix-badge manual-label-wrapper"
                   style={{
                     backgroundColor: post.prefix.color,
                     marginRight: '0.5rem',
@@ -93,7 +93,25 @@ export default function PostDetailModal({
                     fontWeight: '600'
                   }}
                 >
-                  {post.prefix.name}
+                  <span className="translated-part">{
+                    post.prefix.name === '잡담' ? 'Discussion' :
+                      post.prefix.name === '질문' ? 'Question' :
+                        post.prefix.name === '정보' ? 'Info' :
+                          post.prefix.name === '후기' ? 'Review' :
+                            post.prefix.name === '건의/신청' ? 'Suggestion' :
+                              post.prefix.name === '기타' ? 'Other' :
+                                post.prefix.name
+                  }</span>
+                  <span className="fixed-part ko" translate="no">{post.prefix.name}</span>
+                  <span className="fixed-part en" translate="no">{
+                    post.prefix.name === '잡담' ? 'Discussion' :
+                      post.prefix.name === '질문' ? 'Question' :
+                        post.prefix.name === '정보' ? 'Info' :
+                          post.prefix.name === '후기' ? 'Review' :
+                            post.prefix.name === '건의/신청' ? 'Suggestion' :
+                              post.prefix.name === '기타' ? 'Other' :
+                                post.prefix.name
+                  }</span>
                 </span>
               )}
               {post.title}
