@@ -112,7 +112,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
     // Check if description is overflowing
     useEffect(() => {
         const checkOverflow = () => {
-            if (memoRef.current) {
+            if (memoRef.current && !isDescriptionExpanded) { // 펼쳐진 상태에서는 체크하지 않음 (버튼 유지)
                 const isOverflow = memoRef.current.scrollHeight > memoRef.current.clientHeight;
                 setIsOverflowing(isOverflow);
             }
@@ -122,6 +122,11 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         const timer = setTimeout(checkOverflow, 100);
         return () => clearTimeout(timer);
     }, [fullDescription, currentVideoIndex, isDescriptionExpanded]);
+
+    // 영상 전환 시 초기화
+    useEffect(() => {
+        setIsDescriptionExpanded(false);
+    }, [currentVideoIndex]);
 
     // Check Admin & Debug Mount
     useEffect(() => {
@@ -567,16 +572,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                         onStateChange={handleStateChange}
                     />
 
-                    {/* Transparent Play/Pause Overlay */}
-                    <div
-                        className={`ld-custom-player-overlay ${isPlaying ? 'playing' : 'paused'}`}
-                        onClick={() => {
-                            if (isPlaying) playerRef.current?.pauseVideo();
-                            else playerRef.current?.playVideo();
-                        }}
-                    >
-                        {!isPlaying && <div className="ld-play-icon">▶</div>}
-                    </div>
+
 
                     {/* Video Overlays */}
                     {activeOverlays.map((overlay) => (
