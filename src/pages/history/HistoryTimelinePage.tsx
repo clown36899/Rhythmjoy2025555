@@ -158,7 +158,7 @@ export default function HistoryTimelinePage() {
             setLoading(true);
             const { data: nodesData } = await supabase
                 .from('history_nodes')
-                .select('*, linked_playlist:learning_playlists(*), linked_document:learning_documents(*)')
+                .select('*, linked_playlist:learning_playlists(*), linked_document:learning_documents(*), linked_video:learning_videos(*)')
                 .order('year', { ascending: true });
 
             const { data: edgesData } = await supabase
@@ -168,6 +168,27 @@ export default function HistoryTimelinePage() {
             const flowNodes: Node[] = (nodesData || []).map((node: any) => {
                 const lp = node.linked_playlist;
                 const ld = node.linked_document;
+                const lv = node.linked_video;
+
+                // Determine display data
+                let title = node.title;
+                let year = node.year;
+                let desc = node.description;
+                let category = node.category;
+
+                if (lp) {
+                    title = lp.title;
+                    year = lp.year;
+                    desc = lp.description;
+                } else if (ld) {
+                    title = ld.title;
+                    year = ld.year;
+                    desc = ld.content;
+                } else if (lv) {
+                    title = lv.title;
+                    year = lv.year;
+                    desc = lv.description;
+                }
 
                 return {
                     id: String(node.id),
@@ -175,19 +196,20 @@ export default function HistoryTimelinePage() {
                     position: { x: node.position_x || 0, y: node.position_y || 0 },
                     data: {
                         id: node.id,
-                        // Priority: Linked Data > Snapshot Data
-                        title: lp ? lp.title : (ld ? ld.title : node.title),
+                        title,
                         date: node.date,
-                        year: lp ? lp.year : (ld ? ld.year : node.year),
-                        description: lp ? lp.description : (ld ? ld.content : node.description),
+                        year,
+                        description: desc,
                         youtube_url: node.youtube_url, // URL은 스냅샷 유지 (재생 편의성)
-                        category: node.category,
+                        category,
                         tags: node.tags,
                         linked_playlist_id: node.linked_playlist_id,
                         linked_document_id: node.linked_document_id,
+                        linked_video_id: node.linked_video_id,
                         onEdit: handleEditNode,
                         onViewDetail: handleViewDetail,
                         onPlayVideo: handlePlayVideo,
+                        nodeType: lp ? 'playlist' : (ld ? 'document' : (lv ? 'video' : 'default')),
                     },
                 };
             });
@@ -408,8 +430,10 @@ export default function HistoryTimelinePage() {
 
             if (draggedResource.type === 'playlist') {
                 newNodeData.linked_playlist_id = draggedResource.id;
-            } else {
+            } else if (draggedResource.type === 'document') {
                 newNodeData.linked_document_id = draggedResource.id;
+            } else if (draggedResource.type === 'video') {
+                newNodeData.linked_video_id = draggedResource.id;
             }
 
             supabase

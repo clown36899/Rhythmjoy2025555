@@ -269,6 +269,40 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
     const fetchPlaylistData = async (targetId: string) => {
         try {
             setError(null);
+
+            // Check if it's a standalone video (prefixed with 'video:')
+            if (targetId.startsWith('video:')) {
+                const videoId = targetId.replace('video:', '');
+
+                // Fetch Standalone Video
+                const { data: videoData, error: videoError } = await supabase
+                    .from('learning_videos')
+                    .select('*')
+                    .eq('id', videoId)
+                    .maybeSingle();
+
+                if (videoError) throw videoError;
+
+                if (!videoData) {
+                    setError('요청하신 영상을 찾을 수 없습니다.');
+                    return;
+                }
+
+                // Create a fake playlist object to satisfy the UI structure
+                setPlaylist({
+                    id: videoData.id, // Using video ID as playlist ID context
+                    title: videoData.title,
+                    description: videoData.description || '',
+                    author_id: videoData.author_id,
+                    year: videoData.year,
+                    is_on_timeline: videoData.is_on_timeline
+                });
+
+                setVideos([videoData]); // Single video in the list
+                return;
+            }
+
+            // Normal Playlist Logic
             // 1. Fetch Playlist Info
             const { data: listData, error: listError } = await supabase
                 .from('learning_playlists')
@@ -354,8 +388,19 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
 
         // 새 플레이어 생성
         setTimeout(() => {
-            const element = document.getElementById(playerId);
-            if (!element) return;
+            const container = document.querySelector('.ld-player-wrapper');
+            if (!container) return;
+
+            // 기존 요소 제거하고 새 div 생성
+            const oldElement = document.getElementById(playerId);
+            if (oldElement) {
+                oldElement.remove();
+            }
+
+            const newDiv = document.createElement('div');
+            newDiv.id = playerId;
+            newDiv.className = 'ld-youtube-player';
+            container.appendChild(newDiv);
 
             playerRef.current = new window.YT.Player(playerId, {
                 videoId,
@@ -396,7 +441,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         if (!isPlaying || !playerRef.current) return;
 
         const interval = setInterval(() => {
-            if (playerRef.current) {
+            if (playerRef.current && typeof playerRef.current.getCurrentTime === 'function') {
                 const time = playerRef.current.getCurrentTime();
                 setCurrentTime(time);
             }
@@ -427,7 +472,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
     };
 
     const seekTo = (seconds: number) => {
-        if (playerRef.current) {
+        if (playerRef.current && typeof playerRef.current.seekTo === 'function') {
             playerRef.current.seekTo(seconds, true);
 
             // 1. 현재 시간 상태 즉시 업데이트
@@ -460,7 +505,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
     };
 
     const handleAddBookmark = () => {
-        if (!playerRef.current) return;
+        if (!playerRef.current || typeof playerRef.current.getCurrentTime !== 'function') return;
         const currentSeconds = playerRef.current.getCurrentTime();
         setBookmarkLabel('');
         setIsOverlayBookmark(false);
@@ -638,8 +683,12 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
     const handleUpdateTimelineSettings = async () => {
         if (!playlist) return;
 
+        // DB Updates
+        const isStandalone = playlistId?.startsWith('video:');
+        const table = isStandalone ? 'learning_videos' : 'learning_playlists';
+
         const { error } = await supabase
-            .from('learning_playlists')
+            .from(table)
             .update({
                 year: editYear ? parseInt(editYear) : null,
                 is_on_timeline: editIsOnTimeline

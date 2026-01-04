@@ -65,7 +65,22 @@ interface LearningPlaylist {
     is_on_timeline: boolean;
 }
 
-type LearningItem = Playlist | LearningDocument;
+type LearningItem = Playlist | LearningDocument | StandaloneVideo;
+
+interface StandaloneVideo {
+    id: string;
+    title: string;
+    youtube_video_id: string;
+    thumbnail_url: string;
+    description: string;
+    category_id: string | null;
+    year: number | null;
+    is_on_timeline: boolean;
+    is_public: boolean;
+    author_id: string;
+    created_at: string;
+    type: 'standalone_video';
+}
 
 const LearningPage = () => {
     const navigate = useNavigate();
@@ -80,10 +95,11 @@ const LearningPage = () => {
     const [adminMode, setAdminMode] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
     const [showDocumentModal, setShowDocumentModal] = useState(false); // 문서 모달 상태 추가
-    const [moveModal, setMoveModal] = useState<{ isOpen: boolean; playlistId: string; categoryId: string | null }>({
+    const [moveModal, setMoveModal] = useState<{ isOpen: boolean; playlistId: string; categoryId: string | null; itemType?: 'playlist' | 'document' | 'standalone_video' }>({
         isOpen: false,
         playlistId: '',
-        categoryId: null
+        categoryId: null,
+        itemType: 'playlist'
     });
     const [isSyncing, setIsSyncing] = useState(false);
 
@@ -163,7 +179,23 @@ const LearningPage = () => {
 
             if (categoriesError) throw categoriesError;
 
-            // Combine items
+            if (documentsError) throw documentsError;
+
+            // 3. Fetch Standalone Videos (playlist_id is null)
+            let videoQuery = supabase
+                .from('learning_videos')
+                .select('*')
+                .is('playlist_id', null)
+                .order('created_at', { ascending: false });
+
+            if (!adminMode) {
+                videoQuery = videoQuery.eq('is_public', true);
+            }
+
+            const { data: videosData, error: videosError } = await videoQuery;
+            if (videosError) throw videosError;
+
+            // 4. Fetch Categories
             const combinedItems: LearningItem[] = [
                 ...(playlistsData || []).map((item: any) => ({
                     ...item,
@@ -173,6 +205,10 @@ const LearningPage = () => {
                 ...(documentsData || []).map((item: any) => ({
                     ...item,
                     type: 'document' as const
+                })),
+                ...(videosData || []).map((item: any) => ({
+                    ...item,
+                    type: 'standalone_video' as const
                 }))
             ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
@@ -219,11 +255,13 @@ const LearningPage = () => {
 
     // Admin Actions
     const handleDelete = async (item: LearningItem) => {
-        const typeLabel = item.type === 'playlist' ? '재생목록' : '문서';
+        const typeLabel = item.type === 'playlist' ? '재생목록' :
+            item.type === 'standalone_video' ? '영상' : '문서';
         if (!confirm(`정말로 이 ${typeLabel}을(를) 삭제하시겠습니까?`)) return;
 
         try {
-            const table = item.type === 'playlist' ? 'learning_playlists' : 'learning_documents';
+            const table = item.type === 'playlist' ? 'learning_playlists' :
+                item.type === 'standalone_video' ? 'learning_videos' : 'learning_documents';
             const { error } = await supabase
                 .from(table)
                 .delete()
@@ -346,11 +384,13 @@ const LearningPage = () => {
 
     const togglePublic = async (item: LearningItem, e: React.MouseEvent) => {
         e.stopPropagation();
-        const typeLabel = item.type === 'playlist' ? '재생목록' : '문서';
+        const typeLabel = item.type === 'playlist' ? '재생목록' :
+            item.type === 'standalone_video' ? '영상' : '문서';
         if (!confirm(`${typeLabel}을(를) ${item.is_public ? '비공개' : '공개'}로 전환하시겠습니까?`)) return;
 
         try {
-            const table = item.type === 'playlist' ? 'learning_playlists' : 'learning_documents';
+            const table = item.type === 'playlist' ? 'learning_playlists' :
+                item.type === 'standalone_video' ? 'learning_videos' : 'learning_documents';
             const { error } = await supabase
                 .from(table)
                 .update({ is_public: !item.is_public })
@@ -369,7 +409,8 @@ const LearningPage = () => {
             const item = items.find(i => i.id === itemId);
             if (!item) return;
 
-            const table = item.type === 'playlist' ? 'learning_playlists' : 'learning_documents';
+            const table = item.type === 'playlist' ? 'learning_playlists' :
+                item.type === 'standalone_video' ? 'learning_videos' : 'learning_documents';
 
             const { error } = await supabase
                 .from(table)
@@ -387,12 +428,27 @@ const LearningPage = () => {
     };
 
     // Handling Playlist Click (Modal on Desktop, Navigate on Mobile)
-    const handlePlaylistClick = (playlistId: string) => {
+    const handlePlaylistClick = (itemId: string, itemType: string = 'playlist') => {
+        if (itemType === 'document') {
+            setViewingDocId(itemId);
+            return;
+        }
+
+        if (itemType === 'standalone_video') {
+            const isDesktop = window.innerWidth > 768;
+            if (isDesktop) {
+                setViewingPlaylistId(`video:${itemId}`);
+            } else {
+                navigate(`/learning/video:${itemId}`);
+            }
+            return;
+        }
+
         const isDesktop = window.innerWidth > 768; // Simple check, match CSS media query
         if (isDesktop) {
-            setViewingPlaylistId(playlistId);
+            setViewingPlaylistId(itemId);
         } else {
-            navigate(`/learning/${playlistId}`);
+            navigate(`/learning/${itemId}`);
         }
     }; // Added semicolon
 
@@ -502,6 +558,14 @@ const LearningPage = () => {
                                     onClick={() => {
                                         if (item.type === 'playlist') {
                                             handlePlaylistClick(item.id);
+                                        } else if (item.type === 'standalone_video') {
+                                            // Handle standalone video click - navigate to detail with type param or just ID
+                                            const isDesktop = window.innerWidth > 768;
+                                            if (isDesktop) {
+                                                setViewingPlaylistId(`video:${item.id}`); // Special prefix for video
+                                            } else {
+                                                navigate(`/learning/video:${item.id}`);
+                                            }
                                         } else {
                                             setViewingDocId(item.id);
                                         }
@@ -512,8 +576,9 @@ const LearningPage = () => {
                                         if (!adminMode) return;
                                         setDraggedPlaylistSourceId(item.category_id || null);
                                         e.dataTransfer.setData('application/json', JSON.stringify({
-                                            type: 'PLAYLIST_MOVE', // Keep same type for compatibility or rename to ITEM_MOVE
-                                            playlistId: item.id
+                                            type: 'PLAYLIST_MOVE', // Keep same type for compatibility
+                                            playlistId: item.id,
+                                            itemType: item.type
                                         }));
                                         e.dataTransfer.effectAllowed = 'move';
                                     }}
@@ -522,7 +587,7 @@ const LearningPage = () => {
                                     }}
                                 >
                                     <div className="thumbnailContainer">
-                                        {item.type === 'playlist' ? (
+                                        {item.type === 'playlist' || item.type === 'standalone_video' ? (
                                             item.thumbnail_url ? (
                                                 <img
                                                     src={item.thumbnail_url}
@@ -546,6 +611,13 @@ const LearningPage = () => {
                                             </div>
                                         )}
 
+                                        {item.type === 'standalone_video' && (
+                                            <div className="videoCountBadge" style={{ background: 'rgba(79, 70, 229, 0.9)' }}>
+                                                <span className="videoCountIcon">📹</span>
+                                                <span className="videoCountText">단일 영상</span>
+                                            </div>
+                                        )}
+
                                         {adminMode && item.type === 'playlist' && item.youtube_playlist_id && (
                                             <div className="adminBadge ytLinked">YT Linked</div>
                                         )}
@@ -561,7 +633,7 @@ const LearningPage = () => {
                                         <div className="cardHeader">
                                             <h3 className="cardTitle">{item.title}</h3>
                                         </div>
-                                        {(item.type === 'playlist' && item.description) && (
+                                        {(item.type === 'playlist' || item.type === 'standalone_video') && item.description && (
                                             <p className="cardDescription">{item.description}</p>
                                         )}
                                         {(item.type === 'document' && item.content) && (
@@ -647,8 +719,12 @@ const LearningPage = () => {
                 <MovePlaylistModal
                     playlistId={moveModal.playlistId}
                     currentCategoryId={moveModal.categoryId}
+                    itemType={moveModal.itemType || 'playlist'}
                     onClose={() => setMoveModal({ ...moveModal, isOpen: false })}
-                    onSuccess={fetchData}
+                    onSuccess={() => {
+                        fetchData();
+                        setMoveModal({ ...moveModal, isOpen: false });
+                    }}
                 />
             )}
         </div>

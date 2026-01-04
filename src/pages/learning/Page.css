@@ -199,6 +199,15 @@
     /* Document green accent */
 }
 
+.card.standalone_video {
+    background: rgba(49, 46, 129, 0.4);
+    /* Slightly purple/indigo for standalone */
+}
+
+.card.standalone_video .thumbnailContainer {
+    border-bottom: 2px solid rgba(129, 140, 248, 0.3);
+}
+
 .card.document .thumbnailContainer {
     aspect-ratio: 4 / 3;
     /* More vertical-ish than 16:9 */

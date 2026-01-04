@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
-import { extractPlaylistId, fetchPlaylistInfo, fetchPlaylistVideos } from '../utils/youtube';
+import { extractPlaylistId, fetchPlaylistInfo, fetchPlaylistVideos, extractVideoId, fetchVideoDetails } from '../utils/youtube';
 import styles from './PlaylistImportModal.module.css';
 
 interface Props {
@@ -52,67 +52,102 @@ export const PlaylistImportModal = ({ onClose, onSuccess }: Props) => {
         try {
             setIsLoading(true);
             setError(null);
-            setStatus('재생목록 정보 가져오는 중...');
+            setStatus('정보 가져오는 중...');
 
             if (!categoryId) {
                 throw new Error('카테고리(폴더)를 선택해주세요.');
             }
 
             const playlistId = extractPlaylistId(url);
-            if (!playlistId) {
-                throw new Error('유효한 유튜브 재생목록 URL이 아닙니다.');
-            }
+            const videoId = extractVideoId(url);
 
-            // 1. 재생목록 정보 가져오기
-            const playlistInfo = await fetchPlaylistInfo(playlistId);
-
-            // 2. 비디오 목록 가져오기
-            setStatus(`비디오 목록 가져오는 중... (${playlistInfo.title})`);
-            const videos = await fetchPlaylistVideos(playlistId);
-
-            if (videos.length === 0) {
-                throw new Error('재생목록에 영상이 없습니다.');
+            if (!playlistId && !videoId) {
+                throw new Error('유효한 유튜브 재생목록 또는 동영상 URL이 아닙니다.');
             }
 
             // 3. DB 저장 - 사용자 정보 가져오기
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('로그인이 필요합니다.');
 
-            setStatus('DB에 저장하는 중...');
+            if (playlistId) {
+                // --- 재생목록 처리 로직 ---
+                setStatus('재생목록 정보 가져오는 중...');
+                const playlistInfo = await fetchPlaylistInfo(playlistId);
 
-            // 3-1. 재생목록 저장 (category_id, year, is_on_timeline 추가)
-            const { data: playlist, error: playlistError } = await supabase
-                .from('learning_playlists')
-                .insert({
-                    title: playlistInfo.title,
-                    description: playlistInfo.description,
-                    thumbnail_url: playlistInfo.thumbnail,
-                    author_id: user.id,
-                    is_public: isPublic, // 사용자가 선택한 공개/비공개 설정
-                    youtube_playlist_id: playlistInfo.id,
-                    category_id: categoryId, // 선택한 폴더 ID
-                    year: year ? parseInt(year) : null, // 연도 저장
-                    is_on_timeline: isOnTimeline // 타임라인 표시 여부 저장
-                })
-                .select()
-                .single();
+                setStatus(`비디오 목록 가져오는 중... (${playlistInfo.title})`);
+                const videos = await fetchPlaylistVideos(playlistId);
 
-            if (playlistError) throw playlistError;
+                if (videos.length === 0) {
+                    throw new Error('재생목록에 영상이 없습니다.');
+                }
 
-            // 3-2. 비디오 저장
-            const videoData = videos.map((video, index) => ({
-                playlist_id: playlist.id,
-                youtube_video_id: video.resourceId.videoId,
-                title: video.title,
-                order_index: index,
-                memo: video.description?.slice(0, 100),
-            }));
+                setStatus('DB에 저장하는 중...');
 
-            const { error: videoError } = await supabase
-                .from('learning_videos')
-                .insert(videoData);
+                // 3-1. 재생목록 저장
+                const { data: playlist, error: playlistError } = await supabase
+                    .from('learning_playlists')
+                    .insert({
+                        title: playlistInfo.title,
+                        description: playlistInfo.description,
+                        thumbnail_url: playlistInfo.thumbnail,
+                        author_id: user.id,
+                        is_public: isPublic,
+                        youtube_playlist_id: playlistInfo.id,
+                        category_id: categoryId,
+                        year: year ? parseInt(year) : null,
+                        is_on_timeline: isOnTimeline
+                    })
+                    .select()
+                    .single();
 
-            if (videoError) throw videoError;
+                if (playlistError) throw playlistError;
+
+                // 3-2. 비디오 저장
+                const videoData = videos.map((video, index) => ({
+                    playlist_id: playlist.id,
+                    youtube_video_id: video.resourceId.videoId,
+                    title: video.title,
+                    order_index: index,
+                    memo: video.description?.slice(0, 100),
+                }));
+
+                const { error: videoError } = await supabase
+                    .from('learning_videos')
+                    .insert(videoData);
+
+                if (videoError) throw videoError;
+
+            } else if (videoId) {
+                // --- 개별 동영상 처리 로직 ---
+                setStatus('동영상 정보 가져오는 중...');
+                const videoInfo = await fetchVideoDetails(videoId);
+
+                if (!videoInfo) {
+                    throw new Error('동영상 정보를 가져올 수 없습니다.');
+                }
+
+                setStatus('DB에 저장하는 중...');
+
+                // 3-1. 개별 동영상 저장 (playlist_id 없이 직접 저장)
+                const { error: videoError } = await supabase
+                    .from('learning_videos')
+                    .insert({
+                        playlist_id: null, // 개별 영상
+                        youtube_video_id: videoInfo.id,
+                        title: videoInfo.title,
+                        description: videoInfo.description, // 원본 설명 저장
+                        memo: videoInfo.description?.slice(0, 100), // 메모용
+                        thumbnail_url: videoInfo.thumbnail,
+                        author_id: user.id,
+                        is_public: isPublic,
+                        category_id: categoryId,
+                        year: year ? parseInt(year) : null,
+                        is_on_timeline: isOnTimeline,
+                        order_index: 0
+                    });
+
+                if (videoError) throw videoError;
+            }
 
             setStatus('완료!');
             onSuccess();
@@ -144,7 +179,7 @@ export const PlaylistImportModal = ({ onClose, onSuccess }: Props) => {
         <div className={styles.overlay}>
             <div className={styles.modal}>
                 <div className={styles.header}>
-                    <h3 className={styles.title}>유튜브 재생목록 가져오기</h3>
+                    <h3 className={styles.title}>유튜브 영상/재생목록 가져오기</h3>
                     <button onClick={onClose} className={styles.closeButton}>✕</button>
                 </div>
 
@@ -212,7 +247,7 @@ export const PlaylistImportModal = ({ onClose, onSuccess }: Props) => {
                             type="text"
                             value={url}
                             onChange={(e) => setUrl(e.target.value)}
-                            placeholder="https://www.youtube.com/playlist?list=..."
+                            placeholder="https://www.youtube.com/playlist?list=... 또는 영상 URL"
                             className={styles.input}
                         />
                     </div>

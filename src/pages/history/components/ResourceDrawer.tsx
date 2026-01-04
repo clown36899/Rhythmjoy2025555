@@ -6,7 +6,7 @@ interface ResourceItem {
     id: string;
     title: string;
     year: number;
-    type: 'playlist' | 'document';
+    type: 'playlist' | 'document' | 'video';
     category_id?: string;
     description?: string;
     youtube_url?: string;
@@ -50,6 +50,16 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart }: Props) => {
 
             if (dError) throw dError;
 
+            // Fetch Standalone Videos with year and on timeline
+            const { data: videos, error: vError } = await supabase
+                .from('learning_videos')
+                .select('*')
+                .is('playlist_id', null)
+                .not('year', 'is', null)
+                .eq('is_on_timeline', true);
+
+            if (vError) throw vError;
+
             const combined: ResourceItem[] = [
                 ...(playlists || []).map(p => ({
                     id: p.id,
@@ -65,6 +75,14 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart }: Props) => {
                     year: d.year,
                     type: 'document' as const,
                     content: d.content
+                })),
+                ...(videos || []).map(v => ({
+                    id: v.id,
+                    title: v.title,
+                    year: v.year,
+                    type: 'video' as const,
+                    description: v.description,
+                    youtube_url: `https://www.youtube.com/watch?v=${v.youtube_video_id}`
                 }))
             ];
 
@@ -125,7 +143,7 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart }: Props) => {
                                         onDragStart={(e) => onDragStart(e, item)}
                                     >
                                         <span className="item-icon">
-                                            {item.type === 'playlist' ? '💿' : '📄'}
+                                            {item.type === 'playlist' ? '💿' : item.type === 'video' ? '📹' : '📄'}
                                         </span>
                                         <div className="item-info">
                                             <span className="item-title">{item.title}</span>

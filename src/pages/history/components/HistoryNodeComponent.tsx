@@ -60,7 +60,9 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
         }
     };
 
-    const linkedType = data.linked_playlist_id ? 'playlist' : data.linked_document_id ? 'document' : 'none';
+    const linkedType = data.linked_playlist_id ? 'playlist' :
+        data.linked_document_id ? 'document' :
+            data.linked_video_id ? 'video' : 'none';
 
     return (
         <div
@@ -92,8 +94,8 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
                             {getCategoryIcon(data.category || 'general')}
                         </span>
                     )}
-                    {(data.linked_playlist_id || data.linked_document_id) && (
-                        <span className={`history-node-link-badge ${data.linked_playlist_id ? 'playlist' : ''}`} title="학습 자료와 연동됨">
+                    {(data.linked_playlist_id || data.linked_document_id || data.linked_video_id) && (
+                        <span className={`history-node-link-badge ${linkedType}`} title="학습 자료와 연동됨">
                             <i className="ri-link"></i>
                         </span>
                     )}
@@ -121,7 +123,7 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
                     <button className="node-action-btn btn-edit" onClick={handleEdit} title="수정">
                         <i className="ri-edit-line"></i>
                     </button>
-                    {(data.linked_playlist_id || data.linked_document_id) && (
+                    {(data.linked_playlist_id || data.linked_document_id || data.linked_video_id) && (
                         <button
                             className="node-action-btn btn-linked-resource"
                             onClick={(e) => {
@@ -130,6 +132,8 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
                                     navigate(`/learning/${data.linked_playlist_id}`);
                                 } else if (data.linked_document_id) {
                                     navigate(`/learning?docId=${data.linked_document_id}`);
+                                } else if (data.linked_video_id) {
+                                    navigate(`/learning/video:${data.linked_video_id}`);
                                 }
                             }}
                             title="연결된 원본 자료 보기"

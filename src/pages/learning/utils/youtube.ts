@@ -34,6 +34,23 @@ export const extractPlaylistId = (url: string): string | null => {
 };
 
 /**
+ * 유튜브 비디오 ID 추출
+ */
+export const extractVideoId = (url: string): string | null => {
+    try {
+        const urlObj = new URL(url);
+        // Short URL (youtu.be)
+        if (urlObj.hostname === 'youtu.be') {
+            return urlObj.pathname.slice(1);
+        }
+        // Standard URL (youtube.com)
+        return urlObj.searchParams.get('v');
+    } catch (e) {
+        return null;
+    }
+};
+
+/**
  * 재생목록 기본 정보 가져오기
  */
 export const fetchPlaylistInfo = async (playlistId: string): Promise<YouTubePlaylistInfo> => {

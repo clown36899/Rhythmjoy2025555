@@ -13,11 +13,12 @@ interface Category {
 interface Props {
     playlistId: string;
     currentCategoryId: string | null;
+    itemType?: 'playlist' | 'document' | 'standalone_video';
     onClose: () => void;
     onSuccess: () => void;
 }
 
-export const MovePlaylistModal = ({ playlistId, currentCategoryId, onClose, onSuccess }: Props) => {
+export const MovePlaylistModal = ({ playlistId, currentCategoryId, itemType = 'playlist', onClose, onSuccess }: Props) => {
     const [categoryId, setCategoryId] = useState<string | null>(currentCategoryId);
     const [categories, setCategories] = useState<Category[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -46,8 +47,11 @@ export const MovePlaylistModal = ({ playlistId, currentCategoryId, onClose, onSu
         try {
             setIsLoading(true);
 
+            const table = itemType === 'playlist' ? 'learning_playlists' :
+                itemType === 'standalone_video' ? 'learning_videos' : 'learning_documents';
+
             const { error } = await supabase
-                .from('learning_playlists')
+                .from(table)
                 .update({ category_id: categoryId })
                 .eq('id', playlistId);
 

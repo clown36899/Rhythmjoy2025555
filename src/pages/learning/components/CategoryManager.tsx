@@ -16,6 +16,7 @@ interface Playlist {
     id: string;
     title: string;
     category_id: string | null;
+    type?: 'playlist' | 'document' | 'standalone_video';
 }
 
 interface Props {
@@ -445,11 +446,16 @@ export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId
                 onClick={(e) => {
                     e.stopPropagation();
                     if (onPlaylistClick) {
-                        onPlaylistClick(playlist.id);
+                        // Pass type as second argument if supported by parent, otherwise parent receives just ID (backward compat issue resolved by parent update)
+                        // Casting to any to allow passing extra arg without breaking loose typing if parent updated
+                        (onPlaylistClick as any)(playlist.id, playlist.type || 'playlist');
                     }
                 }}
             >
-                <span className="folderIcon">💿</span>
+                <span className="folderIcon">
+                    {playlist.type === 'document' ? '📄' :
+                        playlist.type === 'standalone_video' ? '📹' : '💿'}
+                </span>
                 <span className="categoryName">
                     {playlist.title}
                 </span>
