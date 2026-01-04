@@ -53,16 +53,6 @@ const LearningPage = () => {
     // Modal State
     const [viewingPlaylistId, setViewingPlaylistId] = useState<string | null>(null);
 
-    // Layout Override: Escape the 650px mobile limit on desktop
-    useEffect(() => {
-        // Set data attribute for CSS to apply full-width styles
-        document.body.setAttribute('data-learning-route', 'true');
-
-        // Cleanup: Remove attribute when leaving this route
-        return () => {
-            document.body.removeAttribute('data-learning-route');
-        };
-    }, []);
 
     useEffect(() => {
         checkAdmin();

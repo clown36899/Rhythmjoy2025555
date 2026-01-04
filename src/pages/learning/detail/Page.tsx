@@ -32,6 +32,7 @@ interface Bookmark {
     overlay_x?: number;  // 0-100 퍼센트
     overlay_y?: number;  // 0-100 퍼센트
     overlay_duration?: number;  // 초 단위
+    overlay_scale?: number; // 크기 배율 (0.5 ~ 2.0)
 }
 
 interface Props {
@@ -56,7 +57,8 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
     const playerRef = useRef<any>(null); // To access YT player
     const memoRef = useRef<HTMLDivElement>(null); // To check if memo is overflowing
 
-    const [isEditingInfo, setIsEditingInfo] = useState(false);
+    const [isEditingTitle, setIsEditingTitle] = useState(false);
+    const [isEditingDesc, setIsEditingDesc] = useState(false);
     const [editTitle, setEditTitle] = useState('');
     const [editDesc, setEditDesc] = useState('');
     const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -75,9 +77,11 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
     const [overlayX, setOverlayX] = useState(50); // 중앙
     const [overlayY, setOverlayY] = useState(50); // 중앙
     const [overlayDuration, setOverlayDuration] = useState(5);
+    const [overlayScale, setOverlayScale] = useState(1.0); // 기본 크기
     const [isDraggingMarker, setIsDraggingMarker] = useState(false);
     const [editingBookmarkId, setEditingBookmarkId] = useState<string | null>(null);
     const [modalTimestamp, setModalTimestamp] = useState<number | null>(null);
+    const previewPlayerRef = useRef<any>(null);
 
     // Video Overlay States
     const [currentTime, setCurrentTime] = useState(0);
@@ -128,15 +132,22 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         checkAdmin();
 
         console.log('[DetailPage] Mounted. PropId:', propPlaylistId, 'Params:', params);
-
-        // Set data attribute for full-width layout on desktop
-        document.body.setAttribute('data-learning-route', 'true');
-
-        // Cleanup: Remove attribute when leaving
-        return () => {
-            document.body.removeAttribute('data-learning-route');
-        };
     }, []);
+
+    // 미리보기 플레이어 시간 동기화 (modalTimestamp 변경 시)
+    useEffect(() => {
+        if (showBookmarkModal && previewPlayerRef.current && modalTimestamp !== null) {
+            try {
+                if (previewPlayerRef.current.getIframe && previewPlayerRef.current.getIframe()) {
+                    previewPlayerRef.current.seekTo(modalTimestamp, true);
+                    // 장면 갱신을 위해 정지 상태 유지
+                    previewPlayerRef.current.pauseVideo();
+                }
+            } catch (e) {
+                console.warn("Preview sync failed", e);
+            }
+        }
+    }, [modalTimestamp, showBookmarkModal]);
 
     useEffect(() => {
         if (!playlistId) {
@@ -316,6 +327,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         setOverlayX(mark.overlay_x || 50);
         setOverlayY(mark.overlay_y || 50);
         setOverlayDuration(mark.overlay_duration || 3);
+        setOverlayScale(mark.overlay_scale || 1.0);
         setEditingBookmarkId(id);
         setModalTimestamp(mark.timestamp);
         setShowBookmarkModal(true);
@@ -333,13 +345,17 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
             overlay_x: isOverlayBookmark ? overlayX : null,
             overlay_y: isOverlayBookmark ? overlayY : null,
             overlay_duration: isOverlayBookmark ? overlayDuration : null,
+            overlay_scale: isOverlayBookmark ? overlayScale : null,
         };
 
         if (editingBookmarkId) {
             // Update
             const { error } = await supabase
                 .from('learning_video_bookmarks')
-                .update(bookmarkData)
+                .update({
+                    timestamp,
+                    ...bookmarkData
+                })
                 .eq('id', editingBookmarkId);
 
             if (error) {
@@ -399,35 +415,100 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
     };
 
     // --- Edit Infomation Handlers ---
-    const startEditing = () => {
+    const startEditingTitle = () => {
         if (!playlist) return;
         setEditTitle(playlist.title);
+        setIsEditingTitle(true);
+    };
+
+    const cancelEditingTitle = () => {
+        setIsEditingTitle(false);
+    };
+
+    const handleUpdateTitle = async () => {
+        if (!playlist) return;
+        if (!editTitle.trim()) {
+            alert("제목을 입력해주세요.");
+            return;
+        }
+
+        const { error } = await supabase
+            .from('learning_playlists')
+            .update({ title: editTitle })
+            .eq('id', playlist.id);
+
+        if (error) {
+            console.error("Title update failed", error);
+            alert("제목 수정 실패");
+        } else {
+            setIsEditingTitle(false);
+            setRefreshTrigger(prev => prev + 1);
+        }
+    };
+
+    const startEditingDesc = () => {
+        if (!playlist) return;
         setEditDesc(playlist.description || '');
-        setIsEditingInfo(true);
+        setIsEditingDesc(true);
+
+        // 부드럽게 스크롤
+        setTimeout(() => {
+            window.scrollTo({
+                top: document.body.scrollHeight,
+                behavior: 'smooth'
+            });
+        }, 100);
     };
 
-    const cancelEditing = () => {
-        setIsEditingInfo(false);
+    const cancelEditingDesc = () => {
+        setIsEditingDesc(false);
     };
 
-    const handleUpdatePlaylist = async () => {
+    const handleUpdateDesc = async () => {
         if (!playlist) return;
 
         const { error } = await supabase
             .from('learning_playlists')
-            .update({
-                title: editTitle,
-                description: editDesc
-            })
+            .update({ description: editDesc })
             .eq('id', playlist.id);
 
         if (error) {
-            console.error("Update failed", error);
-            alert("수정 실패");
+            console.error("Description update failed", error);
+            alert("설명 수정 실패");
         } else {
-            setIsEditingInfo(false);
-            setRefreshTrigger(prev => prev + 1); // Refresh data
+            setIsEditingDesc(false);
+            setRefreshTrigger(prev => prev + 1);
         }
+    };
+
+    // --- Helper Utilities ---
+    const formatTimestamp = (seconds: number) => {
+        const s = Math.round(seconds);
+        const mins = Math.floor(s / 60);
+        const secs = s % 60;
+        return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    const parseTimestamp = (mmss: string) => {
+        const parts = mmss.split(':');
+        if (parts.length !== 2) return null;
+        const mins = parseInt(parts[0], 10);
+        const secs = parseInt(parts[1], 10);
+        if (isNaN(mins) || isNaN(secs)) return null;
+        return mins * 60 + secs;
+    };
+
+    const captureCurrentTime = () => {
+        if (!playerRef.current) return;
+        const current = playerRef.current.getCurrentTime();
+        setModalTimestamp(Math.round(current)); // 반올림하여 정수 저장
+    };
+
+    const adjTime = (amount: number) => {
+        setModalTimestamp(prev => {
+            const newVal = Math.round((prev || 0) + amount); // 1초 단위 명확하게 보장
+            return Math.max(0, newVal);
+        });
     };
 
     // --- Render Loading / Error States ---
@@ -519,6 +600,8 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                             style={{
                                 left: `${overlay.overlay_x || 50}%`,
                                 top: `${overlay.overlay_y || 50}%`,
+                                // transform을 하나로 합쳐서 충돌 방지
+                                transform: `translate(-50%, -50%) scale(${overlay.overlay_scale || 1})`
                             }}
                         >
                             {overlay.label}
@@ -589,7 +672,13 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
 
                 {/* Playlist Description Editor (Bottom) */}
                 <div className="ld-description-section">
-                    {isEditingInfo ? (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                        <h4 style={{ margin: 0, color: '#9ca3af', fontSize: '14px' }}>재생목록 설명</h4>
+                        {isAdmin && !isEditingDesc && (
+                            <button onClick={startEditingDesc} className="ld-edit-button-small">✎ 수정</button>
+                        )}
+                    </div>
+                    {isEditingDesc ? (
                         <div className="ld-edit-container">
                             <textarea
                                 className="ld-edit-textarea"
@@ -598,13 +687,15 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                                 placeholder="설명 (선택사항)"
                             />
                             <div className="ld-edit-actions">
-                                <button onClick={cancelEditing} className="ld-cancel-button">취소</button>
-                                <button onClick={handleUpdatePlaylist} className="ld-save-button">저장</button>
+                                <button onClick={cancelEditingDesc} className="ld-cancel-button">취소</button>
+                                <button onClick={handleUpdateDesc} className="ld-save-button">저장</button>
                             </div>
                         </div>
                     ) : (
-                        playlist.description && (
+                        playlist.description ? (
                             <p className="ld-info-description">{playlist.description}</p>
+                        ) : (
+                            <p className="ld-info-description no-content">등록된 설명이 없습니다.</p>
                         )
                     )}
                 </div>
@@ -616,20 +707,25 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                         {/* Playlist Info Section (Title Only) */}
                         <div className="ld-sidebar-info" style={{ flex: 1 }}>
-                            {isEditingInfo ? (
-                                <div className="ld-edit-container">
+                            {isEditingTitle ? (
+                                <div className="ld-edit-container-mini">
                                     <input
-                                        className="ld-edit-input"
+                                        className="ld-edit-input-mini"
                                         value={editTitle}
                                         onChange={(e) => setEditTitle(e.target.value)}
                                         placeholder="재생목록 제목"
+                                        autoFocus
                                     />
+                                    <div className="ld-edit-actions-mini">
+                                        <button onClick={handleUpdateTitle} className="ld-save-button-mini">확인</button>
+                                        <button onClick={cancelEditingTitle} className="ld-cancel-button-mini">취소</button>
+                                    </div>
                                 </div>
                             ) : (
                                 <h2 className="ld-sidebar-playlist-title">
                                     {playlist.title}
                                     {isAdmin && (
-                                        <button onClick={startEditing} className="ld-edit-button" title="정보 수정">✎</button>
+                                        <button onClick={startEditingTitle} className="ld-edit-button" title="제목 수정">✎</button>
                                     )}
                                 </h2>
                             )}
@@ -694,6 +790,53 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                         </h3>
 
                         <div className="ld-bookmark-modal-field">
+                            <label>시간 설정</label>
+                            <div className="ld-time-edit-container">
+                                <div className="ld-time-input-group">
+                                    <input
+                                        type="text"
+                                        value={modalTimestamp !== null ? formatTimestamp(modalTimestamp) : ''}
+                                        onChange={(e) => {
+                                            const parsed = parseTimestamp(e.target.value);
+                                            if (parsed !== null) setModalTimestamp(parsed);
+                                        }}
+                                        placeholder="MM:SS"
+                                        className="ld-bookmark-modal-input-time"
+                                    />
+                                    <button
+                                        className="ld-capture-time-btn"
+                                        onClick={captureCurrentTime}
+                                        title="현재 재생 시간 가져오기"
+                                    >
+                                        🕒 현재 시간
+                                    </button>
+                                </div>
+
+                                <div className="ld-time-adj-buttons">
+                                    <button onClick={() => adjTime(-5)} className="ld-adj-btn">-5s</button>
+                                    <button onClick={() => adjTime(-1)} className="ld-adj-btn">-1s</button>
+                                    <button onClick={() => adjTime(1)} className="ld-adj-btn">+1s</button>
+                                    <button onClick={() => adjTime(5)} className="ld-adj-btn">+5s</button>
+                                </div>
+
+                                <div className="ld-time-slider-container">
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max={playerRef.current?.getDuration() || 3600}
+                                        value={modalTimestamp || 0}
+                                        onChange={(e) => setModalTimestamp(Number(e.target.value))}
+                                        className="ld-time-range-slider"
+                                    />
+                                    <div className="ld-slider-labels">
+                                        <span>00:00</span>
+                                        <span>{playerRef.current ? formatTimestamp(playerRef.current.getDuration()) : '--:--'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="ld-bookmark-modal-field">
                             <label>이름</label>
                             <input
                                 type="text"
@@ -731,18 +874,37 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                                             <YouTube
                                                 videoId={currentVideo.youtube_video_id}
                                                 opts={{
+                                                    host: 'https://www.youtube.com',
                                                     playerVars: {
-                                                        start: Math.floor(modalTimestamp || 0),
                                                         autoplay: 1,
                                                         controls: 0,
                                                         modestbranding: 1,
                                                         mute: 1,
+                                                        rel: 0,
+                                                        iv_load_policy: 3
                                                     },
                                                 }}
                                                 onReady={(e) => {
-                                                    // 해당 초로 확실히 이동 후 일시정지
-                                                    e.target.seekTo(modalTimestamp || 0, true);
-                                                    setTimeout(() => e.target.pauseVideo(), 500);
+                                                    if (!showBookmarkModal) return;
+                                                    previewPlayerRef.current = e.target;
+
+                                                    // 특정 시간으로 바로 이동하여 장면 로딩 유도
+                                                    if (modalTimestamp !== null) {
+                                                        e.target.seekTo(modalTimestamp, true);
+                                                    }
+
+                                                    // 약간의 지연 후 정지 (장면이 뜰 시간을 줌)
+                                                    setTimeout(() => {
+                                                        if (previewPlayerRef.current && previewPlayerRef.current.pauseVideo) {
+                                                            previewPlayerRef.current.pauseVideo();
+                                                        }
+                                                    }, 500);
+                                                }}
+                                                onPlay={(e) => {
+                                                    // 미리보기 모드에서는 항상 정지 상태 유지
+                                                    if (e.target && e.target.pauseVideo) {
+                                                        e.target.pauseVideo();
+                                                    }
                                                 }}
                                                 className="ld-preview-video-element"
                                             />
@@ -753,6 +915,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                                             style={{
                                                 left: `${overlayX}%`,
                                                 top: `${overlayY}%`,
+                                                transform: `translate(-50%, -50%) scale(${overlayScale})`,
                                                 cursor: isDraggingMarker ? 'grabbing' : 'grab'
                                             }}
                                             onMouseDown={handleMarkerDragStart}
@@ -772,6 +935,19 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                                         max="10"
                                         value={overlayDuration}
                                         onChange={(e) => setOverlayDuration(Number(e.target.value))}
+                                        className="ld-bookmark-modal-slider"
+                                    />
+                                </div>
+
+                                <div className="ld-bookmark-modal-field">
+                                    <label>메모 크기: {Math.round(overlayScale * 100)}%</label>
+                                    <input
+                                        type="range"
+                                        min="0.5"
+                                        max="2.5"
+                                        step="0.1"
+                                        value={overlayScale}
+                                        onChange={(e) => setOverlayScale(Number(e.target.value))}
                                         className="ld-bookmark-modal-slider"
                                     />
                                 </div>

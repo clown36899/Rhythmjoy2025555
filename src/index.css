@@ -27,13 +27,13 @@ body {
 /* 🖥️ Desktop Support: 650px fixed width (Base rule applies) */
 /* @media (min-width: 769px) removed to enforce 650px */
 
-/* 🎓 Learning Route: Full Width on Desktop */
-@media (min-width: 769px) {
-
-  body[data-learning-route="true"],
-  body[data-learning-route="true"] #root {
-    max-width: none !important;
-  }
+/* 🎓 Learning Route: Full Width (Structural Isolation) */
+html.learning-layout-active,
+html.learning-layout-active body,
+html.learning-layout-active #root {
+  max-width: none !important;
+  margin: 0 !important;
+  width: 100% !important;
 }
 
 /* 📱 Mobile PWA Portrait Lock (Fallback for iOS) */

@@ -57,6 +57,7 @@ const TestDeletePage = lazy(() => import('../pages/TestDeletePage'));
 export const prefetchLearningPage = () => import('../pages/learning/Page');
 const LearningPage = lazy(prefetchLearningPage);
 const LearningDetailPage = lazy(() => import('../pages/learning/detail/Page'));
+const LearningLayout = lazy(() => import('../layouts/LearningLayout'));
 
 
 export const routes: RouteObject[] = [
@@ -94,12 +95,17 @@ export const routes: RouteObject[] = [
         element: <EventPhotoFinderPage />,
     },
     {
-        path: '/learning',
-        element: <LearningPage />,
-    },
-    {
-        path: '/learning/:listId',
-        element: <LearningDetailPage />,
-    },
+        element: <LearningLayout />,
+        children: [
+            {
+                path: '/learning',
+                element: <LearningPage />,
+            },
+            {
+                path: '/learning/:listId',
+                element: <LearningDetailPage />,
+            },
+        ]
+    }
 
 ];

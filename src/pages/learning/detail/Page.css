@@ -6,6 +6,8 @@
     background-color: #111827;
     /* gray-900 */
     overflow: hidden;
+    letter-spacing: -0.02em;
+    /* 전체적인 가독성 향상 */
 }
 
 @media (min-width: 768px) {
@@ -86,6 +88,8 @@
     flex-shrink: 0;
     /* Prevent shrinking */
     position: relative;
+    container-type: inline-size;
+    /* 컨테이너 쿼리 활성화 */
 }
 
 .ld-youtube-player {
@@ -96,20 +100,24 @@
 /* Video Overlay (appears during playback) */
 .ld-video-overlay {
     position: absolute;
-    transform: translate(-50%, -50%);
+    /* transform(translate, scale)은 Page.tsx 인라인 스타일에서 관리 */
     background-color: rgba(37, 99, 235, 0.95);
     color: white;
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-size: 15px;
+    padding: 0.8cqi 2.2cqi;
+    /* 비율 기반 패딩 */
+    border-radius: 1cqi;
+    font-size: 3.4cqi;
+    /* 컨테이너 크기에 완벽 비례 (무한 축소) */
     font-weight: 600;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-    border: 2px solid rgba(96, 165, 250, 0.8);
+    box-shadow: 0 0.5cqi 1.5cqi rgba(0, 0, 0, 0.5);
+    /* 그림자도 컨테이너 비례 */
+    border: 0.3cqi solid rgba(96, 165, 250, 0.8);
     pointer-events: none;
     z-index: 20;
-    animation: overlayFadeIn 0.1s ease-out;
+    animation: overlayFadeIn 0.15s ease-out;
     white-space: nowrap;
-    max-width: 80%;
+    max-width: 95%;
+    /* 더 넓게 허용 */
     overflow: hidden;
     text-overflow: ellipsis;
 }
@@ -117,24 +125,60 @@
 @keyframes overlayFadeIn {
     from {
         opacity: 0;
-        transform: translate(-50%, -50%) scale(0.9);
     }
 
     to {
         opacity: 1;
-        transform: translate(-50%, -50%) scale(1);
     }
+}
+
+/* Bookmark Modal Styles */
+.ld-time-input-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.ld-bookmark-modal-input-time {
+    background-color: #1f2937;
+    border: 1px solid #4b5563;
+    border-radius: 4px;
+    padding: 8px 12px;
+    color: white;
+    font-size: 16px;
+    width: 100px;
+    text-align: center;
+    font-family: monospace;
+}
+
+.ld-capture-time-btn {
+    background-color: #374151;
+    color: #e5e7eb;
+    border: 1px solid #4b5563;
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.ld-capture-time-btn:hover {
+    background-color: #4b5563;
+    color: white;
 }
 
 
 /* Info Section (Title & Description) */
 .ld-info-section {
-    padding: 24px;
+    padding: clamp(16px, 3vw, 24px);
     border-top: 1px solid #1f2937;
 }
 
 .ld-info-title {
-    font-size: 24px;
+    font-size: clamp(18px, 4vw, 24px);
     font-weight: bold;
     color: white;
     margin-bottom: 12px;
@@ -145,7 +189,7 @@
 }
 
 .ld-info-description {
-    font-size: 16px;
+    font-size: clamp(14px, 2.5vw, 16px);
     color: #d1d5db;
     /* gray-300 */
     line-height: 1.6;
@@ -163,29 +207,109 @@
     border-radius: 8px;
 }
 
-.ld-edit-input,
 .ld-edit-textarea {
     background-color: #374151;
     border: 1px solid #4b5563;
-    border-radius: 4px;
-    padding: 8px 12px;
+    border-radius: 8px;
+    /* 더 부드러운 라운드 */
+    padding: 12px 16px;
+    /* 더 여유로운 패딩 */
     color: white;
     font-size: 16px;
     width: 100%;
+    line-height: 1.6;
+    /* 가독성 좋은 줄 간격 */
+    transition: all 0.2s ease-in-out;
+}
+
+.ld-edit-input:focus,
+.ld-edit-textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    /* 파란색 강조 */
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    /* 은은한 글로우 효과 */
+    background-color: #1f2937;
+    /* 포커스 시 배경 살짝 어둡게 */
 }
 
 /* Description Section (at bottom of main area) */
 .ld-description-section {
-    padding: 24px;
+    padding: clamp(16px, 4vw, 24px);
     background-color: #111827;
     border-top: 1px solid #1f2937;
-    margin-bottom: 40px;
-    /* Spacing at bottom */
+    padding-bottom: 120px;
+    /* 버튼 잘림 방지를 위한 넉넉한 하단 공간 */
 }
 
 .ld-edit-textarea {
     min-height: 120px;
     resize: vertical;
+}
+
+.ld-info-description.no-content {
+    color: #4b5563;
+    font-style: italic;
+    font-size: 14px;
+}
+
+/* Mini Edit Mode (for Title) */
+.ld-edit-container-mini {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.ld-edit-input-mini {
+    background-color: #1f2937;
+    border: 1px solid #3b82f6;
+    border-radius: 4px;
+    padding: 6px 10px;
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    width: 100%;
+}
+
+.ld-edit-actions-mini {
+    display: flex;
+    gap: 6px;
+}
+
+.ld-save-button-mini,
+.ld-cancel-button-mini {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    border: none;
+}
+
+.ld-save-button-mini {
+    background-color: #2563eb;
+    color: white;
+}
+
+.ld-cancel-button-mini {
+    background-color: #374151;
+    color: #9ca3af;
+}
+
+.ld-edit-button-small {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #9ca3af;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ld-edit-button-small:hover {
+    color: white;
+    background-color: rgba(255, 255, 255, 0.1);
 }
 
 .ld-edit-actions {
@@ -750,6 +874,8 @@
     cursor: crosshair;
     touch-action: none;
     /* 드래그 시 스크롤 방지 */
+    container-type: inline-size;
+    /* 컨테이너 쿼리 활성화 */
 }
 
 .ld-overlay-preview::after {
@@ -802,27 +928,35 @@
 
 .ld-overlay-marker {
     position: absolute;
-    transform: translate(-50%, -50%);
+    /* transform은 Page.tsx에서 동적으로 처리 (scale 포함) */
     display: flex;
     align-items: center;
-    gap: 4px;
-    background-color: rgba(37, 99, 235, 0.9);
-    padding: 6px 12px;
-    border-radius: 6px;
-    border: 2px solid #60a5fa;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    gap: 0.5cqi;
+    background-color: rgba(37, 99, 235, 0.95);
+    /* 실제 오버레이와 동일 */
+    padding: 0.8cqi 2.2cqi;
+    /* 실제 오버레이와 동일 */
+    border-radius: 1cqi;
+    /* 실제 오버레이와 동일 */
+    border: 0.3cqi solid rgba(96, 165, 250, 0.8);
+    /* 실제 오버레이와 동일 */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    /* 실제 오버레이와 동일 */
     user-select: none;
     z-index: 10;
 }
 
 .ld-overlay-marker-icon {
-    font-size: 16px;
+    font-size: 3.4cqi;
+    /* 실제 오버레이 폰트와 통일 */
+    margin-right: 0.5cqi;
 }
 
 .ld-overlay-marker-text {
-    font-size: 13px;
+    font-size: 3.4cqi;
+    /* 실제 오버레이 폰트와 통일 */
     color: white;
-    font-weight: 500;
+    font-weight: 600;
     white-space: nowrap;
 }
 
@@ -833,6 +967,7 @@
     background: #374151;
     outline: none;
     -webkit-appearance: none;
+    appearance: none;
 }
 
 .ld-bookmark-modal-slider::-webkit-slider-thumb {
