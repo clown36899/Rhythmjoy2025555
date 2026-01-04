@@ -1,18 +1,25 @@
 .board-prefix-tab-bar {
+    background-color: rgb(23 23 23 / 85%);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     position: fixed;
     top: 108px;
-    /* 60px header + 48px tab bar */
     left: 0;
     right: 0;
     margin: 0 auto;
+    z-index: 44;
     width: 100%;
     max-width: 650px;
-    z-index: 44;
-    background: #171711;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    padding: 0;
     height: 48px;
-    box-sizing: border-box;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    padding: 0 4px;
+    scrollbar-width: none;
+    transition: top 0.3s ease;
 }
 
 .board-prefix-scroller {

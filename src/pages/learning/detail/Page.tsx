@@ -412,7 +412,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                     enablejsapi: 1,
                 },
                 events: {
-                    onReady: (event: any) => {
+                    onReady: () => {
                         // Player ready
                     },
                     onStateChange: (event: any) => {

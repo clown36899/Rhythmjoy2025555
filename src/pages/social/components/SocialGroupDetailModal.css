@@ -20,6 +20,7 @@
     max-width: 480px;
     border-radius: 16px;
     overflow: hidden;
+    border: 1px solid #ffffff17;
     position: relative;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
     animation: slideUp 0.3s ease-out;

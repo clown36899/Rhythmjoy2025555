@@ -26,9 +26,6 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
     const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
     const scrollerRef = useRef<HTMLDivElement | null>(null);
     const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0, opacity: 0 });
-    const isInitialLoad = useRef(true);
-    const [showTransition, setShowTransition] = useState(false);
-    const [isReady, setIsReady] = useState(false);
 
     useEffect(() => {
         loadCategories();
@@ -44,12 +41,6 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
 
     const loadCategories = () => {
         try {
-            // Temporarily disable transition during category update to prevent flicker
-            const wasReady = isReady;
-            if (wasReady) {
-                setShowTransition(false);
-            }
-
             const dbCategories = data?.categories;
             if (dbCategories && dbCategories.length > 0) {
                 // Map DB data to UI format
@@ -94,14 +85,8 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
                 }]);
             }
 
-            // Re-enable transition after a brief delay
-            if (wasReady) {
-                requestAnimationFrame(() => {
-                    requestAnimationFrame(() => {
-                        setShowTransition(true);
-                    });
-                });
-            }
+            // Transition logic removed for simplicity
+
         } catch (error) {
             console.error('Failed to load board categories:', error);
             setCategories([...DEFAULT_CATEGORIES, {

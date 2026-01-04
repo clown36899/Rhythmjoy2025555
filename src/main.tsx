@@ -42,6 +42,7 @@ import LearningPage from './pages/learning/Page';
 import LearningDetailPage from './pages/learning/detail/Page';
 // import HistoryPage from './pages/history/Page';
 import HistoryTimelinePage from './pages/history/HistoryTimelinePage';
+import KakaoCallbackPage from './pages/auth/kakao-callback/page';
 
 const router = createBrowserRouter([
   {
@@ -71,6 +72,7 @@ const router = createBrowserRouter([
       { path: "/guide", element: <GuidePage /> },
       { path: "/board/*", element: <BoardPage /> },
       { path: "/my-activities", element: <MyActivitiesPage /> },
+      { path: "/auth/kakao-callback", element: <KakaoCallbackPage /> },
 
       // 스윙피디아 (Archive) Routes - MobileShell 내부에 중첩
       {
