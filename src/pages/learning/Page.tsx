@@ -109,15 +109,13 @@ const LearningPage = () => {
         // For now, we will assume true for testing if session exists, 
         // or strictly check specific email/ID as requested "관리자빼고는 수정못하게"
         const { data: { session } } = await supabase.auth.getSession();
-        console.log('🔍 Admin Check - Session:', session ? 'EXISTS' : 'NULL');
         if (session) {
             // TODO: Replace with real admin permission check (e.g. from profiles or custom claims)
             // For now, allow any logged in user to see the button (but acting as admin should probably be restricted)
             // Or better, check specific email if known or just set true for dev
             setIsAdmin(true);
-            console.log('✅ Admin status set to TRUE');
         } else {
-            console.log('❌ No session - Admin status remains FALSE');
+            setIsAdmin(false);
         }
     };
 
@@ -403,49 +401,31 @@ const LearningPage = () => {
 
     return (
         <div className="container">
-            {/* Header */}
-            <div className="explorerHeader">
-                <div className="headerLeft">
-                    <h1 className="explorerTitle">Learning Gallery</h1>
-                </div>
-
-                <div className="headerRight">
-                    {isAdmin && (
-                        <>
-                            <button
-                                className={`adminToggleBtn ${adminMode ? 'active' : ''}`}
-                                onClick={() => setAdminMode(!adminMode)}
-                            >
-                                {adminMode ? '관리자 모드 종료' : '⚙️ 관리자 모드'}
+            {/* Admin Floating Toolbar */}
+            {isAdmin && (
+                <div className="archive-floating-admin-toolbar">
+                    <button
+                        className={`admin-tool-btn toggle-btn ${adminMode ? 'active' : ''}`}
+                        onClick={() => setAdminMode(!adminMode)}
+                        title={adminMode ? '관리자 모드 종료' : '관리자 모드'}
+                    >
+                        <i className="ri-settings-3-line"></i>
+                    </button>
+                    {adminMode && (
+                        <div className="admin-sub-tools">
+                            <button onClick={handleSyncAll} className="admin-tool-btn" disabled={isSyncing} title="전체 동기화">
+                                <i className="ri-refresh-line"></i>
                             </button>
-                            {adminMode && (
-                                <>
-                                    <button
-                                        onClick={handleSyncAll}
-                                        className="syncAllButton"
-                                        disabled={isSyncing}
-                                    >
-                                        <span>🔄</span> 전체 동기화
-                                    </button>
-                                    <button
-                                        onClick={() => setShowImportModal(true)}
-                                        className="importButton"
-                                    >
-                                        <span>📺</span> 영상 가져오기
-                                    </button>
-                                    <button
-                                        onClick={() => setShowDocumentModal(true)}
-                                        className="importButton"
-                                        style={{ backgroundColor: '#059669' }}
-                                    >
-                                        <span>📄</span> 문서 등록
-                                    </button>
-                                </>
-                            )}
-                        </>
+                            <button onClick={() => setShowImportModal(true)} className="admin-tool-btn" title="영상 가져오기">
+                                <i className="ri-youtube-line"></i>
+                            </button>
+                            <button onClick={() => setShowDocumentModal(true)} className="admin-tool-btn doc-btn" title="문서 등록">
+                                <i className="ri-file-add-line"></i>
+                            </button>
+                        </div>
                     )}
                 </div>
-            </div>
+            )}
 
             {/* Content Modals */}
             {viewingPlaylistId && (

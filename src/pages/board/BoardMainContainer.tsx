@@ -128,7 +128,7 @@ export default function BoardMainContainer() {
     // Handle Category Change
     const handleCategoryChange = (newCategory: BoardCategory) => {
         if (newCategory === 'history') {
-            navigate('/history');
+            navigate('/learning');
             return;
         }
         setSearchParams({ category: newCategory }, { replace: true });

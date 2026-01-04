@@ -1,0 +1,110 @@
+.archive-layout-container {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    height: 100svh;
+    background-color: #09090b;
+    color: #fafafa;
+    overflow: hidden;
+    padding-top: 60px;
+    /* MobileShell Header offset */
+    padding-bottom: 70px;
+    /* Bottom Nav offset */
+    box-sizing: border-box;
+}
+
+.archive-layout-container.has-sub-header {
+    padding-top: 110px;
+    /* Header(60px) + SubHeader(50px) offset */
+}
+
+.archive-sub-header {
+    position: fixed;
+    top: 60px;
+    left: 0;
+    /* Right below MobileShell header */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 16px;
+    height: 50px;
+    background: rgba(9, 9, 11, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    z-index: 48;
+    /* Just below main header (49) */
+    width: 100%;
+}
+
+.archive-content {
+    flex: 1;
+    position: relative;
+    padding-top: 0;
+    /* Content fills the padded container */
+}
+
+.archive-content.is-learning {
+    overflow-y: auto;
+}
+
+.archive-content.is-history {
+    overflow: hidden;
+}
+
+/* Legacy title and back button removed */
+
+.archive-mode-tabs {
+    display: flex;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 4px;
+    border-radius: 12px;
+    gap: 4px;
+}
+
+.mode-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: #71717a;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mode-tab i {
+    font-size: 1.1rem;
+}
+
+.mode-tab.active {
+    background: #ffffff;
+    color: #09090b;
+    box-shadow: 0 4px 15px rgba(255, 255, 255, 0.15), 0 2px 5px rgba(0, 0, 0, 0.2);
+    font-weight: 700;
+}
+
+.mode-tab:not(.active):hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fafafa;
+    transform: translateY(-1px);
+}
+
+/* Page specific rules handled above */
+
+/* Mobile optimizations */
+@media (max-width: 480px) {
+    .archive-sub-header {
+        height: 46px;
+        padding: 6px 12px;
+    }
+
+    .mode-tab {
+        padding: 6px 14px;
+        font-size: 0.8rem;
+    }
+}

@@ -1,12 +1,19 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import YouTube, { type YouTubeProps } from 'react-youtube';
 import { supabase } from '../../../lib/supabase';
 import { BookmarkList } from '../components/BookmarkList';
 import { fetchVideoDetails } from '../utils/youtube';
 import { renderTextWithLinks } from '../utils/text';
 import { HistoryContextWidget } from '../components/HistoryContextWidget';
 import './Page.css';
+
+// YouTube IFrame API 타입 선언
+declare global {
+    interface Window {
+        YT: any;
+        onYouTubeIframeAPIReady: () => void;
+    }
+}
 
 
 interface Video {
@@ -91,9 +98,31 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
     const [modalTimestamp, setModalTimestamp] = useState<number | null>(null);
     const previewPlayerRef = useRef<any>(null);
 
+    // YouTube API Ready State
+    const [youtubeApiReady, setYoutubeApiReady] = useState(false);
+
     // Video Overlay States
     const [currentTime, setCurrentTime] = useState(0);
     const [activeOverlays, setActiveOverlays] = useState<Bookmark[]>([]);
+
+    // Load YouTube IFrame API
+    useEffect(() => {
+        if (window.YT && window.YT.Player) {
+            setYoutubeApiReady(true);
+            return;
+        }
+
+        if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
+            const tag = document.createElement('script');
+            tag.src = 'https://www.youtube.com/iframe_api';
+            const firstScriptTag = document.getElementsByTagName('script')[0];
+            firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+        }
+
+        window.onYouTubeIframeAPIReady = () => {
+            setYoutubeApiReady(true);
+        };
+    }, []);
 
     // Fetch Full Description on Video Change
     useEffect(() => {
@@ -144,18 +173,83 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         };
         checkAdmin();
 
-        console.log('[DetailPage] Mounted. PropId:', propPlaylistId, 'Params:', params);
     }, []);
+
+    // 북마크 모달 미리보기 플레이어 초기화
+    useEffect(() => {
+        if (!youtubeApiReady || !showBookmarkModal || !videos.length || !videos[currentVideoIndex]) return;
+
+        const videoId = videos[currentVideoIndex].youtube_video_id;
+        const playerId = 'preview-youtube-player';
+
+        // 기존 플레이어 정리
+        if (previewPlayerRef.current) {
+            try {
+                previewPlayerRef.current.destroy();
+            } catch (e) {
+                // Ignore
+            }
+            previewPlayerRef.current = null;
+        }
+
+        // 새 플레이어 생성
+        setTimeout(() => {
+            const element = document.getElementById(playerId);
+            if (!element) return;
+
+            previewPlayerRef.current = new window.YT.Player(playerId, {
+                videoId,
+                playerVars: {
+                    autoplay: 1,
+                    controls: 0,
+                    modestbranding: 1,
+                    mute: 1,
+                    rel: 0,
+                    iv_load_policy: 3,
+                    enablejsapi: 1,
+                },
+                events: {
+                    onReady: (event: any) => {
+                        event.target.mute();
+                        if (modalTimestamp !== null) {
+                            event.target.seekTo(modalTimestamp, true);
+                        }
+                        event.target.playVideo();
+                    },
+                    onStateChange: (event: any) => {
+                        // 재생 시작(1) 시 즉시 일시정지하여 프레임 가시화
+                        if (event.data === 1) {
+                            event.target.pauseVideo();
+                        }
+                    },
+                },
+            });
+        }, 100);
+
+        return () => {
+            if (previewPlayerRef.current) {
+                try {
+                    previewPlayerRef.current.destroy();
+                } catch (e) {
+                    // Ignore
+                }
+                previewPlayerRef.current = null;
+            }
+        };
+    }, [youtubeApiReady, showBookmarkModal, videos, currentVideoIndex, modalTimestamp]);
 
     // 미리보기 플레이어 시간 동기화 (modalTimestamp 변경 시)
     useEffect(() => {
         if (showBookmarkModal && previewPlayerRef.current && modalTimestamp !== null) {
             try {
                 const player = previewPlayerRef.current;
-                if (player.getIframe && player.getIframe()) {
+                if (player.seekTo) {
                     player.seekTo(modalTimestamp, true);
                     // 장면 갱신을 위해 잠깐 재생 후 정지 유도
                     player.playVideo();
+                    setTimeout(() => {
+                        player.pauseVideo();
+                    }, 100);
                 }
             } catch (e) {
                 console.warn("Preview sync failed", e);
@@ -169,7 +263,6 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
             setError('재생목록 ID를 찾을 수 없습니다.');
             return;
         }
-        console.log('[DetailPage] Fetching for ID:', playlistId);
         fetchPlaylistData(playlistId);
     }, [playlistId, refreshTrigger]);
 
@@ -181,10 +274,16 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                 .from('learning_playlists')
                 .select('*')
                 .eq('id', targetId)
-                .single();
+                .maybeSingle();
 
             if (listError) throw listError;
-            console.log('[DetailPage] Playlist Loaded:', listData.title);
+
+            if (!listData) {
+                console.warn('[DetailPage] Playlist not found for ID:', targetId);
+                setError('요청하신 재생목록을 찾을 수 없거나 접근 권한이 없습니다.');
+                return;
+            }
+
             setPlaylist(listData);
 
             // 2. Fetch Videos
@@ -195,7 +294,6 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                 .order('order_index', { ascending: true });
 
             if (videoError) throw videoError;
-            console.log('[DetailPage] Videos Loaded:', videoData?.length);
 
             if (videoData && videoData.length > 0) {
                 setVideos(videoData);
@@ -217,20 +315,15 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
     }, [currentVideoIndex, videos, refreshTrigger]);
 
     const fetchBookmarks = async (videoId: string) => {
-        console.log('[FetchBookmarks] Fetching for video ID:', videoId);
         const { data, error } = await supabase
             .from('learning_video_bookmarks')
             .select('*')
             .eq('video_id', videoId)
             .order('timestamp', { ascending: true });
 
-        console.log('[FetchBookmarks] Response:', { data, error });
-
         if (!error && data) {
-            console.log('[FetchBookmarks] Setting bookmarks:', data);
             setBookmarks(data);
         } else {
-            console.log('[FetchBookmarks] No bookmarks or error');
             setBookmarks([]);
         }
     };
@@ -242,14 +335,61 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
 
-    const onPlayerReady: YouTubeProps['onReady'] = (event) => {
-        playerRef.current = event.target;
-    };
+    // YouTube Player 초기화 (메인 플레이어)
+    useEffect(() => {
+        if (!youtubeApiReady || !videos.length || !videos[currentVideoIndex]) return;
 
-    const handleStateChange: YouTubeProps['onStateChange'] = (event) => {
-        setIsPlaying(event.data === 1); // 1 = Playing
-        if (event.data === 0) playNext(); // 0 = Ended
-    };
+        const videoId = videos[currentVideoIndex].youtube_video_id;
+        const playerId = 'main-youtube-player';
+
+        // 기존 플레이어 정리
+        if (playerRef.current) {
+            try {
+                playerRef.current.destroy();
+            } catch (e) {
+                console.warn('Player destroy failed', e);
+            }
+            playerRef.current = null;
+        }
+
+        // 새 플레이어 생성
+        setTimeout(() => {
+            const element = document.getElementById(playerId);
+            if (!element) return;
+
+            playerRef.current = new window.YT.Player(playerId, {
+                videoId,
+                playerVars: {
+                    autoplay: 0,
+                    modestbranding: 1,
+                    rel: 0,
+                    iv_load_policy: 3,
+                    autohide: 1,
+                    enablejsapi: 1,
+                },
+                events: {
+                    onReady: (event: any) => {
+                        // Player ready
+                    },
+                    onStateChange: (event: any) => {
+                        setIsPlaying(event.data === 1); // 1 = Playing
+                        if (event.data === 0) playNext(); // 0 = Ended
+                    },
+                },
+            });
+        }, 100);
+
+        return () => {
+            if (playerRef.current) {
+                try {
+                    playerRef.current.destroy();
+                } catch (e) {
+                    // Ignore
+                }
+                playerRef.current = null;
+            }
+        };
+    }, [youtubeApiReady, currentVideoIndex, videos]);
 
     // Track current playback time
     useEffect(() => {
@@ -551,57 +691,33 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
     if (videos.length === 0) return <div className="ld-message-container">콘텐츠를 찾을 수 없습니다.</div>;
 
     const currentVideo = videos[currentVideoIndex] || { youtube_video_id: '' };
-    console.log('[DetailPage] Current Memo:', currentVideo.memo?.length, currentVideo.memo);
 
     return (
         <div className={`ld-container ${playlistId ? '' : ''}`}>
             {/* Left: Player Area */}
             <div className="ld-player-area">
                 {/* Header */}
-                <div className="ld-header">
-                    <button
-                        onClick={() => {
-                            if (onClose) {
-                                onClose();
-                            } else {
-                                navigate('/learning');
-                            }
-                        }}
-                        className="ld-back-button"
-                    >
-                        ← 갤러리로
-                    </button>
-
-                    {isAdmin && (
-                        <button
-                            onClick={handleAddBookmark}
-                            className="ld-back-button"
-                            style={{ marginLeft: 'auto', backgroundColor: 'rgba(37, 99, 235, 0.6)' }}
-                        >
-                            + 북마크 추가
+                {/* Header (Show only if modal) */}
+                {onClose && (
+                    <div className="ld-header">
+                        <button onClick={onClose} className="ld-back-button">
+                            ← 닫기
                         </button>
-                    )}
-                </div>
+                    </div>
+                )}
+
+                {/* Floating Admin Action (Page View) */}
+                {!onClose && isAdmin && (
+                    <div className="ld-floating-actions">
+                        <button onClick={handleAddBookmark} className="ld-fab-btn" title="북마크 추가">
+                            <i className="ri-bookmark-3-line"></i>
+                        </button>
+                    </div>
+                )}
 
                 {/* YouTube Player Wrapper */}
                 <div className="ld-player-wrapper">
-                    <YouTube
-                        videoId={currentVideo.youtube_video_id}
-                        opts={{
-                            width: '100%',
-                            height: '100%',
-                            playerVars: {
-                                autoplay: 0,
-                                modestbranding: 1,
-                                rel: 0,
-                                iv_load_policy: 3,
-                                autohide: 1,
-                            },
-                        }}
-                        className="ld-youtube-player"
-                        onReady={onPlayerReady}
-                        onStateChange={handleStateChange}
-                    />
+                    <div id="main-youtube-player" className="ld-youtube-player"></div>
 
 
 
@@ -894,41 +1010,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                                     onTouchEnd={handleMarkerDragEnd}
                                 >
                                     <div className="ld-preview-player-wrapper">
-                                        <YouTube
-                                            videoId={currentVideo.youtube_video_id}
-                                            opts={{
-                                                host: 'https://www.youtube.com',
-                                                playerVars: {
-                                                    autoplay: 1,
-                                                    controls: 0,
-                                                    modestbranding: 1,
-                                                    mute: 1,
-                                                    rel: 0,
-                                                    iv_load_policy: 3,
-                                                    origin: window.location.origin
-                                                },
-                                            }}
-                                            onReady={(e) => {
-                                                if (!showBookmarkModal) return;
-                                                previewPlayerRef.current = e.target;
-                                                e.target.mute();
-                                                if (modalTimestamp !== null) {
-                                                    e.target.seekTo(modalTimestamp, true);
-                                                }
-                                                e.target.playVideo();
-                                            }}
-                                            onStateChange={(e) => {
-                                                // 재생 시작(1) 시 즉시 일시정지하여 프레임 가시화
-                                                if (e.data === 1) {
-                                                    e.target.pauseVideo();
-                                                }
-                                            }}
-                                            onPlay={(e) => {
-                                                // 백업용
-                                                e.target.pauseVideo();
-                                            }}
-                                            className="ld-preview-video-element"
-                                        />
+                                        <div id="preview-youtube-player" className="ld-preview-video-element"></div>
                                     </div>
                                     <div className="ld-preview-cover" />
                                     {isOverlayBookmark && (

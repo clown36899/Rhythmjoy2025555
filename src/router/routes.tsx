@@ -48,16 +48,16 @@ const DebugLogPage = lazy(() => import('../pages/DebugLogPage'));
 
 export const prefetchHistoryTimelinePage = () => import('../pages/history/HistoryTimelinePage');
 const HistoryTimelinePage = lazy(prefetchHistoryTimelinePage);
+const ArchiveLayout = lazy(() => import('../layouts/ArchiveLayout'));
+const LearningPage = lazy(() => import('../pages/learning/Page'));
+const LearningDetailPage = lazy(() => import('../pages/learning/detail/Page'));
 
 const PushNotificationTestPage = lazy(() => import('../pages/PushNotificationTestPage'));
 const TestDeletePage = lazy(() => import('../pages/TestDeletePage'));
 
 
 
-export const prefetchLearningPage = () => import('../pages/learning/Page');
-const LearningPage = lazy(prefetchLearningPage);
-const LearningDetailPage = lazy(() => import('../pages/learning/detail/Page'));
-const LearningLayout = lazy(() => import('../layouts/LearningLayout'));
+// Prefetches removed from here as they are moved up
 
 
 export const routes: RouteObject[] = [
@@ -81,9 +81,16 @@ export const routes: RouteObject[] = [
             { path: '/auth/kakao-callback', element: <KakaoCallbackPage /> },
             { path: '/my-activities', element: <MyActivitiesPage /> },
             { path: '/debug', element: <DebugLogPage /> },
-            { path: '/history', element: <HistoryTimelinePage /> },
             { path: '/push-test', element: <PushNotificationTestPage /> },
             { path: '/test-delete', element: <TestDeletePage /> },
+            {
+                element: <ArchiveLayout />,
+                children: [
+                    { path: '/learning', element: <LearningPage /> },
+                    { path: '/learning/:listId', element: <LearningDetailPage /> },
+                    { path: '/history', element: <HistoryTimelinePage /> },
+                ]
+            }
         ],
     },
     {
@@ -94,18 +101,4 @@ export const routes: RouteObject[] = [
         path: '/event-photo-finder',
         element: <EventPhotoFinderPage />,
     },
-    {
-        element: <LearningLayout />,
-        children: [
-            {
-                path: '/learning',
-                element: <LearningPage />,
-            },
-            {
-                path: '/learning/:listId',
-                element: <LearningDetailPage />,
-            },
-        ]
-    }
-
 ];

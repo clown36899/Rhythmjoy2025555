@@ -5,15 +5,17 @@
     align-items: center;
     justify-content: space-around;
     padding: 0.5rem 0.5rem;
-    background: rgb(0 0 0 / 77%);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
     padding-bottom: env(safe-area-inset-bottom, 0.5rem);
     position: relative;
     z-index: 50;
     user-select: none;
     -webkit-user-select: none;
+
+    /* Center content on large screens */
+    width: 100%;
+    max-width: 650px;
+    margin: 0 auto;
+    background: transparent;
 }
 
 .bottom-nav-item {

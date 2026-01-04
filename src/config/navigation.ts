@@ -28,8 +28,8 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
         activeColor: 'text-orange-500',
     },
     {
-        label: '자유게시판',
-        labelEn: 'Board',
+        label: '포럼',
+        labelEn: 'Forum',
         path: '/board',
         icon: 'ri-chat-3-line',
         iconFilled: 'ri-chat-3-fill',

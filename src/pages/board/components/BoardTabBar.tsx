@@ -11,11 +11,11 @@ interface BoardTabBarProps {
 
 // Fallback categories in case DB fetch fails
 const DEFAULT_CATEGORIES = [
-    { id: 'free', label: '자유게시판', icon: 'ri-chat-1-line' },
+    { id: 'free', label: '포럼', icon: 'ri-chat-1-line' },
     { id: 'anonymous', label: '익명 게시판', icon: 'ri-user-secret-line' },
     { id: 'trade', label: '양도/양수', icon: 'ri-exchange-line' },
     { id: 'notice', label: '건의/공지', icon: 'ri-megaphone-line' },
-    { id: 'history', label: '히스토리', icon: 'ri-history-line' },
+    { id: 'history', label: '스윙피디아', icon: 'ri-book-read-line' },
     { id: 'market', label: '벼룩시장', icon: 'ri-store-2-line' },
 ];
 
@@ -56,6 +56,7 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
                     let label = item.name;
 
                     // Translation optimization: ambiguous terms mapping
+                    if (label === '자유게시판') label = '포럼';
                     if (label === '익명게시판') label = '익명 게시판'; // anonymity -> Anonymous Board
                     if (label === '제작중') label = '준비중'; // In production -> Preparing/Coming Soon
 
@@ -69,8 +70,8 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
                 // Add history tab
                 mapped.push({
                     id: 'history',
-                    label: '히스토리',
-                    icon: 'ri-history-line'
+                    label: '스윙피디아',
+                    icon: 'ri-book-read-line'
                 });
 
                 // Add dev-log tab at the end (hardcoded, not from DB)
@@ -117,7 +118,7 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
             case 'free': return 'ri-chat-1-line';
             case 'dev-log': return 'ri-code-box-line';
             case 'anonymous': return 'ri-user-secret-line';
-            case 'history': return 'ri-history-line';
+            case 'history': return 'ri-book-read-line';
             default: return 'ri-chat-3-line';
         }
     };
@@ -173,7 +174,6 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
                     >
                         <i className={`${cat.icon} board-tab-icon`}></i>
                         <span className="board-tab-label">{cat.label}</span>
-                        {cat.id === 'history' && <span className="tab-wip-badge">준비중</span>}
                     </button>
                 ))}
                 <div

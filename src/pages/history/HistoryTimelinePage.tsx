@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router-dom';
 import { useState, useCallback, useEffect } from 'react';
 import ReactFlow, {
     Controls,
@@ -49,7 +48,6 @@ const GET_NODE_COLOR = (node: Node) => {
 };
 
 export default function HistoryTimelinePage() {
-    const navigate = useNavigate();
     const { user } = useAuth();
 
     // State
@@ -461,33 +459,24 @@ export default function HistoryTimelinePage() {
 
     return (
         <div className="history-timeline-page">
-            <div className="history-timeline-header">
-                <button className="btn-back-board" onClick={() => navigate('/board')}>
-                    <i className="ri-arrow-left-s-line"></i>
-                    <span>돌아가기</span>
+            <div className="history-floating-toolbar">
+                <button
+                    className={`toolbar-btn ${isAutoLayout ? 'active' : ''}`}
+                    onClick={toggleAutoLayout}
+                    title={isAutoLayout ? '연도순 해제' : '자동 연도순'}
+                >
+                    <i className={`ri-${isAutoLayout ? 'layout-grid-fill' : 'sort-desc'}`}></i>
                 </button>
-                <h1>댄스 히스토리 타임라인</h1>
-                <div className="header-actions">
-                    <button
-                        className={`btn-auto-layout ${isAutoLayout ? 'active' : ''}`}
-                        onClick={toggleAutoLayout}
-                        disabled={!nodes.length}
-                    >
-                        <i className={`ri-${isAutoLayout ? 'layout-grid-fill' : 'sort-desc'}`}></i>
-                        {isAutoLayout ? '연도순 해제' : '자동 연도순'}
-                    </button>
-                    <button
-                        className={`btn-open-drawer ${isDrawerOpen ? 'active' : ''}`}
-                        onClick={() => setIsDrawerOpen(!isDrawerOpen)}
-                    >
-                        <i className="ri-database-2-line"></i>
-                        데이터 서랍
-                    </button>
-                    <button className="btn-add-node" onClick={handleCreateNode}>
-                        <i className="ri-add-line"></i>
-                        Add Event
-                    </button>
-                </div>
+                <button
+                    className={`toolbar-btn ${isDrawerOpen ? 'active' : ''}`}
+                    onClick={() => setIsDrawerOpen(!isDrawerOpen)}
+                    title="데이터 서랍"
+                >
+                    <i className="ri-database-2-line"></i>
+                </button>
+                <button className="toolbar-btn add-btn" onClick={handleCreateNode} title="새 노드 추가">
+                    <i className="ri-add-line"></i>
+                </button>
             </div>
 
             <div className="history-timeline-canvas">

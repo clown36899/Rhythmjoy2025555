@@ -1,0 +1,251 @@
+/* Document Detail Modal Styles */
+.ddm-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.85);
+    z-index: 10000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(5px);
+    animation: ddm-fadeIn 0.2s ease-out;
+}
+
+.ddm-modal {
+    width: 90%;
+    max-width: 900px;
+    max-height: 90vh;
+    background-color: #111827;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    animation: ddm-slideUp 0.3s ease-out;
+    border: 1px solid #374151;
+    display: flex;
+    flex-direction: column;
+}
+
+.ddm-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #374151;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+    background-color: #1f2937;
+}
+
+.ddm-header h3,
+.ddm-title {
+    margin: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #f3f4f6;
+}
+
+.ddm-closeButton,
+.ddm-cancelButton,
+.ddm-button {
+    background: none;
+    border: 1px solid #4b5563;
+    font-size: 1rem;
+    cursor: pointer;
+    color: #e5e7eb;
+    padding: 8px 16px;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.ddm-closeButton:hover,
+.ddm-cancelButton:hover {
+    background-color: #374151;
+    border-color: #6b7280;
+}
+
+.ddm-content {
+    padding: 24px;
+    overflow-y: auto;
+    flex: 1;
+    background-color: #111827;
+}
+
+.ddm-formGroup {
+    margin-bottom: 20px;
+}
+
+.ddm-label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #f3f4f6;
+}
+
+.ddm-input,
+.ddm-textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #374151;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-family: inherit;
+    background-color: #1f2937;
+    color: #f3f4f6;
+}
+
+.ddm-textarea {
+    min-height: 200px;
+    resize: vertical;
+}
+
+.ddm-input:focus,
+.ddm-textarea:focus {
+    outline: none;
+    border-color: #60a5fa;
+    background-color: #111827;
+}
+
+.ddm-checkbox,
+.ddm-checkboxLabel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #e5e7eb;
+}
+
+.ddm-checkbox input {
+    width: auto;
+}
+
+.ddm-footer {
+    padding: 16px 24px;
+    border-top: 1px solid #374151;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+    background-color: #1f2937;
+}
+
+.ddm-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.ddm-primaryButton {
+    background: #3b82f6;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ddm-primaryButton:hover:not(:disabled) {
+    background: #2563eb;
+}
+
+.ddm-secondaryButton {
+    background: #374151;
+    color: #e5e7eb;
+    border: 1px solid #4b5563;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ddm-secondaryButton:hover:not(:disabled) {
+    background: #4b5563;
+}
+
+.ddm-dangerButton,
+.ddm-deleteButton {
+    background: #dc2626;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ddm-dangerButton:hover:not(:disabled),
+.ddm-deleteButton:hover:not(:disabled) {
+    background: #b91c1c;
+}
+
+.ddm-importButton {
+    background: #3b82f6;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ddm-importButton:hover:not(:disabled) {
+    background: #2563eb;
+}
+
+.ddm-button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.ddm-error {
+    color: #fca5a5;
+    margin-top: 12px;
+    padding: 12px;
+    background: rgba(220, 38, 38, 0.1);
+    border-radius: 6px;
+    border: 1px solid #dc2626;
+}
+
+.ddm-viewContent {
+    line-height: 1.6;
+    white-space: pre-wrap;
+    color: #e5e7eb;
+}
+
+.ddm-metaInfo {
+    display: flex;
+    gap: 16px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #374151;
+    font-size: 0.9rem;
+    color: #9ca3af;
+}
+
+.ddm-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+@keyframes ddm-fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes ddm-slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}

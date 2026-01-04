@@ -12,18 +12,9 @@
     padding: 0;
 }
 
-/* Explorer Header */
-.explorerHeader {
-    padding: 24px 24px;
-    border-bottom: 1px solid #374151;
-    background-color: #111827;
-}
+/* Legacy header styles removed */
 
-.explorerTitle {
-    font-size: 24px;
-    font-weight: bold;
-    color: white;
-}
+/* Legacy typography removed */
 
 /* Content Wrapper - Full Width */
 .contentWrapper {
@@ -205,7 +196,6 @@
 .card.document {
     background: rgba(255, 255, 255, 0.03);
     /* Lighter for paper feel */
-    border-left: 4px solid #059669;
     /* Document green accent */
 }
 
@@ -371,72 +361,77 @@
     color: white;
 }
 
-/* Admin Styles */
-.adminToggleBtn {
-    background-color: transparent;
-    border: 1px solid #374151;
-    color: #9ca3af;
-    padding: 8px 16px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 14px;
-    transition: all 0.2s;
-}
-
-.adminToggleBtn:hover {
-    background-color: #1f2937;
-    color: white;
-}
-
-.adminToggleBtn.active {
-    background-color: #dc2626;
-    border-color: #dc2626;
-    color: white;
-}
-
-.headerRight {
+/* Floating Admin Toolbar */
+.archive-floating-admin-toolbar {
+    position: fixed;
+    right: 20px;
+    bottom: 100px;
+    /* Above BottomNav */
     display: flex;
+    flex-direction: column-reverse;
+    /* Expand upwards */
     gap: 12px;
-    align-items: center;
+    z-index: 1000;
+    align-items: flex-end;
 }
 
-.explorerHeader {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-/* Admin Buttons in Header */
-.syncAllButton,
-.importButton {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 16px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
+.admin-tool-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
     border: none;
-    transition: background-color 0.2s;
+    background: #1e293b;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    font-size: 1.4rem;
 }
 
-.syncAllButton {
-    background-color: #2563eb;
+.admin-tool-btn:hover {
+    background: #334155;
+    color: #f8fafc;
+    transform: scale(1.1);
+}
+
+.admin-tool-btn.active {
+    background: #ef4444;
     color: white;
 }
 
-.syncAllButton:hover {
-    background-color: #1d4ed8;
-}
-
-.importButton {
-    background-color: #10b981;
+.admin-tool-btn.doc-btn {
+    background: #059669;
     color: white;
 }
 
-.importButton:hover {
-    background-color: #059669;
+.admin-tool-btn.doc-btn:hover {
+    background: #10b981;
+}
+
+.admin-sub-tools {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    animation: toolbarSlideUp 0.3s ease-out;
+}
+
+@keyframes toolbarSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.admin-tool-btn i {
+    pointer-events: none;
 }
 
 /* Badge Styles */

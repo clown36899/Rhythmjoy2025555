@@ -109,7 +109,7 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
             'notice': 'Notice',
             'market': 'Market',
             'trade': 'Trade',
-            'free': 'Free Board',
+            'free': 'Forum',
             'anonymous': 'Anonymous',
             'dev-log': 'Dev Log',
         };
@@ -464,9 +464,9 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                     >
                         <i className="ri-discuss-line"></i>
                         <span className="manual-label-wrapper">
-                            <span className="translated-part">Boards</span>
-                            <span className="fixed-part ko" translate="no">게시판</span>
-                            <span className="fixed-part en" translate="no">Forums</span>
+                            <span className="translated-part">Forum</span>
+                            <span className="fixed-part ko" translate="no">포럼</span>
+                            <span className="fixed-part en" translate="no">Forum</span>
                         </span>
                         <i className={`ri-arrow-${isBoardExpanded ? 'down' : 'right'}-s-line drawer-expand-icon`}></i>
                     </div>
@@ -551,8 +551,8 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                         v{__APP_VERSION__}
                     </div>
                 </div>
-            </div>
-        </div>,
+            </div >
+        </div >,
         document.body
     );
 }

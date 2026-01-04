@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
-import styles from './PlaylistImportModal.module.css'; // Re-using layout styles
+import './DocumentDetailModal.css';
 import { useAuth } from '../../../contexts/AuthContext';
 import { HistoryContextWidget } from './HistoryContextWidget';
 
@@ -127,9 +127,9 @@ export const DocumentDetailModal = ({ documentId, onClose, onUpdate }: Props) =>
 
     if (loading) {
         return (
-            <div className={styles.overlay}>
-                <div className={styles.modal}>
-                    <div className={styles.content}>로딩 중...</div>
+            <div className="ddm-overlay">
+                <div className="ddm-modal">
+                    <div className="ddm-content">로딩 중...</div>
                 </div>
             </div>
         );
@@ -137,64 +137,64 @@ export const DocumentDetailModal = ({ documentId, onClose, onUpdate }: Props) =>
 
     if (!doc) {
         return (
-            <div className={styles.overlay}>
-                <div className={styles.modal}>
-                    <div className={styles.header}>
+            <div className="ddm-overlay">
+                <div className="ddm-modal">
+                    <div className="ddm-header">
                         <h3>오류</h3>
-                        <button onClick={onClose} className={styles.closeButton}>✕</button>
+                        <button onClick={onClose} className="ddm-closeButton">✕</button>
                     </div>
-                    <div className={styles.content}>문서를 찾을 수 없습니다.</div>
+                    <div className="ddm-content">문서를 찾을 수 없습니다.</div>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className={styles.overlay}>
-            <div className={styles.modal} style={{ maxWidth: '800px', width: '90%' }}>
-                <div className={styles.header}>
-                    <h3 className={styles.title}>
+        <div className="ddm-overlay">
+            <div className="ddm-modal" style={{ maxWidth: '800px', width: '90%' }}>
+                <div className="ddm-header">
+                    <h3 className="ddm-title">
                         {isEditing ? '이미지/문서 편집' : doc.title}
                     </h3>
                     <div style={{ display: 'flex', gap: '8px' }}>
                         {isAdmin && !isEditing && (
-                            <button className={styles.cancelButton} onClick={() => setIsEditing(true)}>편집</button>
+                            <button className="ddm-cancelButton" onClick={() => setIsEditing(true)}>편집</button>
                         )}
-                        <button onClick={onClose} className={styles.closeButton}>✕</button>
+                        <button onClick={onClose} className="ddm-closeButton">✕</button>
                     </div>
                 </div>
 
-                <div className={styles.content}>
+                <div className="ddm-content">
                     {isEditing ? (
-                        <div className={styles.form}>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>제목</label>
+                        <div className="ddm-form">
+                            <div className="ddm-formGroup">
+                                <label className="ddm-label">제목</label>
                                 <input
                                     type="text"
                                     value={editTitle}
                                     onChange={e => setEditTitle(e.target.value)}
-                                    className={styles.input}
+                                    className="ddm-input"
                                 />
                             </div>
-                            <div className={styles.formGroup} style={{ display: 'flex', gap: '20px' }}>
+                            <div className="ddm-formGroup" style={{ display: 'flex', gap: '20px' }}>
                                 <div style={{ flex: 1 }}>
-                                    <label className={styles.label}>연도</label>
+                                    <label className="ddm-label">연도</label>
                                     <input
                                         type="number"
                                         value={editYear}
                                         onChange={e => setEditYear(e.target.value)}
-                                        className={styles.input}
+                                        className="ddm-input"
                                     />
                                 </div>
                                 <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                                    <label className={styles.checkboxLabel}>
+                                    <label className="ddm-checkboxLabel">
                                         <input
                                             type="checkbox"
                                             checked={editIsPublic}
                                             onChange={e => setEditIsPublic(e.target.checked)}
                                         /> <span>공개</span>
                                     </label>
-                                    <label className={styles.checkboxLabel}>
+                                    <label className="ddm-checkboxLabel">
                                         <input
                                             type="checkbox"
                                             checked={editIsOnTimeline}
@@ -203,12 +203,12 @@ export const DocumentDetailModal = ({ documentId, onClose, onUpdate }: Props) =>
                                     </label>
                                 </div>
                             </div>
-                            <div className={styles.formGroup}>
-                                <label className={styles.label}>내용</label>
+                            <div className="ddm-formGroup">
+                                <label className="ddm-label">내용</label>
                                 <textarea
                                     value={editContent}
                                     onChange={e => setEditContent(e.target.value)}
-                                    className={styles.input}
+                                    className="ddm-input"
                                     style={{ minHeight: '300px', resize: 'vertical' }}
                                 />
                             </div>
@@ -238,16 +238,16 @@ export const DocumentDetailModal = ({ documentId, onClose, onUpdate }: Props) =>
                         </div>
                     )}
 
-                    {error && <div className={styles.error}>{error}</div>}
+                    {error && <div className="ddm-error">{error}</div>}
                 </div>
 
-                <div className={styles.footer}>
+                <div className="ddm-footer">
                     {isEditing ? (
                         <>
-                            <button className={styles.deleteButton} onClick={handleDelete} style={{ marginRight: 'auto' }}>삭제</button>
-                            <button className={styles.cancelButton} onClick={() => setIsEditing(false)}>취소</button>
+                            <button className="ddm-deleteButton" onClick={handleDelete} style={{ marginRight: 'auto' }}>삭제</button>
+                            <button className="ddm-cancelButton" onClick={() => setIsEditing(false)}>취소</button>
                             <button
-                                className={styles.importButton}
+                                className="ddm-importButton"
                                 onClick={handleSave}
                                 disabled={isSaving}
                             >
@@ -255,7 +255,7 @@ export const DocumentDetailModal = ({ documentId, onClose, onUpdate }: Props) =>
                             </button>
                         </>
                     ) : (
-                        <button className={styles.importButton} onClick={onClose}>닫기</button>
+                        <button className="ddm-importButton" onClick={onClose}>닫기</button>
                     )}
                 </div>
             </div>

@@ -1,0 +1,438 @@
+src/main.tsx:44:            console.log('🔒 Screen locked to portrait');
+src/main.tsx:46:            console.log('Rotation lock not supported or failed:', e);
+src/contexts/AuthContext.tsx:66:    console.log(`[AuthContext Init] Mode: ${isStandalone ? 'PWA' : 'Browser'}, Prefix: ${storagePrefix}`);
+src/contexts/AuthContext.tsx:116:      console.log('[AuthContext] 🗑️ Removing process-specific key:', key);
+src/contexts/AuthContext.tsx:143:    console.log('[AuthContext] 🧹 Cleaning up stale session (Zombie Token Removal)');
+src/contexts/AuthContext.tsx:155:    console.log('[AuthContext] ✅ Stale session cleaned up');
+src/contexts/AuthContext.tsx:238:      console.log('[AuthContext.refreshUserProfile] user가 없어서 중단');
+src/contexts/AuthContext.tsx:242:    console.log('[AuthContext.refreshUserProfile] 시작', { userId: user.id });
+src/contexts/AuthContext.tsx:246:      console.log('[AuthContext.refreshUserProfile] 이미 진행 중, 스킵');
+src/contexts/AuthContext.tsx:252:      console.log('[AuthContext.refreshUserProfile] DB에서 프로필 조회 시작');
+src/contexts/AuthContext.tsx:268:      console.log('[AuthContext.refreshUserProfile] DB 조회 결과', {
+src/contexts/AuthContext.tsx:280:        console.log('[AuthContext.refreshUserProfile] DB 데이터로 프로필 생성', newProfile);
+src/contexts/AuthContext.tsx:287:        console.log('[AuthContext.refreshUserProfile] 메타데이터로 폴백 프로필 생성', newProfile);
+src/contexts/AuthContext.tsx:291:        console.log('[AuthContext.refreshUserProfile] 프로필 상태 업데이트 및 localStorage 저장', newProfile);
+src/contexts/AuthContext.tsx:302:      console.log('[AuthContext.refreshUserProfile] 폴백 프로필 설정', fallbackProfile);
+src/contexts/AuthContext.tsx:305:      console.log('[AuthContext.refreshUserProfile] 완료');
+src/contexts/AuthContext.tsx:329:    console.log('[AuthContext] 🕵️‍♂️ Manual session validation requested');
+src/contexts/AuthContext.tsx:335:      console.log('[AuthContext] 🕵️‍♂️ Session is valid');
+src/contexts/AuthContext.tsx:346:      console.log(`[AuthContext] 🧹 Enforcing cleanup after logout reload (${storagePrefix})`);
+src/contexts/AuthContext.tsx:405:      console.log('[AuthContext] 🔄 Auth state changed:', { event, userEmail: currentUser?.email });
+src/contexts/AuthContext.tsx:458:      console.log('[AuthContext] Saving scroll position before login:', scrollY, 'from:', boardContainer ? 'container' : 'window');
+src/contexts/AuthContext.tsx:460:      console.log('[signInWithKakao] 카카오 로그인 시작 (리다이렉트 방식)');
+src/contexts/AuthContext.tsx:506:      console.log(msg);
+src/contexts/AuthContext.tsx:627:    console.log('[개발 프리패스] 활성화됨 - UI 전용 모드');
+src/contexts/AuthContext.tsx:635:    console.log('[AuthContext] 상태 업데이트:', {
+src/contexts/InstallPromptContext.tsx:21:        console.log('🔍 [InstallPromptProvider] Initializing...');
+src/contexts/InstallPromptContext.tsx:26:                console.log('✅ [InstallPromptProvider] Already installed (standalone mode)');
+src/contexts/InstallPromptContext.tsx:31:                console.log('✅ [InstallPromptProvider] Already installed (iOS standalone)');
+src/contexts/InstallPromptContext.tsx:35:            console.log('📱 [InstallPromptProvider] Not installed yet');
+src/contexts/InstallPromptContext.tsx:45:            console.log('🎉 [InstallPromptProvider] beforeinstallprompt event captured!');
+src/contexts/InstallPromptContext.tsx:52:            console.log('✅ [InstallPromptProvider] App installed!');
+src/contexts/InstallPromptContext.tsx:57:        console.log('👂 [InstallPromptProvider] Registering global event listeners...');
+src/contexts/InstallPromptContext.tsx:62:            console.log('🔻 [InstallPromptProvider] Cleaning up event listeners');
+src/utils/videoThumbnail.ts:119:    console.log("MaxRes thumbnail not found or CORS error, trying HQ");
+src/utils/kakaoAuth.ts:20:  console.log('[KakaoAuth.initKakaoSDK] 🚀 SDK 초기화 시작');
+src/utils/kakaoAuth.ts:22:    console.log('[KakaoAuth.initKakaoSDK] window.Kakao 존재 여부:', !!window.Kakao);
+src/utils/kakaoAuth.ts:26:      console.log('[KakaoAuth.initKakaoSDK] 이미 초기화됨:', isAlreadyInitialized);
+src/utils/kakaoAuth.ts:31:        console.log('[KakaoAuth.initKakaoSDK] 초기화 시도 - Key:', jsKey?.substring(0, 10) + '...');
+src/utils/kakaoAuth.ts:40:        console.log('[KakaoAuth.initKakaoSDK] ✅ SDK 초기화 완료');
+src/utils/kakaoAuth.ts:42:        console.log('[KakaoAuth.initKakaoSDK] ✅ 이미 초기화된 SDK 사용');
+src/utils/kakaoAuth.ts:59:  console.log('[KakaoAuth.loginWithKakao] 🔐 카카오 로그인 시작');
+src/utils/kakaoAuth.ts:60:  console.log('[KakaoAuth.loginWithKakao] window.Kakao 존재:', !!window.Kakao);
+src/utils/kakaoAuth.ts:69:  console.log('[KakaoAuth.loginWithKakao] 복귀 URL 저장:', returnUrl);
+src/utils/kakaoAuth.ts:74:  console.log('[KakaoAuth.loginWithKakao] 리다이렉트 URI:', redirectUri);
+src/utils/kakaoAuth.ts:75:  console.log('[KakaoAuth.loginWithKakao] 요청 스코프: account_email, profile_nickname, name, phone_number');
+src/utils/kakaoAuth.ts:82:  console.log('[KakaoAuth.loginWithKakao] ➡️ 카카오 인증 페이지로 리다이렉트 중...');
+src/utils/kakaoAuth.ts:88:  console.log('[KakaoAuth.getKakaoAccessToken] 🔑 토큰 조회 시도');
+src/utils/kakaoAuth.ts:89:  console.log('[KakaoAuth.getKakaoAccessToken] SDK 존재:', !!window.Kakao);
+src/utils/kakaoAuth.ts:90:  console.log('[KakaoAuth.getKakaoAccessToken] Auth 존재:', !!window.Kakao?.Auth);
+src/utils/kakaoAuth.ts:93:    console.log('[KakaoAuth.getKakaoAccessToken] ❌ SDK 또는 Auth 없음');
+src/utils/kakaoAuth.ts:98:  console.log('[KakaoAuth.getKakaoAccessToken] 토큰 존재:', !!token);
+src/utils/kakaoAuth.ts:100:    console.log('[KakaoAuth.getKakaoAccessToken] 토큰 길이:', token.length);
+src/utils/kakaoAuth.ts:109:    console.log('[KakaoAuth.logoutKakao] 시작');
+src/utils/kakaoAuth.ts:110:    console.log('[KakaoAuth.logoutKakao] Kakao SDK 존재:', !!window.Kakao);
+src/utils/kakaoAuth.ts:111:    console.log('[KakaoAuth.logoutKakao] Kakao.Auth 존재:', !!window.Kakao?.Auth);
+src/utils/kakaoAuth.ts:112:    console.log('[KakaoAuth.logoutKakao] Access Token:', window.Kakao?.Auth?.getAccessToken());
+src/utils/kakaoAuth.ts:116:      console.log('[KakaoAuth.logoutKakao] SDK 없음 또는 토큰 없음 - 즉시 종료');
+src/utils/kakaoAuth.ts:128:      console.log('[KakaoAuth.logoutKakao] Kakao.Auth.logout() 호출');
+src/utils/kakaoAuth.ts:130:        console.log('[KakaoAuth.logoutKakao] ✓ 콜백 실행됨');
+src/utils/imageResize.ts:28:    console.log(`[🖼️ 리사이즈 ${targetSize}px, mode: ${mode}] 시작`, {
+src/utils/imageResize.ts:37:      console.log(`[🖼️ 리사이즈 ${targetSize}px] 이미지 로드 완료 (${elapsed.toFixed(0)}ms)`, {
+src/utils/imageResize.ts:73:      console.log(`[🖼️ 리사이즈 ${targetSize}px] Canvas 설정`, {
+src/utils/imageResize.ts:86:      console.log(`[🖼️ 리사이즈 ${targetSize}px] Canvas에 이미지 그리기 완료`);
+src/utils/imageResize.ts:93:      console.log(`[🖼️ 리사이즈 ${targetSize}px] 출력 형식`, {
+src/utils/imageResize.ts:114:          console.log(`[🖼️ 리사이즈 ${targetSize}px] Blob 생성 완료 (${elapsed.toFixed(0)}ms)`, {
+src/utils/imageResize.ts:124:          console.log(`[🖼️ 리사이즈 ${targetSize}px] ✅ 완료 (총 ${elapsed.toFixed(0)}ms)`, {
+src/utils/imageResize.ts:171:  console.log('[🎨 이미지 리사이즈] 시작', {
+src/utils/imageResize.ts:197:    console.log(`[🎨 이미지 리사이즈] ✅ 완료 (총 ${elapsed.toFixed(0)}ms)`, {
+src/utils/analyticsEngine.ts:204:        console.log('[Analytics] Tracking:', logData);
+src/components/PWAInstallButton.tsx:10:        console.log('📱 PWA 설치 프롬프트 표시');
+src/components/PWAInstallButton.tsx:14:            console.log(`사용자 선택: ${outcome}`);
+src/components/PWAInstallButton.tsx:17:                console.log('✅ 사용자가 PWA 설치를 수락했습니다');
+src/components/PWAInstallButton.tsx:19:                console.log('❌ 사용자가 PWA 설치를 거부했습니다');
+src/components/PWAInstallButton.tsx:30:        console.log('[PWA Install Button] Button hidden -',
+src/components/PWAInstallButton.tsx:35:    console.log('✨ [PWA Install Button] Button visible with install prompt!');
+src/components/SideDrawer.tsx:125:        console.log('[SideDrawer] 로그아웃 버튼 클릭됨');
+src/components/SideDrawer.tsx:126:        console.log('[SideDrawer] User Agent:', navigator.userAgent);
+src/components/SideDrawer.tsx:127:        console.log('[SideDrawer] Screen size:', window.innerWidth, 'x', window.innerHeight);
+src/components/SideDrawer.tsx:129:            console.log('[SideDrawer] signOut 호출 시작');
+src/components/SideDrawer.tsx:131:            console.log('[SideDrawer] signOut 완료 (이 로그가 보이면 리다이렉트 실패)');
+src/components/EditableEventDetail.tsx:571:                                                                console.log('[EditableEventDetail] Clicked Category: Event');
+src/components/EditableEventDetail.tsx:586:                                                                console.log('[EditableEventDetail] Clicked Category: Class');
+src/components/EditableEventDetail.tsx:601:                                                                console.log('[EditableEventDetail] Clicked Category: Club');
+src/components/EditableEventDetail.tsx:772:                                console.log('[EditableEventDetail] 날짜 클릭!');
+src/components/EditableEventDetail.tsx:773:                                console.log('[EditableEventDetail] eventDates:', eventDates);
+src/components/EditableEventDetail.tsx:774:                                console.log('[EditableEventDetail] date:', date);
+src/components/EditableEventDetail.tsx:775:                                console.log('[EditableEventDetail] endDate:', endDate);
+src/components/EditableEventDetail.tsx:777:                                    console.log('[EditableEventDetail] dateMode -> dates');
+src/components/EditableEventDetail.tsx:780:                                    console.log('[EditableEventDetail] dateMode -> range');
+src/components/EditableEventDetail.tsx:783:                                    console.log('[EditableEventDetail] dateMode -> single');
+src/components/EditableEventDetail.tsx:834:                                console.log('[EditableEventDetail] 날짜 모달 렌더링 조건:', shouldRender);
+src/components/EditableEventDetail.tsx:835:                                console.log('[EditableEventDetail] activeModal:', activeModal);
+src/components/EditableEventDetail.tsx:836:                                console.log('[EditableEventDetail] setDate:', !!setDate);
+src/components/EditableEventDetail.tsx:837:                                console.log('[EditableEventDetail] setEndDate:', !!setEndDate);
+src/components/EditableEventDetail.tsx:838:                                console.log('[EditableEventDetail] setEventDates:', !!setEventDates);
+src/components/EditableEventDetail.tsx:876:                                                        console.log('[EditableEventDetail] 개별 버튼 클릭!');
+src/components/EditableEventDetail.tsx:967:                                                            console.log('[EditableEventDetail] Date clicked:', dateStr);
+src/components/EditableEventDetail.tsx:968:                                                            console.log('[EditableEventDetail] Current eventDates:', eventDates);
+src/components/EditableEventDetail.tsx:972:                                                            console.log('[EditableEventDetail] New eventDates:', newDates);
+src/components/EditableEventDetail.tsx:1020:                                    console.log('🔘 Location clicked - opening venue selection');
+src/components/SiteAnalyticsModal.tsx:112:        console.log(`[Analytics] Setting range: ${startKST} ~ ${endKST} (${days === 0 ? 'Today' : days === 1 ? 'Yesterday' : days + ' days'})`);
+src/components/SiteAnalyticsModal.tsx:124:            console.log('[Analytics] Using cached data');
+src/components/SiteAnalyticsModal.tsx:145:                console.log(`[Analytics] Summary Mode: Fetching All-Time (Last 365 Days)`);
+src/components/SiteAnalyticsModal.tsx:150:                console.log(`[Analytics] Daily Mode: Fetching Range ${startStr} ~ ${endStr}`);
+src/components/SiteAnalyticsModal.tsx:162:            console.log(`[Analytics DEBUG] Raw data fetched: ${data.length} rows`);
+src/components/SiteAnalyticsModal.tsx:163:            console.log(`[Analytics DEBUG] Sample data:`, data.slice(0, 3));
+src/components/SiteAnalyticsModal.tsx:169:            console.log(`[Analytics DEBUG] After admin filter: ${validData.length} rows (removed ${data.length - validData.length} admin)`);
+src/components/SiteAnalyticsModal.tsx:187:            console.log(`[Analytics DEBUG] After unique filter: ${uniqueData.length} rows (removed ${validData.length - uniqueData.length} duplicates)`);
+src/components/SiteAnalyticsModal.tsx:201:            console.log(`[Analytics DEBUG] Unique logged-in users: ${uniqueUserIds.size}`);
+src/components/SiteAnalyticsModal.tsx:202:            console.log(`[Analytics DEBUG] Unique guest fingerprints: ${uniqueFingerprints.size}`);
+src/components/SiteAnalyticsModal.tsx:217:                    console.log(`[Analytics DEBUG] 로그인 사용자 목록 (${users.length}명):`);
+src/components/SiteAnalyticsModal.tsx:219:                        console.log(`  - ${u.nickname || u.user_id.substring(0, 8)} (ID: ${u.user_id.substring(0, 8)}...)`);
+src/components/SiteAnalyticsModal.tsx:228:                    console.log(`[Analytics DEBUG] Fallback user list (${fallbackUsers.length}명) - RLS 에러:`, userError);
+src/components/SiteAnalyticsModal.tsx:481:                console.log('[Analytics] 📸 Auto-snapshot created for today');
+src/components/ImageCropModal.tsx:148:    console.log('[ImageCropModal] handleFileInputChange called');
+src/components/ImageCropModal.tsx:151:      console.log('[ImageCropModal] File selected in crop modal:', {
+src/components/ImageCropModal.tsx:157:        console.log('[ImageCropModal] Calling onImageUpdate with file');
+src/components/ImageCropModal.tsx:163:      console.log('[ImageCropModal] No file selected');
+src/components/ImageCropModal.tsx:172:    console.log('[ImageCropModal] handleChangeImageClick called - triggering file input click');
+src/components/ImageCropModal.tsx:351:    console.log('[ImageCropModal] handleSave called:', {
+src/components/ImageCropModal.tsx:357:      console.log('[ImageCropModal] Calling onCropComplete with:', {
+src/components/ImageCropModal.tsx:596:                    console.log('[ImageCropModal] Upload button clicked');
+src/components/ImageCropModal.tsx:598:                      console.log('[ImageCropModal] Calling onChangeImage callback');
+src/components/EventRegistrationModal.tsx:512:    console.log("🌀 스피너 실행됨 (isSubmitting: true)");
+src/components/EventRegistrationModal.tsx:651:          console.log("📝 [EventRegistrationModal] Final eventData to save:", eventData);
+src/components/EventRegistrationModal.tsx:652:          console.log("   - image_micro present?", !!eventData.image_micro);
+src/components/EventRegistrationModal.tsx:659:              console.log("🔄 Updating event ID:", editEventData.id, "IsAdmin:", isAdmin, "User:", user?.id);
+src/components/EventRegistrationModal.tsx:666:                console.log("   - Applying user_id filter (Not Admin)");
+src/components/EventRegistrationModal.tsx:669:                console.log("   - Skipping user_id filter (Admin)");
+src/components/EventRegistrationModal.tsx:677:              console.log("✅ Update result data:", data);
+src/components/EventRegistrationModal.tsx:684:              console.log("🆕 [INSERT] Attempting to insert new event");
+src/components/EventRegistrationModal.tsx:685:              console.log("📋 [INSERT] Event data:", JSON.stringify(eventData, null, 2));
+src/components/EventRegistrationModal.tsx:686:              console.log("👤 [INSERT] Current user ID:", user?.id);
+src/components/EventRegistrationModal.tsx:687:              console.log("🔑 [INSERT] Auth UID:", (await supabase.auth.getUser()).data.user?.id);
+src/components/EventRegistrationModal.tsx:703:              console.log("✅ [INSERT] Insert successful! Result:", data);
+src/components/EventRegistrationModal.tsx:727:                console.log("🧹 [CLEANUP] Starting cleanup of old images...");
+src/components/EventRegistrationModal.tsx:736:                      console.log(`✅ [CLEANUP] Deleted ${files.length} files from old folder: ${oldStoragePath}`);
+src/components/EventRegistrationModal.tsx:761:                    console.log(`✅ [CLEANUP] Deleted ${individualPaths.length} individual legacy files`);
+src/components/EventRegistrationModal.tsx:835:        console.log(`[EventRegistrationModal] handleDetailUpdate 'genre' called with value:`, value);
+src/components/EventRegistrationModal.tsx:864:    console.log('🎯 EventRegistrationModal.handleVenueSelect called with:', venue);
+src/components/EventRegistrationModal.tsx:871:    console.log('✅ Venue selected, modal closed');
+src/components/EventRegistrationModal.tsx:883:      // console.log("Video provider detected:", videoProvider);
+src/components/EventRegistrationModal.tsx:1016:            console.log('🎯 EventRegistrationModal.onVenueSelectClick called');
+src/components/EventRegistrationModal.tsx:1017:            console.log('   - showVenueSelectModal before:', showVenueSelectModal);
+src/components/EventRegistrationModal.tsx:1019:            console.log('   - setShowVenueSelectModal(true) called');
+src/components/EventRegistrationModal.tsx:1151:          console.log('🔘 Manual input submitted:', name, link);
+src/components/PushNotificationTest.tsx:26:        console.log('🔍 구독 상태 확인 중...');
+src/components/PushNotificationTest.tsx:31:            console.log('Service Worker 등록 상태:', registration ? '등록됨 ✅' : '미등록 ❌');
+src/components/PushNotificationTest.tsx:33:                console.log('Service Worker 상태:', registration.active ? 'Active ✅' : 'Not Active ❌');
+src/components/PushNotificationTest.tsx:40:        console.log('푸시 구독 상태:', subscription ? '구독됨 ✅' : '미구독 ❌');
+src/components/PushNotificationTest.tsx:43:        console.log('알림 권한:', currentPermission);
+src/components/PushNotificationTest.tsx:83:        console.log('🔔 테스트 알림 발송 시작');
+src/components/PushNotificationTest.tsx:84:        console.log('현재 상태:', {
+src/components/PushNotificationTest.tsx:98:            console.log('✅ 알림 발송 성공');
+src/components/GlobalNoticePopup.tsx:37:            console.log('[NoticePopup] Notice status from DB:', data);
+src/components/GlobalNoticeEditor.tsx:116:            console.log('[NoticeEditor] Saving data to DB:', noticeData);
+src/components/FullscreenDateEventsModal.tsx:41:        console.log(`[Modal] Fetching events for: ${dateStr} (Original: ${selectedDate.toString()})`);
+src/components/FullscreenDateEventsModal.tsx:42:        console.log(`[Modal] Selected Category: ${selectedCategory} `);
+src/components/FullscreenDateEventsModal.tsx:76:        console.log(`[Modal] Filtered events count: ${filteredEvents.length} `);
+src/components/FullscreenDateEventsModal.tsx:78:          console.log(`[Modal] First event match: `, {
+src/components/BillboardUserManagementModal.tsx:125:      console.log('[제외목록] 필터링 완료:', {
+src/components/BillboardUserManagementModal.tsx:192:    console.log('[빌보드 편집] 시작:', user.name);
+src/components/BillboardUserManagementModal.tsx:213:      console.log('[빌보드 편집] 로드 완료:', {
+src/components/BillboardUserManagementModal.tsx:228:    console.log('[빌보드 설정 저장]', {
+src/components/BillboardUserManagementModal.tsx:265:    console.log('[이벤트 토글] 시작:', eventId);
+src/components/BillboardUserManagementModal.tsx:273:      console.log('[이벤트 토글] 완료:', {
+src/hooks/useOnlinePresence.ts:38:            console.log('[Presence] 🚫 중복 트래킹 방지:', type);
+src/hooks/useOnlinePresence.ts:53:            console.log(`[Presence] 📤 트래킹 전송: ${type}`);
+src/hooks/useOnlinePresence.ts:66:            console.log('[Presence] 🛰️ 채널 생성');
+src/hooks/useOnlinePresence.ts:97:                console.log('[Presence] 👁️ 탭 활성화 - Presence 재등록');
+src/lib/presenceChannel.ts:13:        console.log('[Presence] 🛰️ 새로운 채널 생성 (v2):', sessionId);
+src/lib/analytics.ts:18:        console.log(`[Analytics] 👤 관리자 상태 변경: ${isAdminUser} -> ${isAdmin}`);
+src/lib/analytics.ts:126:        console.log('[Analytics] 🤖 Bot detected. Action skipped.');
+src/lib/analytics.ts:132:        console.log('[Analytics] 🛡️ Admin session detected. Action skipped.');
+src/lib/analytics.ts:139:        console.log('[Analytics] 🛠️ Development mode - Tracking allowed for testing.');
+src/lib/analytics.ts:147:        console.log(`[Analytics] ⚠️ Non-production domain detected (${hostname}). Action skipped.`);
+src/lib/analytics.ts:197:            console.log(`[Analytics] ✅ GA4 Initialized (${MEASUREMENT_ID === DEV_ID ? 'DEV' : 'PROD'})`);
+src/lib/analytics.ts:222:            console.log('[Analytics] ✅ Page view sent:', { path, title });
+src/lib/analytics.ts:245:            console.log('[Analytics] ✅ Event sent:', { category, action, label });
+src/lib/analytics.ts:287:            console.log('[Analytics] Error logged:', { errorType, errorMessage, errorLocation });
+src/lib/analytics.ts:312:            console.log('[Analytics] Timing logged:', { category, variable, value, label });
+src/lib/analytics.ts:329:            console.log('[Analytics] ✅ User properties set:', properties);
+src/lib/analytics.ts:348:                console.log('[Analytics] ✅ User ID set:', userId);
+src/lib/analytics.ts:351:                console.log('[Analytics] ✅ User ID cleared');
+src/lib/pushNotifications.ts:49:    console.log('Notification permission:', permission);
+src/lib/pushNotifications.ts:90:            console.log('Already subscribed to push notifications');
+src/lib/pushNotifications.ts:100:        console.log('Push subscription created:', subscription);
+src/lib/pushNotifications.ts:124:            console.log('No active subscription found');
+src/lib/pushNotifications.ts:129:        console.log('Push subscription removed:', successful);
+src/lib/pushNotifications.ts:166:            console.log('Badge set to:', count);
+src/lib/pushNotifications.ts:182:            console.log('Badge cleared');
+src/lib/pushNotifications.ts:216:        console.log('Test notification shown');
+src/lib/supabase.ts:8:console.log('[Supabase] 환경변수 확인:', {
+src/lib/supabase.ts:27:        console.log(`[Supabase Init] Mode: ${isStandalone ? 'PWA' : 'Browser'}, Key: ${key}`);
+src/lib/supabase.ts:181:      console.log('[Supabase] ⚡ Using cached session validation (Short-circuit)');
+src/lib/supabase.ts:185:    console.log('[Supabase] 🔍 Validating session with server...');
+src/lib/supabase.ts:215:      console.log('[Supabase] ℹ️ No session found');
+src/lib/supabase.ts:235:        console.log('[Supabase] ✅ Session refreshed successfully');
+src/lib/supabase.ts:243:    console.log('[Supabase] 🔐 Verifying token with server (getUser)...');
+src/lib/supabase.ts:280:    console.log('[Supabase] ✅ Session is valid and verified by server');
+src/pages/guide/page.tsx:26:        console.log('[KakaoShare] 초기화 시도...');
+src/pages/guide/page.tsx:28:        console.log('[KakaoShare] 초기화 완료:', window.Kakao.isInitialized());
+src/pages/guide/page.tsx:30:        console.log('[KakaoShare] 이미 초기화되어 있습니다.');
+src/pages/guide/page.tsx:38:    console.log('[KakaoShare] 버튼 클릭됨');
+src/pages/guide/page.tsx:39:    console.log('[KakaoShare] 현재 도메인:', window.location.origin);
+src/pages/guide/page.tsx:50:      console.log('[KakaoShare] Lazy Init 시도...');
+src/pages/guide/page.tsx:53:        console.log('[KakaoShare] Lazy Init 성공');
+src/pages/guide/page.tsx:61:      console.log('[KakaoShare] sendDefault 호출 시작');
+src/pages/guide/page.tsx:85:        console.log('[KakaoShare] sendDefault 호출 완료');
+src/pages/guide/page.tsx:316:          console.log('Selected event:', event);
+src/pages/shopping/components/ShopEditModal.tsx:199:                    console.log('[ShopEditModal] Loaded featured items from DB:', dbItems);
+src/pages/shopping/components/ShopEditModal.tsx:211:                    console.log('[ShopEditModal] Setting featuredItems state:', loadedItems);
+src/pages/shopping/components/ShopEditModal.tsx:260:        console.log('[ShopEditModal] handleSubmit called, featuredItems:', featuredItems);
+src/pages/shopping/components/ShopEditModal.tsx:405:        console.log('[ShopEditModal] handleClose called, loading:', loading);
+src/pages/calendar/components/FullEventCalendar.tsx:249:        console.log("📅 [FullEventCalendar] Fetched events:", eventsResult.data?.length);
+src/pages/calendar/components/FullEventCalendar.tsx:253:            console.log(`- Event: ${evt.title}, Micro: ${evt.image_micro ? '✅ Exist' : '❌ NULL'}, URL: ${evt.image_micro}`);
+src/pages/calendar/components/FullEventCalendar.tsx:262:        console.log("📅 [FullEventCalendar] Fetched social schedules:", socialResult.data?.length);
+src/pages/calendar/components/FullEventCalendar.tsx:275:        console.log('Scrolling to event:', highlightedEventId, eventCard);
+src/pages/calendar/components/FullEventCalendar.tsx:285:          console.log('ScrollIntoView called');
+src/pages/calendar/components/FullEventCalendar.tsx:463:                    console.log('Event clicked (prop):', event.id, event.title);
+src/pages/calendar/page.tsx:118:                console.log('🛑 [ScrollLog] User interaction detected. Aborting auto-scroll.');
+src/pages/calendar/page.tsx:148:                    console.log(`🎯 [ScrollLog] #${attempts} Window Hybrid Chasing: Error(${offsetError.toFixed(2)}px), ScrollY(${currentScrollY.toFixed(1)}), Stable(${stableCount})`);
+src/pages/calendar/page.tsx:153:                    console.log('✅ [ScrollLog] Final Alignment Stabilized.');
+src/pages/calendar/page.tsx:426:                                console.log('Event created:', eventId, createdDate);
+src/pages/board/BoardMainContainer.tsx:63:            console.log('[BoardMainContainer] Used prefixes for category:', category, 'data:', filteredPrefixes);
+src/pages/board/components/QuickMemoEditor.tsx:201:                    console.log('Updating anonymous post as Admin (Direct)');
+src/pages/board/components/QuickMemoEditor.tsx:302:                console.log('Deleting anonymous post as Admin');
+src/pages/board/components/CommentForm.tsx:181:        console.log('[CommentForm] Login clicked, category:', category);
+src/pages/board/components/CommentForm.tsx:185:                    console.log('[CommentForm] Login/Registration successful');
+src/pages/board/components/ProfileEditModal.tsx:85:            console.log('[프로필 수정 모달] 열림', {
+src/pages/board/components/ProfileEditModal.tsx:97:                console.log('[프로필 수정 모달] 기존 이미지 경로 추출', {
+src/pages/board/components/ProfileEditModal.tsx:103:                console.log('[프로필 수정 모달] 기존 이미지 없음');
+src/pages/board/components/ProfileEditModal.tsx:112:            console.log('[프로필 이미지] 파일 선택', {
+src/pages/board/components/ProfileEditModal.tsx:125:                console.log('[프로필 이미지] 미리보기 생성 완료');
+src/pages/board/components/ProfileEditModal.tsx:133:        console.log('[프로필 이미지] 삭제 요청', { oldImagePath });
+src/pages/board/components/ProfileEditModal.tsx:164:            console.log('[프로필 저장] 시작', {
+src/pages/board/components/ProfileEditModal.tsx:175:                console.log('[프로필 이미지] 삭제 처리 시작');
+src/pages/board/components/ProfileEditModal.tsx:178:                    console.log('[프로필 이미지] 스토리지에서 삭제', { path: oldImagePath });
+src/pages/board/components/ProfileEditModal.tsx:186:                        console.log('[프로필 이미지] 삭제 성공');
+src/pages/board/components/ProfileEditModal.tsx:190:                console.log('[프로필 이미지] DB에 null 저장 예정');
+src/pages/board/components/ProfileEditModal.tsx:192:                console.log('[프로필 이미지] 새 이미지 업로드 시작');
+src/pages/board/components/ProfileEditModal.tsx:196:                    console.log('[프로필 이미지] 기존 이미지 삭제', { path: oldImagePath });
+src/pages/board/components/ProfileEditModal.tsx:204:                        console.log('[프로필 이미지] 기존 이미지 삭제 성공');
+src/pages/board/components/ProfileEditModal.tsx:209:                console.log('[프로필 이미지] WebP 변환 시작');
+src/pages/board/components/ProfileEditModal.tsx:211:                console.log('[프로필 이미지] WebP 변환 완료', { size: `${(webpBlob.size / 1024).toFixed(2)}KB` });
+src/pages/board/components/ProfileEditModal.tsx:215:                console.log('[프로필 이미지] 업로드 시작', { filePath });
+src/pages/board/components/ProfileEditModal.tsx:227:                console.log('[프로필 이미지] 업로드 성공');
+src/pages/board/components/ProfileEditModal.tsx:233:                console.log('[프로필 이미지] Public URL 생성', { publicUrl });
+src/pages/board/components/ProfileEditModal.tsx:236:                console.log('[프로필 이미지] 변경 없음, 기존 이미지 유지', { profileImageUrl });
+src/pages/board/components/ProfileEditModal.tsx:242:            console.log('[프로필 저장] 현재 세션 확인', {
+src/pages/board/components/ProfileEditModal.tsx:249:            console.log('[프로필 저장] DB 업데이트 시작', {
+src/pages/board/components/ProfileEditModal.tsx:264:            console.log('[프로필 저장] DB 업데이트 결과', {
+src/pages/board/components/ProfileEditModal.tsx:282:            console.log('[프로필 저장] 성공');
+src/pages/board/components/CommentSection.tsx:38:                    console.log(`[Realtime Comment] ${payload.eventType} event:`, payload);
+src/pages/board/components/CommentSection.tsx:62:                        console.log('[Realtime Debug] Payload NEW:', JSON.stringify(newComment, null, 2));
+src/pages/board/components/CommentSection.tsx:66:                            console.log('[Realtime Comment] Comment soft-deleted (hidden)');
+src/pages/board/components/CommentSection.tsx:77:                                    console.log('[Realtime Debug] Match Found!');
+src/pages/board/components/CommentSection.tsx:78:                                    console.log('--- BEFORE ---', JSON.stringify(comment, null, 2));
+src/pages/board/components/CommentSection.tsx:81:                                    console.log('--- AFTER (MERGED) ---', JSON.stringify(merged, null, 2));
+src/pages/board/components/CommentSection.tsx:100:                console.log(`[Realtime Comment] Status: ${status}`);
+src/pages/board/components/AnonymousPostList.tsx:39:            console.log('[AnonymousPostList] Restoring comment section for post:', postId);
+src/pages/board/components/AnonymousPostList.tsx:51:            console.log('[AnonymousPostList] Restoring scroll position:', scrollY);
+src/pages/board/components/AnonymousPostList.tsx:57:                    console.log('[AnonymousPostList] Executing scroll restore to:', scrollY, 'targeting:', boardContainer ? 'container' : 'window');
+src/pages/board/detail/page.tsx:69:                    console.log('[Realtime Detail] Event received:', payload);
+src/pages/board/hooks/useBoardDetail.ts:41:                    console.log('[Realtime Detail] Event received:', payload);
+src/pages/board/hooks/useBoardPosts.ts:121:        console.log(`[Realtime] Subscribing to ${table} for category: ${category}`);
+src/pages/board/hooks/useBoardPosts.ts:134:                    console.log(`[Realtime] ${payload.eventType} event received:`, payload);
+src/pages/board/hooks/useBoardPosts.ts:154:                        console.log('[Realtime] Added new post without reload');
+src/pages/board/hooks/useBoardPosts.ts:167:                            console.log('[Realtime] Post soft-deleted (hidden)');
+src/pages/board/hooks/useBoardPosts.ts:186:                        console.log('[Realtime] Updated post without reload');
+src/pages/board/hooks/useBoardPosts.ts:198:                        console.log('[Realtime] Removed post without reload');
+src/pages/board/hooks/useBoardPosts.ts:203:                console.log(`[Realtime] ${table} subscription status:`, status);
+src/pages/board/hooks/useBoardPosts.ts:205:                    console.log(`[Realtime] Successfully subscribed to ${table}`);
+src/pages/board/hooks/useBoardPosts.ts:214:            console.log(`[Realtime] Unsubscribing from ${table} for category: ${category}`);
+src/pages/board/page.tsx:65:    console.log('[Realtime] Subscribing to board_posts');
+src/pages/board/page.tsx:77:          console.log(`[Realtime] ${payload.eventType} event received:`, payload);
+src/pages/board/page.tsx:93:            console.log('[Realtime] Added new post without reload');
+src/pages/board/page.tsx:101:            console.log('[Realtime] Attempting to update post:', newData.id);
+src/pages/board/page.tsx:118:            console.log('[Realtime] Updated post without reload');
+src/pages/board/page.tsx:126:            console.log('[Realtime] Attempting to delete post:', deletedPost.id);
+src/pages/board/page.tsx:132:            console.log('[Realtime] Removed post without reload');
+src/pages/board/page.tsx:137:        console.log('[Realtime] Subscription status:', status);
+src/pages/board/page.tsx:139:          console.log('[Realtime] Successfully subscribed to board_posts');
+src/pages/board/page.tsx:148:      console.log('[Realtime] Unsubscribing from board_posts');
+src/pages/board/page.tsx:300:      console.log('--- SUPABASE RAW DATA ---');
+src/pages/board/page.tsx:302:        console.log('Sample Post [0]:', data[0]);
+src/pages/board/page.tsx:303:        console.log('Has comment_count?', 'comment_count' in data[0]);
+src/pages/board/page.tsx:304:        console.log('Value of comment_count:', data[0].comment_count);
+src/pages/board/page.tsx:306:        console.log('No data returned');
+src/pages/board/page.tsx:308:      console.log('-------------------------');
+src/pages/board/page.tsx:347:    console.log('[BoardPage] Post created/updated. Waiting for Realtime update...');
+src/pages/auth/kakao-callback/page.tsx:20:            console.log('[Kakao Callback] 🚀 콜백 처리 시작');
+src/pages/auth/kakao-callback/page.tsx:28:            console.log('[Kakao Callback] processingRef 설정 완료');
+src/pages/auth/kakao-callback/page.tsx:34:            console.log('[Kakao Callback] URL 파라미터:', {
+src/pages/auth/kakao-callback/page.tsx:60:                console.log('[Kakao Callback] ✅ 인증 코드 수신:', code.substring(0, 10) + '...');
+src/pages/auth/kakao-callback/page.tsx:64:                console.log('[Kakao Callback] 🧹 URL에서 인증 코드 제거 완료');
+src/pages/auth/kakao-callback/page.tsx:70:                console.log('[Kakao Callback] 📤 서버로 인증 코드 전송 시작');
+src/pages/auth/kakao-callback/page.tsx:71:                console.log('[Kakao Callback] Endpoint:', authEndpoint);
+src/pages/auth/kakao-callback/page.tsx:72:                console.log('[Kakao Callback] Redirect URI:', redirectUri);
+src/pages/auth/kakao-callback/page.tsx:85:                console.log('[Kakao Callback] 📥 서버 응답 수신:', {
+src/pages/auth/kakao-callback/page.tsx:110:                console.log('[Kakao Callback] ✅ 서버 응답 수신 성공');
+src/pages/auth/kakao-callback/page.tsx:111:                console.log('[Kakao Callback] 응답 데이터:', {
+src/pages/auth/kakao-callback/page.tsx:120:                    console.log('[Kakao Callback] 🔐 Supabase 세션 설정 시작');
+src/pages/auth/kakao-callback/page.tsx:121:                    console.log('[Kakao Callback] Access Token 존재:', !!authData.session.access_token);
+src/pages/auth/kakao-callback/page.tsx:122:                    console.log('[Kakao Callback] Refresh Token 존재:', !!authData.session.refresh_token);
+src/pages/auth/kakao-callback/page.tsx:124:                    console.log('[Kakao Callback] 🚀 setSession 호출 시작...');
+src/pages/auth/kakao-callback/page.tsx:140:                        console.log('[Kakao Callback] 🏁 setSession 호출 완료');
+src/pages/auth/kakao-callback/page.tsx:154:                    console.log('[Kakao Callback] ✅ 세션 설정 함수 실행 완료');
+src/pages/auth/kakao-callback/page.tsx:155:                    console.log('[Kakao Callback] 🎉 로그인 성공!');
+src/pages/auth/kakao-callback/page.tsx:158:                    console.log('[Kakao Callback] 📍 리다이렉트 준비 시작');
+src/pages/auth/kakao-callback/page.tsx:160:                    console.log('[Kakao Callback] 복귀 URL:', returnUrl);
+src/pages/auth/kakao-callback/page.tsx:166:                    console.log('[Kakao Callback] ➡️ navigate() 호출');
+src/pages/auth/kakao-callback/page.tsx:168:                    console.log('[Kakao Callback] ✈️ navigate() 호출 완료');
+src/pages/auth/kakao-callback/page.tsx:190:                console.log('[Kakao Callback] ➡️ 홈으로 리다이렉트');
+src/pages/learning/Page.tsx:112:        console.log('🔍 Admin Check - Session:', session ? 'EXISTS' : 'NULL');
+src/pages/learning/Page.tsx:118:            console.log('✅ Admin status set to TRUE');
+src/pages/learning/Page.tsx:120:            console.log('❌ No session - Admin status remains FALSE');
+src/pages/event-photo-finder/utils/faceModel.ts:33:            console.log('✅ Face API models loaded successfully');
+src/pages/user/MyActivitiesPage.tsx:72:            console.log('[MyActivities] 🔄 Fetching all data parallelly...');
+src/pages/user/MyActivitiesPage.tsx:88:                console.log(`[MyActivities] ✅ Fetched ${eventsRes.data?.length || 0} events/classes`);
+src/pages/user/MyActivitiesPage.tsx:96:                console.log(`[MyActivities] ✅ Fetched ${groupsRes.data?.length || 0} groups`);
+src/pages/user/MyActivitiesPage.tsx:104:                console.log(`[MyActivities] ✅ Fetched ${schedulesRes.data?.length || 0} schedules`);
+src/pages/user/MyActivitiesPage.tsx:121:                console.log(`[MyActivities] ✅ Fetched ${postsRes.data?.length || 0} posts`);
+src/pages/v2/components/EventDetailModal.tsx:102:  // console.log('[EventDetailModal] 모달 열림 - event:', event?.title, 'isActualAdmin:', isActualAdmin, 'board_users:', (event as any)?.board_users);
+src/pages/v2/components/EventDetailModal.tsx:418:    console.log('[EventDetailModal] uniqueGenres recalc. Category:', editCategory);
+src/pages/v2/components/EventDetailModal.tsx:419:    console.log('[EventDetailModal] structuredGenres:', structuredGenres);
+src/pages/v2/components/EventDetailModal.tsx:490:    console.log('[Debug] handleSaveField triggered');
+src/pages/v2/components/EventDetailModal.tsx:491:    console.log(' - activeEditField:', activeEditField);
+src/pages/v2/components/EventDetailModal.tsx:492:    console.log(' - editValue:', editValue);
+src/pages/v2/components/EventDetailModal.tsx:493:    console.log(' - editCategory:', editCategory);
+src/pages/v2/components/EventDetailModal.tsx:504:      console.log('[Date Save] Starting date save logic');
+src/pages/v2/components/EventDetailModal.tsx:505:      console.log('[Date Save] dateMode:', dateMode);
+src/pages/v2/components/EventDetailModal.tsx:506:      console.log('[Date Save] editValue:', editValue);
+src/pages/v2/components/EventDetailModal.tsx:510:        console.log('[Date Save] Multiple dates mode detected');
+src/pages/v2/components/EventDetailModal.tsx:522:        console.log('[Date Save] Updates for multiple dates:', {
+src/pages/v2/components/EventDetailModal.tsx:529:        console.log('[Date Save] Single date mode detected');
+src/pages/v2/components/EventDetailModal.tsx:535:        console.log('[Date Save] Updates for single date:', { start_date: singleDate, date: singleDate, end_date: singleDate });
+src/pages/v2/components/EventDetailModal.tsx:547:    console.log('[Date Save] Final updates object:', updates);
+src/pages/v2/components/EventDetailModal.tsx:549:    console.log('[Date Save] Draft event updated');
+src/pages/v2/components/EventDetailModal.tsx:574:    console.log('[hasChanges] Checking for changes...');
+src/pages/v2/components/EventDetailModal.tsx:585:        console.log(`[hasChanges] Field '${field}' changed:`, {
+src/pages/v2/components/EventDetailModal.tsx:593:    console.log('[hasChanges] Result:', hasChanged, 'Changed fields:', changedFields);
+src/pages/v2/components/EventDetailModal.tsx:600:    console.log('[Debug] handleFinalSave triggered');
+src/pages/v2/components/EventDetailModal.tsx:601:    console.log(' - draftEvent state:', draftEvent);
+src/pages/v2/components/EventDetailModal.tsx:605:      console.log("🌀 EventDetailModal 스피너 실행됨 (isSaving: true)");
+src/pages/v2/components/EventDetailModal.tsx:637:      console.log('[Final Save] Date fields in draftEvent:', {
+src/pages/v2/components/EventDetailModal.tsx:643:      console.log('[Final Save] Date fields in updates:', {
+src/pages/v2/components/EventDetailModal.tsx:649:      console.log(' - Payload to Supabase:', updates);
+src/pages/v2/components/EventDetailModal.tsx:662:        console.log('[Image Upload] Starting parallel upload with retries:', basePath);
+src/pages/v2/components/EventDetailModal.tsx:704:          console.log('[Image Upload] All versions uploaded successfully');
+src/pages/v2/components/EventDetailModal.tsx:754:      console.log('[DB Update] Updating events table with payload:', updates);
+src/pages/v2/components/EventDetailModal.tsx:755:      console.log('[DB Update] Event ID:', draftEvent.id);
+src/pages/v2/components/EventDetailModal.tsx:766:      console.log('[DB Update] REST response received');
+src/pages/v2/components/EventDetailModal.tsx:767:      console.log('[DB Update] Error:', error);
+src/pages/v2/components/EventDetailModal.tsx:768:      console.log('[DB Update] Updated event data:', updatedEvent);
+src/pages/v2/components/EventDetailModal.tsx:783:      console.log('[Debug] Supabase update success');
+src/pages/v2/components/EventDetailModal.tsx:784:      console.log(' - Updated event from DB:', updatedEvent);
+src/pages/v2/components/EventDetailModal.tsx:788:        console.log('[Debug] Verifying update application:');
+src/pages/v2/components/EventDetailModal.tsx:789:        console.log(` - Genre: Payload '${updates.genre}' vs DB '${updatedEvent.genre}'`);
+src/pages/v2/components/EventDetailModal.tsx:790:        console.log(` - Category: Payload '${updates.category}' vs DB '${updatedEvent.category}'`);
+src/pages/v2/components/EventDetailModal.tsx:791:        console.log(` - Date: Payload '${updates.date}' vs DB '${updatedEvent.date}'`);
+src/pages/v2/components/EventDetailModal.tsx:792:        console.log(` - Start Date: Payload '${updates.start_date}' vs DB '${updatedEvent.start_date}'`);
+src/pages/v2/components/EventDetailModal.tsx:793:        console.log(` - End Date: Payload '${updates.end_date}' vs DB '${updatedEvent.end_date}'`);
+src/pages/v2/components/EventDetailModal.tsx:794:        console.log(` - Event Dates: Payload '${JSON.stringify(updates.event_dates)}' vs DB '${JSON.stringify(updatedEvent.event_dates)}'`);
+src/pages/v2/components/EventDetailModal.tsx:809:            console.log('✅ Force update SUCCEEDED! Category is now:', retryData.category);
+src/pages/v2/components/EventDetailModal.tsx:833:      console.log('[Screen Update] Dispatching eventUpdated custom event');
+src/pages/v2/components/EventDetailModal.tsx:834:      console.log('[Screen Update] Event data to dispatch:', updatedEvent || draftEvent);
+src/pages/v2/components/EventDetailModal.tsx:841:      console.log('[Screen Update] Custom event dispatched');
+src/pages/v2/components/EventDetailModal.tsx:846:          console.log("🧹 [EventDetailModal] Starting cleanup of old images...");
+src/pages/v2/components/EventDetailModal.tsx:855:                console.log(`✅ [CLEANUP] Deleted ${files.length} files from old folder: ${oldStoragePath}`);
+src/pages/v2/components/EventDetailModal.tsx:883:                console.log(`✅ [CLEANUP] Deleted ${filteredPaths.length} individual legacy files`);
+src/pages/v2/components/EventDetailModal.tsx:898:      console.log('[Screen Update] Exiting edit mode');
+src/pages/v2/components/EventDetailModal.tsx:902:        console.log('[Screen Update] Updating local state with DB response');
+src/pages/v2/components/EventDetailModal.tsx:912:      console.log('[Screen Update] Save complete, showing alert');
+src/pages/v2/components/EventDetailModal.tsx:1559:                    console.log('[EventDetail] ✅ Permission Check:', {
+src/pages/v2/components/EventDetailModal.tsx:1913:                            console.log('[Date Mode] Switching to single mode');
+src/pages/v2/components/EventDetailModal.tsx:1932:                            console.log('[Date Mode] Switching to dates mode');
+src/pages/v2/components/EventDetailModal.tsx:1987:                            console.log('[DatePicker] Date selected:', dateStr, 'Mode:', dateMode);
+src/pages/v2/components/EventDetailModal.tsx:2109:                                    console.log(`[EventDetailModal] Genre Click: ${genre}`);
+src/pages/v2/components/EventDetailModal.tsx:2145:                                    console.log(`[EventDetailModal] New Value: ${newValue}`);
+src/pages/v2/components/AdminBillboardModal.tsx:206:    console.log('[서브관리자 설정] 로드 시작:', billboardUserId);
+src/pages/v2/components/AdminBillboardModal.tsx:232:      console.log('[서브관리자 설정] 로드 완료:', {
+src/pages/v2/components/AdminBillboardModal.tsx:266:    console.log('[서브 이벤트 토글] 시작:', eventId);
+src/pages/v2/components/AdminBillboardModal.tsx:274:    console.log('[서브 이벤트 토글] 완료:', {
+src/pages/v2/components/AdminBillboardModal.tsx:288:    console.log('[서브 설정 저장]', {
+src/pages/v2/components/EventCalendar.tsx:192:      console.log('[EventCalendar] Event deleted, refreshing...');
+src/pages/v2/components/EventCalendar.tsx:197:      console.log('[EventCalendar] Event updated/created, refreshing...');
+src/pages/v2/components/EventCalendar.tsx:295:      // console.log(`[Calendar] getEventsForDate ${dateString}: checking ${filteredEvents.length} events`);
+src/pages/v2/components/EventCalendar.tsx:453:    console.log(`[Calendar] handleDateClick triggered for ${date.toDateString()}`);
+src/pages/v2/components/EventCalendar.tsx:460:      console.log(`[Calendar] Fullscreen click on: ${date.toString()} (ISO: ${date.toISOString()})`);
+src/pages/v2/components/EventCalendar.tsx:472:      console.log('[Calendar] Date already selected. Deselecting.');
+src/pages/v2/components/EventCalendar.tsx:477:      console.log('[Calendar] Selecting new date.');
+src/pages/v2/Page.tsx:342:            console.log('[Page.tsx] openEventSearch event received');
+src/pages/social/clubs/page.tsx:74:          console.log('카카오맵 초기화 성공 (동호회)');
+src/pages/social/clubs/page.tsx:310:          console.log('공유 취소');
+src/pages/social/swing-bars/page.tsx:74:          console.log('카카오맵 초기화 성공 (스윙바)');
+src/pages/social/swing-bars/page.tsx:310:          console.log('공유 취소');
+src/pages/social/components/SocialGroupModal.tsx:59:        console.log('[SocialGroupModal] handleImageSelect called');
+src/pages/social/components/SocialGroupModal.tsx:62:            console.log('[SocialGroupModal] File selected:', {
+src/pages/social/components/SocialGroupModal.tsx:74:            console.log('[SocialGroupModal] Starting FileReader...');
+src/pages/social/components/SocialGroupModal.tsx:77:                console.log('[SocialGroupModal] FileReader onload - setting tempImageSrc and opening crop modal');
+src/pages/social/components/SocialGroupModal.tsx:86:            console.log('[SocialGroupModal] No file selected');
+src/pages/social/components/SocialGroupModal.tsx:92:        console.log('[SocialGroupModal] handleCropComplete called:', {
+src/pages/social/components/SocialGroupModal.tsx:125:        console.log('[SocialGroupModal] Starting deletion process for group:', editGroup.id);
+src/pages/social/components/SocialGroupModal.tsx:130:            console.log('[SocialGroupModal] Auth token obtained:', !!token);
+src/pages/social/components/SocialGroupModal.tsx:132:            console.log('[SocialGroupModal] Sending request to /.netlify/functions/delete-social-item');
+src/pages/social/components/SocialGroupModal.tsx:146:            console.log('[SocialGroupModal] Server response status:', response.status, response.statusText);
+src/pages/social/components/SocialGroupModal.tsx:155:            console.log('[SocialGroupModal] Success result:', result);
+src/pages/social/components/SocialGroupModal.tsx:345:                                console.log('[SocialGroupModal] Image preview box clicked:', {
+src/pages/social/components/SocialGroupModal.tsx:483:                    console.log('[SocialGroupModal] onChangeImage callback triggered');
+src/pages/social/components/SocialGroupModal.tsx:487:                    console.log('[SocialGroupModal] onImageUpdate callback triggered:', {
+src/pages/social/components/SocialGroupModal.tsx:495:                        console.log('[SocialGroupModal] FileReader completed - updating tempImageSrc');
+src/pages/social/components/SocialScheduleModal.tsx:162:        console.log('[SocialScheduleModal] Starting delete process for schedule:', editSchedule.id);
+src/pages/social/components/SocialScheduleModal.tsx:168:            console.log('[SocialScheduleModal] Auth token obtained:', !!token);
+src/pages/social/components/SocialScheduleModal.tsx:174:            console.log('[SocialScheduleModal] Sending delete request:', requestBody);
+src/pages/social/components/SocialScheduleModal.tsx:185:            console.log('[SocialScheduleModal] Response status:', response.status, response.statusText);
+src/pages/social/components/SocialScheduleModal.tsx:194:            console.log('[SocialScheduleModal] Delete success:', result);
+src/pages/social/components/SocialScheduleModal.tsx:539:                    console.log('[SocialScheduleModal] onChangeImage callback triggered');
+src/pages/social/components/SocialScheduleModal.tsx:547:                    console.log('[SocialScheduleModal] onImageUpdate callback triggered:', {
+src/pages/social/components/SocialScheduleModal.tsx:554:                        console.log('[SocialScheduleModal] FileReader completed - updating tempImageSrc');
+src/pages/social/components/SeoulMap.tsx:40:        console.log('카카오맵 초기화 성공');
+src/pages/social/components/ScheduleModal.tsx:79:    console.log('[ScheduleModal] Starting delete process for schedule:', scheduleId);
+src/pages/social/components/ScheduleModal.tsx:85:      console.log('[ScheduleModal] Auth token obtained:', !!token);
+src/pages/social/components/ScheduleModal.tsx:91:      console.log('[ScheduleModal] Sending delete request:', requestBody);
+src/pages/social/components/ScheduleModal.tsx:102:      console.log('[ScheduleModal] Response status:', response.status, response.statusText);
+src/pages/social/components/ScheduleModal.tsx:111:      console.log('[ScheduleModal] Delete success:', result);
+src/pages/social/components/SocialEditModal.tsx:154:    console.log('[SocialEditModal] Starting delete process for item:', item.id);
+src/pages/social/components/SocialEditModal.tsx:160:      console.log('[SocialEditModal] Auth token obtained:', !!token);
+src/pages/social/components/SocialEditModal.tsx:166:      console.log('[SocialEditModal] Sending delete request:', requestBody);
+src/pages/social/components/SocialEditModal.tsx:177:      console.log('[SocialEditModal] Response status:', response.status, response.statusText);
+src/pages/social/components/SocialEditModal.tsx:181:        console.log('[SocialEditModal] Delete failed (intended as log):', errData);
+src/pages/social/components/SocialEditModal.tsx:186:      console.log('[SocialEditModal] Delete success:', result);
+src/pages/social/components/SocialDetailModal.tsx:186:                                console.log('[SocialDetailModal] Author info visibility check:', {
+src/pages/social/page.tsx:237:    console.log('🔍 [Schedule Clicked]', schedule);
+src/pages/social/page.tsx:305:    console.log('📝 [Edit Schedule Clicked]', schedule);
+src/pages/social/page.tsx:444:            console.log('🔒 Modal Closing...');
+src/pages/social/page.tsx:451:            console.log('✅ Modal Success!');
+src/pages/billboard/utils/logger.ts:7:    console.log(...args);

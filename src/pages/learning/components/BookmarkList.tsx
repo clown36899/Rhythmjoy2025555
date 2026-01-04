@@ -49,7 +49,6 @@ export const BookmarkList = ({ bookmarks, onSeek, onDelete, onEdit, isAdmin }: P
                                     className="ld-bookmark-action-btn"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        console.log('[BookmarkList] Edit clicked for:', mark.id, mark.label);
                                         onEdit(mark.id, mark.label);
                                     }}
                                     title="이름 수정"
