@@ -1,5 +1,7 @@
-import React from 'react';
+import { renderTextWithLinks } from '../utils/text';
+
 import './BookmarkList.css';
+
 
 interface Bookmark {
     id: string;
@@ -38,7 +40,8 @@ export const BookmarkList = ({ bookmarks, onSeek, onDelete, onEdit, isAdmin }: P
                     >
                         {mark.is_overlay && <span className="ld-overlay-tag-icon">💬</span>}
                         <span className="ld-bookmark-time">{formatTime(mark.timestamp)}</span>
-                        <span className="ld-bookmark-label">{mark.label}</span>
+                        <span className="ld-bookmark-label">{renderTextWithLinks(mark.label)}</span>
+
 
                         {isAdmin && (
                             <>

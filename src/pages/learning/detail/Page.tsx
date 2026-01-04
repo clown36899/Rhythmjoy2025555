@@ -4,7 +4,9 @@ import YouTube, { type YouTubeProps } from 'react-youtube';
 import { supabase } from '../../../lib/supabase';
 import { BookmarkList } from '../components/BookmarkList';
 import { fetchVideoDetails } from '../utils/youtube';
+import { renderTextWithLinks } from '../utils/text';
 import './Page.css';
+
 
 interface Video {
     id: string;
@@ -502,7 +504,10 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         });
     };
 
+
     // --- Render Loading / Error States ---
+
+
 
     if (error) {
         return (
@@ -631,8 +636,9 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                         ref={memoRef}
                         className={`ld-video-memo-display ${isDescriptionExpanded ? 'expanded' : ''}`}
                     >
-                        {fullDescription || currentVideo.memo}
+                        {renderTextWithLinks(fullDescription || currentVideo.memo)}
                     </div>
+
                     {isOverflowing && (
                         !isDescriptionExpanded ? (
                             <span
@@ -675,11 +681,12 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                         </div>
                     ) : (
                         playlist.description ? (
-                            <p className="ld-info-description">{playlist.description}</p>
+                            <p className="ld-info-description">{renderTextWithLinks(playlist.description)}</p>
                         ) : (
                             <p className="ld-info-description no-content">등록된 설명이 없습니다.</p>
                         )
                     )}
+
                 </div>
             </div>
 
@@ -755,9 +762,10 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                                     {idx + 1}. {video.title}
                                 </h3>
                                 {video.memo && (
-                                    <p className="ld-video-memo">{video.memo}</p>
+                                    <p className="ld-video-memo">{renderTextWithLinks(video.memo)}</p>
                                 )}
                             </div>
+
                         </div>
                     ))}
                 </div>
