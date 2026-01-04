@@ -29,7 +29,7 @@ html {
     background-color: #000000;
     display: flex;
     gap: 8px;
-    padding: 12px 16px;
+    padding: 0px 16px;
     /* border-bottom: 1px solid #222; */
 }
 
@@ -62,7 +62,7 @@ html {
 /* Sticky Weekday Header */
 .calendar-page-weekday-header {
     position: fixed;
-    top: 110px;
+    top: 94px;
     /* 글로벌 헤더(60px) + 탭 메뉴(50px) */
     left: 50%;
     transform: translateX(-50%);
@@ -71,7 +71,7 @@ html {
     z-index: 40;
     /* BoardTabBar와 동일한 레벨 */
     background-color: #000000;
-    padding-top: 10px;
+    /* padding-top: 10px; */
     /* padding-bottom: 10px; */
     border-bottom: 1px solid #333;
 }
@@ -86,7 +86,7 @@ html {
     width: 100%;
     max-width: 650px;
     margin: 0 auto;
-    padding-top: 170px;
+    padding-top: 138px;
     /* 글로벌 헤더(60px) + 탭 메뉴(50px) + 요일 헤더(60px) */
 }
 

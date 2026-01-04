@@ -1,5 +1,4 @@
 import { memo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Handle, Position } from 'reactflow';
 import type { NodeProps } from 'reactflow';
 import { parseVideoUrl } from '../../../utils/videoEmbed';
@@ -7,7 +6,6 @@ import './HistoryNodeComponent.css';
 import type { HistoryNodeData } from '../types';
 
 function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
-    const navigate = useNavigate();
     const videoInfo = data.youtube_url ? parseVideoUrl(data.youtube_url) : null;
     const thumbnailUrl = videoInfo?.thumbnailUrl || null;
 
@@ -131,12 +129,14 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
                             className="node-action-btn btn-linked-resource"
                             onClick={(e) => {
                                 e.stopPropagation();
-                                if (data.linked_playlist_id) {
-                                    navigate(`/learning/${data.linked_playlist_id}`);
-                                } else if (data.linked_document_id) {
-                                    navigate(`/learning?docId=${data.linked_document_id}`);
-                                } else if (data.linked_video_id) {
-                                    navigate(`/learning/video:${data.linked_video_id}`);
+                                if (data.onPreviewLinkedResource) {
+                                    if (data.linked_playlist_id) {
+                                        data.onPreviewLinkedResource(data.linked_playlist_id, 'playlist', data.title);
+                                    } else if (data.linked_document_id) {
+                                        data.onPreviewLinkedResource(data.linked_document_id, 'document', data.title);
+                                    } else if (data.linked_video_id) {
+                                        data.onPreviewLinkedResource(data.linked_video_id, 'video', data.title);
+                                    }
                                 }
                             }}
                             title="연결된 원본 자료 보기"

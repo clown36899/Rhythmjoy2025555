@@ -38,8 +38,8 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgb(0 0 0 / 77%);
-  backdrop-filter: blur(20px);
+  /* background: rgb(0 0 0 / 77%);
+  backdrop-filter: blur(20px); */
   -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid rgba(255, 255, 255, 0.08);
   z-index: var(--z-20);

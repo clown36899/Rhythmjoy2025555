@@ -7,8 +7,8 @@ import { BoardDataProvider } from './contexts/BoardDataContext';
 import { InstallPromptProvider } from './contexts/InstallPromptContext';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { routes } from './router/routes';
-
 import App from './App.tsx'
+import './index.css'
 import { initGAWithEngagement } from './lib/analytics'
 import { ModalRegistry } from './components/ModalRegistry'
 import GlobalErrorBoundary from './components/GlobalErrorBoundary'

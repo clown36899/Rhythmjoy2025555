@@ -330,6 +330,7 @@ export default function HistoryTimelinePage() {
                         onEdit: handleEditNode,
                         onViewDetail: handleViewDetail,
                         onPlayVideo: handlePlayVideo,
+                        onPreviewLinkedResource: (id: string, type: string, title: string) => setPreviewResource({ id, type, title }),
                         nodeType: lp ? 'playlist' : (ld ? 'document' : (lv ? 'video' : (lc ? 'category' : 'default'))),
                     },
                 };
@@ -749,6 +750,7 @@ export default function HistoryTimelinePage() {
                                 onEdit: handleEditNode,
                                 onViewDetail: handleViewDetail,
                                 onPlayVideo: handlePlayVideo,
+                                onPreviewLinkedResource: (id: string, type: string, title: string) => setPreviewResource({ id, type, title }),
                                 nodeType: data.linked_playlist_id ? 'playlist' : (data.linked_document_id ? 'document' : (data.linked_video_id ? 'video' : (data.linked_category_id ? 'category' : 'default'))),
                             }
                         };

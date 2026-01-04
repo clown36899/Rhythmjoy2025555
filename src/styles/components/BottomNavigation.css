@@ -8,14 +8,13 @@
     padding-bottom: env(safe-area-inset-bottom, 0.5rem);
     position: relative;
     z-index: 50;
+    backdrop-filter: blur(20px);
     user-select: none;
     -webkit-user-select: none;
-
-    /* Center content on large screens */
     width: 100%;
     max-width: 650px;
     margin: 0 auto;
-    background: transparent;
+    background: #000000c9;
 }
 
 .bottom-nav-item {

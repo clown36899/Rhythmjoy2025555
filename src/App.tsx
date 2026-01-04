@@ -1,5 +1,4 @@
 import { Outlet, useLocation } from "react-router-dom";
-
 import { Suspense, useEffect } from "react";
 import { logPageView } from "./lib/analytics";
 import { useOnlinePresence } from "./hooks/useOnlinePresence";
