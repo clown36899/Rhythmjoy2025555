@@ -816,7 +816,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                         className="ld-control-btn mobile-only"
                         onClick={() => setIsPlaylistOpen(!isPlaylistOpen)}
                     >
-                        {isPlaylistOpen ? '목록 닫기' : '목록 보기'}
+                        {isPlaylistOpen ? '목록 닫기' : '재생목록 보기'}
                     </button>
                 </div>
 
