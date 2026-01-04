@@ -18,6 +18,7 @@
     border-radius: 14px;
     margin-bottom: 24px;
     border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
 
@@ -261,6 +262,7 @@
     gap: 4px;
     cursor: pointer;
     position: relative;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
 .day-btn-v5.active {
@@ -324,6 +326,7 @@
     border-radius: 20px;
     cursor: pointer;
     border: 1px solid transparent;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
 .weekly-item:hover {

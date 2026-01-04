@@ -37,6 +37,7 @@
     border: 1px solid rgba(255, 255, 255, 0.05);
     cursor: pointer;
     transition: all 0.2s;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 }
 
 .group-wide-card:hover {

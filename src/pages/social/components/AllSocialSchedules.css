@@ -116,6 +116,7 @@
     cursor: pointer;
     border: 0.5px solid #a599892e;
     transition: transform 0.2s, background-color 0.2s;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
 .all-social-card:hover {
