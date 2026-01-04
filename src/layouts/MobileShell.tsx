@@ -85,6 +85,12 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
   }, []);
 
   const changeLanguage = (lng: string) => {
+    // Google Translate 호출
+    if (typeof window !== 'undefined' && (window as any).changeLanguage) {
+      (window as any).changeLanguage(lng);
+    }
+
+    // i18next도 함께 업데이트
     i18n.changeLanguage(lng);
     logUserInteraction('Language', 'Change', lng);
   };
