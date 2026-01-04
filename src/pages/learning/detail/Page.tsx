@@ -138,10 +138,11 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
     useEffect(() => {
         if (showBookmarkModal && previewPlayerRef.current && modalTimestamp !== null) {
             try {
-                if (previewPlayerRef.current.getIframe && previewPlayerRef.current.getIframe()) {
-                    previewPlayerRef.current.seekTo(modalTimestamp, true);
-                    // 장면 갱신을 위해 정지 상태 유지
-                    previewPlayerRef.current.pauseVideo();
+                const player = previewPlayerRef.current;
+                if (player.getIframe && player.getIframe()) {
+                    player.seekTo(modalTimestamp, true);
+                    // 장면 갱신을 위해 잠깐 재생 후 정지 유도
+                    player.playVideo();
                 }
             } catch (e) {
                 console.warn("Preview sync failed", e);
@@ -489,21 +490,6 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     };
 
-    const parseTimestamp = (mmss: string) => {
-        const parts = mmss.split(':');
-        if (parts.length !== 2) return null;
-        const mins = parseInt(parts[0], 10);
-        const secs = parseInt(parts[1], 10);
-        if (isNaN(mins) || isNaN(secs)) return null;
-        return mins * 60 + secs;
-    };
-
-    const captureCurrentTime = () => {
-        if (!playerRef.current) return;
-        const current = playerRef.current.getCurrentTime();
-        setModalTimestamp(Math.round(current)); // 반올림하여 정수 저장
-    };
-
     const adjTime = (amount: number) => {
         setModalTimestamp(prev => {
             const newVal = Math.round((prev || 0) + amount); // 1초 단위 명확하게 보장
@@ -833,25 +819,28 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                                                     modestbranding: 1,
                                                     mute: 1,
                                                     rel: 0,
-                                                    iv_load_policy: 3
+                                                    iv_load_policy: 3,
+                                                    origin: window.location.origin
                                                 },
                                             }}
                                             onReady={(e) => {
                                                 if (!showBookmarkModal) return;
                                                 previewPlayerRef.current = e.target;
+                                                e.target.mute();
                                                 if (modalTimestamp !== null) {
                                                     e.target.seekTo(modalTimestamp, true);
                                                 }
-                                                setTimeout(() => {
-                                                    if (previewPlayerRef.current && previewPlayerRef.current.pauseVideo) {
-                                                        previewPlayerRef.current.pauseVideo();
-                                                    }
-                                                }, 500);
+                                                e.target.playVideo();
                                             }}
-                                            onPlay={(e) => {
-                                                if (e.target && e.target.pauseVideo) {
+                                            onStateChange={(e) => {
+                                                // 재생 시작(1) 시 즉시 일시정지하여 프레임 가시화
+                                                if (e.data === 1) {
                                                     e.target.pauseVideo();
                                                 }
+                                            }}
+                                            onPlay={(e) => {
+                                                // 백업용
+                                                e.target.pauseVideo();
                                             }}
                                             className="ld-preview-video-element"
                                         />
