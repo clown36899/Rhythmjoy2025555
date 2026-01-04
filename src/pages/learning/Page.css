@@ -12,23 +12,16 @@
 }
 
 /* Content Wrapper */
+/* Content Wrapper - Unified Layout */
 .contentWrapper {
     width: 100%;
     max-width: 1600px;
     /* Limit max width for large screens */
     margin: 0 auto;
-    /* Center it */
     flex: 1;
-    display: flex;
-}
-
-/* Split Layout */
-.splitLayout {
     display: flex;
     gap: 40px;
-    /* Increased gap */
     align-items: flex-start;
-    flex: 1;
     padding: 32px 24px;
 }
 
@@ -37,7 +30,7 @@
     /* Optimized width */
     flex-shrink: 0;
     position: sticky;
-    top: 84px;
+    /* top: 84px; */
     /* Account for fixed header */
     max-height: calc(100vh - 120px);
     overflow-y: auto;
@@ -70,12 +63,12 @@
     min-width: 0;
 }
 
-/* Mobile Layout */
+/* Mobile Layout - User Requested Fix */
 @media (max-width: 1024px) {
-    .splitLayout {
+    .contentWrapper {
         flex-direction: column;
+        padding: 1rem;
         gap: 24px;
-        padding: 24px 16px;
     }
 
     .leftSidebar {
@@ -105,6 +98,12 @@
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     letter-spacing: -0.02em;
+}
+
+@media (max-width: 768px) {
+    .pathText.emptyPath {
+        display: none;
+    }
 }
 
 .countBadge {

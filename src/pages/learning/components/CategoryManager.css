@@ -16,6 +16,7 @@
 .createForm {
     margin-bottom: 16px;
     padding-bottom: 16px;
+    padding: 1rem;
     border-bottom: 1px solid #374151;
 }
 
@@ -129,9 +130,9 @@
     font-weight: 600;
     font-size: 16px;
     color: white;
-    padding: 12px;
-    border-bottom: 1px solid #374151;
-    margin-bottom: 8px;
+    padding: 4px;
+    /* border-bottom: 1px solid #374151; */
+    /* margin-bottom: 8px; */
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -157,7 +158,7 @@
 .itemContent {
     display: flex;
     align-items: center;
-    padding: 10px 12px;
+    padding: 0px 12px;
     border-radius: 6px;
     background-color: #1f2937;
     border: 1px solid #374151;
@@ -391,7 +392,7 @@
 .treeContainer {
     position: relative;
     min-height: 400px;
-    padding: 16px;
+    /* padding: 16px; */
     transition: background-color 0.2s;
 }
 

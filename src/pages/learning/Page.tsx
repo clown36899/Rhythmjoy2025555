@@ -511,7 +511,7 @@ const LearningPage = () => {
                                 {flatCategories.find(c => c.id === selectedCategoryId)?.name}
                             </span>
                         ) : (
-                            <span className="pathText">📂 폴더를 선택하세요</span>
+                            <span className="pathText emptyPath">📂 폴더를 선택하세요</span>
                         )}
                         {/* Show count of items in this folder */}
                         {selectedCategoryId && (
