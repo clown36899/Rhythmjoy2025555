@@ -238,7 +238,22 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                         {isArchivePage && (
                           <>
                             <span className="header-breadcrumb-separator">&lt;</span>
-                            <span className="header-breadcrumb-current">스윙피디아</span>
+                            <span className="header-breadcrumb-current" style={{ position: 'relative' }}>
+                              스윙피디아
+                              <span style={{
+                                position: 'absolute',
+                                top: '-6px',
+                                right: '-12px',
+                                background: '#ef4444',
+                                color: 'white',
+                                fontSize: '8px',
+                                padding: '1px 3px',
+                                borderRadius: '3px',
+                                lineHeight: '1',
+                                fontWeight: 700,
+                                whiteSpace: 'nowrap'
+                              }}>준비중</span>
+                            </span>
                           </>
                         )}
                       </>

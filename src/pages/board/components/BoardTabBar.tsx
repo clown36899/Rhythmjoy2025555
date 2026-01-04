@@ -15,7 +15,7 @@ const DEFAULT_CATEGORIES = [
     { id: 'anonymous', label: '익명 게시판', icon: 'ri-user-secret-line' },
     { id: 'trade', label: '양도/양수', icon: 'ri-exchange-line' },
     { id: 'notice', label: '건의/공지', icon: 'ri-megaphone-line' },
-    { id: 'history', label: '스윙피디아', icon: 'ri-book-read-line' },
+    { id: 'history', label: '스윙피디아', icon: 'ri-book-read-line', isWip: true },
     { id: 'market', label: '벼룩시장', icon: 'ri-store-2-line' },
 ];
 
@@ -52,7 +52,7 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
             const dbCategories = data?.categories;
             if (dbCategories && dbCategories.length > 0) {
                 // Map DB data to UI format
-                const mapped = dbCategories.map((item: any) => {
+                const mapped: any[] = dbCategories.map((item: any) => {
                     let label = item.name;
 
                     // Translation optimization: ambiguous terms mapping
@@ -71,7 +71,8 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
                 mapped.push({
                     id: 'history',
                     label: '스윙피디아',
-                    icon: 'ri-book-read-line'
+                    icon: 'ri-book-read-line',
+                    isWip: true
                 });
 
                 // Add dev-log tab at the end (hardcoded, not from DB)
@@ -174,6 +175,7 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
                     >
                         <i className={`${cat.icon} board-tab-icon`}></i>
                         <span className="board-tab-label">{cat.label}</span>
+                        {cat.isWip && <span className="tab-wip-badge">준비중</span>}
                     </button>
                 ))}
                 <div
