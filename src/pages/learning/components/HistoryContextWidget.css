@@ -1,0 +1,120 @@
+.history-context-widget {
+    margin-top: 30px;
+    background: rgba(30, 41, 59, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    padding: 20px;
+    backdrop-filter: blur(10px);
+}
+
+.widget-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.widget-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #e2e8f0;
+}
+
+.view-all-link {
+    background: transparent;
+    border: none;
+    color: #8b5cf6;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    transition: all 0.2s;
+}
+
+.view-all-link:hover {
+    color: #a78bfa;
+    transform: translateX(2px);
+}
+
+.widget-content {
+    min-height: 50px;
+}
+
+.context-node-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.context-node-card {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    border-left: 4px solid #8b5cf6;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.context-node-card:hover {
+    background: rgba(255, 255, 255, 0.06);
+    transform: translateX(4px);
+}
+
+.context-node-year {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: #a78bfa;
+    min-width: 55px;
+}
+
+.context-node-info {
+    flex: 1;
+}
+
+.context-node-title {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 2px;
+}
+
+.context-node-desc {
+    font-size: 0.8rem;
+    color: #94a3b8;
+    line-height: 1.4;
+}
+
+/* Category Colors */
+.context-node-card.cat-genre {
+    border-left-color: #6366f1;
+}
+
+.context-node-card.cat-person {
+    border-left-color: #ec4899;
+}
+
+.context-node-card.cat-event {
+    border-left-color: #10b981;
+}
+
+.context-node-card.cat-music {
+    border-left-color: #f59e0b;
+}
+
+.context-node-card.cat-place {
+    border-left-color: #3b82f6;
+}
+
+.widget-loading,
+.widget-empty {
+    text-align: center;
+    padding: 20px;
+    color: #64748b;
+    font-size: 0.9rem;
+}

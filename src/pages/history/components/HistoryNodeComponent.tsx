@@ -1,4 +1,5 @@
 import { memo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Handle, Position } from 'reactflow';
 import type { NodeProps } from 'reactflow';
 import { parseVideoUrl } from '../../../utils/videoEmbed';
@@ -6,13 +7,14 @@ import './HistoryNodeComponent.css';
 import type { HistoryNodeData } from '../types';
 
 function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
+    const navigate = useNavigate();
     const videoInfo = data.youtube_url ? parseVideoUrl(data.youtube_url) : null;
     const thumbnailUrl = videoInfo?.thumbnailUrl || null;
 
     const handlePlayVideo = (e: React.MouseEvent) => {
         e.stopPropagation();
         if (data.youtube_url && data.onPlayVideo) {
-            data.onPlayVideo(data.youtube_url);
+            data.onPlayVideo(data.youtube_url, data.linked_playlist_id);
         }
     };
 
@@ -58,9 +60,18 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
         }
     };
 
+    const linkedType = data.linked_playlist_id ? 'playlist' : data.linked_document_id ? 'document' : 'none';
+
     return (
-        <div className="history-node" style={{ borderColor: getCategoryColor() }}>
-            <Handle type="target" position={Position.Top} />
+        <div
+            className={`history-node linked-type-${linkedType}`}
+            style={{ borderColor: getCategoryColor() }}
+        >
+            {/* Simple Handles: With ConnectionMode.Loose, one handle per side is enough */}
+            <Handle type="source" position={Position.Top} id="top" />
+            <Handle type="source" position={Position.Bottom} id="bottom" />
+            <Handle type="source" position={Position.Left} id="left" style={{ top: '50%' }} />
+            <Handle type="source" position={Position.Right} id="right" style={{ top: '50%' }} />
 
             {/* Thumbnail */}
             {thumbnailUrl && (
@@ -82,7 +93,7 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
                         </span>
                     )}
                     {(data.linked_playlist_id || data.linked_document_id) && (
-                        <span className="history-node-link-badge" title="학습 자료와 연동됨">
+                        <span className={`history-node-link-badge ${data.linked_playlist_id ? 'playlist' : ''}`} title="학습 자료와 연동됨">
                             <i className="ri-link"></i>
                         </span>
                     )}
@@ -116,10 +127,9 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
                             onClick={(e) => {
                                 e.stopPropagation();
                                 if (data.linked_playlist_id) {
-                                    // Navigate to learning page or similar
-                                    alert('연결된 재생목록으로 이동합니다 (Learning 메뉴 참조)');
-                                } else {
-                                    alert('연결된 문서로 이동합니다');
+                                    navigate(`/learning/${data.linked_playlist_id}`);
+                                } else if (data.linked_document_id) {
+                                    navigate(`/learning?docId=${data.linked_document_id}`);
                                 }
                             }}
                             title="연결된 원본 자료 보기"
@@ -130,7 +140,6 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
                 </div>
             </div>
 
-            <Handle type="source" position={Position.Bottom} />
         </div>
     );
 }

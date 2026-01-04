@@ -4,7 +4,8 @@ import { useNavigate } from 'react-router-dom';
 
 import { CategoryManager } from './components/CategoryManager';
 import { PlaylistImportModal } from './components/PlaylistImportModal';
-import { DocumentCreateModal } from './components/DocumentCreateModal'; // 추가
+import { DocumentCreateModal } from './components/DocumentCreateModal';
+import { DocumentDetailModal } from './components/DocumentDetailModal';
 import { MovePlaylistModal } from './components/MovePlaylistModal';
 import { PlaylistModal } from './components/PlaylistModal';
 import { fetchPlaylistVideos } from './utils/youtube';
@@ -88,12 +89,20 @@ const LearningPage = () => {
 
     // Modal State
     const [viewingPlaylistId, setViewingPlaylistId] = useState<string | null>(null);
+    const [viewingDocId, setViewingDocId] = useState<string | null>(null);
 
 
     useEffect(() => {
         checkAdmin();
         fetchData();
-    }, [adminMode]); // Re-fetch when admin mode toggles (to show/hide private)
+
+        // Check for direct link via URL parameters
+        const params = new URLSearchParams(window.location.search);
+        const docId = params.get('docId');
+        const playlistId = params.get('playlistId');
+        if (docId) setViewingDocId(docId);
+        if (playlistId) setViewingPlaylistId(playlistId);
+    }, [adminMode]);
 
     const checkAdmin = async () => {
         // Simplified admin check - checking for specific user ID or role
@@ -438,11 +447,18 @@ const LearningPage = () => {
                 </div>
             </div>
 
-            {/* Playlist Modal */}
+            {/* Content Modals */}
             {viewingPlaylistId && (
                 <PlaylistModal
                     playlistId={viewingPlaylistId}
                     onClose={() => setViewingPlaylistId(null)}
+                />
+            )}
+            {viewingDocId && (
+                <DocumentDetailModal
+                    documentId={viewingDocId}
+                    onClose={() => setViewingDocId(null)}
+                    onUpdate={fetchData}
                 />
             )}
 
@@ -507,8 +523,7 @@ const LearningPage = () => {
                                         if (item.type === 'playlist') {
                                             handlePlaylistClick(item.id);
                                         } else {
-                                            // TODO: Document View Modal or Page
-                                            alert(`문서 보기: ${item.title}\n(기능 준비 중)`);
+                                            setViewingDocId(item.id);
                                         }
                                     }}
                                     className={`card ${item.type}`}

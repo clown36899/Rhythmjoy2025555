@@ -5,6 +5,7 @@ import { supabase } from '../../../lib/supabase';
 import { BookmarkList } from '../components/BookmarkList';
 import { fetchVideoDetails } from '../utils/youtube';
 import { renderTextWithLinks } from '../utils/text';
+import { HistoryContextWidget } from '../components/HistoryContextWidget';
 import './Page.css';
 
 
@@ -766,6 +767,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                         )
                     )}
 
+                    <HistoryContextWidget year={playlist.year || null} />
                 </div>
             </div>
 

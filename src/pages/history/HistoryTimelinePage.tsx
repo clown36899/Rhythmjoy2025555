@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import ReactFlow, {
     Controls,
     Background,
@@ -8,6 +8,7 @@ import ReactFlow, {
     useEdgesState,
     addEdge,
     BackgroundVariant,
+    ConnectionMode,
 } from 'reactflow';
 import type { Node, Edge, Connection, ReactFlowInstance } from 'reactflow';
 import 'reactflow/dist/style.css';
@@ -22,9 +23,30 @@ import { ResourceDrawer } from './components/ResourceDrawer';
 import './HistoryTimeline.css';
 import type { HistoryNodeData } from './types';
 
-// Initial empty state
 const initialNodes: Node[] = [];
 const initialEdges: Edge[] = [];
+
+// STRICT STATIC DEFINITIONS: Defined outside the component to guarantee stable references
+// This prevents React Flow from warning about "new nodeTypes or edgeTypes" objects on every render.
+const NODE_TYPES = {
+    historyNode: HistoryNodeComponent,
+    decadeNode: DecadeNodeComponent,
+};
+
+const EDGE_TYPES = {};
+
+const IS_VALID_CONNECTION = (connection: Connection) => connection.source !== connection.target;
+
+const GET_NODE_COLOR = (node: Node) => {
+    switch (node.data?.category) {
+        case 'genre': return '#6366f1';
+        case 'person': return '#ec4899';
+        case 'event': return '#10b981';
+        case 'music': return '#f59e0b';
+        case 'place': return '#3b82f6';
+        default: return '#8b5cf6';
+    }
+};
 
 export default function HistoryTimelinePage() {
     const navigate = useNavigate();
@@ -34,13 +56,14 @@ export default function HistoryTimelinePage() {
     const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
     const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
     const [isAutoLayout, setIsAutoLayout] = useState(false);
-    const originalPositions = useRef<Map<string, { x: number, y: number }>>(new Map());
     const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
+
 
     const [isEditorOpen, setIsEditorOpen] = useState(false);
     const [editingNode, setEditingNode] = useState<HistoryNodeData | null>(null);
     const [isVideoPlayerOpen, setIsVideoPlayerOpen] = useState(false);
     const [playingVideoUrl, setPlayingVideoUrl] = useState<string | null>(null);
+    const [playingPlaylistId, setPlayingPlaylistId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     // Detail View State
     const [isDetailOpen, setIsDetailOpen] = useState(false);
@@ -48,11 +71,6 @@ export default function HistoryTimelinePage() {
     // Edge Management State
     const [edgeModalState, setEdgeModalState] = useState<{ isOpen: boolean, edge: Edge | null }>({ isOpen: false, edge: null });
 
-    // Custom node types (Memoized to prevent React Flow warnings)
-    const nodeTypes = useMemo(() => ({
-        historyNode: HistoryNodeComponent,
-        decadeNode: DecadeNodeComponent,
-    }), []);
 
     // Resource Drawer State
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -107,8 +125,9 @@ export default function HistoryTimelinePage() {
         setIsEditorOpen(true);
     };
 
-    const handlePlayVideo = (url: string) => {
-        setPlayingVideoUrl(url);
+    const handlePlayVideo = (videoUrl: string, playlistId?: string | null) => {
+        setPlayingVideoUrl(videoUrl);
+        setPlayingPlaylistId(playlistId || null);
         setIsVideoPlayerOpen(true);
     };
 
@@ -121,38 +140,59 @@ export default function HistoryTimelinePage() {
         loadTimeline();
     }, []);
 
+    // Restore Viewport after rfInstance is ready
+    useEffect(() => {
+        if (rfInstance && !loading && !isAutoLayout) {
+            const savedViewport = localStorage.getItem('history_viewport');
+            if (savedViewport) {
+                try {
+                    const { x, y, zoom } = JSON.parse(savedViewport);
+                    rfInstance.setViewport({ x, y, zoom }, { duration: 0 });
+                } catch (e) {
+                    console.error('Failed to restore viewport:', e);
+                }
+            }
+        }
+    }, [rfInstance, loading, isAutoLayout]);
+
     const loadTimeline = async () => {
         try {
             setLoading(true);
             const { data: nodesData } = await supabase
                 .from('history_nodes')
-                .select('*')
+                .select('*, linked_playlist:learning_playlists(*), linked_document:learning_documents(*)')
                 .order('year', { ascending: true });
 
             const { data: edgesData } = await supabase
                 .from('history_edges')
                 .select('*');
 
-            const flowNodes: Node[] = (nodesData || []).map((node) => ({
-                id: String(node.id),
-                type: 'historyNode',
-                position: { x: node.position_x || 0, y: node.position_y || 0 },
-                data: {
-                    id: node.id,
-                    title: node.title,
-                    date: node.date,
-                    year: node.year,
-                    description: node.description,
-                    youtube_url: node.youtube_url,
-                    category: node.category,
-                    tags: node.tags,
-                    linked_playlist_id: node.linked_playlist_id,
-                    linked_document_id: node.linked_document_id,
-                    onEdit: handleEditNode,
-                    onViewDetail: handleViewDetail,
-                    onPlayVideo: handlePlayVideo,
-                },
-            }));
+            const flowNodes: Node[] = (nodesData || []).map((node: any) => {
+                const lp = node.linked_playlist;
+                const ld = node.linked_document;
+
+                return {
+                    id: String(node.id),
+                    type: 'historyNode',
+                    position: { x: node.position_x || 0, y: node.position_y || 0 },
+                    data: {
+                        id: node.id,
+                        // Priority: Linked Data > Snapshot Data
+                        title: lp ? lp.title : (ld ? ld.title : node.title),
+                        date: node.date,
+                        year: lp ? lp.year : (ld ? ld.year : node.year),
+                        description: lp ? lp.description : (ld ? ld.content : node.description),
+                        youtube_url: node.youtube_url, // URL은 스냅샷 유지 (재생 편의성)
+                        category: node.category,
+                        tags: node.tags,
+                        linked_playlist_id: node.linked_playlist_id,
+                        linked_document_id: node.linked_document_id,
+                        onEdit: handleEditNode,
+                        onViewDetail: handleViewDetail,
+                        onPlayVideo: handlePlayVideo,
+                    },
+                };
+            });
 
             setNodes(flowNodes);
 
@@ -160,6 +200,8 @@ export default function HistoryTimelinePage() {
                 id: String(edge.id),
                 source: String(edge.source_id),
                 target: String(edge.target_id),
+                sourceHandle: edge.source_handle,
+                targetHandle: edge.target_handle,
                 label: edge.label,
                 type: 'smoothstep',
                 animated: false,
@@ -169,8 +211,22 @@ export default function HistoryTimelinePage() {
             }));
 
             setEdges(flowEdges);
-            setIsAutoLayout(false);
-            originalPositions.current.clear();
+
+            // Apply auto-layout if enabled in localStorage
+            const savedAutoLayout = localStorage.getItem('history_auto_layout') === 'true';
+            if (savedAutoLayout) {
+                setIsAutoLayout(true);
+                const sortedNodes = [...flowNodes].sort((a, b) => (a.data.year || 0) - (b.data.year || 0));
+                const autoNodes = sortedNodes.map((node, index) => ({
+                    ...node,
+                    position: { x: 400, y: index * 250 },
+                    draggable: false,
+                }));
+                setNodes(autoNodes);
+            } else {
+                setNodes(flowNodes);
+                setIsAutoLayout(false);
+            }
         } catch (error) {
             console.error('Error loading timeline:', error);
         } finally {
@@ -181,32 +237,46 @@ export default function HistoryTimelinePage() {
     const handleNodesChange = useCallback(
         (changes: any) => {
             onNodesChange(changes);
-            const positionChange = changes.find((c: any) => c.type === 'position' && c.dragging === false);
-            if (positionChange) {
-                const node = nodes.find(n => n.id === positionChange.id);
-                if (node && positionChange.position) {
-                    supabase
-                        .from('history_nodes')
-                        .update({
-                            position_x: positionChange.position.x,
-                            position_y: positionChange.position.y
-                        })
-                        .eq('id', parseInt(node.id))
-                        .then(({ error }) => {
-                            if (error) console.error('Error saving position:', error);
-                        });
-                }
-            }
         },
-        [onNodesChange, nodes]
+        [onNodesChange]
+    );
+
+    const onNodeDragStop = useCallback(
+        (_: any, node: Node) => {
+            if (isAutoLayout) return; // Don't save positions in auto-layout mode
+
+            supabase
+                .from('history_nodes')
+                .update({
+                    position_x: node.position.x,
+                    position_y: node.position.y
+                })
+                .eq('id', parseInt(node.id))
+                .then(({ error }) => {
+                    if (error) console.error('Error saving position:', error);
+                });
+        },
+        [isAutoLayout]
+    );
+
+    const onMoveEnd = useCallback(
+        (_: any, viewport: { x: number, y: number, zoom: number }) => {
+            if (isAutoLayout) return; // Don't save viewport in auto-layout mode
+            localStorage.setItem('history_viewport', JSON.stringify(viewport));
+        },
+        [isAutoLayout]
     );
 
     const onConnect = useCallback(
         (params: Connection) => {
             if (!user) return;
+            if (params.source === params.target) return; // Prevent self-links
+
             const newEdge = {
                 source_id: parseInt(params.source!),
                 target_id: parseInt(params.target!),
+                source_handle: params.sourceHandle,
+                target_handle: params.targetHandle,
                 label: '',
                 relation_type: 'influence',
                 created_by: user.id,
@@ -217,7 +287,16 @@ export default function HistoryTimelinePage() {
                 .insert(newEdge)
                 .select()
                 .single()
-                .then(({ data }) => {
+                .then(({ data, error }) => {
+                    if (error) {
+                        console.error('Error saving connection:', error);
+                        if (error.message.includes('column') && error.message.includes('not found')) {
+                            alert('DB 마이그레이션이 필요합니다. 상세 안내를 확인해 주세요.');
+                        } else {
+                            alert(`연결 저장 실패: ${error.message}`);
+                        }
+                        return;
+                    }
                     if (data) {
                         setEdges((eds) => addEdge({
                             ...params,
@@ -352,28 +431,22 @@ export default function HistoryTimelinePage() {
 
     const toggleAutoLayout = () => {
         if (!nodes.length) return;
-        if (!isAutoLayout) {
-            nodes.forEach(node => {
-                originalPositions.current.set(node.id, { ...node.position });
-            });
+        const nextState = !isAutoLayout;
+        setIsAutoLayout(nextState);
+        localStorage.setItem('history_auto_layout', String(nextState));
 
+        if (nextState) {
+            // Apply Auto Layout
             const sortedNodes = [...nodes].sort((a, b) => (a.data.year || 0) - (b.data.year || 0));
             const newNodes = sortedNodes.map((node, index) => ({
                 ...node,
                 position: { x: 400, y: index * 250 },
                 draggable: false,
             }));
-
             setNodes(newNodes);
-            setIsAutoLayout(true);
         } else {
-            const restoredNodes = nodes.map(node => ({
-                ...node,
-                position: originalPositions.current.get(node.id) || node.position,
-                draggable: true,
-            }));
-            setNodes(restoredNodes);
-            setIsAutoLayout(false);
+            // Back to Manual Layout (Reload from DB to ensure accurate positions)
+            loadTimeline();
         }
     };
 
@@ -426,23 +499,23 @@ export default function HistoryTimelinePage() {
                     onEdgesChange={onEdgesChange}
                     onConnect={onConnect}
                     onEdgeClick={onEdgeClick}
-                    nodeTypes={nodeTypes}
+                    onNodeDragStop={onNodeDragStop}
+                    onMoveEnd={onMoveEnd}
+                    nodeTypes={NODE_TYPES}
+                    edgeTypes={EDGE_TYPES}
+                    isValidConnection={IS_VALID_CONNECTION}
+                    connectionMode={ConnectionMode.Loose}
+                    minZoom={0.05}
+                    maxZoom={2}
                     onDrop={onDrop}
                     onDragOver={onDragOver}
                 >
                     <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
                     <Controls />
                     <MiniMap
-                        nodeColor={(node) => {
-                            switch (node.data?.category) {
-                                case 'genre': return '#6366f1';
-                                case 'person': return '#ec4899';
-                                case 'event': return '#10b981';
-                                case 'music': return '#f59e0b';
-                                case 'place': return '#3b82f6';
-                                default: return '#8b5cf6';
-                            }
-                        }}
+                        nodeColor={GET_NODE_COLOR}
+                        zoomable
+                        pannable
                     />
                 </ReactFlow>
             </div>
@@ -459,9 +532,11 @@ export default function HistoryTimelinePage() {
             {isVideoPlayerOpen && playingVideoUrl && (
                 <VideoPlayerModal
                     youtubeUrl={playingVideoUrl}
+                    playlistId={playingPlaylistId}
                     onClose={() => {
                         setIsVideoPlayerOpen(false);
                         setPlayingVideoUrl(null);
+                        setPlayingPlaylistId(null);
                     }}
                 />
             )}

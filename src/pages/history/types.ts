@@ -11,5 +11,5 @@ export interface HistoryNodeData {
     linked_document_id?: string;
     onEdit?: (data: HistoryNodeData) => void;
     onViewDetail?: (data: HistoryNodeData) => void;
-    onPlayVideo?: (url: string) => void;
+    onPlayVideo?: (url: string, playlistId?: string | null) => void;
 }
