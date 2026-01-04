@@ -19,7 +19,7 @@ export default function PracticeRoomsPage() {
   const [activeCategory, setActiveCategory] = useState<string>("연습실");
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  const { isAdmin } = useAuth();
+  const { user, isAdmin } = useAuth();
   const isDevAdmin = localStorage.getItem('isDevAdmin') === 'true';
   const isEffectiveAdmin = isAdmin || isDevAdmin;
 
@@ -54,6 +54,13 @@ export default function PracticeRoomsPage() {
 
   useEffect(() => {
     const handleRegisterEvent = () => {
+      if (!user) {
+        window.dispatchEvent(new CustomEvent('requestProtectedAction', {
+          detail: { message: '연습실 등록을 위해 로그인이 필요합니다.' }
+        }));
+        return;
+      }
+
       venueRegistrationModal.open({
         editVenueId: null,
         onVenueCreated: handleVenueCreatedOrUpdated,
@@ -66,7 +73,7 @@ export default function PracticeRoomsPage() {
     return () => {
       window.removeEventListener('practiceRoomRegister', handleRegisterEvent);
     };
-  }, [isEffectiveAdmin]);
+  }, [user, isEffectiveAdmin]);
 
   const handleCloseDetail = () => {
     venueDetailModal.close();
@@ -193,7 +200,7 @@ export default function PracticeRoomsPage() {
       )}
 
       <button
-        className="practice-fab-btn"
+        className="shell-fab-btn"
         onClick={() => {
           const event = new CustomEvent('practiceRoomRegister');
           window.dispatchEvent(event);

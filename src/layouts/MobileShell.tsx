@@ -114,12 +114,25 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
       }
     };
 
+    const handleProtectedAction = (e: any) => {
+      const { message } = e.detail || {};
+      userRegistrationModal.open({
+        message: message || '로그인이 필요한 서비스입니다.',
+        onRegistered: () => {
+          userRegistrationModal.close();
+          signInWithKakao();
+        }
+      });
+    };
+
     window.addEventListener('openUserProfile', handleOpenUserProfile);
     window.addEventListener('openProfileEdit', handleOpenProfileEdit);
+    window.addEventListener('requestProtectedAction', handleProtectedAction);
 
     return () => {
       window.removeEventListener('openUserProfile', handleOpenUserProfile);
       window.removeEventListener('openProfileEdit', handleOpenProfileEdit);
+      window.removeEventListener('requestProtectedAction', handleProtectedAction);
     };
   }, [user, profileEditModal, userRegistrationModal, signInWithKakao]);
 
@@ -191,9 +204,15 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
     if (!pageAction) return;
 
     if (pageAction.requireAuth && !user) {
-      if (window.confirm('로그인이 필요한 서비스입니다.\n로그인 하시겠습니까?')) {
-        setIsDrawerOpen(true); // Open drawer for login
-      }
+      window.dispatchEvent(new CustomEvent('requestProtectedAction', {
+        detail: {
+          message: '로그인이 필요한 서비스입니다.',
+          callback: () => {
+            // 로그인 성공 후 실행할 동작
+            pageAction.onClick();
+          }
+        }
+      }));
       return;
     }
 

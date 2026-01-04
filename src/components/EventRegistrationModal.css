@@ -191,7 +191,7 @@
 /* ===== Ceiling Switcher ===== */
 .ceiling-switcher-container {
   position: absolute;
-  top: 1.5rem;
+  top: 0.5rem;
   left: 50%;
   transform: translateX(-50%);
   z-index: var(--z-modal-base);
