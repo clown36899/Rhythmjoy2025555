@@ -1,8 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../lib/supabase';
 import './DocumentDetailModal.css';
 import { useAuth } from '../../../contexts/AuthContext';
 import { HistoryContextWidget } from './HistoryContextWidget';
+import { renderTextWithLinksAndResources } from '../utils/linkRenderer';
+import { ResourceLinkModal } from './ResourceLinkModal';
+import { ResourceAutocomplete } from './ResourceAutocomplete';
+import { PlaylistModal } from './PlaylistModal';
 
 interface Props {
     documentId: string;
@@ -37,6 +41,19 @@ export const DocumentDetailModal = ({ documentId, onClose, onUpdate }: Props) =>
 
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    // Resource Link Modal States
+    const [showResourceModal, setShowResourceModal] = useState(false);
+    const [selectedKeyword, setSelectedKeyword] = useState('');
+    const [viewingPlaylistId, setViewingPlaylistId] = useState<string | null>(null);
+    const [viewingDocId, setViewingDocId] = useState<string | null>(null);
+
+    // Autocomplete States
+    const [showAutocomplete, setShowAutocomplete] = useState(false);
+    const [autocompleteQuery, setAutocompleteQuery] = useState('');
+    const [autocompletePosition, setAutocompletePosition] = useState({ top: 0, left: 0 });
+    const [hashStartPos, setHashStartPos] = useState<number | null>(null);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     const isAdmin = user?.email?.includes('admin') || user?.id === doc?.author_id;
 
@@ -125,6 +142,66 @@ export const DocumentDetailModal = ({ documentId, onClose, onUpdate }: Props) =>
         }
     };
 
+    // Autocomplete Handlers
+    const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const newValue = e.target.value;
+        setEditContent(newValue);
+
+        const cursorPos = e.target.selectionStart;
+        const textBeforeCursor = newValue.substring(0, cursorPos);
+
+        // Find the last # before cursor
+        const lastHashIndex = textBeforeCursor.lastIndexOf('#');
+
+        if (lastHashIndex !== -1) {
+            const textAfterHash = textBeforeCursor.substring(lastHashIndex + 1);
+
+            // Check if there's a space after # (which would end the autocomplete)
+            if (!textAfterHash.includes(' ') && !textAfterHash.includes('\n')) {
+                setHashStartPos(lastHashIndex);
+                setAutocompleteQuery(textAfterHash);
+                setShowAutocomplete(true);
+
+                // Calculate dropdown position
+                if (textareaRef.current) {
+                    const rect = textareaRef.current.getBoundingClientRect();
+                    setAutocompletePosition({
+                        top: rect.top + 30,
+                        left: rect.left + 20
+                    });
+                }
+            } else {
+                setShowAutocomplete(false);
+            }
+        } else {
+            setShowAutocomplete(false);
+        }
+    };
+
+    const handleAutocompleteSelect = (title: string) => {
+        if (hashStartPos !== null && textareaRef.current) {
+            const cursorPos = textareaRef.current.selectionStart;
+            const beforeHash = editContent.substring(0, hashStartPos);
+            const afterCursor = editContent.substring(cursorPos);
+
+            const newContent = `${beforeHash}#${title}${afterCursor}`;
+            setEditContent(newContent);
+
+            // Set cursor position after the inserted text
+            setTimeout(() => {
+                if (textareaRef.current) {
+                    const newCursorPos = hashStartPos + title.length + 1;
+                    textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
+                    textareaRef.current.focus();
+                }
+            }, 0);
+        }
+
+        setShowAutocomplete(false);
+        setHashStartPos(null);
+    };
+
+
     if (loading) {
         return (
             <div className="ddm-overlay">
@@ -206,8 +283,9 @@ export const DocumentDetailModal = ({ documentId, onClose, onUpdate }: Props) =>
                             <div className="ddm-formGroup">
                                 <label className="ddm-label">내용</label>
                                 <textarea
+                                    ref={textareaRef}
                                     value={editContent}
-                                    onChange={e => setEditContent(e.target.value)}
+                                    onChange={handleContentChange}
                                     className="ddm-input"
                                     style={{ minHeight: '300px', resize: 'vertical' }}
                                 />
@@ -232,7 +310,13 @@ export const DocumentDetailModal = ({ documentId, onClose, onUpdate }: Props) =>
                                     color: '#e2e8f0'
                                 }}
                             >
-                                {doc.content || '내용이 없습니다.'}
+                                {renderTextWithLinksAndResources(
+                                    doc.content || '내용이 없습니다.',
+                                    (keyword) => {
+                                        setSelectedKeyword(keyword);
+                                        setShowResourceModal(true);
+                                    }
+                                )}
                             </div>
                             <HistoryContextWidget year={doc.year || null} />
                         </div>
@@ -256,9 +340,49 @@ export const DocumentDetailModal = ({ documentId, onClose, onUpdate }: Props) =>
                         </>
                     ) : (
                         <button className="ddm-importButton" onClick={onClose}>닫기</button>
-                    )}
-                </div>
+                    )}\n                </div>
             </div>
+
+            {/* Resource Link Modal */}
+            {showResourceModal && (
+                <ResourceLinkModal
+                    keyword={selectedKeyword}
+                    onClose={() => setShowResourceModal(false)}
+                    onSelectPlaylist={(playlistId) => {
+                        setViewingPlaylistId(playlistId);
+                    }}
+                    onSelectDocument={(docId) => {
+                        setViewingDocId(docId);
+                    }}
+                />
+            )}
+
+            {/* Nested Playlist Modal */}
+            {viewingPlaylistId && (
+                <PlaylistModal
+                    playlistId={viewingPlaylistId}
+                    onClose={() => setViewingPlaylistId(null)}
+                />
+            )}
+
+            {/* Nested Document Modal */}
+            {viewingDocId && viewingDocId !== documentId && (
+                <DocumentDetailModal
+                    documentId={viewingDocId}
+                    onClose={() => setViewingDocId(null)}
+                    onUpdate={onUpdate}
+                />
+            )}
+
+            {/* Autocomplete Dropdown */}
+            {showAutocomplete && isEditing && (
+                <ResourceAutocomplete
+                    query={autocompleteQuery}
+                    position={autocompletePosition}
+                    onSelect={handleAutocompleteSelect}
+                    onClose={() => setShowAutocomplete(false)}
+                />
+            )}
         </div>
     );
 };
