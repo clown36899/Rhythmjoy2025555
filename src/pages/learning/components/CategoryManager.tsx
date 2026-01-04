@@ -526,13 +526,7 @@ export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId
                     }}
                     onClick={() => {
                         if (isEditing) return;
-                        if (category.video_count && category.video_count > 0) {
-                            if (onPlaylistClick) {
-                                (onPlaylistClick as any)(category.id, 'playlist_folder');
-                            }
-                        } else {
-                            handleSelect(isSelected ? null : category.id);
-                        }
+                        handleSelect(isSelected ? null : category.id);
                     }}
                     style={{ cursor: 'pointer' }}
                 >
@@ -644,13 +638,7 @@ export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId
                     className={`columnHeader ${isSelected ? 'selected' : ''} ${activeMode === 'reparent' ? 'dragOver-reparent' : ''}`}
                     onClick={() => {
                         if (isEditing) return;
-                        if (category.video_count && category.video_count > 0) {
-                            if (onPlaylistClick) {
-                                (onPlaylistClick as any)(category.id, 'playlist_folder');
-                            }
-                        } else {
-                            handleSelect(isSelected ? null : category.id);
-                        }
+                        handleSelect(isSelected ? null : category.id);
                     }}
                     style={{ cursor: 'pointer' }}
                 >

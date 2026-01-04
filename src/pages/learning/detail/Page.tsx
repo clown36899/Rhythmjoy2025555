@@ -273,31 +273,65 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
             if (targetId.startsWith('video:')) {
                 const videoId = targetId.replace('video:', '');
 
-                // Fetch Standalone Video
-                const { data: videoData, error: videoError } = await supabase
+                // 1. Fetch Target Video Info
+                const { data: targetVideo, error: videoError } = await supabase
                     .from('learning_videos')
                     .select('*')
                     .eq('id', videoId)
                     .maybeSingle();
 
                 if (videoError) throw videoError;
-
-                if (!videoData) {
+                if (!targetVideo) {
                     setError('요청하신 영상을 찾을 수 없습니다.');
                     return;
                 }
 
-                // Create a fake playlist object to satisfy the UI structure
+                let playlistVideos = [targetVideo];
+                let contextTitle = targetVideo.title;
+
+                // 2. If it belongs to a category, try to fetch sibling videos (Auto-Playlist)
+                if (targetVideo.category_id) {
+                    // 1. Get Category Name
+                    const { data: catData } = await supabase
+                        .from('learning_categories')
+                        .select('name')
+                        .eq('id', targetVideo.category_id)
+                        .maybeSingle();
+
+                    if (catData) {
+                        contextTitle = catData.name;
+                    }
+
+                    // 2. Fetch Siblings (Same category, No playlist_id)
+                    const { data: siblings, error: siblingsError } = await supabase
+                        .from('learning_videos')
+                        .select('*')
+                        .eq('category_id', targetVideo.category_id)
+                        .is('playlist_id', null)
+                        .order('order_index', { ascending: true })
+                        .order('created_at', { ascending: false }); // Secondary sort
+
+                    if (!siblingsError && siblings && siblings.length > 0) {
+                        playlistVideos = siblings;
+                    }
+                }
+
+                // Create a playlist context object
                 setPlaylist({
-                    id: videoData.id, // Using video ID as playlist ID context
-                    title: videoData.title,
-                    description: videoData.description || '',
-                    author_id: videoData.author_id,
-                    year: videoData.year,
-                    is_on_timeline: videoData.is_on_timeline
+                    id: targetVideo.category_id ? `category:${targetVideo.category_id}` : targetVideo.id,
+                    title: contextTitle,
+                    description: '',
+                    author_id: targetVideo.author_id,
+                    year: targetVideo.year,
+                    is_on_timeline: targetVideo.is_on_timeline
                 });
 
-                setVideos([videoData]); // Single video in the list
+                setVideos(playlistVideos);
+
+                // Find and set correct index
+                const targetIndex = playlistVideos.findIndex(v => v.id === videoId);
+                setCurrentVideoIndex(targetIndex !== -1 ? targetIndex : 0);
+
                 return;
             }
 
@@ -799,11 +833,93 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                 )}
 
                 {/* Floating Admin Action (Page View) */}
-                {!onClose && isAdmin && (
+                {isAdmin && (
                     <div className="ld-floating-actions">
                         <button onClick={handleAddBookmark} className="ld-fab-btn" title="북마크 추가">
                             <i className="ri-bookmark-3-line"></i>
                         </button>
+                        <div className="ld-fab-group">
+                            <button
+                                onClick={async () => {
+                                    if (!bookmarks.length) {
+                                        alert('복사할 북마크가 없습니다.');
+                                        return;
+                                    }
+                                    try {
+                                        // ID와 생성일 등은 제외하고 순수 데이터만 복사
+                                        const cleanBookmarks = bookmarks.map(({ id, video_id, created_at, ...rest }) => rest);
+                                        await navigator.clipboard.writeText(JSON.stringify(cleanBookmarks));
+                                        alert(`북마크 ${cleanBookmarks.length}개가 복사되었습니다.\n다른 영상에서 붙여넣기 하세요.`);
+                                    } catch (err) {
+                                        console.error('Copy failed', err);
+                                        alert('복사 실패');
+                                    }
+                                }}
+                                className="ld-fab-sub-btn"
+                                title="북마크 복사"
+                            >
+                                📋
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    try {
+                                        const text = await navigator.clipboard.readText();
+                                        if (!text) return;
+
+                                        let data;
+                                        try {
+                                            data = JSON.parse(text);
+                                        } catch (e) {
+                                            alert('유효한 북마크 데이터가 아닙니다.');
+                                            return;
+                                        }
+
+                                        if (!Array.isArray(data)) {
+                                            alert('북마크 형식이 아닙니다 (Array required).');
+                                            return;
+                                        }
+
+                                        if (!confirm(`클립보드 내용을 붙여넣으시겠습니까?\n(기존 북마크에 추가됩니다)`)) return;
+
+                                        const currentVideo = videos[currentVideoIndex];
+                                        if (!currentVideo) return;
+
+                                        const newBookmarks = data.map(item => ({
+                                            video_id: currentVideo.id,
+                                            timestamp: item.timestamp,
+                                            label: item.label,
+                                            is_overlay: item.is_overlay,
+                                            overlay_x: item.overlay_x,
+                                            overlay_y: item.overlay_y,
+                                            overlay_duration: item.overlay_duration,
+                                            overlay_scale: item.overlay_scale
+                                        })).filter(item => item.timestamp !== undefined && item.label); // 간단한 유효성 검사
+
+                                        if (newBookmarks.length === 0) {
+                                            alert('추가할 유효한 북마크가 없습니다.');
+                                            return;
+                                        }
+
+                                        const { error } = await supabase
+                                            .from('learning_video_bookmarks')
+                                            .insert(newBookmarks);
+
+                                        if (error) throw error;
+
+                                        alert('성공적으로 붙여넣었습니다.');
+                                        fetchBookmarks(currentVideo.id);
+
+                                    } catch (err) {
+                                        console.error('Paste failed', err);
+                                        alert('붙여넣기 실패: ' + (err as any).message);
+                                    }
+                                }}
+                                className="ld-fab-sub-btn"
+                                title="북마크 붙여넣기"
+                            >
+                                📥
+                            </button>
+                        </div>
                     </div>
                 )}
 
