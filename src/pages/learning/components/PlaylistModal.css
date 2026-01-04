@@ -6,10 +6,10 @@
     right: 0;
     bottom: 0;
     background-color: rgba(0, 0, 0, 0.85);
-    z-index: 1000;
     display: flex;
     justify-content: center;
     align-items: center;
+    z-index: 3100;
     backdrop-filter: blur(5px);
     animation: pm-fadeIn 0.2s ease-out;
 }

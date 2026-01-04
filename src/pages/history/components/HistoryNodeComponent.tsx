@@ -101,7 +101,10 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
                     )}
                 </div>
 
-                <h3 className="history-node-title">{data.title}</h3>
+                <h3 className="history-node-title">
+                    {data.nodeType === 'playlist' ? '💿' : data.nodeType === 'document' ? '📄' : data.nodeType === 'video' ? '📹' : data.nodeType === 'category' ? '📁' : '📅'}
+                    {data.title}
+                </h3>
 
                 {data.description && (
                     <p className="history-node-description">

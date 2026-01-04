@@ -19,6 +19,8 @@ import { NodeEditorModal } from './components/NodeEditorModal';
 import { NodeDetailModal } from './components/NodeDetailModal';
 import { VideoPlayerModal } from './components/VideoPlayerModal';
 import { ResourceDrawer } from './components/ResourceDrawer';
+import { DocumentDetailModal } from '../learning/components/DocumentDetailModal';
+import { PlaylistModal } from '../learning/components/PlaylistModal';
 import './HistoryTimeline.css';
 import type { HistoryNodeData } from './types';
 
@@ -73,6 +75,7 @@ export default function HistoryTimelinePage() {
     // Resource Drawer State
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [draggedResource, setDraggedResource] = useState<any>(null);
+    const [previewResource, setPreviewResource] = useState<{ id: string, type: string, title: string } | null>(null);
 
     // -- Handlers --
 
@@ -158,7 +161,7 @@ export default function HistoryTimelinePage() {
             setLoading(true);
             const { data: nodesData } = await supabase
                 .from('history_nodes')
-                .select('*, linked_playlist:learning_playlists(*), linked_document:learning_documents(*), linked_video:learning_videos(*)')
+                .select('*, linked_playlist:learning_playlists(*), linked_document:learning_documents(*), linked_video:learning_videos(*), linked_category:learning_categories(*)')
                 .order('year', { ascending: true });
 
             const { data: edgesData } = await supabase
@@ -169,6 +172,7 @@ export default function HistoryTimelinePage() {
                 const lp = node.linked_playlist;
                 const ld = node.linked_document;
                 const lv = node.linked_video;
+                const lc = node.linked_category;
 
                 // Determine display data
                 let title = node.title;
@@ -188,6 +192,11 @@ export default function HistoryTimelinePage() {
                     title = lv.title;
                     year = lv.year;
                     desc = lv.description;
+                } else if (lc) {
+                    title = lc.name;
+                    year = node.year;
+                    desc = 'Category Folder'; // Or custom description
+                    category = 'folder';
                 }
 
                 return {
@@ -206,10 +215,11 @@ export default function HistoryTimelinePage() {
                         linked_playlist_id: node.linked_playlist_id,
                         linked_document_id: node.linked_document_id,
                         linked_video_id: node.linked_video_id,
+                        linked_category_id: node.linked_category_id,
                         onEdit: handleEditNode,
                         onViewDetail: handleViewDetail,
                         onPlayVideo: handlePlayVideo,
-                        nodeType: lp ? 'playlist' : (ld ? 'document' : (lv ? 'video' : 'default')),
+                        nodeType: lp ? 'playlist' : (ld ? 'document' : (lv ? 'video' : (lc ? 'category' : 'default'))),
                     },
                 };
             });
@@ -223,7 +233,7 @@ export default function HistoryTimelinePage() {
                 sourceHandle: edge.source_handle,
                 targetHandle: edge.target_handle,
                 label: edge.label,
-                type: 'smoothstep',
+                type: 'default',
                 animated: false,
                 data: {
                     relationType: edge.relation_type,
@@ -321,7 +331,7 @@ export default function HistoryTimelinePage() {
                         setEdges((eds) => addEdge({
                             ...params,
                             id: String(data.id),
-                            type: 'smoothstep',
+                            type: 'default',
                             label: '',
                             data: { relationType: 'influence' }
                         }, eds));
@@ -407,20 +417,45 @@ export default function HistoryTimelinePage() {
         setDraggedResource(resource);
     };
 
+    const handleDrawerItemClick = (id: string, type: string, title: string) => {
+        // Just set the preview state, specialized modals will handle fetching
+        setPreviewResource({ id, type, title });
+    };
+
     const onDrop = useCallback(
         (event: any) => {
             event.preventDefault();
-            if (!draggedResource || !rfInstance || !user) return;
+            if (!rfInstance || !user) return;
+
+            // Determine Data Source
+            let draggedData: any = null;
+
+            // 1. Try HTML5 DnD (Category Tree / All Tab)
+            try {
+                const json = event.dataTransfer.getData('application/json');
+                if (json) {
+                    draggedData = JSON.parse(json);
+                }
+            } catch (e) {
+                // Ignore parsing errors
+            }
+
+            // 2. Try React State (Year Tab / Legacy List)
+            if (!draggedData && draggedResource) {
+                draggedData = draggedResource;
+            }
+
+            if (!draggedData) return;
 
             const position = rfInstance.screenToFlowPosition({
                 x: event.clientX,
                 y: event.clientY,
             });
 
-            let year = draggedResource.year;
+            let year = draggedData.year;
             if (!year) {
                 const input = window.prompt('이 자료의 연도를 입력해주세요:', new Date().getFullYear().toString());
-                if (input === null) return; // User cancelled
+                if (input === null) return;
                 const parsed = parseInt(input, 10);
                 if (isNaN(parsed)) {
                     alert('유효한 연도가 아닙니다.');
@@ -430,22 +465,27 @@ export default function HistoryTimelinePage() {
             }
 
             const newNodeData: any = {
-                title: draggedResource.title,
+                title: draggedData.title || (draggedData.name),
                 year: year,
                 category: 'event',
-                description: draggedResource.description || '',
-                youtube_url: draggedResource.youtube_url || '',
+                description: draggedData.description || '',
+                youtube_url: draggedData.youtube_url || '',
                 position_x: position.x,
                 position_y: position.y,
                 created_by: user.id,
             };
 
-            if (draggedResource.type === 'playlist') {
-                newNodeData.linked_playlist_id = draggedResource.id;
-            } else if (draggedResource.type === 'document') {
-                newNodeData.linked_document_id = draggedResource.id;
-            } else if (draggedResource.type === 'video') {
-                newNodeData.linked_video_id = draggedResource.id;
+            // Handle Types
+            if (draggedData.type === 'CATEGORY_MOVE') {
+                newNodeData.linked_category_id = draggedData.id;
+                newNodeData.category = 'folder';
+                newNodeData.title = draggedData.name;
+            } else if (draggedData.type === 'playlist' || (draggedData.type === 'PLAYLIST_MOVE' && (!draggedData.resourceType || draggedData.resourceType === 'playlist'))) {
+                newNodeData.linked_playlist_id = draggedData.id;
+            } else if (draggedData.type === 'document' || (draggedData.type === 'PLAYLIST_MOVE' && draggedData.resourceType === 'document')) {
+                newNodeData.linked_document_id = draggedData.id;
+            } else if (draggedData.type === 'video' || (draggedData.type === 'PLAYLIST_MOVE' && (draggedData.resourceType === 'video' || draggedData.resourceType === 'standalone_video'))) {
+                newNodeData.linked_video_id = draggedData.id;
             }
 
             supabase
@@ -460,7 +500,7 @@ export default function HistoryTimelinePage() {
                     }
                 });
         },
-        [rfInstance, draggedResource, user]
+        [rfInstance, user, draggedResource]
     );
 
     const toggleAutoLayout = () => {
@@ -621,10 +661,25 @@ export default function HistoryTimelinePage() {
                 />
             )}
 
+            {previewResource && previewResource.type === 'document' && (
+                <DocumentDetailModal
+                    documentId={previewResource.id}
+                    onClose={() => setPreviewResource(null)}
+                />
+            )}
+
+            {previewResource && (previewResource.type === 'playlist' || previewResource.type === 'video' || previewResource.type === 'standalone_video') && (
+                <PlaylistModal
+                    playlistId={previewResource.type === 'video' || previewResource.type === 'standalone_video' ? `video:${previewResource.id}` : previewResource.id}
+                    onClose={() => setPreviewResource(null)}
+                />
+            )}
+
             <ResourceDrawer
                 isOpen={isDrawerOpen}
                 onClose={() => setIsDrawerOpen(false)}
                 onDragStart={handleDragStartResource}
+                onItemClick={handleDrawerItemClick}
             />
         </div>
     );

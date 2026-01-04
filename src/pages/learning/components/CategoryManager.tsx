@@ -30,9 +30,10 @@ interface Props {
     onMovePlaylist?: (playlistId: string, targetCategoryId: string) => void;
     onPlaylistClick?: (playlistId: string) => void;
     highlightedSourceId?: string | null;
+    dragSourceMode?: boolean; // If true, allows dragging even if readOnly is true (for drawer)
 }
 
-export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId, onSelect, categories: injectedCategories, playlists = [], onMovePlaylist, onPlaylistClick, highlightedSourceId }: Props) => {
+export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId, onSelect, categories: injectedCategories, playlists = [], onMovePlaylist, onPlaylistClick, highlightedSourceId, dragSourceMode = false }: Props) => {
     // Initialize state with injected categories or empty
     const [localCategories, setLocalCategories] = useState<Category[]>(injectedCategories || []);
     const [isLoading, setIsLoading] = useState(!injectedCategories);
@@ -229,7 +230,7 @@ export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId
 
     // --- DnD Handlers ---
     const handleDragStart = (e: React.DragEvent, item: Category | Playlist, type: 'CATEGORY' | 'PLAYLIST') => {
-        if (readOnly) {
+        if (readOnly && !dragSourceMode) {
             e.preventDefault();
             return;
         }
@@ -246,6 +247,8 @@ export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId
         e.dataTransfer.setData('application/json', JSON.stringify({
             type: type === 'CATEGORY' ? 'CATEGORY_MOVE' : 'PLAYLIST_MOVE',
             id: item.id,
+            name: (item as any).name || (item as any).title,
+            resourceType: type === 'PLAYLIST' ? (item as any).type : undefined,
             playlistId: type === 'PLAYLIST' ? item.id : undefined
         }));
     };
@@ -424,7 +427,7 @@ export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId
             <div
                 key={playlist.id}
                 className={`treeItem playlistItem ${isDragging ? 'dragging' : ''}`}
-                draggable={!readOnly}
+                draggable={!readOnly || dragSourceMode}
                 onDragStart={(e) => handleDragStart(e, playlist, 'PLAYLIST')}
                 onDragOver={(e) => {
                     e.preventDefault();
@@ -476,7 +479,7 @@ export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId
             <div
                 key={category.id}
                 className={`treeItem ${isDragging ? 'dragging' : ''}`}
-                draggable={!readOnly}
+                draggable={!readOnly || dragSourceMode}
                 onDragStart={(e) => { e.stopPropagation(); handleDragStart(e, category, 'CATEGORY'); }}
                 onDragEnd={() => {
                     // Reset drag state regardless of drop success
@@ -611,7 +614,7 @@ export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId
             <div
                 key={category.id}
                 className={`treeColumn ${isDragging ? 'dragging' : ''} ${activeMode === 'reorder-top' ? 'dragOver-reorder-top' : ''}`}
-                draggable={!readOnly}
+                draggable={!readOnly || dragSourceMode}
                 onDragStart={(e) => handleDragStart(e, category, 'CATEGORY')}
                 onDragEnd={() => {
                     // Reset drag state regardless of drop success

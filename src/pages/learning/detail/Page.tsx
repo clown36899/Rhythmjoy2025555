@@ -265,9 +265,14 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         fetchPlaylistData(playlistId);
     }, [playlistId, refreshTrigger]);
 
-    const fetchPlaylistData = async (targetId: string) => {
+    const fetchPlaylistData = async (rawTargetId: string) => {
         try {
             setError(null);
+
+            let targetId = rawTargetId;
+            if (targetId.startsWith('playlist:')) {
+                targetId = targetId.replace('playlist:', '');
+            }
 
             // Check if it's a standalone video (prefixed with 'video:')
             if (targetId.startsWith('video:')) {

@@ -7,9 +7,10 @@ interface NodeDetailModalProps {
     nodeData: HistoryNodeData;
     onClose: () => void;
     onEdit: () => void;
+    hideEditButton?: boolean;
 }
 
-export const NodeDetailModal: React.FC<NodeDetailModalProps> = ({ nodeData, onClose, onEdit }) => {
+export const NodeDetailModal: React.FC<NodeDetailModalProps> = ({ nodeData, onClose, onEdit, hideEditButton }) => {
 
     // Extract YouTube ID for embedding if available
     const getYoutubeId = (url: string | undefined) => {
@@ -72,9 +73,11 @@ export const NodeDetailModal: React.FC<NodeDetailModalProps> = ({ nodeData, onCl
                 </div>
 
                 <div className="detail-footer">
-                    <button className="btn-edit-node" onClick={() => { onClose(); onEdit(); }}>
-                        <i className="ri-edit-line"></i> 수정하기
-                    </button>
+                    {!hideEditButton && (
+                        <button className="btn-edit-node" onClick={() => { onClose(); onEdit(); }}>
+                            <i className="ri-edit-line"></i> 수정하기
+                        </button>
+                    )}
                 </div>
             </div>
         </div>

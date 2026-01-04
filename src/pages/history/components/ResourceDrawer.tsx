@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 import './ResourceDrawer.css';
+import { CategoryManager } from '../../learning/components/CategoryManager';
 
 interface ResourceItem {
     id: string;
@@ -18,10 +19,11 @@ interface ResourceItem {
 interface Props {
     isOpen: boolean;
     onClose: () => void;
-    onDragStart: (e: React.DragEvent, item: ResourceItem) => void;
+    onDragStart: (e: React.DragEvent, item: any) => void;
+    onItemClick?: (id: string, type: string, title: string) => void;
 }
 
-export const ResourceDrawer = ({ isOpen, onClose, onDragStart }: Props) => {
+export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick }: Props) => {
     const [items, setItems] = useState<ResourceItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -71,6 +73,7 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart }: Props) => {
                     title: p.title,
                     year: p.year || 0, // 0 if null
                     hasYear: !!p.year,
+                    category_id: p.category_id,
                     type: 'playlist' as const,
                     description: p.description,
                     youtube_url: p.youtube_playlist_id ? `https://www.youtube.com/playlist?list=${p.youtube_playlist_id}` : undefined,
@@ -81,6 +84,7 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart }: Props) => {
                     title: d.title,
                     year: d.year || 0,
                     hasYear: !!d.year,
+                    category_id: d.category_id,
                     type: 'document' as const,
                     content: d.content,
                     created_at: d.created_at
@@ -90,6 +94,7 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart }: Props) => {
                     title: v.title,
                     year: v.year || 0,
                     hasYear: !!v.year,
+                    category_id: v.category_id,
                     type: 'video' as const,
                     description: v.description,
                     youtube_url: `https://www.youtube.com/watch?v=${v.youtube_video_id}`,
@@ -148,6 +153,21 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart }: Props) => {
         </div>
     );
 
+    // Map items for CategoryManager
+    const managerItems = filteredList.map(item => ({
+        id: item.id,
+        title: item.title,
+        category_id: item.category_id || null, // Ensure string | null compatibility
+        type: item.type === 'video' ? 'standalone_video' : item.type
+    })) as any[];
+
+    const handleResourceClick = (id: string, type: string = 'playlist') => {
+        const item = items.find(i => i.id === id);
+        if (onItemClick) {
+            onItemClick(id, type, item?.title || '제목 없음');
+        }
+    };
+
     return (
         <div className={`resource-drawer ${isOpen ? 'open' : ''}`}>
             <div className="drawer-header">
@@ -171,7 +191,7 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart }: Props) => {
                         className={`filter-btn ${filterMode === 'all' ? 'active' : ''}`}
                         onClick={() => setFilterMode('all')}
                     >
-                        전체
+                        전체 (트리)
                     </button>
                     <button
                         className={`filter-btn ${filterMode === 'year' ? 'active' : ''}`}
@@ -201,16 +221,17 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart }: Props) => {
                         </div>
                     )
                 ) : (
-                    // 'all' mode - flat list
-                    filteredList.length > 0 ? (
-                        <div className="resource-list flat">
-                            {filteredList.map(renderItem)}
-                        </div>
-                    ) : (
-                        <div className="drawer-empty">
-                            {searchTerm ? '검색 결과가 없습니다.' : '데이터가 없습니다.'}
-                        </div>
-                    )
+                    // 'all' mode - Category Tree
+                    <div className="category-tree-wrapper">
+                        <CategoryManager
+                            onCategoryChange={() => { }} // ReadOnly, no change
+                            readOnly={true}
+                            playlists={managerItems}
+                            onSelect={() => { }} // No select action needed in drawer
+                            dragSourceMode={true} // Enable dragging out
+                            onPlaylistClick={handleResourceClick}
+                        />
+                    </div>
                 )}
             </div>
 

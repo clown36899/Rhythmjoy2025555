@@ -6,12 +6,12 @@
     right: 0;
     bottom: 0;
     background-color: rgba(0, 0, 0, 0.85);
-    z-index: 10000;
+    z-index: 3100;
     display: flex;
     justify-content: center;
     align-items: center;
     backdrop-filter: blur(5px);
-    animation: ddm-fadeIn 0.2s ease-out;
+    animation: fadeIn 0.2s ease-out;
 }
 
 .ddm-modal {

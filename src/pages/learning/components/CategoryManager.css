@@ -140,6 +140,8 @@
     background-color: rgba(255, 255, 255, 0.05);
     border-radius: 6px;
     transition: all 0.2s ease;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 .columnHeader:hover {
@@ -167,6 +169,8 @@
     position: relative;
     cursor: pointer;
     color: #d1d5db;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 .itemContent:hover {
