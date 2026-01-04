@@ -28,7 +28,6 @@ export const BookmarkList = ({ bookmarks, onSeek, onDelete, onEdit, isAdmin }: P
 
     return (
         <div className="ld-bookmark-container">
-            <h3 className="ld-bookmark-title">📌 북마크</h3>
             <div className="ld-bookmark-list">
                 {bookmarks.map((mark) => (
                     <div
@@ -45,6 +44,7 @@ export const BookmarkList = ({ bookmarks, onSeek, onDelete, onEdit, isAdmin }: P
                                     className="ld-bookmark-action-btn"
                                     onClick={(e) => {
                                         e.stopPropagation();
+                                        console.log('[BookmarkList] Edit clicked for:', mark.id, mark.label);
                                         onEdit(mark.id, mark.label);
                                     }}
                                     title="이름 수정"
@@ -55,7 +55,7 @@ export const BookmarkList = ({ bookmarks, onSeek, onDelete, onEdit, isAdmin }: P
                                     className="ld-bookmark-action-btn"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        if (confirm('이 북마크를 삭제하시겠습니까?')) onDelete(mark.id);
+                                        onDelete(mark.id);
                                     }}
                                     title="삭제"
                                 >

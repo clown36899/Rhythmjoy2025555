@@ -59,7 +59,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
     const [error, setError] = useState<string | null>(null);
     const [fullDescription, setFullDescription] = useState<string | null>(null);
     const [isPlaylistOpen, setIsPlaylistOpen] = useState(false); // Mobile Toggle State
-    const [isBookmarksOpen, setIsBookmarksOpen] = useState(false); // Bookmarks Toggle State
+    const [isBookmarksOpen, setIsBookmarksOpen] = useState(true); // Bookmarks visible by default
     const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false); // Description Toggle State
 
     // Fetch Full Description on Video Change
@@ -148,15 +148,20 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
     }, [currentVideoIndex, videos, refreshTrigger]);
 
     const fetchBookmarks = async (videoId: string) => {
+        console.log('[FetchBookmarks] Fetching for video ID:', videoId);
         const { data, error } = await supabase
             .from('learning_video_bookmarks')
             .select('*')
             .eq('video_id', videoId)
             .order('timestamp', { ascending: true });
 
+        console.log('[FetchBookmarks] Response:', { data, error });
+
         if (!error && data) {
+            console.log('[FetchBookmarks] Setting bookmarks:', data);
             setBookmarks(data);
         } else {
+            console.log('[FetchBookmarks] No bookmarks or error');
             setBookmarks([]);
         }
     };
@@ -196,7 +201,6 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
 
     const handleDeleteBookmark = async (id: string) => {
         if (!isAdmin) return;
-        if (!confirm('북마크를 삭제하시겠습니까?')) return;
 
         const { error } = await supabase
             .from('learning_video_bookmarks')
@@ -269,23 +273,41 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
 
     // New handler for editing bookmark labels
     const handleEditBookmark = async (id: string, currentLabel: string) => {
-        if (!isAdmin) return;
+        console.log('[EditBookmark] Starting edit for:', id, 'Current label:', currentLabel);
+        if (!isAdmin) {
+            console.log('[EditBookmark] Not admin, returning');
+            return;
+        }
 
         const newLabel = prompt("새로운 북마크 이름을 입력하세요:", currentLabel);
-        if (newLabel === null || newLabel.trim() === "") return; // Cancel or empty
+        console.log('[EditBookmark] New label from prompt:', newLabel);
 
-        if (newLabel === currentLabel) return; // No change
+        if (newLabel === null || newLabel.trim() === "") {
+            console.log('[EditBookmark] Cancelled or empty, returning');
+            return; // Cancel or empty
+        }
 
-        const { error } = await supabase
+        if (newLabel === currentLabel) {
+            console.log('[EditBookmark] No change, returning');
+            return; // No change
+        }
+
+        console.log('[EditBookmark] Updating bookmark in database...');
+        const { data, error, count } = await supabase
             .from('learning_video_bookmarks')
             .update({ label: newLabel })
-            .eq('id', id);
+            .eq('id', id)
+            .select();
+
+        console.log('[EditBookmark] Supabase response:', { data, error, count });
 
         if (error) {
-            console.error("Bookmark update failed", error);
+            console.error("[EditBookmark] Update failed", error);
             alert("북마크 수정 실패");
         } else {
+            console.log('[EditBookmark] Update successful, refreshing bookmarks...');
             const video = videos[currentVideoIndex];
+            console.log('[EditBookmark] Current video ID:', video.id);
             fetchBookmarks(video.id);
         }
     };
@@ -348,7 +370,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                             width: '100%',
                             height: '100%',
                             playerVars: {
-                                autoplay: 1,
+                                autoplay: 0,
                                 modestbranding: 1,
                                 rel: 0,
                             },
@@ -359,6 +381,19 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                     />
                 </div>
 
+                {/* Bookmark List - Moved to directly below video */}
+                {isBookmarksOpen && (
+                    <div className="ld-bookmark-section">
+                        <BookmarkList
+                            bookmarks={bookmarks}
+                            onSeek={seekTo}
+                            onDelete={handleDeleteBookmark}
+                            onEdit={handleEditBookmark}
+                            isAdmin={isAdmin}
+                        />
+                    </div>
+                )}
+
                 {/* Control Bar */}
                 <div className="ld-control-bar">
                     <button
@@ -366,12 +401,6 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                         onClick={() => setIsBookmarksOpen(!isBookmarksOpen)}
                     >
                         {isBookmarksOpen ? '북마크 닫기' : '북마크 보기'}
-                    </button>
-                    <button
-                        className="ld-control-btn"
-                        onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}
-                    >
-                        {isDescriptionExpanded ? '설명 접기' : '설명 보기'}
                     </button>
                     <button
                         className="ld-control-btn mobile-only"
@@ -384,33 +413,29 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                 {/* Video Info (Title & Metadata) */}
                 <div className="ld-video-metadata">
                     <h2 className="ld-video-title-display">{currentVideo.title}</h2>
-                    <div className="ld-video-meta-row">
-                        <span>{currentVideoIndex + 1} / {videos.length}</span>
-                        <div style={{ display: 'flex', gap: '12px' }}>
-                            {currentVideoIndex < videos.length - 1 && (
-                                <button onClick={playNext} className="ld-next-button">다음 영상 ▶</button>
-                            )}
-                        </div>
-                    </div>
                 </div>
 
                 {/* Description (Memo) */}
-                <div className={`ld-video-memo-display ${isDescriptionExpanded ? 'expanded' : ''}`}>
-                    {fullDescription || currentVideo.memo}
-                </div>
-
-                {/* Bookmark List */}
-                {isBookmarksOpen && (
-                    <div className="ld-bookmark-section">
-                        <BookmarkList
-                            bookmarks={bookmarks}
-                            onSeek={seekTo}
-                            onDelete={handleDeleteBookmark}
-                            onEdit={handleEditBookmark}
-                            isAdmin={isAdmin}
-                        />
+                <div className="ld-video-memo-wrapper">
+                    <div className={`ld-video-memo-display ${isDescriptionExpanded ? 'expanded' : ''}`}>
+                        {fullDescription || currentVideo.memo}
                     </div>
-                )}
+                    {!isDescriptionExpanded ? (
+                        <span
+                            className="ld-memo-more"
+                            onClick={() => setIsDescriptionExpanded(true)}
+                        >
+                            ...더보기
+                        </span>
+                    ) : (
+                        <span
+                            className="ld-memo-more"
+                            onClick={() => setIsDescriptionExpanded(false)}
+                        >
+                            간략히 보기
+                        </span>
+                    )}
+                </div>
 
                 {/* Playlist Description Editor (Bottom) */}
                 <div className="ld-description-section">
