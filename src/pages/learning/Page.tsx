@@ -155,14 +155,23 @@ const LearningPage = () => {
             const { data: documentsData, error: documentsError } = await docQuery;
             if (documentsError) throw documentsError;
 
-            // 3. Fetch Categories
+            // 3. Fetch Categories with Video Counts
             const { data: categoriesData, error: categoriesError } = await supabase
                 .from('learning_categories')
-                .select('*')
+                .select(`
+                    *,
+                    videos:learning_videos(count)
+                `)
                 .order('order_index', { ascending: true })
                 .order('created_at', { ascending: true });
 
             if (categoriesError) throw categoriesError;
+
+            // Map categories to include video_count
+            const categoriesWithCount = (categoriesData || []).map((cat: any) => ({
+                ...cat,
+                video_count: cat.videos?.[0]?.count || 0
+            }));
 
             if (documentsError) throw documentsError;
 
@@ -198,8 +207,8 @@ const LearningPage = () => {
             ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
             setItems(combinedItems);
-            setFlatCategories(categoriesData || []);
-            setCategories(buildTree(categoriesData || []));
+            setFlatCategories(categoriesWithCount);
+            setCategories(buildTree(categoriesWithCount));
 
         } catch (err) {
             console.error(err);
@@ -416,6 +425,21 @@ const LearningPage = () => {
     const handlePlaylistClick = (itemId: string, itemType: string = 'playlist') => {
         if (itemType === 'document') {
             setViewingDocId(itemId);
+            return;
+        }
+
+        // Handle Folder-as-Playlist
+        if (itemType === 'playlist_folder') {
+            const folderId = itemId.includes('category:') ? itemId.replace('category:', '') : itemId;
+            // Use prefix to help DetailPage distinguish
+            const targetId = `category:${folderId}`;
+
+            const isDesktop = window.innerWidth > 768;
+            if (isDesktop) {
+                setViewingPlaylistId(targetId);
+            } else {
+                navigate(`/learning/${targetId}`);
+            }
             return;
         }
 

@@ -87,16 +87,26 @@
 
 /* Collapse toggle button */
 .collapseToggle {
-    font-size: 10px;
-    margin-right: 4px;
+    font-size: 14px;
+    padding: 4px 8px;
+    /* Larger hit area */
+    margin-right: 2px;
     cursor: pointer;
     user-select: none;
-    opacity: 0.6;
-    transition: opacity 0.2s;
+    opacity: 0.7;
+    transition: all 0.2s;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    min-height: 24px;
 }
 
 .collapseToggle:hover {
     opacity: 1;
+    background-color: rgba(255, 255, 255, 0.1);
+    /* Visual cue */
 }
 
 /* Column Panel Style - Full width for vertical stacking */

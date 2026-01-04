@@ -10,6 +10,7 @@ interface Category {
     children?: Category[];
     level?: number;
     order_index?: number;
+    video_count?: number;
 }
 
 interface Playlist {
@@ -523,7 +524,16 @@ export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId
                         e.stopPropagation();
                         handleDrop(e, category.id);
                     }}
-                    onClick={() => !isEditing && handleSelect(isSelected ? null : category.id)}
+                    onClick={() => {
+                        if (isEditing) return;
+                        if (category.video_count && category.video_count > 0) {
+                            if (onPlaylistClick) {
+                                (onPlaylistClick as any)(category.id, 'playlist_folder');
+                            }
+                        } else {
+                            handleSelect(isSelected ? null : category.id);
+                        }
+                    }}
                     style={{ cursor: 'pointer' }}
                 >
                     {/* Collapse toggle for folders with children OR playlists */}
@@ -632,7 +642,16 @@ export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId
                 {/* Column Header */}
                 <div
                     className={`columnHeader ${isSelected ? 'selected' : ''} ${activeMode === 'reparent' ? 'dragOver-reparent' : ''}`}
-                    onClick={() => !isEditing && handleSelect(isSelected ? null : category.id)}
+                    onClick={() => {
+                        if (isEditing) return;
+                        if (category.video_count && category.video_count > 0) {
+                            if (onPlaylistClick) {
+                                (onPlaylistClick as any)(category.id, 'playlist_folder');
+                            }
+                        } else {
+                            handleSelect(isSelected ? null : category.id);
+                        }
+                    }}
                     style={{ cursor: 'pointer' }}
                 >
                     {isEditing ? (
@@ -655,11 +674,11 @@ export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId
                                         e.stopPropagation();
                                         toggleCollapse(category.id);
                                     }}
-                                    style={{ padding: '4px', cursor: 'pointer', fontSize: '12px' }}
                                 >
                                     {isCollapsed ? '▶' : '▼'}
                                 </span>
                             )}
+
                             <span style={{ fontSize: '20px' }}>📦</span>
                             <span style={{ fontWeight: 'bold' }}>{category.name}</span>
                             {highlightedSourceId === category.id && (
@@ -709,7 +728,7 @@ export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId
                         <div style={{ flex: 1, minHeight: '20px' }} onDragOver={e => e.preventDefault()} onDrop={e => handleDrop(e, category.id)}></div>
                     )}
                 </div>
-            </div>
+            </div >
         );
     };
 

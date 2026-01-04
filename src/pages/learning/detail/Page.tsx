@@ -301,6 +301,50 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                 return;
             }
 
+            // Check if it's a Folder Playlist (prefixed with 'category:')
+            if (targetId.startsWith('category:')) {
+                const categoryId = targetId.replace('category:', '');
+
+                // 1. Fetch Category Info (as Playlist)
+                const { data: categoryData, error: categoryError } = await supabase
+                    .from('learning_categories')
+                    .select('*')
+                    .eq('id', categoryId)
+                    .maybeSingle();
+
+                if (categoryError) throw categoryError;
+                if (!categoryData) {
+                    setError('요청하신 폴더를 찾을 수 없습니다.');
+                    return;
+                }
+
+                setPlaylist({
+                    id: categoryData.id,
+                    title: categoryData.name,
+                    description: '', // Category doesn't have description yet
+                    author_id: '', // Not needed for folder
+                    year: undefined,
+                    is_on_timeline: undefined
+                });
+
+                // 2. Fetch Videos in Category
+                const { data: videoData, error: videoError } = await supabase
+                    .from('learning_videos')
+                    .select('*')
+                    .eq('category_id', categoryId)
+                    .is('playlist_id', null) // Only standalone videos in folder
+                    .order('order_index', { ascending: true });
+
+                if (videoError) throw videoError;
+
+                if (videoData && videoData.length > 0) {
+                    setVideos(videoData);
+                } else {
+                    setVideos([]);
+                }
+                return;
+            }
+
             // Normal Playlist Logic
             // 1. Fetch Playlist Info
             const { data: listData, error: listError } = await supabase
