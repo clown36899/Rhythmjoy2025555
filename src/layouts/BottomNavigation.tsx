@@ -8,7 +8,7 @@ import {
     prefetchBoardPage,
     prefetchGuidePage,
     prefetchShoppingPage
-} from '../router/routes';
+} from '../router/prefetch';
 import { useEffect } from 'react';
 import { logUserInteraction } from '../lib/analytics';
 

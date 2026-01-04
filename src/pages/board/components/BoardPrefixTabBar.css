@@ -1,15 +1,18 @@
 .board-prefix-tab-bar {
     position: fixed;
-    top: 100px;
-    left: 50%;
-    transform: translateX(-50%);
+    top: 108px;
+    /* 60px header + 48px tab bar */
+    left: 0;
+    right: 0;
+    margin: 0 auto;
     width: 100%;
     max-width: 650px;
-    z-index: 39;
+    z-index: 44;
     background: #171711;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     padding: 0;
-    height: 59px;
+    height: 48px;
+    box-sizing: border-box;
 }
 
 .board-prefix-scroller {

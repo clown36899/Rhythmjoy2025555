@@ -1,44 +1,98 @@
 import { StrictMode, useEffect } from 'react'
-import './i18n'
 import { createRoot } from 'react-dom/client'
-import { AuthProvider } from './contexts/AuthContext';
-import { ModalProvider } from './contexts/ModalContext';
-import { BoardDataProvider } from './contexts/BoardDataContext';
-import { InstallPromptProvider } from './contexts/InstallPromptContext';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-import { routes } from './router/routes';
-import App from './App.tsx'
+import './i18n'
 import './index.css'
-import { initGAWithEngagement } from './lib/analytics'
-import { ModalRegistry } from './components/ModalRegistry'
-import GlobalErrorBoundary from './components/GlobalErrorBoundary'
 
-function normalizeBasename(base?: string) {
-  if (!base) return undefined;
-  if (base === "./" || base === "/" || base === "/./") return undefined;
-  return base.endsWith("/") ? base.slice(0, -1) : base;
-}
+import { PageActionProvider } from './contexts/PageActionContext';
+import { AuthProvider } from './contexts/AuthContext';
+import { BoardDataProvider } from './contexts/BoardDataContext';
+import { ModalProvider } from './contexts/ModalContext';
+import { InstallPromptProvider } from './contexts/InstallPromptContext';
 
+import App from './App.tsx'
+import GlobalErrorBoundary from './components/GlobalErrorBoundary';
+import { ModalRegistry } from './components/ModalRegistry';
+import { initGAWithEngagement } from './lib/analytics';
 
-const basename = normalizeBasename(__BASE_PATH__ as string);
+// Pages
+import HomePageV2 from './pages/v2/Page';
+import SocialPage from './pages/social/page';
+import PracticePage from './pages/practice/page';
+import BoardPage from './pages/board/page';
+import ShoppingPage from './pages/shopping/page';
+import GuidePage from './pages/guide/page';
+// import EventDetailPage from './pages/v2/EventDetailPage'; // File not found
+import CalendarPage from './pages/calendar/page';
+import MyActivitiesPage from './pages/user/MyActivitiesPage';
+
+/* Admin Pages - Temporarily disabled due to missing files
+import AdminPage from './pages/admin/Page';
+import AdminDashboard from './pages/admin/dashboard/Dashboard';
+import AdminBanners from './pages/admin/banners/Banners';
+import AdminUsers from './pages/admin/users/Users';
+import AdminEvents from './pages/admin/events/Events';
+import AdminCommunity from './pages/admin/community/Community';
+*/
+// import KakaoCallback from './components/auth/KakaoCallback';
+
+// Archive Pages
+import ArchiveLayout from './layouts/ArchiveLayout';
+import LearningPage from './pages/learning/Page';
+import LearningDetailPage from './pages/learning/detail/Page';
+// import HistoryPage from './pages/history/Page';
+import HistoryTimelinePage from './pages/history/HistoryTimelinePage';
 
 const router = createBrowserRouter([
   {
+    path: "/",
     element: (
       <AuthProvider>
-        <BoardDataProvider>
-          <ModalProvider>
-            <GlobalErrorBoundary>
-              <App />
-              <ModalRegistry />
-            </GlobalErrorBoundary>
-          </ModalProvider>
-        </BoardDataProvider>
+        <PageActionProvider>
+          <BoardDataProvider>
+            <ModalProvider>
+              <GlobalErrorBoundary>
+                <App />
+                <ModalRegistry />
+              </GlobalErrorBoundary>
+            </ModalProvider>
+          </BoardDataProvider>
+        </PageActionProvider>
       </AuthProvider>
     ),
-    children: routes
+    children: [
+      { path: "/", element: <HomePageV2 /> },
+      { path: "/v2", element: <HomePageV2 /> },
+      // { path: "/v2/events/:id", element: <EventDetailPage /> }, // Disabled
+      { path: "/calendar", element: <CalendarPage /> },
+      { path: "/social", element: <SocialPage /> },
+      { path: "/practice", element: <PracticePage /> },
+      { path: "/shopping", element: <ShoppingPage /> },
+      { path: "/guide", element: <GuidePage /> },
+      { path: "/board/*", element: <BoardPage /> },
+      { path: "/my-activities", element: <MyActivitiesPage /> },
+
+      // 스윙피디아 (Archive) Routes - MobileShell 내부에 중첩
+      {
+        element: <ArchiveLayout />,
+        children: [
+          { path: "/learning", element: <LearningPage /> },
+          { path: "/learning/:id", element: <LearningDetailPage /> },
+          { path: "/history", element: <HistoryTimelinePage /> },
+        ]
+      }
+    ]
   }
-], { basename });
+], {
+  future: {
+    v7_startTransition: true,
+    v7_relativeSplatPath: true,
+    v7_fetcherPersist: true,
+    v7_normalizeFormMethod: true,
+    v7_partialHydration: true,
+    v7_skipActionErrorRevalidation: true,
+  }
+});
 
 function RootApp() {
   useEffect(() => {

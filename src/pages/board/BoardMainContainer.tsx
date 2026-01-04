@@ -261,7 +261,7 @@ export default function BoardMainContainer() {
                 onTouchStart={onTouchStart}
                 onTouchMove={onTouchMove}
                 onTouchEnd={onTouchEnd}
-                style={{ paddingTop: prefixes.length > 0 ? '84px' : '60px' }}
+                style={{ paddingTop: prefixes.length > 0 ? '96px' : '48px' }}
             >
                 {category === 'anonymous' && (
                     <>

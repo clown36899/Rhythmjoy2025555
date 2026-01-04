@@ -1,4 +1,5 @@
-import { Outlet, useLocation } from "react-router-dom";
+import { useLocation } from "react-router-dom";
+import { MobileShell } from "./layouts/MobileShell";
 import { Suspense, useEffect } from "react";
 import { logPageView } from "./lib/analytics";
 import { useOnlinePresence } from "./hooks/useOnlinePresence";
@@ -34,7 +35,7 @@ function AppContent() {
         {/* Spinner removed for login optimization */}
       </div>
     }>
-      <Outlet />
+      <MobileShell />
     </Suspense>
   );
 }

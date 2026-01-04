@@ -16,7 +16,9 @@
   /* Stack children vertically */
   overflow: hidden;
   /* Prevent body scroll */
-  animation: fadeIn 0.2s ease-in;
+  /* Stack children vertically */
+  overflow: hidden;
+  /* Prevent body scroll */
 }
 
 @keyframes fadeIn {

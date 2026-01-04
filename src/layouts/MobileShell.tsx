@@ -3,6 +3,7 @@ import { useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useModal } from '../hooks/useModal';
 import { useOnlineUsers } from '../hooks/useOnlineUsers';
+import { usePageAction } from '../contexts/PageActionContext';
 import { BottomNavigation } from './BottomNavigation';
 import SideDrawer from '../components/SideDrawer';
 import { useTranslation } from 'react-i18next';
@@ -21,6 +22,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
   const { user, userProfile, isAdmin: authIsAdmin, signInWithKakao, refreshUserProfile, signOut, isAuthProcessing, cancelAuth } = useAuth();
   const { i18n } = useTranslation();
   const onlineUsersData = useOnlineUsers();
+  const { action: pageAction } = usePageAction();
 
   // Modals
   const profileEditModal = useModal('profileEdit');
@@ -29,7 +31,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [calendarMode, setCalendarMode] = useState<'collapsed' | 'fullscreen'>('collapsed');
   const [calendarView, setCalendarView] = useState({ year: new Date().getFullYear(), month: new Date().getMonth() });
-  const [isCurrentMonthVisible, setIsCurrentMonthVisible] = useState(true);
+  // unused state removed
   const [totalUserCount, setTotalUserCount] = useState<number | null>(null);
   const [category] = useState<string>('all'); // Added for Outlet context support
 
@@ -73,20 +75,16 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
         setCalendarView({ year: e.detail.year, month: e.detail.month });
       }
     };
-    const handleMonthVisibility = (e: any) => {
-      if (e.detail !== undefined) {
-        setIsCurrentMonthVisible(e.detail.isCurrentMonth);
-      }
-    };
+    // handler removed
 
     window.addEventListener('toggleDrawer', handleToggleDrawer);
     window.addEventListener('updateCalendarView', handleUpdateCalendarView);
-    window.addEventListener('monthVisibilityChange', handleMonthVisibility);
+    // listener removed
 
     return () => {
       window.removeEventListener('toggleDrawer', handleToggleDrawer);
       window.removeEventListener('updateCalendarView', handleUpdateCalendarView);
-      window.removeEventListener('monthVisibilityChange', handleMonthVisibility);
+      // listener removed
     };
   }, []);
 
@@ -188,6 +186,19 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
       document.documentElement.classList.remove('layout-wide-mode');
     };
   }, [isWideLayout]);
+
+  const handlePageAction = () => {
+    if (!pageAction) return;
+
+    if (pageAction.requireAuth && !user) {
+      if (window.confirm('로그인이 필요한 서비스입니다.\n로그인 하시겠습니까?')) {
+        setIsDrawerOpen(true); // Open drawer for login
+      }
+      return;
+    }
+
+    pageAction.onClick();
+  };
 
   return (
     <div className={`shell-container ${isWideLayout ? 'layout-wide' : 'layout-compact'}`}>
@@ -395,84 +406,22 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
 
       {/* Bottom Navigation */}
       <div data-id="bottom-nav" className="shell-bottom-nav">
-        {(isEventsPage || isCalendarPage || isSocialPage || isShoppingPage) && (
-          <div className="shell-top-bar" style={{ minHeight: '32px' }}>
-            <div className="shell-top-bar-content">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-                {(isEventsPage || isCalendarPage) && calendarMode === "fullscreen" && (
-                  <button
-                    onClick={() => {
-                      logUserInteraction('Button', 'Click', 'CalendarSearch');
-                      window.dispatchEvent(new CustomEvent('openCalendarSearch'));
-                    }}
-                    className="shell-top-bar-btn"
-                    style={{
-                      backgroundColor: 'transparent', border: 'none', display: 'flex', alignItems: 'center', gap: '4px',
-                      padding: '0 4px', height: '24px', color: '#fff'
-                    }}
-                  >
-                    <i className="ri-search-line shell-icon-sm"></i>
-                    <span style={{ fontSize: '12px', fontWeight: 500 }}>검색</span>
-                  </button>
-                )}
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {(isEventsPage || isCalendarPage) && !isCurrentMonthVisible && (
-                  <button
-                    onClick={() => window.dispatchEvent(new CustomEvent('goToToday'))}
-                    style={{
-                      backgroundColor: 'var(--primary-color)', color: 'white', border: 'none', borderRadius: '4px',
-                      padding: '2px 8px', fontSize: '10px', height: '24px', display: 'flex', alignItems: 'center', gap: '2px'
-                    }}
-                  >
-                    <span className="manual-label-wrapper">
-                      <span className="translated-part">Today</span>
-                      <span className="fixed-part ko" translate="no">오늘</span>
-                      <span className="fixed-part en" translate="no">Today</span>
-                    </span>
-                    <i className="ri-calendar-check-line" style={{ fontSize: '10px' }}></i>
-                  </button>
-                )}
-
-                <button
-                  onClick={() => {
-                    if (isSocialPage) {
-                      window.dispatchEvent(new CustomEvent('openSocialRegistration'));
-                    } else if (isShoppingPage) {
-                      window.dispatchEvent(new CustomEvent('openShopRegistration'));
-                    } else if (isCalendarPage) {
-                      window.dispatchEvent(new CustomEvent('openCalendarRegistration'));
-                    } else {
-                      window.dispatchEvent(new CustomEvent('createEventForDate', { detail: { source: 'floatingBtn', calendarMode } }));
-                    }
-                  }}
-                  className="shell-btn-register-topbar"
-                  data-analytics-id="register_generic"
-                  data-analytics-type="action"
-                  data-analytics-title={isSocialPage ? "소셜 등록" : isShoppingPage ? "쇼핑몰 등록" : "이벤트 등록"}
-                  data-analytics-section="top_bar"
-                >
-                  <i className="ri-add-line"></i>
-                  <span className="manual-label-wrapper">
-                    <span className="translated-part">
-                      {isSocialPage ? "Register" : isShoppingPage ? "Register" : "Register"}
-                    </span>
-                    <span className="fixed-part ko" translate="no">
-                      {isSocialPage ? "소셜/단체 등록" : isShoppingPage ? "쇼핑몰 등록" : "이벤트 등록"}
-                    </span>
-                    <span className="fixed-part en" translate="no">
-                      {isSocialPage ? "Register Social/Group" : isShoppingPage ? "Register Shop" : "Register Event"}
-                    </span>
-                  </span>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Top Bar Removed - Replaced by FAB Logic */}
 
         <BottomNavigation />
       </div>
+
+      {/* Organic FAB */}
+      {pageAction && (
+        <button
+          className="shell-fab-btn"
+          onClick={handlePageAction}
+          aria-label={pageAction.label || "Action"}
+          data-analytics-id="fab_action"
+        >
+          <i className={pageAction.icon}></i>
+        </button>
+      )}
 
       <SideDrawer
         isOpen={isDrawerOpen}

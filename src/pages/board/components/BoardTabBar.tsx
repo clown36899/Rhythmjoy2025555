@@ -17,11 +17,12 @@ const DEFAULT_CATEGORIES = [
     { id: 'notice', label: '건의/공지', icon: 'ri-megaphone-line' },
     { id: 'history', label: '스윙피디아', icon: 'ri-book-read-line', isWip: true },
     { id: 'market', label: '벼룩시장', icon: 'ri-store-2-line' },
+    { id: 'dev-log', label: '개발일지', icon: 'ri-code-box-line' },
 ];
 
 export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardTabBarProps) {
     const { data } = useBoardData();
-    const [categories, setCategories] = useState<any[]>([]);
+    const [categories, setCategories] = useState<any[]>(DEFAULT_CATEGORIES);
     const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
     const scrollerRef = useRef<HTMLDivElement | null>(null);
     const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0, opacity: 0 });
@@ -124,7 +125,7 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
         }
     };
 
-    // Use useLayoutEffect to ensure positioning happens BEFORE browser paint
+    // Use useLayoutEffect to ensure positioning happens correctly
     useLayoutEffect(() => {
         const activeTab = tabRefs.current[activeCategory];
 
@@ -133,32 +134,12 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
             const width = activeTab.offsetWidth;
 
             if (width > 0) {
-                if (isInitialLoad.current) {
-                    // Lock-in first position without animation or flicker
-                    setIndicatorStyle({ left, width, opacity: 1 });
-
-                    activeTab.scrollIntoView({
-                        behavior: 'auto', // Instant scroll
-                        block: 'nearest',
-                        inline: 'center'
-                    });
-
-                    isInitialLoad.current = false;
-                    setIsReady(true);
-                    // Enable transition after the first paint is settled
-                    requestAnimationFrame(() => {
-                        setShowTransition(true);
-                    });
-                } else {
-                    // Subsequent switches use smooth movement
-                    setIndicatorStyle({ left, width, opacity: 1 });
-
-                    activeTab.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'nearest',
-                        inline: 'center'
-                    });
-                }
+                setIndicatorStyle({ left, width, opacity: 1 });
+                activeTab.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'nearest',
+                    inline: 'center'
+                });
             }
         }
     }, [activeCategory, categories]);
@@ -183,11 +164,9 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
                     style={{
                         transform: `translateX(${indicatorStyle.left}px)`,
                         width: `${indicatorStyle.width}px`,
-                        opacity: isReady ? 1 : 0,
-                        visibility: isReady ? 'visible' : 'hidden',
-                        transition: showTransition
-                            ? 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.2s ease'
-                            : 'none'
+                        opacity: indicatorStyle.width > 0 ? 1 : 0,
+                        visibility: indicatorStyle.width > 0 ? 'visible' : 'hidden',
+                        transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
                     }}
                 />
             </div>

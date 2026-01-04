@@ -38,10 +38,10 @@
   bottom: 0;
   left: 0;
   right: 0;
-  /* background: rgb(0 0 0 / 77%);
-  backdrop-filter: blur(20px); */
+  background: rgb(23 23 23 / 63%);
   -webkit-backdrop-filter: blur(20px);
-  /* border-top: 1px solid rgba(255, 255, 255, 0.08); */
+  backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   z-index: var(--z-20);
   width: 100%;
   margin: 0;
@@ -53,9 +53,7 @@
 /* Layout-based responsive rules (Replaces old hacky selectors) */
 
 /* Bottom Nav */
-.layout-compact .shell-bottom-nav {
-  /* Default behavior (usually full width but we might want to center its content) */
-}
+
 
 .layout-wide .shell-bottom-nav {
   max-width: 100%;
@@ -65,34 +63,7 @@
 }
 
 /* ===== 상단 바 클래스 ===== */
-.shell-top-bar {
-  /* border-top: 1px solid #323232; */
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.375rem 0.75rem;
-  min-height: 32px;
-  /* background-color: #272727; */
-}
 
-.shell-top-bar-content {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex: 1;
-  justify-content: center;
-  margin: 0 auto;
-  width: 100%;
-}
-
-.layout-compact .shell-top-bar-content {
-  max-width: 650px;
-}
-
-.layout-wide .shell-top-bar-content {
-  max-width: 100%;
-  padding: 0 12px;
-}
 
 /* ===== 텍스트 스타일 ===== */
 .shell-text-hint {
@@ -145,50 +116,7 @@
 }
 
 /* ===== Unified Registration Button (Top Bar) ===== */
-.shell-btn-register-topbar {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.375rem;
-  padding: 0.5rem 0.875rem;
-  border-radius: 0.5rem;
-  font-size: 0.9375rem;
-  font-weight: 600;
-  border: 0;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-  color: #ffffff;
-  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
-  position: relative;
-  overflow: hidden;
-}
 
-.shell-btn-register-topbar::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.2), transparent);
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
-.shell-btn-register-topbar:hover::before {
-  opacity: 1;
-}
-
-.shell-btn-register-topbar i {
-  font-size: 1.125rem;
-  transition: transform 0.3s ease;
-}
-
-.compact-event-card .shell-btn-register-topbar:hover i {
-  transform: rotate(90deg);
-}
-
-.shell-btn-register-topbar:active {
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  transform: translateY(0) scale(0.98);
-  box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
-}
 
 /* Admin Button in Top Bar */
 .shell-admin-btn-topbar {
@@ -697,6 +625,7 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+
 .calendar-month-btn {
   background: none;
   border: none;
@@ -727,6 +656,98 @@
   font-weight: 600;
   font-size: 0.95rem;
   min-width: 70px;
-  text-align: center;
-  letter-spacing: 0.3px;
+}
+
+/* ===== FAB (Floating Action Button) ===== */
+.shell-fab-btn {
+  position: fixed;
+  bottom: calc(60px + env(safe-area-inset-bottom) + 16px);
+  right: 16px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border: none;
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 40;
+  /* Above bottom nav (z-20) */
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* Spring effect */
+}
+
+.shell-fab-btn:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.5);
+}
+
+.shell-fab-btn:active {
+  transform: translateY(0) scale(0.95);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+}
+
+.shell-fab-btn i {
+  font-size: 24px;
+}
+
+
+.calendar-month-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.calendar-month-btn:active {
+  transform: scale(0.95);
+}
+
+.calendar-month-btn i {
+  font-size: 1.1rem;
+}
+
+.calendar-month-label {
+  color: white;
+  font-weight: 600;
+  font-size: 0.95rem;
+  min-width: 70px;
+
+}
+
+/* ===== FAB (Floating Action Button) ===== */
+.shell-fab-btn {
+  position: fixed;
+  bottom: calc(60px + env(safe-area-inset-bottom) + 16px);
+  right: 16px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+  color: white;
+  border: none;
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 40;
+  /* Above bottom nav (z-20) */
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  /* Spring effect */
+}
+
+.shell-fab-btn:hover {
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.5);
+}
+
+.shell-fab-btn:active {
+  transform: translateY(0) scale(0.95);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+}
+
+.shell-fab-btn i {
+  font-size: 24px;
 }

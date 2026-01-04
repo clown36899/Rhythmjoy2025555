@@ -3,14 +3,26 @@ import type { RouteObject } from 'react-router-dom';
 import { Navigate, useParams } from 'react-router-dom';
 import { MobileShell } from '../layouts/MobileShell';
 
+import {
+    prefetchHomePageV2,
+    prefetchSocialPage,
+    prefetchPracticePage,
+    prefetchBoardPage,
+    prefetchBoardDetailPage,
+    prefetchGuidePage,
+    prefetchShoppingPage,
+    prefetchBillboardPage,
+    prefetchPrivacyPage,
+    prefetchCalendarPage,
+    prefetchHistoryTimelinePage
+} from './prefetch';
+
 // Lazy loading pages
-export const prefetchHomePageV2 = () => import('../pages/v2/Page');
+// Prefetch functions moved to prefetch.ts
 const HomePageV2 = lazy(prefetchHomePageV2);
 
-export const prefetchSocialPage = () => import('../pages/social/page');
 const SocialPage = lazy(prefetchSocialPage);
 
-export const prefetchPracticePage = () => import('../pages/practice/page');
 const PracticePage = lazy(prefetchPracticePage);
 
 const PracticeRedirect = () => {
@@ -18,25 +30,18 @@ const PracticeRedirect = () => {
     return <Navigate to={`/practice?id=${id}`} replace />;
 };
 
-export const prefetchBoardPage = () => import('../pages/board/BoardMainContainer');
 const BoardPage = lazy(prefetchBoardPage);
 
-export const prefetchBoardDetailPage = () => import('../pages/board/detail/page');
 const BoardDetailPage = lazy(prefetchBoardDetailPage);
 
-export const prefetchGuidePage = () => import('../pages/guide/page');
 const GuidePage = lazy(prefetchGuidePage);
 
-export const prefetchShoppingPage = () => import('../pages/shopping/page');
 const ShoppingPage = lazy(prefetchShoppingPage);
 
-export const prefetchBillboardPage = () => import('../pages/billboard/page');
 const BillboardPage = lazy(prefetchBillboardPage);
 
-export const prefetchPrivacyPage = () => import('../pages/privacy/page');
 const PrivacyPage = lazy(prefetchPrivacyPage);
 
-export const prefetchCalendarPage = () => import('../pages/calendar/page');
 const CalendarPage = lazy(prefetchCalendarPage);
 
 const SecureMembersPage = lazy(() => import("../pages/admin/secure-members/page"));
@@ -46,7 +51,6 @@ const EventPhotoFinderPage = lazy(() => import("../pages/event-photo-finder/page
 const MyActivitiesPage = lazy(() => import('../pages/user/MyActivitiesPage'));
 const DebugLogPage = lazy(() => import('../pages/DebugLogPage'));
 
-export const prefetchHistoryTimelinePage = () => import('../pages/history/HistoryTimelinePage');
 const HistoryTimelinePage = lazy(prefetchHistoryTimelinePage);
 const ArchiveLayout = lazy(() => import('../layouts/ArchiveLayout'));
 const LearningPage = lazy(() => import('../pages/learning/Page'));

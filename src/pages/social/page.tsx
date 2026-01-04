@@ -6,6 +6,7 @@ import { useSocialGroups } from './hooks/useSocialGroups';
 import { useSocialSchedulesNew } from './hooks/useSocialSchedulesNew';
 import { useSocialGroupFavorites } from './hooks/useSocialGroupFavorites';
 import { useModal } from '../../hooks/useModal';
+import { useSetPageAction } from '../../contexts/PageActionContext';
 import { getLocalDateString, getKSTDay } from '../v2/utils/eventListUtils';
 
 // Components
@@ -124,18 +125,16 @@ const SocialPage: React.FC = () => {
     fetchThisWeekEvents();
   }, [today]);
 
-  // Event Listeners
-  useEffect(() => {
-    const handleOpenSocialRegistration = () => {
+  // Register Page Action (FAB)
+  useSetPageAction({
+    icon: 'ri-add-line',
+    label: '소셜 등록',
+    requireAuth: true,
+    onClick: () => {
       setEditGroup(null);
       setIsGroupModalOpen(true);
-    };
-
-    window.addEventListener('openSocialRegistration', handleOpenSocialRegistration);
-    return () => {
-      window.removeEventListener('openSocialRegistration', handleOpenSocialRegistration);
-    };
-  }, []);
+    }
+  });
 
   // Helpers
   const verifyGroupPassword = async (groupId: number, inputPw: string): Promise<boolean> => {

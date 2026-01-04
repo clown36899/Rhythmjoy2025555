@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { lazy, Suspense } from "react";
@@ -12,6 +12,7 @@ import EventDetailModal from "../v2/components/EventDetailModal";
 import CalendarSearchModal from "../v2/components/CalendarSearchModal";
 import { useAuth } from "../../contexts/AuthContext";
 import { useEventFavorites } from "../../hooks/useEventFavorites";
+import { useSetPageAction } from "../../contexts/PageActionContext";
 
 const EventPasswordModal = lazy(() => import("../v2/components/EventPasswordModal"));
 const EventRegistrationModal = lazy(() => import("../../components/EventRegistrationModal"));
@@ -246,14 +247,12 @@ export default function CalendarPage() {
 
         window.addEventListener('setFullscreenMode', handleSetFullscreenMode);
         window.addEventListener('openCalendarSearch', handleOpenCalendarSearch);
-        window.addEventListener('openCalendarRegistration', handleOpenCalendarRegistration);
         window.addEventListener('prevMonth', handlePrevMonth);
         window.addEventListener('nextMonth', handleNextMonth);
 
         return () => {
             window.removeEventListener('setFullscreenMode', handleSetFullscreenMode);
             window.removeEventListener('openCalendarSearch', handleOpenCalendarSearch);
-            window.removeEventListener('openCalendarRegistration', handleOpenCalendarRegistration);
             window.removeEventListener('prevMonth', handlePrevMonth);
             window.removeEventListener('nextMonth', handleNextMonth);
         };
@@ -263,6 +262,14 @@ export default function CalendarPage() {
     useEffect(() => {
         window.dispatchEvent(new CustomEvent("calendarModeChanged", { detail: "fullscreen" }));
     }, []);
+
+    // FAB Registration Action
+    useSetPageAction(useMemo(() => ({
+        icon: 'ri-add-line',
+        label: '일정 등록',
+        requireAuth: true,
+        onClick: () => setShowRegisterModal(true)
+    }), []));
 
     // 제스처 훅 사용 - 스와이프 기능을 위해 필요
     const {

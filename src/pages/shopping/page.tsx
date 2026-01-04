@@ -3,6 +3,7 @@ import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { logEvent } from '../../lib/analytics';
 import { useModal } from '../../hooks/useModal';
+import { useSetPageAction } from '../../contexts/PageActionContext';
 import ShopCard from './components/ShopCard';
 import './shopping.css';
 
@@ -184,20 +185,17 @@ export default function ShoppingPage() {
     return () => window.removeEventListener('openEventSearch', handleOpenEventSearch);
   }, []);
 
-  // 커스텀 이벤트 리스너: 쇼핑몰 등록 모달 열기
-  useEffect(() => {
-    const handleOpenRegister = () => {
+  // Register FAB Action
+  useSetPageAction({
+    icon: 'ri-add-line',
+    label: '쇼핑몰 등록',
+    requireAuth: true,
+    onClick: () => {
       shopRegisterModal.open({
         onSuccess: fetchShops
       });
-    };
-
-    window.addEventListener('openShopRegistration', handleOpenRegister);
-
-    return () => {
-      window.removeEventListener('openShopRegistration', handleOpenRegister);
-    };
-  }, []);
+    }
+  });
 
   return (
     <div className="shop-page-container" >

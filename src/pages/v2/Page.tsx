@@ -25,6 +25,7 @@ import "react-datepicker/dist/react-datepicker.css";
 
 
 import { useAuth } from "../../contexts/AuthContext";
+import { useSetPageAction } from "../../contexts/PageActionContext";
 import { useCalendarGesture } from "./hooks/useCalendarGesture";
 import { useEventActions } from "./hooks/useEventActions";
 import { useCalendarState } from "./hooks/useCalendarState";
@@ -96,6 +97,8 @@ export default function HomePageV2() {
     const {
         qrLoading, highlightEvent, setHighlightEvent
     } = useDeepLinkLogic({ setCurrentMonth });
+
+
 
 
 
@@ -232,11 +235,11 @@ export default function HomePageV2() {
         return () => { if (container) container.inert = false; };
     }, [showInputModal, showRegistrationModal, selectedEvent]);
 
-    const handleHorizontalSwipe = (direction: 'next' | 'prev') => {
+    const handleHorizontalSwipe = useCallback((direction: 'next' | 'prev') => {
         changeMonth(direction);
         setFromBanner(false);
         setBannerMonthBounds(null);
-    };
+    }, [changeMonth]);
 
     // --------------------------------------------------------------------------------
     // 4. Custom Hook: Calendar Gesture & State
@@ -244,7 +247,7 @@ export default function HomePageV2() {
     const {
         calendarMode,
         setCalendarMode,
-        isAnimating,
+
     } = useCalendarGesture({
         headerHeight: 50,
         containerRef,
@@ -252,6 +255,18 @@ export default function HomePageV2() {
         onHorizontalSwipe: handleHorizontalSwipe,
         isYearView: false,
     });
+
+    // FAB Registration Action (Moved here to access calendarMode)
+    useSetPageAction(useMemo(() => ({
+        icon: 'ri-add-line',
+        label: '이벤트 등록',
+        requireAuth: true,
+        onClick: () => {
+            window.dispatchEvent(new CustomEvent('createEventForDate', {
+                detail: { source: 'floatingBtn', calendarMode }
+            }));
+        }
+    }), [calendarMode]));
 
     // Calendar Mode Sync Effects
     useEffect(() => {
@@ -514,10 +529,10 @@ export default function HomePageV2() {
 
                 <EventDetailModal
                     isOpen={!!selectedEvent}
-                    event={selectedEvent!}
+                    event={selectedEvent as any}
                     onClose={closeModal}
-                    onEdit={handleEditClick}
-                    onDelete={handleDeleteClick}
+                    onEdit={handleEditClick as any}
+                    onDelete={handleDeleteClick as any}
                     isAdminMode={effectiveIsAdmin}
                     currentUserId={user?.id}
                     onOpenVenueDetail={handleVenueClick}
