@@ -7,16 +7,8 @@ const ArchiveLayout = () => {
     const navigate = useNavigate();
     const currentPath = location.pathname;
 
-    useEffect(() => {
-        // 전역 레이아웃 활성화 클래스 추가
-        document.documentElement.classList.add('archive-layout-active');
-        document.body.setAttribute('data-archive-route', 'true');
-
-        return () => {
-            document.documentElement.classList.remove('archive-layout-active');
-            document.body.removeAttribute('data-archive-route');
-        };
-    }, []);
+    // Layout class management is now handled by MobileShell based on route
+    // No explicit DOM manipulation needed here.
 
     const isDetailPage = currentPath.startsWith('/learning/') && currentPath !== '/learning';
 

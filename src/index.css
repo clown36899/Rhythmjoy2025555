@@ -28,12 +28,9 @@ body {
 /* @media (min-width: 769px) removed to enforce 650px */
 
 /* 🎓 Learning/Archive Route: Full Width (Structural Isolation) */
-html.learning-layout-active,
-html.learning-layout-active body,
-html.learning-layout-active #root,
-html.archive-layout-active,
-html.archive-layout-active body,
-html.archive-layout-active #root {
+html.layout-wide-mode,
+html.layout-wide-mode body,
+html.layout-wide-mode #root {
   max-width: none !important;
   margin: 0 !important;
   width: 100% !important;

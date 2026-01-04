@@ -19,9 +19,28 @@ function normalizeBasename(base?: string) {
   return base.endsWith("/") ? base.slice(0, -1) : base;
 }
 
-function RootApp() {
-  const basename = normalizeBasename(__BASE_PATH__ as string);
 
+const basename = normalizeBasename(__BASE_PATH__ as string);
+
+const router = createBrowserRouter([
+  {
+    element: (
+      <AuthProvider>
+        <BoardDataProvider>
+          <ModalProvider>
+            <GlobalErrorBoundary>
+              <App />
+              <ModalRegistry />
+            </GlobalErrorBoundary>
+          </ModalProvider>
+        </BoardDataProvider>
+      </AuthProvider>
+    ),
+    children: routes
+  }
+], { basename });
+
+function RootApp() {
   useEffect(() => {
     // React 렌더링 완료 후 body 표시
     document.body.classList.add('loaded');
@@ -96,25 +115,6 @@ function RootApp() {
       window.removeEventListener('unhandledrejection', handleChunkError);
     };
   }, []);
-
-
-  const router = createBrowserRouter([
-    {
-      element: (
-        <AuthProvider>
-          <BoardDataProvider>
-            <ModalProvider>
-              <GlobalErrorBoundary>
-                <App />
-                <ModalRegistry />
-              </GlobalErrorBoundary>
-            </ModalProvider>
-          </BoardDataProvider>
-        </AuthProvider>
-      ),
-      children: routes
-    }
-  ], { basename });
 
   return (
     <InstallPromptProvider>

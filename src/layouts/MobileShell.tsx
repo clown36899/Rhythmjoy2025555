@@ -172,8 +172,25 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
     );
   }, [isAdmin, onlineUsersData.loggedInUsers?.length, onlineUsersData.anonymousCount, totalUserCount]);
 
+  // Layout Mode: Determine if we need wide layout (for full-screen features like Swinpedia)
+  const isWideLayout = useMemo(() => {
+    return currentPath.startsWith('/learning') || currentPath.startsWith('/history');
+  }, [currentPath]);
+
+  // Apply global layout class to html (to override index.css max-width constraint on html & body)
+  useEffect(() => {
+    if (isWideLayout) {
+      document.documentElement.classList.add('layout-wide-mode');
+    } else {
+      document.documentElement.classList.remove('layout-wide-mode');
+    }
+    return () => {
+      document.documentElement.classList.remove('layout-wide-mode');
+    };
+  }, [isWideLayout]);
+
   return (
-    <div className="shell-container">
+    <div className={`shell-container ${isWideLayout ? 'layout-wide' : 'layout-compact'}`}>
       {/* Global Fixed Header */}
       <header className="shell-header global-header-fixed">
         <div className="header-content-inner">

@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../contexts/AuthContext'; // Import useAuth
 import { supabase } from '../../../lib/supabase';
 import { BookmarkList } from '../components/BookmarkList';
 import { fetchVideoDetails } from '../utils/youtube';
@@ -58,12 +59,13 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
     const playlistId = propPlaylistId || params.playlistId || params.listId;
 
     const navigate = useNavigate();
+    const { isAdmin } = useAuth(); // Use context
     const [playlist, setPlaylist] = useState<Playlist | null>(null);
     const [videos, setVideos] = useState<Video[]>([]);
     const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
     const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
     const [isPlaying, setIsPlaying] = useState(false);
-    const [isAdmin, setIsAdmin] = useState(false);
+    // const [isAdmin, setIsAdmin] = useState(false); // Removed local state
 
     // Add Bookmark & Edit Info States 
     const playerRef = useRef<any>(null); // To access YT player
@@ -164,15 +166,8 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         setIsDescriptionExpanded(false);
     }, [currentVideoIndex]);
 
-    // Check Admin & Debug Mount
-    useEffect(() => {
-        const checkAdmin = async () => {
-            const { data: { session } } = await supabase.auth.getSession();
-            setIsAdmin(!!session);
-        };
-        checkAdmin();
 
-    }, []);
+    // Removed redundant checkAdmin useEffect block here
 
     // 북마크 모달 미리보기 플레이어 초기화
     useEffect(() => {

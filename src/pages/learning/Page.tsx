@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../contexts/AuthContext';
 
 import { CategoryManager } from './components/CategoryManager';
 import { PlaylistImportModal } from './components/PlaylistImportModal';
@@ -84,6 +85,7 @@ interface StandaloneVideo {
 
 const LearningPage = () => {
     const navigate = useNavigate();
+    const { isAdmin } = useAuth();
     const [items, setItems] = useState<LearningItem[]>([]); // 통합 아이템 리스트
     const [categories, setCategories] = useState<Category[]>([]);
     const [flatCategories, setFlatCategories] = useState<Category[]>([]);
@@ -91,7 +93,6 @@ const LearningPage = () => {
     const [isLoading, setIsLoading] = useState(true);
 
     // Admin State
-    const [isAdmin, setIsAdmin] = useState(false);
     const [adminMode, setAdminMode] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
     const [showDocumentModal, setShowDocumentModal] = useState(false); // 문서 모달 상태 추가
@@ -109,7 +110,6 @@ const LearningPage = () => {
 
 
     useEffect(() => {
-        checkAdmin();
         fetchData();
 
         // Check for direct link via URL parameters
@@ -119,21 +119,6 @@ const LearningPage = () => {
         if (docId) setViewingDocId(docId);
         if (playlistId) setViewingPlaylistId(playlistId);
     }, [adminMode]);
-
-    const checkAdmin = async () => {
-        // Simplified admin check - checking for specific user ID or role
-        // For now, we will assume true for testing if session exists, 
-        // or strictly check specific email/ID as requested "관리자빼고는 수정못하게"
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session) {
-            // TODO: Replace with real admin permission check (e.g. from profiles or custom claims)
-            // For now, allow any logged in user to see the button (but acting as admin should probably be restricted)
-            // Or better, check specific email if known or just set true for dev
-            setIsAdmin(true);
-        } else {
-            setIsAdmin(false);
-        }
-    };
 
     const fetchData = async () => {
         try {

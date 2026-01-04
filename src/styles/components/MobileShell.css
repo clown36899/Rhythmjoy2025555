@@ -49,11 +49,19 @@
   overscroll-behavior: contain;
 }
 
-html.learning-layout-active .shell-bottom-nav {
-  max-width: none !important;
-  left: 0 !important;
-  transform: none !important;
-  width: 100% !important;
+
+/* Layout-based responsive rules (Replaces old hacky selectors) */
+
+/* Bottom Nav */
+.layout-compact .shell-bottom-nav {
+  /* Default behavior (usually full width but we might want to center its content) */
+}
+
+.layout-wide .shell-bottom-nav {
+  max-width: 100%;
+  left: 0;
+  transform: none;
+  width: 100%;
 }
 
 /* ===== 상단 바 클래스 ===== */
@@ -73,9 +81,17 @@ html.learning-layout-active .shell-bottom-nav {
   gap: 0.5rem;
   flex: 1;
   justify-content: center;
-  max-width: 650px;
   margin: 0 auto;
   width: 100%;
+}
+
+.layout-compact .shell-top-bar-content {
+  max-width: 650px;
+}
+
+.layout-wide .shell-top-bar-content {
+  max-width: 100%;
+  padding: 0 12px;
 }
 
 /* ===== 텍스트 스타일 ===== */
@@ -341,24 +357,30 @@ html.learning-layout-active .shell-bottom-nav {
 
 .header-content-inner {
   width: 100%;
-  max-width: 650px;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding-left: 2vw;
   padding-right: 2vw;
+  margin: 0 auto;
 }
 
-html.learning-layout-active .shell-header.global-header-fixed {
-  max-width: none !important;
-  left: 0 !important;
-  transform: none !important;
-  width: 100% !important;
+.layout-compact .header-content-inner {
+  max-width: 650px;
 }
+
+.layout-wide .header-content-inner {
+  max-width: 100%;
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+/* Old hack removed */
 
 /* 🖥️ Desktop Support: 650px fixed (Base rule applies) */
 /* @media (min-width: 769px) removed */
+
 
 /* Global Header Styles */
 .shell-header.global-header-fixed-bottom {
