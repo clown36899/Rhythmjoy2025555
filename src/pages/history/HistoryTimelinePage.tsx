@@ -8,8 +8,10 @@ import ReactFlow, {
     addEdge,
     BackgroundVariant,
     ConnectionMode,
+    getBezierPath,
+    BaseEdge,
 } from 'reactflow';
-import type { Node, Edge, Connection, ReactFlowInstance } from 'reactflow';
+import type { Node, Edge, Connection, ReactFlowInstance, EdgeProps } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -34,7 +36,34 @@ const NODE_TYPES = {
     decadeNode: DecadeNodeComponent,
 };
 
-const EDGE_TYPES = {};
+const CustomBezierEdge = ({
+    sourceX,
+    sourceY,
+    targetX,
+    targetY,
+    sourcePosition,
+    targetPosition,
+    style = {},
+    markerEnd,
+}: EdgeProps) => {
+    const [edgePath] = getBezierPath({
+        sourceX,
+        sourceY,
+        sourcePosition,
+        targetX,
+        targetY,
+        targetPosition,
+        curvature: 0.5,
+    });
+
+    return (
+        <BaseEdge path={edgePath} markerEnd={markerEnd} style={style} />
+    );
+};
+
+const EDGE_TYPES = {
+    default: CustomBezierEdge,
+};
 
 const IS_VALID_CONNECTION = (connection: Connection) => connection.source !== connection.target;
 
