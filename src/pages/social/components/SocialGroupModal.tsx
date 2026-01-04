@@ -20,7 +20,7 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
     onSuccess,
     editGroup
 }) => {
-    const { user } = useAuth();
+    const { user, isAdmin, signInWithKakao } = useAuth();
     const [name, setName] = useState('');
     const [type, setType] = useState<'club' | 'bar' | 'etc'>('club');
     const [description, setDescription] = useState('');
@@ -29,7 +29,6 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
     const [password, setPassword] = useState(''); // 관리 비밀번호
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [loadingMessage, setLoadingMessage] = useState('');
-    const { isAdmin } = useAuth();
 
     // Image Crop State
     const [isCropModalOpen, setIsCropModalOpen] = useState(false);
@@ -310,8 +309,76 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
 
     const isCreator = editGroup ? editGroup.user_id === user?.id : true; // 신규는 본인이 생성자
 
+    const handleLogin = () => {
+        signInWithKakao();
+    };
+
+    // Login Overlay Component
+    const LoginOverlay = () => (
+        <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 9999,
+            backgroundColor: 'rgba(30, 41, 59, 0.95)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '2rem',
+            textAlign: 'center'
+        }}>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white', marginBottom: '1rem' }}>로그인 필요</h2>
+            <p style={{ color: '#cbd5e1', marginBottom: '1.5rem', lineHeight: '1.5' }}>
+                단체 등록을 위해 로그인이 필요합니다.<br />
+                간편하게 로그인하고 사용하세요!
+            </p>
+            <button
+                onClick={handleLogin}
+                style={{
+                    width: '100%',
+                    maxWidth: '300px',
+                    padding: '1rem',
+                    background: '#FEE500',
+                    color: '#000000',
+                    border: 'none',
+                    borderRadius: '0.5rem',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    marginBottom: '1rem'
+                }}
+            >
+                <i className="ri-kakao-talk-fill" style={{ fontSize: '1.5rem' }}></i>
+                카카오로 로그인
+            </button>
+            <button
+                onClick={onClose}
+                style={{
+                    width: '100%',
+                    maxWidth: '300px',
+                    padding: '0.75rem',
+                    background: 'transparent',
+                    color: '#9ca3af',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '0.5rem',
+                    cursor: 'pointer'
+                }}
+            >
+                취소
+            </button>
+        </div>
+    );
+
     const mainModal = createPortal(
         <div className="social-group-modal-overlay">
+            {!user && <LoginOverlay />}
             <div className="social-group-modal-container" onClick={(e) => e.stopPropagation()}>
                 <div className="social-group-modal-header">
                     <h2>{editGroup ? '단체 정보 수정' : '새 단체 등록'}</h2>

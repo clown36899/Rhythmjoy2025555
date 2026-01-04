@@ -8,6 +8,7 @@ import SideDrawer from '../components/SideDrawer';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../lib/supabase';
 import { logUserInteraction } from '../lib/analytics';
+import GlobalLoadingOverlay from '../components/GlobalLoadingOverlay';
 import '../styles/components/MobileShell.css';
 
 interface MobileShellProps {
@@ -17,7 +18,7 @@ interface MobileShellProps {
 export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, userProfile, isAdmin: authIsAdmin, signInWithKakao, refreshUserProfile, signOut } = useAuth();
+  const { user, userProfile, isAdmin: authIsAdmin, signInWithKakao, refreshUserProfile, signOut, isAuthProcessing, cancelAuth } = useAuth();
   const { i18n } = useTranslation();
   const onlineUsersData = useOnlineUsers();
 
@@ -461,8 +462,14 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
         onClose={() => setIsDrawerOpen(false)}
         onLoginClick={() => {
           setIsDrawerOpen(false);
-          window.dispatchEvent(new CustomEvent('openUserProfile'));
+          signInWithKakao();
         }}
+      />
+
+      <GlobalLoadingOverlay
+        isLoading={isAuthProcessing}
+        message="카카오 로그인 중..."
+        onCancel={cancelAuth}
       />
     </div>
   );
