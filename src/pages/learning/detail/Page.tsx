@@ -50,6 +50,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
 
     // Add Bookmark & Edit Info States 
     const playerRef = useRef<any>(null); // To access YT player
+    const memoRef = useRef<HTMLDivElement>(null); // To check if memo is overflowing
 
     const [isEditingInfo, setIsEditingInfo] = useState(false);
     const [editTitle, setEditTitle] = useState('');
@@ -61,6 +62,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
     const [isPlaylistOpen, setIsPlaylistOpen] = useState(false); // Mobile Toggle State
     const [isBookmarksOpen, setIsBookmarksOpen] = useState(true); // Bookmarks visible by default
     const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false); // Description Toggle State
+    const [isOverflowing, setIsOverflowing] = useState(false); // Check if description overflows
 
     // Fetch Full Description on Video Change
     useEffect(() => {
@@ -69,6 +71,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
 
             // Reset state to avoid showing previous video's desc
             setFullDescription(null);
+            setIsDescriptionExpanded(false);
 
             try {
                 const videoId = videos[currentVideoIndex].youtube_video_id;
@@ -83,6 +86,20 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         fetchDesc();
     }, [currentVideoIndex, videos]);
 
+    // Check if description is overflowing
+    useEffect(() => {
+        const checkOverflow = () => {
+            if (memoRef.current) {
+                const isOverflow = memoRef.current.scrollHeight > memoRef.current.clientHeight;
+                setIsOverflowing(isOverflow);
+            }
+        };
+
+        // Check after content loads
+        const timer = setTimeout(checkOverflow, 100);
+        return () => clearTimeout(timer);
+    }, [fullDescription, currentVideoIndex, isDescriptionExpanded]);
+
     // Check Admin & Debug Mount
     useEffect(() => {
         const checkAdmin = async () => {
@@ -92,6 +109,14 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         checkAdmin();
 
         console.log('[DetailPage] Mounted. PropId:', propPlaylistId, 'Params:', params);
+
+        // Set data attribute for full-width layout on desktop
+        document.body.setAttribute('data-learning-route', 'true');
+
+        // Cleanup: Remove attribute when leaving
+        return () => {
+            document.body.removeAttribute('data-learning-route');
+        };
     }, []);
 
     useEffect(() => {
@@ -417,23 +442,28 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
 
                 {/* Description (Memo) */}
                 <div className="ld-video-memo-wrapper">
-                    <div className={`ld-video-memo-display ${isDescriptionExpanded ? 'expanded' : ''}`}>
+                    <div
+                        ref={memoRef}
+                        className={`ld-video-memo-display ${isDescriptionExpanded ? 'expanded' : ''}`}
+                    >
                         {fullDescription || currentVideo.memo}
                     </div>
-                    {!isDescriptionExpanded ? (
-                        <span
-                            className="ld-memo-more"
-                            onClick={() => setIsDescriptionExpanded(true)}
-                        >
-                            ...더보기
-                        </span>
-                    ) : (
-                        <span
-                            className="ld-memo-more"
-                            onClick={() => setIsDescriptionExpanded(false)}
-                        >
-                            간략히 보기
-                        </span>
+                    {isOverflowing && (
+                        !isDescriptionExpanded ? (
+                            <span
+                                className="ld-memo-more"
+                                onClick={() => setIsDescriptionExpanded(true)}
+                            >
+                                ...더보기
+                            </span>
+                        ) : (
+                            <span
+                                className="ld-memo-more"
+                                onClick={() => setIsDescriptionExpanded(false)}
+                            >
+                                간략히 보기
+                            </span>
+                        )
                     )}
                 </div>
 

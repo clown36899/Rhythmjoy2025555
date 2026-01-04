@@ -53,22 +53,14 @@ const LearningPage = () => {
     // Modal State
     const [viewingPlaylistId, setViewingPlaylistId] = useState<string | null>(null);
 
-    // Layout Override: Escape the 650px mobile limit
-    // Layout Override: Escape the 650px mobile limit
+    // Layout Override: Escape the 650px mobile limit on desktop
     useEffect(() => {
-        const root = document.getElementById('root');
-        const html = document.documentElement;
+        // Set data attribute for CSS to apply full-width styles
+        document.body.setAttribute('data-learning-route', 'true');
 
-        // 1. Override styles with !important priority
-        html.style.setProperty('max-width', 'none', 'important');
-        document.body.style.setProperty('max-width', 'none', 'important');
-        if (root) root.style.setProperty('max-width', 'none', 'important');
-
-        // 2. Restore on cleanup
+        // Cleanup: Remove attribute when leaving this route
         return () => {
-            html.style.removeProperty('max-width');
-            document.body.style.removeProperty('max-width');
-            if (root) root.style.removeProperty('max-width');
+            document.body.removeAttribute('data-learning-route');
         };
     }, []);
 
