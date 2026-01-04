@@ -75,7 +75,6 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
     const [editDesc, setEditDesc] = useState('');
     const [isEditingYear, setIsEditingYear] = useState(false); // 연도 편집 상태
     const [editYear, setEditYear] = useState('');
-    const [editIsOnTimeline, setEditIsOnTimeline] = useState(false); // 타임라인 여부 편집 상테
     const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     const [error, setError] = useState<string | null>(null);
@@ -691,7 +690,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
             .from(table)
             .update({
                 year: editYear ? parseInt(editYear) : null,
-                is_on_timeline: editIsOnTimeline
+                is_on_timeline: true
             })
             .eq('id', playlist.id);
 
@@ -867,7 +866,8 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                                     <button
                                         onClick={() => {
                                             setEditYear(playlist.year?.toString() || '');
-                                            setEditIsOnTimeline(playlist.is_on_timeline || false);
+                                            setEditYear(playlist.year?.toString() || '');
+                                            // setEditIsOnTimeline(playlist.is_on_timeline || false); // Deprecated
                                             setIsEditingYear(true);
                                         }}
                                         className="ld-edit-button-small"
@@ -894,16 +894,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                                     placeholder="연도 (예: 1980)"
                                 />
                             </div>
-                            <div className="ld-edit-row" style={{ marginTop: '8px' }}>
-                                <label className="ld-bookmark-modal-checkbox" style={{ fontSize: '13px' }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={editIsOnTimeline}
-                                        onChange={(e) => setEditIsOnTimeline(e.target.checked)}
-                                    />
-                                    <span>역사 타임라인(캔버스)에 표시</span>
-                                </label>
-                            </div>
+
                             <div className="ld-edit-actions">
                                 <button onClick={() => setIsEditingYear(false)} className="ld-cancel-button">취소</button>
                                 <button onClick={handleUpdateTimelineSettings} className="ld-save-button">설정 저장</button>

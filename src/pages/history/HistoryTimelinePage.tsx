@@ -417,9 +417,21 @@ export default function HistoryTimelinePage() {
                 y: event.clientY,
             });
 
+            let year = draggedResource.year;
+            if (!year) {
+                const input = window.prompt('이 자료의 연도를 입력해주세요:', new Date().getFullYear().toString());
+                if (input === null) return; // User cancelled
+                const parsed = parseInt(input, 10);
+                if (isNaN(parsed)) {
+                    alert('유효한 연도가 아닙니다.');
+                    return;
+                }
+                year = parsed;
+            }
+
             const newNodeData: any = {
                 title: draggedResource.title,
-                year: draggedResource.year,
+                year: year,
                 category: 'event',
                 description: draggedResource.description || '',
                 youtube_url: draggedResource.youtube_url || '',

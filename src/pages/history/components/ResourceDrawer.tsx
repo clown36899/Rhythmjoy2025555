@@ -11,6 +11,8 @@ interface ResourceItem {
     description?: string;
     youtube_url?: string;
     content?: string;
+    hasYear?: boolean;
+    created_at?: string;
 }
 
 interface Props {
@@ -23,6 +25,7 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart }: Props) => {
     const [items, setItems] = useState<ResourceItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
+    const [filterMode, setFilterMode] = useState<'all' | 'year'>('all');
 
     useEffect(() => {
         if (isOpen) {
@@ -34,29 +37,31 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart }: Props) => {
         try {
             setLoading(true);
 
-            // Fetch Playlists with year (relaxed filter for debugging)
+            // Fetch Playlists (fetch all, filter later)
             const { data: playlists, error: pError } = await supabase
                 .from('learning_playlists')
                 .select('*')
-                .not('year', 'is', null);
+                .eq('is_public', true) // Basic visibility check, or removal if admin
+                .order('created_at', { ascending: false });
 
             if (pError) throw pError;
 
-            // Fetch Documents with year (relaxed filter for debugging)
+            // Fetch Documents
             const { data: documents, error: dError } = await supabase
                 .from('learning_documents')
                 .select('*')
-                .not('year', 'is', null);
+                .eq('is_public', true)
+                .order('created_at', { ascending: false });
 
             if (dError) throw dError;
 
-            // Fetch Standalone Videos with year and on timeline
+            // Fetch Standalone Videos
             const { data: videos, error: vError } = await supabase
                 .from('learning_videos')
                 .select('*')
                 .is('playlist_id', null)
-                .not('year', 'is', null)
-                .eq('is_on_timeline', true);
+                .eq('is_public', true)
+                .order('created_at', { ascending: false });
 
             if (vError) throw vError;
 
@@ -64,30 +69,35 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart }: Props) => {
                 ...(playlists || []).map(p => ({
                     id: p.id,
                     title: p.title,
-                    year: p.year,
+                    year: p.year || 0, // 0 if null
+                    hasYear: !!p.year,
                     type: 'playlist' as const,
                     description: p.description,
-                    youtube_url: p.youtube_playlist_id ? `https://www.youtube.com/playlist?list=${p.youtube_playlist_id}` : undefined
+                    youtube_url: p.youtube_playlist_id ? `https://www.youtube.com/playlist?list=${p.youtube_playlist_id}` : undefined,
+                    created_at: p.created_at
                 })),
                 ...(documents || []).map(d => ({
                     id: d.id,
                     title: d.title,
-                    year: d.year,
+                    year: d.year || 0,
+                    hasYear: !!d.year,
                     type: 'document' as const,
-                    content: d.content
+                    content: d.content,
+                    created_at: d.created_at
                 })),
                 ...(videos || []).map(v => ({
                     id: v.id,
                     title: v.title,
-                    year: v.year,
+                    year: v.year || 0,
+                    hasYear: !!v.year,
                     type: 'video' as const,
                     description: v.description,
-                    youtube_url: `https://www.youtube.com/watch?v=${v.youtube_video_id}`
+                    youtube_url: `https://www.youtube.com/watch?v=${v.youtube_video_id}`,
+                    created_at: v.created_at
                 }))
             ];
 
-            // Sort by year
-            combined.sort((a, b) => a.year - b.year);
+            // Sort logic handled in rendering
             setItems(combined);
         } catch (err) {
             console.error('Failed to fetch resources for drawer:', err);
@@ -96,18 +106,47 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart }: Props) => {
         }
     };
 
-    // Group items by decade
-    const groupedItems = items
-        .filter(item => item.title.toLowerCase().includes(searchTerm.toLowerCase()))
-        .reduce((acc, item) => {
-            const decade = Math.floor(item.year / 10) * 10;
-            const key = `${decade}s`;
-            if (!acc[key]) acc[key] = [];
-            acc[key].push(item);
-            return acc;
-        }, {} as Record<string, ResourceItem[]>);
+    // Filter and Group Logic
+    const filteredList = items.filter(item =>
+        item.title.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const groupedItems = filterMode === 'year'
+        ? filteredList
+            .filter(item => item.hasYear) // Only items with year
+            .sort((a, b) => a.year - b.year)
+            .reduce((acc, item) => {
+                const decade = Math.floor(item.year / 10) * 10;
+                const key = `${decade}s`;
+                if (!acc[key]) acc[key] = [];
+                acc[key].push(item);
+                return acc;
+            }, {} as Record<string, ResourceItem[]>)
+        : {}; // Not used for 'all' mode
 
     const decades = Object.keys(groupedItems).sort();
+
+    const renderItem = (item: ResourceItem) => (
+        <div
+            key={item.id}
+            className={`resource-item ${item.type}`}
+            draggable
+            onDragStart={(e) => onDragStart(e, item)}
+        >
+            <span className="item-icon">
+                {item.type === 'playlist' ? '💿' : item.type === 'video' ? '📹' : '📄'}
+            </span>
+            <div className="item-info">
+                <span className="item-title">{item.title}</span>
+                <span className="item-year">
+                    {item.hasYear ? `${item.year}년` : '연도 미설정'}
+                </span>
+            </div>
+            <div className="drag-handle">
+                <i className="ri-drag-move-fill"></i>
+            </div>
+        </div>
+    );
 
     return (
         <div className={`resource-drawer ${isOpen ? 'open' : ''}`}>
@@ -118,54 +157,60 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart }: Props) => {
                 </button>
             </div>
 
-            <div className="drawer-search">
-                <input
-                    type="text"
-                    placeholder="학습 자료 검색..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                />
+            <div className="drawer-controls">
+                <div className="drawer-search">
+                    <input
+                        type="text"
+                        placeholder="학습 자료 검색..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                </div>
+                <div className="drawer-filters">
+                    <button
+                        className={`filter-btn ${filterMode === 'all' ? 'active' : ''}`}
+                        onClick={() => setFilterMode('all')}
+                    >
+                        전체
+                    </button>
+                    <button
+                        className={`filter-btn ${filterMode === 'year' ? 'active' : ''}`}
+                        onClick={() => setFilterMode('year')}
+                    >
+                        연도별
+                    </button>
+                </div>
             </div>
 
             <div className="drawer-content">
                 {loading ? (
                     <div className="drawer-loading">불러오는 중...</div>
-                ) : decades.length > 0 ? (
-                    decades.map(decade => (
-                        <div key={decade} className="decade-section">
-                            <h3 className="decade-title">{decade}</h3>
-                            <div className="resource-list">
-                                {groupedItems[decade].map(item => (
-                                    <div
-                                        key={item.id}
-                                        className={`resource-item ${item.type}`}
-                                        draggable
-                                        onDragStart={(e) => onDragStart(e, item)}
-                                    >
-                                        <span className="item-icon">
-                                            {item.type === 'playlist' ? '💿' : item.type === 'video' ? '📹' : '📄'}
-                                        </span>
-                                        <div className="item-info">
-                                            <span className="item-title">{item.title}</span>
-                                            <span className="item-year">{item.year}년</span>
-                                        </div>
-                                        <div className="drag-handle">
-                                            <i className="ri-drag-move-fill"></i>
-                                        </div>
-                                    </div>
-                                ))}
+                ) : filterMode === 'year' ? (
+                    decades.length > 0 ? (
+                        decades.map(decade => (
+                            <div key={decade} className="decade-section">
+                                <h3 className="decade-title">{decade}</h3>
+                                <div className="resource-list">
+                                    {groupedItems[decade].map(renderItem)}
+                                </div>
                             </div>
+                        ))
+                    ) : (
+                        <div className="drawer-empty">
+                            {searchTerm ? '검색 결과가 없습니다.' : '연도별 데이터가 없습니다.'}
                         </div>
-                    ))
+                    )
                 ) : (
-                    <div className="drawer-empty">
-                        {searchTerm ? '검색 결과가 없습니다.' : (
-                            <div className="empty-guide">
-                                <p>출력할 데이터가 없습니다.</p>
-                                <p className="sub-guide">학습(Learning) 메뉴에서 자료에 <b>'연도'</b>를 등록해 주세요!</p>
-                            </div>
-                        )}
-                    </div>
+                    // 'all' mode - flat list
+                    filteredList.length > 0 ? (
+                        <div className="resource-list flat">
+                            {filteredList.map(renderItem)}
+                        </div>
+                    ) : (
+                        <div className="drawer-empty">
+                            {searchTerm ? '검색 결과가 없습니다.' : '데이터가 없습니다.'}
+                        </div>
+                    )
                 )}
             </div>
 

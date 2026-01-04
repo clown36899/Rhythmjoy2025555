@@ -22,7 +22,7 @@ export const PlaylistImportModal = ({ onClose, onSuccess }: Props) => {
     const [categories, setCategories] = useState<Category[]>([]);
     const [isPublic, setIsPublic] = useState(true); // 기본값: 공개
     const [year, setYear] = useState<string>(''); // 연도 필드 추가
-    const [isOnTimeline, setIsOnTimeline] = useState(false); // 타임라인 표시 여부
+    const isOnTimeline = true; // 타임라인 무조건 표시
 
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -215,17 +215,7 @@ export const PlaylistImportModal = ({ onClose, onSuccess }: Props) => {
                         />
                     </div>
 
-                    <div className={styles.formGroup}>
-                        <label className={styles.checkboxLabel}>
-                            <input
-                                type="checkbox"
-                                checked={isOnTimeline}
-                                onChange={(e) => setIsOnTimeline(e.target.checked)}
-                                className={styles.checkbox}
-                            />
-                            <span>역사 타임라인(캔버스)에 표시</span>
-                        </label>
-                    </div>
+
 
                     <div className={styles.formGroup}>
                         <label className={styles.checkboxLabel}>
