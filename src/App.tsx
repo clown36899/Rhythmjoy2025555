@@ -1,5 +1,5 @@
-import { useRoutes, useLocation } from "react-router-dom";
-import { routes } from "./router/routes";
+import { Outlet, useLocation } from "react-router-dom";
+
 import { Suspense, useEffect } from "react";
 import { logPageView } from "./lib/analytics";
 import { useOnlinePresence } from "./hooks/useOnlinePresence";
@@ -12,7 +12,6 @@ import { SiteAnalyticsProvider } from './components/SiteAnalyticsProvider';
 import './styles/devtools.css';
 
 function AppContent() {
-  const element = useRoutes(routes);
   const location = useLocation();
 
   // Track online presence for all users
@@ -36,7 +35,7 @@ function AppContent() {
         {/* Spinner removed for login optimization */}
       </div>
     }>
-      {element}
+      <Outlet />
     </Suspense>
   );
 }

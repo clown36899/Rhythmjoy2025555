@@ -28,14 +28,18 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 42px;
+    /* width: 42px; Removed fixed width */
     height: 42px;
+    padding: 0 12px;
+    gap: 8px;
     background: rgba(17, 24, 39, 0.8);
     backdrop-filter: blur(8px);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 10px;
     color: #d1d5db;
-    font-size: 1.2rem;
+    font-size: 0.9rem;
+    /* Slightly smaller text */
+    font-weight: 500;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);

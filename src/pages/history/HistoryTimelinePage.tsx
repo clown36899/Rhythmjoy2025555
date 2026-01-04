@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
+import { useBlocker } from 'react-router-dom';
 import ReactFlow, {
     Controls,
     Background,
@@ -45,8 +46,9 @@ const CustomBezierEdge = ({
     targetPosition,
     style = {},
     markerEnd,
+    data,
 }: EdgeProps) => {
-    const [edgePath] = getBezierPath({
+    const [edgePath, labelX, labelY] = getBezierPath({
         sourceX,
         sourceY,
         sourcePosition,
@@ -57,7 +59,20 @@ const CustomBezierEdge = ({
     });
 
     return (
-        <BaseEdge path={edgePath} markerEnd={markerEnd} style={style} />
+        <>
+            <BaseEdge path={edgePath} markerEnd={markerEnd} style={style} interactionWidth={20} />
+            {data?.isHighlight && (
+                <circle
+                    cx={labelX}
+                    cy={labelY}
+                    r={12}
+                    fill="#00d8ff"
+                    stroke="#fff"
+                    strokeWidth={3}
+                    style={{ filter: 'drop-shadow(0 0 6px rgba(0, 216, 255, 0.6))' }}
+                />
+            )}
+        </>
     );
 };
 
@@ -79,7 +94,7 @@ const GET_NODE_COLOR = (node: Node) => {
 };
 
 export default function HistoryTimelinePage() {
-    const { user } = useAuth();
+    const { user, isAdmin } = useAuth();
 
     // State
     const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
@@ -105,6 +120,45 @@ export default function HistoryTimelinePage() {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [draggedResource, setDraggedResource] = useState<any>(null);
     const [previewResource, setPreviewResource] = useState<{ id: string, type: string, title: string } | null>(null);
+    const [highlightedEdgeId, setHighlightedEdgeId] = useState<string | null>(null);
+    const [isEditMode, setIsEditMode] = useState(false);
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+    useEffect(() => {
+        if (!isAdmin) setIsEditMode(false);
+    }, [isAdmin]);
+
+    // -- Navigation Blocker --
+    const blocker = useBlocker(
+        ({ currentLocation, nextLocation }) =>
+            hasUnsavedChanges &&
+            currentLocation.pathname !== nextLocation.pathname
+    );
+
+    useEffect(() => {
+        if (blocker.state === 'blocked') {
+            const confirm = window.confirm('저장하지 않은 변경사항이 있습니다. 저장하고 이동하시겠습니까?\n(취소 시 현재 페이지에 머무릅니다)');
+            if (confirm) {
+                handleSaveLayout().then(() => {
+                    blocker.proceed();
+                });
+            } else {
+                blocker.reset();
+            }
+        }
+    }, [blocker]);
+
+    // -- BeforeUnload (Browser Close/Refresh) --
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (hasUnsavedChanges) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [hasUnsavedChanges]);
 
     // -- Handlers --
 
@@ -132,7 +186,7 @@ export default function HistoryTimelinePage() {
         const edge = edgeModalState.edge;
         if (!edge) return;
 
-        if (!window.confirm('정말 이 연결을 삭제하시겠습니까?')) return;
+
 
         try {
             const { error } = await supabase
@@ -147,6 +201,34 @@ export default function HistoryTimelinePage() {
         } catch (error) {
             console.error('Error deleting edge:', error);
             alert('삭제 실패');
+        }
+    };
+
+    const handleSaveLayout = async () => {
+        if (!user || !isEditMode) return;
+
+        if (!window.confirm('현재 레이아웃을 저장하시겠습니까?')) return;
+
+        try {
+            setLoading(true);
+            const updates = nodes.map(node =>
+                supabase
+                    .from('history_nodes')
+                    .update({
+                        position_x: node.position.x,
+                        position_y: node.position.y
+                    })
+                    .eq('id', parseInt(node.id))
+            );
+
+            await Promise.all(updates);
+            setLoading(false);
+            setHasUnsavedChanges(false);
+            alert('레이아웃이 저장되었습니다.');
+        } catch (error) {
+            console.error('Error saving layout:', error);
+            setLoading(false);
+            alert('저장 실패');
         }
     };
 
@@ -300,22 +382,141 @@ export default function HistoryTimelinePage() {
         [onNodesChange]
     );
 
+    const onNodeDrag = useCallback((event: React.MouseEvent, _node: Node) => {
+        // Use mouse coordinates directly for better accuracy
+        const elements = document.elementsFromPoint(event.clientX, event.clientY);
+
+        // Find the edge group element (path is child of group)
+        const edgeElement = elements
+            .map(el => el.closest('.react-flow__edge'))
+            .find(el => el !== null);
+
+        if (edgeElement) {
+            let id = edgeElement.getAttribute('data-id');
+            // FIX: Parse data-testid if data-id is missing (React Flow internal ID format: rf__edge-{id})
+            if (!id) {
+                const testId = edgeElement.getAttribute('data-testid');
+                if (testId?.startsWith('rf__edge-')) {
+                    id = testId.replace('rf__edge-', '');
+                }
+            }
+
+            if (id && id !== highlightedEdgeId) {
+                setHighlightedEdgeId(id);
+                setEdges(eds => eds.map(e => {
+                    if (e.id === id) {
+                        return { ...e, animated: true, data: { ...e.data, isHighlight: true } };
+                    }
+                    return { ...e, animated: false, data: { ...e.data, isHighlight: false } };
+                }));
+            }
+        } else if (highlightedEdgeId) {
+            setHighlightedEdgeId(null);
+            setEdges(eds => eds.map(e => ({ ...e, animated: false, data: { ...e.data, isHighlight: false } })));
+        }
+    }, [highlightedEdgeId]);
+
     const onNodeDragStop = useCallback(
         (_: any, node: Node) => {
-            if (isAutoLayout) return; // Don't save positions in auto-layout mode
+            // Helper to find closest handle on 'node' relative to 'targetNode'
+            const getClosestHandle = (node: Node, targetNode: Node) => {
+                const nodeCenter = {
+                    x: node.position.x + (node.width || 150) / 2,
+                    y: node.position.y + (node.height || 100) / 2
+                };
+                const targetCenter = {
+                    x: targetNode.position.x + (targetNode.width || 150) / 2,
+                    y: targetNode.position.y + (targetNode.height || 100) / 2
+                };
 
-            supabase
-                .from('history_nodes')
-                .update({
-                    position_x: node.position.x,
-                    position_y: node.position.y
-                })
-                .eq('id', parseInt(node.id))
-                .then(({ error }) => {
-                    if (error) console.error('Error saving position:', error);
-                });
+                const dx = targetCenter.x - nodeCenter.x;
+                const dy = targetCenter.y - nodeCenter.y;
+
+                if (Math.abs(dx) > Math.abs(dy)) {
+                    return dx > 0 ? 'right' : 'left';
+                } else {
+                    return dy > 0 ? 'bottom' : 'top';
+                }
+            };
+
+            // 1. Handle Edge Splitting
+            if (highlightedEdgeId) {
+                const edge = edges.find(e => e.id === highlightedEdgeId);
+                if (edge) {
+                    const sourceNode = nodes.find(n => n.id === edge.source);
+                    const targetNode = nodes.find(n => n.id === edge.target);
+
+                    if (sourceNode && targetNode && window.confirm('이 노드를 연결선 사이에 추가하시겠습니까?')) {
+                        // Split logic
+                        const sourceId = edge.source;
+                        const targetId = edge.target;
+                        const nodeId = node.id;
+
+                        // Delete original edge
+                        supabase.from('history_edges').delete().eq('id', edge.id).then();
+
+                        // Create new edges
+                        // Edge 1: Source(Original Handle) -> NewNode(Closest-to-Source Handle)
+                        const newEdge1 = {
+                            source_id: parseInt(sourceId),
+                            source_handle: edge.sourceHandle || 'bottom', // Keep original or default
+                            target_id: parseInt(nodeId),
+                            target_handle: getClosestHandle(node, sourceNode), // closest to source
+                            created_by: user?.id,
+                            relation_type: 'influence'
+                        };
+
+                        // Edge 2: NewNode(Closest-to-Target Handle) -> Target(Original Handle)
+                        const newEdge2 = {
+                            source_id: parseInt(nodeId),
+                            source_handle: getClosestHandle(node, targetNode), // closest to target
+                            target_id: parseInt(targetId),
+                            target_handle: edge.targetHandle || 'top', // Keep original or default
+                            created_by: user?.id,
+                            relation_type: 'influence'
+                        };
+
+                        Promise.all([
+                            supabase.from('history_edges').insert(newEdge1).select().single(),
+                            supabase.from('history_edges').insert(newEdge2).select().single()
+                        ]).then(([res1, res2]) => {
+                            if (res1.data && res2.data) {
+                                setEdges(eds => {
+                                    const filtered = eds.filter(e => e.id !== highlightedEdgeId);
+                                    const e1 = {
+                                        id: String(res1.data.id),
+                                        source: sourceId,
+                                        target: nodeId,
+                                        sourceHandle: newEdge1.source_handle,
+                                        targetHandle: newEdge1.target_handle,
+                                        type: 'default'
+                                    };
+                                    const e2 = {
+                                        id: String(res2.data.id),
+                                        source: nodeId,
+                                        target: targetId,
+                                        sourceHandle: newEdge2.source_handle,
+                                        targetHandle: newEdge2.target_handle,
+                                        type: 'default'
+                                    };
+                                    return [...filtered, e1, e2];
+                                });
+                                // Mark as dirty since new node position might need saving
+                                setHasUnsavedChanges(true);
+                            }
+                        });
+                    }
+                }
+                setHighlightedEdgeId(null);
+                setEdges(eds => eds.map(e => ({ ...e, animated: false, data: { ...e.data, isHighlight: false } })));
+                return;
+            }
+
+            if (isAutoLayout || !isEditMode) return;
+
+            setHasUnsavedChanges(true);
         },
-        [isAutoLayout]
+        [isAutoLayout, highlightedEdgeId, edges, user, nodes, isEditMode]
     );
 
     const onMoveEnd = useCallback(
@@ -520,12 +721,38 @@ export default function HistoryTimelinePage() {
             supabase
                 .from('history_nodes')
                 .insert(newNodeData)
-                .then(({ error }) => {
+                .select()
+                .single()
+                .then(({ data, error }) => {
                     if (error) {
                         console.error('Error creating node from resource:', error);
                         alert('노드 생성 실패');
-                    } else {
-                        loadTimeline();
+                    } else if (data) {
+                        // Local update without reload
+                        const newNode: Node = {
+                            id: String(data.id),
+                            type: 'historyNode',
+                            position: { x: data.position_x, y: data.position_y },
+                            data: {
+                                id: data.id,
+                                title: data.title,
+                                date: data.date,
+                                year: data.year,
+                                description: data.description,
+                                youtube_url: data.youtube_url,
+                                category: data.category,
+                                tags: data.tags,
+                                linked_playlist_id: data.linked_playlist_id,
+                                linked_document_id: data.linked_document_id,
+                                linked_video_id: data.linked_video_id,
+                                linked_category_id: data.linked_category_id,
+                                onEdit: handleEditNode,
+                                onViewDetail: handleViewDetail,
+                                onPlayVideo: handlePlayVideo,
+                                nodeType: data.linked_playlist_id ? 'playlist' : (data.linked_document_id ? 'document' : (data.linked_video_id ? 'video' : (data.linked_category_id ? 'category' : 'default'))),
+                            }
+                        };
+                        setNodes((nds) => nds.concat(newNode));
                     }
                 });
         },
@@ -571,17 +798,38 @@ export default function HistoryTimelinePage() {
                     title={isAutoLayout ? '연도순 해제' : '자동 연도순'}
                 >
                     <i className={`ri-${isAutoLayout ? 'layout-grid-fill' : 'sort-desc'}`}></i>
+                    <span>연도순</span>
                 </button>
+                {isAdmin && (
+                    <button
+                        className={`toolbar-btn ${isEditMode ? 'active' : ''}`}
+                        onClick={() => setIsEditMode(!isEditMode)}
+                        title={isEditMode ? '편집 모드 종료' : '편집 모드 시작'}
+                    >
+                        <i className={`ri-${isEditMode ? 'edit-line' : 'edit-2-line'}`}></i>
+                        <span>편집 모드</span>
+                    </button>
+                )}
+                {isEditMode && (
+                    <button className="toolbar-btn save-btn" onClick={handleSaveLayout} title="현재 레이아웃 저장" style={{ color: '#60a5fa', borderColor: '#3b82f6' }}>
+                        <i className="ri-save-3-line"></i>
+                        <span>저장</span>
+                    </button>
+                )}
                 <button
                     className={`toolbar-btn ${isDrawerOpen ? 'active' : ''}`}
                     onClick={() => setIsDrawerOpen(!isDrawerOpen)}
                     title="데이터 서랍"
                 >
                     <i className="ri-database-2-line"></i>
+                    <span>서랍</span>
                 </button>
-                <button className="toolbar-btn add-btn" onClick={handleCreateNode} title="새 노드 추가">
-                    <i className="ri-add-line"></i>
-                </button>
+                {isEditMode && (
+                    <button className="toolbar-btn add-btn" onClick={handleCreateNode} title="새 노드 추가">
+                        <i className="ri-add-line"></i>
+                        <span>추가</span>
+                    </button>
+                )}
             </div>
 
             <div className="history-timeline-canvas">
@@ -593,9 +841,14 @@ export default function HistoryTimelinePage() {
                     onEdgesChange={onEdgesChange}
                     onConnect={onConnect}
                     onEdgeClick={onEdgeClick}
-                    onNodeDragStop={onNodeDragStop}
+                    onNodeDrag={isEditMode ? onNodeDrag : undefined}
+                    onNodeDragStop={isEditMode ? onNodeDragStop : undefined}
                     onMoveEnd={onMoveEnd}
+                    nodesDraggable={!isAutoLayout && isEditMode}
+                    nodesConnectable={isEditMode}
+                    elementsSelectable={true}
                     nodeTypes={NODE_TYPES}
+
                     edgeTypes={EDGE_TYPES}
                     isValidConnection={IS_VALID_CONNECTION}
                     connectionMode={ConnectionMode.Loose}

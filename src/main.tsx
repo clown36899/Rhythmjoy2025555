@@ -5,8 +5,9 @@ import { AuthProvider } from './contexts/AuthContext';
 import { ModalProvider } from './contexts/ModalContext';
 import { BoardDataProvider } from './contexts/BoardDataContext';
 import { InstallPromptProvider } from './contexts/InstallPromptContext';
-import { BrowserRouter } from 'react-router-dom'
-import './index.css'
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { routes } from './router/routes';
+
 import App from './App.tsx'
 import { initGAWithEngagement } from './lib/analytics'
 import { ModalRegistry } from './components/ModalRegistry'
@@ -96,9 +97,10 @@ function RootApp() {
     };
   }, []);
 
-  return (
-    <InstallPromptProvider>
-      <BrowserRouter basename={basename}>
+
+  const router = createBrowserRouter([
+    {
+      element: (
         <AuthProvider>
           <BoardDataProvider>
             <ModalProvider>
@@ -109,7 +111,14 @@ function RootApp() {
             </ModalProvider>
           </BoardDataProvider>
         </AuthProvider>
-      </BrowserRouter>
+      ),
+      children: routes
+    }
+  ], { basename });
+
+  return (
+    <InstallPromptProvider>
+      <RouterProvider router={router} />
     </InstallPromptProvider>
   );
 }
