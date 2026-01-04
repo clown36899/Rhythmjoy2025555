@@ -11,6 +11,7 @@
     margin-bottom: min(4vw, 16px);
     width: 100%;
     min-width: 0;
+    margin-top: 10px;
     overflow: hidden;
 }
 
@@ -109,10 +110,11 @@
     flex: 0 0 auto;
     width: 120px;
     max-width: 120px;
-    background: rgba(255, 255, 255, 0.05);
+    /* background: rgba(255, 255, 255, 0.05); */
     border-radius: 12px;
     overflow: hidden;
     cursor: pointer;
+    border: 0.5px solid #a599892e;
     transition: transform 0.2s, background-color 0.2s;
 }
 
@@ -172,9 +174,9 @@
 }
 
 .all-social-card-title {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #fff;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #d6d6d6;
     margin: 0 0 6px 0;
     line-height: 1.3;
     overflow: hidden;
@@ -183,7 +185,8 @@
     -webkit-line-clamp: 2;
     line-clamp: 2;
     -webkit-box-orient: vertical;
-    min-height: 2.6em;
+
+    /* min-height: 2.6em; */
 }
 
 .all-social-card-meta {

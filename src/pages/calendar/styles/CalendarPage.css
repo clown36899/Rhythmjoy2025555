@@ -12,7 +12,7 @@ html {
     /* overflow: hidden; - Removed to allow pull-to-refresh */
     user-select: none;
     -webkit-user-select: none;
-    background-color: #000000;
+    background-color: #171717;
     padding-bottom: 60px;
     /* 웹 기본값 */
 }
@@ -26,10 +26,10 @@ html {
     width: 100%;
     max-width: 650px;
     z-index: 41;
-    background-color: #000000;
+    background-color: #171717;
     display: flex;
     gap: 8px;
-    padding: 0px 16px;
+    padding: 5px 16px;
     /* border-bottom: 1px solid #222; */
 }
 
@@ -62,7 +62,7 @@ html {
 /* Sticky Weekday Header */
 .calendar-page-weekday-header {
     position: fixed;
-    top: 94px;
+    top: 100px;
     /* 글로벌 헤더(60px) + 탭 메뉴(50px) */
     left: 50%;
     transform: translateX(-50%);
@@ -86,7 +86,7 @@ html {
     width: 100%;
     max-width: 650px;
     margin: 0 auto;
-    padding-top: 138px;
+    padding-top: 144px;
     /* 글로벌 헤더(60px) + 탭 메뉴(50px) + 요일 헤더(60px) */
 }
 
@@ -100,7 +100,7 @@ html {
     font-weight: 600;
     color: #c7c7c7;
     flex-shrink: 0;
-    background-color: #000000;
+    background-color: #171717;
 }
 
 .calendar-weekday-item {

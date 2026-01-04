@@ -1254,7 +1254,7 @@
   color: var(--text-muted);
   /* border-bottom: 1px solid #000; */
   flex-shrink: 0;
-  background-color: #000000;
+  background-color: #171717;
   z-index: 35;
 }
 
@@ -1617,7 +1617,7 @@
   /* height: 100%; Removed to allow expansion */
   min-height: 100px;
   /* Minimum height for fullscreen cells */
-  background-color: #000;
+  background-color: #171717;
   border-right: 1px solid var(--calendar-vertical-border);
   border-bottom: 1px solid var(--calendar-week-border);
   /* overflow: hidden; Removed to allow expansion */
@@ -1668,7 +1668,7 @@
   display: flex;
   flex-direction: column;
   /* gap: 4px; */
-  background-color: #000;
+  /* background-color: #000; */
   border-radius: 4px;
   padding: 0px 2px;
   margin-bottom: 0;
