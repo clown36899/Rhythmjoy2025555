@@ -301,9 +301,8 @@
 }
 
 .layout-wide .header-content-inner {
-  max-width: 100%;
-  padding-left: 24px;
-  padding-right: 24px;
+  max-width: 650px;
+
 }
 
 /* Old hack removed */

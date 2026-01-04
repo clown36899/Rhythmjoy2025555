@@ -67,33 +67,27 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
                     isWip: true
                 });
 
-                // Add dev-log tab at the end (hardcoded, not from DB)
-                mapped.push({
-                    id: 'dev-log',
-                    label: '개발일지',
-                    icon: 'ri-code-box-line'
-                });
+                // Add dev-log tab at the end if not already present
+                if (!mapped.some(c => c.id === 'dev-log')) {
+                    mapped.push({
+                        id: 'dev-log',
+                        label: '개발일지',
+                        icon: 'ri-code-box-line'
+                    });
+                }
 
                 setCategories(mapped);
             } else {
-                // Failsafe: If DB empty, show defaults + dev-log
+                // Failsafe: If DB empty, show defaults
                 console.warn('DB categories empty, using defaults');
-                setCategories([...DEFAULT_CATEGORIES, {
-                    id: 'dev-log',
-                    label: '개발일지',
-                    icon: 'ri-code-box-line'
-                }]);
+                setCategories(DEFAULT_CATEGORIES);
             }
 
             // Transition logic removed for simplicity
 
         } catch (error) {
             console.error('Failed to load board categories:', error);
-            setCategories([...DEFAULT_CATEGORIES, {
-                id: 'dev-log',
-                label: '개발일지',
-                icon: 'ri-code-box-line'
-            }]); // Fallback on error
+            setCategories(DEFAULT_CATEGORIES); // Fallback on error
         }
     };
 

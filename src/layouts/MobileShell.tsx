@@ -272,39 +272,34 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                 ) : (
                   /* 그 외 페이지 타이틀 (브레드크럼 적용) */
                   <h1 className="header-title" style={{ fontSize: 'min(3.8vw, 1.35rem)', margin: 0, minWidth: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    {(isBoardPage || isArchivePage) && (
-                      <>
-                        <span
-                          className="header-breadcrumb-link"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            navigate('/board');
-                          }}
-                        >
-                          포럼
-                        </span>
-                        {isArchivePage && (
-                          <>
-                            <span className="header-breadcrumb-separator">&lt;</span>
-                            <span className="header-breadcrumb-current" style={{ position: 'relative' }}>
-                              스윙피디아
-                              <span style={{
-                                position: 'absolute',
-                                top: '-6px',
-                                right: '-12px',
-                                background: '#ef4444',
-                                color: 'white',
-                                fontSize: '8px',
-                                padding: '1px 3px',
-                                borderRadius: '3px',
-                                lineHeight: '1',
-                                fontWeight: 700,
-                                whiteSpace: 'nowrap'
-                              }}>준비중</span>
-                            </span>
-                          </>
-                        )}
-                      </>
+                    {isBoardPage && (
+                      <span
+                        className="header-breadcrumb-current"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate('/board');
+                        }}
+                      >
+                        포럼
+                      </span>
+                    )}
+                    {isArchivePage && (
+                      <span className="header-breadcrumb-current" style={{ position: 'relative' }}>
+                        스윙피디아
+                        <span style={{
+                          position: 'absolute',
+                          top: '-6px',
+                          right: '-12px',
+                          background: '#ef4444',
+                          color: 'white',
+                          fontSize: '8px',
+                          padding: '1px 3px',
+                          borderRadius: '3px',
+                          lineHeight: '1',
+                          fontWeight: 700,
+                          whiteSpace: 'nowrap'
+                        }}>준비중</span>
+                      </span>
                     )}
                     {isSocialPage && <span>소셜 이벤트</span>}
                     {isPracticePage && <span>연습실</span>}

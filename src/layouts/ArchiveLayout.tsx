@@ -1,5 +1,4 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { useEffect } from 'react';
 import './ArchiveLayout.css';
 
 const ArchiveLayout = () => {
@@ -18,6 +17,14 @@ const ArchiveLayout = () => {
             {!isDetailPage && (
                 <div className="archive-sub-header">
                     <nav className="archive-mode-tabs">
+                        <button
+                            className="mode-tab back-tab"
+                            onClick={() => navigate('/board')}
+                            style={{ marginRight: 'auto', paddingLeft: '0' }}
+                        >
+                            <i className="ri-arrow-left-line"></i>
+                            <span>돌아가기</span>
+                        </button>
                         <button
                             className={`mode-tab ${currentPath === '/learning' ? 'active' : ''}`}
                             onClick={() => navigate('/learning')}
