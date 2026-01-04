@@ -56,7 +56,7 @@ interface Props {
 const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClose }) => {
     // Check both potential parameter names
     const params = useParams();
-    const playlistId = propPlaylistId || params.playlistId || params.listId;
+    const playlistId = propPlaylistId || params.playlistId || params.listId || params.id;
 
     const navigate = useNavigate();
     const { isAdmin } = useAuth(); // Use context
