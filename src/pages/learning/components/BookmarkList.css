@@ -115,3 +115,35 @@
     color: #ef4444;
     background-color: rgba(239, 68, 68, 0.1);
 }
+
+/* Overlay Bookmark Specific Styles */
+.ld-bookmark-item-overlay {
+    background-color: rgba(139, 92, 246, 0.2);
+    /* violet-500/20 */
+    border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+.ld-bookmark-item-overlay:hover {
+    background-color: rgba(139, 92, 246, 0.3);
+}
+
+.ld-bookmark-item-overlay .ld-bookmark-time {
+    color: #a78bfa;
+    /* violet-400 */
+}
+
+.ld-bookmark-item-overlay .ld-bookmark-label {
+    max-width: 60px;
+    /* Even narrower as requested */
+}
+
+@media (min-width: 768px) {
+    .ld-bookmark-item-overlay .ld-bookmark-label {
+        max-width: 90px;
+    }
+}
+
+.ld-overlay-tag-icon {
+    font-size: 10px;
+    margin-right: -2px;
+}

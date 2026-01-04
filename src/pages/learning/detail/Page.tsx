@@ -28,6 +28,10 @@ interface Bookmark {
     timestamp: number;
     label: string;
     created_at: string;
+    is_overlay?: boolean;
+    overlay_x?: number;  // 0-100 퍼센트
+    overlay_y?: number;  // 0-100 퍼센트
+    overlay_duration?: number;  // 초 단위
 }
 
 interface Props {
@@ -63,6 +67,21 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
     const [isBookmarksOpen, setIsBookmarksOpen] = useState(true); // Bookmarks visible by default
     const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false); // Description Toggle State
     const [isOverflowing, setIsOverflowing] = useState(false); // Check if description overflows
+
+    // Bookmark Add Modal States
+    const [showBookmarkModal, setShowBookmarkModal] = useState(false);
+    const [bookmarkLabel, setBookmarkLabel] = useState('');
+    const [isOverlayBookmark, setIsOverlayBookmark] = useState(false);
+    const [overlayX, setOverlayX] = useState(50); // 중앙
+    const [overlayY, setOverlayY] = useState(50); // 중앙
+    const [overlayDuration, setOverlayDuration] = useState(5);
+    const [isDraggingMarker, setIsDraggingMarker] = useState(false);
+    const [editingBookmarkId, setEditingBookmarkId] = useState<string | null>(null);
+    const [modalTimestamp, setModalTimestamp] = useState<number | null>(null);
+
+    // Video Overlay States
+    const [currentTime, setCurrentTime] = useState(0);
+    const [activeOverlays, setActiveOverlays] = useState<Bookmark[]>([]);
 
     // Fetch Full Description on Video Change
     useEffect(() => {
@@ -207,6 +226,30 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         if (event.data === 0) playNext(); // 0 = Ended
     };
 
+    // Track current playback time
+    useEffect(() => {
+        if (!isPlaying || !playerRef.current) return;
+
+        const interval = setInterval(() => {
+            if (playerRef.current) {
+                const time = playerRef.current.getCurrentTime();
+                setCurrentTime(time);
+            }
+        }, 100); // Update every 100ms
+
+        return () => clearInterval(interval);
+    }, [isPlaying]);
+
+    // Check for active overlays based on current time
+    useEffect(() => {
+        const overlayBookmarks = bookmarks.filter(b => b.is_overlay);
+        const active = overlayBookmarks.filter(b => {
+            const timeDiff = currentTime - b.timestamp;
+            return timeDiff >= 0 && timeDiff < (b.overlay_duration || 5);
+        });
+        setActiveOverlays(active);
+    }, [currentTime, bookmarks]);
+
 
     const playNext = () => {
         if (currentVideoIndex < videos.length - 1) {
@@ -221,6 +264,17 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
     const seekTo = (seconds: number) => {
         if (playerRef.current) {
             playerRef.current.seekTo(seconds, true);
+
+            // 1. 현재 시간 상태 즉시 업데이트
+            setCurrentTime(seconds);
+
+            // 2. 오버레이 상태 즉시 재계산 (인터벌 대기 없이 즉시 반영)
+            const overlayBookmarks = bookmarks.filter(b => b.is_overlay);
+            const active = overlayBookmarks.filter(b => {
+                const timeDiff = seconds - b.timestamp;
+                return timeDiff >= 0 && timeDiff < (b.overlay_duration || 5);
+            });
+            setActiveOverlays(active);
         }
     };
 
@@ -240,28 +294,108 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         }
     };
 
-    const handleAddBookmark = async () => {
-        if (!playerRef.current || !videos[currentVideoIndex]) return;
+    const handleAddBookmark = () => {
+        if (!playerRef.current) return;
         const currentSeconds = playerRef.current.getCurrentTime();
+        setBookmarkLabel('');
+        setIsOverlayBookmark(false);
+        setOverlayX(50);
+        setOverlayY(50);
+        setOverlayDuration(5);
+        setEditingBookmarkId(null);
+        setModalTimestamp(currentSeconds);
+        setShowBookmarkModal(true);
+    };
 
-        // Format timestamp as label (MM:SS)
-        const timeLabel = formatTime(currentSeconds);
+    const handleEditBookmark = (id: string) => {
+        const mark = bookmarks.find(b => b.id === id);
+        if (!mark) return;
+
+        setBookmarkLabel(mark.label);
+        setIsOverlayBookmark(!!mark.is_overlay);
+        setOverlayX(mark.overlay_x || 50);
+        setOverlayY(mark.overlay_y || 50);
+        setOverlayDuration(mark.overlay_duration || 3);
+        setEditingBookmarkId(id);
+        setModalTimestamp(mark.timestamp);
+        setShowBookmarkModal(true);
+    };
+
+    const handleSaveBookmark = async () => {
+        if (!playerRef.current || !playlist || modalTimestamp === null) return;
 
         const video = videos[currentVideoIndex];
+        const timestamp = modalTimestamp;
 
-        const { error } = await supabase
-            .from('learning_video_bookmarks')
-            .insert({
-                video_id: video.id,
-                timestamp: currentSeconds,
-                label: timeLabel // Default label is the timestamp
-            });
+        const bookmarkData = {
+            label: bookmarkLabel || `북마크 ${formatTime(timestamp)}`,
+            is_overlay: isOverlayBookmark,
+            overlay_x: isOverlayBookmark ? overlayX : null,
+            overlay_y: isOverlayBookmark ? overlayY : null,
+            overlay_duration: isOverlayBookmark ? overlayDuration : null,
+        };
 
-        if (!error) {
-            fetchBookmarks(video.id);
+        if (editingBookmarkId) {
+            // Update
+            const { error } = await supabase
+                .from('learning_video_bookmarks')
+                .update(bookmarkData)
+                .eq('id', editingBookmarkId);
+
+            if (error) {
+                console.error('Error updating bookmark:', error);
+                alert('북마크 수정 실패');
+            }
         } else {
-            alert('북마크 추가 실패');
+            // Insert
+            const { error } = await supabase
+                .from('learning_video_bookmarks')
+                .insert({
+                    video_id: video.id,
+                    timestamp,
+                    ...bookmarkData
+                });
+
+            if (error) {
+                console.error('Error saving bookmark:', error);
+                alert('북마크 저장 실패');
+            }
         }
+
+        setShowBookmarkModal(false);
+        fetchBookmarks(video.id);
+    };
+
+    // 드래그 핸들러
+    const handleMarkerDragStart = () => {
+        setIsDraggingMarker(true);
+    };
+
+    const handleMarkerDrag = (e: React.MouseEvent<HTMLDivElement> | React.TouchEvent<HTMLDivElement>) => {
+        if (!isDraggingMarker) return;
+
+        // 터치 이벤트 대응
+        const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+        const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+
+        const rect = e.currentTarget.getBoundingClientRect();
+
+        // 0~100% 사이로 제한 (영상 영역 안에서만)
+        let x = ((clientX - rect.left) / rect.width) * 100;
+        let y = ((clientY - rect.top) / rect.height) * 100;
+
+        x = Math.max(0, Math.min(100, x));
+        y = Math.max(0, Math.min(100, y));
+
+        setOverlayX(x);
+        setOverlayY(y);
+
+        // 스크롤 방지 (터치 시)
+        if (e.cancelable) e.preventDefault();
+    };
+
+    const handleMarkerDragEnd = () => {
+        setIsDraggingMarker(false);
     };
 
     // --- Edit Infomation Handlers ---
@@ -296,49 +430,8 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         }
     };
 
-    // New handler for editing bookmark labels
-    const handleEditBookmark = async (id: string, currentLabel: string) => {
-        console.log('[EditBookmark] Starting edit for:', id, 'Current label:', currentLabel);
-        if (!isAdmin) {
-            console.log('[EditBookmark] Not admin, returning');
-            return;
-        }
-
-        const newLabel = prompt("새로운 북마크 이름을 입력하세요:", currentLabel);
-        console.log('[EditBookmark] New label from prompt:', newLabel);
-
-        if (newLabel === null || newLabel.trim() === "") {
-            console.log('[EditBookmark] Cancelled or empty, returning');
-            return; // Cancel or empty
-        }
-
-        if (newLabel === currentLabel) {
-            console.log('[EditBookmark] No change, returning');
-            return; // No change
-        }
-
-        console.log('[EditBookmark] Updating bookmark in database...');
-        const { data, error, count } = await supabase
-            .from('learning_video_bookmarks')
-            .update({ label: newLabel })
-            .eq('id', id)
-            .select();
-
-        console.log('[EditBookmark] Supabase response:', { data, error, count });
-
-        if (error) {
-            console.error("[EditBookmark] Update failed", error);
-            alert("북마크 수정 실패");
-        } else {
-            console.log('[EditBookmark] Update successful, refreshing bookmarks...');
-            const video = videos[currentVideoIndex];
-            console.log('[EditBookmark] Current video ID:', video.id);
-            fetchBookmarks(video.id);
-        }
-    };
-
-
     // --- Render Loading / Error States ---
+
     if (error) {
         return (
             <div className="ld-message-container" style={{ color: '#ef4444' }}>
@@ -398,12 +491,39 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                                 autoplay: 0,
                                 modestbranding: 1,
                                 rel: 0,
+                                iv_load_policy: 3,
+                                autohide: 1,
                             },
                         }}
                         className="ld-youtube-player"
                         onReady={onPlayerReady}
                         onStateChange={handleStateChange}
                     />
+
+                    {/* Transparent Play/Pause Overlay */}
+                    <div
+                        className={`ld-custom-player-overlay ${isPlaying ? 'playing' : 'paused'}`}
+                        onClick={() => {
+                            if (isPlaying) playerRef.current?.pauseVideo();
+                            else playerRef.current?.playVideo();
+                        }}
+                    >
+                        {!isPlaying && <div className="ld-play-icon">▶</div>}
+                    </div>
+
+                    {/* Video Overlays */}
+                    {activeOverlays.map((overlay) => (
+                        <div
+                            key={overlay.id}
+                            className="ld-video-overlay"
+                            style={{
+                                left: `${overlay.overlay_x || 50}%`,
+                                top: `${overlay.overlay_y || 50}%`,
+                            }}
+                        >
+                            {overlay.label}
+                        </div>
+                    ))}
                 </div>
 
                 {/* Bookmark List - Moved to directly below video */}
@@ -413,7 +533,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                             bookmarks={bookmarks}
                             onSeek={seekTo}
                             onDelete={handleDeleteBookmark}
-                            onEdit={handleEditBookmark}
+                            onEdit={(id) => handleEditBookmark(id)}
                             isAdmin={isAdmin}
                         />
                     </div>
@@ -564,6 +684,111 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                     ))}
                 </div>
             </div>
+
+            {/* Bookmark Add Modal */}
+            {showBookmarkModal && (
+                <div className="ld-bookmark-modal-overlay" onClick={() => setShowBookmarkModal(false)}>
+                    <div className="ld-bookmark-modal" onClick={(e) => e.stopPropagation()}>
+                        <h3 className="ld-bookmark-modal-title">
+                            {editingBookmarkId ? '북마크 수정' : '북마크 추가'}
+                        </h3>
+
+                        <div className="ld-bookmark-modal-field">
+                            <label>이름</label>
+                            <input
+                                type="text"
+                                value={bookmarkLabel}
+                                onChange={(e) => setBookmarkLabel(e.target.value)}
+                                placeholder="북마크 이름"
+                                className="ld-bookmark-modal-input"
+                            />
+                        </div>
+
+                        <div className="ld-bookmark-modal-field">
+                            <label className="ld-bookmark-modal-checkbox">
+                                <input
+                                    type="checkbox"
+                                    checked={isOverlayBookmark}
+                                    onChange={(e) => setIsOverlayBookmark(e.target.checked)}
+                                />
+                                <span>영상 위에 오버레이로 표시</span>
+                            </label>
+                        </div>
+
+                        {isOverlayBookmark && (
+                            <>
+                                <div className="ld-bookmark-modal-field">
+                                    <label>위치 설정 (드래그하세요)</label>
+                                    <div
+                                        className="ld-overlay-preview"
+                                        onMouseMove={handleMarkerDrag}
+                                        onMouseUp={handleMarkerDragEnd}
+                                        onMouseLeave={handleMarkerDragEnd}
+                                        onTouchMove={handleMarkerDrag}
+                                        onTouchEnd={handleMarkerDragEnd}
+                                    >
+                                        <div className="ld-preview-player-wrapper">
+                                            <YouTube
+                                                videoId={currentVideo.youtube_video_id}
+                                                opts={{
+                                                    playerVars: {
+                                                        start: Math.floor(modalTimestamp || 0),
+                                                        autoplay: 1,
+                                                        controls: 0,
+                                                        modestbranding: 1,
+                                                        mute: 1,
+                                                    },
+                                                }}
+                                                onReady={(e) => {
+                                                    // 해당 초로 확실히 이동 후 일시정지
+                                                    e.target.seekTo(modalTimestamp || 0, true);
+                                                    setTimeout(() => e.target.pauseVideo(), 500);
+                                                }}
+                                                className="ld-preview-video-element"
+                                            />
+                                        </div>
+                                        <div className="ld-overlay-preview-bg" style={{ opacity: 0.2 }}>장면 로딩 중...</div>
+                                        <div
+                                            className="ld-overlay-marker"
+                                            style={{
+                                                left: `${overlayX}%`,
+                                                top: `${overlayY}%`,
+                                                cursor: isDraggingMarker ? 'grabbing' : 'grab'
+                                            }}
+                                            onMouseDown={handleMarkerDragStart}
+                                            onTouchStart={handleMarkerDragStart}
+                                        >
+                                            <span className="ld-overlay-marker-icon">📍</span>
+                                            <span className="ld-overlay-marker-text">{bookmarkLabel}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="ld-bookmark-modal-field">
+                                    <label>표시 시간: {overlayDuration}초</label>
+                                    <input
+                                        type="range"
+                                        min="1"
+                                        max="10"
+                                        value={overlayDuration}
+                                        onChange={(e) => setOverlayDuration(Number(e.target.value))}
+                                        className="ld-bookmark-modal-slider"
+                                    />
+                                </div>
+                            </>
+                        )}
+
+                        <div className="ld-bookmark-modal-actions">
+                            <button onClick={() => setShowBookmarkModal(false)} className="ld-bookmark-modal-btn cancel">
+                                취소
+                            </button>
+                            <button onClick={handleSaveBookmark} className="ld-bookmark-modal-btn save">
+                                {editingBookmarkId ? '수정 완료' : '저장'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

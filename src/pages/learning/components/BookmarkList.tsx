@@ -6,6 +6,7 @@ interface Bookmark {
     video_id: string;
     timestamp: number;
     label: string;
+    is_overlay?: boolean;
 }
 
 interface Props {
@@ -32,9 +33,10 @@ export const BookmarkList = ({ bookmarks, onSeek, onDelete, onEdit, isAdmin }: P
                 {bookmarks.map((mark) => (
                     <div
                         key={mark.id}
-                        className="ld-bookmark-item"
+                        className={`ld-bookmark-item ${mark.is_overlay ? 'ld-bookmark-item-overlay' : ''}`}
                         onClick={() => onSeek(mark.timestamp)}
                     >
+                        {mark.is_overlay && <span className="ld-overlay-tag-icon">💬</span>}
                         <span className="ld-bookmark-time">{formatTime(mark.timestamp)}</span>
                         <span className="ld-bookmark-label">{mark.label}</span>
 
