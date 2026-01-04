@@ -20,9 +20,10 @@
     background: rgba(17, 24, 39, 0.95);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     backdrop-filter: blur(10px);
-    z-index: 10;
+    z-index: 100;
     position: relative;
-    height: 60px;
+    height: 64px;
+    gap: 16px;
     /* Fixed height for consistent layout */
 }
 
@@ -58,7 +59,11 @@
     font-size: 20px;
     /* Slightly smaller for mobile layout */
     font-weight: 600;
-    flex: 1;
+    flex: 0 1 auto;
+    /* Use only needed space */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .header-actions {
@@ -85,6 +90,41 @@
     background: rgba(255, 255, 255, 0.1);
     color: #fff;
     border-color: rgba(255, 255, 255, 0.4);
+}
+
+.btn-auto-layout.active {
+    background: rgba(139, 92, 246, 0.2);
+    color: #a78bfa;
+    border-color: rgba(139, 92, 246, 0.5);
+}
+
+.btn-open-drawer {
+    background: #059669;
+    /* Solid Green for visibility */
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 99px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(5, 150, 105, 0.3);
+}
+
+.btn-open-drawer:hover {
+    background: #10b981;
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 6px 16px rgba(5, 150, 105, 0.4);
+}
+
+.btn-open-drawer.active {
+    background: #10b981;
+    color: white;
 }
 
 .btn-auto-layout i {
@@ -359,5 +399,63 @@
     to {
         opacity: 1;
         transform: scale(1);
+    }
+}
+
+/* Floating Drawer Button */
+.history-floating-drawer-btn {
+    position: fixed;
+    right: 24px;
+    bottom: 100px;
+    /* Above BottomNav */
+    z-index: 2500;
+    background: #059669;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    border-radius: 50px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    box-shadow: 0 8px 25px rgba(5, 150, 105, 0.4);
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    animation: fab-fade-in 0.5s ease-out;
+}
+
+.history-floating-drawer-btn:hover {
+    background: #10b981;
+    transform: translateY(-5px) scale(1.05);
+    box-shadow: 0 12px 30px rgba(5, 150, 105, 0.5);
+}
+
+.history-floating-drawer-btn i {
+    font-size: 1.4rem;
+}
+
+@keyframes fab-fade-in {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 768px) {
+    .history-floating-drawer-btn .btn-label {
+        display: none;
+    }
+
+    .history-floating-drawer-btn {
+        padding: 12px;
+        width: 50px;
+        height: 50px;
+        justify-content: center;
+        bottom: 90px;
     }
 }

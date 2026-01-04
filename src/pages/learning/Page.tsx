@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 
 import { CategoryManager } from './components/CategoryManager';
 import { PlaylistImportModal } from './components/PlaylistImportModal';
+import { DocumentCreateModal } from './components/DocumentCreateModal'; // 추가
 import { MovePlaylistModal } from './components/MovePlaylistModal';
 import { PlaylistModal } from './components/PlaylistModal';
 import { fetchPlaylistVideos } from './utils/youtube';
@@ -31,9 +32,43 @@ interface Category {
     level?: number;
 }
 
+interface LearningDocument {
+    id: string;
+    title: string;
+    content: string;
+    year: number | null;
+    category_id: string | null;
+    is_public: boolean;
+    author_id: string;
+    created_at: string;
+    is_on_timeline: boolean;
+    type: 'document';
+}
+
+interface Playlist extends LearningPlaylist {
+    type: 'playlist';
+    video_count: number;
+}
+
+interface LearningPlaylist {
+    id: string;
+    title: string;
+    thumbnail_url: string;
+    description: string;
+    category_id: string | null;
+    is_public: boolean;
+    author_id: string;
+    created_at: string;
+    youtube_playlist_id?: string;
+    year: number | null;
+    is_on_timeline: boolean;
+}
+
+type LearningItem = Playlist | LearningDocument;
+
 const LearningPage = () => {
     const navigate = useNavigate();
-    const [playlists, setPlaylists] = useState<Playlist[]>([]);
+    const [items, setItems] = useState<LearningItem[]>([]); // 통합 아이템 리스트
     const [categories, setCategories] = useState<Category[]>([]);
     const [flatCategories, setFlatCategories] = useState<Category[]>([]);
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
@@ -43,6 +78,7 @@ const LearningPage = () => {
     const [isAdmin, setIsAdmin] = useState(false);
     const [adminMode, setAdminMode] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
+    const [showDocumentModal, setShowDocumentModal] = useState(false); // 문서 모달 상태 추가
     const [moveModal, setMoveModal] = useState<{ isOpen: boolean; playlistId: string; categoryId: string | null }>({
         isOpen: false,
         playlistId: '',
@@ -98,7 +134,20 @@ const LearningPage = () => {
 
             if (playlistsError) throw playlistsError;
 
-            // 2. Fetch Categories
+            // 2. Fetch Documents
+            let docQuery = supabase
+                .from('learning_documents')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (!adminMode) {
+                docQuery = docQuery.eq('is_public', true);
+            }
+
+            const { data: documentsData, error: documentsError } = await docQuery;
+            if (documentsError) throw documentsError;
+
+            // 3. Fetch Categories
             const { data: categoriesData, error: categoriesError } = await supabase
                 .from('learning_categories')
                 .select('*')
@@ -107,11 +156,20 @@ const LearningPage = () => {
 
             if (categoriesError) throw categoriesError;
 
-            setPlaylists(playlistsData.map((item: any) => ({
-                ...item,
-                video_count: item.videos[0]?.count || 0
-            })));
+            // Combine items
+            const combinedItems: LearningItem[] = [
+                ...(playlistsData || []).map((item: any) => ({
+                    ...item,
+                    type: 'playlist' as const,
+                    video_count: item.videos[0]?.count || 0
+                })),
+                ...(documentsData || []).map((item: any) => ({
+                    ...item,
+                    type: 'document' as const
+                }))
+            ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
+            setItems(combinedItems);
             setFlatCategories(categoriesData || []);
             setCategories(buildTree(categoriesData || []));
 
@@ -134,9 +192,9 @@ const LearningPage = () => {
             }));
     };
 
-    // Filter playlists - include subcategories recursively
-    const filteredPlaylists = useMemo(() => {
-        if (!selectedCategoryId) return playlists;
+    // Filter items - include subcategories recursively
+    const filteredItems = useMemo(() => {
+        if (!selectedCategoryId) return items;
 
         // Helper to get all descendant category IDs including self
         const getDescendantIds = (categoryId: string): string[] => {
@@ -149,18 +207,20 @@ const LearningPage = () => {
         };
 
         const targetIds = getDescendantIds(selectedCategoryId);
-        return playlists.filter(p => p.category_id && targetIds.includes(p.category_id));
-    }, [playlists, selectedCategoryId, flatCategories]);
+        return items.filter(p => p.category_id && targetIds.includes(p.category_id));
+    }, [items, selectedCategoryId, flatCategories]);
 
     // Admin Actions
-    const handleDelete = async (playlistId: string) => {
-        if (!confirm('정말로 이 재생목록을 삭제하시겠습니까? \n모든 관련 비디오도 함께 삭제됩니다.')) return;
+    const handleDelete = async (item: LearningItem) => {
+        const typeLabel = item.type === 'playlist' ? '재생목록' : '문서';
+        if (!confirm(`정말로 이 ${typeLabel}을(를) 삭제하시겠습니까?`)) return;
 
         try {
+            const table = item.type === 'playlist' ? 'learning_playlists' : 'learning_documents';
             const { error } = await supabase
-                .from('learning_playlists')
+                .from(table)
                 .delete()
-                .eq('id', playlistId);
+                .eq('id', item.id);
 
             if (error) throw error;
             fetchData();
@@ -225,7 +285,7 @@ const LearningPage = () => {
     };
 
     const handleSyncAll = async () => {
-        const targets = playlists.filter(p => p.youtube_playlist_id);
+        const targets = items.filter(p => p.type === 'playlist' && p.youtube_playlist_id) as Playlist[];
         if (targets.length === 0) {
             alert('동기화할 유튜브 재생목록이 없습니다.');
             return;
@@ -277,15 +337,17 @@ const LearningPage = () => {
         }
     };
 
-    const togglePublic = async (playlist: Playlist, e: React.MouseEvent) => {
+    const togglePublic = async (item: LearningItem, e: React.MouseEvent) => {
         e.stopPropagation();
-        if (!confirm(`재생목록을 ${playlist.is_public ? '비공개' : '공개'}로 전환하시겠습니까?`)) return;
+        const typeLabel = item.type === 'playlist' ? '재생목록' : '문서';
+        if (!confirm(`${typeLabel}을(를) ${item.is_public ? '비공개' : '공개'}로 전환하시겠습니까?`)) return;
 
         try {
+            const table = item.type === 'playlist' ? 'learning_playlists' : 'learning_documents';
             const { error } = await supabase
-                .from('learning_playlists')
-                .update({ is_public: !playlist.is_public })
-                .eq('id', playlist.id);
+                .from(table)
+                .update({ is_public: !item.is_public })
+                .eq('id', item.id);
 
             if (error) throw error;
             fetchData();
@@ -295,19 +357,24 @@ const LearningPage = () => {
         }
     };
 
-    const handleMovePlaylist = async (playlistId: string, targetCategoryId: string) => {
+    const handleMoveItem = async (itemId: string, targetCategoryId: string) => {
         try {
+            const item = items.find(i => i.id === itemId);
+            if (!item) return;
+
+            const table = item.type === 'playlist' ? 'learning_playlists' : 'learning_documents';
+
             const { error } = await supabase
-                .from('learning_playlists')
+                .from(table)
                 .update({ category_id: targetCategoryId })
-                .eq('id', playlistId);
+                .eq('id', itemId);
 
             if (error) throw error;
 
             // Optimistic update or fetch
             fetchData();
         } catch (err) {
-            console.error('Failed to move playlist:', err);
+            console.error('Failed to move item:', err);
             alert('이동 실패');
         }
     };
@@ -355,7 +422,14 @@ const LearningPage = () => {
                                         onClick={() => setShowImportModal(true)}
                                         className="importButton"
                                     >
-                                        <span>📺</span> 가져오기
+                                        <span>📺</span> 영상 가져오기
+                                    </button>
+                                    <button
+                                        onClick={() => setShowDocumentModal(true)}
+                                        className="importButton"
+                                        style={{ backgroundColor: '#059669' }}
+                                    >
+                                        <span>📄</span> 문서 등록
                                     </button>
                                 </>
                             )}
@@ -384,8 +458,8 @@ const LearningPage = () => {
                         selectedId={selectedCategoryId}
                         onSelect={setSelectedCategoryId}
                         categories={categories}
-                        playlists={playlists}
-                        onMovePlaylist={handleMovePlaylist}
+                        playlists={items as any}
+                        onMovePlaylist={handleMoveItem}
                         onPlaylistClick={handlePlaylistClick}
                         highlightedSourceId={draggedPlaylistSourceId}
                     />
@@ -402,42 +476,49 @@ const LearningPage = () => {
                         ) : (
                             <span className="pathText">📂 폴더를 선택하세요</span>
                         )}
-                        {/* Show count of playlists in this folder */}
+                        {/* Show count of items in this folder */}
                         {selectedCategoryId && (
                             <span className="countBadge" style={{ marginLeft: '8px', fontSize: '0.8em', color: '#888' }}>
-                                ({filteredPlaylists.length})
+                                ({filteredItems.length})
                             </span>
                         )}
                     </div>
 
-                    {/* Playlist Grid */}
+                    {/* Items Grid */}
                     {isLoading ? (
                         <div className="loadingContainer">
                             <div className="spinner"></div>
                             <p className="loadingText">로딩 중...</p>
                         </div>
-                    ) : filteredPlaylists.length === 0 ? (
+                    ) : filteredItems.length === 0 ? (
                         <div className="emptyState">
                             <div className="emptyIcon">📂</div>
-                            <h3 className="emptyTitle">영상 없음</h3>
+                            <h3 className="emptyTitle">데이터 없음</h3>
                             <p className="emptyText">
-                                {selectedCategoryId ? '이 폴더에는 영상이 없습니다.' : '왼쪽 목록에서 폴더를 선택해주세요.'}
+                                {selectedCategoryId ? '이 폴더에는 데이터가 없습니다.' : '왼쪽 목록에서 폴더를 선택해주세요.'}
                             </p>
                         </div>
                     ) : (
                         <div className="grid">
-                            {filteredPlaylists.map((playlist) => (
+                            {filteredItems.map((item) => (
                                 <div
-                                    key={playlist.id}
-                                    onClick={() => handlePlaylistClick(playlist.id)}
-                                    className="card"
+                                    key={item.id}
+                                    onClick={() => {
+                                        if (item.type === 'playlist') {
+                                            handlePlaylistClick(item.id);
+                                        } else {
+                                            // TODO: Document View Modal or Page
+                                            alert(`문서 보기: ${item.title}\n(기능 준비 중)`);
+                                        }
+                                    }}
+                                    className={`card ${item.type}`}
                                     draggable={adminMode}
                                     onDragStart={(e) => {
                                         if (!adminMode) return;
-                                        setDraggedPlaylistSourceId(playlist.category_id || null);
+                                        setDraggedPlaylistSourceId(item.category_id || null);
                                         e.dataTransfer.setData('application/json', JSON.stringify({
-                                            type: 'PLAYLIST_MOVE',
-                                            playlistId: playlist.id
+                                            type: 'PLAYLIST_MOVE', // Keep same type for compatibility or rename to ITEM_MOVE
+                                            playlistId: item.id
                                         }));
                                         e.dataTransfer.effectAllowed = 'move';
                                     }}
@@ -446,50 +527,66 @@ const LearningPage = () => {
                                     }}
                                 >
                                     <div className="thumbnailContainer">
-                                        {playlist.thumbnail_url ? (
-                                            <img
-                                                src={playlist.thumbnail_url}
-                                                alt={playlist.title}
-                                                className="thumbnail"
-                                            />
+                                        {item.type === 'playlist' ? (
+                                            item.thumbnail_url ? (
+                                                <img
+                                                    src={item.thumbnail_url}
+                                                    alt={item.title}
+                                                    className="thumbnail"
+                                                />
+                                            ) : (
+                                                <div className="noImage">No Image</div>
+                                            )
                                         ) : (
-                                            <div className="noImage">No Image</div>
+                                            <div className="docImage">
+                                                <span className="docIcon">📄</span>
+                                                <span className="docTypeLabel">DOCUMENT</span>
+                                            </div>
                                         )}
-                                        <div className="videoCountBadge">
-                                            <span className="videoCountIcon">▶</span>
-                                            <span className="videoCountText">{playlist.video_count}</span>
-                                        </div>
 
-                                        {adminMode && playlist.youtube_playlist_id && (
+                                        {item.type === 'playlist' && (
+                                            <div className="videoCountBadge">
+                                                <span className="videoCountIcon">▶</span>
+                                                <span className="videoCountText">{item.video_count}</span>
+                                            </div>
+                                        )}
+
+                                        {adminMode && item.type === 'playlist' && item.youtube_playlist_id && (
                                             <div className="adminBadge ytLinked">YT Linked</div>
                                         )}
-                                        {adminMode && !playlist.is_public && (
+                                        {adminMode && !item.is_public && (
                                             <div className="adminBadge private">Private</div>
+                                        )}
+                                        {item.year && (
+                                            <div className="itemYearBadge">#{item.year}년</div>
                                         )}
                                     </div>
 
                                     <div className="cardBody">
                                         <div className="cardHeader">
-                                            <h3 className="cardTitle">{playlist.title}</h3>
+                                            <h3 className="cardTitle">{item.title}</h3>
                                         </div>
-                                        {playlist.description && (
-                                            <p className="cardDescription">{playlist.description}</p>
+                                        {(item.type === 'playlist' && item.description) && (
+                                            <p className="cardDescription">{item.description}</p>
+                                        )}
+                                        {(item.type === 'document' && item.content) && (
+                                            <p className="cardDescription">{item.content.substring(0, 50)}...</p>
                                         )}
                                         <div className="cardFooter">
                                             <span className="categoryBadge">
-                                                {flatCategories.find(c => c.id === playlist.category_id)?.name || '기타'}
+                                                {flatCategories.find(c => c.id === item.category_id)?.name || '기타'}
                                             </span>
-                                            <span>{new Date(playlist.created_at).toLocaleDateString()}</span>
+                                            <span>{new Date(item.created_at).toLocaleDateString()}</span>
                                         </div>
 
                                         {/* Admin Actions Overlay within Card */}
                                         <div className="adminActions">
                                             <button
-                                                onClick={(e) => togglePublic(playlist, e)}
-                                                className={`miniBtn ${playlist.is_public ? 'public' : 'private'}`}
-                                                title={playlist.is_public ? '공개됨 (클릭하여 비공개)' : '비공개 (클릭하여 공개)'}
+                                                onClick={(e) => togglePublic(item, e)}
+                                                className={`miniBtn ${item.is_public ? 'public' : 'private'}`}
+                                                title={item.is_public ? '공개됨 (클릭하여 비공개)' : '비공개 (클릭하여 공개)'}
                                             >
-                                                {playlist.is_public ? '👀' : '🔒'}
+                                                {item.is_public ? '👀' : '🔒'}
                                             </button>
                                             <button
                                                 className="miniBtn move"
@@ -498,30 +595,32 @@ const LearningPage = () => {
                                                     e.stopPropagation();
                                                     setMoveModal({
                                                         isOpen: true,
-                                                        playlistId: playlist.id,
-                                                        categoryId: playlist.category_id || null
+                                                        playlistId: item.id,
+                                                        categoryId: item.category_id || null
                                                     });
                                                 }}
                                             >
                                                 📂
                                             </button>
-                                            <button
-                                                className="miniBtn sync"
-                                                title="동기화"
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    handleSync(playlist);
-                                                }}
-                                                disabled={!playlist.youtube_playlist_id}
-                                            >
-                                                🔄
-                                            </button>
+                                            {item.type === 'playlist' && (
+                                                <button
+                                                    className="miniBtn sync"
+                                                    title="동기화"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleSync(item as Playlist);
+                                                    }}
+                                                    disabled={!item.youtube_playlist_id}
+                                                >
+                                                    🔄
+                                                </button>
+                                            )}
                                             <button
                                                 className="miniBtn delete"
                                                 title="삭제"
                                                 onClick={(e) => {
                                                     e.stopPropagation();
-                                                    handleDelete(playlist.id);
+                                                    handleDelete(item);
                                                 }}
                                             >
                                                 🗑
@@ -538,6 +637,13 @@ const LearningPage = () => {
             {showImportModal && (
                 <PlaylistImportModal
                     onClose={() => setShowImportModal(false)}
+                    onSuccess={fetchData}
+                />
+            )}
+
+            {showDocumentModal && (
+                <DocumentCreateModal
+                    onClose={() => setShowDocumentModal(false)}
                     onSuccess={fetchData}
                 />
             )}

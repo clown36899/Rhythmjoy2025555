@@ -7,6 +7,8 @@ export interface HistoryNodeData {
     youtube_url?: string;
     category?: string;
     tags?: string[];
+    linked_playlist_id?: string;
+    linked_document_id?: string;
     onEdit?: (data: HistoryNodeData) => void;
     onViewDetail?: (data: HistoryNodeData) => void;
     onPlayVideo?: (url: string) => void;

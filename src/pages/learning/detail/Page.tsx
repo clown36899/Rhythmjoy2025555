@@ -22,6 +22,8 @@ interface Playlist {
     title: string;
     description: string;
     author_id: string;
+    year?: number; // 추가
+    is_on_timeline?: boolean; // 추가
 }
 
 interface Bookmark {
@@ -63,6 +65,9 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
     const [isEditingDesc, setIsEditingDesc] = useState(false);
     const [editTitle, setEditTitle] = useState('');
     const [editDesc, setEditDesc] = useState('');
+    const [isEditingYear, setIsEditingYear] = useState(false); // 연도 편집 상태
+    const [editYear, setEditYear] = useState('');
+    const [editIsOnTimeline, setEditIsOnTimeline] = useState(false); // 타임라인 여부 편집 상테
     const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     const [error, setError] = useState<string | null>(null);
@@ -489,6 +494,26 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         }
     };
 
+    const handleUpdateTimelineSettings = async () => {
+        if (!playlist) return;
+
+        const { error } = await supabase
+            .from('learning_playlists')
+            .update({
+                year: editYear ? parseInt(editYear) : null,
+                is_on_timeline: editIsOnTimeline
+            })
+            .eq('id', playlist.id);
+
+        if (error) {
+            console.error("Timeline settings update failed", error);
+            alert("연도/타임라인 설정 수정 실패");
+        } else {
+            setIsEditingYear(false);
+            setRefreshTrigger(prev => prev + 1);
+        }
+    };
+
     // --- Helper Utilities ---
     const formatTimestamp = (seconds: number) => {
         const s = Math.round(seconds);
@@ -661,11 +686,65 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                 {/* Playlist Description Editor (Bottom) */}
                 <div className="ld-description-section">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                        <h4 style={{ margin: 0, color: '#9ca3af', fontSize: '14px' }}>재생목록 설명</h4>
-                        {isAdmin && !isEditingDesc && (
-                            <button onClick={startEditingDesc} className="ld-edit-button-small">✎ 수정</button>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                            <h4 style={{ margin: 0, color: '#9ca3af', fontSize: '14px' }}>재생목록 정보</h4>
+                            {playlist.year && (
+                                <span className="ld-year-badge">#{playlist.year}년</span>
+                            )}
+                            {playlist.is_on_timeline && (
+                                <span className="ld-timeline-badge">Timeline ON</span>
+                            )}
+                        </div>
+                        {isAdmin && (
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                {!isEditingYear && (
+                                    <button
+                                        onClick={() => {
+                                            setEditYear(playlist.year?.toString() || '');
+                                            setEditIsOnTimeline(playlist.is_on_timeline || false);
+                                            setIsEditingYear(true);
+                                        }}
+                                        className="ld-edit-button-small"
+                                    >
+                                        ✎ 연도 설정
+                                    </button>
+                                )}
+                                {!isEditingDesc && (
+                                    <button onClick={startEditingDesc} className="ld-edit-button-small">✎ 설명 수정</button>
+                                )}
+                            </div>
                         )}
                     </div>
+
+                    {isEditingYear && (
+                        <div className="ld-edit-container" style={{ marginBottom: '16px' }}>
+                            <div className="ld-edit-row">
+                                <label style={{ fontSize: '12px', color: '#9ca3af' }}>역사 연도:</label>
+                                <input
+                                    type="number"
+                                    className="ld-edit-input-mini"
+                                    value={editYear}
+                                    onChange={(e) => setEditYear(e.target.value)}
+                                    placeholder="연도 (예: 1980)"
+                                />
+                            </div>
+                            <div className="ld-edit-row" style={{ marginTop: '8px' }}>
+                                <label className="ld-bookmark-modal-checkbox" style={{ fontSize: '13px' }}>
+                                    <input
+                                        type="checkbox"
+                                        checked={editIsOnTimeline}
+                                        onChange={(e) => setEditIsOnTimeline(e.target.checked)}
+                                    />
+                                    <span>역사 타임라인(캔버스)에 표시</span>
+                                </label>
+                            </div>
+                            <div className="ld-edit-actions">
+                                <button onClick={() => setIsEditingYear(false)} className="ld-cancel-button">취소</button>
+                                <button onClick={handleUpdateTimelineSettings} className="ld-save-button">설정 저장</button>
+                            </div>
+                        </div>
+                    )}
+
                     {isEditingDesc ? (
                         <div className="ld-edit-container">
                             <textarea

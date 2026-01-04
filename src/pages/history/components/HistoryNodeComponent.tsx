@@ -81,6 +81,11 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
                             {getCategoryIcon(data.category || 'general')}
                         </span>
                     )}
+                    {(data.linked_playlist_id || data.linked_document_id) && (
+                        <span className="history-node-link-badge" title="학습 자료와 연동됨">
+                            <i className="ri-link"></i>
+                        </span>
+                    )}
                 </div>
 
                 <h3 className="history-node-title">{data.title}</h3>
@@ -105,6 +110,23 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
                     <button className="node-action-btn btn-edit" onClick={handleEdit} title="수정">
                         <i className="ri-edit-line"></i>
                     </button>
+                    {(data.linked_playlist_id || data.linked_document_id) && (
+                        <button
+                            className="node-action-btn btn-linked-resource"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                if (data.linked_playlist_id) {
+                                    // Navigate to learning page or similar
+                                    alert('연결된 재생목록으로 이동합니다 (Learning 메뉴 참조)');
+                                } else {
+                                    alert('연결된 문서로 이동합니다');
+                                }
+                            }}
+                            title="연결된 원본 자료 보기"
+                        >
+                            <i className="ri-external-link-line"></i>
+                        </button>
+                    )}
                 </div>
             </div>
 

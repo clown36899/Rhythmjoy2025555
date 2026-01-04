@@ -415,6 +415,35 @@
     border-radius: 4px;
 }
 
+/* Year & Timeline Badges */
+.ld-year-badge {
+    background-color: #3b82f6;
+    color: white;
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+.ld-timeline-badge {
+    background-color: #10b981;
+    color: white;
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+.ld-edit-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.ld-edit-row label {
+    min-width: 60px;
+}
+
 /* Video Metadata (Title & Memo) - Visible on all devices */
 .ld-video-metadata {
     padding: 4px 20px;

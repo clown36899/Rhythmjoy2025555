@@ -21,6 +21,8 @@ export const PlaylistImportModal = ({ onClose, onSuccess }: Props) => {
     const [categoryId, setCategoryId] = useState<string | null>(null);
     const [categories, setCategories] = useState<Category[]>([]);
     const [isPublic, setIsPublic] = useState(true); // 기본값: 공개
+    const [year, setYear] = useState<string>(''); // 연도 필드 추가
+    const [isOnTimeline, setIsOnTimeline] = useState(false); // 타임라인 표시 여부
 
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -78,7 +80,7 @@ export const PlaylistImportModal = ({ onClose, onSuccess }: Props) => {
 
             setStatus('DB에 저장하는 중...');
 
-            // 3-1. 재생목록 저장 (category_id 추가)
+            // 3-1. 재생목록 저장 (category_id, year, is_on_timeline 추가)
             const { data: playlist, error: playlistError } = await supabase
                 .from('learning_playlists')
                 .insert({
@@ -88,7 +90,9 @@ export const PlaylistImportModal = ({ onClose, onSuccess }: Props) => {
                     author_id: user.id,
                     is_public: isPublic, // 사용자가 선택한 공개/비공개 설정
                     youtube_playlist_id: playlistInfo.id,
-                    category_id: categoryId // 선택한 폴더 ID
+                    category_id: categoryId, // 선택한 폴더 ID
+                    year: year ? parseInt(year) : null, // 연도 저장
+                    is_on_timeline: isOnTimeline // 타임라인 표시 여부 저장
                 })
                 .select()
                 .single();
@@ -161,6 +165,31 @@ export const PlaylistImportModal = ({ onClose, onSuccess }: Props) => {
                                 </option>
                             ))}
                         </select>
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label className={styles.label}>
+                            연도 (역사 타임라인용)
+                        </label>
+                        <input
+                            type="number"
+                            value={year}
+                            onChange={(e) => setYear(e.target.value)}
+                            placeholder="예: 1980"
+                            className={styles.input}
+                        />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label className={styles.checkboxLabel}>
+                            <input
+                                type="checkbox"
+                                checked={isOnTimeline}
+                                onChange={(e) => setIsOnTimeline(e.target.checked)}
+                                className={styles.checkbox}
+                            />
+                            <span>역사 타임라인(캔버스)에 표시</span>
+                        </label>
                     </div>
 
                     <div className={styles.formGroup}>
