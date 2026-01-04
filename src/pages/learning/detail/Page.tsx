@@ -790,64 +790,17 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                         </h3>
 
                         <div className="ld-bookmark-modal-field">
-                            <label>시간 설정</label>
-                            <div className="ld-time-edit-container">
-                                <div className="ld-time-input-group">
-                                    <input
-                                        type="text"
-                                        value={modalTimestamp !== null ? formatTimestamp(modalTimestamp) : ''}
-                                        onChange={(e) => {
-                                            const parsed = parseTimestamp(e.target.value);
-                                            if (parsed !== null) setModalTimestamp(parsed);
-                                        }}
-                                        placeholder="MM:SS"
-                                        className="ld-bookmark-modal-input-time"
-                                    />
-                                    <button
-                                        className="ld-capture-time-btn"
-                                        onClick={captureCurrentTime}
-                                        title="현재 재생 시간 가져오기"
-                                    >
-                                        🕒 현재 시간
-                                    </button>
-                                </div>
-
-                                <div className="ld-time-adj-buttons">
-                                    <button onClick={() => adjTime(-5)} className="ld-adj-btn">-5s</button>
-                                    <button onClick={() => adjTime(-1)} className="ld-adj-btn">-1s</button>
-                                    <button onClick={() => adjTime(1)} className="ld-adj-btn">+1s</button>
-                                    <button onClick={() => adjTime(5)} className="ld-adj-btn">+5s</button>
-                                </div>
-
-                                <div className="ld-time-slider-container">
-                                    <input
-                                        type="range"
-                                        min="0"
-                                        max={playerRef.current?.getDuration() || 3600}
-                                        value={modalTimestamp || 0}
-                                        onChange={(e) => setModalTimestamp(Number(e.target.value))}
-                                        className="ld-time-range-slider"
-                                    />
-                                    <div className="ld-slider-labels">
-                                        <span>00:00</span>
-                                        <span>{playerRef.current ? formatTimestamp(playerRef.current.getDuration()) : '--:--'}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div className="ld-bookmark-modal-field">
-                            <label>이름</label>
-                            <input
-                                type="text"
+                            <label>메모 내용</label>
+                            <textarea
                                 value={bookmarkLabel}
                                 onChange={(e) => setBookmarkLabel(e.target.value)}
-                                placeholder="북마크 이름"
-                                className="ld-bookmark-modal-input"
+                                placeholder="영상 위에 표시될 메모 내용 (줄바꿈 가능)"
+                                className="ld-bookmark-modal-input textarea"
+                                rows={2}
                             />
                         </div>
 
-                        <div className="ld-bookmark-modal-field">
+                        <div className="ld-bookmark-modal-field compact-row">
                             <label className="ld-bookmark-modal-checkbox">
                                 <input
                                     type="checkbox"
@@ -858,58 +811,53 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                             </label>
                         </div>
 
-                        {isOverlayBookmark && (
-                            <>
-                                <div className="ld-bookmark-modal-field">
-                                    <label>위치 설정 (드래그하세요)</label>
-                                    <div
-                                        className="ld-overlay-preview"
-                                        onMouseMove={handleMarkerDrag}
-                                        onMouseUp={handleMarkerDragEnd}
-                                        onMouseLeave={handleMarkerDragEnd}
-                                        onTouchMove={handleMarkerDrag}
-                                        onTouchEnd={handleMarkerDragEnd}
-                                    >
-                                        <div className="ld-preview-player-wrapper">
-                                            <YouTube
-                                                videoId={currentVideo.youtube_video_id}
-                                                opts={{
-                                                    host: 'https://www.youtube.com',
-                                                    playerVars: {
-                                                        autoplay: 1,
-                                                        controls: 0,
-                                                        modestbranding: 1,
-                                                        mute: 1,
-                                                        rel: 0,
-                                                        iv_load_policy: 3
-                                                    },
-                                                }}
-                                                onReady={(e) => {
-                                                    if (!showBookmarkModal) return;
-                                                    previewPlayerRef.current = e.target;
-
-                                                    // 특정 시간으로 바로 이동하여 장면 로딩 유도
-                                                    if (modalTimestamp !== null) {
-                                                        e.target.seekTo(modalTimestamp, true);
+                        {/* Video & Time Seek Section - Always visible for better UX */}
+                        <div className="ld-bookmark-modal-field no-margin">
+                            <div className="ld-video-seek-group">
+                                <div
+                                    className="ld-overlay-preview"
+                                    onMouseMove={handleMarkerDrag}
+                                    onMouseUp={handleMarkerDragEnd}
+                                    onMouseLeave={handleMarkerDragEnd}
+                                    onTouchMove={handleMarkerDrag}
+                                    onTouchEnd={handleMarkerDragEnd}
+                                >
+                                    <div className="ld-preview-player-wrapper">
+                                        <YouTube
+                                            videoId={currentVideo.youtube_video_id}
+                                            opts={{
+                                                host: 'https://www.youtube.com',
+                                                playerVars: {
+                                                    autoplay: 1,
+                                                    controls: 0,
+                                                    modestbranding: 1,
+                                                    mute: 1,
+                                                    rel: 0,
+                                                    iv_load_policy: 3
+                                                },
+                                            }}
+                                            onReady={(e) => {
+                                                if (!showBookmarkModal) return;
+                                                previewPlayerRef.current = e.target;
+                                                if (modalTimestamp !== null) {
+                                                    e.target.seekTo(modalTimestamp, true);
+                                                }
+                                                setTimeout(() => {
+                                                    if (previewPlayerRef.current && previewPlayerRef.current.pauseVideo) {
+                                                        previewPlayerRef.current.pauseVideo();
                                                     }
-
-                                                    // 약간의 지연 후 정지 (장면이 뜰 시간을 줌)
-                                                    setTimeout(() => {
-                                                        if (previewPlayerRef.current && previewPlayerRef.current.pauseVideo) {
-                                                            previewPlayerRef.current.pauseVideo();
-                                                        }
-                                                    }, 500);
-                                                }}
-                                                onPlay={(e) => {
-                                                    // 미리보기 모드에서는 항상 정지 상태 유지
-                                                    if (e.target && e.target.pauseVideo) {
-                                                        e.target.pauseVideo();
-                                                    }
-                                                }}
-                                                className="ld-preview-video-element"
-                                            />
-                                        </div>
-                                        <div className="ld-overlay-preview-bg" style={{ opacity: 0.2 }}>장면 로딩 중...</div>
+                                                }, 500);
+                                            }}
+                                            onPlay={(e) => {
+                                                if (e.target && e.target.pauseVideo) {
+                                                    e.target.pauseVideo();
+                                                }
+                                            }}
+                                            className="ld-preview-video-element"
+                                        />
+                                    </div>
+                                    <div className="ld-preview-cover" />
+                                    {isOverlayBookmark && (
                                         <div
                                             className="ld-overlay-marker"
                                             style={{
@@ -924,23 +872,61 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                                             <span className="ld-overlay-marker-icon">📍</span>
                                             <span className="ld-overlay-marker-text">{bookmarkLabel}</span>
                                         </div>
-                                    </div>
+                                    )}
                                 </div>
 
-                                <div className="ld-bookmark-modal-field">
-                                    <label>표시 시간: {overlayDuration}초</label>
+                                <div className="ld-time-slider-attached">
+                                    <div
+                                        className="ld-time-bubble"
+                                        style={{
+                                            left: `${(modalTimestamp || 0) / (playerRef.current?.getDuration() || 1) * 100}%`
+                                        }}
+                                    >
+                                        {formatTimestamp(modalTimestamp || 0)}
+                                    </div>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max={playerRef.current?.getDuration() || 3600}
+                                        value={modalTimestamp || 0}
+                                        onChange={(e) => setModalTimestamp(Number(e.target.value))}
+                                        className="ld-time-range-slider-mini"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="ld-time-controls-compact">
+                            <div className="ld-time-adj-row">
+                                <button onClick={() => adjTime(-5)} className="ld-adj-btn-compact">-5s</button>
+                                <button onClick={() => adjTime(-1)} className="ld-adj-btn-compact">-1s</button>
+                                <button onClick={() => adjTime(1)} className="ld-adj-btn-compact">+1s</button>
+                                <button onClick={() => adjTime(5)} className="ld-adj-btn-compact">+5s</button>
+                            </div>
+                        </div>
+
+                        {isOverlayBookmark && (
+                            <div className="ld-overlay-params-row-compact">
+                                <div className="ld-param-field flex-1">
+                                    <div className="ld-param-header">
+                                        <span>표시 시간</span>
+                                        <span className="ld-param-val">{overlayDuration}s</span>
+                                    </div>
                                     <input
                                         type="range"
                                         min="1"
                                         max="10"
                                         value={overlayDuration}
                                         onChange={(e) => setOverlayDuration(Number(e.target.value))}
-                                        className="ld-bookmark-modal-slider"
+                                        className="ld-bookmark-modal-slider-mini"
                                     />
                                 </div>
 
-                                <div className="ld-bookmark-modal-field">
-                                    <label>메모 크기: {Math.round(overlayScale * 100)}%</label>
+                                <div className="ld-param-field flex-1">
+                                    <div className="ld-param-header">
+                                        <span>메모 크기</span>
+                                        <span className="ld-param-val">{Math.round(overlayScale * 100)}%</span>
+                                    </div>
                                     <input
                                         type="range"
                                         min="0.5"
@@ -948,10 +934,10 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                                         step="0.1"
                                         value={overlayScale}
                                         onChange={(e) => setOverlayScale(Number(e.target.value))}
-                                        className="ld-bookmark-modal-slider"
+                                        className="ld-bookmark-modal-slider-mini"
                                     />
                                 </div>
-                            </>
+                            </div>
                         )}
 
                         <div className="ld-bookmark-modal-actions">
