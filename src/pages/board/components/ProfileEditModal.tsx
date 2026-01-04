@@ -13,6 +13,7 @@ interface ProfileEditModalProps {
     };
     onProfileUpdated: () => void;
     userId: string;
+    onLogout?: () => void;
 }
 
 export default function ProfileEditModal({
@@ -20,7 +21,8 @@ export default function ProfileEditModal({
     onClose,
     currentUser,
     onProfileUpdated,
-    userId
+    userId,
+    onLogout
 }: ProfileEditModalProps) {
     const [nickname, setNickname] = useState(currentUser.nickname || '');
     const [previewImage, setPreviewImage] = useState<string | null>(currentUser.profile_image || null);
@@ -383,7 +385,28 @@ export default function ProfileEditModal({
                         </p>
                     </div>
 
-                    <div className="userreg-footer" style={{ marginTop: '20px' }}>
+                    <div className="userreg-footer" style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
+                        {onLogout && (
+                            <button
+                                onClick={() => {
+                                    if (confirm('로그아웃 하시겠습니까?')) {
+                                        onLogout();
+                                        onClose();
+                                    }
+                                }}
+                                disabled={isSubmitting}
+                                className="userreg-submit-btn"
+                                style={{
+                                    backgroundColor: 'transparent',
+                                    color: '#ef4444',
+                                    border: '1px solid #ef4444',
+                                    flex: 1
+                                }}
+                            >
+                                <i className="ri-logout-box-line" style={{ marginRight: '6px' }}></i>
+                                로그아웃
+                            </button>
+                        )}
                         <button
                             onClick={handleSubmit}
                             disabled={isSubmitting || !nicknameStatus?.isAvailable || nicknameStatus?.checking}
@@ -392,7 +415,8 @@ export default function ProfileEditModal({
                                 backgroundColor: 'var(--primary-color)',
                                 color: 'white',
                                 opacity: (isSubmitting || !nicknameStatus?.isAvailable || nicknameStatus?.checking) ? 0.6 : 1,
-                                cursor: (isSubmitting || !nicknameStatus?.isAvailable || nicknameStatus?.checking) ? 'not-allowed' : 'pointer'
+                                cursor: (isSubmitting || !nicknameStatus?.isAvailable || nicknameStatus?.checking) ? 'not-allowed' : 'pointer',
+                                flex: 2
                             }}
                         >
                             {isSubmitting ? '저장 중...' : '저장하기'}

@@ -123,6 +123,13 @@ export default function HistoryTimelinePage() {
     const [highlightedEdgeId, setHighlightedEdgeId] = useState<string | null>(null);
     const [isEditMode, setIsEditMode] = useState(false);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+    const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 768);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     useEffect(() => {
         if (!isAdmin) setIsEditMode(false);
@@ -205,26 +212,28 @@ export default function HistoryTimelinePage() {
     };
 
     const handleSaveLayout = async () => {
-        if (!user || !isEditMode) return;
+        if (!user || !isAdmin || !isEditMode) return;
 
-        if (!window.confirm('현재 레이아웃을 저장하시겠습니까?')) return;
+        const deviceName = isMobile ? '모바일' : '데스크탑';
+        if (!window.confirm(`현재 ${deviceName} 레이아웃을 저장하시겠습니까?`)) return;
 
         try {
             setLoading(true);
-            const updates = nodes.map(node =>
-                supabase
+            const updates = nodes.map(node => {
+                const updateData = isMobile
+                    ? { mobile_x: node.position.x, mobile_y: node.position.y }
+                    : { position_x: node.position.x, position_y: node.position.y };
+
+                return supabase
                     .from('history_nodes')
-                    .update({
-                        position_x: node.position.x,
-                        position_y: node.position.y
-                    })
-                    .eq('id', parseInt(node.id))
-            );
+                    .update(updateData)
+                    .eq('id', parseInt(node.id));
+            });
 
             await Promise.all(updates);
             setLoading(false);
             setHasUnsavedChanges(false);
-            alert('레이아웃이 저장되었습니다.');
+            alert(`${deviceName} 레이아웃이 저장되었습니다.`);
         } catch (error) {
             console.error('Error saving layout:', error);
             setLoading(false);
@@ -313,7 +322,10 @@ export default function HistoryTimelinePage() {
                 return {
                     id: String(node.id),
                     type: 'historyNode',
-                    position: { x: node.position_x || 0, y: node.position_y || 0 },
+                    position: {
+                        x: (isMobile ? node.mobile_x : node.position_x) || node.position_x || 0,
+                        y: (isMobile ? node.mobile_y : node.position_y) || node.position_y || 0
+                    },
                     data: {
                         id: node.id,
                         title,
@@ -703,6 +715,8 @@ export default function HistoryTimelinePage() {
                 youtube_url: draggedData.youtube_url || '',
                 position_x: position.x,
                 position_y: position.y,
+                mobile_x: position.x,
+                mobile_y: position.y,
                 created_by: user.id,
             };
 
@@ -733,7 +747,10 @@ export default function HistoryTimelinePage() {
                         const newNode: Node = {
                             id: String(data.id),
                             type: 'historyNode',
-                            position: { x: data.position_x, y: data.position_y },
+                            position: {
+                                x: (isMobile ? data.mobile_x : data.position_x) || data.position_x || 0,
+                                y: (isMobile ? data.mobile_y : data.position_y) || data.position_y || 0
+                            },
                             data: {
                                 id: data.id,
                                 title: data.title,

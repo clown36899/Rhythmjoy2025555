@@ -156,6 +156,14 @@
     border-radius: 8px;
 }
 
+@media (max-width: 768px) {
+    .react-flow__minimap {
+        transform: scale(0.6);
+        transform-origin: bottom right;
+        margin: 10px;
+    }
+}
+
 .react-flow__edge-path {
     stroke: #8b5cf6;
     stroke-width: 2;

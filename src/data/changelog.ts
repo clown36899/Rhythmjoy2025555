@@ -8,6 +8,17 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '3.2.0',
+        date: '2026-01-05',
+        changes: [
+            '[✨ 기능] 역사 타임라인 기기별(모바일/데스크탑) 독립적 레이아웃 저장 기능 도입',
+            '[🔧 최적화] 모바일 환경 타임라인 미니맵 크기 및 배치 최적화',
+            '[🐛 Fix] 인증/프로필 수정 이벤트 리스너 복구 및 먹통 현상 해결',
+            '[🎨 UI] 헤더 사용자 버튼 클릭 시 사이드 메뉴 즉시 오픈 변경',
+            '[🔧 개선] 프로필 수정 모달 내 로그아웃 버튼 추가'
+        ]
+    },
+    {
         version: '3.1.7',
         date: '2026-01-01',
         changes: [

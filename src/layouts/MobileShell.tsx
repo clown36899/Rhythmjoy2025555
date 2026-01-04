@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLocation, useNavigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useModal } from '../hooks/useModal';
 import { useOnlineUsers } from '../hooks/useOnlineUsers';
 import { BottomNavigation } from './BottomNavigation';
 import SideDrawer from '../components/SideDrawer';
@@ -16,9 +17,13 @@ interface MobileShellProps {
 export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, userProfile, isAdmin: authIsAdmin } = useAuth();
+  const { user, userProfile, isAdmin: authIsAdmin, signInWithKakao, refreshUserProfile, signOut } = useAuth();
   const { i18n } = useTranslation();
   const onlineUsersData = useOnlineUsers();
+
+  // Modals
+  const profileEditModal = useModal('profileEdit');
+  const userRegistrationModal = useModal('userRegistration');
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [calendarMode, setCalendarMode] = useState<'collapsed' | 'fullscreen'>('collapsed');
@@ -83,6 +88,41 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
       window.removeEventListener('monthVisibilityChange', handleMonthVisibility);
     };
   }, []);
+
+  // Login & Profile Modal Handlers
+  useEffect(() => {
+    const handleOpenUserProfile = () => {
+      if (user) {
+        setIsDrawerOpen(true);
+      } else {
+        setIsDrawerOpen(true);
+      }
+    };
+
+    const handleOpenProfileEdit = () => {
+      if (user) {
+        profileEditModal.open({
+          currentUser: userProfile || {
+            nickname: user.user_metadata?.name || user.email?.split('@')[0] || '',
+            profile_image: user.user_metadata?.avatar_url || null
+          },
+          userId: user.id,
+          onProfileUpdated: refreshUserProfile,
+          onLogout: signOut
+        });
+      } else {
+        handleOpenUserProfile();
+      }
+    };
+
+    window.addEventListener('openUserProfile', handleOpenUserProfile);
+    window.addEventListener('openProfileEdit', handleOpenProfileEdit);
+
+    return () => {
+      window.removeEventListener('openUserProfile', handleOpenUserProfile);
+      window.removeEventListener('openProfileEdit', handleOpenProfileEdit);
+    };
+  }, [user, profileEditModal, userRegistrationModal, signInWithKakao]);
 
   const changeLanguage = (lng: string) => {
     // Google Translate 호출
@@ -286,7 +326,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
 
             <button
               className="header-user-btn"
-              onClick={() => window.dispatchEvent(new CustomEvent('openUserProfile'))}
+              onClick={() => setIsDrawerOpen(true)}
               title={user ? "프로필" : "로그인"}
               data-analytics-id="header_user"
               data-analytics-type="action"
