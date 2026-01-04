@@ -41,7 +41,7 @@
   /* background: rgb(0 0 0 / 77%);
   backdrop-filter: blur(20px); */
   -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  /* border-top: 1px solid rgba(255, 255, 255, 0.08); */
   z-index: var(--z-20);
   width: 100%;
   margin: 0;

@@ -1,5 +1,4 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
-import html2canvas from 'html2canvas';
+import React, { useState, useMemo, useEffect } from 'react';
 import type { SocialSchedule, SocialGroup } from '../types';
 import { getLocalDateString, getKSTDay } from '../../v2/utils/eventListUtils';
 import GroupDirectory from './GroupDirectory';
@@ -32,7 +31,7 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
     isAdmin
 }) => {
     const [activeTab, setActiveTab] = useState<ViewTab>('weekly');
-    const containerRef = useRef<HTMLElement>(null);
+
 
     const weekNames = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -240,160 +239,15 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
             <div className="compact-place">{item.place_name}</div>
         </div>
     );
-    const [isSharing, setIsSharing] = useState(false);
 
-    const handleShareImage = async () => {
-        if (!containerRef.current || isSharing) return;
 
-        try {
-            setIsSharing(true);
 
-            // 이미지를 base64로 변환하는 헬퍼 함수
-            const convertImageToBase64 = async (img: HTMLImageElement): Promise<string> => {
-                try {
-                    const response = await fetch(img.src);
-                    const blob = await response.blob();
-                    return new Promise((resolve, reject) => {
-                        const reader = new FileReader();
-                        reader.onloadend = () => resolve(reader.result as string);
-                        reader.onerror = reject;
-                        reader.readAsDataURL(blob);
-                    });
-                } catch (error) {
-                    console.warn('Failed to convert image:', img.src, error);
-                    return img.src; // 실패하면 원본 URL 사용
-                }
-            };
-
-            // 모든 이미지를 base64로 변환
-            const images = containerRef.current.querySelectorAll('img');
-            const originalSrcs = new Map<HTMLImageElement, string>();
-
-            for (const img of Array.from(images)) {
-                const htmlImg = img as HTMLImageElement;
-                originalSrcs.set(htmlImg, htmlImg.src);
-                const base64 = await convertImageToBase64(htmlImg);
-                htmlImg.src = base64;
-            }
-
-            // 약간의 대기 (DOM 업데이트 완료)
-            await new Promise(resolve => setTimeout(resolve, 100));
-
-            // html2canvas로 DOM 캡처
-            const canvas = await html2canvas(containerRef.current, {
-                scale: 2,
-                backgroundColor: '#0a0a0a',
-                logging: false,
-                foreignObjectRendering: false, // 텍스트 렌더링 개선
-                onclone: (clonedDoc) => {
-                    // 캡처용 헤더 표시
-                    const captureHeader = clonedDoc.querySelector('.capture-header');
-                    if (captureHeader) {
-                        (captureHeader as HTMLElement).style.display = 'block';
-                    }
-
-                    // 클론된 문서에서 탭 버튼 텍스트 강제 표시
-                    const tabBtns = clonedDoc.querySelectorAll('.tab-btn');
-                    tabBtns.forEach((btn: any) => {
-                        btn.style.position = 'relative';
-                        btn.style.zIndex = '10';
-                        btn.style.color = btn.classList.contains('active') ? '#1a1a1a' : '#6b7280';
-                    });
-
-                    // 공유 버튼 숨기기
-                    const shareBtn = clonedDoc.querySelector('.share-schedule-btn');
-                    if (shareBtn) {
-                        (shareBtn as HTMLElement).style.display = 'none';
-                    }
-
-                    // 모든 애니메이션과 transition 비활성화 + opacity 강제 1
-                    const allElements = clonedDoc.querySelectorAll('*');
-                    allElements.forEach((el: any) => {
-                        el.style.animation = 'none';
-                        el.style.transition = 'none';
-                        if (el.style.opacity && parseFloat(el.style.opacity) < 1) {
-                            el.style.opacity = '1';
-                        }
-                    });
-                },
-            });
-
-            // 원본 이미지 URL 복원
-            originalSrcs.forEach((src, img) => {
-                img.src = src;
-            });
-
-            // Canvas를 Blob으로 변환
-            canvas.toBlob(async (blob) => {
-                if (!blob) {
-                    setIsSharing(false);
-                    return;
-                }
-
-                const fileName = `금주의_일정_${new Date().toISOString().split('T')[0]}.png`;
-                const file = new File([blob], fileName, { type: 'image/png' });
-
-                // 모바일: Web Share API 사용
-                if (navigator.share && navigator.canShare?.({ files: [file] })) {
-                    try {
-                        await navigator.share({
-                            files: [file],
-                            title: '금주의 일정',
-                            text: '이번주 스윙댄스 일정을 확인하세요!',
-                        });
-                    } catch (err) {
-                        if ((err as Error).name !== 'AbortError') {
-                            console.error('Share failed:', err);
-                        }
-                    }
-                } else {
-                    // 데스크톱: 이미지 다운로드
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = fileName;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    URL.revokeObjectURL(url);
-                }
-                setIsSharing(false);
-            }, 'image/png');
-        } catch (error) {
-            console.error('Image capture failed:', error);
-            alert('이미지 생성에 실패했습니다.');
-            setIsSharing(false);
-        }
-    };
 
     return (
-        <section className="weekly-social-container" ref={containerRef}>
-            {/* 캡처용 헤더 */}
-            <div className="capture-header">
-                <h1 className="capture-site-name">댄스빌보드</h1>
-                <p className="capture-site-url">swingenjoy.com</p>
-            </div>
+        <section className="weekly-social-container">
 
-            {/* 공유 버튼 (탭 메뉴 밖) */}
-            {activeTab === 'weekly' && isAdmin && (
-                <div className="share-btn-wrapper">
-                    <button
-                        className="share-schedule-btn"
-                        onClick={handleShareImage}
-                        disabled={isSharing}
-                        title="일정 이미지로 공유"
-                        data-analytics-id="share_weekly_image"
-                        data-analytics-type="action"
-                        data-analytics-section="weekly_social"
-                    >
-                        {isSharing ? (
-                            <i className="ri-loader-4-line spin"></i>
-                        ) : (
-                            <i className="ri-share-line"></i>
-                        )}
-                    </button>
-                </div>
-            )}
+
+
 
             <div className="view-tab-menu-v3">
                 <button

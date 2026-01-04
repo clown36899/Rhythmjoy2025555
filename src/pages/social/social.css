@@ -3,7 +3,7 @@
   max-width: 800px;
   /* 모바일 중심 레이아웃 */
   margin: 0 auto;
-  background-color: #0f0f0f;
+  /* background-color: #0f0f0f; */
   min-height: 100vh;
 }
 

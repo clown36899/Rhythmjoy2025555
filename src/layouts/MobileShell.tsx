@@ -377,11 +377,11 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
 
       {/* Bottom Navigation */}
       <div data-id="bottom-nav" className="shell-bottom-nav">
-        {isEventsPage && (
+        {(isEventsPage || isCalendarPage || isSocialPage || isShoppingPage) && (
           <div className="shell-top-bar" style={{ minHeight: '32px' }}>
             <div className="shell-top-bar-content">
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1 }}>
-                {calendarMode === "fullscreen" && (
+                {(isEventsPage || isCalendarPage) && calendarMode === "fullscreen" && (
                   <button
                     onClick={() => {
                       logUserInteraction('Button', 'Click', 'CalendarSearch');
@@ -400,7 +400,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {!isCurrentMonthVisible && (
+                {(isEventsPage || isCalendarPage) && !isCurrentMonthVisible && (
                   <button
                     onClick={() => window.dispatchEvent(new CustomEvent('goToToday'))}
                     style={{
@@ -418,18 +418,34 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                 )}
 
                 <button
-                  onClick={() => window.dispatchEvent(new CustomEvent('createEventForDate', { detail: { source: 'floatingBtn', calendarMode } }))}
+                  onClick={() => {
+                    if (isSocialPage) {
+                      window.dispatchEvent(new CustomEvent('openSocialRegistration'));
+                    } else if (isShoppingPage) {
+                      window.dispatchEvent(new CustomEvent('openShopRegistration'));
+                    } else if (isCalendarPage) {
+                      window.dispatchEvent(new CustomEvent('openCalendarRegistration'));
+                    } else {
+                      window.dispatchEvent(new CustomEvent('createEventForDate', { detail: { source: 'floatingBtn', calendarMode } }));
+                    }
+                  }}
                   className="shell-btn-register-topbar"
-                  data-analytics-id="register_event"
+                  data-analytics-id="register_generic"
                   data-analytics-type="action"
-                  data-analytics-title="이벤트 등록"
+                  data-analytics-title={isSocialPage ? "소셜 등록" : isShoppingPage ? "쇼핑몰 등록" : "이벤트 등록"}
                   data-analytics-section="top_bar"
                 >
                   <i className="ri-add-line"></i>
                   <span className="manual-label-wrapper">
-                    <span className="translated-part">Register</span>
-                    <span className="fixed-part ko" translate="no">이벤트 등록</span>
-                    <span className="fixed-part en" translate="no">Register</span>
+                    <span className="translated-part">
+                      {isSocialPage ? "Register" : isShoppingPage ? "Register" : "Register"}
+                    </span>
+                    <span className="fixed-part ko" translate="no">
+                      {isSocialPage ? "소셜/단체 등록" : isShoppingPage ? "쇼핑몰 등록" : "이벤트 등록"}
+                    </span>
+                    <span className="fixed-part en" translate="no">
+                      {isSocialPage ? "Register Social/Group" : isShoppingPage ? "Register Shop" : "Register Event"}
+                    </span>
                   </span>
                 </button>
               </div>
