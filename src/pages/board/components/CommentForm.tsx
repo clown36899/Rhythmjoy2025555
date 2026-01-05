@@ -119,7 +119,7 @@ export default function CommentForm({ postId, category, onCommentAdded, editingC
                             .from(table)
                             .select('*')
                             .eq('id', editingComment.id)
-                            .single();
+                            .maybeSingle();
                         resultComment = updated;
                     }
                 } else {

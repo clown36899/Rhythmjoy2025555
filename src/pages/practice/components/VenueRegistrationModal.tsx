@@ -158,7 +158,7 @@ export default function VenueRegistrationModal({
             .from('venues')
             .select('*')
             .eq('id', id)
-            .single();
+            .maybeSingle();
 
         if (data) {
             // Ownership check (only if user is logged in - if not, Overlay covers it)

@@ -906,8 +906,9 @@ export default function BillboardPage() {
         .select("*")
         .eq("id", userId)
         .eq("is_active", true)
-        .single();
-      if (userError) throw new Error("빌보드 사용자를 찾을 수 없습니다.");
+        .maybeSingle();
+      if (userError) throw userError;
+      if (!user) throw new Error("빌보드 사용자를 찾을 수 없습니다.");
       setBillboardUser(user);
 
       // Analytics: 빌보드 로드 기록 (범인 색출용)
@@ -917,8 +918,9 @@ export default function BillboardPage() {
         .from("billboard_user_settings")
         .select("*")
         .eq("billboard_user_id", userId)
-        .single();
-      if (settingsError) throw new Error("빌보드 설정을 불러올 수 없습니다.");
+        .maybeSingle();
+      if (settingsError) throw settingsError;
+      if (!userSettings) throw new Error("빌보드 설정을 불러올 수 없습니다.");
       log("[빌보드] 설정 로드:", {
         auto_slide_interval: userSettings.auto_slide_interval,
         video_play_duration: userSettings.video_play_duration,

@@ -290,8 +290,9 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
                     .from('social_groups')
                     .insert([groupData])
                     .select()
-                    .single();
+                    .maybeSingle();
                 if (error) throw error;
+                if (!data) throw new Error('그룹 생성에 실패했습니다.');
                 result = data;
             }
 

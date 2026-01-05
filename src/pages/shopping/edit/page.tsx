@@ -99,7 +99,7 @@ export default function ShoppingEditPage() {
                     .from('shops')
                     .select(`*, featured_items(*)`)
                     .eq('id', shopId)
-                    .single();
+                    .maybeSingle();
 
                 if (error) throw error;
 

@@ -211,9 +211,10 @@ export default function ShoppingRegisterPage() {
           user_id: user.id, // Store owner ID
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (shopError) throw shopError;
+      if (!shopData) throw new Error('Shop creation failed');
 
       // 2. Insert into featured_items table (only if product info provided)
       if (itemName && itemImageUrl) {

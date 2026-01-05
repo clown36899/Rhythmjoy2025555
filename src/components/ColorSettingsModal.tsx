@@ -26,7 +26,7 @@ export default function ColorSettingsModal({ isOpen, onClose }: ColorSettingsMod
                 .from("theme_settings")
                 .select("*")
                 .eq("id", 1)
-                .single();
+                .maybeSingle();
 
             if (error || !data) {
                 return;

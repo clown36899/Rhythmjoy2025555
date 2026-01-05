@@ -182,9 +182,10 @@ export default function ShopEditModal({ isOpen, onClose, onSuccess, shopId }: Sh
                     .from('shops')
                     .select(`*, featured_items (*)`)
                     .eq('id', shopId)
-                    .single();
+                    .maybeSingle();
 
                 if (error) throw error;
+                if (!data) throw new Error('Show not found');
 
                 if (data) {
                     setShopName(data.name);

@@ -87,7 +87,7 @@ export default function PlaceCalendar({ place, onBack }: PlaceCalendarProps) {
         .from('social_schedules')
         .select('password')
         .eq('id', schedule.id)
-        .single();
+        .maybeSingle();
 
       if (scheduleData?.password !== password) {
         alert('비밀번호가 올바르지 않습니다.');

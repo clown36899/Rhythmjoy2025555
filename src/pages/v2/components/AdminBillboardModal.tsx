@@ -211,11 +211,10 @@ export default function AdminBillboardModal({
         .from("billboard_user_settings")
         .select("*")
         .eq("billboard_user_id", billboardUserId)
-        .single();
+        .eq("billboard_user_id", billboardUserId)
+        .maybeSingle();
 
-      if (error && error.code !== "PGRST116") {
-        throw error;
-      }
+      if (error) throw error;
 
       // DB에서 로드 (null 유지, UI에서만 오늘 표시)
       const settings = data || {

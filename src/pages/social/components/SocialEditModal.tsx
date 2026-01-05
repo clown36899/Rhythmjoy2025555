@@ -114,9 +114,10 @@ export default function SocialEditModal({ item, itemType, onClose, onSuccess }: 
         })
         .eq('id', item.id)
         .select()
-        .single();
+        .maybeSingle();
 
       if (updateError) throw updateError;
+      if (!updatedData) throw new Error('수정된 데이터를 찾을 수 없습니다.');
 
       onSuccess(updatedData, false); // false = not deleted
       onClose(); // Close modal after successful update

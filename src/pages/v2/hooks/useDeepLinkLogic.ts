@@ -83,7 +83,7 @@ export function useDeepLinkLogic({ setCurrentMonth }: UseDeepLinkLogicProps) {
                         .from("events")
                         .select("id, start_date, date, category, venue_id")
                         .eq("id", id)
-                        .single();
+                        .maybeSingle();
 
                     if (event) {
                         // Navigate to event's month

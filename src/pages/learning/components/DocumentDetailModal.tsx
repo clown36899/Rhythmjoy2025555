@@ -68,9 +68,10 @@ export const DocumentDetailModal = ({ documentId, onClose, onUpdate }: Props) =>
                 .from('learning_documents')
                 .select('*')
                 .eq('id', documentId)
-                .single();
+                .maybeSingle();
 
             if (error) throw error;
+            if (!data) throw new Error('문서를 찾을 수 없습니다.');
             setDoc(data);
 
             // Sync edit states

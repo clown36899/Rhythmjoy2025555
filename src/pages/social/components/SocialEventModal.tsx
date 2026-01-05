@@ -74,9 +74,10 @@ export default function SocialEventModal({ onClose, onEventCreated, preselectedD
           image_micro: imageUrl
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (insertError) throw insertError;
+      if (!insertedData) throw new Error('스케줄 생성에 실패했습니다.');
 
       alert('요일별 스케줄이 등록되었습니다.');
       // 부모에게 데이터 전달하여 즉시 반영

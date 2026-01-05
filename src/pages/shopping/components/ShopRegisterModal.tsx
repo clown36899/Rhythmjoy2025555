@@ -300,9 +300,10 @@ export default function ShopRegisterModal({ isOpen, onClose, onSuccess }: ShopRe
                     user_id: user.id, // Assign ownership
                 })
                 .select()
-                .single();
+                .maybeSingle();
 
             if (shopError) throw shopError;
+            if (!shopData) throw new Error('쇼핑몰 등록에 실패했습니다.');
 
             // 2. Insert featured items (if any)
             for (const item of featuredItems) {

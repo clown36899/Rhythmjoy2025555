@@ -83,7 +83,7 @@ export default function CommentItem({ comment: initialComment, isAnonymous, onEd
                 .from(table)
                 .select('*')
                 .eq('id', comment.id)
-                .single();
+                .maybeSingle();
 
             if (updatedComment) {
                 setComment(updatedComment);

@@ -50,11 +50,12 @@ export default function VenueDetailModal({ venueId, onClose, onSelect, onEdit }:
                 .from(tableName)
                 .select("*")
                 .eq("id", venueId)
-                .single();
+                .maybeSingle();
 
             if (error) throw error;
+            if (!data) throw new Error("Venue not found");
 
-            const venueData: any = data || {};
+            const venueData: any = data;
 
             // Parse images if it's a JSON string
             if (venueData.images && typeof venueData.images === 'string') {

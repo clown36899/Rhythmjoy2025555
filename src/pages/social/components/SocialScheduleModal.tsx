@@ -247,7 +247,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                         .from('social_groups')
                         .select('storage_path')
                         .eq('id', targetGroupId)
-                        .single();
+                        .maybeSingle();
 
                     if (groupData && groupData.storage_path) {
                         // New Structure: social-groups/{folder}/schedules/{scheduleFolder}

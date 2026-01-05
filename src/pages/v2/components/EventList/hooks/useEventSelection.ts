@@ -36,9 +36,10 @@ export function useEventSelection({
                 .from("events")
                 .select("*")
                 .eq("id", event.id)
-                .single();
+                .maybeSingle();
 
             if (error) throw error;
+            if (!data) throw new Error("Event not found");
             setEventToEdit(data as Event);
             setIsEditingWithDetail(true);
         } catch (error) {

@@ -158,9 +158,10 @@ export default function BillboardUserManagementModal({
           is_active: true,
         })
         .select()
-        .single();
+        .maybeSingle();
 
       if (userError) throw userError;
+      if (!newUser) throw new Error('User creation failed');
 
       const { error: settingsError } = await supabase
         .from('billboard_user_settings')
@@ -197,9 +198,10 @@ export default function BillboardUserManagementModal({
         .from('billboard_user_settings')
         .select('*')
         .eq('billboard_user_id', user.id)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data) throw new Error("Settings not found");
 
       setSelectedSettings(data);
       setExcludedWeekdays(data.excluded_weekdays || []);
@@ -456,8 +458,8 @@ export default function BillboardUserManagementModal({
                         key={index}
                         onClick={() => toggleWeekday(index)}
                         className={`bum-weekday-btn ${excludedWeekdays.includes(index)
-                            ? 'bum-weekday-btn-excluded'
-                            : 'bum-weekday-btn-normal'
+                          ? 'bum-weekday-btn-excluded'
+                          : 'bum-weekday-btn-normal'
                           }`}
                       >
                         {day}
@@ -503,8 +505,8 @@ export default function BillboardUserManagementModal({
                           key={index}
                           onClick={() => toggleWeekday(index)}
                           className={`bum-weekday-btn ${excludedWeekdays.includes(index)
-                              ? 'bum-weekday-btn-excluded'
-                              : 'bum-weekday-btn-normal'
+                            ? 'bum-weekday-btn-excluded'
+                            : 'bum-weekday-btn-normal'
                             }`}
                         >
                           {day}
@@ -559,10 +561,10 @@ export default function BillboardUserManagementModal({
                               <label
                                 key={event.id}
                                 className={`bum-exclude-item ${hasMedia
-                                    ? (isExcluded
-                                      ? 'bum-exclude-item-media bum-exclude-item-excluded'
-                                      : 'bum-exclude-item-media')
-                                    : 'bum-exclude-item-disabled'
+                                  ? (isExcluded
+                                    ? 'bum-exclude-item-media bum-exclude-item-excluded'
+                                    : 'bum-exclude-item-media')
+                                  : 'bum-exclude-item-disabled'
                                   }`}
                               >
                                 {hasMedia ? (
@@ -578,8 +580,8 @@ export default function BillboardUserManagementModal({
                                   className="bum-exclude-checkbox"
                                 />
                                 <span className={`bum-exclude-text ${hasMedia
-                                    ? (isExcluded ? 'bum-exclude-text-excluded' : 'bum-exclude-text-media')
-                                    : 'bum-exclude-text-disabled'
+                                  ? (isExcluded ? 'bum-exclude-text-excluded' : 'bum-exclude-text-media')
+                                  : 'bum-exclude-text-disabled'
                                   }`}>
                                   {event.title}
                                   <span className="bum-exclude-date">
@@ -653,8 +655,8 @@ export default function BillboardUserManagementModal({
                       <button
                         onClick={() => setPlayOrder('sequential')}
                         className={`bum-play-order-btn ${playOrder === 'sequential'
-                            ? 'bum-play-order-btn-active'
-                            : 'bum-play-order-btn-inactive'
+                          ? 'bum-play-order-btn-active'
+                          : 'bum-play-order-btn-inactive'
                           }`}
                       >
                         순서대로
@@ -662,8 +664,8 @@ export default function BillboardUserManagementModal({
                       <button
                         onClick={() => setPlayOrder('random')}
                         className={`bum-play-order-btn ${playOrder === 'random'
-                            ? 'bum-play-order-btn-active'
-                            : 'bum-play-order-btn-inactive'
+                          ? 'bum-play-order-btn-active'
+                          : 'bum-play-order-btn-inactive'
                           }`}
                       >
                         랜덤

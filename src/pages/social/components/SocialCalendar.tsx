@@ -63,7 +63,7 @@ export default function SocialCalendar({
         .from('social_schedules')
         .select('id, user_id, created_at, day_of_week, place_name, title, image_url, image_micro, image_thumbnail, image_medium, image_full, start_time, description, link_name, link_url, venue_id')
         .eq('id', unifiedEvent.originalId)
-        .single();
+        .maybeSingle();
 
       if (error || !scheduleData) {
         console.error('Error fetching schedule:', error);

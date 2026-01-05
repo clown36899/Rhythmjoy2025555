@@ -98,9 +98,10 @@ export const PlaylistImportModal = ({ onClose, onSuccess }: Props) => {
                         order_index: 0 // 맨 위로? 혹은 마지막? 일단 0
                     })
                     .select()
-                    .single();
+                    .maybeSingle();
 
                 if (catError) throw catError;
+                if (!newCategory) throw new Error('폴더 생성에 실패했습니다.');
 
                 setStatus('영상 저장 중...');
 

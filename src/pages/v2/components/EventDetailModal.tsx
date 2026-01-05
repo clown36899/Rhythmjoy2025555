@@ -803,7 +803,7 @@ export default function EventDetailModal({
             .update({ category: updates.category })
             .eq('id', draftEvent.id)
             .select()
-            .single();
+            .maybeSingle();
 
           if (!retryError && retryData && retryData.category === updates.category) {
             console.log('✅ Force update SUCCEEDED! Category is now:', retryData.category);

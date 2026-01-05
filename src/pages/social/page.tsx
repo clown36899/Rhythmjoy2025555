@@ -143,7 +143,7 @@ const SocialPage: React.FC = () => {
       .select('id')
       .eq('id', groupId)
       .eq('password', inputPw)
-      .single();
+      .maybeSingle();
     return !!data;
   };
 

@@ -490,8 +490,8 @@ export default function HistoryTimelinePage() {
                         };
 
                         Promise.all([
-                            supabase.from('history_edges').insert(newEdge1).select().single(),
-                            supabase.from('history_edges').insert(newEdge2).select().single()
+                            supabase.from('history_edges').insert(newEdge1).select().maybeSingle(),
+                            supabase.from('history_edges').insert(newEdge2).select().maybeSingle()
                         ]).then(([res1, res2]) => {
                             if (res1.data && res2.data) {
                                 setEdges(eds => {
@@ -559,7 +559,7 @@ export default function HistoryTimelinePage() {
                 .from('history_edges')
                 .insert(newEdge)
                 .select()
-                .single()
+                .maybeSingle()
                 .then(({ data, error }) => {
                     if (error) {
                         console.error('Error saving connection:', error);
@@ -737,7 +737,7 @@ export default function HistoryTimelinePage() {
                 .from('history_nodes')
                 .insert(newNodeData)
                 .select()
-                .single()
+                .maybeSingle()
                 .then(({ data, error }) => {
                     if (error) {
                         console.error('Error creating node from resource:', error);

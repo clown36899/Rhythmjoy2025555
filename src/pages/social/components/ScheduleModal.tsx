@@ -152,7 +152,7 @@ export default function ScheduleModal({ placeId, date, onClose, onSuccess }: Sch
         const inputPassword = prompt('수정을 위해 비밀번호를 입력하세요:');
         if (inputPassword === null) { setLoading(false); return; }
 
-        const { data: originalSchedule } = await supabase.from('social_schedules').select('password').eq('id', editingSchedule.id).single();
+        const { data: originalSchedule } = await supabase.from('social_schedules').select('password').eq('id', editingSchedule.id).maybeSingle();
         if (inputPassword !== originalSchedule?.password) {
           alert('비밀번호가 올바르지 않습니다.');
           setLoading(false);

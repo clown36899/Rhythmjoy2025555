@@ -136,10 +136,14 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery }:
                         .from('events')
                         .select('*')
                         .eq('id', result.id)
-                        .single();
+                        .maybeSingle();
 
                     if (error) {
                         console.error('이벤트 조회 오류:', error);
+                        return;
+                    }
+
+                    if (!data) {
                         return;
                     }
 
@@ -158,10 +162,14 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery }:
                         .from('shops')
                         .select('*')
                         .eq('id', result.id)
-                        .single();
+                        .maybeSingle();
 
                     if (error) {
                         console.error('쇼핑 조회 오류:', error);
+                        return;
+                    }
+
+                    if (!data) {
                         return;
                     }
 

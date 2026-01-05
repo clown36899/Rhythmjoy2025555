@@ -36,7 +36,7 @@ export default function DefaultThumbnailSettingsModal({
         .from("billboard_settings")
         .select("default_thumbnail_class, default_thumbnail_event")
         .eq("id", 1)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error("Error loading default thumbnails:", error);
