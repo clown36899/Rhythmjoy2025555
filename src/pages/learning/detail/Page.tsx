@@ -146,6 +146,17 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         };
     }, []);
 
+    // Layout Effect: Lock parent scroll on desktop for independent scrolling
+    useEffect(() => {
+        const contentEl = document.querySelector('.archive-layout-container');
+        if (contentEl) {
+            contentEl.classList.add('is-detail-page-mode');
+            return () => {
+                contentEl.classList.remove('is-detail-page-mode');
+            };
+        }
+    }, []);
+
     // Fetch Full Description on Video Change
     useEffect(() => {
         const fetchDesc = async () => {
@@ -1051,7 +1062,6 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         <div className={`ld-container ${onClose ? 'ld-modal-container' : ''}`}>
             {/* Left: Player Area */}
             <div className="ld-player-area">
-                {/* Header */}
                 {/* Header (Show only if modal) */}
                 {onClose && (
                     <div className="ld-header">
@@ -1061,12 +1071,9 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                     </div>
                 )}
 
-
-                {/* YouTube Player Wrapper */}
+                {/* YouTube Player Wrapper (Fixed Top) */}
                 <div className="ld-player-wrapper">
                     <div id="main-youtube-player" className="ld-youtube-player"></div>
-
-
 
                     {/* Video Overlays */}
                     {activeOverlays.map((overlay) => (
@@ -1076,7 +1083,6 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                             style={{
                                 left: `${overlay.overlay_x || 50}%`,
                                 top: `${overlay.overlay_y || 50}%`,
-                                // transform을 하나로 합쳐서 충돌 방지
                                 transform: `translate(-50%, -50%) scale(${overlay.overlay_scale || 1})`
                             }}
                         >
@@ -1085,286 +1091,291 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                     ))}
                 </div>
 
-                {/* Tab Navigation */}
-                <div className="ld-tab-navigation">
-                    <button
-                        className={`ld-tab-btn ${activeTab === 'bookmarks' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('bookmarks')}
-                    >
-                        북마크
-                    </button>
-                    <button
-                        className={`ld-tab-btn ${activeTab === 'playlist' ? 'active' : ''}`}
-                        onClick={() => setActiveTab('playlist')}
-                    >
-                        재생목록
-                    </button>
-                </div>
-
-                {/* Tab Content Area */}
-                <div className="ld-tab-content">
-                    {/* Bookmarks Tab Content */}
-                    <div className={`ld-tab-pane ld-tab-pane-bookmarks ${activeTab === 'bookmarks' ? 'active' : ''}`}>
-                        <div className="ld-bookmark-section">
-                            {isAdmin && (
-                                <div className="ld-bookmark-toolbar-wrapper">
-                                    <h3 className="ld-section-title-small">타임스탬프</h3>
-                                    <div className="ld-bookmark-toolbar">
-                                        <button onClick={handleAddBookmark} className="ld-bookmark-tool-btn primary">
-                                            <span className="ld-tool-icon">+</span> 추가
-                                        </button>
-                                        {/* 
-                                        <button onClick={handleCopyBookmarks} className="ld-bookmark-tool-btn">
-                                            <span className="ld-tool-icon">📋</span> 복사
-                                        </button>
-                                        <button onClick={handlePasteBookmarks} className="ld-bookmark-tool-btn">
-                                            <span className="ld-tool-icon">📥</span> 붙여넣기
-                                        </button> 
-                                        */}
-                                    </div>
-                                </div>
-                            )}
-                            <BookmarkList
-                                bookmarks={bookmarks}
-                                onSeek={seekTo}
-                                onDelete={handleDeleteBookmark}
-                                onEdit={(id) => handleEditBookmark(id)}
-                                isAdmin={isAdmin}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Playlist Tab Content */}
-                    <div className={`ld-tab-pane ld-tab-pane-playlist ${activeTab === 'playlist' ? 'active' : ''}`}>
-                        <div className="ld-playlist-section-inline">
-                            <div className="ld-playlist-container-inline">
-                                {videos.map((video, idx) => (
-                                    <div
-                                        key={video.id}
-                                        onClick={() => handleVideoClick(idx)}
-                                        className={`ld-video-item ${currentVideoIndex === idx ? 'ld-video-item-active' : 'ld-video-item-inactive'}`}
-                                    >
-                                        <div className="ld-video-thumbnail-wrapper-small">
-                                            <img
-                                                src={`https://img.youtube.com/vi/${video.youtube_video_id}/mqdefault.jpg`}
-                                                alt=""
-                                                className={`ld-video-thumbnail ${currentVideoIndex === idx ? 'ld-video-thumbnail-active' : 'ld-video-thumbnail-inactive'}`}
-                                            />
-                                            {currentVideoIndex === idx && isPlaying && (
-                                                <div className="ld-playing-overlay">
-                                                    <span className="ld-playing-text">Playing</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                        <div className="ld-video-info">
-                                            <h3 className={`ld-video-title-small ${currentVideoIndex === idx ? 'ld-video-title-active' : 'ld-video-title-inactive'}`}>
-                                                {idx + 1}. {video.title}
-                                            </h3>
+                {/* Scrollable Content Container (Desktop) */}
+                <div className="ld-content-scroll-container">
+                    {/* Video Metadata (Title & Memo) */}
+                    <div className="ld-video-metadata">
+                        {/* Video Title Row */}
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
+                            <div style={{ flex: 1 }}>
+                                {isEditingVideoTitle ? (
+                                    <div className="ld-edit-container-mini" style={{ marginBottom: '8px' }}>
+                                        <input
+                                            className="ld-edit-input-mini"
+                                            value={editVideoTitle}
+                                            onChange={(e) => setEditVideoTitle(e.target.value)}
+                                            placeholder="영상 제목"
+                                            autoFocus
+                                        />
+                                        <div className="ld-edit-actions-mini">
+                                            <button onClick={handleUpdateVideoTitle} className="ld-save-button-mini">저장</button>
+                                            <button onClick={() => setIsEditingVideoTitle(false)} className="ld-cancel-button-mini">취소</button>
                                         </div>
                                     </div>
-                                ))}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="ld-video-metadata">
-                    {/* Video Title Row */}
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
-                        <div style={{ flex: 1 }}>
-                            {isEditingVideoTitle ? (
-                                <div className="ld-edit-container-mini" style={{ marginBottom: '8px' }}>
-                                    <input
-                                        className="ld-edit-input-mini"
-                                        value={editVideoTitle}
-                                        onChange={(e) => setEditVideoTitle(e.target.value)}
-                                        placeholder="영상 제목"
-                                        autoFocus
-                                    />
-                                    <div className="ld-edit-actions-mini">
-                                        <button onClick={handleUpdateVideoTitle} className="ld-save-button-mini">저장</button>
-                                        <button onClick={() => setIsEditingVideoTitle(false)} className="ld-cancel-button-mini">취소</button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <h2 className="ld-video-title-display">
-                                    {currentVideo.title}
-                                    {isAdmin && (
-                                        <button onClick={startEditingVideoTitle} className="ld-edit-button" title="제목 수정" style={{ opacity: 0.5, fontSize: '0.8em', marginLeft: '6px' }}>✎</button>
-                                    )}
-                                </h2>
-                            )}
-                        </div>
-
-                        {/* Video Year Badge & Editor */}
-                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                            {isEditingVideoYear ? (
-                                <div className="ld-edit-container-mini" style={{ alignItems: 'flex-end', background: '#374151', padding: '6px', borderRadius: '4px' }}>
-                                    <input
-                                        type="number"
-                                        className="ld-edit-input-mini"
-                                        style={{ width: '80px', textAlign: 'right' }}
-                                        value={editVideoYear}
-                                        onChange={(e) => setEditVideoYear(e.target.value)}
-                                        placeholder="연도"
-                                    />
-                                    <div className="ld-edit-actions-mini" style={{ justifyContent: 'flex-end', marginTop: '4px' }}>
-                                        <button onClick={handleUpdateVideoYear} className="ld-save-button-mini">저장</button>
-                                        <button onClick={() => setIsEditingVideoYear(false)} className="ld-cancel-button-mini">취소</button>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    {currentVideo.year && <span className="ld-year-badge">#{currentVideo.year}</span>}
-                                    {currentVideo.is_on_timeline && <span className="ld-timeline-badge">Timeline</span>}
-                                    {isAdmin && (
-                                        <button
-                                            onClick={startEditingVideoYear}
-                                            className="ld-edit-button-small"
-                                            title="영상 연도/타임라인 설정"
-                                            style={{ margin: 0, padding: '2px 6px', fontSize: '12px' }}
-                                        >
-                                            {currentVideo.year ? '✎' : '+연도'}
-                                        </button>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Description (Memo) */}
-                <div className="ld-video-memo-wrapper">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                        <span style={{ fontSize: '0.85em', color: '#9ca3af' }}>메모 / 설명</span>
-                        {isAdmin && !isEditingVideoMemo && (
-                            <button onClick={startEditingVideoMemo} className="ld-edit-button-small" style={{ fontSize: '11px', padding: '2px 5px' }}>✎ 메모 수정</button>
-                        )}
-                    </div>
-
-                    {isEditingVideoMemo ? (
-                        <div className="ld-edit-container">
-                            <textarea
-                                className="ld-edit-textarea"
-                                value={editVideoMemo}
-                                onChange={(e) => setEditVideoMemo(e.target.value)}
-                                placeholder="영상에 대한 메모를 입력하세요 (이 내용은 목록에도 표시됩니다)"
-                                rows={4}
-                            />
-                            <div className="ld-edit-actions">
-                                <button onClick={() => setIsEditingVideoMemo(false)} className="ld-cancel-button">취소</button>
-                                <button onClick={handleUpdateVideoMemo} className="ld-save-button">저장</button>
-                            </div>
-                        </div>
-                    ) : (
-                        <>
-                            <div
-                                ref={memoRef}
-                                className={`ld-video-memo-display ${isDescriptionExpanded ? 'expanded' : ''}`}
-                            >
-                                {renderTextWithLinks(currentVideo.memo || fullDescription || '')}
-                            </div>
-
-                            {isOverflowing && (
-                                !isDescriptionExpanded ? (
-                                    <span
-                                        className="ld-memo-more"
-                                        onClick={() => setIsDescriptionExpanded(true)}
-                                    >
-                                        ...더보기
-                                    </span>
                                 ) : (
-                                    <span
-                                        className="ld-memo-more"
-                                        onClick={() => setIsDescriptionExpanded(false)}
+                                    <h2 className="ld-video-title-display">
+                                        {currentVideo.title}
+                                        {isAdmin && (
+                                            <button onClick={startEditingVideoTitle} className="ld-edit-button" title="제목 수정" style={{ opacity: 0.5, fontSize: '0.8em', marginLeft: '6px' }}>✎</button>
+                                        )}
+                                    </h2>
+                                )}
+                            </div>
+
+                            {/* Video Year Badge & Editor */}
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                                {isEditingVideoYear ? (
+                                    <div className="ld-edit-container-mini" style={{ alignItems: 'flex-end', background: '#374151', padding: '6px', borderRadius: '4px' }}>
+                                        <input
+                                            type="number"
+                                            className="ld-edit-input-mini"
+                                            style={{ width: '80px', textAlign: 'right' }}
+                                            value={editVideoYear}
+                                            onChange={(e) => setEditVideoYear(e.target.value)}
+                                            placeholder="연도"
+                                        />
+                                        {/* Toggle Is On Timeline */}
+                                        <label style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px', fontSize: '11px', color: '#d1d5db', cursor: 'pointer' }}>
+                                            <input
+                                                type="checkbox"
+                                                checked={editVideoIsOnTimeline}
+                                                onChange={(e) => setEditVideoIsOnTimeline(e.target.checked)}
+                                            />
+                                            타임라인 표시
+                                        </label>
+                                        <div className="ld-edit-actions-mini" style={{ justifyContent: 'flex-end', marginTop: '4px' }}>
+                                            <button onClick={handleUpdateVideoYear} className="ld-save-button-mini">저장</button>
+                                            <button onClick={() => setIsEditingVideoYear(false)} className="ld-cancel-button-mini">취소</button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        {currentVideo.year && <span className="ld-year-badge">#{currentVideo.year}</span>}
+                                        {currentVideo.is_on_timeline && <span className="ld-timeline-badge">Timeline</span>}
+                                        {isAdmin && (
+                                            <button
+                                                onClick={startEditingVideoYear}
+                                                className="ld-edit-button-small"
+                                                title="영상 연도/타임라인 설정"
+                                                style={{ margin: 0, padding: '2px 6px', fontSize: '12px' }}
+                                            >
+                                                {currentVideo.year ? '✎' : '+연도'}
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Description (Memo) */}
+                        <div className="ld-video-memo-wrapper">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                                <span style={{ fontSize: '0.85em', color: '#9ca3af' }}>메모 / 설명</span>
+                                {isAdmin && !isEditingVideoMemo && (
+                                    <button onClick={startEditingVideoMemo} className="ld-edit-button-small" style={{ fontSize: '11px', padding: '2px 5px' }}>✎ 메모 수정</button>
+                                )}
+                            </div>
+
+                            {isEditingVideoMemo ? (
+                                <div className="ld-edit-container">
+                                    <textarea
+                                        className="ld-edit-textarea"
+                                        value={editVideoMemo}
+                                        onChange={(e) => setEditVideoMemo(e.target.value)}
+                                        placeholder="영상에 대한 메모를 입력하세요 (이 내용은 목록에도 표시됩니다)"
+                                        rows={4}
+                                    />
+                                    <div className="ld-edit-actions">
+                                        <button onClick={() => setIsEditingVideoMemo(false)} className="ld-cancel-button">취소</button>
+                                        <button onClick={handleUpdateVideoMemo} className="ld-save-button">저장</button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <>
+                                    <div
+                                        ref={memoRef}
+                                        className={`ld-video-memo-display ${isDescriptionExpanded ? 'expanded' : ''}`}
                                     >
-                                        간략히 보기
-                                    </span>
+                                        {renderTextWithLinks(currentVideo.memo || fullDescription || '')}
+                                    </div>
+
+                                    {isOverflowing && (
+                                        !isDescriptionExpanded ? (
+                                            <span
+                                                className="ld-memo-more"
+                                                onClick={() => setIsDescriptionExpanded(true)}
+                                            >
+                                                ...더보기
+                                            </span>
+                                        ) : (
+                                            <span
+                                                className="ld-memo-more"
+                                                onClick={() => setIsDescriptionExpanded(false)}
+                                            >
+                                                간략히 보기
+                                            </span>
+                                        )
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="ld-history-section-wrapper">
+                        <HistoryContextWidget year={currentVideo.year || playlist.year || null} />
+                    </div>
+
+                    {/* Tab Navigation */}
+                    <div className="ld-tab-navigation">
+                        <button
+                            className={`ld-tab-btn ${activeTab === 'bookmarks' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('bookmarks')}
+                        >
+                            북마크
+                        </button>
+                        <button
+                            className={`ld-tab-btn ${activeTab === 'playlist' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('playlist')}
+                        >
+                            재생목록
+                        </button>
+                    </div>
+
+                    {/* Tab Content Area */}
+                    <div className="ld-tab-content">
+                        {/* Bookmarks Tab Content */}
+                        <div className={`ld-tab-pane ld-tab-pane-bookmarks ${activeTab === 'bookmarks' ? 'active' : ''}`}>
+                            <div className="ld-bookmark-section">
+                                {isAdmin && (
+                                    <div className="ld-bookmark-toolbar-wrapper">
+                                        <h3 className="ld-section-title-small">타임스탬프</h3>
+                                        <div className="ld-bookmark-toolbar">
+                                            <button onClick={handleAddBookmark} className="ld-bookmark-tool-btn primary">
+                                                <span className="ld-tool-icon">+</span> 추가
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                                <BookmarkList
+                                    bookmarks={bookmarks}
+                                    onSeek={seekTo}
+                                    onDelete={handleDeleteBookmark}
+                                    onEdit={(id) => handleEditBookmark(id)}
+                                    isAdmin={isAdmin}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Playlist Tab Content */}
+                        <div className={`ld-tab-pane ld-tab-pane-playlist ${activeTab === 'playlist' ? 'active' : ''}`}>
+                            <div className="ld-playlist-section-inline">
+                                <div className="ld-playlist-container-inline">
+                                    {videos.map((video, idx) => (
+                                        <div
+                                            key={video.id}
+                                            onClick={() => handleVideoClick(idx)}
+                                            className={`ld-video-item ${currentVideoIndex === idx ? 'ld-video-item-active' : 'ld-video-item-inactive'}`}
+                                        >
+                                            <div className="ld-video-thumbnail-wrapper-small">
+                                                <img
+                                                    src={`https://img.youtube.com/vi/${video.youtube_video_id}/mqdefault.jpg`}
+                                                    alt=""
+                                                    className={`ld-video-thumbnail ${currentVideoIndex === idx ? 'ld-video-thumbnail-active' : 'ld-video-thumbnail-inactive'}`}
+                                                />
+                                                {currentVideoIndex === idx && isPlaying && (
+                                                    <div className="ld-playing-overlay">
+                                                        <span className="ld-playing-text">Playing</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="ld-video-info">
+                                                <h3 className={`ld-video-title-small ${currentVideoIndex === idx ? 'ld-video-title-active' : 'ld-video-title-inactive'}`}>
+                                                    {idx + 1}. {video.title}
+                                                </h3>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Playlist Description Editor (Bottom) - Hide for Folder-Playlists */}
+                    {!playlist.id.startsWith('category:') && (
+                        <div className="ld-description-section">
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                                <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                                    <h4 style={{ margin: 0, color: '#9ca3af', fontSize: '14px' }}>재생목록 정보</h4>
+                                    {playlist.year && (
+                                        <span className="ld-year-badge">#{playlist.year}년</span>
+                                    )}
+                                    {playlist.is_on_timeline && (
+                                        <span className="ld-timeline-badge">Timeline ON</span>
+                                    )}
+                                </div>
+                                {isAdmin && (
+                                    <div style={{ display: 'flex', gap: '8px' }}>
+                                        {!isEditingYear && (
+                                            <button
+                                                onClick={() => {
+                                                    setEditYear(playlist.year?.toString() || '');
+                                                    setIsEditingYear(true);
+                                                }}
+                                                className="ld-edit-button-small"
+                                            >
+                                                ✎ 연도 설정
+                                            </button>
+                                        )}
+                                        {!isEditingDesc && (
+                                            <button onClick={startEditingDesc} className="ld-edit-button-small">✎ 설명 수정</button>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+                            {isEditingYear && (
+                                <div className="ld-edit-container" style={{ marginBottom: '16px' }}>
+                                    <div className="ld-edit-row">
+                                        <label style={{ fontSize: '12px', color: '#9ca3af' }}>역사 연도:</label>
+                                        <input
+                                            type="number"
+                                            className="ld-edit-input-mini"
+                                            value={editYear}
+                                            onChange={(e) => setEditYear(e.target.value)}
+                                            placeholder="연도 (예: 1980)"
+                                        />
+                                    </div>
+
+                                    <div className="ld-edit-actions">
+                                        <button onClick={() => setIsEditingYear(false)} className="ld-cancel-button">취소</button>
+                                        <button onClick={handleUpdateTimelineSettings} className="ld-save-button">설정 저장</button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {isEditingDesc ? (
+                                <div className="ld-edit-container">
+                                    <textarea
+                                        className="ld-edit-textarea"
+                                        value={editDesc}
+                                        onChange={(e) => setEditDesc(e.target.value)}
+                                        placeholder="설명 (선택사항)"
+                                    />
+                                    <div className="ld-edit-actions">
+                                        <button onClick={cancelEditingDesc} className="ld-cancel-button">취소</button>
+                                        <button onClick={handleUpdateDesc} className="ld-save-button">저장</button>
+                                    </div>
+                                </div>
+                            ) : (
+                                playlist.description ? (
+                                    <p className="ld-info-description">{renderTextWithLinks(playlist.description)}</p>
+                                ) : (
+                                    <p className="ld-info-description no-content">등록된 설명이 없습니다.</p>
                                 )
                             )}
-                        </>
+                        </div>
                     )}
                 </div>
-
-                <HistoryContextWidget year={currentVideo.year || playlist.year || null} />
-
-                {/* Playlist Description Editor (Bottom) - Hide for Folder-Playlists */}
-                {!playlist.id.startsWith('category:') && (
-                    <div className="ld-description-section">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                            <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                                <h4 style={{ margin: 0, color: '#9ca3af', fontSize: '14px' }}>재생목록 정보</h4>
-                                {playlist.year && (
-                                    <span className="ld-year-badge">#{playlist.year}년</span>
-                                )}
-                                {playlist.is_on_timeline && (
-                                    <span className="ld-timeline-badge">Timeline ON</span>
-                                )}
-                            </div>
-                            {isAdmin && (
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                    {!isEditingYear && (
-                                        <button
-                                            onClick={() => {
-                                                setEditYear(playlist.year?.toString() || '');
-                                                setIsEditingYear(true);
-                                            }}
-                                            className="ld-edit-button-small"
-                                        >
-                                            ✎ 연도 설정
-                                        </button>
-                                    )}
-                                    {!isEditingDesc && (
-                                        <button onClick={startEditingDesc} className="ld-edit-button-small">✎ 설명 수정</button>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-
-                        {isEditingYear && (
-                            <div className="ld-edit-container" style={{ marginBottom: '16px' }}>
-                                <div className="ld-edit-row">
-                                    <label style={{ fontSize: '12px', color: '#9ca3af' }}>역사 연도:</label>
-                                    <input
-                                        type="number"
-                                        className="ld-edit-input-mini"
-                                        value={editYear}
-                                        onChange={(e) => setEditYear(e.target.value)}
-                                        placeholder="연도 (예: 1980)"
-                                    />
-                                </div>
-
-                                <div className="ld-edit-actions">
-                                    <button onClick={() => setIsEditingYear(false)} className="ld-cancel-button">취소</button>
-                                    <button onClick={handleUpdateTimelineSettings} className="ld-save-button">설정 저장</button>
-                                </div>
-                            </div>
-                        )}
-
-                        {isEditingDesc ? (
-                            <div className="ld-edit-container">
-                                <textarea
-                                    className="ld-edit-textarea"
-                                    value={editDesc}
-                                    onChange={(e) => setEditDesc(e.target.value)}
-                                    placeholder="설명 (선택사항)"
-                                />
-                                <div className="ld-edit-actions">
-                                    <button onClick={cancelEditingDesc} className="ld-cancel-button">취소</button>
-                                    <button onClick={handleUpdateDesc} className="ld-save-button">저장</button>
-                                </div>
-                            </div>
-                        ) : (
-                            playlist.description ? (
-                                <p className="ld-info-description">{renderTextWithLinks(playlist.description)}</p>
-                            ) : (
-                                <p className="ld-info-description no-content">등록된 설명이 없습니다.</p>
-                            )
-                        )}
-                    </div>
-                )}
-
-
             </div>
 
             {/* Right: Sidebar */}
@@ -1590,5 +1601,4 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         </div>
     );
 };
-
 export default LearningDetailPage;

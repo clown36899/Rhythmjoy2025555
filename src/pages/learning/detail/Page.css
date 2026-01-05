@@ -1598,81 +1598,119 @@
     }
 }
 
-/* Tab Content Wrapper */
-.ld-tab-content {
-    flex: 1;
+/* Global Override for Detail Page Layout (Strict Height Control) */
+:global(.archive-layout-container.is-detail-page-mode) {
+    overflow: hidden !important;
+    height: 100% !important;
     display: flex;
     flex-direction: column;
-    min-height: 0;
 }
 
-/* Playlist Tab Container - Scrollable Area (Internal Scroll) */
-.ld-playlist-section-inline {
-    margin-top: 8px;
-    width: 100%;
+/* Ensure ld-container fills the parent */
+:global(.archive-layout-container.is-detail-page-mode) .ld-container {
+    height: 100%;
+    overflow: hidden;
+    /* Prevent body scroll */
 }
 
-.ld-playlist-container-inline {
+/* Left: Player Area - Parent Container */
+.ld-player-area {
     display: flex;
     flex-direction: column;
-    padding: 0 15px 20px 15px;
-    gap: 8px;
-
-    /* Fixed height for internal scrolling */
-    max-height: 50vh;
-    overflow-y: auto;
-}
-
-/* Bookmarks Tab Container - Natural Flow (Page Scroll) */
-.ld-tab-pane-bookmarks {
-    /* Allow natural height */
+    /* Mobile: Natural expansion */
     height: auto;
+    position: relative;
+    background-color: #111827;
     overflow: visible;
+    /* Mobile: Let page scroll */
+    padding-bottom: 200px;
 }
 
-/* Tab Panes (Mobile Default) */
-.ld-tab-pane {
-    display: none;
+/* Scrollable Content Container (Desktop Only, Default Visible/Auto) */
+.ld-content-scroll-container {
+    display: flex;
+    flex-direction: column;
 }
 
-.ld-tab-pane.active {
-    display: block;
-}
-
-/* Specific Mobile Styles */
-@media (max-width: 768px) {
-
-    /* Mobile needs the tab content */
-    .ld-tab-content {
+@media (min-width: 769px) {
+    .ld-player-area {
+        /* Desktop: Max Height is container height */
+        height: 100% !important;
+        overflow: hidden !important;
+        /* No scroll on parent itself */
+        padding-bottom: 0;
+        flex: 1;
+        min-width: 0;
         display: flex;
         flex-direction: column;
-        /* Ensure stacking */
     }
-}
 
-/* Desktop Visibility Logic (New) */
-@media (min-width: 769px) {
+    /* Video Player: Fixed Top */
+    .ld-player-wrapper {
+        flex-shrink: 0;
+        width: 100%;
+        background-color: black;
+        z-index: 20;
+    }
 
-    /* Reveal Tab Content Wrapper */
+    /* Scrollable Content Container: Fills remaining space */
+    .ld-content-scroll-container {
+        flex: 1;
+        overflow-y: auto !important;
+        /* THIS is the scroller */
+        min-height: 0;
+        padding-bottom: 40px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Component Orders (Natural DOM order inside scroll container) */
+    /* Just ensure visibility */
+
+    /* Video Metadata */
+    .ld-video-metadata {
+        flex-shrink: 0;
+        border-bottom: 1px solid #1f2937;
+    }
+
+    /* History Widget needs to be visible */
+    .ld-history-section-wrapper {
+        margin-top: auto;
+        /* Push to bottom */
+        order: 99;
+        /* Force bottom visually if needed */
+        border-top: 1px solid #1f2937;
+    }
+
+    /* Bookmarks */
     .ld-tab-content {
         display: block !important;
-        /* or flex depending on layout needs */
-        margin-top: 20px;
-        /* Add some spacing from video */
-        padding: 0 20px;
+        margin-top: 0;
+        padding: 0;
+        flex-shrink: 0;
     }
 
-    /* Always show Bookmarks Pane on Desktop */
+    /* Description */
+    .ld-description-section {
+        flex-shrink: 0;
+        border-bottom: none;
+    }
+
+    /* Bookmarks Pane Style */
     .ld-tab-pane-bookmarks {
         display: block !important;
+        padding: 20px 24px 40px 24px;
     }
 
-    /* Force Hide Playlist Pane on Desktop (Sidebar exists) */
+    .ld-bookmark-section {
+        margin-bottom: 0;
+    }
+
+    /* Hide others */
     .ld-tab-pane-playlist {
         display: none !important;
     }
 
-    /* Hide Tab Buttons */
     .ld-tab-navigation {
         display: none !important;
     }

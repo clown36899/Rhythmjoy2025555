@@ -15,17 +15,15 @@
 }
 
 .pm-modal-content {
-    width: 90%;
+    width: 95%;
     max-width: 1200px;
-    height: 85vh;
+    height: 95vh;
     background-color: #111827;
-    /* gray-900 */
     border-radius: 12px;
     overflow: hidden;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
     animation: pm-slideUp 0.3s ease-out;
     border: 1px solid #374151;
-    /* gray-700 */
 }
 
 @keyframes pm-fadeIn {
