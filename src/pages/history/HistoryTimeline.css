@@ -195,6 +195,21 @@
     ry: 4;
 }
 
+/* Override ReactFlow default dragging opacity */
+.react-flow__node.dragging {
+    opacity: 0.45 !important;
+}
+
+/* Prevent nodes from becoming too transparent when panning the canvas */
+.react-flow__pane.dragging~.react-flow__nodes .react-flow__node,
+.react-flow.dragging .react-flow__node,
+.react-flow__renderer.dragging .react-flow__node,
+.react-flow__pane:active~.react-flow__nodes .react-flow__node {
+    opacity: 0.1 !important;
+    filter: none !important;
+    transform: none !important;
+}
+
 
 /* Edge Modal (Photoshop Style) */
 .edge-modal-overlay {

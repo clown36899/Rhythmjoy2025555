@@ -108,8 +108,8 @@
 
 .all-social-card {
     flex: 0 0 auto;
-    width: 120px;
-    max-width: 120px;
+    width: 147px;
+    max-width: 150px;
     /* background: rgba(255, 255, 255, 0.05); */
     border-radius: 12px;
     overflow: hidden;
