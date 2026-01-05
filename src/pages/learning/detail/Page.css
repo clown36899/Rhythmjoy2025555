@@ -602,21 +602,41 @@
     font-weight: 500;
 }
 
-/* Mobile Toggle Button */
+/* Mobile Playlist Toggle Button - Top Right Fixed */
 .ld-playlist-toggle-btn {
-    background: none;
-    border: none;
-    color: #60a5fa;
-    font-size: 14px;
-    font-weight: 500;
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(17, 24, 39, 0.9);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    font-size: 24px;
     cursor: pointer;
     display: none;
-    /* Hidden on Desktop */
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    transition: all 0.2s;
+}
+
+.ld-playlist-toggle-btn:hover {
+    background: rgba(17, 24, 39, 1);
+    transform: scale(1.05);
+}
+
+.ld-playlist-toggle-btn:active {
+    transform: scale(0.95);
 }
 
 @media (max-width: 768px) {
     .ld-playlist-toggle-btn {
-        display: block;
+        display: flex;
     }
 
     /* Mobile Sidebar Logic */
@@ -1353,4 +1373,159 @@
 
 .no-margin {
     margin-bottom: 10px !important;
+}
+
+/* --- Mobile UI Improvements (2025-01-05) --- */
+
+/* Utility for showing/hiding based on device */
+.desktop-hidden {
+    display: none;
+}
+
+.desktop-only {
+    display: block;
+}
+
+@media (max-width: 768px) {
+    .desktop-hidden {
+        display: flex;
+        /* Or block depending on context */
+    }
+
+    .desktop-only {
+        display: none !important;
+    }
+
+    /* Control Bar Refinements for Mobile */
+    .ld-control-bar {
+        padding: 12px 16px;
+        gap: 8px;
+
+        /* Ensure horizontal scroll if too many items */
+    }
+
+    .ld-control-divider {
+        width: 1px;
+        height: 24px;
+        background-color: #374151;
+        margin: 0 4px;
+        flex-shrink: 0;
+    }
+}
+
+/* Specific override for desktop context within Page.tsx logic */
+@media (min-width: 769px) {
+    .ld-playlist-toggle-btn.desktop-only {
+        position: static;
+        width: auto;
+        height: auto;
+        border-radius: 6px;
+        background: transparent;
+        border: none;
+        color: #60a5fa;
+        font-size: 14px;
+        padding: 0;
+        box-shadow: none;
+        display: flex;
+        align-items: center;
+    }
+
+    .ld-playlist-toggle-btn.desktop-only:hover {
+        background: transparent;
+        transform: none;
+        text-decoration: underline;
+    }
+}
+
+@media (max-width: 768px) {
+
+    /* Hide FAB group on mobile since we moved actions to control bar */
+    .ld-fab-group.mobile-hidden {
+        display: none;
+    }
+}
+
+/* Bookmark Section Toolbar & Header */
+.ld-bookmark-section {
+    margin-top: 16px;
+    margin-bottom: 24px;
+}
+
+.ld-bookmark-toolbar-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    padding: 0 4px;
+}
+
+.ld-section-title-small {
+    font-size: 15px;
+    font-weight: 600;
+    color: #e5e7eb;
+    margin: 0;
+}
+
+.ld-bookmark-toolbar {
+    display: flex;
+    gap: 8px;
+}
+
+.ld-bookmark-tool-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 13px;
+    color: #d1d5db;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.ld-bookmark-tool-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-1px);
+}
+
+.ld-bookmark-tool-btn:active {
+    transform: translateY(0);
+}
+
+.ld-bookmark-tool-btn.primary {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: rgba(59, 130, 246, 0.4);
+    color: #60a5fa;
+}
+
+.ld-bookmark-tool-btn.primary:hover {
+    background: rgba(59, 130, 246, 0.3);
+}
+
+.ld-tool-icon {
+    font-size: 1.1em;
+    line-height: 1;
+}
+
+/* Specific Mobile Tweaks */
+@media (max-width: 480px) {
+    .ld-bookmark-toolbar-wrapper {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .ld-bookmark-toolbar {
+        width: 100%;
+        justify-content: flex-start;
+        gap: 8px;
+    }
+
+    .ld-bookmark-tool-btn {
+        flex: 1;
+        justify-content: center;
+        padding: 8px 0;
+    }
 }
