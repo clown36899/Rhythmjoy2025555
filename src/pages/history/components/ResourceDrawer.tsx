@@ -172,7 +172,11 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refr
     return (
         <div className={`resource-drawer ${isOpen ? 'open' : ''}`}>
             <div className="drawer-header">
-                <h2><span>데이터 서랍</span><span>Data</span></h2>
+                <h2 className="manual-label-wrapper">
+                    <span className="translated-part">데이터 서랍</span>
+                    <span className="fixed-part ko" translate="no">데이터 서랍</span>
+                    <span className="fixed-part en" translate="no">Data</span>
+                </h2>
                 <button className="close-btn" onClick={onClose}>
                     <i className="ri-close-line"></i>
                 </button>

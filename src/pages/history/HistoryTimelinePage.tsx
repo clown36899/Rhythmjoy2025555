@@ -1063,7 +1063,11 @@ export default function HistoryTimelinePage() {
                     title="데이터 서랍"
                 >
                     <i className="ri-database-2-line"></i>
-                    <span><span>서랍</span><span>Data</span></span>
+                    <span className="manual-label-wrapper">
+                        <span className="translated-part">서랍</span>
+                        <span className="fixed-part ko" translate="no">서랍</span>
+                        <span className="fixed-part en" translate="no">Data</span>
+                    </span>
                 </button>
                 {isEditMode && (
                     <button className="toolbar-btn add-btn" onClick={handleCreateNode} title="새 노드 추가">

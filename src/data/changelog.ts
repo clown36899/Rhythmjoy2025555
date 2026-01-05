@@ -8,6 +8,16 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '3.2.1',
+        date: '2026-01-06',
+        changes: [
+            '[✨ 기능] 댄스 라이브러리 기본 탭 변경 (자료실 → 히스토리 타임라인)',
+            '[✨ 기능] 히스토리 인물 노드 사진 업로드 및 원형 아바타 표시',
+            '[🐛 Fix] 서랍(Drawer) 버튼 다국어 번역 깨짐 현상 수정 (3-span 패턴)',
+            '[🔧 개선] 히스토리 타임라인 UI 최적화 (연도 정렬 숨김, 간격 조정)'
+        ]
+    },
+    {
         version: '3.2.0',
         date: '2026-01-05',
         changes: [
