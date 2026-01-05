@@ -24,6 +24,12 @@ interface Video {
     order_index: number;
     duration: number;
     memo: string;
+    // Added for individual video editing
+    year?: number;
+    is_on_timeline?: boolean;
+    description?: string;
+    category_id?: string | null;
+    playlist_id?: string | null;
 }
 
 interface Playlist {
@@ -78,6 +84,15 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
     const [isEditingYear, setIsEditingYear] = useState(false); // 연도 편집 상태
     const [editYear, setEditYear] = useState('');
     const [refreshTrigger, setRefreshTrigger] = useState(0);
+
+    // --- Individual Video Editing State ---
+    const [isEditingVideoTitle, setIsEditingVideoTitle] = useState(false);
+    const [editVideoTitle, setEditVideoTitle] = useState('');
+    const [isEditingVideoMemo, setIsEditingVideoMemo] = useState(false);
+    const [editVideoMemo, setEditVideoMemo] = useState('');
+    const [isEditingVideoYear, setIsEditingVideoYear] = useState(false);
+    const [editVideoYear, setEditVideoYear] = useState('');
+    const [editVideoIsOnTimeline, setEditVideoIsOnTimeline] = useState(false);
 
     const [error, setError] = useState<string | null>(null);
     const [fullDescription, setFullDescription] = useState<string | null>(null);
@@ -582,6 +597,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
     };
 
     const handleAddBookmark = () => {
+        if (!isAdmin) return;
         if (!playerRef.current || typeof playerRef.current.getCurrentTime !== 'function') return;
         const currentSeconds = playerRef.current.getCurrentTime();
         setBookmarkLabel('');
@@ -595,6 +611,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
     };
 
     const handleEditBookmark = (id: string) => {
+        if (!isAdmin) return;
         const mark = bookmarks.find(b => b.id === id);
         if (!mark) return;
 
@@ -610,6 +627,10 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
     };
 
     const handleSaveBookmark = async () => {
+        if (!isAdmin) {
+            alert('관리자 권한이 없습니다.');
+            return;
+        }
         if (!playerRef.current || !playlist || modalTimestamp === null) return;
 
         const video = videos[currentVideoIndex];
@@ -660,6 +681,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
 
     // 드래그 핸들러
     const handleMarkerDragStart = () => {
+        if (!isAdmin) return;
         setIsDraggingMarker(true);
     };
 
@@ -702,23 +724,41 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
     };
 
     const handleUpdateTitle = async () => {
+        if (!isAdmin) return;
         if (!playlist) return;
         if (!editTitle.trim()) {
             alert("제목을 입력해주세요.");
             return;
         }
 
-        const { error } = await supabase
-            .from('learning_playlists')
-            .update({ title: editTitle })
-            .eq('id', playlist.id);
+        try {
+            if (playlist.id.startsWith('category:')) {
+                const categoryId = playlist.id.replace('category:', '');
+                const { error } = await supabase
+                    .from('learning_categories')
+                    .update({ name: editTitle })
+                    .eq('id', categoryId);
+                if (error) throw error;
+            } else if (playlist.id.startsWith('video:')) {
+                const videoId = playlist.id.replace('video:', '');
+                const { error } = await supabase
+                    .from('learning_videos')
+                    .update({ title: editTitle })
+                    .eq('id', videoId);
+                if (error) throw error;
+            } else {
+                const { error } = await supabase
+                    .from('learning_playlists')
+                    .update({ title: editTitle })
+                    .eq('id', playlist.id);
+                if (error) throw error;
+            }
 
-        if (error) {
-            console.error("Title update failed", error);
-            alert("제목 수정 실패");
-        } else {
             setIsEditingTitle(false);
             setRefreshTrigger(prev => prev + 1);
+        } catch (error) {
+            console.error("Title update failed", error);
+            alert("제목 수정 실패");
         }
     };
 
@@ -741,28 +781,53 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
     };
 
     const handleUpdateDesc = async () => {
+        if (!isAdmin) return;
         if (!playlist) return;
 
-        const { error } = await supabase
-            .from('learning_playlists')
-            .update({ description: editDesc })
-            .eq('id', playlist.id);
+        // Folders do not support description
+        if (playlist.id.startsWith('category:')) {
+            alert("폴더형 재생목록은 설명을 수정할 수 없습니다.");
+            return;
+        }
 
-        if (error) {
-            console.error("Description update failed", error);
-            alert("설명 수정 실패");
-        } else {
+        try {
+            if (playlist.id.startsWith('video:')) {
+                const videoId = playlist.id.replace('video:', '');
+                const { error } = await supabase
+                    .from('learning_videos')
+                    .update({ description: editDesc })
+                    .eq('id', videoId);
+                if (error) throw error;
+            } else {
+                const { error } = await supabase
+                    .from('learning_playlists')
+                    .update({ description: editDesc })
+                    .eq('id', playlist.id);
+                if (error) throw error;
+            }
+
             setIsEditingDesc(false);
             setRefreshTrigger(prev => prev + 1);
+        } catch (error) {
+            console.error("Description update failed", error);
+            alert("설명 수정 실패");
         }
     };
 
     const handleUpdateTimelineSettings = async () => {
+        if (!isAdmin) return;
         if (!playlist) return;
 
+        // Folders do not support timeline
+        if (playlist.id.startsWith('category:')) {
+            alert("폴더형 재생목록은 타임라인 설정을 수정할 수 없습니다.");
+            return;
+        }
+
         // DB Updates
-        const isStandalone = playlistId?.startsWith('video:');
+        const isStandalone = playlist.id.startsWith('video:'); // Use playlist.id directly
         const table = isStandalone ? 'learning_videos' : 'learning_playlists';
+        const targetId = isStandalone ? playlist.id.replace('video:', '') : playlist.id;
 
         const { error } = await supabase
             .from(table)
@@ -770,7 +835,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                 year: editYear ? parseInt(editYear) : null,
                 is_on_timeline: true
             })
-            .eq('id', playlist.id);
+            .eq('id', targetId);
 
         if (error) {
             console.error("Timeline settings update failed", error);
@@ -781,7 +846,97 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         }
     };
 
-    // --- Helper Utilities ---
+    // --- Video Metadata Handlers (Individual) ---
+    const startEditingVideoTitle = () => {
+        if (!isAdmin) return;
+        const video = videos[currentVideoIndex];
+        if (!video) return;
+        setEditVideoTitle(video.title);
+        setIsEditingVideoTitle(true);
+    };
+
+    const handleUpdateVideoTitle = async () => {
+        if (!isAdmin) return;
+        const video = videos[currentVideoIndex];
+        if (!video) return;
+        if (!editVideoTitle.trim()) {
+            alert("제목을 입력해주세요.");
+            return;
+        }
+
+        const { error } = await supabase
+            .from('learning_videos')
+            .update({ title: editVideoTitle })
+            .eq('id', video.id);
+
+        if (error) {
+            console.error("Video title update failed", error);
+            alert("영상 제목 수정 실패");
+        } else {
+            setIsEditingVideoTitle(false);
+            setRefreshTrigger(prev => prev + 1);
+        }
+    };
+
+    const startEditingVideoYear = () => {
+        if (!isAdmin) return;
+        const video = videos[currentVideoIndex];
+        if (!video) return;
+        setEditVideoYear(video.year?.toString() || '');
+        setEditVideoIsOnTimeline(video.is_on_timeline || false);
+        setIsEditingVideoYear(true);
+    };
+
+    const handleUpdateVideoYear = async () => {
+        if (!isAdmin) return;
+        const video = videos[currentVideoIndex];
+        if (!video) return;
+
+        const { error } = await supabase
+            .from('learning_videos')
+            .update({
+                year: editVideoYear ? parseInt(editVideoYear) : null,
+                is_on_timeline: true // Always enable if setting year, or use checkbox if we add one (User asked for timeline linkage)
+            })
+            .eq('id', video.id);
+
+        if (error) {
+            console.error("Video year update failed", error);
+            alert("영상 연도 수정 실패");
+        } else {
+            setIsEditingVideoYear(false);
+            setRefreshTrigger(prev => prev + 1);
+        }
+    };
+
+    const startEditingVideoMemo = () => {
+        if (!isAdmin) return;
+        const video = videos[currentVideoIndex];
+        if (!video) return;
+        setEditVideoMemo(video.memo || '');
+        setIsEditingVideoMemo(true);
+    };
+
+    const handleUpdateVideoMemo = async () => {
+        if (!isAdmin) return;
+        const video = videos[currentVideoIndex];
+        if (!video) return;
+
+        const { error } = await supabase
+            .from('learning_videos')
+            .update({ memo: editVideoMemo })
+            .eq('id', video.id);
+
+        if (error) {
+            console.error("Video memo update failed", error);
+            alert("메모 수정 실패");
+        } else {
+            setIsEditingVideoMemo(false);
+            setRefreshTrigger(prev => prev + 1);
+        }
+    };
+
+
     const formatTimestamp = (seconds: number) => {
         const s = Math.round(seconds);
         const mins = Math.floor(s / 60);
@@ -819,7 +974,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
     const currentVideo = videos[currentVideoIndex] || { youtube_video_id: '' };
 
     return (
-        <div className={`ld-container ${playlistId ? '' : ''}`}>
+        <div className={`ld-container ${onClose ? 'ld-modal-container' : ''}`}>
             {/* Left: Player Area */}
             <div className="ld-player-area">
                 {/* Header */}
@@ -975,116 +1130,203 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                     </button>
                 </div>
 
-                {/* Video Info (Title & Metadata) */}
                 <div className="ld-video-metadata">
-                    <h2 className="ld-video-title-display">{currentVideo.title}</h2>
+                    {/* Video Title Row */}
+                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '10px' }}>
+                        <div style={{ flex: 1 }}>
+                            {isEditingVideoTitle ? (
+                                <div className="ld-edit-container-mini" style={{ marginBottom: '8px' }}>
+                                    <input
+                                        className="ld-edit-input-mini"
+                                        value={editVideoTitle}
+                                        onChange={(e) => setEditVideoTitle(e.target.value)}
+                                        placeholder="영상 제목"
+                                        autoFocus
+                                    />
+                                    <div className="ld-edit-actions-mini">
+                                        <button onClick={handleUpdateVideoTitle} className="ld-save-button-mini">저장</button>
+                                        <button onClick={() => setIsEditingVideoTitle(false)} className="ld-cancel-button-mini">취소</button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <h2 className="ld-video-title-display">
+                                    {currentVideo.title}
+                                    {isAdmin && (
+                                        <button onClick={startEditingVideoTitle} className="ld-edit-button" title="제목 수정" style={{ opacity: 0.5, fontSize: '0.8em', marginLeft: '6px' }}>✎</button>
+                                    )}
+                                </h2>
+                            )}
+                        </div>
+
+                        {/* Video Year Badge & Editor */}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                            {isEditingVideoYear ? (
+                                <div className="ld-edit-container-mini" style={{ alignItems: 'flex-end', background: '#374151', padding: '6px', borderRadius: '4px' }}>
+                                    <input
+                                        type="number"
+                                        className="ld-edit-input-mini"
+                                        style={{ width: '80px', textAlign: 'right' }}
+                                        value={editVideoYear}
+                                        onChange={(e) => setEditVideoYear(e.target.value)}
+                                        placeholder="연도"
+                                    />
+                                    <div className="ld-edit-actions-mini" style={{ justifyContent: 'flex-end', marginTop: '4px' }}>
+                                        <button onClick={handleUpdateVideoYear} className="ld-save-button-mini">저장</button>
+                                        <button onClick={() => setIsEditingVideoYear(false)} className="ld-cancel-button-mini">취소</button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    {currentVideo.year && <span className="ld-year-badge">#{currentVideo.year}</span>}
+                                    {currentVideo.is_on_timeline && <span className="ld-timeline-badge">Timeline</span>}
+                                    {isAdmin && (
+                                        <button
+                                            onClick={startEditingVideoYear}
+                                            className="ld-edit-button-small"
+                                            title="영상 연도/타임라인 설정"
+                                            style={{ margin: 0, padding: '2px 6px', fontSize: '12px' }}
+                                        >
+                                            {currentVideo.year ? '✎' : '+연도'}
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </div>
                 </div>
 
                 {/* Description (Memo) */}
                 <div className="ld-video-memo-wrapper">
-                    <div
-                        ref={memoRef}
-                        className={`ld-video-memo-display ${isDescriptionExpanded ? 'expanded' : ''}`}
-                    >
-                        {renderTextWithLinks(fullDescription || currentVideo.memo)}
-                    </div>
-
-                    {isOverflowing && (
-                        !isDescriptionExpanded ? (
-                            <span
-                                className="ld-memo-more"
-                                onClick={() => setIsDescriptionExpanded(true)}
-                            >
-                                ...더보기
-                            </span>
-                        ) : (
-                            <span
-                                className="ld-memo-more"
-                                onClick={() => setIsDescriptionExpanded(false)}
-                            >
-                                간략히 보기
-                            </span>
-                        )
-                    )}
-                </div>
-
-                {/* Playlist Description Editor (Bottom) */}
-                <div className="ld-description-section">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-                            <h4 style={{ margin: 0, color: '#9ca3af', fontSize: '14px' }}>재생목록 정보</h4>
-                            {playlist.year && (
-                                <span className="ld-year-badge">#{playlist.year}년</span>
-                            )}
-                            {playlist.is_on_timeline && (
-                                <span className="ld-timeline-badge">Timeline ON</span>
-                            )}
-                        </div>
-                        {isAdmin && (
-                            <div style={{ display: 'flex', gap: '8px' }}>
-                                {!isEditingYear && (
-                                    <button
-                                        onClick={() => {
-                                            setEditYear(playlist.year?.toString() || '');
-                                            setEditYear(playlist.year?.toString() || '');
-                                            // setEditIsOnTimeline(playlist.is_on_timeline || false); // Deprecated
-                                            setIsEditingYear(true);
-                                        }}
-                                        className="ld-edit-button-small"
-                                    >
-                                        ✎ 연도 설정
-                                    </button>
-                                )}
-                                {!isEditingDesc && (
-                                    <button onClick={startEditingDesc} className="ld-edit-button-small">✎ 설명 수정</button>
-                                )}
-                            </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                        <span style={{ fontSize: '0.85em', color: '#9ca3af' }}>메모 / 설명</span>
+                        {isAdmin && !isEditingVideoMemo && (
+                            <button onClick={startEditingVideoMemo} className="ld-edit-button-small" style={{ fontSize: '11px', padding: '2px 5px' }}>✎ 메모 수정</button>
                         )}
                     </div>
 
-                    {isEditingYear && (
-                        <div className="ld-edit-container" style={{ marginBottom: '16px' }}>
-                            <div className="ld-edit-row">
-                                <label style={{ fontSize: '12px', color: '#9ca3af' }}>역사 연도:</label>
-                                <input
-                                    type="number"
-                                    className="ld-edit-input-mini"
-                                    value={editYear}
-                                    onChange={(e) => setEditYear(e.target.value)}
-                                    placeholder="연도 (예: 1980)"
-                                />
-                            </div>
-
-                            <div className="ld-edit-actions">
-                                <button onClick={() => setIsEditingYear(false)} className="ld-cancel-button">취소</button>
-                                <button onClick={handleUpdateTimelineSettings} className="ld-save-button">설정 저장</button>
-                            </div>
-                        </div>
-                    )}
-
-                    {isEditingDesc ? (
+                    {isEditingVideoMemo ? (
                         <div className="ld-edit-container">
                             <textarea
                                 className="ld-edit-textarea"
-                                value={editDesc}
-                                onChange={(e) => setEditDesc(e.target.value)}
-                                placeholder="설명 (선택사항)"
+                                value={editVideoMemo}
+                                onChange={(e) => setEditVideoMemo(e.target.value)}
+                                placeholder="영상에 대한 메모를 입력하세요 (이 내용은 목록에도 표시됩니다)"
+                                rows={4}
                             />
                             <div className="ld-edit-actions">
-                                <button onClick={cancelEditingDesc} className="ld-cancel-button">취소</button>
-                                <button onClick={handleUpdateDesc} className="ld-save-button">저장</button>
+                                <button onClick={() => setIsEditingVideoMemo(false)} className="ld-cancel-button">취소</button>
+                                <button onClick={handleUpdateVideoMemo} className="ld-save-button">저장</button>
                             </div>
                         </div>
                     ) : (
-                        playlist.description ? (
-                            <p className="ld-info-description">{renderTextWithLinks(playlist.description)}</p>
-                        ) : (
-                            <p className="ld-info-description no-content">등록된 설명이 없습니다.</p>
-                        )
-                    )}
+                        <>
+                            <div
+                                ref={memoRef}
+                                className={`ld-video-memo-display ${isDescriptionExpanded ? 'expanded' : ''}`}
+                            >
+                                {renderTextWithLinks(currentVideo.memo || fullDescription || '')}
+                            </div>
 
-                    <HistoryContextWidget year={playlist.year || null} />
+                            {isOverflowing && (
+                                !isDescriptionExpanded ? (
+                                    <span
+                                        className="ld-memo-more"
+                                        onClick={() => setIsDescriptionExpanded(true)}
+                                    >
+                                        ...더보기
+                                    </span>
+                                ) : (
+                                    <span
+                                        className="ld-memo-more"
+                                        onClick={() => setIsDescriptionExpanded(false)}
+                                    >
+                                        간략히 보기
+                                    </span>
+                                )
+                            )}
+                        </>
+                    )}
                 </div>
+
+                <HistoryContextWidget year={currentVideo.year || playlist.year || null} />
+
+                {/* Playlist Description Editor (Bottom) - Hide for Folder-Playlists */}
+                {!playlist.id.startsWith('category:') && (
+                    <div className="ld-description-section">
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                            <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                                <h4 style={{ margin: 0, color: '#9ca3af', fontSize: '14px' }}>재생목록 정보</h4>
+                                {playlist.year && (
+                                    <span className="ld-year-badge">#{playlist.year}년</span>
+                                )}
+                                {playlist.is_on_timeline && (
+                                    <span className="ld-timeline-badge">Timeline ON</span>
+                                )}
+                            </div>
+                            {isAdmin && (
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    {!isEditingYear && (
+                                        <button
+                                            onClick={() => {
+                                                setEditYear(playlist.year?.toString() || '');
+                                                setIsEditingYear(true);
+                                            }}
+                                            className="ld-edit-button-small"
+                                        >
+                                            ✎ 연도 설정
+                                        </button>
+                                    )}
+                                    {!isEditingDesc && (
+                                        <button onClick={startEditingDesc} className="ld-edit-button-small">✎ 설명 수정</button>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+
+                        {isEditingYear && (
+                            <div className="ld-edit-container" style={{ marginBottom: '16px' }}>
+                                <div className="ld-edit-row">
+                                    <label style={{ fontSize: '12px', color: '#9ca3af' }}>역사 연도:</label>
+                                    <input
+                                        type="number"
+                                        className="ld-edit-input-mini"
+                                        value={editYear}
+                                        onChange={(e) => setEditYear(e.target.value)}
+                                        placeholder="연도 (예: 1980)"
+                                    />
+                                </div>
+
+                                <div className="ld-edit-actions">
+                                    <button onClick={() => setIsEditingYear(false)} className="ld-cancel-button">취소</button>
+                                    <button onClick={handleUpdateTimelineSettings} className="ld-save-button">설정 저장</button>
+                                </div>
+                            </div>
+                        )}
+
+                        {isEditingDesc ? (
+                            <div className="ld-edit-container">
+                                <textarea
+                                    className="ld-edit-textarea"
+                                    value={editDesc}
+                                    onChange={(e) => setEditDesc(e.target.value)}
+                                    placeholder="설명 (선택사항)"
+                                />
+                                <div className="ld-edit-actions">
+                                    <button onClick={cancelEditingDesc} className="ld-cancel-button">취소</button>
+                                    <button onClick={handleUpdateDesc} className="ld-save-button">저장</button>
+                                </div>
+                            </div>
+                        ) : (
+                            playlist.description ? (
+                                <p className="ld-info-description">{renderTextWithLinks(playlist.description)}</p>
+                            ) : (
+                                <p className="ld-info-description no-content">등록된 설명이 없습니다.</p>
+                            )
+                        )}
+                    </div>
+                )}
+
+
             </div>
 
             {/* Right: Sidebar */}

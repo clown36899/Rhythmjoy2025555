@@ -247,8 +247,13 @@ const LearningPage = () => {
         return items.filter(p => p.category_id && targetIds.includes(p.category_id));
     }, [items, selectedCategoryId, flatCategories]);
 
+
     // Admin Actions
     const handleDelete = async (item: LearningItem) => {
+        if (!isAdmin) {
+            alert('관리자 권한이 없습니다.');
+            return;
+        }
         const typeLabel = item.type === 'playlist' ? '재생목록' :
             item.type === 'standalone_video' ? '영상' : '문서';
         if (!confirm(`정말로 이 ${typeLabel}을(를) 삭제하시겠습니까?`)) return;
@@ -270,6 +275,11 @@ const LearningPage = () => {
     };
 
     const handleSync = async (playlist: Playlist) => {
+        if (!isAdmin) {
+            alert('관리자 권한이 없습니다.');
+            return;
+        }
+
         if (!playlist.youtube_playlist_id) {
             alert('유튜브 연동 정보가 없는 재생목록입니다.');
             return;
@@ -324,6 +334,10 @@ const LearningPage = () => {
     };
 
     const handleSyncAll = async () => {
+        if (!isAdmin) {
+            alert('관리자 권한이 없습니다.');
+            return;
+        }
         const targets = items.filter(p => p.type === 'playlist' && p.youtube_playlist_id) as Playlist[];
         if (targets.length === 0) {
             alert('동기화할 유튜브 재생목록이 없습니다.');
@@ -378,6 +392,10 @@ const LearningPage = () => {
 
     const togglePublic = async (item: LearningItem, e: React.MouseEvent) => {
         e.stopPropagation();
+        if (!isAdmin) {
+            alert('관리자 권한이 없습니다.');
+            return;
+        }
         const typeLabel = item.type === 'playlist' ? '재생목록' :
             item.type === 'standalone_video' ? '영상' : '문서';
         if (!confirm(`${typeLabel}을(를) ${item.is_public ? '비공개' : '공개'}로 전환하시겠습니까?`)) return;
@@ -399,6 +417,10 @@ const LearningPage = () => {
     };
 
     const handleMoveItem = async (itemId: string, targetCategoryId: string) => {
+        if (!isAdmin) {
+            alert('관리자 권한이 없습니다.');
+            return;
+        }
         try {
             const item = items.find(i => i.id === itemId);
             if (!item) return;

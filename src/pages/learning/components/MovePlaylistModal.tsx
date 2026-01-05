@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
+import { useAuth } from '../../../contexts/AuthContext';
 import styles from './MovePlaylistModal.module.css';
 
 interface Category {
@@ -19,6 +20,7 @@ interface Props {
 }
 
 export const MovePlaylistModal = ({ playlistId, currentCategoryId, itemType = 'playlist', onClose, onSuccess }: Props) => {
+    const { isAdmin } = useAuth();
     const [categoryId, setCategoryId] = useState<string | null>(currentCategoryId);
     const [categories, setCategories] = useState<Category[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -44,6 +46,10 @@ export const MovePlaylistModal = ({ playlistId, currentCategoryId, itemType = 'p
     };
 
     const handleMove = async () => {
+        if (!isAdmin) {
+            alert('관리자 권한이 없습니다.');
+            return;
+        }
         try {
             setIsLoading(true);
 

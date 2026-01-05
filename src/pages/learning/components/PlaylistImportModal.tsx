@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
+import { useAuth } from '../../../contexts/AuthContext';
 import { extractPlaylistId, fetchPlaylistInfo, fetchPlaylistVideos, extractVideoId, fetchVideoDetails } from '../utils/youtube';
 import styles from './PlaylistImportModal.module.css';
 
@@ -17,6 +18,7 @@ interface Category {
 }
 
 export const PlaylistImportModal = ({ onClose, onSuccess }: Props) => {
+    const { isAdmin } = useAuth();
     const [url, setUrl] = useState('');
     const [categoryId, setCategoryId] = useState<string | null>(null);
     const [categories, setCategories] = useState<Category[]>([]);
@@ -49,6 +51,10 @@ export const PlaylistImportModal = ({ onClose, onSuccess }: Props) => {
     };
 
     const handleImport = async () => {
+        if (!isAdmin) {
+            alert('관리자 권한이 없습니다.');
+            return;
+        }
         try {
             setIsLoading(true);
             setError(null);

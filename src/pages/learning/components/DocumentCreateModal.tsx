@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
+import { useAuth } from '../../../contexts/AuthContext';
 import styles from './PlaylistImportModal.module.css'; // Re-using same layout styles
 
 interface Props {
@@ -16,6 +17,7 @@ interface Category {
 }
 
 export const DocumentCreateModal = ({ onClose, onSuccess }: Props) => {
+    const { isAdmin } = useAuth();
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
     const [year, setYear] = useState<string>('');
@@ -61,6 +63,10 @@ export const DocumentCreateModal = ({ onClose, onSuccess }: Props) => {
     const flatCategoryList = flattenCategories(categories);
 
     const handleCreate = async () => {
+        if (!isAdmin) {
+            alert('관리자 권한이 없습니다.');
+            return;
+        }
         try {
             setIsLoading(true);
             setError(null);

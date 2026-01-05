@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../lib/supabase';
+import { useAuth } from '../../../contexts/AuthContext';
 import './CategoryManager.css';
 import './CategoryManager_gap.css';
 
@@ -35,6 +36,7 @@ interface Props {
 }
 
 export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId, onSelect, categories: injectedCategories, playlists = [], onMovePlaylist, onPlaylistClick, highlightedSourceId, dragSourceMode = false }: Props) => {
+    const { isAdmin } = useAuth();
     // Initialize state with injected categories or empty
     const [localCategories, setLocalCategories] = useState<Category[]>(injectedCategories || []);
     const [isLoading, setIsLoading] = useState(!injectedCategories);
@@ -96,6 +98,7 @@ export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId
 
     // --- Save Order Logic ---
     const handleSaveOrder = async () => {
+        if (!isAdmin) return;
         if (!hasChanges) return;
         setIsSaving(true);
         try {
@@ -171,6 +174,7 @@ export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId
     };
 
     const handleCreate = async () => {
+        if (!isAdmin) return;
         if (readOnly) return;
         if (!newItemName.trim()) return;
         try {
@@ -193,6 +197,7 @@ export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId
     };
 
     const handleDelete = async (id: string, name: string) => {
+        if (!isAdmin) return;
         if (readOnly) return;
         if (!confirm(`'${name}' 폴더를 삭제하시겠습니까?\n하위 폴더가 있다면 함께 삭제될 수 있습니다.`)) return;
         try {
@@ -211,6 +216,7 @@ export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId
     };
 
     const handleUpdate = async (id: string) => {
+        if (!isAdmin) return;
         if (readOnly) return;
         if (!editName.trim()) return;
         try {

@@ -2,7 +2,8 @@
 .ld-container {
     display: flex;
     flex-direction: column;
-    height: 100vh;
+    height: 100%;
+    /* Changed from 100vh to ensure it fits parent (especially in modal) */
     background-color: #111827;
     /* gray-900 */
     overflow: hidden;
@@ -27,7 +28,8 @@
     flex: 1;
     display: flex;
     flex-direction: column;
-    height: 50vh;
+    height: 100%;
+    /* Changed from 50vh to 100% for flexibility */
     position: relative;
     background-color: #111827;
     /* gray-900 */
@@ -287,7 +289,8 @@
     padding: clamp(16px, 4vw, 24px);
     background-color: #111827;
     border-top: 1px solid #1f2937;
-    padding-bottom: 120px;
+    padding-bottom: 160px;
+    /* Increased from 120px for better clearance of bottom bars */
     /* 버튼 잘림 방지를 위한 넉넉한 하단 공간 */
 }
 
