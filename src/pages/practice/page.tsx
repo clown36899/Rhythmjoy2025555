@@ -5,6 +5,7 @@ import PracticeRoomList from "./components/PracticeRoomList";
 import VenueTabBar from "./components/VenueTabBar";
 import { useModal } from "../../hooks/useModal";
 import { useAuth } from "../../contexts/AuthContext";
+import { useSetPageAction } from "../../contexts/PageActionContext";
 import './practice.css';
 
 export default function PracticeRoomsPage() {
@@ -159,6 +160,17 @@ export default function PracticeRoomsPage() {
     }
   };
 
+  // FAB Action Registration
+  useSetPageAction({
+    icon: 'ri-pencil-fill',
+    label: '연습실 등록',
+    onClick: () => {
+      const event = new CustomEvent('practiceRoomRegister');
+      window.dispatchEvent(event);
+    },
+    requireAuth: true // Shell will handle login prompt if needed
+  });
+
   return (
     <div className="practice-page-container" >
       {/* Main Content */}
@@ -198,16 +210,6 @@ export default function PracticeRoomsPage() {
           </div>
         </div>
       )}
-
-      <button
-        className="shell-fab-btn"
-        onClick={() => {
-          const event = new CustomEvent('practiceRoomRegister');
-          window.dispatchEvent(event);
-        }}
-      >
-        <i className="ri-pencil-fill"></i>
-      </button>
     </div>
   );
 }
