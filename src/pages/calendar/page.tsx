@@ -301,6 +301,7 @@ export default function CalendarPage() {
                     className={`calendar-tab-btn ${tabFilter === 'all' ? 'active' : ''}`}
                     onClick={() => setTabFilter('all')}
                 >
+                    <i className="ri-calendar-line"></i>
                     <div className="tab-label-wrapper">
                         <span className="translated-part">{t('all')}</span>
                         <span className="fixed-part ko" translate="no">전체</span>
@@ -311,6 +312,7 @@ export default function CalendarPage() {
                     className={`calendar-tab-btn ${tabFilter === 'social-events' ? 'active' : ''}`}
                     onClick={() => setTabFilter('social-events')}
                 >
+                    <i className="ri-calendar-event-fill"></i>
                     <div className="tab-label-wrapper">
                         <span className="translated-part">{t('socialEvents')}</span>
                         <span className="fixed-part ko" translate="no">소셜&행사</span>
@@ -321,6 +323,7 @@ export default function CalendarPage() {
                     className={`calendar-tab-btn ${tabFilter === 'classes' ? 'active' : ''}`}
                     onClick={() => setTabFilter('classes')}
                 >
+                    <i className="ri-graduation-cap-fill"></i>
                     <div className="tab-label-wrapper">
                         <span className="translated-part">{t('classes')}</span>
                         <span className="fixed-part ko" translate="no">강습</span>

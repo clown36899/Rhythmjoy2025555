@@ -242,6 +242,44 @@
   color: white;
 }
 
+/* ===== D-Day 배지 ===== */
+.card-dday-badge {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.95), rgba(37, 99, 235, 0.95));
+  color: white;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  z-index: 3;
+  transition: all 0.3s ease;
+}
+
+.card-dday-today {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.95), rgba(220, 38, 38, 0.95));
+  animation: dday-pulse 2s ease-in-out infinite;
+}
+
+@keyframes dday-pulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.5);
+  }
+}
+
 /* 이벤트 카드 배지 전용 스타일 */
 
 

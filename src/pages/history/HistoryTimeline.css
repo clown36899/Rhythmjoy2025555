@@ -16,7 +16,7 @@
 .history-floating-toolbar {
     position: absolute;
 
-    top: 24px;
+    top: 13px;
     /* More space from header */
     right: 16px;
     display: flex;

@@ -120,6 +120,36 @@ export const EventCard = memo(({
   const todayString = getLocalDateString();
   const isPast = event.end_date ? event.end_date < todayString : (event.date ? event.date < todayString : false);
 
+  // D-day 계산 로직
+  const dDay = useMemo(() => {
+    if (isPast) return null; // 지난 이벤트는 D-day 표시 안 함
+
+    const today = new Date(todayString);
+    let targetDate: Date | null = null;
+
+    // 이벤트 시작일 결정
+    if (event.event_dates && event.event_dates.length > 0) {
+      // 다중 날짜 중 가장 빠른 날짜
+      const sortedDates = [...event.event_dates].sort();
+      targetDate = new Date(sortedDates[0] + 'T00:00:00');
+    } else {
+      const startDate = event.start_date || event.date;
+      if (startDate) {
+        targetDate = new Date(startDate + 'T00:00:00');
+      }
+    }
+
+    if (!targetDate) return null;
+
+    // 날짜 차이 계산 (밀리초 -> 일)
+    const diffTime = targetDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) return null; // 이미 시작한 이벤트
+    if (diffDays === 0) return 'D-Day';
+    return `D-${diffDays}일`;
+  }, [todayString, isPast, event.event_dates, event.start_date, event.date]);
+
   // category 기반 클래스 추가
   const categoryClass = event.category === 'class' ? 'card-category-class' : 'card-category-event';
 
@@ -218,6 +248,12 @@ export const EventCard = memo(({
             </>
           ) : "행사"}
         </div>
+
+        {dDay && (
+          <div className={`card-dday-badge ${dDay === 'D-Day' ? 'card-dday-today' : ''}`}>
+            {dDay}
+          </div>
+        )}
 
         {onToggleFavorite && (
           <button

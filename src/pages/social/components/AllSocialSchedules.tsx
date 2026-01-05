@@ -105,6 +105,21 @@ const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules,
         return (a.start_time || '').localeCompare(b.start_time || '');
     });
 
+    // D-day 계산 함수
+    const calculateDDay = (scheduleDate: string | null): string | null => {
+        if (!scheduleDate) return null;
+
+        const today = new Date(todayStr);
+        const targetDate = new Date(scheduleDate + 'T00:00:00');
+
+        const diffTime = targetDate.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        if (diffDays < 0) return null; // 지난 일정
+        if (diffDays === 0) return 'D-Day';
+        return `D-${diffDays}일`;
+    };
+
     return (
         <section className="all-social-container">
             <div className="all-social-header">
@@ -167,6 +182,14 @@ const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules,
                                             <span className="all-social-time">{item.start_time.substring(0, 5)}</span>
                                         </div>
                                     )}
+                                    {(() => {
+                                        const dDay = calculateDDay(item.date);
+                                        return dDay ? (
+                                            <div className={`all-social-dday-badge ${dDay === 'D-Day' ? 'all-social-dday-today' : ''}`}>
+                                                {dDay}
+                                            </div>
+                                        ) : null;
+                                    })()}
                                 </div>
                                 <div className="all-social-card-info">
                                     <h3 className="all-social-card-title">{item.title}</h3>

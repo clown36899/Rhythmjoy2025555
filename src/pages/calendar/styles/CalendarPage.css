@@ -37,7 +37,7 @@ html {
     flex: 1;
     padding: 8px 12px;
     background-color: #1a1a1a;
-    color: #888;
+    color: #d9d9d9;
     border: 1px solid #333;
     border-radius: 8px;
     font-size: 14px;
@@ -45,6 +45,15 @@ html {
     cursor: pointer;
     transition: all 0.2s ease;
     white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* gap: 6px; */
+}
+
+.calendar-tab-btn i {
+    font-size: 16px;
+    flex-shrink: 0;
 }
 
 .calendar-tab-btn:hover {
