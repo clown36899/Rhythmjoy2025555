@@ -122,9 +122,8 @@
 }
 
 /* ReactFlow Custom Styles */
-.react-flow {
-    /* background: #000000; */
-}
+/* .react-flow {
+} */
 
 .react-flow__attribution {
     background: rgba(17, 24, 39, 0.8);

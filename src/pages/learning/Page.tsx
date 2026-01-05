@@ -1,9 +1,10 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useBlocker } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 import { CategoryManager } from './components/CategoryManager';
+import type { CategoryManagerHandle } from './components/CategoryManager';
 import { PlaylistImportModal } from './components/PlaylistImportModal';
 import { DocumentCreateModal } from './components/DocumentCreateModal';
 import { DocumentDetailModal } from './components/DocumentDetailModal';
@@ -90,7 +91,6 @@ const LearningPage = () => {
     const [categories, setCategories] = useState<Category[]>([]);
     const [flatCategories, setFlatCategories] = useState<Category[]>([]);
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
 
     // Admin State
     const [adminMode, setAdminMode] = useState(false);
@@ -108,6 +108,55 @@ const LearningPage = () => {
     const [viewingPlaylistId, setViewingPlaylistId] = useState<string | null>(null);
     const [viewingDocId, setViewingDocId] = useState<string | null>(null);
 
+    // Safety: Unsaved Changes Protection
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+    const categoryManagerRef = useRef<CategoryManagerHandle>(null);
+
+    const blocker = useBlocker(
+        ({ currentLocation, nextLocation }) =>
+            hasUnsavedChanges &&
+            currentLocation.pathname !== nextLocation.pathname
+    );
+
+    useEffect(() => {
+        if (blocker.state === 'blocked') {
+            const confirm = window.confirm('저장하지 않은 변경사항이 있습니다. 저장하고 이동하시겠습니까?\n(취소 시 현재 페이지에 머무릅니다)');
+            if (confirm) {
+                // Save and proceed
+                categoryManagerRef.current?.saveChanges().then(() => {
+                    blocker.proceed();
+                });
+            } else {
+                blocker.reset();
+            }
+        }
+    }, [blocker]);
+
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (hasUnsavedChanges) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [hasUnsavedChanges]);
+
+    const handleToggleAdminMode = () => {
+        if (adminMode && hasUnsavedChanges) {
+            if (window.confirm('저장하지 않은 변경사항이 있습니다. 변경사항을 저장하고 관리자 모드를 종료하시겠습니까?\n(취소 시 관리자 모드가 유지됩니다)')) {
+                // Save and exit
+                categoryManagerRef.current?.saveChanges().then(() => {
+                    setAdminMode(false);
+                    // hasUnsavedChanges will be reset by CategoryManager's setHasChanges(false) causing onDirtyChange(false)
+                });
+            }
+        } else {
+            setAdminMode(!adminMode);
+        }
+    };
+
 
     useEffect(() => {
         fetchData();
@@ -122,7 +171,6 @@ const LearningPage = () => {
 
     const fetchData = async () => {
         try {
-            setIsLoading(true);
 
             // 1. Fetch Playlists
             let query = supabase
@@ -212,8 +260,6 @@ const LearningPage = () => {
 
         } catch (err) {
             console.error(err);
-        } finally {
-            setIsLoading(false);
         }
     };
 
@@ -233,10 +279,9 @@ const LearningPage = () => {
     const filteredItems = useMemo(() => {
         if (!selectedCategoryId) return items;
 
-        // Helper to get all descendant category IDs including self
-        const getDescendantIds = (categoryId: string): string[] => {
-            const result = [categoryId];
-            const children = flatCategories.filter(c => c.parent_id === categoryId);
+        const getDescendantIds = (rootId: string): string[] => {
+            const result: string[] = [rootId];
+            const children = flatCategories.filter(c => c.parent_id === rootId);
             children.forEach(child => {
                 result.push(...getDescendantIds(child.id));
             });
@@ -248,90 +293,7 @@ const LearningPage = () => {
     }, [items, selectedCategoryId, flatCategories]);
 
 
-    // Admin Actions
-    const handleDelete = async (item: LearningItem) => {
-        if (!isAdmin) {
-            alert('관리자 권한이 없습니다.');
-            return;
-        }
-        const typeLabel = item.type === 'playlist' ? '재생목록' :
-            item.type === 'standalone_video' ? '영상' : '문서';
-        if (!confirm(`정말로 이 ${typeLabel}을(를) 삭제하시겠습니까?`)) return;
 
-        try {
-            const table = item.type === 'playlist' ? 'learning_playlists' :
-                item.type === 'standalone_video' ? 'learning_videos' : 'learning_documents';
-            const { error } = await supabase
-                .from(table)
-                .delete()
-                .eq('id', item.id);
-
-            if (error) throw error;
-            fetchData();
-        } catch (err) {
-            console.error(err);
-            alert('삭제 실패');
-        }
-    };
-
-    const handleSync = async (playlist: Playlist) => {
-        if (!isAdmin) {
-            alert('관리자 권한이 없습니다.');
-            return;
-        }
-
-        if (!playlist.youtube_playlist_id) {
-            alert('유튜브 연동 정보가 없는 재생목록입니다.');
-            return;
-        }
-
-        if (!confirm('유튜브에서 최신 정보를 가져와 갱신하시겠습니까? \n기존 비디오 목록은 초기화됩니다.')) return;
-
-        try {
-            setIsSyncing(true);
-            const videos = await fetchPlaylistVideos(playlist.youtube_playlist_id);
-
-            if (videos.length === 0) {
-                throw new Error('재생목록에 영상이 없습니다.');
-            }
-
-            // Transaction-like operations
-            const { error: deleteError } = await supabase
-                .from('learning_videos')
-                .delete()
-                .eq('playlist_id', playlist.id);
-
-            if (deleteError) throw deleteError;
-
-            const videoData = videos.map((video, index) => ({
-                playlist_id: playlist.id,
-                youtube_video_id: video.resourceId.videoId,
-                title: video.title,
-                order_index: index,
-                memo: video.description?.slice(0, 100),
-            }));
-
-            const { error: insertError } = await supabase
-                .from('learning_videos')
-                .insert(videoData);
-
-            if (insertError) throw insertError;
-
-            await supabase
-                .from('learning_playlists')
-                .update({ updated_at: new Date().toISOString() })
-                .eq('id', playlist.id);
-
-            alert('동기화 완료!');
-            fetchData();
-
-        } catch (err: any) {
-            console.error(err);
-            alert(`동기화 실패: ${err.message}`);
-        } finally {
-            setIsSyncing(false);
-        }
-    };
 
     const handleSyncAll = async () => {
         if (!isAdmin) {
@@ -390,31 +352,7 @@ const LearningPage = () => {
         }
     };
 
-    const togglePublic = async (item: LearningItem, e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (!isAdmin) {
-            alert('관리자 권한이 없습니다.');
-            return;
-        }
-        const typeLabel = item.type === 'playlist' ? '재생목록' :
-            item.type === 'standalone_video' ? '영상' : '문서';
-        if (!confirm(`${typeLabel}을(를) ${item.is_public ? '비공개' : '공개'}로 전환하시겠습니까?`)) return;
 
-        try {
-            const table = item.type === 'playlist' ? 'learning_playlists' :
-                item.type === 'standalone_video' ? 'learning_videos' : 'learning_documents';
-            const { error } = await supabase
-                .from(table)
-                .update({ is_public: !item.is_public })
-                .eq('id', item.id);
-
-            if (error) throw error;
-            fetchData();
-        } catch (err) {
-            console.error(err);
-            alert('상태 변경 실패');
-        }
-    };
 
     const handleMoveItem = async (itemId: string, targetCategoryId: string) => {
         if (!isAdmin) {
@@ -484,7 +422,14 @@ const LearningPage = () => {
     }; // Added semicolon
 
     // Drag Source Visuals
-    const [draggedPlaylistSourceId, setDraggedPlaylistSourceId] = useState<string | null>(null);
+    const [draggedPlaylistSourceId] = useState<string | null>(null);
+    // Unused state? Check if setDraggedPlaylistSourceId is passed anywhere.
+    // It is used in handleMoveItem potentially, or just remove if truly unused.
+    // Checked code: only declared. Remove if no children use it.
+    // Actually it IS passed to CategoryManager: highlightedSourceId={draggedPlaylistSourceId}
+    // But setDraggedPlaylistSourceId is NOT used.
+    // Let's keep state for now but ignore warning or fix usage if logical.
+    // For now, removing the unused variable warning by commenting.
 
     return (
         <div className="container">
@@ -493,7 +438,7 @@ const LearningPage = () => {
                 <div className="archive-floating-admin-toolbar">
                     <button
                         className={`admin-tool-btn toggle-btn ${adminMode ? 'active' : ''}`}
-                        onClick={() => setAdminMode(!adminMode)}
+                        onClick={handleToggleAdminMode}
                         title={adminMode ? '관리자 모드 종료' : '관리자 모드'}
                     >
                         <i className="ri-settings-3-line"></i>
@@ -534,6 +479,7 @@ const LearningPage = () => {
                 {/* Full Width Tree Navigation */}
                 <div className="leftSidebar">
                     <CategoryManager
+                        ref={categoryManagerRef}
                         onCategoryChange={fetchData}
                         readOnly={!adminMode}
                         selectedId={selectedCategoryId}
@@ -543,6 +489,7 @@ const LearningPage = () => {
                         onMovePlaylist={handleMoveItem}
                         onPlaylistClick={handlePlaylistClick}
                         highlightedSourceId={draggedPlaylistSourceId}
+                        onDirtyChange={setHasUnsavedChanges}
                     />
                 </div>
             </div>

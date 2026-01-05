@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import './CategoryManager.css';
@@ -21,6 +21,10 @@ interface Playlist {
     type?: 'playlist' | 'document' | 'standalone_video';
 }
 
+export interface CategoryManagerHandle {
+    saveChanges: () => Promise<void>;
+}
+
 interface Props {
     onCategoryChange: () => void;
     // New props for unification
@@ -33,9 +37,11 @@ interface Props {
     onPlaylistClick?: (playlistId: string) => void;
     highlightedSourceId?: string | null;
     dragSourceMode?: boolean; // If true, allows dragging even if readOnly is true (for drawer)
+    onDirtyChange?: (isDirty: boolean) => void;
 }
 
-export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId, onSelect, categories: injectedCategories, playlists = [], onMovePlaylist, onPlaylistClick, highlightedSourceId, dragSourceMode = false }: Props) => {
+export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, ref) => {
+    const { onCategoryChange, readOnly = false, selectedId, onSelect, categories: injectedCategories, playlists = [], onMovePlaylist, onPlaylistClick, highlightedSourceId, dragSourceMode = false } = props;
     const { isAdmin } = useAuth();
     // Initialize state with injected categories or empty
     const [localCategories, setLocalCategories] = useState<Category[]>(injectedCategories || []);
@@ -60,6 +66,12 @@ export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId
     // --- Manual Save State ---
     const [hasChanges, setHasChanges] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+
+    useEffect(() => {
+        if (props.onDirtyChange) {
+            props.onDirtyChange(hasChanges);
+        }
+    }, [hasChanges]);
 
     // --- Drag and Drop State ---
     const [draggedId, setDraggedId] = useState<string | null>(null);
@@ -141,6 +153,10 @@ export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId
             setIsSaving(false);
         }
     };
+
+    useImperativeHandle(ref, () => ({
+        saveChanges: handleSaveOrder
+    }));
 
     const fetchCategories = async () => {
         try {
@@ -727,10 +743,8 @@ export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId
         );
     };
 
-    // Placeholder for addRootCategory, assuming it's defined elsewhere or needs to be added
-    const addRootCategory = () => {
-        // ... handled elsewhere or triggers logic ...
-    };
+    // Placeholder for addRootCategory
+    // const addRootCategory = () => { };
 
     // Invisible Drop Zone Handlers for Root
     const handleContainerDragOver = (e: React.DragEvent) => {
@@ -809,4 +823,4 @@ export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId
             </div>
         </div>
     );
-};
+});

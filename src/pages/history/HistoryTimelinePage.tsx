@@ -249,6 +249,24 @@ export default function HistoryTimelinePage() {
         }
     };
 
+    const handleToggleEditMode = () => {
+        if (isEditMode) {
+            // Turning OFF
+            if (hasUnsavedChanges) {
+                if (window.confirm('저장하지 않은 변경사항이 있습니다. 저장하고 편집 모드를 종료하시겠습니까?\n(취소 시 편집 모드가 유지됩니다)')) {
+                    handleSaveLayout().then(() => {
+                        setIsEditMode(false);
+                    });
+                }
+            } else {
+                setIsEditMode(false);
+            }
+        } else {
+            // Turning ON
+            setIsEditMode(true);
+        }
+    };
+
     const handleEditNode = (nodeData: HistoryNodeData) => {
         setEditingNode(nodeData);
         setIsEditorOpen(true);
@@ -830,7 +848,7 @@ export default function HistoryTimelinePage() {
                 {isAdmin && (
                     <button
                         className={`toolbar-btn ${isEditMode ? 'active' : ''}`}
-                        onClick={() => setIsEditMode(!isEditMode)}
+                        onClick={handleToggleEditMode}
                         title={isEditMode ? '편집 모드 종료' : '편집 모드 시작'}
                     >
                         <i className={`ri-${isEditMode ? 'edit-line' : 'edit-2-line'}`}></i>

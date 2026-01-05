@@ -74,7 +74,7 @@ const router = createBrowserRouter([
       { path: "/my-activities", element: <MyActivitiesPage /> },
       { path: "/auth/kakao-callback", element: <KakaoCallbackPage /> },
 
-      // 스윙피디아 (Archive) Routes - MobileShell 내부에 중첩
+      // 댄스 라이브러리 (Archive) Routes - MobileShell 내부에 중첩
       {
         element: <ArchiveLayout />,
         children: [

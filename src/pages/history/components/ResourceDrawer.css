@@ -274,3 +274,47 @@
     color: #6b7280;
     text-align: center;
 }
+
+/* Fix Category Manager inside Drawer */
+.category-tree-wrapper {
+    height: 100%;
+    overflow: hidden;
+}
+
+.resource-drawer .categoryManager {
+    padding: 0 !important;
+    background: transparent !important;
+}
+
+.resource-drawer .treeContainer {
+    flex-direction: column !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    padding: 0 !important;
+    gap: 12px !important;
+}
+
+.resource-drawer .treeColumn {
+    width: 100% !important;
+    flex: 0 0 auto !important;
+    max-width: none !important;
+    max-height: none !important;
+    min-width: 0 !important;
+    background: rgba(255, 255, 255, 0.02) !important;
+    border: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
+.resource-drawer .columnHeader {
+    background: rgba(255, 255, 255, 0.03) !important;
+    padding: 8px !important;
+}
+
+.resource-drawer .itemContent {
+    background: rgba(255, 255, 255, 0.02) !important;
+    border-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+.resource-drawer .treeChildren {
+    margin-left: 12px !important;
+    padding-left: 12px !important;
+}
