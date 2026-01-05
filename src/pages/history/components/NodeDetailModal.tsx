@@ -31,6 +31,11 @@ export const NodeDetailModal: React.FC<NodeDetailModalProps> = ({ nodeData, onCl
                 </button>
 
                 <div className="detail-header">
+                    {nodeData.category === 'person' && nodeData.image_url && (
+                        <div className="detail-person-photo">
+                            <img src={nodeData.image_url} alt={nodeData.title} />
+                        </div>
+                    )}
                     <div className="detail-meta">
                         <span className="detail-year">{nodeData.year}년</span>
                         {nodeData.category && <span className={`detail-category cat-${nodeData.category}`}>{nodeData.category}</span>}

@@ -12,6 +12,7 @@ export interface HistoryNodeData {
     linked_video_id?: string;
     linked_category_id?: string;
     thumbnail_url?: string | null;
+    image_url?: string | null;
     playlist_data?: any;
     nodeType?: string;
     onEdit?: (data: HistoryNodeData) => void;

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { parseVideoUrl } from '../../../utils/videoEmbed';
+import { supabase } from '../../../lib/supabase';
 import './NodeEditorModal.css';
 
 interface NodeEditorModalProps {
@@ -19,7 +20,10 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
         category: 'general',
         tags: '',
         addToDrawer: false,
+        image_url: '',
     });
+    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
 
     useEffect(() => {
         if (node) {
@@ -32,12 +36,114 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                 category: node.category || 'general',
                 tags: node.tags?.join(', ') || '',
                 addToDrawer: false,
+                image_url: node.image_url || '',
             });
+            if (node.image_url) {
+                setImagePreview(node.image_url);
+            }
         }
     }, [node]);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    // Auto-check drawer for person category
+    useEffect(() => {
+        if (formData.category === 'person') {
+            setFormData(prev => ({ ...prev, addToDrawer: true }));
+        }
+    }, [formData.category]);
+
+    const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setImageFile(file);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setImagePreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+    };
+
+    const resizeImageToWebP = (file: File, maxSize: number = 300): Promise<Blob> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+
+                    // Calculate new dimensions (square crop)
+                    const size = Math.min(width, height);
+                    const x = (width - size) / 2;
+                    const y = (height - size) / 2;
+
+                    canvas.width = maxSize;
+                    canvas.height = maxSize;
+                    const ctx = canvas.getContext('2d');
+
+                    if (!ctx) {
+                        reject(new Error('Canvas context not available'));
+                        return;
+                    }
+
+                    // Draw cropped and resized image
+                    ctx.drawImage(img, x, y, size, size, 0, 0, maxSize, maxSize);
+
+                    // Convert to WebP
+                    canvas.toBlob(
+                        (blob) => {
+                            if (blob) {
+                                resolve(blob);
+                            } else {
+                                reject(new Error('Failed to create blob'));
+                            }
+                        },
+                        'image/webp',
+                        0.85 // Quality
+                    );
+                };
+                img.onerror = () => reject(new Error('Failed to load image'));
+                img.src = e.target?.result as string;
+            };
+            reader.onerror = () => reject(new Error('Failed to read file'));
+            reader.readAsDataURL(file);
+        });
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        let image_url = formData.image_url;
+
+        // Upload image if person category and file selected
+        if (formData.category === 'person' && imageFile) {
+            try {
+                // Resize to 300x300 WebP
+                const resizedBlob = await resizeImageToWebP(imageFile, 300);
+
+                const fileName = `${Date.now()}.webp`;
+                const filePath = `documents/temp/${fileName}`;
+
+                const { error: uploadError } = await supabase.storage
+                    .from('learning-images')
+                    .upload(filePath, resizedBlob, {
+                        contentType: 'image/webp',
+                    });
+
+                if (uploadError) throw uploadError;
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from('learning-images')
+                    .getPublicUrl(filePath);
+
+                image_url = publicUrl;
+            } catch (error) {
+                console.error('Image upload error:', error);
+                alert('이미지 업로드 실패');
+                return;
+            }
+        }
 
         const data = {
             title: formData.title,
@@ -51,6 +157,7 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                 .map((t) => t.trim())
                 .filter(Boolean),
             addToDrawer: formData.addToDrawer,
+            image_url,
         };
 
         onSave(data);
@@ -122,6 +229,50 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                             <option value="music">음악</option>
                         </select>
                     </div>
+
+                    {formData.category === 'person' && (
+                        <>
+                            <div className="info-message" style={{
+                                padding: '12px',
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                border: '1px solid rgba(59, 130, 246, 0.3)',
+                                borderRadius: '8px',
+                                marginBottom: '16px',
+                                color: '#60a5fa'
+                            }}>
+                                ℹ️ 인물 노드는 자동으로 자료 서랍에 추가됩니다
+                            </div>
+                            <div className="form-group">
+                                <label>인물 사진</label>
+                                <input
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleImageSelect}
+                                    style={{ marginBottom: '12px' }}
+                                />
+                                {imagePreview && (
+                                    <div style={{
+                                        width: '120px',
+                                        height: '120px',
+                                        borderRadius: '50%',
+                                        overflow: 'hidden',
+                                        margin: '0 auto',
+                                        border: '2px solid rgba(255, 255, 255, 0.2)'
+                                    }}>
+                                        <img
+                                            src={imagePreview}
+                                            alt="Preview"
+                                            style={{
+                                                width: '100%',
+                                                height: '100%',
+                                                objectFit: 'cover'
+                                            }}
+                                        />
+                                    </div>
+                                )}
+                            </div>
+                        </>
+                    )}
 
                     <div className="form-group">
                         <label>유튜브 URL</label>

@@ -352,6 +352,7 @@ export default function HistoryTimelinePage() {
                 let desc = node.description;
                 let category = node.category;
                 let thumbnail_url = null;
+                let image_url = null;
 
                 if (lp) {
                     title = lp.title;
@@ -362,6 +363,7 @@ export default function HistoryTimelinePage() {
                     title = ld.title;
                     year = ld.year;
                     desc = ld.content;
+                    image_url = ld.image_url; // Person photo
                 } else if (lv) {
                     title = lv.title;
                     year = lv.year;
@@ -398,6 +400,7 @@ export default function HistoryTimelinePage() {
                         linked_video_id: node.linked_video_id,
                         linked_category_id: node.linked_category_id,
                         thumbnail_url,
+                        image_url,
                         onEdit: handleEditNode,
                         onViewDetail: handleViewDetail,
                         onPlayVideo: handlePlayVideo,
@@ -706,6 +709,7 @@ export default function HistoryTimelinePage() {
                                 title: cleanNodeData.title,
                                 content: cleanNodeData.description,
                                 year: cleanNodeData.year,
+                                image_url: cleanNodeData.image_url || null,
                                 is_public: true
                                 // created_by: user.id // Removed to fix schema error
                             })
@@ -744,8 +748,11 @@ export default function HistoryTimelinePage() {
                     linkedPlaylistId = currentNode.linked_playlist_id;
                 }
 
+                // Remove image_url from node data (it's only for learning_documents)
+                const { image_url, ...nodeUpdateData } = cleanNodeData;
+
                 const updateData = {
-                    ...cleanNodeData,
+                    ...nodeUpdateData,
                     linked_video_id: linkedVideoId,
                     linked_document_id: linkedDocumentId,
                     linked_playlist_id: linkedPlaylistId
@@ -780,7 +787,8 @@ export default function HistoryTimelinePage() {
                         .update({
                             title: cleanNodeData.title,
                             content: cleanNodeData.description,
-                            year: cleanNodeData.year
+                            year: cleanNodeData.year,
+                            image_url: cleanNodeData.image_url || null
                         })
                         .eq('id', linkedDocumentId)
                         .select()
@@ -812,8 +820,11 @@ export default function HistoryTimelinePage() {
                     y: -center.y / center.zoom + 100,
                 };
 
+                // Remove image_url from node data (it's only for learning_documents)
+                const { image_url, ...nodeInsertData } = cleanNodeData;
+
                 const newNodeData = {
-                    ...cleanNodeData,
+                    ...nodeInsertData,
                     linked_video_id: linkedVideoId,
                     linked_document_id: linkedDocumentId,
                     position_x: position.x,
@@ -1020,6 +1031,7 @@ export default function HistoryTimelinePage() {
     return (
         <div className="history-timeline-page">
             <div className="history-floating-toolbar">
+                {/* Year sort button hidden
                 <button
                     className={`toolbar-btn ${isAutoLayout ? 'active' : ''}`}
                     onClick={toggleAutoLayout}
@@ -1028,6 +1040,7 @@ export default function HistoryTimelinePage() {
                     <i className={`ri-${isAutoLayout ? 'layout-grid-fill' : 'sort-desc'}`}></i>
                     <span>연도순</span>
                 </button>
+                */}
                 {isAdmin && (
                     <button
                         className={`toolbar-btn ${isEditMode ? 'active' : ''}`}
@@ -1050,7 +1063,7 @@ export default function HistoryTimelinePage() {
                     title="데이터 서랍"
                 >
                     <i className="ri-database-2-line"></i>
-                    <span>서랍</span>
+                    <span><span>서랍</span><span>Data</span></span>
                 </button>
                 {isEditMode && (
                     <button className="toolbar-btn add-btn" onClick={handleCreateNode} title="새 노드 추가">

@@ -90,6 +90,22 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
             <Handle type="source" position={Position.Left} id="left" style={{ top: '50%' }} />
             <Handle type="source" position={Position.Right} id="right" style={{ top: '50%' }} />
 
+            {/* Person Avatar for person category */}
+            {data.category === 'person' && data.image_url && (
+                <div
+                    className="person-avatar"
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        if (data.linked_document_id && data.onPreviewLinkedResource) {
+                            data.onPreviewLinkedResource(data.linked_document_id, 'document', data.title);
+                        }
+                    }}
+                    style={{ cursor: 'pointer' }}
+                >
+                    <img src={data.image_url} alt={data.title} />
+                </div>
+            )}
+
             {/* Thumbnail */}
             {thumbnailUrl && (
                 <div className="history-node-thumbnail" onClick={handleThumbnailClick}>
@@ -126,7 +142,9 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
                 </div>
 
                 <h3 className="history-node-title">
-                    {data.nodeType === 'playlist' ? '💿' : data.nodeType === 'document' ? '📄' : data.nodeType === 'video' ? '📹' : data.nodeType === 'category' ? '📁' : '📅'}
+                    <span style={{ marginRight: '3px' }}>
+                        {data.nodeType === 'playlist' ? '💿' : data.nodeType === 'document' ? '📄' : data.nodeType === 'video' ? '📹' : data.nodeType === 'category' ? '📁' : '📅'}
+                    </span>
                     {data.title}
                 </h3>
 
