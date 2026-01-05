@@ -414,19 +414,8 @@ export default function EventDetailModal({
       ...allHistoricalGenres,
       // ...localCustomGenres // Removed
     ];
-
-    console.log('[EventDetailModal] uniqueGenres recalc. Category:', editCategory);
-    console.log('[EventDetailModal] structuredGenres:', structuredGenres);
-
-
     // Filter, Flatten, Unique, Sort
     // Enforce strict genres based on category
-    if (editCategory === 'event') {
-      return ['파티', '대회', '워크샵'];
-    }
-    if (editCategory === 'class') {
-      return ['린디합', '솔로재즈', '발보아', '블루스', '팀원모집'];
-    }
     if (editCategory === 'club') {
       return ['정규강습', '린디합', '솔로재즈', '발보아', '블루스', '팀원모집'];
     }
@@ -487,11 +476,6 @@ export default function EventDetailModal({
   const handleSaveField = () => {
     if (!draftEvent || !activeEditField) return;
 
-    console.log('[Debug] handleSaveField triggered');
-    console.log(' - activeEditField:', activeEditField);
-    console.log(' - editValue:', editValue);
-    console.log(' - editCategory:', editCategory);
-
     const updates: Partial<Event> = {};
 
     if (activeEditField === 'title') updates.title = editValue;
@@ -501,13 +485,8 @@ export default function EventDetailModal({
     }
     if (activeEditField === 'description') updates.description = editValue;
     if (activeEditField === 'date') {
-      console.log('[Date Save] Starting date save logic');
-      console.log('[Date Save] dateMode:', dateMode);
-      console.log('[Date Save] editValue:', editValue);
-
       if (dateMode === 'dates') {
         // Multiple dates mode
-        console.log('[Date Save] Multiple dates mode detected');
         const dates = editValue.split(',').filter(Boolean).sort();
         updates.event_dates = dates;
         if (dates.length > 0) {
@@ -519,20 +498,13 @@ export default function EventDetailModal({
           updates.date = null;
           updates.end_date = null;
         }
-        console.log('[Date Save] Updates for multiple dates:', {
-          event_dates: updates.event_dates,
-          start_date: updates.start_date,
-          end_date: updates.end_date
-        });
       } else {
         // Single date mode
-        console.log('[Date Save] Single date mode detected');
         const singleDate = editValue || null;
         updates.start_date = singleDate;
         updates.date = singleDate;
         updates.end_date = singleDate;
         updates.event_dates = null;
-        console.log('[Date Save] Updates for single date:', { start_date: singleDate, date: singleDate, end_date: singleDate });
       }
     }
     if (activeEditField === 'links') {
@@ -544,9 +516,7 @@ export default function EventDetailModal({
       updates.link_name3 = linkEditValues.link_name3;
     }
 
-    console.log('[Date Save] Final updates object:', updates);
     setDraftEvent({ ...draftEvent, ...updates });
-    console.log('[Date Save] Draft event updated');
     setActiveEditField(null);
   };
 
@@ -582,27 +552,19 @@ export default function EventDetailModal({
       const isChanged = normalize(originalValue) !== normalize(draftValue);
       if (isChanged) {
         changedFields.push(field);
-        console.log(`[hasChanges] Field '${field}' changed:`, {
-          original: originalValue,
-          draft: draftValue
-        });
       }
       return isChanged;
     });
 
-    console.log('[hasChanges] Result:', hasChanged, 'Changed fields:', changedFields);
     return hasChanged;
   };
 
   const handleFinalSave = async () => {
     if (!draftEvent) return;
 
-    console.log('[Debug] handleFinalSave triggered');
-    console.log(' - draftEvent state:', draftEvent);
 
     try {
       setIsSaving(true);
-      console.log("🌀 EventDetailModal 스피너 실행됨 (isSaving: true)");
 
       // Capture timestamp at the start of save for consistent folder naming
       const timestamp = Date.now();
@@ -634,19 +596,7 @@ export default function EventDetailModal({
       };
 
 
-      console.log('[Final Save] Date fields in draftEvent:', {
-        date: draftEvent.date,
-        start_date: draftEvent.start_date,
-        end_date: draftEvent.end_date,
-        event_dates: draftEvent.event_dates
-      });
-      console.log('[Final Save] Date fields in updates:', {
-        date: updates.date,
-        start_date: updates.start_date,
-        end_date: updates.end_date,
-        event_dates: updates.event_dates
-      });
-      console.log(' - Payload to Supabase:', updates);
+
 
       // Upload image if changed
       if (imageFile) {
@@ -751,8 +701,6 @@ export default function EventDetailModal({
       });
 
       // 🎯 [DB UPDATE] Reverted to Standard REST API (.update) for simplicity and reliability with retry
-      console.log('[DB Update] Updating events table with payload:', updates);
-      console.log('[DB Update] Event ID:', draftEvent.id);
 
       const { data: updatedEvent, error } = await retryOperation(async () =>
         await supabase
@@ -763,9 +711,6 @@ export default function EventDetailModal({
           .maybeSingle()
       ) as any;
 
-      console.log('[DB Update] REST response received');
-      console.log('[DB Update] Error:', error);
-      console.log('[DB Update] Updated event data:', updatedEvent);
 
       if (error) {
         console.error('[Error] Supabase update failed after retries:', error);
@@ -780,19 +725,8 @@ export default function EventDetailModal({
         throw permError;
       }
 
-      console.log('[Debug] Supabase update success');
-      console.log(' - Updated event from DB:', updatedEvent);
-
       // Verify if updates were actually applied
       if (updatedEvent) {
-        console.log('[Debug] Verifying update application:');
-        console.log(` - Genre: Payload '${updates.genre}' vs DB '${updatedEvent.genre}'`);
-        console.log(` - Category: Payload '${updates.category}' vs DB '${updatedEvent.category}'`);
-        console.log(` - Date: Payload '${updates.date}' vs DB '${updatedEvent.date}'`);
-        console.log(` - Start Date: Payload '${updates.start_date}' vs DB '${updatedEvent.start_date}'`);
-        console.log(` - End Date: Payload '${updates.end_date}' vs DB '${updatedEvent.end_date}'`);
-        console.log(` - Event Dates: Payload '${JSON.stringify(updates.event_dates)}' vs DB '${JSON.stringify(updatedEvent.event_dates)}'`);
-
         if (updates.genre !== updatedEvent.genre) {
           console.warn('⚠️ CRITICAL: Genre update was NOT reflected in the DB response!');
         }

@@ -117,7 +117,6 @@ export default function CalendarPage() {
         const doScroll = () => {
             // 사용자가 개입했다면 즉시 중단 (싸움 방지)
             if (userInteracted.current) {
-                console.log('🛑 [ScrollLog] User interaction detected. Aborting auto-scroll.');
                 return;
             }
 
@@ -145,14 +144,12 @@ export default function CalendarPage() {
                     stableCount++;
                 }
 
-                // 로깅
-                if (attempts % 5 === 0 || Math.abs(offsetError) > 0.5) {
-                    console.log(`🎯 [ScrollLog] #${attempts} Window Hybrid Chasing: Error(${offsetError.toFixed(2)}px), ScrollY(${currentScrollY.toFixed(1)}), Stable(${stableCount})`);
-                }
+                // 로깅 제거
+
 
                 // 안정화 조건 (5회 연속 오차 범위 내 고정)
                 if (stableCount >= 5 && attempts > 8) {
-                    console.log('✅ [ScrollLog] Final Alignment Stabilized.');
+                    // console.log('✅ [ScrollLog] Final Alignment Stabilized.');
                     if (shouldScrollToToday) {
                         const newUrl = window.location.pathname;
                         window.history.replaceState({}, '', newUrl);
@@ -234,9 +231,7 @@ export default function CalendarPage() {
             setShowCalendarSearch(true);
         };
 
-        const handleOpenCalendarRegistration = () => {
-            setShowRegisterModal(true);
-        };
+
 
         const handlePrevMonth = () => {
             handleNavigateMonth('prev');
@@ -431,7 +426,6 @@ export default function CalendarPage() {
                         onEventCreated={(createdDate: any, eventId: any) => {
                             setShowRegisterModal(false);
                             if (eventId) {
-                                console.log('Event created:', eventId, createdDate);
                                 handleEventCreated(eventId, createdDate);
                             }
                         }}

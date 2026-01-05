@@ -246,20 +246,14 @@ export default memo(function FullEventCalendar({
       if (eventsResult.error) {
         console.error("Error fetching events:", eventsResult.error);
       } else {
-        console.log("📅 [FullEventCalendar] Fetched events:", eventsResult.data?.length);
-        if (eventsResult.data && eventsResult.data.length > 0) {
-          // 디버깅: 처음 5개 이벤트의 image_micro 확인
-          eventsResult.data.slice(0, 5).forEach((evt: any) => {
-            console.log(`- Event: ${evt.title}, Micro: ${evt.image_micro ? '✅ Exist' : '❌ NULL'}, URL: ${evt.image_micro}`);
-          });
-        }
+        // console.log("📅 [FullEventCalendar] Fetched events:", eventsResult.data?.length);
         setEvents((eventsResult.data || []) as AppEvent[]);
       }
 
       if (socialResult.error) {
         console.error("Error fetching social schedules:", socialResult.error);
       } else {
-        console.log("📅 [FullEventCalendar] Fetched social schedules:", socialResult.data?.length);
+        // console.log("📅 [FullEventCalendar] Fetched social schedules:", socialResult.data?.length);
         setSocialSchedules(socialResult.data || []);
       }
     } catch (error) {
@@ -272,7 +266,6 @@ export default memo(function FullEventCalendar({
     if (highlightedEventId) {
       setTimeout(() => {
         const eventCard = document.querySelector(`[data-event-id="${highlightedEventId}"]`);
-        console.log('Scrolling to event:', highlightedEventId, eventCard);
 
         if (eventCard) {
           // Try simple scrollIntoView first
@@ -281,8 +274,6 @@ export default memo(function FullEventCalendar({
             block: 'center',
             inline: 'nearest'
           });
-
-          console.log('ScrollIntoView called');
         }
       }, 300);
     }
@@ -447,10 +438,7 @@ export default memo(function FullEventCalendar({
               // image_micro가 없으면 아예 이미지를 표시하지 않음 (placeholder 사용)
               const thumbnailUrl = event.image_micro;
 
-              let dateIndex = -1;
-              if (event.event_dates && event.event_dates.length > 1) {
-                dateIndex = event.event_dates.findIndex(d => d.startsWith(dateString));
-              }
+
 
               return (
                 <div
@@ -460,7 +448,6 @@ export default memo(function FullEventCalendar({
                   role="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    console.log('Event clicked (prop):', event.id, event.title);
                     if (onEventClick) onEventClick(event);
                   }}
                 >

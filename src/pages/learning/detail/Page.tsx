@@ -1093,6 +1093,81 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
 
                 {/* Scrollable Content Container (Desktop) */}
                 <div className="ld-content-scroll-container">
+                    {/* Tab Navigation */}
+                    <div className="ld-tab-navigation">
+                        <button
+                            className={`ld-tab-btn ${activeTab === 'bookmarks' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('bookmarks')}
+                        >
+                            북마크
+                        </button>
+                        <button
+                            className={`ld-tab-btn ${activeTab === 'playlist' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('playlist')}
+                        >
+                            재생목록
+                        </button>
+                    </div>
+
+                    {/* Tab Content Area */}
+                    <div className="ld-tab-content">
+                        {/* Bookmarks Tab Content */}
+                        <div className={`ld-tab-pane ld-tab-pane-bookmarks ${activeTab === 'bookmarks' ? 'active' : ''}`}>
+                            <div className="ld-bookmark-section">
+                                {isAdmin && (
+                                    <div className="ld-bookmark-toolbar-wrapper">
+                                        <h3 className="ld-section-title-small">타임스탬프</h3>
+                                        <div className="ld-bookmark-toolbar">
+                                            <button onClick={handleAddBookmark} className="ld-bookmark-tool-btn primary">
+                                                <span className="ld-tool-icon">+</span> 추가
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                                <BookmarkList
+                                    bookmarks={bookmarks}
+                                    onSeek={seekTo}
+                                    onDelete={handleDeleteBookmark}
+                                    onEdit={(id) => handleEditBookmark(id)}
+                                    isAdmin={isAdmin}
+                                />
+                            </div>
+                        </div>
+
+                        {/* Playlist Tab Content */}
+                        <div className={`ld-tab-pane ld-tab-pane-playlist ${activeTab === 'playlist' ? 'active' : ''}`}>
+                            <div className="ld-playlist-section-inline">
+                                <div className="ld-playlist-container-inline">
+                                    {videos.map((video, idx) => (
+                                        <div
+                                            key={video.id}
+                                            onClick={() => handleVideoClick(idx)}
+                                            className={`ld-video-item ${currentVideoIndex === idx ? 'ld-video-item-active' : 'ld-video-item-inactive'}`}
+                                        >
+                                            <div className="ld-video-thumbnail-wrapper-small">
+                                                <img
+                                                    src={`https://img.youtube.com/vi/${video.youtube_video_id}/mqdefault.jpg`}
+                                                    alt=""
+                                                    className={`ld-video-thumbnail ${currentVideoIndex === idx ? 'ld-video-thumbnail-active' : 'ld-video-thumbnail-inactive'}`}
+                                                />
+                                                {currentVideoIndex === idx && isPlaying && (
+                                                    <div className="ld-playing-overlay">
+                                                        <span className="ld-playing-text">Playing</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <div className="ld-video-info">
+                                                <h3 className={`ld-video-title-small ${currentVideoIndex === idx ? 'ld-video-title-active' : 'ld-video-title-inactive'}`}>
+                                                    {idx + 1}. {video.title}
+                                                </h3>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
                     {/* Video Metadata (Title & Memo) */}
                     <div className="ld-video-metadata">
                         {/* Video Title Row */}
@@ -1225,80 +1300,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                         <HistoryContextWidget year={currentVideo.year || playlist.year || null} />
                     </div>
 
-                    {/* Tab Navigation */}
-                    <div className="ld-tab-navigation">
-                        <button
-                            className={`ld-tab-btn ${activeTab === 'bookmarks' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('bookmarks')}
-                        >
-                            북마크
-                        </button>
-                        <button
-                            className={`ld-tab-btn ${activeTab === 'playlist' ? 'active' : ''}`}
-                            onClick={() => setActiveTab('playlist')}
-                        >
-                            재생목록
-                        </button>
-                    </div>
 
-                    {/* Tab Content Area */}
-                    <div className="ld-tab-content">
-                        {/* Bookmarks Tab Content */}
-                        <div className={`ld-tab-pane ld-tab-pane-bookmarks ${activeTab === 'bookmarks' ? 'active' : ''}`}>
-                            <div className="ld-bookmark-section">
-                                {isAdmin && (
-                                    <div className="ld-bookmark-toolbar-wrapper">
-                                        <h3 className="ld-section-title-small">타임스탬프</h3>
-                                        <div className="ld-bookmark-toolbar">
-                                            <button onClick={handleAddBookmark} className="ld-bookmark-tool-btn primary">
-                                                <span className="ld-tool-icon">+</span> 추가
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-                                <BookmarkList
-                                    bookmarks={bookmarks}
-                                    onSeek={seekTo}
-                                    onDelete={handleDeleteBookmark}
-                                    onEdit={(id) => handleEditBookmark(id)}
-                                    isAdmin={isAdmin}
-                                />
-                            </div>
-                        </div>
-
-                        {/* Playlist Tab Content */}
-                        <div className={`ld-tab-pane ld-tab-pane-playlist ${activeTab === 'playlist' ? 'active' : ''}`}>
-                            <div className="ld-playlist-section-inline">
-                                <div className="ld-playlist-container-inline">
-                                    {videos.map((video, idx) => (
-                                        <div
-                                            key={video.id}
-                                            onClick={() => handleVideoClick(idx)}
-                                            className={`ld-video-item ${currentVideoIndex === idx ? 'ld-video-item-active' : 'ld-video-item-inactive'}`}
-                                        >
-                                            <div className="ld-video-thumbnail-wrapper-small">
-                                                <img
-                                                    src={`https://img.youtube.com/vi/${video.youtube_video_id}/mqdefault.jpg`}
-                                                    alt=""
-                                                    className={`ld-video-thumbnail ${currentVideoIndex === idx ? 'ld-video-thumbnail-active' : 'ld-video-thumbnail-inactive'}`}
-                                                />
-                                                {currentVideoIndex === idx && isPlaying && (
-                                                    <div className="ld-playing-overlay">
-                                                        <span className="ld-playing-text">Playing</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className="ld-video-info">
-                                                <h3 className={`ld-video-title-small ${currentVideoIndex === idx ? 'ld-video-title-active' : 'ld-video-title-inactive'}`}>
-                                                    {idx + 1}. {video.title}
-                                                </h3>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
 
                     {/* Playlist Description Editor (Bottom) - Hide for Folder-Playlists */}
                     {!playlist.id.startsWith('category:') && (

@@ -63,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const storagePrefix = isStandalone ? 'pwa-' : 'browser-';
 
   if (typeof window !== 'undefined') {
-    console.log(`[AuthContext Init] Mode: ${isStandalone ? 'PWA' : 'Browser'}, Prefix: ${storagePrefix}`);
+    // console.log(`[AuthContext Init] Mode: ${isStandalone ? 'PWA' : 'Browser'}, Prefix: ${storagePrefix}`);
   }
 
   const [billboardUserId, setBillboardUserId] = useState<string | null>(() => {
@@ -235,21 +235,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // 프로필 데이터 가져오기 - useCallback으로 메모이제이션
   const refreshUserProfile = useCallback(async () => {
     if (!user) {
-      console.log('[AuthContext.refreshUserProfile] user가 없어서 중단');
+      // console.log('[AuthContext.refreshUserProfile] user가 없어서 중단');
       return;
     }
 
-    console.log('[AuthContext.refreshUserProfile] 시작', { userId: user.id });
+    // console.log('[AuthContext.refreshUserProfile] 시작', { userId: user.id });
 
     // Prevent duplicate profile loads
     if (profileLoadInProgress.current) {
-      console.log('[AuthContext.refreshUserProfile] 이미 진행 중, 스킵');
+      // console.log('[AuthContext.refreshUserProfile] 이미 진행 중, 스킵');
       return;
     }
 
     profileLoadInProgress.current = true;
     try {
-      console.log('[AuthContext.refreshUserProfile] DB에서 프로필 조회 시작');
+      // console.log('[AuthContext.refreshUserProfile] DB에서 프로필 조회 시작');
       // 🔥 프로필 로딩에 3초 타임아웃 추가 (DB 지연 시 무한 로딩 방지)
       const fetchProfileWithTimeout = Promise.race([
         supabase
@@ -265,11 +265,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const result = await fetchProfileWithTimeout as any;
       const data = result.data;
 
-      console.log('[AuthContext.refreshUserProfile] DB 조회 결과', {
-        hasData: !!data,
-        nickname: data?.nickname,
-        profile_image: data?.profile_image
-      });
+      // console.log('[AuthContext.refreshUserProfile] DB 조회 결과', {
+      //   hasData: !!data,
+      //   nickname: data?.nickname,
+      //   profile_image: data?.profile_image
+      // });
 
       let newProfile = null;
       if (data) {
@@ -277,18 +277,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           nickname: data.nickname || user.user_metadata?.name || user.email?.split('@')[0] || '',
           profile_image: data.profile_image || user.user_metadata?.avatar_url || null
         };
-        console.log('[AuthContext.refreshUserProfile] DB 데이터로 프로필 생성', newProfile);
+        // console.log('[AuthContext.refreshUserProfile] DB 데이터로 프로필 생성', newProfile);
       } else {
         // Fallback to metadata if no board_user record yet or timeout
         newProfile = {
           nickname: user.user_metadata?.name || user.email?.split('@')[0] || '',
           profile_image: user.user_metadata?.avatar_url || null
         };
-        console.log('[AuthContext.refreshUserProfile] 메타데이터로 폴백 프로필 생성', newProfile);
+        // console.log('[AuthContext.refreshUserProfile] 메타데이터로 폴백 프로필 생성', newProfile);
       }
 
       if (newProfile) {
-        console.log('[AuthContext.refreshUserProfile] 프로필 상태 업데이트 및 localStorage 저장', newProfile);
+        // console.log('[AuthContext.refreshUserProfile] 프로필 상태 업데이트 및 localStorage 저장', newProfile);
         setUserProfile(newProfile);
         localStorage.setItem(`${storagePrefix}userProfile`, JSON.stringify(newProfile));
       }
@@ -299,10 +299,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         nickname: user.user_metadata?.name || user.email?.split('@')[0] || '',
         profile_image: user.user_metadata?.avatar_url || null
       };
-      console.log('[AuthContext.refreshUserProfile] 폴백 프로필 설정', fallbackProfile);
+      // console.log('[AuthContext.refreshUserProfile] 폴백 프로필 설정', fallbackProfile);
       setUserProfile(fallbackProfile);
     } finally {
-      console.log('[AuthContext.refreshUserProfile] 완료');
+      // console.log('[AuthContext.refreshUserProfile] 완료');
       profileLoadInProgress.current = false;
     }
   }, [user, storagePrefix]);
@@ -402,7 +402,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       const currentUser = session?.user ?? null;
 
-      console.log('[AuthContext] 🔄 Auth state changed:', { event, userEmail: currentUser?.email });
+      // console.log('[AuthContext] 🔄 Auth state changed:', { event, userEmail: currentUser?.email });
 
       if (event === 'SIGNED_OUT') {
         wipeLocalData();
@@ -631,15 +631,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // GA4 관리자 상태 동기화
     setAdminStatus(isAdmin);
-
-    console.log('[AuthContext] 상태 업데이트:', {
-      userEmail: user?.email,
-      appMetadataIsAdmin: user?.app_metadata?.is_admin,
-      isAdmin,
-      loading,
-      hasSession: !!session,
-      adminEmail: import.meta.env.VITE_ADMIN_EMAIL
-    });
   }, [user, isAdmin, loading, session]);
 
   const contextValue: AuthContextType = {
