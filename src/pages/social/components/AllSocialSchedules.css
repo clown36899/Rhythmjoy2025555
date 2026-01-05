@@ -110,7 +110,7 @@
     flex: 0 0 auto;
     width: 147px;
     max-width: 150px;
-    /* background: rgba(255, 255, 255, 0.05); */
+    background: rgba(255, 255, 255, 0.05);
     border-radius: 12px;
     overflow: hidden;
     cursor: pointer;
@@ -227,4 +227,46 @@
 .all-social-scroller-spacer {
     flex: 0 0 4px;
     width: 4px;
+}
+
+/* 카드 개수에 따른 반응형 레이아웃 */
+
+/* 2개일 때: 화면을 반반 */
+.all-social-count-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 0 16px 12px 16px;
+    overflow-x: visible;
+}
+
+.all-social-card-count-2 {
+    width: 100%;
+    max-width: none;
+}
+
+/* 3개일 때: 화면을 3등분 */
+.all-social-count-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    padding: 0 16px 12px 16px;
+    overflow-x: visible;
+}
+
+.all-social-card-count-3 {
+    width: 100%;
+    max-width: none;
+}
+
+/* 4개 이상일 때: 카드 너비 36vw, 스크롤 */
+.all-social-count-4 {
+    display: flex;
+    overflow-x: auto;
+}
+
+.all-social-card-count-4 {
+    width: 36vw;
+    max-width: 36vw;
+    flex: 0 0 36vw;
 }

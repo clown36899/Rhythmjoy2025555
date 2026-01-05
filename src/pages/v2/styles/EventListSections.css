@@ -151,8 +151,8 @@
 /* Card sizing */
 .evt-v2-horizontal-scroll>.card-container {
     flex: 0 0 auto;
-    width: 32%;
-    max-width: 137px;
+    width: 38%;
+    max-width: 160px;
 }
 
 /* Empty State */

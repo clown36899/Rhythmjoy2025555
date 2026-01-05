@@ -142,12 +142,12 @@ const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules,
             </div>
 
             <HorizontalScrollNav>
-                <div className="all-social-scroller">
+                <div className={`all-social-scroller all-social-count-${Math.min(sortedSchedules.length, 4)}`}>
                     {sortedSchedules.length > 0 ? (
                         sortedSchedules.map((item) => (
                             <div
                                 key={item.id}
-                                className="all-social-card"
+                                className={`all-social-card all-social-card-count-${Math.min(sortedSchedules.length, 4)}`}
                                 data-analytics-id={item.id > 1000000 ? Math.floor(item.id / 10000) : item.id}
                                 data-analytics-type={item.group_id === -1 ? 'event' : 'social_schedule'}
                                 data-analytics-title={item.title}
