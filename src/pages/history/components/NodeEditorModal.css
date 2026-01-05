@@ -150,6 +150,7 @@
 .form-group textarea {
     resize: vertical;
     min-height: 100px;
+    white-space: pre-wrap;
 }
 
 .video-preview {

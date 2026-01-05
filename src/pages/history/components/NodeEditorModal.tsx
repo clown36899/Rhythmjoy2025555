@@ -143,6 +143,53 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                         <textarea
                             value={formData.description}
                             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                            onPaste={(e) => {
+                                // Preserve line breaks when pasting HTML content
+                                e.preventDefault();
+                                const text = e.clipboardData.getData('text/html') || e.clipboardData.getData('text/plain');
+
+                                if (text.includes('<')) {
+                                    // HTML content - convert block elements to newlines
+                                    const div = document.createElement('div');
+                                    div.innerHTML = text;
+
+                                    // Replace block elements with newlines
+                                    div.querySelectorAll('p, div, br, li, h1, h2, h3, h4, h5, h6').forEach(el => {
+                                        if (el.tagName === 'BR') {
+                                            el.replaceWith('\n');
+                                        } else {
+                                            el.insertAdjacentText('afterend', '\n');
+                                        }
+                                    });
+
+                                    const plainText = div.innerText || div.textContent || '';
+                                    const target = e.target as HTMLTextAreaElement;
+                                    const start = target.selectionStart;
+                                    const end = target.selectionEnd;
+                                    const currentValue = formData.description;
+                                    const newValue = currentValue.substring(0, start) + plainText + currentValue.substring(end);
+
+                                    setFormData({ ...formData, description: newValue });
+
+                                    // Set cursor position after pasted text
+                                    setTimeout(() => {
+                                        target.selectionStart = target.selectionEnd = start + plainText.length;
+                                    }, 0);
+                                } else {
+                                    // Plain text - insert as is
+                                    const target = e.target as HTMLTextAreaElement;
+                                    const start = target.selectionStart;
+                                    const end = target.selectionEnd;
+                                    const currentValue = formData.description;
+                                    const newValue = currentValue.substring(0, start) + text + currentValue.substring(end);
+
+                                    setFormData({ ...formData, description: newValue });
+
+                                    setTimeout(() => {
+                                        target.selectionStart = target.selectionEnd = start + text.length;
+                                    }, 0);
+                                }
+                            }}
                             placeholder="이 노드에 대한 설명을 입력하세요..."
                             rows={4}
                         />

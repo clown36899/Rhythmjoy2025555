@@ -132,6 +132,7 @@ export default function HistoryTimelinePage() {
     const [isEditMode, setIsEditMode] = useState(false);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+    const [initialNodePositions, setInitialNodePositions] = useState<Map<string, { x: number, y: number }>>(new Map());
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -234,7 +235,17 @@ export default function HistoryTimelinePage() {
 
         try {
             setLoading(true);
-            const updates = nodes.map(node => {
+
+            // Only update nodes that have actually moved
+            const movedNodes = nodes.filter(node => {
+                const initial = initialNodePositions.get(node.id);
+                if (!initial) return true; // New node, update it
+                return initial.x !== node.position.x || initial.y !== node.position.y;
+            });
+
+            console.log(`Updating ${movedNodes.length} of ${nodes.length} nodes`);
+
+            const updates = movedNodes.map(node => {
                 const updateData = isMobile
                     ? { mobile_x: node.position.x, mobile_y: node.position.y }
                     : { position_x: node.position.x, position_y: node.position.y };
@@ -246,9 +257,17 @@ export default function HistoryTimelinePage() {
             });
 
             await Promise.all(updates);
+
+            // Update initial positions after save
+            const newPositions = new Map<string, { x: number, y: number }>();
+            nodes.forEach(node => {
+                newPositions.set(node.id, { x: node.position.x, y: node.position.y });
+            });
+            setInitialNodePositions(newPositions);
+
             setLoading(false);
             setHasUnsavedChanges(false);
-            alert(`${deviceName} 레이아웃이 저장되었습니다.`);
+            alert(`${deviceName} 레이아웃이 저장되었습니다. (${movedNodes.length}개 노드 업데이트)`);
         } catch (error) {
             console.error('Error saving layout:', error);
             setLoading(false);
@@ -332,11 +351,13 @@ export default function HistoryTimelinePage() {
                 let year = node.year;
                 let desc = node.description;
                 let category = node.category;
+                let thumbnail_url = null;
 
                 if (lp) {
                     title = lp.title;
                     year = lp.year;
                     desc = lp.description;
+                    thumbnail_url = lp.thumbnail_url;
                 } else if (ld) {
                     title = ld.title;
                     year = ld.year;
@@ -345,10 +366,14 @@ export default function HistoryTimelinePage() {
                     title = lv.title;
                     year = lv.year;
                     desc = lv.description;
+                    // Generate YouTube thumbnail from video ID
+                    if (lv.youtube_video_id) {
+                        thumbnail_url = `https://img.youtube.com/vi/${lv.youtube_video_id}/mqdefault.jpg`;
+                    }
                 } else if (lc) {
                     title = lc.name;
                     year = node.year;
-                    desc = 'Category Folder'; // Or custom description
+                    desc = 'Category Folder';
                     category = 'folder';
                 }
 
@@ -365,13 +390,14 @@ export default function HistoryTimelinePage() {
                         date: node.date,
                         year,
                         description: desc,
-                        youtube_url: node.youtube_url, // URL은 스냅샷 유지 (재생 편의성)
+                        youtube_url: node.youtube_url,
                         category,
                         tags: node.tags,
                         linked_playlist_id: node.linked_playlist_id,
                         linked_document_id: node.linked_document_id,
                         linked_video_id: node.linked_video_id,
                         linked_category_id: node.linked_category_id,
+                        thumbnail_url,
                         onEdit: handleEditNode,
                         onViewDetail: handleViewDetail,
                         onPlayVideo: handlePlayVideo,
@@ -382,6 +408,13 @@ export default function HistoryTimelinePage() {
             });
 
             setNodes(flowNodes);
+
+            // Store initial positions for change tracking
+            const positions = new Map<string, { x: number, y: number }>();
+            flowNodes.forEach(node => {
+                positions.set(node.id, { x: node.position.x, y: node.position.y });
+            });
+            setInitialNodePositions(positions);
 
             const flowEdges: Edge[] = (edgesData || []).map((edge) => ({
                 id: String(edge.id),
@@ -637,8 +670,10 @@ export default function HistoryTimelinePage() {
         if (!user) return;
 
         try {
-            let linkedVideoId = nodeData.linked_video_id;
-            let linkedDocumentId = nodeData.linked_document_id;
+            // Use existing IDs from editingNode if available, otherwise they will be null initially
+            let linkedVideoId = editingNode?.linked_video_id || nodeData.linked_video_id;
+            let linkedDocumentId = editingNode?.linked_document_id || nodeData.linked_document_id;
+            let linkedPlaylistId = editingNode?.linked_playlist_id || nodeData.linked_playlist_id;
             const { addToDrawer, ...cleanNodeData } = nodeData;
 
             // Resource Creation Logic for BOTH Create and Update
@@ -689,16 +724,87 @@ export default function HistoryTimelinePage() {
             }
 
             if (editingNode) {
+                console.log('--- DEBUG: handleSaveNode Start ---');
+                console.log('Editing Node ID:', editingNode.id);
+                console.log('Input Description (JSON):', JSON.stringify(cleanNodeData.description));
+
+                // Fetch fresh node data to ensure we have the correct linked IDs
+                const { data: currentNode, error: fetchError } = await supabase
+                    .from('history_nodes')
+                    .select('linked_video_id, linked_document_id, linked_playlist_id')
+                    .eq('id', editingNode.id)
+                    .single();
+
+                if (fetchError) {
+                    console.error('Failed to fetch current node data:', fetchError);
+                } else if (currentNode) {
+                    console.log('Fetched Linked IDs:', currentNode);
+                    linkedVideoId = currentNode.linked_video_id;
+                    linkedDocumentId = currentNode.linked_document_id;
+                    linkedPlaylistId = currentNode.linked_playlist_id;
+                }
+
                 const updateData = {
                     ...cleanNodeData,
-                    linked_video_id: linkedVideoId, // Might be new or existing
-                    linked_document_id: linkedDocumentId // Might be new or existing
+                    linked_video_id: linkedVideoId,
+                    linked_document_id: linkedDocumentId,
+                    linked_playlist_id: linkedPlaylistId
                 };
+
                 const { error } = await supabase
                     .from('history_nodes')
                     .update(updateData)
                     .eq('id', editingNode.id);
                 if (error) throw error;
+
+                // Sync updates to linked resources if they exist
+                if (linkedVideoId) {
+                    console.log('Updating Linked Video:', linkedVideoId);
+                    const { data: vData, error: vErr } = await supabase
+                        .from('learning_videos')
+                        .update({
+                            title: cleanNodeData.title,
+                            description: cleanNodeData.description,
+                            year: cleanNodeData.year,
+                            youtube_video_id: cleanNodeData.youtube_url ? parseVideoUrl(cleanNodeData.youtube_url).videoId : undefined
+                        })
+                        .eq('id', linkedVideoId)
+                        .select()
+                        .single();
+                    if (vErr) console.error('Video Update Error:', vErr);
+                    else console.log('Video Updated Result:', vData);
+                } else if (linkedDocumentId) {
+                    console.log('Updating Linked Document:', linkedDocumentId);
+                    const { data: dData, error: dErr } = await supabase
+                        .from('learning_documents')
+                        .update({
+                            title: cleanNodeData.title,
+                            content: cleanNodeData.description,
+                            year: cleanNodeData.year
+                        })
+                        .eq('id', linkedDocumentId)
+                        .select()
+                        .single();
+                    if (dErr) console.error('Document Update Error:', dErr);
+                    else console.log('Document Updated Result Content (JSON):', dData ? JSON.stringify(dData.content) : 'No Data Returned');
+                } else if (linkedPlaylistId) {
+                    console.log('Updating Linked Playlist:', linkedPlaylistId);
+                    const { data: pData, error: pErr } = await supabase
+                        .from('learning_playlists')
+                        .update({
+                            title: cleanNodeData.title,
+                            description: cleanNodeData.description,
+                            year: cleanNodeData.year
+                        })
+                        .eq('id', linkedPlaylistId)
+                        .select()
+                        .single();
+                    if (pErr) console.error('Playlist Update Error:', pErr);
+                    else console.log('Playlist Updated Result:', pData);
+                } else {
+                    console.log('No Linked Resource Found to Update');
+                }
+                console.log('--- DEBUG: handleSaveNode End ---');
             } else {
                 const center = rfInstance?.getViewport() || { x: 0, y: 0, zoom: 1 };
                 const position = {
@@ -737,7 +843,15 @@ export default function HistoryTimelinePage() {
         try {
             const { error } = await supabase.from('history_nodes').delete().eq('id', id);
             if (error) throw error;
-            loadTimeline();
+
+            // Remove node from local state instead of reloading
+            setNodes((nds) => nds.filter((node) => node.id !== String(id)));
+
+            // Also remove any edges connected to this node
+            setEdges((eds) => eds.filter((edge) =>
+                edge.source !== String(id) && edge.target !== String(id)
+            ));
+
             setIsEditorOpen(false);
         } catch (error) {
             console.error('Error deleting node:', error);

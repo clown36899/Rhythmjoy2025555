@@ -2,6 +2,7 @@
 import React from 'react';
 import './NodeDetailModal.css';
 import type { HistoryNodeData } from '../types';
+import { renderTextWithLinksAndResources } from '../../learning/utils/linkRenderer';
 
 interface NodeDetailModalProps {
     nodeData: HistoryNodeData;
@@ -15,7 +16,7 @@ export const NodeDetailModal: React.FC<NodeDetailModalProps> = ({ nodeData, onCl
     // Extract YouTube ID for embedding if available
     const getYoutubeId = (url: string | undefined) => {
         if (!url) return null;
-        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&?]*).*/;
         const match = url.match(regExp);
         return (match && match[2].length === 11) ? match[2] : null;
     };
@@ -55,9 +56,7 @@ export const NodeDetailModal: React.FC<NodeDetailModalProps> = ({ nodeData, onCl
 
                     <div className="detail-description">
                         {nodeData.description ? (
-                            nodeData.description.split('\n').map((line: string, i: number) => (
-                                <p key={i}>{line}</p>
-                            ))
+                            renderTextWithLinksAndResources(nodeData.description, () => { })
                         ) : (
                             <p className="no-desc">설명이 없습니다.</p>
                         )}

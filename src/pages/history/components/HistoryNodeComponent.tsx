@@ -6,8 +6,9 @@ import './HistoryNodeComponent.css';
 import type { HistoryNodeData } from '../types';
 
 function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
+    // Prioritize thumbnail from linked resource, then fall back to youtube_url
     const videoInfo = data.youtube_url ? parseVideoUrl(data.youtube_url) : null;
-    const thumbnailUrl = videoInfo?.thumbnailUrl || null;
+    const thumbnailUrl = data.thumbnail_url || videoInfo?.thumbnailUrl || null;
 
     const handlePlayVideo = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -27,6 +28,22 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
         e.stopPropagation();
         if (data.onViewDetail) {
             data.onViewDetail(data);
+        }
+    };
+
+    const handleThumbnailClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+
+        // Execute appropriate action based on node type
+        if (data.nodeType === 'playlist' && data.onPreviewLinkedResource && data.linked_playlist_id) {
+            data.onPreviewLinkedResource(data.linked_playlist_id, 'playlist', data.title);
+        } else if (data.nodeType === 'video' && data.onPreviewLinkedResource && data.linked_video_id) {
+            data.onPreviewLinkedResource(data.linked_video_id, 'video', data.title);
+        } else if (data.nodeType === 'document' && data.onPreviewLinkedResource && data.linked_document_id) {
+            data.onPreviewLinkedResource(data.linked_document_id, 'document', data.title);
+        } else if (data.youtube_url && data.onPlayVideo) {
+            // Fallback to playing YouTube video
+            data.onPlayVideo(data.youtube_url, data.linked_playlist_id);
         }
     };
 
@@ -75,7 +92,7 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
 
             {/* Thumbnail */}
             {thumbnailUrl && (
-                <div className="history-node-thumbnail" onClick={handlePlayVideo}>
+                <div className="history-node-thumbnail" onClick={handleThumbnailClick}>
                     <img src={thumbnailUrl} alt={data.title} />
                     <div className="history-node-play-overlay">
                         <i className="ri-play-circle-fill"></i>
@@ -84,7 +101,16 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
             )}
 
             {/* Content */}
-            <div className="history-node-content">
+            <div
+                className="history-node-content"
+                onClick={(e) => {
+                    // Only handle click if it's a document node and click is not on a button
+                    if (data.nodeType === 'document' && !(e.target as HTMLElement).closest('button')) {
+                        handleThumbnailClick(e);
+                    }
+                }}
+                style={{ cursor: data.nodeType === 'document' ? 'pointer' : 'default' }}
+            >
                 <div className="node-header">
                     <span className="node-year">{data.year || data.date}</span>
                     {data.category && (

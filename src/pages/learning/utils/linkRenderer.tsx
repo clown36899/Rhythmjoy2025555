@@ -90,6 +90,16 @@ export const renderTextWithLinksAndResources = (
             );
         }
 
-        return part;
+        // 일반 텍스트는 줄바꿈(\n)을 포함하여 렌더링
+        // 확실한 줄바꿈을 위해 \n, \r\n, \r을 모두 <br/>로 변환
+        return (
+            <span key={index} style={{ whiteSpace: 'pre-wrap' }}>
+                {part.split(/(\r\n|\n|\r)/g).map((line, i) => (
+                    <React.Fragment key={i}>
+                        {line.match(/(\r\n|\n|\r)/) ? <br /> : line}
+                    </React.Fragment>
+                ))}
+            </span>
+        );
     });
 };

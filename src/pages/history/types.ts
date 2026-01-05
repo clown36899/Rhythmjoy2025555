@@ -10,7 +10,8 @@ export interface HistoryNodeData {
     linked_playlist_id?: string;
     linked_document_id?: string;
     linked_video_id?: string;
-    linked_category_id?: string; // 카테고리(폴더) 연결
+    linked_category_id?: string;
+    thumbnail_url?: string | null;
     playlist_data?: any;
     nodeType?: string;
     onEdit?: (data: HistoryNodeData) => void;
