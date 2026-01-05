@@ -202,7 +202,7 @@
     padding: 0px 12px;
     border-radius: 6px;
     background-color: #1f2937;
-    border: 1px solid #374151;
+    /* border: 1px solid #374151; */
     transition: all 0.2s ease;
     position: relative;
     cursor: pointer;

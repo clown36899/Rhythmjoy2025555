@@ -18,6 +18,7 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
         youtube_url: '',
         category: 'general',
         tags: '',
+        addToDrawer: false,
     });
 
     useEffect(() => {
@@ -30,6 +31,7 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                 youtube_url: node.youtube_url || '',
                 category: node.category || 'general',
                 tags: node.tags?.join(', ') || '',
+                addToDrawer: false,
             });
         }
     }, [node]);
@@ -48,6 +50,7 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                 .split(',')
                 .map((t) => t.trim())
                 .filter(Boolean),
+            addToDrawer: formData.addToDrawer,
         };
 
         onSave(data);
@@ -154,6 +157,21 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                             placeholder="스윙, 린디합, 사보이볼룸"
                         />
                     </div>
+
+                    {!node && (
+                        <div className="form-group checkbox-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '8px' }}>
+                            <input
+                                type="checkbox"
+                                id="addToDrawer"
+                                checked={formData.addToDrawer}
+                                onChange={(e) => setFormData({ ...formData, addToDrawer: e.target.checked })}
+                                style={{ width: 'auto', margin: 0 }}
+                            />
+                            <label htmlFor="addToDrawer" style={{ margin: 0, cursor: 'pointer', color: '#60a5fa' }}>
+                                자료 서랍에 원본 추가하기
+                            </label>
+                        </div>
+                    )}
 
                     <div className="form-actions">
                         {node && onDelete && (

@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useBlocker } from 'react-router-dom';
+import { parseVideoUrl } from '../../utils/videoEmbed';
 import ReactFlow, {
     Controls,
     Background,
@@ -626,7 +627,7 @@ export default function HistoryTimelinePage() {
         setIsEditorOpen(true);
     };
 
-    const handleSaveNode = async (nodeData: Partial<HistoryNodeData>) => {
+    const handleSaveNode = async (nodeData: Partial<HistoryNodeData> & { addToDrawer?: boolean }) => {
         if (!user) return;
 
         try {
@@ -637,6 +638,56 @@ export default function HistoryTimelinePage() {
                     .eq('id', editingNode.id);
                 if (error) throw error;
             } else {
+                let linkedVideoId = nodeData.linked_video_id;
+                let linkedDocumentId = nodeData.linked_document_id;
+                const { addToDrawer, ...cleanNodeData } = nodeData;
+
+                if (addToDrawer) {
+                    try {
+                        const youtubeId = cleanNodeData.youtube_url ? parseVideoUrl(cleanNodeData.youtube_url).videoId : null;
+
+                        if (youtubeId) {
+                            // Create Video Resource
+                            const { data: videoData, error: vError } = await supabase
+                                .from('learning_videos')
+                                .insert({
+                                    title: cleanNodeData.title,
+                                    youtube_video_id: youtubeId,
+                                    description: cleanNodeData.description,
+                                    year: cleanNodeData.year,
+                                    is_public: true,
+                                    created_by: user.id
+                                })
+                                .select()
+                                .single();
+
+                            if (vError) throw vError;
+                            linkedVideoId = videoData.id;
+                        } else {
+                            // Create Document Resource
+                            const { data: docData, error: dError } = await supabase
+                                .from('learning_documents')
+                                .insert({
+                                    title: cleanNodeData.title,
+                                    content: cleanNodeData.description,
+                                    year: cleanNodeData.year,
+                                    is_public: true,
+                                    created_by: user.id
+                                })
+                                .select()
+                                .single();
+
+                            if (dError) throw dError;
+                            linkedDocumentId = docData.id;
+                        }
+                    } catch (resourceError) {
+                        console.error('Failed to create linked resource:', resourceError);
+                        if (!confirm('자료 서랍에 추가하는데 실패했습니다. 그래도 노드를 생성하시겠습니까?')) {
+                            return;
+                        }
+                    }
+                }
+
                 const center = rfInstance?.getViewport() || { x: 0, y: 0, zoom: 1 };
                 const position = {
                     x: -center.x / center.zoom + 100,
@@ -644,7 +695,9 @@ export default function HistoryTimelinePage() {
                 };
 
                 const newNodeData = {
-                    ...nodeData,
+                    ...cleanNodeData,
+                    linked_video_id: linkedVideoId,
+                    linked_document_id: linkedDocumentId,
                     position_x: position.x,
                     position_y: position.y,
                     created_by: user.id,
@@ -655,8 +708,11 @@ export default function HistoryTimelinePage() {
                     .insert(newNodeData);
                 if (error) throw error;
             }
-            loadTimeline();
+            loadTimeline(); // Reload to reflect changes
             setIsEditorOpen(false);
+            if (nodeData.addToDrawer) {
+                alert('자료 서랍에 추가되고 노드가 생성되었습니다.');
+            }
         } catch (error) {
             console.error('Error saving node:', error);
             alert('저장 실패');
