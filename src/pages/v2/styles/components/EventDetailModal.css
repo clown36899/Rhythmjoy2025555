@@ -211,6 +211,8 @@
 .detail-image-content {
     grid-area: 1 / 1;
     width: 100%;
+    max-width: 325px;
+    /* 650px 이미지를 절반 크기로 표시하여 Retina 2x 픽셀 밀도 커버 */
     height: auto;
     min-height: 0;
     object-fit: contain;
