@@ -817,7 +817,19 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                 {isLoading ? <div className="loading">로딩 중...</div> : categoriesToUse.length > 0 ? (
                     categoriesToUse.map((category) => renderRootColumn(category))
                 ) : (
-                    <div className="empty">폴더가 없습니다.</div>
+                    playlists.filter(p => !p.category_id).length === 0 && <div className="empty">폴더가 없습니다.</div>
+                )}
+                {/* Render Unclassified Items (Root Playlists/Docs) */}
+                {playlists.filter(p => !p.category_id).length > 0 && (
+                    <div className="treeColumn unclassified-column" style={{ minWidth: '280px', flexShrink: 0, background: 'rgba(255, 255, 255, 0.05)', borderRadius: '8px', padding: '12px' }}>
+                        <div className="columnHeader" style={{ padding: '8px', borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span style={{ fontSize: '20px' }}>📦</span>
+                            <span style={{ fontWeight: 'bold' }}>미분류 (Root)</span>
+                        </div>
+                        <div className="treeChildren" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            {playlists.filter(p => !p.category_id).map(renderPlaylistItem)}
+                        </div>
+                    </div>
                 )}
 
             </div>

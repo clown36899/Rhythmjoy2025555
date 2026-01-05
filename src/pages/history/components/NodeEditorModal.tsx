@@ -158,7 +158,7 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                         />
                     </div>
 
-                    {!node && (
+                    {(!node || (!node.linked_playlist_id && !node.linked_document_id && !node.linked_video_id)) && (
                         <div className="form-group checkbox-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '8px' }}>
                             <input
                                 type="checkbox"

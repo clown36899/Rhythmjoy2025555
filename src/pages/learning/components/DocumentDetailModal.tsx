@@ -341,7 +341,8 @@ export const DocumentDetailModal = ({ documentId, onClose, onUpdate }: Props) =>
                         </>
                     ) : (
                         <button className="ddm-importButton" onClick={onClose}>닫기</button>
-                    )}\n                </div>
+                    )}
+                </div>
             </div>
 
             {/* Resource Link Modal */}

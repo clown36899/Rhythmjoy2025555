@@ -21,9 +21,10 @@ interface Props {
     onClose: () => void;
     onDragStart: (e: React.DragEvent, item: any) => void;
     onItemClick?: (id: string, type: string, title: string) => void;
+    refreshKey?: number;
 }
 
-export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick }: Props) => {
+export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refreshKey }: Props) => {
     const [items, setItems] = useState<ResourceItem[]>([]);
     const [loading, setLoading] = useState(false);
     const [searchTerm, setSearchTerm] = useState('');
@@ -33,7 +34,7 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick }: Pr
         if (isOpen) {
             fetchResources();
         }
-    }, [isOpen]);
+    }, [isOpen, refreshKey]);
 
     const fetchResources = async () => {
         try {

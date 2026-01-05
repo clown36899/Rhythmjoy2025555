@@ -34,10 +34,7 @@ const initialEdges: Edge[] = [];
 
 // STRICT STATIC DEFINITIONS: Defined outside the component to guarantee stable references
 // This prevents React Flow from warning about "new nodeTypes or edgeTypes" objects on every render.
-const NODE_TYPES = {
-    historyNode: HistoryNodeComponent,
-    decadeNode: DecadeNodeComponent,
-};
+
 
 const CustomBezierEdge = ({
     sourceX,
@@ -78,9 +75,7 @@ const CustomBezierEdge = ({
     );
 };
 
-const EDGE_TYPES = {
-    default: CustomBezierEdge,
-};
+
 
 const IS_VALID_CONNECTION = (connection: Connection) => connection.source !== connection.target;
 
@@ -93,6 +88,16 @@ const GET_NODE_COLOR = (node: Node) => {
         case 'place': return '#3b82f6';
         default: return '#8b5cf6';
     }
+};
+
+// Define types outside component to avoid re-creation
+const STATIC_NODE_TYPES = {
+    historyNode: HistoryNodeComponent,
+    decadeNode: DecadeNodeComponent,
+};
+
+const STATIC_EDGE_TYPES = {
+    default: CustomBezierEdge,
 };
 
 export default function HistoryTimelinePage() {
@@ -116,6 +121,7 @@ export default function HistoryTimelinePage() {
     const [viewingNode, setViewingNode] = useState<HistoryNodeData | null>(null);
     // Edge Management State
     const [edgeModalState, setEdgeModalState] = useState<{ isOpen: boolean, edge: Edge | null }>({ isOpen: false, edge: null });
+    const [drawerRefreshKey, setDrawerRefreshKey] = useState(0);
 
 
     // Resource Drawer State
@@ -631,63 +637,69 @@ export default function HistoryTimelinePage() {
         if (!user) return;
 
         try {
+            let linkedVideoId = nodeData.linked_video_id;
+            let linkedDocumentId = nodeData.linked_document_id;
+            const { addToDrawer, ...cleanNodeData } = nodeData;
+
+            // Resource Creation Logic for BOTH Create and Update
+            if (addToDrawer) {
+                try {
+                    const youtubeId = cleanNodeData.youtube_url ? parseVideoUrl(cleanNodeData.youtube_url).videoId : null;
+
+                    if (youtubeId) {
+                        // Create Video Resource
+                        const { data: videoData, error: vError } = await supabase
+                            .from('learning_videos')
+                            .insert({
+                                title: cleanNodeData.title,
+                                youtube_video_id: youtubeId,
+                                description: cleanNodeData.description,
+                                year: cleanNodeData.year,
+                                is_public: true
+                                // created_by: user.id // Removed to fix schema error
+                            })
+                            .select()
+                            .single();
+
+                        if (vError) throw vError;
+                        linkedVideoId = videoData.id;
+                    } else {
+                        // Create Document Resource
+                        const { data: docData, error: dError } = await supabase
+                            .from('learning_documents')
+                            .insert({
+                                title: cleanNodeData.title,
+                                content: cleanNodeData.description,
+                                year: cleanNodeData.year,
+                                is_public: true
+                                // created_by: user.id // Removed to fix schema error
+                            })
+                            .select()
+                            .single();
+
+                        if (dError) throw dError;
+                        linkedDocumentId = docData.id;
+                    }
+                } catch (resourceError) {
+                    console.error('Failed to create linked resource:', resourceError);
+                    if (!confirm('자료 서랍에 추가하는데 실패했습니다. 그래도 노드를 저장하시겠습니까?')) {
+                        return;
+                    }
+                }
+            }
+
             if (editingNode) {
+                const updateData = {
+                    ...cleanNodeData,
+                    linked_video_id: linkedVideoId, // Might be new or existing
+                    linked_document_id: linkedDocumentId // Might be new or existing
+                };
                 const { error } = await supabase
                     .from('history_nodes')
-                    .update(nodeData)
+                    .update(updateData)
                     .eq('id', editingNode.id);
                 if (error) throw error;
             } else {
-                let linkedVideoId = nodeData.linked_video_id;
-                let linkedDocumentId = nodeData.linked_document_id;
-                const { addToDrawer, ...cleanNodeData } = nodeData;
-
-                if (addToDrawer) {
-                    try {
-                        const youtubeId = cleanNodeData.youtube_url ? parseVideoUrl(cleanNodeData.youtube_url).videoId : null;
-
-                        if (youtubeId) {
-                            // Create Video Resource
-                            const { data: videoData, error: vError } = await supabase
-                                .from('learning_videos')
-                                .insert({
-                                    title: cleanNodeData.title,
-                                    youtube_video_id: youtubeId,
-                                    description: cleanNodeData.description,
-                                    year: cleanNodeData.year,
-                                    is_public: true,
-                                    created_by: user.id
-                                })
-                                .select()
-                                .single();
-
-                            if (vError) throw vError;
-                            linkedVideoId = videoData.id;
-                        } else {
-                            // Create Document Resource
-                            const { data: docData, error: dError } = await supabase
-                                .from('learning_documents')
-                                .insert({
-                                    title: cleanNodeData.title,
-                                    content: cleanNodeData.description,
-                                    year: cleanNodeData.year,
-                                    is_public: true,
-                                    created_by: user.id
-                                })
-                                .select()
-                                .single();
-
-                            if (dError) throw dError;
-                            linkedDocumentId = docData.id;
-                        }
-                    } catch (resourceError) {
-                        console.error('Failed to create linked resource:', resourceError);
-                        if (!confirm('자료 서랍에 추가하는데 실패했습니다. 그래도 노드를 생성하시겠습니까?')) {
-                            return;
-                        }
-                    }
-                }
-
                 const center = rfInstance?.getViewport() || { x: 0, y: 0, zoom: 1 };
                 const position = {
                     x: -center.x / center.zoom + 100,
@@ -711,7 +723,8 @@ export default function HistoryTimelinePage() {
             loadTimeline(); // Reload to reflect changes
             setIsEditorOpen(false);
             if (nodeData.addToDrawer) {
-                alert('자료 서랍에 추가되고 노드가 생성되었습니다.');
+                setDrawerRefreshKey(prev => prev + 1); // Refresh drawer
+                alert('자료 서랍에 추가되고 노드가 저장되었습니다.');
             }
         } catch (error) {
             console.error('Error saving node:', error);
@@ -738,7 +751,7 @@ export default function HistoryTimelinePage() {
         event.dataTransfer.dropEffect = 'move';
     }, []);
 
-    const handleDragStartResource = (_e: React.DragEvent, resource: any) => {
+    const onResourceDragStart = (_e: React.DragEvent, resource: any) => {
         setDraggedResource(resource);
     };
 
@@ -948,9 +961,8 @@ export default function HistoryTimelinePage() {
                     nodesDraggable={!isAutoLayout && isEditMode}
                     nodesConnectable={isEditMode}
                     elementsSelectable={true}
-                    nodeTypes={NODE_TYPES}
-
-                    edgeTypes={EDGE_TYPES}
+                    nodeTypes={STATIC_NODE_TYPES}
+                    edgeTypes={STATIC_EDGE_TYPES}
                     isValidConnection={IS_VALID_CONNECTION}
                     connectionMode={ConnectionMode.Loose}
                     minZoom={0.05}
@@ -1061,8 +1073,9 @@ export default function HistoryTimelinePage() {
             <ResourceDrawer
                 isOpen={isDrawerOpen}
                 onClose={() => setIsDrawerOpen(false)}
-                onDragStart={handleDragStartResource}
+                onDragStart={onResourceDragStart}
                 onItemClick={handleDrawerItemClick}
+                refreshKey={drawerRefreshKey}
             />
         </div>
     );
