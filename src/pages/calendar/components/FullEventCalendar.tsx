@@ -424,7 +424,7 @@ export default memo(function FullEventCalendar({
                 }`}
             >
               <span style={{ marginRight: '2px' }}>{day.getDate()}</span>
-              <div className="weekday-wrapper" style={{ fontSize: '10px', fontWeight: 'normal', opacity: 0.8 }}>
+              <div className="weekday-wrapper" style={{ fontSize: '10px', fontWeight: 'normal' }}>
                 <span className="translated-part">
                   {todayFlag ? t('today') : t(`weekdays.${['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][day.getDay()]}`)}
                 </span>

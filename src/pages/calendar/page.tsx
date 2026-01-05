@@ -94,6 +94,7 @@ export default function CalendarPage() {
     }, [authIsAdmin]);
 
     // 초기 마운트 시 오늘 날짜로 스크롤 (Window 기반 하이브리드 보정 로직)
+    // + 탭 전환 시에도 오늘 날짜로 스크롤
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
         const shouldScrollToToday = urlParams.get('scrollToToday') === 'true';
@@ -175,7 +176,7 @@ export default function CalendarPage() {
             window.removeEventListener('touchmove', handleUserInteraction);
             window.removeEventListener('keydown', handleUserInteraction);
         };
-    }, [currentMonth]);
+    }, [currentMonth, tabFilter]); // tabFilter 추가: 탭 전환 시에도 스크롤
 
 
 
