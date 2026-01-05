@@ -214,7 +214,7 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
             console.log(`[Realtime] Unsubscribing from ${table} for category: ${category}`);
             supabase.removeChannel(channel);
         };
-    }, [category, isAdminChecked, loadPosts]);
+    }, [category, isAdminChecked]);
 
     // Reset pagination when category changes
     useEffect(() => {
