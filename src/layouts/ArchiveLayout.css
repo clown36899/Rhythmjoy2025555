@@ -5,7 +5,7 @@
     height: 100svh;
     background-color: #09090b;
     color: #fafafa;
-    overflow: hidden;
+    overflow: auto;
     padding-top: 60px;
     /* MobileShell Header offset */
     padding-bottom: 64px;

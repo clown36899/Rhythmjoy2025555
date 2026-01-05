@@ -96,8 +96,14 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
 
     const [error, setError] = useState<string | null>(null);
     const [fullDescription, setFullDescription] = useState<string | null>(null);
-    const [isPlaylistOpen, setIsPlaylistOpen] = useState(false); // Mobile Toggle State
-    const [isBookmarksOpen, setIsBookmarksOpen] = useState(true); // Bookmarks visible by default
+
+    // Tab State: 'bookmarks' (default) or 'playlist'
+    const [activeTab, setActiveTab] = useState<'bookmarks' | 'playlist'>('bookmarks');
+
+    // Legacy states kept for sidebar compatibility (though sidebar is hidden on mobile now)
+    const [isPlaylistOpen, setIsPlaylistOpen] = useState(false);
+    const [isBookmarksOpen, setIsBookmarksOpen] = useState(true);
+
     const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false); // Description Toggle State
     const [isOverflowing, setIsOverflowing] = useState(false); // Check if description overflows
 
@@ -1079,46 +1085,87 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                     ))}
                 </div>
 
-                <div className="ld-bookmark-section">
-                    {isAdmin && (
-                        <div className="ld-bookmark-toolbar-wrapper">
-                            <h3 className="ld-section-title-small">북마크 / 타임스탬프</h3>
-                            <div className="ld-bookmark-toolbar">
-                                <button onClick={handleAddBookmark} className="ld-bookmark-tool-btn primary">
-                                    <span className="ld-tool-icon">+</span> 추가
-                                </button>
-                                <button onClick={handleCopyBookmarks} className="ld-bookmark-tool-btn">
-                                    <span className="ld-tool-icon">📋</span> 복사
-                                </button>
-                                <button onClick={handlePasteBookmarks} className="ld-bookmark-tool-btn">
-                                    <span className="ld-tool-icon">📥</span> 붙여넣기
-                                </button>
-                            </div>
-                        </div>
-                    )}
-                    <BookmarkList
-                        bookmarks={bookmarks}
-                        onSeek={seekTo}
-                        onDelete={handleDeleteBookmark}
-                        onEdit={(id) => handleEditBookmark(id)}
-                        isAdmin={isAdmin}
-                    />
+                {/* Tab Navigation */}
+                <div className="ld-tab-navigation">
+                    <button
+                        className={`ld-tab-btn ${activeTab === 'bookmarks' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('bookmarks')}
+                    >
+                        북마크
+                    </button>
+                    <button
+                        className={`ld-tab-btn ${activeTab === 'playlist' ? 'active' : ''}`}
+                        onClick={() => setActiveTab('playlist')}
+                    >
+                        재생목록
+                    </button>
                 </div>
 
-                {/* Control Bar */}
-                <div className="ld-control-bar">
-                    <button
-                        className="ld-control-btn"
-                        onClick={() => setIsBookmarksOpen(!isBookmarksOpen)}
-                    >
-                        {isBookmarksOpen ? '북마크 닫기' : '북마크 보기'}
-                    </button>
-                    <button
-                        className="ld-control-btn mobile-only"
-                        onClick={() => setIsPlaylistOpen(!isPlaylistOpen)}
-                    >
-                        {isPlaylistOpen ? '목록 닫기' : '재생목록 보기'}
-                    </button>
+                {/* Tab Content Area */}
+                <div className="ld-tab-content">
+                    {/* Bookmarks Tab Content */}
+                    <div className={`ld-tab-pane ld-tab-pane-bookmarks ${activeTab === 'bookmarks' ? 'active' : ''}`}>
+                        <div className="ld-bookmark-section">
+                            {isAdmin && (
+                                <div className="ld-bookmark-toolbar-wrapper">
+                                    <h3 className="ld-section-title-small">타임스탬프</h3>
+                                    <div className="ld-bookmark-toolbar">
+                                        <button onClick={handleAddBookmark} className="ld-bookmark-tool-btn primary">
+                                            <span className="ld-tool-icon">+</span> 추가
+                                        </button>
+                                        {/* 
+                                        <button onClick={handleCopyBookmarks} className="ld-bookmark-tool-btn">
+                                            <span className="ld-tool-icon">📋</span> 복사
+                                        </button>
+                                        <button onClick={handlePasteBookmarks} className="ld-bookmark-tool-btn">
+                                            <span className="ld-tool-icon">📥</span> 붙여넣기
+                                        </button> 
+                                        */}
+                                    </div>
+                                </div>
+                            )}
+                            <BookmarkList
+                                bookmarks={bookmarks}
+                                onSeek={seekTo}
+                                onDelete={handleDeleteBookmark}
+                                onEdit={(id) => handleEditBookmark(id)}
+                                isAdmin={isAdmin}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Playlist Tab Content */}
+                    <div className={`ld-tab-pane ld-tab-pane-playlist ${activeTab === 'playlist' ? 'active' : ''}`}>
+                        <div className="ld-playlist-section-inline">
+                            <div className="ld-playlist-container-inline">
+                                {videos.map((video, idx) => (
+                                    <div
+                                        key={video.id}
+                                        onClick={() => handleVideoClick(idx)}
+                                        className={`ld-video-item ${currentVideoIndex === idx ? 'ld-video-item-active' : 'ld-video-item-inactive'}`}
+                                    >
+                                        <div className="ld-video-thumbnail-wrapper-small">
+                                            <img
+                                                src={`https://img.youtube.com/vi/${video.youtube_video_id}/mqdefault.jpg`}
+                                                alt=""
+                                                className={`ld-video-thumbnail ${currentVideoIndex === idx ? 'ld-video-thumbnail-active' : 'ld-video-thumbnail-inactive'}`}
+                                            />
+                                            {currentVideoIndex === idx && isPlaying && (
+                                                <div className="ld-playing-overlay">
+                                                    <span className="ld-playing-text">Playing</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="ld-video-info">
+                                            <h3 className={`ld-video-title-small ${currentVideoIndex === idx ? 'ld-video-title-active' : 'ld-video-title-inactive'}`}>
+                                                {idx + 1}. {video.title}
+                                            </h3>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div className="ld-video-metadata">
