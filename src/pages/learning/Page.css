@@ -26,18 +26,19 @@
 }
 
 .leftSidebar {
-    width: 320px;
-    /* Optimized width */
+    width: 100%;
+    /* Full width for horizontal tree layout */
     flex-shrink: 0;
-    position: sticky;
-    /* top: 84px; */
-    /* Account for fixed header */
+    position: relative;
+    /* Use relative flow, let inner container handle scroll */
     max-height: calc(100vh - 120px);
-    overflow-y: auto;
+    /* Keep max height for vertical containment if needed, but horizontal scroll handles width */
+    height: calc(100vh - 120px);
+    /* Enforce height for proper horizontal scroll area */
+    overflow: hidden;
+    /* Container shouldn't scroll, inner treeContainer should */
     background-color: transparent;
-    /* Cleaner look */
-    /* Padding for scrollbar spacing */
-    padding-right: 12px;
+    padding-right: 0;
 }
 
 /* Custom scrollbar */

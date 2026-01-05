@@ -66,22 +66,32 @@
     cursor: not-allowed;
 }
 
-/* Vertical Tree Container - Stack folders vertically */
+/* Horizontal Tree Container - Kanban Style */
 .treeContainer {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    /* Horizontal columns */
     align-items: stretch;
-    gap: 12px;
-    overflow-y: auto;
-    padding: 8px;
+    gap: 16px;
+    overflow-x: auto;
+    /* Horizontal scroll */
+    overflow-y: hidden;
+    /* Hide vertical scroll of container */
+    padding: 8px 8px 16px 8px;
+    /* Bottom padding for scrollbar */
     flex: 1;
+    height: 100%;
 }
 
 /* Mobile: Keep column layout */
 @media (max-width: 768px) {
     .treeContainer {
+        flex-direction: column;
+        overflow-x: hidden;
+        overflow-y: auto;
         gap: 8px;
         padding: 4px;
+        height: auto;
     }
 }
 
@@ -109,9 +119,14 @@
     /* Visual cue */
 }
 
-/* Column Panel Style - Full width for vertical stacking */
+/* Column Panel Style - Dynamic Horizontal Columns */
 .treeColumn {
-    width: 100%;
+    flex: 0 1 320px;
+    /* Base width 320px, can shrink */
+    min-width: 250px;
+    /* Minimum readable width */
+    max-width: 400px;
+    /* Optional max width */
     background-color: #111827;
     border: 1px solid #374151;
     border-radius: 8px;
@@ -119,6 +134,22 @@
     display: flex;
     flex-direction: column;
     gap: 4px;
+    overflow-y: auto;
+    /* Internal vertical scroll */
+    max-height: 100%;
+    transition: flex-basis 0.2s ease;
+}
+
+/* Mobile: Full width columns */
+@media (max-width: 768px) {
+    .treeColumn {
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+        flex: 1 1 auto;
+        max-height: none;
+        overflow-y: visible;
+    }
 }
 
 /* Tree Line Implementation */

@@ -26,6 +26,7 @@ import { DocumentDetailModal } from '../learning/components/DocumentDetailModal'
 import { PlaylistModal } from '../learning/components/PlaylistModal';
 import './HistoryTimeline.css';
 import type { HistoryNodeData } from './types';
+import { useSetPageAction } from '../../contexts/PageActionContext';
 
 const initialNodes: Node[] = [];
 const initialEdges: Edge[] = [];
@@ -130,6 +131,13 @@ export default function HistoryTimelinePage() {
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, []);
+
+    // Register Page Action (FAB) for Drawer
+    useSetPageAction({
+        icon: 'ri-database-2-line',
+        label: '자료 서랍',
+        onClick: () => setIsDrawerOpen(prev => !prev),
+    });
 
     useEffect(() => {
         if (!isAdmin) setIsEditMode(false);

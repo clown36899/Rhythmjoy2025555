@@ -246,6 +246,7 @@ export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId
         setDraggedType(type);
         if (type === 'CATEGORY') {
             setDraggedIsRoot(!(item as Category).parent_id);
+            // Allow dragging ANY category, including roots, as normal items
         } else {
             setDraggedIsRoot(false);
         }
@@ -308,13 +309,13 @@ export const CategoryManager = ({ onCategoryChange, readOnly = false, selectedId
 
         // Existing Category Reorder Logic for Root
         if (draggedType === 'CATEGORY' && draggedIsRoot && draggedId !== id) {
-            const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-            const offsetY = e.clientY - rect.top;
-            // If in top 50%, insert before (reorder-top), else ignore or reparent? 
-            // Actually original logic was column based.
-            // Let's stick to original valid logic but ensure checks
-            if (dragDest?.id !== id || dragDest?.mode !== 'reorder-top') {
-                setDragDest({ id, mode: 'reorder-top' });
+            // Treat root as just another folder for reparenting if dropping ONTO it
+            // User requested: "Root is just a folder"
+            // So if I drag a root ONTO another root, it should nest (reparent)
+            // UNLESS I am aiming for the edges (reorder).
+            // For now, prioritize REPARENTING to satisfy "put into other folder" request.
+            if (dragDest?.id !== id || dragDest?.mode !== 'reparent') {
+                setDragDest({ id, mode: 'reparent' });
             }
         }
     };
