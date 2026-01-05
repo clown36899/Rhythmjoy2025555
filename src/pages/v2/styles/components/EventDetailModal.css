@@ -200,28 +200,36 @@
 .detail-image-wrapper {
     display: grid;
     place-items: center;
-    width: auto;
+    width: 100%;
+    max-width: 325px;
+    /* 모바일: 이미지 컨테이너 최대 너비 제한 */
     height: auto;
-    max-width: 100%;
     max-height: 100%;
     position: relative;
     z-index: 5;
+    margin: 0 auto;
+    /* 중앙 정렬 */
 }
 
 .detail-image-content {
     grid-area: 1 / 1;
     width: 100%;
-    max-width: 325px;
-    /* 650px 이미지를 절반 크기로 표시하여 Retina 2x 픽셀 밀도 커버 */
+    /* wrapper 크기에 맞춰 확대/축소 */
     height: auto;
     min-height: 0;
     object-fit: contain;
     object-position: center;
     display: block;
+    image-rendering: -webkit-optimize-contrast;
+    /* Safari/Chrome: 부드러운 확대 */
+    image-rendering: smooth;
+    /* 표준: 고품질 보간 */
 }
 
 @media (min-width: 768px) {
     .detail-image-wrapper {
+        max-width: 100%;
+        /* 데스크톱: 전체 너비 사용 */
         padding: 40px;
         max-height: 95%;
         filter: drop-shadow(0 30px 60px rgba(0, 0, 0, 0.9));
