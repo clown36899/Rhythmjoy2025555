@@ -72,6 +72,42 @@ export default function SocialGroupDetailModal({
                         </p>
                     </div>
 
+                    {/* Location Section */}
+                    {group.address && (
+                        <div className="sgdm-section">
+                            <h3 className="sgdm-section-title">위치</h3>
+                            <p className="sgdm-address">
+                                <i className="ri-map-pin-line"></i>
+                                {group.address}
+                            </p>
+                            <div className="sgdm-map-buttons">
+                                <button
+                                    className="sgdm-map-btn naver"
+                                    onClick={() => window.open(`https://map.naver.com/v5/search/${encodeURIComponent(group.address!)}`, '_blank')}
+                                >
+                                    <i className="ri-map-pin-2-fill" style={{ color: '#2db400' }}></i> 네이버지도
+                                </button>
+                                <button
+                                    className="sgdm-map-btn google"
+                                    onClick={() => window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(group.address!)}`, '_blank')}
+                                >
+                                    <i className="ri-google-fill" style={{ color: '#ea4335' }}></i> 구글지도
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Link Section */}
+                    {group.link && (
+                        <div className="sgdm-section">
+                            <h3 className="sgdm-section-title">관련 링크</h3>
+                            <a href={group.link} target="_blank" rel="noopener noreferrer" className="sgdm-link-btn">
+                                <i className="ri-link"></i>
+                                {group.link}
+                            </a>
+                        </div>
+                    )}
+
                     {/* Actions */}
                     <div className="sgdm-actions">
                         <button onClick={onViewSchedule} className="sgdm-btn primary">

@@ -41,7 +41,31 @@ export default function PracticeRoomsPage() {
         onEdit: () => handleEditVenue(roomId)
       });
     }
-  }, [roomId]);
+
+    // Handle action=register param
+    const action = searchParams.get('action');
+    if (action === 'register') {
+      const handleAutoRegister = () => {
+        if (!user) {
+          window.dispatchEvent(new CustomEvent('requestProtectedAction', {
+            detail: { message: '연습실 등록을 위해 로그인이 필요합니다.' }
+          }));
+        } else {
+          venueRegistrationModal.open({
+            editVenueId: null,
+            onVenueCreated: handleVenueCreatedOrUpdated,
+            onVenueDeleted: handleVenueCreatedOrUpdated
+          });
+        }
+        // Clear the param so it doesn't reopen on refresh/nav
+        const params = new URLSearchParams(searchParams);
+        params.delete('action');
+        setSearchParams(params, { replace: true });
+      };
+      // Small timeout to ensure modal context is ready or just run it
+      setTimeout(handleAutoRegister, 100);
+    }
+  }, [roomId, searchParams]); // add searchParams dependency or separate effect
 
   // Event search from header
   useEffect(() => {

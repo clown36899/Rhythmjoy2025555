@@ -3,6 +3,8 @@ import { createPortal } from 'react-dom';
 import VenueSelectList from './VenueSelectList';
 import './VenueSelectModal.css';
 
+import { useNavigate } from 'react-router-dom';
+
 interface Venue {
     id: string | number;
     name: string;
@@ -23,6 +25,7 @@ interface VenueSelectModalProps {
 }
 
 export default function VenueSelectModal({ isOpen, onClose, onSelect, onManualInput }: VenueSelectModalProps) {
+    const navigate = useNavigate();
     const [activeCategory, setActiveCategory] = useState<string>("연습실");
     const [venueName, setVenueName] = useState('');
     const [venueLink, setVenueLink] = useState('');
@@ -58,9 +61,33 @@ export default function VenueSelectModal({ isOpen, onClose, onSelect, onManualIn
                 {/* Header */}
                 <div className="venue-select-header">
                     <h2 className="venue-select-title">장소 선택</h2>
-                    <button onClick={onClose} className="venue-select-close-btn">
-                        <i className="ri-close-line"></i>
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <button
+                            onClick={() => {
+                                onClose();
+                                navigate('/practice?action=register');
+                            }}
+                            className="venue-register-btn"
+                            style={{
+                                padding: '6px 12px',
+                                background: 'rgba(255, 255, 255, 0.1)',
+                                border: '1px solid rgba(255, 255, 255, 0.2)',
+                                borderRadius: '8px',
+                                color: '#e5e7eb',
+                                fontSize: '0.85rem',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                textDecoration: 'none'
+                            }}
+                        >
+                            <i className="ri-add-line"></i> 장소 등록
+                        </button>
+                        <button onClick={onClose} className="venue-select-close-btn">
+                            <i className="ri-close-line"></i>
+                        </button>
+                    </div>
                 </div>
 
                 {/* Tab Bar */}
