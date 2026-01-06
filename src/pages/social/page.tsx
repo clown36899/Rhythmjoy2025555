@@ -382,6 +382,7 @@ const SocialPage: React.FC = () => {
         onEditGroup={handleEditGroup}
         onAddSchedule={handleAddSchedule}
         isAdmin={!!user}
+        currentUserId={user?.id}
       />
 
       {/* 3단: 단체 (standalone) */}
@@ -394,6 +395,7 @@ const SocialPage: React.FC = () => {
         onEditGroup={handleEditGroup}
         onAddSchedule={handleAddSchedule}
         isAdmin={!!user}
+        currentUserId={user?.id}
       />
 
       {/* Modals */}

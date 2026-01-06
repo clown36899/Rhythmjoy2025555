@@ -15,6 +15,7 @@ interface WeeklySocialProps {
     onEditGroup: (group: SocialGroup) => void;
     onAddSchedule: (groupId: number) => void;
     isAdmin: boolean;
+    currentUserId?: string;
 }
 
 type ViewTab = 'weekly' | 'all' | 'regular' | 'register';
@@ -28,7 +29,8 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
     onGroupClick,
     onEditGroup,
     onAddSchedule,
-    isAdmin
+    isAdmin,
+    currentUserId
 }) => {
     const [activeTab, setActiveTab] = useState<ViewTab>('weekly');
 
@@ -411,6 +413,7 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                         onAddSchedule={onAddSchedule}
                         isAdmin={isAdmin}
                         hideTitle={true}
+                        currentUserId={currentUserId}
                     />
                 </div>
             )}

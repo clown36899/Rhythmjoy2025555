@@ -12,6 +12,7 @@ interface GroupDirectoryProps {
     onAddSchedule: (groupId: number) => void;
     isAdmin: boolean;
     hideTitle?: boolean;
+    currentUserId?: string; // Current user ID for permission checks
 }
 
 const typeLabels: Record<string, string> = {
@@ -31,7 +32,8 @@ const GroupDirectory: React.FC<GroupDirectoryProps> = ({
     onEditGroup,
     onAddSchedule,
     isAdmin,
-    hideTitle = false
+    hideTitle = false,
+    currentUserId
 }) => {
     const [activeTab, setActiveTab] = useState('all');
 
@@ -130,15 +132,18 @@ const GroupDirectory: React.FC<GroupDirectoryProps> = ({
                                     <p className="group-wide-desc">{group.description || '아직 설명이 없습니다.'}</p>
 
                                     <div className="group-wide-footer">
-                                        <button
-                                            className="view-calendar-btn"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                onGroupClick(group);
-                                            }}
-                                        >
-                                            <i className="ri-calendar-line"></i> 일정 달력
-                                        </button>
+                                        {/* Only show schedule button to group creator */}
+                                        {currentUserId && group.user_id === currentUserId && (
+                                            <button
+                                                className="view-calendar-btn"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onGroupClick(group);
+                                                }}
+                                            >
+                                                <i className="ri-calendar-line"></i> 일정 달력
+                                            </button>
+                                        )}
                                         {isAdmin && (
                                             <>
                                                 <button
