@@ -40,17 +40,28 @@ const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules,
     const nextWeekStartStr = getLocalDateString(nextWeekStart);
     const nextWeekEndStr = getLocalDateString(nextWeekEnd);
 
+    // 오늘 일정 개수 확인 (TodaySocial이 1개일 때 숨겨지므로 여기에 포함)
+    const todaySchedulesCount = schedules.filter(schedule =>
+        schedule.date === todayStr &&
+        (schedule.day_of_week === null || schedule.day_of_week === undefined)
+    ).length;
+
     // Filter schedules based on weekMode
     const filteredSchedules = schedules.filter(schedule => {
         if (schedule.day_of_week !== null && schedule.day_of_week !== undefined) return false;
         if (!schedule.date) return false;
 
         if (weekMode === 'this') {
-            // Show from today until end of this week
-            // Note: We show >= todayStr to include today's but AllSocialSchedules is usually "remaining"
-            // Original logic was > todayStr. Let's keep it to avoid overlap with TodaySocial if desired, 
-            // but user said "elements from next week", implying we follow the same pattern.
-            if (schedule.date <= todayStr) return false;
+            // 오늘 일정이 1개일 때는 오늘 일정도 포함 (>= todayStr)
+            // 오늘 일정이 2개 이상일 때는 오늘 제외 (> todayStr)
+            const shouldIncludeToday = todaySchedulesCount === 1;
+
+            if (shouldIncludeToday) {
+                if (schedule.date < todayStr) return false;
+            } else {
+                if (schedule.date <= todayStr) return false;
+            }
+
             if (schedule.date > thisWeekEndStr) return false;
         } else {
             // Show next week (Mon to Sun)

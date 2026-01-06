@@ -37,7 +37,8 @@ const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll, on
         return [...shuffleArray(oneTime), ...shuffleArray(regular)];
     }, [schedules, mountKey]);
 
-    if (shuffledSchedules.length === 0) return null;
+    // 오늘 일정이 1개일 때는 숨김 (이번주 일정에 포함되도록)
+    if (shuffledSchedules.length === 0 || shuffledSchedules.length === 1) return null;
 
     const getMediumImage = (item: SocialSchedule) => {
         if (item.image_thumbnail) return item.image_thumbnail;
