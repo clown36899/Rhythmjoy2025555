@@ -23,7 +23,7 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
     const navigate = useNavigate();
     const { user, billboardUserName, signOut, userProfile, isAdmin } = useAuth();
     const [isBoardExpanded, setIsBoardExpanded] = useState(true); // 기본 펼침 상태
-    const [isAdminExpanded, setIsAdminExpanded] = useState(false); // 관리자 메뉴 기본 접힘 상태
+    const [isAdminExpanded, setIsAdminExpanded] = useState(true); // 관리자 메뉴 기본 펼침 상태
     const [boardCategories, setBoardCategories] = useState<BoardCategory[]>([]);
     const [memberCount, setMemberCount] = useState<number | null>(null);
     const [showDevTools, setShowDevTools] = useState(() => {
