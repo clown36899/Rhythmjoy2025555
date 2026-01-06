@@ -11,7 +11,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 210000;
+    z-index: 220000;
     padding: 1rem;
     animation: overlayFadeIn 0.2s ease-out;
 }

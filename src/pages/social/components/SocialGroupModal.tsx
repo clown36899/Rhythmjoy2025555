@@ -5,6 +5,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { createResizedImages, isImageFile } from '../../../utils/imageResize';
 import ImageCropModal from '../../../components/ImageCropModal';
 import GlobalLoadingOverlay from '../../../components/GlobalLoadingOverlay';
+import VenueSelectModal from '../../v2/components/VenueSelectModal';
 import './SocialGroupModal.css';
 
 interface SocialGroupModalProps {
@@ -31,6 +32,7 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
     const [password, setPassword] = useState(''); // 관리 비밀번호
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [loadingMessage, setLoadingMessage] = useState('');
+    const [showVenueModal, setShowVenueModal] = useState(false);
 
     // Image Crop State
     const [isCropModalOpen, setIsCropModalOpen] = useState(false);
@@ -104,6 +106,12 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
         setImageFile(croppedFile);
         setImagePreview(previewUrl);
         setIsCropModalOpen(false);
+    };
+
+    const handleVenueSelect = (venue: any) => {
+        setAddress(venue.address);
+        // Optionally set name if empty? No, group name is distinct from venue name.
+        setShowVenueModal(false);
     };
 
 
@@ -508,12 +516,37 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
                         </div>
                         <div className="form-section">
                             <label>주소 (장소/모임 위치)</label>
-                            <input
-                                type="text"
-                                value={address}
-                                onChange={(e) => setAddress(e.target.value)}
-                                placeholder="예: 서울시 강남구..."
-                            />
+                            <div className="location-box" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                <div className="location-input-group" style={{ display: 'flex', gap: '8px' }}>
+                                    <input
+                                        type="text"
+                                        value={address}
+                                        onClick={() => setShowVenueModal(true)}
+                                        readOnly
+                                        placeholder="클릭하여 장소 검색..."
+                                        style={{ flex: 1, cursor: 'pointer' }}
+                                    />
+                                    <button
+                                        type="button"
+                                        className="venue-search-btn"
+                                        onClick={() => setShowVenueModal(true)}
+                                        style={{
+                                            padding: '0 12px',
+                                            borderRadius: '8px',
+                                            border: '1px solid rgba(255,255,255,0.1)',
+                                            background: '#374151',
+                                            color: '#e5e7eb',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                            whiteSpace: 'nowrap'
+                                        }}
+                                    >
+                                        <i className="ri-map-pin-line"></i> 장소 검색
+                                    </button>
+                                </div>
+                            </div>
                         </div>
 
                         <div className="form-section">
@@ -569,6 +602,15 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
     return (
         <>
             {mainModal}
+            <VenueSelectModal
+                isOpen={showVenueModal}
+                onClose={() => setShowVenueModal(false)}
+                onSelect={handleVenueSelect}
+                onManualInput={(name, link) => {
+                    setAddress(name); // Use name for address in manual input
+                    setShowVenueModal(false);
+                }}
+            />
             <ImageCropModal
                 isOpen={isCropModalOpen}
                 onClose={() => setIsCropModalOpen(false)}
