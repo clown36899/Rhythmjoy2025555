@@ -37,7 +37,6 @@ interface EventPreviewSectionProps {
     handleToggleFavorite: (id: number, e: React.MouseEvent) => void;
     searchParams: URLSearchParams;
     setSearchParams: (params: URLSearchParams) => void;
-    onSectionViewModeChange: (mode: 'preview' | 'viewAll-events' | 'viewAll-classes') => void;
 }
 
 export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
@@ -63,24 +62,8 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
     handleToggleFavorite,
     searchParams,
     setSearchParams,
-    onSectionViewModeChange,
 }) => {
-    // 장르명을 영문으로 매핑하는 헬퍼 함수
-    const getGenreEn = (genre: string) => {
-        const mapping: Record<string, string> = {
-            '전체': 'All',
-            '대회': 'Competition',
-            '소셜': 'Social',
-            '파티': 'Party',
-            '공연': 'Performance',
-            '워크숍': 'Workshop',
-            '강습': 'Class',
-            '동호회': 'Club',
-            '정기소셜': 'Regular Social',
-            '라이브': 'Live',
-        };
-        return mapping[genre] || genre;
-    };
+
 
     // 장르 라벨 렌더러 - '전체'와 '대회'만 Double-Span 적용
     const renderGenreLabel = (genre: string) => {
@@ -138,24 +121,21 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
             {/* 3.5. Beginner Section - Starting Swing Dance */}
             <div className="evt-v2-section evt-v2-section-beginner" style={{ margin: '20px 16px' }}>
                 <div
-                    onClick={() => window.location.href = '/social?tab=clubs'}
+                    onClick={() => window.location.href = '/social?tab=register&type=club'}
                     style={{
                         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                         borderRadius: '16px',
                         padding: '24px',
                         cursor: 'pointer',
-                        boxShadow: '0 4px 20px rgba(102, 126, 234, 0.3)',
                         transition: 'all 0.3s ease',
                         position: 'relative',
                         overflow: 'hidden'
                     }}
                     onMouseEnter={(e) => {
                         e.currentTarget.style.transform = 'translateY(-2px)';
-                        e.currentTarget.style.boxShadow = '0 6px 25px rgba(102, 126, 234, 0.4)';
                     }}
                     onMouseLeave={(e) => {
                         e.currentTarget.style.transform = 'translateY(0)';
-                        e.currentTarget.style.boxShadow = '0 4px 20px rgba(102, 126, 234, 0.3)';
                     }}
                 >
                     {/* Decorative background elements */}

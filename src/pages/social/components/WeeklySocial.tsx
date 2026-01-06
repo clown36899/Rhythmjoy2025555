@@ -16,6 +16,8 @@ interface WeeklySocialProps {
     onAddSchedule: (groupId: number) => void;
     isAdmin: boolean;
     currentUserId?: string;
+    initialTab?: string | null;
+    initialType?: string | null;
 }
 
 type ViewTab = 'weekly' | 'all' | 'regular' | 'register';
@@ -30,17 +32,29 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
     onEditGroup,
     onAddSchedule,
     isAdmin,
-    currentUserId
+    currentUserId,
+    initialTab,
+    initialType
 }) => {
-    const [activeTab, setActiveTab] = useState<ViewTab>('weekly');
+    // initialTab이 유효한 ViewTab이면 그것을 사용, 아니면 'weekly'
+    const [activeTab, setActiveTab] = useState<ViewTab>(() => {
+        if (initialTab === 'register' || initialTab === 'all' || initialTab === 'regular') {
+            return initialTab as ViewTab;
+        }
+        return 'weekly';
+    });
 
 
     const weekNames = ['일', '월', '화', '수', '목', '금', '토'];
 
-    // 소셜 페이지 진입 시 항상 금주일정 탭으로 리셋
+    // 소셜 페이지 진입 시 초기 탭 설정 (initialTab 변경 시 반영)
     useEffect(() => {
-        setActiveTab('weekly');
-    }, []);
+        if (initialTab === 'register' || initialTab === 'all' || initialTab === 'regular') {
+            setActiveTab(initialTab as ViewTab);
+        } else {
+            setActiveTab('weekly');
+        }
+    }, [initialTab]);
 
     // 이번 주(월~일) 날짜 계산
     const weekDates = useMemo(() => {
@@ -414,6 +428,7 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                         isAdmin={isAdmin}
                         hideTitle={true}
                         currentUserId={currentUserId}
+                        initialTab={initialType}
                     />
                 </div>
             )}

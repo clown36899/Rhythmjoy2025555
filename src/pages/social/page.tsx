@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSocialGroups } from './hooks/useSocialGroups';
@@ -39,6 +39,11 @@ const SocialPage: React.FC = () => {
 
   // Modal States
   const socialDetailModal = useModal('socialDetail');
+
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const initialTab = searchParams.get('tab');
+  const initialType = searchParams.get('type');
 
   const [selectedGroup, setSelectedGroup] = useState<SocialGroup | null>(null);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
@@ -381,8 +386,11 @@ const SocialPage: React.FC = () => {
         onGroupClick={(group) => { setSelectedGroup(group); setIsCalendarOpen(true); }}
         onEditGroup={handleEditGroup}
         onAddSchedule={handleAddSchedule}
+
         isAdmin={!!user}
         currentUserId={user?.id}
+        initialTab={initialTab}
+        initialType={initialType}
       />
 
       {/* 3단: 단체 (standalone) */}

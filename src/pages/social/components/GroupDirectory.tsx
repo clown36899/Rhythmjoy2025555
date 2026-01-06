@@ -13,6 +13,7 @@ interface GroupDirectoryProps {
     isAdmin: boolean;
     hideTitle?: boolean;
     currentUserId?: string; // Current user ID for permission checks
+    initialTab?: string | null;
 }
 
 const typeLabels: Record<string, string> = {
@@ -33,9 +34,10 @@ const GroupDirectory: React.FC<GroupDirectoryProps> = ({
     onAddSchedule,
     isAdmin,
     hideTitle = false,
-    currentUserId
+    currentUserId,
+    initialTab
 }) => {
-    const [activeTab, setActiveTab] = useState('all');
+    const [activeTab, setActiveTab] = useState(initialTab || 'all');
 
     // 동적으로 분류 추출
     const categories = useMemo(() => {
@@ -44,10 +46,18 @@ const GroupDirectory: React.FC<GroupDirectoryProps> = ({
     }, [groups]);
 
     // 필터링된 그룹 리스트
+    // 필터링된 그룹 리스트
     const filteredGroups = useMemo(() => {
         if (activeTab === 'all') return groups;
         return groups.filter(g => g.type === activeTab);
     }, [groups, activeTab]);
+
+    // Update activeTab when initialTab changes (optional, but good for sync)
+    React.useEffect(() => {
+        if (initialTab) {
+            setActiveTab(initialTab);
+        }
+    }, [initialTab]);
 
     return (
         <section className={`group-directory-container ${hideTitle ? 'no-title' : ''}`}>
