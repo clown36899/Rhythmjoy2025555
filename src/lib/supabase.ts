@@ -1,5 +1,6 @@
 
 import { createClient } from '@supabase/supabase-js'
+import { authLogger } from '../utils/authLogger';
 
 const supabaseUrl = import.meta.env.VITE_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
 const supabaseAnonKey = import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key'
@@ -25,6 +26,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
         );
         const key = isStandalone ? 'sb-pwa-auth-token' : 'sb-browser-auth-token';
         console.log(`[Supabase Init] Mode: ${isStandalone ? 'PWA' : 'Browser'}, Key: ${key}`);
+        // Cannot use authLogger here because it might not be safe in all contexts, sticking to console
         return key;
       })()
       : 'sb-auth-token',
@@ -178,7 +180,7 @@ export const validateAndRecoverSession = async (): Promise<any> => {
     const { data: { session: localSession } } = await supabase.auth.getSession();
 
     if (localSession && (now - lastValidationTime < VALIDATION_CACHE_TIME)) {
-      console.log('[Supabase] ⚡ Using cached session validation (Short-circuit)');
+      authLogger.log('[Supabase] ⚡ Using cached session validation (Short-circuit)');
       return localSession;
     }
 
@@ -208,6 +210,7 @@ export const validateAndRecoverSession = async (): Promise<any> => {
 
     // 에러 발생 시 세션 정리
     if (error) {
+      authLogger.log('[Supabase] ❌ Session validation error:', error);
       console.error('[Supabase] ❌ Session validation error:', error);
       await supabase.auth.signOut({ scope: 'local' });
       return null;
@@ -226,11 +229,11 @@ export const validateAndRecoverSession = async (): Promise<any> => {
 
       // 만료되었으면 갱신 시도
       if (expiresAt < now) {
-        console.warn('[Supabase] ⏰ Session expired, attempting refresh...');
+        authLogger.log('[Supabase] ⏰ Session expired, attempting refresh...');
         const { data, error: refreshError } = await supabase.auth.refreshSession();
 
         if (refreshError) {
-          console.error('[Supabase] ❌ Session refresh failed:', refreshError);
+          authLogger.log('[Supabase] ❌ Session refresh failed:', refreshError);
           await supabase.auth.signOut({ scope: 'local' });
           return null;
         }
@@ -266,6 +269,7 @@ export const validateAndRecoverSession = async (): Promise<any> => {
           userError.message?.toLowerCase().includes('not found');
 
         if (isAuthError) {
+          authLogger.log('[Supabase] 🗑️ Clearing invalid/expired session', { message: userError.message });
           console.warn('[Supabase] 🗑️ Clearing invalid/expired session');
           await supabase.auth.signOut({ scope: 'local' });
           return null;

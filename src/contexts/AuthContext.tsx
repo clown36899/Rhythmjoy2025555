@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { supabase, validateAndRecoverSession } from '../lib/supabase';
 import type { User, Session } from '@supabase/supabase-js';
 import { initKakaoSDK, loginWithKakao, logoutKakao } from '../utils/kakaoAuth';
+import { authLogger } from '../utils/authLogger';
 
 import { setUserProperties, logEvent, setUserId, setAdminStatus } from '../lib/analytics';
 
@@ -64,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const storagePrefix = isStandalone ? 'pwa-' : 'browser-';
 
   if (typeof window !== 'undefined') {
-    // console.log(`[AuthContext Init] Mode: ${isStandalone ? 'PWA' : 'Browser'}, Prefix: ${storagePrefix}`);
+    authLogger.log(`[AuthContext Init] Mode: ${isStandalone ? 'PWA' : 'Browser'}, Prefix: ${storagePrefix}`);
   }
 
   const [billboardUserId, setBillboardUserId] = useState<string | null>(() => {
@@ -144,6 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     console.log('[AuthContext] 🧹 Cleaning up stale session (Zombie Token Removal)');
 
     try {
+      authLogger.log('[AuthContext] 🧹 Cleaning up stale session (Zombie Token Removal)');
       // 1. Supabase 세션 제거 (로컬만) -> 이게 SIGNED_OUT 이벤트를 발생시킬 수 있음
       await supabase.auth.signOut({ scope: 'local' });
     } catch (e) {
@@ -345,6 +347,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const isLoggingOut = localStorage.getItem(`${storagePrefix}isLoggingOut`);
     if (isLoggingOut) {
       console.log(`[AuthContext] 🧹 Enforcing cleanup after logout reload (${storagePrefix})`);
+      authLogger.log(`[AuthContext] 🧹 Enforcing cleanup after logout reload (${storagePrefix})`);
       localStorage.removeItem(`${storagePrefix}isLoggingOut`);
 
       // 저장소에 좀비 토큰이 부활했더라도, 메모리상에서는 확실히 날려버림
@@ -359,6 +362,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.warn('[AuthContext] ⏱️ Session check timeout - keeping local session');
         // 타임아웃은 네트워크 지연일 뿐이므로 로그아웃하지 않음
         // 진짜 세션 에러는 .catch() 블록에서 처리됨
+        authLogger.log('[AuthContext] ⏱️ Session check timeout - keeping local session');
         setLoading(false);
       }
     }, 10000);
@@ -375,17 +379,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           // Admin 체크를 백그라운드에서 실행 (await 제거)
           refreshAdminStatus(currentUser);
           setUserId(currentUser.id);
-        } else {
-          setSession(null);
-          setUser(null);
-          setIsAdmin(false);
-          setUserId(null);
         }
         setLoading(false);
       })
       .catch(async (error: any) => {
         if (!isMounted) return;
         clearTimeout(timeoutId);
+        authLogger.log('[AuthContext] 💥 Session init error:', error);
         console.error('[AuthContext] 💥 Session init error:', error);
         await cleanupStaleSession();
         setLoading(false);
@@ -404,7 +404,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       const currentUser = session?.user ?? null;
 
-      // console.log('[AuthContext] 🔄 Auth state changed:', { event, userEmail: currentUser?.email });
+      authLogger.log('[AuthContext] 🔄 Auth state changed:', { event, userEmail: currentUser?.email });
 
       if (event === 'SIGNED_OUT') {
         wipeLocalData();
