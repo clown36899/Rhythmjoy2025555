@@ -18,6 +18,7 @@ interface WeeklySocialProps {
     currentUserId?: string;
     initialTab?: string | null;
     initialType?: string | null;
+    onGroupDetailClick?: (group: SocialGroup) => void;
 }
 
 type ViewTab = 'weekly' | 'all' | 'regular' | 'register';
@@ -34,7 +35,8 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
     isAdmin,
     currentUserId,
     initialTab,
-    initialType
+    initialType,
+    onGroupDetailClick
 }) => {
     // initialTab이 유효한 ViewTab이면 그것을 사용, 아니면 'weekly'
     const [activeTab, setActiveTab] = useState<ViewTab>(() => {
@@ -429,6 +431,7 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                         hideTitle={true}
                         currentUserId={currentUserId}
                         initialTab={initialType}
+                        onGroupDetailClick={onGroupDetailClick}
                     />
                 </div>
             )}

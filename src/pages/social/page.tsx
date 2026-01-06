@@ -391,6 +391,7 @@ const SocialPage: React.FC = () => {
         currentUserId={user?.id}
         initialTab={initialTab}
         initialType={initialType}
+        onGroupDetailClick={(group) => { setDetailGroup(group); setIsDetailModalOpen(true); }}
       />
 
       {/* 3단: 단체 (standalone) */}

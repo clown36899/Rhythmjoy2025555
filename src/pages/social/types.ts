@@ -17,6 +17,8 @@ export interface SocialGroup {
   board_users?: {
     nickname: string;
   };
+  address?: string; // 주소 정보
+  link?: string; // 관련 링크 (오픈채팅 등)
 }
 
 // 2. 소셜 일정 (Schedule) 타입

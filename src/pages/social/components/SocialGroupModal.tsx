@@ -24,6 +24,8 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
     const [name, setName] = useState('');
     const [type, setType] = useState<'club' | 'bar' | 'etc'>('club');
     const [description, setDescription] = useState('');
+    const [address, setAddress] = useState('');
+    const [link, setLink] = useState('');
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [password, setPassword] = useState(''); // 관리 비밀번호
@@ -41,12 +43,16 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
                 setName(editGroup.name || '');
                 setType(editGroup.type || 'club');
                 setDescription(editGroup.description || '');
+                setAddress(editGroup.address || '');
+                setLink(editGroup.link || '');
                 setImagePreview(editGroup.image_url || null);
                 setPassword(editGroup.password || ''); // 이미 인증된 비밀번호가 있으면 채움
             } else {
                 setName('');
                 setType('club');
                 setDescription('');
+                setAddress('');
+                setLink('');
                 setImagePreview(null);
                 setImageFile(null);
                 setPassword('');
@@ -247,6 +253,8 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
                 name,
                 type,
                 description,
+                address,
+                link,
             };
 
             // Only update image fields if new image was uploaded
@@ -497,6 +505,25 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
                                 className={type === 'etc' ? 'active' : ''}
                                 onClick={() => setType('etc')}
                             >기타</button>
+                        </div>
+                        <div className="form-section">
+                            <label>주소 (장소/모임 위치)</label>
+                            <input
+                                type="text"
+                                value={address}
+                                onChange={(e) => setAddress(e.target.value)}
+                                placeholder="예: 서울시 강남구..."
+                            />
+                        </div>
+
+                        <div className="form-section">
+                            <label>관련 링크 (오픈채팅/홈페이지)</label>
+                            <input
+                                type="text"
+                                value={link}
+                                onChange={(e) => setLink(e.target.value)}
+                                placeholder="https://open.kakao.com/..."
+                            />
                         </div>
                     </div>
 
