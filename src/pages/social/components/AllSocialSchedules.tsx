@@ -157,14 +157,16 @@ const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules,
                     <span className="all-social-count">{filteredSchedules.length}</span>
                 </div>
 
-                {onViewAll && (
-                    <button className="evt-view-all-btn manual-label-wrapper" onClick={onViewAll}>
-                        <span className="translated-part">All</span>
-                        <span className="fixed-part ko" translate="no">전체</span>
-                        <span className="fixed-part en" translate="no">All</span>
-                        <span style={{ marginLeft: 'min(0.5vw, 4px)' }}>❯</span>
-                    </button>
-                )}
+                <button
+                    className="all-social-calendar-btn"
+                    onClick={() => window.location.href = '/calendar?category=social'}
+                    title="전체달력 바로가기"
+                    data-analytics-id="home_weekly_calendar_shortcut"
+                    data-analytics-type="button"
+                    data-analytics-section="weekly_social"
+                >
+                    <i className="ri-calendar-event-fill"></i>
+                </button>
             </div>
 
             <HorizontalScrollNav>
