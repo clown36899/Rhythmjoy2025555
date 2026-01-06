@@ -402,6 +402,22 @@ export default function PracticeRoomList({
                   <h3 className="prl-card-name">
                     {room.name}
                   </h3>
+                  {room.location && (
+                    <div style={{
+                      display: 'inline-block',
+                      padding: '2px 8px',
+                      backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                      border: '1px solid rgba(59, 130, 246, 0.3)',
+                      borderRadius: '4px',
+                      fontSize: '0.75rem',
+                      color: '#3b82f6',
+                      marginBottom: '8px',
+                      fontWeight: '500'
+                    }}>
+                      <i className="ri-map-pin-2-fill" style={{ marginRight: '4px', fontSize: '0.875rem' }}></i>
+                      {room.location}
+                    </div>
+                  )}
                   {room.address && (
                     <p className="prl-card-address">
                       <i className="ri-map-pin-line prl-card-address-icon"></i>

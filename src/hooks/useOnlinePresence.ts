@@ -62,25 +62,44 @@ export function useOnlinePresence() {
 
     // 1. 채널 생성 및 구독
     useEffect(() => {
-        if (!globalPresenceChannel) {
-            console.log('[Presence] 🛰️ 채널 생성');
-            globalPresenceChannel = supabase.channel('online-users');
+        let mounted = true;
 
-            globalPresenceChannel
-                .on('presence', { event: 'sync' }, () => notifyListeners())
-                .on('presence', { event: 'join' }, () => notifyListeners())
-                .on('presence', { event: 'leave' }, () => notifyListeners());
+        const setupChannel = async () => {
+            if (!globalPresenceChannel) {
+                console.log('[Presence] 🛰️ 채널 생성');
+                globalPresenceChannel = supabase.channel('online-users');
 
-            globalPresenceChannel.subscribe((status) => {
-                if (status === 'SUBSCRIBED') {
+                globalPresenceChannel
+                    .on('presence', { event: 'sync' }, () => notifyListeners())
+                    .on('presence', { event: 'join' }, () => notifyListeners())
+                    .on('presence', { event: 'leave' }, () => notifyListeners());
+
+                globalPresenceChannel.subscribe((status) => {
+                    if (mounted && status === 'SUBSCRIBED') {
+                        setIsSubscribed(true);
+                    }
+                });
+            } else {
+                if (mounted && globalPresenceChannel.state === 'joined') {
                     setIsSubscribed(true);
                 }
-            });
-        } else {
-            if (globalPresenceChannel.state === 'joined') {
-                setIsSubscribed(true);
             }
-        }
+        };
+
+        setupChannel();
+
+        return () => {
+            mounted = false;
+            if (globalPresenceChannel) {
+                console.log('[Presence] 🔌 채널 연결 해제');
+                // 페이지 이동 시에도 연결을 끊도록 수정
+                globalPresenceChannel.unsubscribe();
+                supabase.removeChannel(globalPresenceChannel);
+                globalPresenceChannel = null;
+                setIsSubscribed(false);
+                lastTrackedRef.current = null; // 트래킹 상태 초기화
+            }
+        };
     }, []);
 
     // 2. 통합 트리거
