@@ -352,6 +352,17 @@ export default function HomePageV2() {
             window.removeEventListener('nextMonth', handleNextMonth);
         };
     }, [calendarMode, navigateWithCategory, searchParams, setSearchParams, moveToToday, setCalendarMode, setShowInputModal]);
+
+    // Global Search Event (from header search button)
+    useEffect(() => {
+        const handleOpenGlobalSearch = () => {
+            console.log('[Page.tsx] openGlobalSearch event received');
+            setShowInputModal(true);
+        };
+        window.addEventListener("openGlobalSearch", handleOpenGlobalSearch);
+        return () => window.removeEventListener("openGlobalSearch", handleOpenGlobalSearch);
+    }, []);
+
     useEffect(() => {
         const handleOpenEventSearch = () => {
             console.log('[Page.tsx] openEventSearch event received');
