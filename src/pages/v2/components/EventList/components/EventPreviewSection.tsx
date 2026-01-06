@@ -185,8 +185,11 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                         <span>예정된 행사</span>
                         <span className="evt-v2-count" style={{ marginLeft: 'min(1vw, 6px)' }}>{futureEvents.length}</span>
                     </div>
-                    <button onClick={() => onSectionViewModeChange('viewAll-events')} className="evt-view-all-btn">
-                        <span>전체보기</span>
+                    <button onClick={() => window.location.href = '/calendar?category=social'} className="evt-view-all-btn manual-label-wrapper">
+                        <i className="ri-calendar-event-line" style={{ marginRight: 'min(0.5vw, 4px)' }}></i>
+                        <span className="translated-part">Calendar</span>
+                        <span className="fixed-part ko" translate="no">전체달력</span>
+                        <span className="fixed-part en" translate="no">Calendar</span>
                         <i className="ri-arrow-right-s-line" style={{ marginLeft: 'min(0.5vw, 4px)' }}></i>
                     </button>
                 </div>
@@ -231,7 +234,8 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                         <span>강습</span>
                         <span className="evt-v2-count" style={{ marginLeft: 'min(1vw, 6px)' }}>{regularClasses.length}</span>
                     </div>
-                    <button onClick={() => window.location.href = '/calendar?scrollToToday=true'} className="evt-view-all-btn manual-label-wrapper">
+                    <button onClick={() => window.location.href = '/calendar?category=classes&scrollToToday=true'} className="evt-view-all-btn manual-label-wrapper">
+                        <i className="ri-calendar-event-line" style={{ marginRight: 'min(0.5vw, 4px)' }}></i>
                         <span className="translated-part">Calendar</span>
                         <span className="fixed-part ko" translate="no">전체달력</span>
                         <span className="fixed-part en" translate="no">Calendar</span>

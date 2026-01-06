@@ -101,8 +101,14 @@ export default memo(function FullEventCalendar({
         end_date: schedule.date,
         event_dates: schedule.date ? [schedule.date] : [],
         category: 'social',
-        image_micro: schedule.image_micro || schedule.image_thumbnail || schedule.image_medium,
+        // 모든 이미지 필드 매핑
+        image_micro: schedule.image_micro,
+        image_thumbnail: schedule.image_thumbnail,
+        image_medium: schedule.image_medium,
         source: 'social_schedules' as const,
+        // 장소 정보 매핑
+        location: schedule.place_name || '',
+        venue_id: schedule.venue_id ? String(schedule.venue_id) : null,
       })) as any[];
 
     let combined: any[] = [];
@@ -117,9 +123,9 @@ export default memo(function FullEventCalendar({
       );
       combined = [...nonClassEvents, ...socialEvents];
     } else if (tabFilter === 'classes') {
-      // 강습: V2 이벤트 중 강습만
+      // 강습: V2 이벤트 중 강습, 정규강습, 동호회 강습
       combined = categoryFilteredEvents.filter(event =>
-        event.category === 'class' || event.category === 'regular'
+        event.category === 'class' || event.category === 'regular' || event.category === 'club'
       );
     }
 
@@ -236,7 +242,7 @@ export default memo(function FullEventCalendar({
       // Fetch social schedules (excluding regular schedules with day_of_week)
       const socialSchedulesPromise = supabase
         .from("social_schedules")
-        .select("id,title,date,image_micro,image_thumbnail,image_medium,day_of_week")
+        .select("id,title,date,image_micro,image_thumbnail,image_medium,day_of_week,place_name,venue_id")
         .gte("date", startDateStr)
         .lte("date", endDateStr)
         .order("date", { ascending: true });
@@ -321,8 +327,8 @@ export default memo(function FullEventCalendar({
     return filteredEvents.filter((event) => {
       // 특정 날짜 모드
       if (event.event_dates && event.event_dates.length > 0) {
-        // 강습(class)은 개별 선택된 날짜 중 첫 번째 날짜에만 표시
-        const isClass = event.category && (event.category.toLowerCase() === 'class' || event.category === 'regular');
+        // 강습(class, regular, club)은 개별 선택된 날짜 중 첫 번째 날짜에만 표시
+        const isClass = event.category && (event.category.toLowerCase() === 'class' || event.category === 'regular' || event.category === 'club');
 
         if (isClass) {
           // event_dates 배열을 정렬하여 첫 번째(가장 이른) 날짜만 사용

@@ -10,6 +10,7 @@ import { useEventModal } from "../../hooks/useEventModal";
 
 import EventDetailModal from "../v2/components/EventDetailModal";
 import CalendarSearchModal from "../v2/components/CalendarSearchModal";
+import VenueDetailModal from "../practice/components/VenueDetailModal";
 import { useAuth } from "../../contexts/AuthContext";
 import { useEventFavorites } from "../../hooks/useEventFavorites";
 import { useSetPageAction } from "../../contexts/PageActionContext";
@@ -28,7 +29,17 @@ export default function CalendarPage() {
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [viewMode, setViewMode] = useState<"month" | "year">("month");
     const [selectedWeekday, setSelectedWeekday] = useState<number | null>(null);
-    const [tabFilter, setTabFilter] = useState<'all' | 'social-events' | 'classes'>('all');
+
+    // URL 파라미터에서 category 읽기
+    const initialTabFilter = useMemo(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const category = urlParams.get('category');
+        if (category === 'social') return 'social-events';
+        if (category === 'classes') return 'classes';
+        return 'all';
+    }, []);
+
+    const [tabFilter, setTabFilter] = useState<'all' | 'social-events' | 'classes'>(initialTabFilter);
 
     // Event Modal States - using Hook
     const eventModal = useEventModal();
@@ -43,6 +54,17 @@ export default function CalendarPage() {
 
     // Favorites - using centralized hook
     const { favoriteEventIds, toggleFavorite } = useEventFavorites(user, signInWithKakao);
+
+    // Venue Modal State
+    const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null);
+
+    const handleVenueClick = useCallback((venueId: string) => {
+        setSelectedVenueId(venueId);
+    }, []);
+
+    const closeVenueModal = useCallback(() => {
+        setSelectedVenueId(null);
+    }, []);
 
     const containerRef = useRef<HTMLDivElement>(null!);
     const eventListElementRef = useRef<HTMLDivElement>(null!); // Dummy ref for useCalendarGesture
@@ -402,6 +424,7 @@ export default function CalendarPage() {
                     onEdit={(event: any) => eventModal.handleEditClick(event)}
                     isFavorite={favoriteEventIds.has(eventModal.selectedEvent.id)}
                     onToggleFavorite={(e: any) => eventModal.selectedEvent && toggleFavorite(eventModal.selectedEvent.id, e)}
+                    onOpenVenueDetail={handleVenueClick}
                 />
             )}
 
@@ -416,6 +439,14 @@ export default function CalendarPage() {
                         onPasswordChange={eventModal.setEventPassword}
                     />
                 </Suspense>
+            )}
+
+            {/* Venue Detail Modal */}
+            {selectedVenueId && (
+                <VenueDetailModal
+                    venueId={selectedVenueId}
+                    onClose={closeVenueModal}
+                />
             )}
 
 

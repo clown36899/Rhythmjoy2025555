@@ -12,8 +12,8 @@ export interface NavigationItem {
 export const NAVIGATION_ITEMS: NavigationItem[] = [
 
     {
-        label: '이벤트',
-        labelEn: 'Events',
+        label: '홈',
+        labelEn: 'Main',
         path: '/v2',
         icon: 'ri-ticket-line',
         iconFilled: 'ri-ticket-fill',

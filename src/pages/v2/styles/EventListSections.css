@@ -69,7 +69,7 @@
 
 .evt-v2-section-title i {
     font-size: min(4.2vw, 19px);
-    color: #6366f1;
+    color: #d1d1d1ce;
     flex-shrink: 1;
 }
 
@@ -82,7 +82,7 @@
 .evt-view-all-btn {
     margin-left: min(0.8vw, 6px);
     padding: min(0.8vw, 6px) min(1.8vw, 10px);
-    color: var(--text-secondary);
+    color: #d0d3d6;
     background: transparent;
     border-radius: 1rem;
     border: 1px solid #555;
@@ -90,7 +90,7 @@
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    font-size: min(2.8vw, 13px);
+    font-size: min(3.4vw, 13px);
     white-space: nowrap;
     flex-shrink: 1;
     /* 극한 상황에서 버튼도 작아지도록 허용 */

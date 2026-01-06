@@ -55,7 +55,7 @@ interface UserInfo {
 export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
     const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
     const [loading, setLoading] = useState(true);
-    const [viewMode, setViewMode] = useState<'summary' | 'daily' | 'advanced'>('summary');
+    const [viewMode, setViewMode] = useState<'summary' | 'daily' | 'advanced'>('daily'); // 기본값을 'daily'로 변경
     const [userList, setUserList] = useState<UserInfo[]>([]);
     const [showUserList, setShowUserList] = useState(false);
     // [PHASE 18] 캐싱
@@ -72,9 +72,10 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
         }).format(date);
     };
 
+    // 기본 날짜 범위를 오늘로 설정 (오늘 통계 모달 첫 화면)
     const [dateRange, setDateRange] = useState({
-        start: getKRDateString(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)),
-        end: getKRDateString(new Date())
+        start: getKRDateString(new Date()), // 오늘
+        end: getKRDateString(new Date())    // 오늘
     });
 
     useEffect(() => {

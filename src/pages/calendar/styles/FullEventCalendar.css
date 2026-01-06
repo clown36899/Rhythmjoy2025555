@@ -1678,8 +1678,8 @@
 }
 
 .calendar-fullscreen-image-container {
-  width: 78%;
-  aspect-ratio: 1 / 1;
+  /* width: 78%; */
+  aspect-ratio: 5 / 6;
   border-radius: 0.3rem;
   overflow: hidden;
   background-color: var(--bg-secondary);
