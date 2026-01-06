@@ -16,36 +16,12 @@ interface SocialScheduleModalProps {
     groupId: number | null;
     editSchedule?: SocialSchedule | null;
     copyFrom?: any;
+    initialTab?: 'schedule' | 'recruit';
+    hideTabs?: boolean;
 }
 
 /* Schedule Type Selector */
-/*
-.schedule-type-selector {
-  display: flex;
-  background: #2d2d2d;
-  padding: 4px;
-  border-radius: 12px;
-  gap: 4px;
-}
-
-.schedule-type-selector button {
-  flex: 1;
-  background: none;
-  border: none;
-  color: #9ca3af;
-  padding: 8px 0;
-  border-radius: 8px;
-  font-size: 0.85rem;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.schedule-type-selector button.active {
-  background: #fbbf24;
-  color: #1a1a1a;
-}
-*/
+/* ... */
 
 const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
     isOpen,
@@ -53,9 +29,14 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
     onSuccess,
     groupId,
     editSchedule,
-    copyFrom
+    copyFrom,
+    initialTab = 'schedule',
+    hideTabs = false
 }) => {
     const { user } = useAuth();
+    const [activeTab, setActiveTab] = useState<'schedule' | 'recruit'>(initialTab);
+
+    // Schedule State
     const [title, setTitle] = useState(editSchedule?.title || copyFrom?.title || '');
     const [scheduleType, setScheduleType] = useState<'once' | 'regular'>(
         (editSchedule?.date || copyFrom?.date) ? 'once' : 'regular'
@@ -75,6 +56,34 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
     const [imagePreview, setImagePreview] = useState<string | null>(
         editSchedule?.image_url || copyFrom?.image_url || null
     );
+
+    // Recruit State
+    const [recruitContent, setRecruitContent] = useState('');
+    const [recruitContact, setRecruitContact] = useState('');
+    const [recruitLink, setRecruitLink] = useState('');
+    const [recruitImageFile, setRecruitImageFile] = useState<File | null>(null);
+    const [recruitImagePreview, setRecruitImagePreview] = useState<string | null>(null);
+
+    // Initial Load for Recruit
+    useEffect(() => {
+        if (activeTab === 'recruit' && groupId) {
+            const fetchGroupRecruitInfo = async () => {
+                const { data } = await supabase
+                    .from('social_groups')
+                    .select('recruit_content, recruit_contact, recruit_link, recruit_image')
+                    .eq('id', groupId)
+                    .single();
+                if (data) {
+                    setRecruitContent(data.recruit_content || '');
+                    setRecruitContact(data.recruit_contact || '');
+                    setRecruitLink(data.recruit_link || '');
+                    setRecruitImagePreview(data.recruit_image || null);
+                }
+            };
+            fetchGroupRecruitInfo();
+        }
+    }, [activeTab, groupId]);
+
 
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [loadingMessage, setLoadingMessage] = useState('');
@@ -138,9 +147,62 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
     };
 
     const handleCropComplete = (croppedFile: File, previewUrl: string, _isModified: boolean) => {
-        setImageFile(croppedFile);
-        setImagePreview(previewUrl);
+        if (activeTab === 'schedule') {
+            setImageFile(croppedFile);
+            setImagePreview(previewUrl);
+        } else {
+            setRecruitImageFile(croppedFile);
+            setRecruitImagePreview(previewUrl);
+        }
         setIsCropModalOpen(false);
+    };
+
+    const handleRecruitSubmit = async () => {
+        if (!user || !groupId) return;
+
+        setIsSubmitting(true);
+        setLoadingMessage('모집 공고 저장 중...');
+
+        try {
+            let imageUrl = recruitImagePreview;
+
+            if (recruitImageFile) {
+                setLoadingMessage('이미지 업로드 중...');
+                const resized = await createResizedImages(recruitImageFile);
+                const timestamp = Date.now();
+                const rand = Math.random().toString(36).substring(2, 7);
+                const path = `social-groups/${groupId}/recruit/${timestamp}_${rand}.webp`;
+
+                // User requested Medium size WebP for recruitment
+                const { error } = await supabase.storage.from('images').upload(path, resized.medium, {
+                    contentType: 'image/webp',
+                    upsert: true
+                });
+                if (error) throw error;
+                imageUrl = supabase.storage.from('images').getPublicUrl(path).data.publicUrl;
+            }
+
+            const { error } = await supabase
+                .from('social_groups')
+                .update({
+                    recruit_content: recruitContent,
+                    recruit_contact: recruitContact,
+                    recruit_link: recruitLink,
+                    recruit_image: imageUrl
+                })
+                .eq('id', groupId);
+
+            if (error) throw error;
+
+            alert('모집 공고가 저장되었습니다.');
+            onSuccess(null); // Just to refresh if needed
+            onClose();
+        } catch (error: any) {
+            console.error('Recruit save error:', error);
+            alert('저장 실패: ' + error.message);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const handleVenueSelect = (venue: any) => {
@@ -348,15 +410,34 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
         <div className="social-schedule-modal-overlay">
             <div className="social-schedule-modal-container" onClick={(e) => e.stopPropagation()}>
                 <div className="social-schedule-modal-header">
-                    <h2>{editSchedule ? '일정 수정' : (copyFrom ? '일정 복사 등록' : '새 일정 등록')}</h2>
+                    <h2>일정 및 모집 관리</h2>
                     <button className="ssm-close-btn" onClick={onClose}>
                         <i className="ri-close-line"></i>
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="social-schedule-modal-form">
-                    {/* Schedule Type Selection Hidden as per user request */}
-                    {/*
+                {/* Tab Menu */}
+                {!hideTabs && (
+                    <div className="ssm-tabs">
+                        <button
+                            className={`ssm-tab ${activeTab === 'schedule' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('schedule')}
+                        >
+                            내부 일정 등록
+                        </button>
+                        <button
+                            className={`ssm-tab ${activeTab === 'recruit' ? 'active' : ''}`}
+                            onClick={() => setActiveTab('recruit')}
+                        >
+                            신규(민간인)
+                        </button>
+                    </div>
+                )}
+
+                {activeTab === 'schedule' ? (
+                    <form onSubmit={handleSubmit} className="social-schedule-modal-form">
+                        {/* Schedule Type Selection Hidden as per user request */}
+                        {/*
                     <div className="form-section">
                         <label>일정 유형</label>
                         <div className="schedule-type-selector">
@@ -376,159 +457,253 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                     </div>
                     */}
 
-                    <div className="form-section multi-row">
-                        <div className="form-item">
-                            <label>일정 제목 *</label>
-                            <input
-                                type="text"
-                                value={title}
-                                onChange={(e) => setTitle(e.target.value)}
-                                placeholder="예: 금요 정기 모임"
-                                required
-                            />
+                        <div className="form-section">
+                            <div className="info-box-helper" style={{
+                                background: 'rgba(59, 130, 246, 0.1)',
+                                border: '1px solid rgba(59, 130, 246, 0.3)',
+                                padding: '12px',
+                                borderRadius: '8px',
+                                marginBottom: '10px',
+                                fontSize: '0.85rem',
+                                color: '#93c5fd',
+                                lineHeight: '1.4'
+                            }}>
+                                <i className="ri-information-line" style={{ marginRight: '6px' }}></i>
+                                등록된 일정은 <strong>오늘, 이번 주 일정</strong>에 노출됩니다.
+                            </div>
                         </div>
 
-                        {scheduleType === 'once' ? (
+                        <div className="form-section multi-row">
                             <div className="form-item">
-                                <label>날짜 *</label>
-                                <input
-                                    type="date"
-                                    value={date}
-                                    onChange={(e) => setDate(e.target.value)}
-                                    required={scheduleType === 'once'}
-                                />
-                            </div>
-                        ) : (
-                            <div className="form-item">
-                                <label>반복 요일 *</label>
-                                <div className="weekday-selector">
-                                    {['일', '월', '화', '수', '목', '금', '토'].map((name, i) => (
-                                        <button
-                                            key={i}
-                                            type="button"
-                                            className={dayOfWeek === i ? 'active' : ''}
-                                            onClick={() => setDayOfWeek(i)}
-                                        >{name}</button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="form-item">
-                            <label>시작 시간</label>
-                            <input
-                                type="time"
-                                value={startTime}
-                                onChange={(e) => setStartTime(e.target.value)}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="form-section">
-                        <label>장소 및 위치</label>
-                        <div className="location-box">
-                            <div className="location-input-group">
+                                <label>일정 제목 *</label>
                                 <input
                                     type="text"
-                                    value={placeName}
-                                    onChange={(e) => {
-                                        setPlaceName(e.target.value);
-                                        if (venueId) setVenueId(null);
-                                    }}
-                                    placeholder="장소명 (직접 입력)"
+                                    value={title}
+                                    onChange={(e) => setTitle(e.target.value)}
+                                    placeholder="예: 금요 정기 모임"
+                                    required
                                 />
-                                <button
-                                    type="button"
-                                    className="venue-search-btn"
-                                    onClick={() => setShowVenueModal(true)}
-                                >
-                                    <i className="ri-map-pin-line"></i> 장소 검색
-                                </button>
                             </div>
-                            <input
-                                type="text"
-                                className="address-input"
-                                value={address}
-                                onChange={(e) => {
-                                    setAddress(e.target.value);
-                                    if (venueId) setVenueId(null);
-                                }}
-                                placeholder="상세 주소 (선택)"
-                            />
-                        </div>
-                    </div>
 
-                    <div className="form-section">
-                        <label>일정 포스터/이미지</label>
-                        <div className="schedule-image-uploader" onClick={() => fileInputRef.current?.click()}>
-                            {imagePreview ? (
-                                <img src={imagePreview} alt="Schedule Preview" />
+                            {scheduleType === 'once' ? (
+                                <div className="form-item">
+                                    <label>날짜 *</label>
+                                    <input
+                                        type="date"
+                                        value={date}
+                                        onChange={(e) => setDate(e.target.value)}
+                                        required={scheduleType === 'once'}
+                                    />
+                                </div>
                             ) : (
-                                <div className="upload-placeholder">
-                                    <i className="ri-image-add-line"></i>
-                                    <span>이미지 업로드</span>
+                                <div className="form-item">
+                                    <label>반복 요일 *</label>
+                                    <div className="weekday-selector">
+                                        {['일', '월', '화', '수', '목', '금', '토'].map((name, i) => (
+                                            <button
+                                                key={i}
+                                                type="button"
+                                                className={dayOfWeek === i ? 'active' : ''}
+                                                onClick={() => setDayOfWeek(i)}
+                                            >{name}</button>
+                                        ))}
+                                    </div>
                                 </div>
                             )}
+
+                            <div className="form-item">
+                                <label>시작 시간</label>
+                                <input
+                                    type="time"
+                                    value={startTime}
+                                    onChange={(e) => setStartTime(e.target.value)}
+                                />
+                            </div>
                         </div>
-                        <input
-                            type="file"
-                            ref={fileInputRef}
-                            onChange={handleImageSelect}
-                            accept="image/*"
-                            style={{ display: 'none' }}
-                        />
-                    </div>
 
-                    <div className="form-section">
-                        <label>일정 상세 설명</label>
-                        <textarea
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            placeholder="일정에 대한 상세 내용을 입력해주세요."
-                            rows={3}
-                        />
-                    </div>
+                        <div className="form-section">
+                            <label>장소 및 위치</label>
+                            <div className="location-box">
+                                <div className="location-input-group">
+                                    <input
+                                        type="text"
+                                        value={placeName}
+                                        onChange={(e) => {
+                                            setPlaceName(e.target.value);
+                                            if (venueId) setVenueId(null);
+                                        }}
+                                        placeholder="장소명 (직접 입력)"
+                                    />
+                                    <button
+                                        type="button"
+                                        className="venue-search-btn"
+                                        onClick={() => setShowVenueModal(true)}
+                                    >
+                                        <i className="ri-map-pin-line"></i> 장소 검색
+                                    </button>
+                                </div>
+                                <input
+                                    type="text"
+                                    className="address-input"
+                                    value={address}
+                                    onChange={(e) => {
+                                        setAddress(e.target.value);
+                                        if (venueId) setVenueId(null);
+                                    }}
+                                    placeholder="상세 주소 (선택)"
+                                />
+                            </div>
+                        </div>
 
-                    <div className="form-section multi-row link-row">
-                        <div className="form-item" style={{ flex: '0 0 140px' }}>
-                            <label>관련 링크 이름</label>
+                        <div className="form-section">
+                            <label>일정 포스터/이미지</label>
+                            <div className="schedule-image-uploader" onClick={() => fileInputRef.current?.click()}>
+                                {imagePreview ? (
+                                    <img src={imagePreview} alt="Schedule Preview" />
+                                ) : (
+                                    <div className="upload-placeholder">
+                                        <i className="ri-image-add-line"></i>
+                                        <span>이미지 업로드</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="form-section">
+                            <label>일정 상세 설명</label>
+                            <textarea
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                                placeholder="일정에 대한 상세 내용을 입력해주세요."
+                                rows={3}
+                            />
+                        </div>
+
+                        <div className="form-section multi-row link-row">
+                            <div className="form-item" style={{ flex: '0 0 140px' }}>
+                                <label>관련 링크 이름</label>
+                                <input
+                                    type="text"
+                                    value={linkName}
+                                    onChange={(e) => setLinkName(e.target.value)}
+                                    placeholder="예: 신청폼"
+                                />
+                            </div>
+                            <div className="form-item" style={{ flex: 1 }}>
+                                <label>관련 링크 URL</label>
+                                <input
+                                    type="url"
+                                    value={linkUrl}
+                                    onChange={(e) => setLinkUrl(e.target.value)}
+                                    onBlur={() => {
+                                        // 기본 UX: http/https 없으면 자동으로 붙여주기
+                                        if (linkUrl && !linkUrl.startsWith('http://') && !linkUrl.startsWith('https://')) {
+                                            setLinkUrl('https://' + linkUrl);
+                                        }
+                                    }}
+                                    placeholder="https://..."
+                                />
+                            </div>
+                        </div>
+
+                        <div className="form-actions">
+                            {editSchedule && (
+                                <button type="button" className="ssm-delete-btn" onClick={handleDelete} disabled={isSubmitting}>
+                                    <i className="ri-delete-bin-line"></i> 삭제
+                                </button>
+                            )}
+                            <button type="button" className="ssm-cancel-btn" onClick={onClose} disabled={isSubmitting}>취소</button>
+                            <button type="submit" className="ssm-submit-btn" disabled={isSubmitting}>
+                                저장하기
+                            </button>
+                        </div>
+                    </form>
+                ) : (
+                    /* RECRUIT FORM */
+                    <div className="social-schedule-modal-form">
+                        <div className="form-section">
+                            <div className="info-box-helper" style={{
+                                background: 'rgba(59, 130, 246, 0.1)',
+                                border: '1px solid rgba(59, 130, 246, 0.3)',
+                                padding: '12px',
+                                borderRadius: '8px',
+                                marginBottom: '20px',
+                                fontSize: '0.85rem',
+                                color: '#93c5fd',
+                                lineHeight: '1.4'
+                            }}>
+                                <i className="ri-information-line" style={{ marginRight: '6px' }}></i>
+                                신규 모집 내용을 등록하거나 수정하시면, <strong>최신 순서로 단체 리스트 최상단</strong>에 노출됩니다.
+                            </div>
+
+                            <label>모집 내용</label>
+                            <textarea
+                                value={recruitContent}
+                                onChange={(e) => setRecruitContent(e.target.value)}
+                                placeholder="신입 회원 모집에 대한 상세 내용을 입력해주세요. (대상, 활동 내용 등)"
+                                rows={5}
+                            />
+                        </div>
+
+                        <div className="form-section">
+                            <label>모집 포스터/이미지</label>
+                            <div className="schedule-image-uploader" onClick={() => fileInputRef.current?.click()}>
+                                {recruitImagePreview ? (
+                                    <img src={recruitImagePreview} alt="Recruit Preview" />
+                                ) : (
+                                    <div className="upload-placeholder">
+                                        <i className="ri-image-add-line"></i>
+                                        <span>이미지 업로드</span>
+                                    </div>
+                                )}
+                            </div>
+                            {/* Re-use ref or make new one. Reusing is tricky if we switch tabs. Let's assume one uploader at a time visible */}
+                            {/* But we need to handle change differently based on activeTab */}
+                        </div>
+
+                        <div className="form-section">
+                            <label>연락처</label>
                             <input
                                 type="text"
-                                value={linkName}
-                                onChange={(e) => setLinkName(e.target.value)}
-                                placeholder="예: 신청폼"
+                                value={recruitContact}
+                                onChange={(e) => setRecruitContact(e.target.value)}
+                                placeholder="예: 010-1234-5678, 카톡 ID"
                             />
                         </div>
-                        <div className="form-item" style={{ flex: 1 }}>
-                            <label>관련 링크 URL</label>
-                            <input
-                                type="url"
-                                value={linkUrl}
-                                onChange={(e) => setLinkUrl(e.target.value)}
-                                onBlur={() => {
-                                    // 기본 UX: http/https 없으면 자동으로 붙여주기
-                                    if (linkUrl && !linkUrl.startsWith('http://') && !linkUrl.startsWith('https://')) {
-                                        setLinkUrl('https://' + linkUrl);
-                                    }
-                                }}
-                                placeholder="https://..."
-                            />
-                        </div>
-                    </div>
 
-                    <div className="form-actions">
-                        {editSchedule && (
-                            <button type="button" className="ssm-delete-btn" onClick={handleDelete} disabled={isSubmitting}>
-                                <i className="ri-delete-bin-line"></i> 삭제
+                        <div className="form-section">
+                            <label>신청/문의 링크</label>
+                            <input
+                                type="text"
+                                value={recruitLink}
+                                onChange={(e) => setRecruitLink(e.target.value)}
+                                placeholder="오픈채팅방, 구글폼 등 URL"
+                            />
+                        </div>
+
+                        <div className="form-actions">
+                            <button type="button" className="ssm-cancel-btn" onClick={onClose} disabled={isSubmitting}>취소</button>
+                            <button
+                                type="button"
+                                className="ssm-submit-btn"
+                                disabled={isSubmitting}
+                                onClick={handleRecruitSubmit}
+                            >
+                                모집 공고 저장
                             </button>
-                        )}
-                        <button type="button" className="ssm-cancel-btn" onClick={onClose} disabled={isSubmitting}>취소</button>
-                        <button type="submit" className="ssm-submit-btn" disabled={isSubmitting}>
-                            저장하기
-                        </button>
+                        </div>
                     </div>
-                </form>
+                )}
+                {/* File Input for Both Tabs */}
+                <input
+                    type="file"
+                    ref={fileInputRef}
+                    onChange={handleImageSelect}
+                    accept="image/*"
+                    style={{ display: 'none' }}
+                />
             </div>
+
 
             <ImageCropModal
                 isOpen={isCropModalOpen}

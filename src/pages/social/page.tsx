@@ -16,6 +16,7 @@ import GroupDirectory from './components/GroupDirectory';
 import GroupCalendarModal from './components/GroupCalendarModal';
 import SocialGroupDetailModal from './components/SocialGroupDetailModal';
 import SocialGroupModal from './components/SocialGroupModal';
+import SocialRecruitModal from './components/SocialRecruitModal';
 import SocialScheduleModal from './components/SocialScheduleModal';
 import EventDetailModal from '../v2/components/EventDetailModal';
 import VenueDetailModal from '../practice/components/VenueDetailModal';
@@ -60,6 +61,42 @@ const SocialPage: React.FC = () => {
   const [targetGroupId, setTargetGroupId] = useState<number | null>(null);
   const [eventsToday, setEventsToday] = useState<any[]>([]);
   const [eventsThisWeek, setEventsThisWeek] = useState<any[]>([]);
+  const [scheduleModalTab, setScheduleModalTab] = useState<'schedule' | 'recruit'>('schedule');
+  const [hideScheduleTabs, setHideScheduleTabs] = useState(false);
+  const [selectedRecruitGroup, setSelectedRecruitGroup] = useState<SocialGroup | null>(null);
+
+  // ... (existing code)
+
+  // ... (existing code)
+
+  // ... (existing code)
+
+  const handleEditRecruit = async (group: SocialGroup) => {
+    if (!user) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
+
+    const isCreator = group.user_id === user.id;
+
+    if (!isCreator && !isAdmin) {
+      const inputPw = prompt("모집 공고를 수정하려면 단체 관리 비밀번호가 필요합니다.");
+      if (!inputPw) return;
+
+      const isValid = await verifyGroupPassword(group.id, inputPw);
+      if (!isValid) {
+        alert("비밀번호가 일치하지 않습니다.");
+        return;
+      }
+    }
+
+    setTargetGroupId(group.id);
+    setEditSchedule(null);
+    setCopySchedule(null);
+    setScheduleModalTab('recruit');
+    setHideScheduleTabs(true);
+    setIsScheduleModalOpen(true);
+  };
 
   // Event Detail Modal States
   const [selectedEvent, setSelectedEvent] = useState<any | null>(null);
@@ -302,6 +339,8 @@ const SocialPage: React.FC = () => {
     setTargetGroupId(groupId);
     setEditSchedule(null);
     setCopySchedule(null);
+    setScheduleModalTab('schedule');
+    setHideScheduleTabs(false);
     setIsScheduleModalOpen(true);
   };
 
@@ -334,6 +373,8 @@ const SocialPage: React.FC = () => {
     setEditSchedule(schedule);
     setCopySchedule(null);
     setTargetGroupId(schedule.group_id || null);
+    setScheduleModalTab('schedule');
+    setHideScheduleTabs(false);
     setIsScheduleModalOpen(true);
   };
 
@@ -341,6 +382,8 @@ const SocialPage: React.FC = () => {
     setCopySchedule(schedule);
     setEditSchedule(null);
     setTargetGroupId(schedule.group_id);
+    setScheduleModalTab('schedule');
+    setHideScheduleTabs(false);
     setIsScheduleModalOpen(true);
     socialDetailModal.close();
   };
@@ -386,12 +429,13 @@ const SocialPage: React.FC = () => {
         onGroupClick={(group) => { setSelectedGroup(group); setIsCalendarOpen(true); }}
         onEditGroup={handleEditGroup}
         onAddSchedule={handleAddSchedule}
-
         isAdmin={!!user}
         currentUserId={user?.id}
         initialTab={initialTab}
         initialType={initialType}
         onGroupDetailClick={(group) => { setDetailGroup(group); setIsDetailModalOpen(true); }}
+        onEditRecruit={handleEditRecruit}
+        onOpenRecruit={(group) => setSelectedRecruitGroup(group)}
       />
 
       {/* 3단: 단체 (standalone) */}
@@ -405,6 +449,8 @@ const SocialPage: React.FC = () => {
         onAddSchedule={handleAddSchedule}
         isAdmin={!!user}
         currentUserId={user?.id}
+        onEditRecruit={handleEditRecruit}
+        onOpenRecruit={(group) => setSelectedRecruitGroup(group)}
       />
 
       {/* Modals */}
@@ -431,6 +477,7 @@ const SocialPage: React.FC = () => {
             setSelectedGroup(detailGroup);
             setIsCalendarOpen(true);
           }}
+          onOpenRecruit={() => setSelectedRecruitGroup(detailGroup)}
           isAdmin={!!user}
         />
       )}
@@ -471,6 +518,20 @@ const SocialPage: React.FC = () => {
           groupId={targetGroupId || editSchedule?.group_id || copySchedule?.group_id || null}
           editSchedule={editSchedule}
           copyFrom={copySchedule}
+          initialTab={scheduleModalTab}
+          hideTabs={hideScheduleTabs}
+        />
+      )}
+
+      {/* Recruit Modal */}
+      {selectedRecruitGroup && (
+        <SocialRecruitModal
+          group={selectedRecruitGroup}
+          onClose={() => setSelectedRecruitGroup(null)}
+          onEdit={(group) => {
+            setSelectedRecruitGroup(null);
+            handleEditRecruit(group);
+          }}
         />
       )}
 

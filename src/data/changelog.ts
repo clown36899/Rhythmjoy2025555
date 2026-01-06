@@ -8,6 +8,16 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '3.3.0',
+        date: '2026-01-07',
+        changes: [
+            '[✨ 기능] 소셜 단체 신규 모집(Recruitment) 관리 시스템 도입 (등록/수정/View)',
+            '[✨ 기능] 모집 공고 등록 시 단체 리스트 최상단 자동 노출 및 배지 표시',
+            '[🔧 개선] 모집 포스터 이미지 Medium 사이즈 WebP 자동 변환 및 단일 관리',
+            '[UX] 단체 상세 모달 내 모집/일정 바로가기 버튼 및 안내 문구 강화'
+        ]
+    },
+    {
         version: '3.2.1',
         date: '2026-01-06',
         changes: [

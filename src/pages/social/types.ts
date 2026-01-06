@@ -17,8 +17,12 @@ export interface SocialGroup {
   board_users?: {
     nickname: string;
   };
-  address?: string; // 주소 정보
-  link?: string; // 관련 링크 (오픈채팅 등)
+  address?: string; // Optional: 장소/모임 위치
+  link?: string;    // Optional: 관련 링크
+  recruit_content?: string; // 신규 모집 내용
+  recruit_contact?: string; // 신규 모집 연락처
+  recruit_link?: string;    // 신규 모집 링크
+  recruit_image?: string;   // 신규 모집 이미지 URL
 }
 
 // 2. 소셜 일정 (Schedule) 타입

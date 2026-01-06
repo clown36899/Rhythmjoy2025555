@@ -387,3 +387,33 @@
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
+/* Tabs */
+.ssm-tabs {
+    display: flex;
+    padding: 0 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 20px;
+}
+
+.ssm-tab {
+    flex: 1;
+    background: none;
+    border: none;
+    padding: 14px 0;
+    color: #9ca3af;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.ssm-tab.active {
+    color: #fbbf24;
+    border-bottom-color: #fbbf24;
+}
+
+.ssm-tab:hover:not(.active) {
+    color: #e5e7eb;
+}

@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import type { SocialGroup } from '../types';
 import './GroupDirectory.css';
 
+
 interface GroupDirectoryProps {
     groups: SocialGroup[];
     favorites: number[];
@@ -14,6 +15,8 @@ interface GroupDirectoryProps {
     hideTitle?: boolean;
     currentUserId?: string; // Current user ID for permission checks
     initialTab?: string | null;
+    onEditRecruit?: (group: SocialGroup) => void;
+    onOpenRecruit?: (group: SocialGroup) => void;
 }
 
 const typeLabels: Record<string, string> = {
@@ -46,9 +49,12 @@ const GroupDirectory: React.FC<GroupDirectoryProps> = ({
     isAdmin,
     hideTitle = false,
     currentUserId,
-    initialTab
+    initialTab,
+    onEditRecruit,
+    onOpenRecruit
 }) => {
     const [activeTab, setActiveTab] = useState(initialTab || 'all');
+    // internal modal state removed
 
     // 동적으로 분류 추출
     const categories = useMemo(() => {
@@ -141,6 +147,9 @@ const GroupDirectory: React.FC<GroupDirectoryProps> = ({
                                     <div className="group-type-tag">
                                         {typeLabels[group.type] || group.type}
                                     </div>
+                                    {group.recruit_content && (
+                                        <div className="group-recruit-badge">NEW</div>
+                                    )}
                                 </div>
 
                                 <div className="group-wide-info">
@@ -169,6 +178,18 @@ const GroupDirectory: React.FC<GroupDirectoryProps> = ({
                                                 }}
                                             >
                                                 <i className="ri-calendar-line"></i> 일정 달력
+                                            </button>
+                                        )}
+                                        {/* New Recruit Check Button */}
+                                        {group.recruit_content && (
+                                            <button
+                                                className="view-recruit-btn"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    onOpenRecruit?.(group);
+                                                }}
+                                            >
+                                                <i className="ri-megaphone-line"></i> 신규모집
                                             </button>
                                         )}
                                         {isAdmin && (
@@ -204,6 +225,7 @@ const GroupDirectory: React.FC<GroupDirectoryProps> = ({
                     </div>
                 )}
             </div>
+            {/* Modal removed: handled by parent now */}
         </section>
     );
 };

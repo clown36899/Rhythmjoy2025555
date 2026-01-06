@@ -2,7 +2,6 @@ import React from 'react';
 import { createPortal } from 'react-dom';
 import { useModalHistory } from '../../../hooks/useModalHistory';
 import type { SocialGroup } from '../types';
-import { supabase } from '../../../lib/supabase';
 import './SocialGroupDetailModal.css';
 
 interface SocialGroupDetailModalProps {
@@ -10,6 +9,7 @@ interface SocialGroupDetailModalProps {
     onClose: () => void;
     onEdit: () => void;
     onViewSchedule: () => void;
+    onOpenRecruit?: () => void;
     isAdmin: boolean;
 }
 
@@ -18,6 +18,7 @@ export default function SocialGroupDetailModal({
     onClose,
     onEdit,
     onViewSchedule,
+    onOpenRecruit,
     isAdmin
 }: SocialGroupDetailModalProps) {
     useModalHistory(true, onClose);
@@ -119,6 +120,22 @@ export default function SocialGroupDetailModal({
                             <i className="ri-calendar-event-line"></i>
                             일정 모아보기
                         </button>
+
+                        {group.recruit_content && (
+                            <button
+                                onClick={() => {
+                                    if (onOpenRecruit) {
+                                        onClose(); // Close detail modal first
+                                        onOpenRecruit();
+                                    }
+                                }}
+                                className="sgdm-btn recruit"
+                                style={{ background: '#2563eb', color: 'white', border: 'none' }}
+                            >
+                                <i className="ri-megaphone-line"></i>
+                                신규모집
+                            </button>
+                        )}
 
                         <button onClick={onEdit} className="sgdm-btn secondary">
                             <i className="ri-edit-line"></i>

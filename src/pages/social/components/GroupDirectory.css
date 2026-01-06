@@ -281,6 +281,47 @@
     padding: 4px 8px;
     border-radius: 6px;
     z-index: 2;
-    border: 1px solid rgba(251, 191, 36, 0.3);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.group-recruit-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: #ef4444;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 6px;
+    z-index: 2;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+
+    50% {
+        transform: scale(1.05);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+.view-recruit-btn {
+    background: #2563eb;
+    color: white;
+    border: none;
+    box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
+}
+
+.view-recruit-btn:hover {
+    background: #1d4ed8;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.4);
 }
