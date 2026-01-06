@@ -355,8 +355,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const timeoutId = setTimeout(async () => {
       if (isMounted && loading) {
-        console.warn('[AuthContext] ⏱️ Session check timeout (10s)');
-        await cleanupStaleSession();
+        console.warn('[AuthContext] ⏱️ Session check timeout - keeping local session');
+        // 타임아웃은 네트워크 지연일 뿐이므로 로그아웃하지 않음
+        // 진짜 세션 에러는 .catch() 블록에서 처리됨
         setLoading(false);
       }
     }, 10000);

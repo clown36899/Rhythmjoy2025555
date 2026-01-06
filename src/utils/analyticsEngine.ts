@@ -163,6 +163,37 @@ const clickCache = new Map<string, number>();
 export const trackEvent = (log: AnalyticsLog) => {
     if (!SITE_ANALYTICS_CONFIG.ENABLED) return;
 
+    // [개발 환경 차단] localhost 및 로컬 네트워크 IP 차단
+    if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname;
+
+        // localhost, 127.0.0.1 차단
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+            console.log('[Analytics] 🛠️ Development mode (localhost) - Action skipped');
+            return;
+        }
+
+        // .local 도메인 차단
+        if (hostname.endsWith('.local') || hostname.includes('localhost')) {
+            console.log('[Analytics] 🛠️ Development mode (.local) - Action skipped');
+            return;
+        }
+
+        // 로컬 네트워크 IP 대역 차단 (192.168.x.x, 172.16-31.x.x, 10.x.x.x)
+        const ipPattern = /^(192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|10\.)/;
+        if (ipPattern.test(hostname)) {
+            console.log('[Analytics] 🛠️ Development mode (local IP) - Action skipped');
+            return;
+        }
+
+        // [관리자 IP 차단] 특정 IP 차단
+        const blockedIPs = ['172.30.1.86'];
+        if (blockedIPs.includes(hostname)) {
+            console.log('[Analytics] 🛡️ Admin IP detected - Action skipped');
+            return;
+        }
+    }
+
     // [PHASE 6] DB 용량 절약을 위해 관리자 로그 원천 차단
     if (log.is_admin) return;
 

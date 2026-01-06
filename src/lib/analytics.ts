@@ -135,9 +135,8 @@ const isAllowedEnvironment = () => {
 
     // 3. 개발 환경 체크 (로컬/스테이징)
     if (isDevelopment()) {
-        // [MODIFIED] 개발 모드에서도 테스트를 위해 트래킹 허용 (GA ID 없으면 경고만 뜨고 진행됨)
-        console.log('[Analytics] 🛠️ Development mode - Tracking allowed for testing.');
-        return true;
+        console.log('[Analytics] 🛠️ Development mode detected. Action skipped.');
+        return false;
     }
 
     // 4. 공식 도메인 화이트리스트 체크 (Prod Only)
