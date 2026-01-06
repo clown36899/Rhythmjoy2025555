@@ -96,8 +96,8 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
                     className="person-avatar"
                     onClick={(e) => {
                         e.stopPropagation();
-                        if (data.linked_document_id && data.onPreviewLinkedResource) {
-                            data.onPreviewLinkedResource(data.linked_document_id, 'document', data.title);
+                        if (data.onViewDetail) {
+                            data.onViewDetail(data);
                         }
                     }}
                     style={{ cursor: 'pointer' }}
@@ -120,12 +120,19 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
             <div
                 className="history-node-content"
                 onClick={(e) => {
-                    // Only handle click if it's a document node and click is not on a button
-                    if (data.nodeType === 'document' && !(e.target as HTMLElement).closest('button')) {
-                        handleThumbnailClick(e);
+                    // 버튼 클릭이 아닌 경우에만 처리
+                    if (!(e.target as HTMLElement).closest('button')) {
+                        // 인물 노드는 항상 상세보기 모달
+                        if (data.category === 'person') {
+                            handleViewDetail(e);
+                        }
+                        // 문서 노드는 미리보기
+                        else if (data.nodeType === 'document') {
+                            handleThumbnailClick(e);
+                        }
                     }
                 }}
-                style={{ cursor: data.nodeType === 'document' ? 'pointer' : 'default' }}
+                style={{ cursor: (data.category === 'person' || data.nodeType === 'document') ? 'pointer' : 'default' }}
             >
                 <div className="node-header">
                     <span className="node-year">{data.year || data.date}</span>
