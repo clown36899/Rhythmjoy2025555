@@ -807,7 +807,7 @@
 
 .footer-actions-container {
   display: flex;
-  gap: 0.9rem;
+  gap: 0.4rem;
   /* gap-2 */
   flex: 1;
   min-width: 0;

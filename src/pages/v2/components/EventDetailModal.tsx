@@ -1621,7 +1621,7 @@ export default function EventDetailModal({
                       justifyContent: 'center',
                       cursor: 'pointer',
                       flexShrink: 0,
-                      marginLeft: '8px',
+                      marginLeft: '-5px',
                       padding: !selectedEvent.link1 ? '0 8px' : '0'
                     }}
                     title="링크 수정"
@@ -1635,57 +1635,59 @@ export default function EventDetailModal({
               </div>
 
               <div className="footer-actions-container">
-                <button
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    const url = new URL(window.location.href);
-                    url.searchParams.set('event', selectedEvent.id.toString());
-                    const shareUrl = url.toString();
+                {!isSelectionMode && (
+                  <button
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      const url = new URL(window.location.href);
+                      url.searchParams.set('event', selectedEvent.id.toString());
+                      const shareUrl = url.toString();
 
-                    const shareTitle = selectedEvent.title;
-                    const shareText = `${selectedEvent.title}\n📍 ${selectedEvent.location}\n📅 ${selectedEvent.date || selectedEvent.start_date}`;
+                      const shareTitle = selectedEvent.title;
+                      const shareText = `${selectedEvent.title}\n📍 ${selectedEvent.location}\n📅 ${selectedEvent.date || selectedEvent.start_date}`;
 
-                    try {
-                      if (navigator.share) {
-                        await navigator.share({
-                          title: shareTitle,
-                          text: shareText,
-                          url: shareUrl,
-                        });
-                      } else {
-                        await navigator.clipboard.writeText(shareUrl);
-                        const button = e.currentTarget;
-                        button.classList.remove('share');
-                        button.classList.add('share', 'copied');
-                        const icon = button.querySelector('i');
-                        if (icon) {
-                          icon.classList.remove('ri-share-line');
-                          icon.classList.add('ri-check-line');
-                        }
-                        setTimeout(() => {
-                          button.classList.remove('copied');
+                      try {
+                        if (navigator.share) {
+                          await navigator.share({
+                            title: shareTitle,
+                            text: shareText,
+                            url: shareUrl,
+                          });
+                        } else {
+                          await navigator.clipboard.writeText(shareUrl);
+                          const button = e.currentTarget;
+                          button.classList.remove('share');
+                          button.classList.add('share', 'copied');
+                          const icon = button.querySelector('i');
                           if (icon) {
-                            icon.classList.remove('ri-check-line');
-                            icon.classList.add('ri-share-line');
+                            icon.classList.remove('ri-share-line');
+                            icon.classList.add('ri-check-line');
                           }
-                        }, 2000);
+                          setTimeout(() => {
+                            button.classList.remove('copied');
+                            if (icon) {
+                              icon.classList.remove('ri-check-line');
+                              icon.classList.add('ri-share-line');
+                            }
+                          }, 2000);
+                        }
+                      } catch (err) {
+                        if ((err as Error).name !== 'AbortError') {
+                          console.error("공유 실패:", err);
+                          alert("카카오톡에서는 공유 기능이 제한됩니다.\n\n우측 상단 메뉴(⋮)에서\n'다른 브라우저로 열기'를 선택한 후\n공유해주세요.");
+                        }
                       }
-                    } catch (err) {
-                      if ((err as Error).name !== 'AbortError') {
-                        console.error("공유 실패:", err);
-                        alert("카카오톡에서는 공유 기능이 제한됩니다.\n\n우측 상단 메뉴(⋮)에서\n'다른 브라우저로 열기'를 선택한 후\n공유해주세요.");
-                      }
-                    }
-                  }}
-                  className="action-button share"
-                  title="공유하기"
-                  data-analytics-id={selectedEvent.id}
-                  data-analytics-type="share"
-                  data-analytics-title={selectedEvent.title}
-                  data-analytics-section="event_detail_footer"
-                >
-                  <i className="ri-share-line action-icon"></i>
-                </button>
+                    }}
+                    className="action-button share"
+                    title="공유하기"
+                    data-analytics-id={selectedEvent.id}
+                    data-analytics-type="share"
+                    data-analytics-title={selectedEvent.title}
+                    data-analytics-section="event_detail_footer"
+                  >
+                    <i className="ri-share-line action-icon"></i>
+                  </button>
+                )}
 
                 {/* Delete Button (Only in Selection/Edit Mode) */}
                 {isSelectionMode && (

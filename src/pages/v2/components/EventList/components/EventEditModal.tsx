@@ -72,6 +72,8 @@ export const EventEditModal: React.FC<EventEditModalProps> = ({
     const [tempDateInput, setTempDateInput] = useState("");
     const [genreSuggestions, setGenreSuggestions] = useState<string[]>([]);
     const [isGenreInputFocused, setIsGenreInputFocused] = useState(false);
+    const [showDescriptionModal, setShowDescriptionModal] = useState(false);
+    const [tempDescription, setTempDescription] = useState("");
 
     useEffect(() => {
         if (event) {
@@ -327,7 +329,21 @@ export const EventEditModal: React.FC<EventEditModalProps> = ({
 
                             <div>
                                 <label className="evt-form-label">내용</label>
-                                <textarea value={formData.description} onChange={(e) => setFormData((prev: any) => ({ ...prev, description: e.target.value }))} rows={4} className="evt-form-input" />
+                                <div
+                                    onClick={() => {
+                                        setTempDescription(formData.description);
+                                        setShowDescriptionModal(true);
+                                    }}
+                                    className="evt-form-input"
+                                    style={{
+                                        minHeight: '80px',
+                                        cursor: 'pointer',
+                                        whiteSpace: 'pre-wrap',
+                                        color: formData.description ? '#fff' : '#888'
+                                    }}
+                                >
+                                    {formData.description || '내용을 입력해주세요...'}
+                                </div>
                             </div>
 
                             <div>
@@ -364,6 +380,65 @@ export const EventEditModal: React.FC<EventEditModalProps> = ({
                         <div className="event-list-button-group">
                             <button type="submit" form="edit-event-form" className="evt-btn-primary evt-flex-1">수정 완료</button>
                             <button type="button" onClick={() => onDelete(event!.id)} className="evt-btn-red">삭제</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Description Editor Modal */}
+            {showDescriptionModal && (
+                <div
+                    className="evt-fixed-inset-edit-modal"
+                    style={{ zIndex: 10001 }}
+                    onClick={() => setShowDescriptionModal(false)}
+                >
+                    <div
+                        className="evt-modal-container-lg"
+                        style={{
+                            position: 'fixed',
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            top: '10%',
+                            borderRadius: '20px 20px 0 0',
+                            animation: 'slideUp 0.3s ease-out'
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="evt-modal-header">
+                            <div className="evt-modal-header-content">
+                                <h2 className="evt-modal-title">내용</h2>
+                                <button onClick={() => setShowDescriptionModal(false)} className="evt-modal-close-btn">
+                                    <i className="ri-close-line evt-icon-xl"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="evt-modal-body-scroll" style={{ padding: '20px' }}>
+                            <textarea
+                                value={tempDescription}
+                                onChange={(e) => setTempDescription(e.target.value)}
+                                className="evt-form-input"
+                                style={{
+                                    minHeight: '400px',
+                                    resize: 'vertical'
+                                }}
+                                placeholder="내용을 입력해주세요..."
+                                autoFocus
+                            />
+                        </div>
+
+                        <div className="evt-footer-sticky">
+                            <button
+                                onClick={() => {
+                                    setFormData((prev: any) => ({ ...prev, description: tempDescription }));
+                                    setShowDescriptionModal(false);
+                                }}
+                                className="evt-btn-primary"
+                                style={{ width: '100%' }}
+                            >
+                                완료
+                            </button>
                         </div>
                     </div>
                 </div>

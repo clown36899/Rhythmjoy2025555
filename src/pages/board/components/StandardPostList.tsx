@@ -118,9 +118,11 @@ export default function StandardPostList({
                         </h3>
                     </div>
 
-                    <p className="board-post-content">
-                        {truncateText((post.content || '').replace(/<[^>]*>?/gm, ''), 100)}
-                    </p>
+                    {!post.is_notice && (
+                        <p className="board-post-content">
+                            {truncateText((post.content || '').replace(/<[^>]*>?/gm, ''), 100)}
+                        </p>
+                    )}
                 </div>
             </div>
 

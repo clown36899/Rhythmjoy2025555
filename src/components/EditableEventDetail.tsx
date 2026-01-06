@@ -130,7 +130,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
     }, [event.description]);
 
     const { defaultThumbnailClass, defaultThumbnailEvent } = useDefaultThumbnail();
-    const [activeModal, setActiveModal] = useState<'genre' | 'location' | 'link' | 'date' | 'title' | 'video' | 'imageSource' | 'classification' | null>(null);
+    const [activeModal, setActiveModal] = useState<'genre' | 'location' | 'link' | 'date' | 'title' | 'video' | 'imageSource' | 'classification' | 'description' | null>(null);
 
     React.useImperativeHandle(ref, () => ({
         openModal: (modalType) => {
@@ -1105,21 +1105,79 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
 
                         {/* Description */}
                         <div className="info-divider">
-                            <div className="description-editor-row editable-info-item">
+                            <div
+                                className="description-editor-row editable-info-item"
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveModal('description');
+                                }}
+                            >
                                 <i className="ri-file-text-line editable-info-icon"></i>
                                 <div className="editable-info-content-wrapper">
-                                    <textarea
-                                        ref={textareaRef}
-                                        value={event.description || ""}
-                                        onChange={(e) => {
-                                            onUpdate('description', e.target.value);
-                                            // Auto-expand happens in useEffect
-                                        }}
+                                    <div
                                         className="editable-description-textarea"
-                                        placeholder="내용을 입력해주세요..."
-                                    />
+                                        style={{
+                                            minHeight: '80px',
+                                            cursor: 'pointer',
+                                            whiteSpace: 'pre-wrap',
+                                            color: event.description ? '#fff' : '#888',
+                                            padding: '12px'
+                                        }}
+                                    >
+                                        {event.description || '내용을 입력해주세요...'}
+                                    </div>
                                 </div>
                                 <EditBadge isStatic />
+
+                                {/* Description Bottom Sheet Portal */}
+                                {activeModal === 'description' && createPortal(
+                                    <div className="bottom-sheet-portal">
+                                        {/* Backdrop */}
+                                        <div
+                                            className="bottom-sheet-backdrop"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setActiveModal(null);
+                                            }}
+                                        />
+                                        {/* Content */}
+                                        <div
+                                            className="bottom-sheet-content"
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            <div className="bottom-sheet-handle"></div>
+                                            <h3 className="bottom-sheet-header">
+                                                <i className="ri-file-text-line"></i>
+                                                내용
+                                            </h3>
+
+                                            <div className="bottom-sheet-body">
+                                                <div className="bottom-sheet-input-group">
+                                                    <textarea
+                                                        value={event.description || ''}
+                                                        onChange={(e) => onUpdate('description', e.target.value)}
+                                                        className="bottom-sheet-input"
+                                                        style={{
+                                                            minHeight: '400px',
+                                                            resize: 'vertical'
+                                                        }}
+                                                        placeholder="내용을 입력해주세요..."
+                                                        autoFocus
+                                                    />
+                                                </div>
+                                                <div className="bottom-sheet-actions">
+                                                    <button
+                                                        onClick={() => setActiveModal(null)}
+                                                        className="bottom-sheet-button"
+                                                    >
+                                                        완료
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>,
+                                    document.body
+                                )}
                             </div>
                         </div>
                     </div>
