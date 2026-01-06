@@ -31,9 +31,9 @@ export function useEventActions({ adminType, user, signInWithKakao }: UseEventAc
 
         // 1. 로그인 체크
         if (!user) {
-            if (confirm("이벤트를 수정하려면 로그인이 필요합니다.\n로그인 하시겠습니까?")) {
-                signInWithKakao();
-            }
+            window.dispatchEvent(new CustomEvent('openLoginModal', {
+                detail: { message: '이벤트를 수정하려면 로그인이 필요합니다.' }
+            }));
             return;
         }
 

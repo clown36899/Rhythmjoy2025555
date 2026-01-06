@@ -43,6 +43,7 @@ import BoardManagementModal from '../pages/board/components/BoardManagementModal
 import EventRegistrationModal from '../components/EventRegistrationModal';
 import FullscreenDateEventsModal from '../components/FullscreenDateEventsModal';
 import GlobalSearchModal from '../components/GlobalSearchModal';
+import LoginModal from '../components/LoginModal';
 import QRCodeModal from '../components/QRCodeModal';
 import ColorSettingsModal from '../components/ColorSettingsModal';
 import DefaultThumbnailSettingsModal from '../components/DefaultThumbnailSettingsModal';
@@ -109,6 +110,7 @@ const MODAL_COMPONENTS: Record<string, any> = {
     'globalSearch': GlobalSearchModal,
     // 'imageCrop': ImageCropModal, // 로컬 렌더링 사용 (EventList 등에서 중복 렌더링 방지)
     'qrCode': QRCodeModal,
+    'login': LoginModal,
     'colorSettings': ColorSettingsModal,
     'defaultThumbnailSettings': DefaultThumbnailSettingsModal,
     'invitationManagement': InvitationManagementModal,

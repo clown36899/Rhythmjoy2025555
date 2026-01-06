@@ -19,6 +19,7 @@ interface AuthContextType {
   setBillboardUser: (userId: string | null, userName: string | null) => void;
   // signIn: (email: string, password: string) => Promise<void>; // Removed
   signInWithKakao: () => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   cancelAuth: () => void;
   userProfile: { nickname: string; profile_image: string | null } | null;
@@ -483,6 +484,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const signInWithGoogle = async () => {
+    setIsAuthProcessing(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+          redirectTo: window.location.origin,
+        },
+      });
+      if (error) throw error;
+    } catch (error: any) {
+      console.error('[signInWithGoogle] Error:', error);
+      alert(error.message || '구글 로그인에 실패했습니다.');
+      setIsAuthProcessing(false);
+    }
+  };
+
   const setBillboardUser = (userId: string | null, userName: string | null) => {
     setBillboardUserId(userId);
     setBillboardUserName(userName);
@@ -647,6 +669,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     refreshUserProfile,
     // signIn, // Removed unused function
     signInWithKakao,
+    signInWithGoogle,
     signOut,
     cancelAuth,
     validateSession, // 새로 추가된 메서드

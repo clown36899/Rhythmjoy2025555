@@ -178,13 +178,8 @@ export default function CommentForm({ postId, category, onCommentAdded, editingC
             e.preventDefault();
             e.stopPropagation();
         }
-        console.log('[CommentForm] Login clicked, category:', category);
-        window.dispatchEvent(new CustomEvent('requestProtectedAction', {
-            detail: {
-                action: () => {
-                    console.log('[CommentForm] Login/Registration successful');
-                }
-            }
+        window.dispatchEvent(new CustomEvent('openLoginModal', {
+            detail: { message: '댓글을 작성하려면 로그인이 필요합니다.' }
         }));
     };
 

@@ -332,8 +332,14 @@ export default function QuickMemoEditor({
     };
 
     const handleCancel = () => {
+        if (onCancelEdit) {
+            onCancelEdit();
+            return;
+        }
+
         if (editData) {
-            onCancelEdit?.();
+            // Fallback if no handler provided (shouldn't happen in proper usage)
+            setIsExpanded(false);
         } else {
             setIsExpanded(false);
             setTitle('');

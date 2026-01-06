@@ -164,6 +164,12 @@ export default function BoardMainContainer() {
                 if (category === 'anonymous') {
                     writeModal.open();
                 } else {
+                    if (!user) {
+                        window.dispatchEvent(new CustomEvent('openLoginModal', {
+                            detail: { message: '글쓰기는 로그인 후 이용 가능합니다.' }
+                        }));
+                        return;
+                    }
                     editorModal.open();
                 }
             }
@@ -175,6 +181,12 @@ export default function BoardMainContainer() {
         const handleWriteClick = () => {
             if (category === 'anonymous') {
                 writeModal.open();
+                return;
+            }
+            if (!user) {
+                window.dispatchEvent(new CustomEvent('openLoginModal', {
+                    detail: { message: '글쓰기는 로그인 후 이용 가능합니다.' }
+                }));
                 return;
             }
             editorModal.open();

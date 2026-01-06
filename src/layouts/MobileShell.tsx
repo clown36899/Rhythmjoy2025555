@@ -27,6 +27,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
   // Modals
   const profileEditModal = useModal('profileEdit');
   const userRegistrationModal = useModal('userRegistration');
+  const loginModal = useModal('login');
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [calendarMode, setCalendarMode] = useState<'collapsed' | 'fullscreen'>('collapsed');
@@ -116,25 +117,31 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
 
     const handleProtectedAction = (e: any) => {
       const { message } = e.detail || {};
-      userRegistrationModal.open({
-        message: message || '로그인이 필요한 서비스입니다.',
-        onRegistered: () => {
-          userRegistrationModal.close();
-          signInWithKakao();
-        }
+      loginModal.open({
+        message: message || '로그인이 필요한 서비스입니다.'
+      });
+    };
+
+    // Standardized Login Modal Event
+    const handleOpenLoginModal = (e: any) => {
+      const { message } = e.detail || {};
+      loginModal.open({
+        message: message || '로그인이 필요한 서비스입니다.'
       });
     };
 
     window.addEventListener('openUserProfile', handleOpenUserProfile);
     window.addEventListener('openProfileEdit', handleOpenProfileEdit);
     window.addEventListener('requestProtectedAction', handleProtectedAction);
+    window.addEventListener('openLoginModal', handleOpenLoginModal);
 
     return () => {
       window.removeEventListener('openUserProfile', handleOpenUserProfile);
       window.removeEventListener('openProfileEdit', handleOpenProfileEdit);
       window.removeEventListener('requestProtectedAction', handleProtectedAction);
+      window.removeEventListener('openLoginModal', handleOpenLoginModal);
     };
-  }, [user, profileEditModal, userRegistrationModal, signInWithKakao]);
+  }, [user, profileEditModal, userRegistrationModal, loginModal]);
 
   const changeLanguage = (lng: string) => {
     // Google Translate 호출
@@ -442,7 +449,9 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
         onClose={() => setIsDrawerOpen(false)}
         onLoginClick={() => {
           setIsDrawerOpen(false);
-          signInWithKakao();
+          loginModal.open({
+            message: '로그인이 필요한 서비스입니다.'
+          });
         }}
       />
 

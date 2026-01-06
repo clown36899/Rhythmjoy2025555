@@ -60,6 +60,7 @@ export default function AnonymousWriteModal({
                     providedPassword={providedPassword}
                     isAdmin={isAdmin}
                     className="modal-mode"
+                    onCancelEdit={onClose}
                 />
             </div>
         </div>,

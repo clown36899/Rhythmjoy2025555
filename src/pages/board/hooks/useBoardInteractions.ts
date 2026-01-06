@@ -108,9 +108,8 @@ export function useBoardInteractions({ user, category, isRealAdmin, loadPosts, s
 
     const handleToggleFavorite = async (postId: number) => {
         if (!user) {
-            window.dispatchEvent(new CustomEvent('requestProtectedAction', {
+            window.dispatchEvent(new CustomEvent('openLoginModal', {
                 detail: {
-                    action: () => handleToggleFavorite(postId),
                     message: "즐겨찾기는 로그인한 사용자만 이용할 수 있습니다."
                 }
             }));
@@ -140,9 +139,8 @@ export function useBoardInteractions({ user, category, isRealAdmin, loadPosts, s
                 ? "글쓰기와 달리, 좋아요/싫어요는 1인 1표 정직한 투표를 위해 로그인이 필요합니다."
                 : "좋아요/싫어요는 로그인한 사용자만 이용할 수 있습니다.";
 
-            window.dispatchEvent(new CustomEvent('requestProtectedAction', {
+            window.dispatchEvent(new CustomEvent('openLoginModal', {
                 detail: {
-                    action: () => handleToggleLike(postId),
                     message: message
                 }
             }));
@@ -206,9 +204,8 @@ export function useBoardInteractions({ user, category, isRealAdmin, loadPosts, s
                 ? "글쓰기와 달리, 좋아요/싫어요는 1인 1표 정직한 투표를 위해 로그인이 필요합니다."
                 : "좋아요/싫어요는 로그인한 사용자만 이용할 수 있습니다.";
 
-            window.dispatchEvent(new CustomEvent('requestProtectedAction', {
+            window.dispatchEvent(new CustomEvent('openLoginModal', {
                 detail: {
-                    action: () => handleToggleDislike(postId),
                     message: message
                 }
             }));

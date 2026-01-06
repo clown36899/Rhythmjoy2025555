@@ -201,10 +201,9 @@ const EventList: React.FC<EventListProps> = ({
     if (e) e.stopPropagation();
 
     if (!user) {
-      if (confirm('즐겨찾기는 로그인 후 이용 가능합니다.\n확인을 눌러서 로그인을 진행해주세요')) {
-        // CustomEvent for global login modal trigger if needed, or simple redirect
-        window.dispatchEvent(new CustomEvent('openLoginModal'));
-      }
+      window.dispatchEvent(new CustomEvent('openLoginModal', {
+        detail: { message: '즐겨찾기는 로그인 후 이용 가능합니다.' }
+      }));
       return;
     }
 

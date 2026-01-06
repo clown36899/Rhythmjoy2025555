@@ -7,6 +7,7 @@ import VenueDetailModal from "../pages/practice/components/VenueDetailModal";
 import SocialPlaceDetailModal from "../pages/social/components/SocialPlaceDetailModal";
 import SocialDetailModal from "../pages/social/components/SocialDetailModal";
 import SocialEditModal from "../pages/social/components/SocialEditModal";
+import LoginModal from "./LoginModal";
 
 /**
  * GlobalModalManager
@@ -165,7 +166,6 @@ function renderModal(modal: any, context: any) {
                 />
             );
 
-        case 'socialDetail':
         case 'social_detail':
             return (
                 <SocialDetailModal
@@ -175,6 +175,15 @@ function renderModal(modal: any, context: any) {
                     onCopy={props.onCopy || (() => { })}
                     onEdit={props.onEdit || (() => context.setEditingSocialEvent(props.schedule || props.item))}
                     isAdmin={props.isAdmin !== undefined ? props.isAdmin : !!(context.isAdmin || (context.user && (props.schedule || props.item)?.user_id === context.user.id))}
+                />
+            );
+
+        case 'login':
+            return (
+                <LoginModal
+                    isOpen={true}
+                    onClose={props.onClose}
+                    message={props.message}
                 />
             );
 
