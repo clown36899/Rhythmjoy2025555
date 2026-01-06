@@ -131,7 +131,7 @@ export default function StandardPostList({
                     <div
                         className="board-post-author-avatar-container"
                         style={{
-                            width: '18px', height: '18px', borderRadius: '50%', overflow: 'hidden',
+                            width: '10px', height: '10px', borderRadius: '50%', overflow: 'hidden',
                             display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '4px',
                             ...getAvatarStyle(post.user_id, post.author_nickname || post.author_name)
                         }}

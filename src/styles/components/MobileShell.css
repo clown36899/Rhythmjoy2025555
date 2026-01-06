@@ -291,8 +291,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-left: 2vw;
-  padding-right: 2vw;
+  padding-left: 1vw;
+  padding-right: 1vw;
   margin: 0 auto;
 }
 

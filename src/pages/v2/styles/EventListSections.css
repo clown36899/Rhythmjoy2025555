@@ -2,7 +2,7 @@
 
 /* Section Container */
 .evt-v2-section {
-    padding: 0 15px 18px 0;
+    padding: 0 15px 18px 14px;
     /* margin-bottom: 13px; */
     border-bottom: 1px solid #313131;
     box-shadow: 0px 6px 25px -5px rgb(0 0 0 / 15%), 0 0 0 1px rgb(87 110 148 / 0%);

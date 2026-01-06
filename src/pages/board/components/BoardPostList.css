@@ -215,7 +215,7 @@
 /* Footer / Meta */
 .anonymous-mode .board-post-meta {
     /* margin-top: 8px; */
-    padding: 12px 10px 0px 10px;
+    padding: 12px 10px 0px 3px;
     /* border-top: 1px solid var(--memo-card-border); */
     color: var(--memo-text-meta);
     display: flex;
@@ -232,6 +232,7 @@
 .anonymous-mode .memo-interaction-bar {
     margin-top: 12px;
     margin-bottom: 12px;
+    padding: 0 0 0 15px;
     display: flex;
     align-items: center;
     justify-content: space-between;
