@@ -485,10 +485,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signInWithGoogle = async () => {
+    console.log('[signInWithGoogle] 🚀 Starting Google login process');
+    console.log('[signInWithGoogle] Current origin:', window.location.origin);
+
     setIsAuthProcessing(true);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
+      const authOptions = {
+        provider: 'google' as const,
         options: {
           queryParams: {
             access_type: 'offline',
@@ -496,11 +499,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           },
           redirectTo: window.location.origin,
         },
-      });
-      if (error) throw error;
+      };
+
+      console.log('[signInWithGoogle] Auth options:', JSON.stringify(authOptions, null, 2));
+
+      const { data, error } = await supabase.auth.signInWithOAuth(authOptions);
+
+      console.log('[signInWithGoogle] Response data:', data);
+      console.log('[signInWithGoogle] Response error:', error);
+
+      if (error) {
+        console.error('[signInWithGoogle] ❌ Supabase returned error:', {
+          message: error.message,
+          status: error.status,
+          name: error.name,
+          stack: error.stack
+        });
+        throw error;
+      }
+
+      console.log('[signInWithGoogle] ✅ OAuth request successful, redirecting...');
     } catch (error: any) {
-      console.error('[signInWithGoogle] Error:', error);
-      alert(error.message || '구글 로그인에 실패했습니다.');
+      console.error('[signInWithGoogle] 💥 Caught error:', {
+        message: error.message,
+        status: error.status,
+        name: error.name,
+        fullError: error
+      });
+      alert(`구글 로그인 실패:\n${error.message || '알 수 없는 오류'}`);
       setIsAuthProcessing(false);
     }
   };

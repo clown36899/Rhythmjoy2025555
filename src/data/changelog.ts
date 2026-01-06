@@ -8,6 +8,19 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '3.4.0',
+        date: '2026-01-07',
+        changes: [
+            '[✨ 기능] 통합 로그인 시스템 구축 (중앙 LoginModal + openLoginModal 이벤트)',
+            '[✨ 기능] 구글 로그인 추가 (Google OAuth 2.0, 공식 4색 로고 적용)',
+            '[✨ 기능] 카카오/구글 듀얼 로그인 지원 (53개 진입점 표준화)',
+            '[🐛 Fix] PWA 카카오 로그인 플리커링 해결 (sessionStorage 플래그 관리 개선)',
+            '[🐛 Fix] 익명 게시판 취소 버튼 동작 수정 (onCancelEdit 핸들러 연결)',
+            '[🐛 Fix] 자유게시판 글쓰기 로그인 연동 강화 (즉시 모달 표시)',
+            '[🔧 개선] 로그인 관련 상세 로깅 추가 및 구글 설정 가이드 작성'
+        ]
+    },
+    {
         version: '3.3.0',
         date: '2026-01-07',
         changes: [
