@@ -192,15 +192,18 @@ export const validateAndRecoverSession = async (): Promise<any> => {
       )
     ]);
 
-    let session, error;
+    let session = localSession;
+    let error;
     try {
       const result = await getSessionWithTimeout as any;
-      session = result.data?.session;
+      if (result.data?.session) {
+        session = result.data.session;
+      }
       error = result.error;
     } catch (timeoutError) {
-      console.warn('[Supabase] ⏱️ getSession() timeout - trying to proceed anyway');
-      // 타임아웃 시 null을 주면 AuthContext가 로그아웃시키므로, 
-      // 에러를 던지지 않고 일단 진행 (상위 try-catch에서 처리되거나 undefined로 남음)
+      console.warn('[Supabase] ⏱️ getSession() timeout - utilizing local session');
+      // 타임아웃 발생 시 로컬 세션 유지 (로그아웃 방지)
+      session = localSession;
     }
 
     // 에러 발생 시 세션 정리
