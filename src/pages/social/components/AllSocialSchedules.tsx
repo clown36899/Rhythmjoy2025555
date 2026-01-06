@@ -194,7 +194,7 @@ const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules,
                                         </div>
                                     )}
                                     {(() => {
-                                        const dDay = calculateDDay(item.date);
+                                        const dDay = calculateDDay(item.date || null);
                                         return dDay ? (
                                             <div className={`all-social-dday-badge ${dDay === 'D-Day' ? 'all-social-dday-today' : ''}`}>
                                                 {dDay}
