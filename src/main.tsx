@@ -22,6 +22,7 @@ import PracticePage from './pages/practice/page';
 import BoardPage from './pages/board/page';
 import ShoppingPage from './pages/shopping/page';
 import GuidePage from './pages/guide/page';
+import PrivacyPage from './pages/privacy/page';
 // import EventDetailPage from './pages/v2/EventDetailPage'; // File not found
 import CalendarPage from './pages/calendar/page';
 import MyActivitiesPage from './pages/user/MyActivitiesPage';
@@ -70,6 +71,7 @@ const router = createBrowserRouter([
       { path: "/practice", element: <PracticePage /> },
       { path: "/shopping", element: <ShoppingPage /> },
       { path: "/guide", element: <GuidePage /> },
+      { path: "/privacy", element: <PrivacyPage /> },
       { path: "/board/*", element: <BoardPage /> },
       { path: "/my-activities", element: <MyActivitiesPage /> },
       { path: "/auth/kakao-callback", element: <KakaoCallbackPage /> },
