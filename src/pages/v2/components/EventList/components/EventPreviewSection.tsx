@@ -135,6 +135,91 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                 onRefresh={refreshSocialSchedules}
             />
 
+            {/* 3.5. Beginner Section - Starting Swing Dance */}
+            <div className="evt-v2-section evt-v2-section-beginner" style={{ margin: '20px 16px' }}>
+                <div
+                    onClick={() => window.location.href = '/social?tab=clubs'}
+                    style={{
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        borderRadius: '16px',
+                        padding: '24px',
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 20px rgba(102, 126, 234, 0.3)',
+                        transition: 'all 0.3s ease',
+                        position: 'relative',
+                        overflow: 'hidden'
+                    }}
+                    onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = '0 6px 25px rgba(102, 126, 234, 0.4)';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 4px 20px rgba(102, 126, 234, 0.3)';
+                    }}
+                >
+                    {/* Decorative background elements */}
+                    <div style={{
+                        position: 'absolute',
+                        top: '-50px',
+                        right: '-50px',
+                        width: '150px',
+                        height: '150px',
+                        background: 'rgba(255, 255, 255, 0.1)',
+                        borderRadius: '50%',
+                        pointerEvents: 'none'
+                    }} />
+                    <div style={{
+                        position: 'absolute',
+                        bottom: '-30px',
+                        left: '-30px',
+                        width: '100px',
+                        height: '100px',
+                        background: 'rgba(255, 255, 255, 0.1)',
+                        borderRadius: '50%',
+                        pointerEvents: 'none'
+                    }} />
+
+                    <div style={{ position: 'relative', zIndex: 1 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', marginBottom: '12px' }}>
+                            <i className="ri-rocket-line" style={{
+                                fontSize: '28px',
+                                color: '#fff',
+                                marginRight: '12px',
+                                animation: 'bounce 2s infinite'
+                            }}></i>
+                            <h3 style={{
+                                margin: 0,
+                                color: '#fff',
+                                fontSize: '20px',
+                                fontWeight: '700',
+                                letterSpacing: '-0.5px'
+                            }}>
+                                스윙댄스를 처음 시작하려면!!!
+                            </h3>
+                        </div>
+                        <p style={{
+                            margin: '0 0 16px 0',
+                            color: 'rgba(255, 255, 255, 0.9)',
+                            fontSize: '14px',
+                            lineHeight: '1.6'
+                        }}>
+                            한번도 안춰본 분들을 위한 동호회 정보를 확인해보세요
+                        </p>
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            color: '#fff',
+                            fontSize: '15px',
+                            fontWeight: '600'
+                        }}>
+                            <span>동호회 둘러보기</span>
+                            <i className="ri-arrow-right-line" style={{ marginLeft: '8px', fontSize: '18px' }}></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             {/* 4. Slot A: Random Banner (Practice Room or Shopping) */}
             {isBannerSwapped ? (
                 <div style={{ padding: '0 16px', marginTop: '10px' }}>

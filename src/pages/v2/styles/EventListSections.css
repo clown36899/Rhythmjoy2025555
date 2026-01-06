@@ -468,6 +468,19 @@
     }
 }
 
+@keyframes bounce {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+
 /* Favorites Grid Layouts */
 .evt-favorites-grid-5 .card-category-class,
 .evt-favorites-grid-2 .card-category-class {
