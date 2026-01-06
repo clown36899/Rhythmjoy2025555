@@ -24,6 +24,17 @@ const typeLabels: Record<string, string> = {
     other: '기타'
 };
 
+const getRegionFromAddress = (address?: string): string | null => {
+    if (!address) return null;
+    // 서울시, 서울특별시, 부산시, 부산광역시 등 앞 두 글자만 따거나 매핑
+    // 간단하게 공백으로 분리 후 첫 단어의 앞 2글자 사용 (e.g., "서울시" -> "서울")
+    const firstWord = address.split(' ')[0];
+    if (firstWord.length >= 2) {
+        return firstWord.substring(0, 2);
+    }
+    return null;
+};
+
 const GroupDirectory: React.FC<GroupDirectoryProps> = ({
     groups,
     favorites,
@@ -114,6 +125,12 @@ const GroupDirectory: React.FC<GroupDirectoryProps> = ({
                                 }}
                             >
                                 <div className="group-wide-image">
+                                    {getRegionFromAddress(group.address) && (
+                                        <div className="group-region-badge">
+                                            <i className="ri-map-pin-line" style={{ marginRight: '2px' }}></i>
+                                            {getRegionFromAddress(group.address)}
+                                        </div>
+                                    )}
                                     {(group.image_thumbnail || group.image_url) ? (
                                         <img src={group.image_thumbnail || group.image_url} alt={group.name} loading="lazy" />
                                     ) : (
