@@ -37,7 +37,6 @@ interface StandardPostListProps {
     favoritedPostIds?: Set<number | string>; // Added for favorites
     onToggleFavorite?: (postId: number) => void;
     isAdmin: boolean;
-    onWriteClick?: () => void;
     selectedPrefixId?: number | null;
     onPrefixChange?: (prefixId: number | null) => void;
 }
@@ -50,7 +49,6 @@ export default function StandardPostList({
     onToggleLike,
     onToggleFavorite,
     isAdmin,
-    onWriteClick,
 }: StandardPostListProps) {
 
     const truncateText = (text: string, maxLength: number) => {
@@ -194,17 +192,6 @@ export default function StandardPostList({
     return (
         <div className="board-posts-list standard-mode">
             <div className="standard-view">
-
-                {/* Write Trigger Button - Placed at the very top */}
-                {onWriteClick && (
-                    <div className="anonymous-write-trigger" onClick={onWriteClick} style={{ marginBottom: '8px' }}>
-                        <div className="trigger-placeholder">
-                            <i className="ri-edit-2-fill"></i>
-                            <span>자유롭게 글을 남겨보세요...</span>
-                        </div>
-                    </div>
-                )}
-
                 {notices.map(renderPost)}
                 {regularPosts.map(renderPost)}
             </div>

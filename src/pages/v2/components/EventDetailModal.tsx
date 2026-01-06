@@ -1109,8 +1109,8 @@ export default function EventDetailModal({
                             title={isFavorite ? "즐겨찾기 해제" : "즐겨찾기 추가"}
                             style={{
                               top: 'auto',
-                              bottom: '20px',
-                              left: '20px',
+                              bottom: '-14px',
+                              left: '0px',
                               right: 'auto',
                               width: '72px',
                               height: '72px'

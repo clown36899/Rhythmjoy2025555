@@ -30,21 +30,21 @@ export const NodeDetailModal: React.FC<NodeDetailModalProps> = ({ nodeData, onCl
                     <i className="ri-close-line"></i>
                 </button>
 
-                <div className="detail-header">
-                    {nodeData.category === 'person' && nodeData.image_url && (
-                        <div className="detail-person-photo">
-                            <img src={nodeData.image_url} alt={nodeData.title} />
-                        </div>
-                    )}
-                    <div className="detail-meta">
-                        <span className="detail-year">{nodeData.year}년</span>
-                        {nodeData.category && <span className={`detail-category cat-${nodeData.category}`}>{nodeData.category}</span>}
-                    </div>
-                    <h2 className="detail-title">{nodeData.title}</h2>
-                    <div className="detail-date">{nodeData.date}</div>
-                </div>
-
                 <div className="detail-body">
+                    <div className="detail-header">
+                        {nodeData.category === 'person' && nodeData.image_url && (
+                            <div className="detail-person-photo">
+                                <img src={nodeData.image_url} alt={nodeData.title} />
+                            </div>
+                        )}
+                        <div className="detail-meta">
+                            <span className="detail-year">{nodeData.year}년</span>
+                            {nodeData.category && <span className={`detail-category cat-${nodeData.category}`}>{nodeData.category}</span>}
+                        </div>
+                        <h2 className="detail-title">{nodeData.title}</h2>
+                        <div className="detail-date">{nodeData.date}</div>
+                    </div>
+
                     {videoId && (
                         <div className="detail-video">
                             <iframe

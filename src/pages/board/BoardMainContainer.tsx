@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBoardData } from '../../contexts/BoardDataContext';
+import { useSetPageAction } from '../../contexts/PageActionContext';
 import BoardTabBar, { type BoardCategory } from './components/BoardTabBar';
 import BoardPrefixTabBar from './components/BoardPrefixTabBar';
 import AnonymousPostList from './components/AnonymousPostList';
@@ -154,6 +155,21 @@ export default function BoardMainContainer() {
     const writeModal = useModal('boardWriteModal');
     const editorModal = useModal('boardEditorModal');
 
+    // Register FAB action
+    useSetPageAction(
+        category === 'dev-log' ? null : {
+            icon: 'ri-edit-line',
+            label: category === 'anonymous' ? '익명 글쓰기' : '글쓰기',
+            onClick: () => {
+                if (category === 'anonymous') {
+                    writeModal.open();
+                } else {
+                    editorModal.open();
+                }
+            }
+        }
+    );
+
     // Global Write Event Listener
     useEffect(() => {
         const handleWriteClick = () => {
@@ -263,17 +279,6 @@ export default function BoardMainContainer() {
                 onTouchEnd={onTouchEnd}
                 style={{ paddingTop: prefixes.length > 0 ? '96px' : '48px' }}
             >
-                {category === 'anonymous' && (
-                    <>
-                        <div className="anonymous-write-trigger" onClick={() => writeModal.open()}>
-                            <div className="trigger-placeholder">
-                                <i className="ri-edit-2-fill"></i>
-                                <span>익명으로 글쓰기...</span>
-                            </div>
-                        </div>
-                    </>
-                )}
-
                 {loading ? (
                     <div className="board-loading-container">
                         <i className="ri-loader-4-line board-loading-spinner"></i>
@@ -305,7 +310,6 @@ export default function BoardMainContainer() {
                         dislikedPostIds={dislikedPostIds}
                         onToggleDislike={handleToggleDislike}
                         isAdmin={isRealAdmin}
-                        onWriteClick={() => editorModal.open()}
                         selectedPrefixId={selectedPrefixId}
                         onPrefixChange={setSelectedPrefixId}
                     />

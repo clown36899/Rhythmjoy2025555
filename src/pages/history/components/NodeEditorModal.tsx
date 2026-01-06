@@ -24,6 +24,9 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
     });
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [playlists, setPlaylists] = useState<any[]>([]);
+    const [videos, setVideos] = useState<any[]>([]);
+    const [loadingResources, setLoadingResources] = useState(false);
 
     useEffect(() => {
         if (node) {
@@ -44,12 +47,43 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
         }
     }, [node]);
 
-    // Auto-check drawer for person category
+    // Auto-check drawer for person category and load resources for video category
     useEffect(() => {
         if (formData.category === 'person') {
             setFormData(prev => ({ ...prev, addToDrawer: true }));
         }
+        // Load playlists and videos for video category
+        if (formData.category === 'video') {
+            setFormData(prev => ({ ...prev, addToDrawer: true }));
+            loadResources();
+        }
     }, [formData.category]);
+
+    const loadResources = async () => {
+        setLoadingResources(true);
+        try {
+            // Load playlists
+            const { data: playlistData } = await supabase
+                .from('playlists')
+                .select('id, title, youtube_url')
+                .order('created_at', { ascending: false })
+                .limit(20);
+
+            // Load individual videos
+            const { data: videoData } = await supabase
+                .from('videos')
+                .select('id, title, youtube_url')
+                .order('created_at', { ascending: false })
+                .limit(20);
+
+            setPlaylists(playlistData || []);
+            setVideos(videoData || []);
+        } catch (error) {
+            console.error('Failed to load resources:', error);
+        } finally {
+            setLoadingResources(false);
+        }
+    };
 
     const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -163,6 +197,14 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
         onSave(data);
     };
 
+    const handleResourceSelect = (resource: any, type: 'playlist' | 'video') => {
+        setFormData(prev => ({
+            ...prev,
+            title: resource.title,
+            youtube_url: resource.youtube_url || '',
+        }));
+    };
+
     const handleDelete = () => {
         if (!node || !onDelete) return;
 
@@ -227,6 +269,7 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                             <option value="person">인물</option>
                             <option value="event">이벤트</option>
                             <option value="music">음악</option>
+                            <option value="video">영상</option>
                         </select>
                     </div>
 
@@ -272,6 +315,106 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                                 )}
                             </div>
                         </>
+                    )}
+
+                    {formData.category === 'video' && (
+                        <div className="info-message" style={{
+                            padding: '12px',
+                            backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                            border: '1px solid rgba(139, 92, 246, 0.3)',
+                            borderRadius: '8px',
+                            marginBottom: '16px',
+                            color: '#a78bfa'
+                        }}>
+                            📹 영상 노드는 자동으로 자료 서랍에 추가됩니다
+                        </div>
+                    )}
+
+                    {formData.category === 'video' && (
+                        <div className="form-group">
+                            <label>영상 선택</label>
+                            {loadingResources ? (
+                                <div style={{ padding: '20px', textAlign: 'center', color: '#888' }}>
+                                    로딩 중...
+                                </div>
+                            ) : (
+                                <div style={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid #333', borderRadius: '8px', padding: '8px', marginBottom: '16px' }}>
+                                    {playlists.length > 0 && (
+                                        <>
+                                            <div style={{ padding: '8px', fontWeight: 'bold', color: '#a78bfa', fontSize: '0.9rem' }}>
+                                                📹 재생목록
+                                            </div>
+                                            {playlists.map(playlist => (
+                                                <div
+                                                    key={`playlist-${playlist.id}`}
+                                                    onClick={() => handleResourceSelect(playlist, 'playlist')}
+                                                    style={{
+                                                        padding: '12px',
+                                                        margin: '4px 0',
+                                                        background: formData.title === playlist.title ? 'rgba(139, 92, 246, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                                                        borderRadius: '6px',
+                                                        cursor: 'pointer',
+                                                        transition: 'background 0.2s',
+                                                        border: formData.title === playlist.title ? '1px solid rgba(139, 92, 246, 0.5)' : '1px solid transparent'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        if (formData.title !== playlist.title) {
+                                                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                                                        }
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        if (formData.title !== playlist.title) {
+                                                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                                                        }
+                                                    }}
+                                                >
+                                                    <div style={{ fontSize: '0.95rem', color: '#fff' }}>{playlist.title}</div>
+                                                </div>
+                                            ))}
+                                        </>
+                                    )}
+                                    {videos.length > 0 && (
+                                        <>
+                                            <div style={{ padding: '8px', fontWeight: 'bold', color: '#60a5fa', fontSize: '0.9rem', marginTop: playlists.length > 0 ? '12px' : '0' }}>
+                                                🎬 개별 영상
+                                            </div>
+                                            {videos.map(video => (
+                                                <div
+                                                    key={`video-${video.id}`}
+                                                    onClick={() => handleResourceSelect(video, 'video')}
+                                                    style={{
+                                                        padding: '12px',
+                                                        margin: '4px 0',
+                                                        background: formData.title === video.title ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                                                        borderRadius: '6px',
+                                                        cursor: 'pointer',
+                                                        transition: 'background 0.2s',
+                                                        border: formData.title === video.title ? '1px solid rgba(59, 130, 246, 0.5)' : '1px solid transparent'
+                                                    }}
+                                                    onMouseEnter={(e) => {
+                                                        if (formData.title !== video.title) {
+                                                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                                                        }
+                                                    }}
+                                                    onMouseLeave={(e) => {
+                                                        if (formData.title !== video.title) {
+                                                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                                                        }
+                                                    }}
+                                                >
+                                                    <div style={{ fontSize: '0.95rem', color: '#fff' }}>{video.title}</div>
+                                                </div>
+                                            ))}
+                                        </>
+                                    )}
+                                    {playlists.length === 0 && videos.length === 0 && (
+                                        <div style={{ padding: '20px', textAlign: 'center', color: '#888' }}>
+                                            영상이 없습니다
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     )}
 
                     <div className="form-group">

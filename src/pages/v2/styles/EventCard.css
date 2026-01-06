@@ -429,16 +429,17 @@
 /* ===== 즐겨찾기 버튼 (Minimalist White Style) ===== */
 .card-favorite-btn {
   position: absolute;
-  top: -4px;
-  right: -2px;
-  background: transparent;
+  top: 1px;
+  right: 1px;
+  background: #00000070;
   border: none;
-  width: 32px;
-  height: 32px;
+  width: 27px;
+  height: 27px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
+  border-radius: 7rem;
   z-index: 10;
   color: #ffffff;
   transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);

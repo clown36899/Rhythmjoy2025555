@@ -42,8 +42,8 @@ export default function QuickMemoEditor({
 
     // Effect early return for logged in users on mount/expand
     useEffect(() => {
-        if (user && category === 'anonymous' && !isAdmin && !editData) {
-            // Prevent editing/writing if logged in
+        if (user && category === 'anonymous' && !editData) {
+            // Prevent editing/writing if logged in (including admins)
             // Using setTimeout to avoid render loop issues or to let modal open first
             const timer = setTimeout(() => {
                 const shouldLogout = window.confirm("로그인 상태에서는 글을 쓸 수 없습니다.\n익명 글을 작성하려면 로그아웃 해주세요.\n\n[확인]을 누르면 로그아웃 됩니다.");
@@ -62,7 +62,7 @@ export default function QuickMemoEditor({
             }, 100);
             return () => clearTimeout(timer);
         }
-    }, [user, category, isAdmin, editData]);
+    }, [user, category, isAdmin, editData, className, signOut, onCancelEdit]);
 
     const handleNoticeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const checked = e.target.checked;
