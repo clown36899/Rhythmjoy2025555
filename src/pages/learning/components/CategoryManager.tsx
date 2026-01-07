@@ -347,7 +347,7 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
 
                         {/* 미분류 아이템 */}
                         {playlists
-                            .filter((p: Playlist) => p.is_unclassified === true && p.type !== 'general')
+                            .filter((p: Playlist) => p.is_unclassified === true && !p.category_id && p.type !== 'general')
                             .map(renderPlaylistItem)}
 
                         {normalizedCategories.filter((c: Category) => c.is_unclassified).length === 0 &&
