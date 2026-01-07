@@ -421,19 +421,14 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                     onItemClick?.(playlist);
                 }}
                 style={{
-                    // Only use absolute positioning for ROOT-level items
+                    // Root-level items no longer use absolute positioning
+                    // They flow naturally within their column container
+                    position: 'relative',
+                    width: '100%',
+                    minHeight: '40px',
                     ...(playlist.category_id === null && !playlist.is_unclassified ? {
-                        position: 'absolute',
-                        left: `${((playlist.grid_column ?? Math.floor((playlist.order_index || 0) / 100) % 4)) * 215}px`,
-                        top: `${((playlist.grid_row ?? Math.floor((playlist.order_index || 0) / 100 / 4))) * 165}px`,
-                        width: '200px',
-                        height: '150px',
-                    } : {
-                        // Nested items use relative positioning
-                        position: 'relative',
-                        width: '100%',
-                        minHeight: '40px',
-                    }),
+                        marginBottom: '10px'
+                    } : {}),
                     boxShadow: dropIndicator?.targetId === playlist.id ? (
                         (dropIndicator?.position === 'top' || dropIndicator?.position === 'before') ? 'inset 0 4px 0 0 #3b82f6' :
                             (dropIndicator?.position === 'bottom' || dropIndicator?.position === 'after') ? 'inset 0 -4px 0 0 #3b82f6' :
@@ -475,19 +470,13 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                 draggable
                 onDragStart={(e) => onDragStart(e, category, 'CATEGORY')}
                 style={{
-                    // Only use absolute positioning for ROOT-level folders
+                    // Root-level folders no longer use absolute positioning
+                    position: 'relative',
+                    width: '100%',
+                    minHeight: '40px',
                     ...(category.parent_id === null && !category.is_unclassified ? {
-                        position: 'absolute',
-                        left: `${((category.grid_column ?? Math.floor((category.order_index || 0) / 100) % 4)) * 215}px`,
-                        top: `${((category.grid_row ?? Math.floor((category.order_index || 0) / 100 / 4))) * 165}px`,
-                        width: '200px',
-                        minHeight: '150px',
-                    } : {
-                        // Nested folders use relative positioning
-                        position: 'relative',
-                        width: '100%',
-                        minHeight: '40px',
-                    }),
+                        marginBottom: '10px'
+                    } : {}),
                     boxShadow: dropIndicator?.targetId === category.id ? (
                         (dropIndicator?.position === 'top' || dropIndicator?.position === 'before') ? 'inset 0 4px 0 0 #3b82f6' :
                             (dropIndicator?.position === 'bottom' || dropIndicator?.position === 'after') ? 'inset 0 -4px 0 0 #3b82f6' :
@@ -649,28 +638,45 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                     id="root-main-zone"
                     style={{
                         flex: 3,
-                        position: 'relative',
+                        display: 'flex',
+                        flexDirection: 'row',
+                        gap: '20px',
                         padding: '15px',
                         borderRadius: '12px',
                         background: dragDest === 'ROOT' ? 'rgba(59, 130, 246, 0.05)' : 'transparent',
                         border: dragDest === 'ROOT' ? '2px dashed #3b82f6' : '1px solid #222',
-                        overflow: 'auto',
-                        minHeight: Math.max(600, (Math.max(0, ...[...tree, ...playlists.filter((p: Playlist) => p.category_id === null && p.is_unclassified === false && p.type !== 'general')].map(i => i.grid_row ?? 0)) + 2) * 165),
-                        minWidth: Math.max(800, (Math.max(0, ...[...tree, ...playlists.filter((p: Playlist) => p.category_id === null && p.is_unclassified === false && p.type !== 'general')].map(i => i.grid_column ?? 0)) + 2) * 215)
+                        overflowX: 'auto',
+                        overflowY: 'auto',
+                        minHeight: '600px'
                     }}
                 >
                     {isLoading ? <div>Loading...</div> : (
                         <>
-                            {/* Unified Root Items: Folders First, then Files */}
-                            {tree.map(renderTreeItem)}
-                            {playlists
-                                .filter((p: Playlist) => p.category_id === null && p.is_unclassified === false && p.type !== 'general')
-                                .map((p: Playlist) => {
-                                    if (p.grid_row !== undefined) {
-                                        console.log(`🎨 [CategoryManager] Rendering PlaylistItem (${p.title}) at Row: ${p.grid_row}, Col: ${p.grid_column}`);
-                                    }
-                                    return renderPlaylistItem(p);
-                                })}
+                            {/* NEW: Columnar Flow Layout */}
+                            {Array.from({ length: Math.max(4, 1 + Math.max(0, ...[...tree, ...playlists.filter(p => !p.category_id && !p.is_unclassified)].map(i => i.grid_column ?? 0))) }).map((_, colIdx) => {
+                                const colItems = [
+                                    ...tree.filter(t => (t.grid_column ?? 0) === colIdx),
+                                    ...playlists.filter(p => p.category_id === null && !p.is_unclassified && p.type !== 'general' && (p.grid_column ?? 0) === colIdx)
+                                ].sort((a, b) => {
+                                    // Primary: grid_row, Secondary: order_index
+                                    if ((a.grid_row ?? 0) !== (b.grid_row ?? 0)) return (a.grid_row ?? 0) - (b.grid_row ?? 0);
+                                    return (a.order_index || 0) - (b.order_index || 0);
+                                });
+
+                                if (colItems.length === 0) return null;
+
+                                return (
+                                    <div key={`col-${colIdx}`} className="grid-column" style={{
+                                        width: '215px',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        gap: '10px',
+                                        alignItems: 'flex-start'
+                                    }}>
+                                        {colItems.map(item => (item.type === 'general' || !item.type) ? renderTreeItem(item as Category) : renderPlaylistItem(item as Playlist))}
+                                    </div>
+                                );
+                            })}
                         </>
                     )}
                 </div>
