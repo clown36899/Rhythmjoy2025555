@@ -59,8 +59,18 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
     // State for UI only (not data)
     const [dragDest, setDragDest] = useState<string | null>(null);
     const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
-    const [dropIndicator, setDropIndicator] = useState<{ targetId: string, position: 'before' | 'after' | 'inside' | 'top' | 'bottom' | 'left' | 'right' } | null>(null);
-    const dropIndicatorRef = useRef<{ targetId: string, position: 'before' | 'after' | 'inside' | 'top' | 'bottom' | 'left' | 'right' } | null>(null);
+    const [dropIndicator, setDropIndicator] = useState<{
+        targetId: string,
+        position: 'before' | 'after' | 'inside' | 'top' | 'bottom' | 'left' | 'right',
+        isTargetFolder?: boolean,
+        isProximity?: boolean
+    } | null>(null);
+    const dropIndicatorRef = useRef<{
+        targetId: string,
+        position: 'before' | 'after' | 'inside' | 'top' | 'bottom' | 'left' | 'right',
+        isTargetFolder?: boolean,
+        isProximity?: boolean
+    } | null>(null);
 
 
 
@@ -240,26 +250,27 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
         const y = (e.clientY - rect.top) / rect.height;
 
         // Extended position types for specific visual feedback
-        let position: 'before' | 'after' | 'inside' | 'top' | 'bottom' | 'left' | 'right' = 'inside';
+        // 🔥 FIX: Default to 'after' instead of 'inside' to prevent accidental nesting in files
+        let position: 'before' | 'after' | 'inside' | 'top' | 'bottom' | 'left' | 'right' = 'after';
 
         if (isFolder) {
-            // Folders: More generous 'inside' zone (center 60% in Y, center 60% in X)
-            // This makes it easier to drop into folders while still allowing for edge-based reordering.
-            if (y > 0.2 && y < 0.8 && x > 0.2 && x < 0.8) {
-                position = 'inside';
-            } else if (y < 0.2) {
+            // Folders: Balanced thresholds (top: 25%, bottom: 25%, center: 50%)
+            if (y < 0.25) {
                 position = 'top';
-            } else if (y > 0.8) {
+            } else if (y > 0.75) {
                 position = 'bottom';
-            } else if (x < 0.2) {
+            } else if (x > 0.3 && x < 0.7) {
+                // Inside: centered 50% vertical, 40% horizontal
+                position = 'inside';
+            } else if (x < 0.5) {
                 position = 'left';
             } else {
                 position = 'right';
             }
         } else {
-            // Files/Playlists: 40% top/bottom, 10% sides (approx)
-            if (y < 0.4) position = 'top';
-            else if (y > 0.6) position = 'bottom';
+            // Files/Playlists: 25% top/bottom thresholds for precise reordering
+            if (y < 0.25) position = 'top';
+            else if (y > 0.75) position = 'bottom';
             else if (x < 0.5) position = 'left';
             else position = 'right';
         }
@@ -336,7 +347,12 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
             // 3. Handle Move (Inside)
             // If `dropIndicator` was 'inside', the target IS `currentIndicator.targetId`.
             if (currentIndicator && currentIndicator.position === 'inside') {
+                if (!currentIndicator.isTargetFolder) {
+                    console.error("⛔ [onDrop] BLOCKED: Cannot move inside a non-folder resource!", currentIndicator);
+                    return;
+                }
                 // Move INTO this folder (grid coords not needed for nested items)
+                console.log(`📂 [onDrop] Moving INTO Folder: ${currentIndicator.targetId}`);
                 onMoveResource?.(draggedId, currentIndicator.targetId, isUnclassified);
                 return;
             }
@@ -413,6 +429,7 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                 onDragLeave={(e) => {
                     if (e.currentTarget.contains(e.relatedTarget as Node)) return;
                     setDropIndicator(null);
+                    dropIndicatorRef.current = null; // 🔥 CRITICAL: Must clear logic ref to prevent disappearing items
                 }}
                 // On drop, logic handled above
                 onDrop={(e) => onDrop(e, playlist.category_id, playlist.is_unclassified)}
@@ -500,6 +517,7 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                     onDragLeave={(e) => {
                         if (e.currentTarget.contains(e.relatedTarget as Node)) return;
                         setDropIndicator(null);
+                        dropIndicatorRef.current = null; // 🔥 CRITICAL: Clear logic ref too
                     }}
                     onDrop={(e) => onDrop(e, category.id, category.is_unclassified)}
                     onClick={(e) => {

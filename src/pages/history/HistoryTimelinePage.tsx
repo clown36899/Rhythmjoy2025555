@@ -998,8 +998,13 @@ export default function HistoryTimelinePage() {
                     .single();
 
                 if (targetCheck && targetCheck.type !== 'general') {
-                    console.error(`⛔ ALARM: Tying to move item into a non-folder (${targetCheck.type})! Aborting.`);
+                    console.error(`⛔ ALARM: Trying to move item into a non-folder (${targetCheck.type})! Aborting.`);
                     alert(`Invalid Move: '${targetCheck.title}' is not a folder.`);
+                    return;
+                }
+
+                if (!targetCheck) {
+                    console.error(`⛔ ALARM: Target folder ${targetCategoryId} not found in DB! Aborting.`);
                     return;
                 }
             } catch (err) {
@@ -1097,6 +1102,20 @@ export default function HistoryTimelinePage() {
                 .single();
 
             if (!targetData) throw new Error('Target not found');
+
+            // 🔥 SAFETY: Ensure we don't accidentally reorder into a file's hidden children list
+            if (targetData.category_id) {
+                const { data: parentCheck } = await supabase
+                    .from('learning_resources')
+                    .select('type')
+                    .eq('id', targetData.category_id)
+                    .single();
+
+                if (parentCheck && parentCheck.type !== 'general') {
+                    console.error(`⛔ ALARM: Target's parent is NOT a folder! Reorder aborted to prevent item from disappearing.`);
+                    return;
+                }
+            }
 
             const parentId = targetData.category_id;
             const targetIsUnclassified = targetData.is_unclassified;
