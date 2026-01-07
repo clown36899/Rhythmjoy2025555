@@ -312,18 +312,18 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                         flex: 3, display: 'flex', gap: '15px', padding: '15px', borderRadius: '12px',
                         background: dragDest === 'ROOT' ? 'rgba(59, 130, 246, 0.05)' : 'transparent',
                         border: dragDest === 'ROOT' ? '2px dashed #3b82f6' : '1px solid #222',
-                        overflowX: 'auto', alignItems: 'flex-start'
+                        flexWrap: 'wrap', alignContent: 'flex-start', alignItems: 'flex-start', overflowY: 'auto'
                     }}
                 >
-                    {isLoading ? <div>Loading...</div> : tree.map(renderTreeItem)}
-
-                    {/* ROOT 레벨의 아이템들 (폴더 밖) */}
-                    <div className="root-standalone-column" style={{ minWidth: '180px', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                        <div className="zone-label" style={{ opacity: 0.4, fontSize: '10px', marginBottom: '8px', letterSpacing: '1px' }}>ROOT ITEMS</div>
-                        {playlists
-                            .filter((p: Playlist) => p.category_id === null && p.is_unclassified === false && p.type !== 'general')
-                            .map(renderPlaylistItem)}
-                    </div>
+                    {isLoading ? <div>Loading...</div> : (
+                        <>
+                            {/* Unified Root Items: Folders First, then Files */}
+                            {tree.map(renderTreeItem)}
+                            {playlists
+                                .filter((p: Playlist) => p.category_id === null && p.is_unclassified === false && p.type !== 'general')
+                                .map(renderPlaylistItem)}
+                        </>
+                    )}
                 </div>
 
                 {/* [2. 미분류 보관함] */}
