@@ -119,25 +119,51 @@
     /* Visual cue */
 }
 
-/* Column Panel Style - Dynamic Horizontal Columns */
-.treeColumn {
-    flex: 0 1 320px;
-    /* Base width 320px, can shrink */
-    min-width: 250px;
-    /* Minimum readable width */
-    max-width: 400px;
-    /* Optional max width */
-    background-color: #111827;
-    border: 1px solid #374151;
+/* Tree Branch Wrapper - Unified Recursive Node */
+.treeBranch {
+    display: flex;
+    max-width: 300px;
+    flex-direction: column;
+    transition: all 0.2s ease;
+}
+
+.rootBranch {
+    background-color: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
     border-radius: 8px;
     padding: 12px;
+    height: 100%;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    overflow-y: auto;
-    /* Internal vertical scroll */
-    max-height: 100%;
-    transition: flex-basis 0.2s ease;
+    min-width: 320px;
+    max-width: 400px;
+    /* Precise upper bound for clean columns */
+    flex: 0 0 auto;
+}
+
+.treeBranch:not(.rootBranch).dragOver-reparent {
+    background-color: rgba(59, 130, 246, 0.1);
+    box-shadow: inset 0 0 0 2px #3b82f6;
+    border-radius: 4px;
+}
+
+.itemContent.dragging {
+    opacity: 0.5;
+    background-color: #3b82f6 !important;
+    border: 2px dashed #60a5fa !important;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.treeBranch.dragging {
+    /* Prevent the entire branch from looking dragged unless it's the target anchor */
+    background-color: transparent;
+    opacity: 1;
+}
+
+.drop-target {
+    background-color: rgba(59, 130, 246, 0.2) !important;
+    box-shadow: 0 0 0 2px #3b82f6 !important;
 }
 
 /* Mobile: Full width columns */
@@ -237,6 +263,7 @@
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    max-width: 100%;
 }
 
 .actions {

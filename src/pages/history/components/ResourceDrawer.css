@@ -1,8 +1,7 @@
 .resource-drawer {
     position: fixed;
     top: 0;
-    right: -400px;
-    width: 360px;
+    /* right and width handled by inline styles */
     height: 100vh;
     background: rgba(17, 24, 39, 0.95);
     backdrop-filter: blur(20px);
@@ -12,6 +11,23 @@
     display: flex;
     flex-direction: column;
     box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+}
+
+.resize-handle {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 6px;
+    cursor: ew-resize;
+    background: transparent;
+    transition: background 0.2s;
+    z-index: 10;
+}
+
+.resize-handle:hover,
+.resize-handle.resizing {
+    background: rgba(99, 102, 241, 0.5);
 }
 
 .resource-drawer.open {
@@ -286,7 +302,8 @@
     background: transparent !important;
 }
 
-.resource-drawer .treeContainer {
+/* Compact Mode (Vertical List) */
+.resource-drawer:not(.expanded) .treeContainer {
     flex-direction: column !important;
     overflow-x: hidden !important;
     overflow-y: auto !important;
@@ -294,7 +311,7 @@
     gap: 12px !important;
 }
 
-.resource-drawer .treeColumn {
+.resource-drawer:not(.expanded) .treeColumn {
     width: 100% !important;
     flex: 0 0 auto !important;
     max-width: none !important;
@@ -303,6 +320,14 @@
     background: rgba(255, 255, 255, 0.02) !important;
     border: 1px solid rgba(255, 255, 255, 0.05) !important;
 }
+
+/* Expanded Mode (Horizontal Kanban) */
+.resource-drawer.expanded .treeContainer {
+    /* Use default CategoryManager flex-row layout */
+    height: 100%;
+}
+
+/* Remove unconditional overrides */
 
 .resource-drawer .columnHeader {
     background: rgba(255, 255, 255, 0.03) !important;

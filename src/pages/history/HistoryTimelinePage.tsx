@@ -1,6 +1,5 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { useBlocker } from 'react-router-dom';
-import { parseVideoUrl } from '../../utils/videoEmbed';
 import ReactFlow, {
     Controls,
     Background,
@@ -28,6 +27,7 @@ import { PlaylistModal } from '../learning/components/PlaylistModal';
 import './HistoryTimeline.css';
 import type { HistoryNodeData } from './types';
 import { useSetPageAction } from '../../contexts/PageActionContext';
+import { findHandler } from './utils/resourceHandlers';
 
 const initialNodes: Node[] = [];
 const initialEdges: Edge[] = [];
@@ -133,6 +133,86 @@ export default function HistoryTimelinePage() {
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
     const [initialNodePositions, setInitialNodePositions] = useState<Map<string, { x: number, y: number }>>(new Map());
+    // New State for Local-First Editing
+    const [deletedNodeIds, setDeletedNodeIds] = useState<Set<string>>(new Set());
+    const [deletedEdgeIds, setDeletedEdgeIds] = useState<Set<string>>(new Set());
+
+    // Define types inside component with useMemo to ensure stable references
+    const nodeTypes = useMemo(() => STATIC_NODE_TYPES, []);
+    const edgeTypes = useMemo(() => STATIC_EDGE_TYPES, []);
+
+    // Shared Resource Data (Single Fetch)
+    const [resourceData, setResourceData] = useState<{
+        categories: any[];
+        folders: any[];
+        playlists: any[];
+        videos: any[];
+        documents: any[];
+    }>({ categories: [], folders: [], playlists: [], videos: [], documents: [] });
+
+    // Helper to normalize resource data for UI compatibility
+    const normalizeResource = useCallback((res: any) => {
+        const metadata = res.metadata || {};
+        // Reverted: Playlists should be treated as Folders (type='general') to contain videos
+        return {
+            ...res,
+            // Map unified fields to legacy UI expectations
+            youtube_video_id: res.type === 'video' ? metadata.youtube_video_id : undefined,
+            duration: res.type === 'video' ? metadata.duration : undefined,
+            playlist_data: (res.type === 'general' && metadata.original_category) ? metadata : undefined, // Check metadata for playlist info
+            subtype: res.type === 'person' ? 'person' : (res.type === 'document' ? 'document' : undefined),
+            content: res.description, // Map description to content for documents
+        };
+    }, []);
+
+    // Fetch All Resources on Mount
+    const fetchResourceData = useCallback(async () => {
+        try {
+            // Unified Fetch from learning_resources only
+            const { data, error } = await supabase
+                .from('learning_resources')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+
+            const allResources = (data || []).map(normalizeResource);
+
+            console.log('🔵 [fetchResourceData] All resources loaded:', allResources.length);
+
+            // Reverted: All general types are Folders
+            const folders = allResources.filter((r: any) => r.type === 'general');
+            console.log('✅ [fetchResourceData] Folders (and Playlists) found:', folders.length);
+
+            setResourceData({
+                categories: folders, // Sync with folders
+                folders: folders,
+                videos: allResources.filter((r: any) => r.type === 'video'),
+                documents: allResources.filter((r: any) => r.type === 'document' || r.type === 'person'),
+                playlists: [] // Empty, as playlists are unified into folders
+            });
+        } catch (err) {
+            console.error('Failed to fetch shared resources:', err);
+        }
+    }, [normalizeResource]);
+
+    // ... (rest of the file)
+
+
+
+    // Fetch All Resources on Mount
+    useEffect(() => {
+        fetchResourceData();
+    }, [drawerRefreshKey, fetchResourceData]);
+
+    // Helper to generate temporary negative IDs
+    const getTempId = useCallback(() => {
+        const minId = Math.min(0, ...nodes.map(n => parseInt(n.id)).filter(id => !isNaN(id)));
+        return String(minId - 1);
+    }, [nodes]);
+
+    // Helper to check if ID is temporary
+    const isTempId = (id: string) => parseInt(id) < 0;
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -205,73 +285,135 @@ export default function HistoryTimelinePage() {
         }
     };
 
-    const handleDeleteEdge = async () => {
+    const handleDeleteEdge = () => {
         const edge = edgeModalState.edge;
         if (!edge) return;
 
-
-
-        try {
-            const { error } = await supabase
-                .from('history_edges')
-                .delete()
-                .eq('id', parseInt(edge.id));
-
-            if (error) throw error;
-
-            setEdges((eds) => eds.filter((e) => e.id !== edge.id));
-            setEdgeModalState({ isOpen: false, edge: null });
-        } catch (error) {
-            console.error('Error deleting edge:', error);
-            alert('삭제 실패');
+        // Local Delete
+        if (!isTempId(edge.id)) {
+            setDeletedEdgeIds(prev => new Set(prev).add(edge.id));
         }
+
+        setEdges((eds) => eds.filter((e) => e.id !== edge.id));
+        setEdgeModalState({ isOpen: false, edge: null });
+        setHasUnsavedChanges(true); // Mark as dirty
     };
 
     const handleSaveLayout = async () => {
         if (!user || !isAdmin || !isEditMode) return;
-
         const deviceName = isMobile ? '모바일' : '데스크탑';
-        if (!window.confirm(`현재 ${deviceName} 레이아웃을 저장하시겠습니까?`)) return;
+        if (!window.confirm(`현재 ${deviceName} 레이아웃 및 변경사항을 저장하시겠습니까?`)) return;
 
         try {
             setLoading(true);
 
-            // Only update nodes that have actually moved
-            const movedNodes = nodes.filter(node => {
+            // 1. Process Deletions
+            if (deletedEdgeIds.size > 0) {
+                await supabase.from('history_edges').delete().in('id', Array.from(deletedEdgeIds));
+            }
+            if (deletedNodeIds.size > 0) {
+                await supabase.from('history_nodes').delete().in('id', Array.from(deletedNodeIds));
+            }
+
+            // 2. Process New Nodes (Temp IDs)
+            const newNodes = nodes.filter(n => isTempId(n.id));
+            const existingNodes = nodes.filter(n => !isTempId(n.id));
+
+            const tempIdMap = new Map<string, string>(); // tempId -> realId
+
+            for (const node of newNodes) {
+                const { id, ...nodeData } = node.data;
+                // Remove temp properties
+                const { onEdit, onViewDetail, onPlayVideo, onPreviewLinkedResource, nodeType, thumbnail_url, image_url, url, ...dbData } = nodeData;
+
+                // Ensure youtube_url is populated from url if missing
+                if (url && !dbData.youtube_url) {
+                    dbData.youtube_url = url;
+                }
+
+                // Ensure positions are set
+                dbData.position_x = node.position.x;
+                dbData.position_y = node.position.y;
+                if (isMobile) {
+                    dbData.mobile_x = node.position.x;
+                    dbData.mobile_y = node.position.y;
+                }
+
+                const { data: inserted, error } = await supabase
+                    .from('history_nodes')
+                    .insert(dbData)
+                    .select()
+                    .single();
+
+                if (error) throw error;
+                if (inserted) {
+                    tempIdMap.set(node.id, String(inserted.id));
+                }
+            }
+
+            // 3. Process Updates (Existing Nodes)
+            const movedNodes = existingNodes.filter(node => {
                 const initial = initialNodePositions.get(node.id);
-                if (!initial) return true; // New node, update it
+                if (!initial) return true; // Shouldn't happen for existing
+                // Check if position OR data changed (simple heuristic or specific flags?)
+                // For now, assume any existing node might have pos changed.
                 return initial.x !== node.position.x || initial.y !== node.position.y;
             });
-
-            console.log(`Updating ${movedNodes.length} of ${nodes.length} nodes`);
+            // Also need to handle data updates if edited via modal? 
+            // Currently modal edits are immediate DB saves. 
+            // Wait, previous handleSaveNode did direct update. 
+            // If we want FULL transaction, modal updates should also appear here. 
+            // BUT, for now let's stick to LAYOUT + Creation/Deletion being transactional. 
+            // Modal edits to EXISTING nodes can remain direct for simplicity or...
+            // User asked for "Add node -> Local". They didn't explicitly forbid "Edit node -> Direct".
+            // Let's keep position updates here.
 
             const updates = movedNodes.map(node => {
                 const updateData = isMobile
                     ? { mobile_x: node.position.x, mobile_y: node.position.y }
                     : { position_x: node.position.x, position_y: node.position.y };
 
-                return supabase
-                    .from('history_nodes')
-                    .update(updateData)
-                    .eq('id', parseInt(node.id));
+                return supabase.from('history_nodes').update(updateData).eq('id', parseInt(node.id));
             });
-
             await Promise.all(updates);
 
-            // Update initial positions after save
-            const newPositions = new Map<string, { x: number, y: number }>();
-            nodes.forEach(node => {
-                newPositions.set(node.id, { x: node.position.x, y: node.position.y });
-            });
-            setInitialNodePositions(newPositions);
+            // 4. Process New Edges (Local Only -> DB)
+            const newEdges = edges.filter(e => isTempId(e.id));
+            for (const edge of newEdges) {
+                // Resolve Source/Target IDs (might be temp mapped to real)
+                const sourceId = tempIdMap.has(edge.source) ? tempIdMap.get(edge.source) : edge.source;
+                const targetId = tempIdMap.has(edge.target) ? tempIdMap.get(edge.target) : edge.target;
 
-            setLoading(false);
+                if (!sourceId || !targetId || isTempId(sourceId) || isTempId(targetId)) {
+                    console.warn('Skipping edge with unresolved temp ID:', edge);
+                    continue;
+                }
+
+                const edgeData = {
+                    source_id: parseInt(sourceId),
+                    target_id: parseInt(targetId),
+                    source_handle: edge.sourceHandle,
+                    target_handle: edge.targetHandle,
+                    label: edge.label || '',
+                    relation_type: edge.data?.relationType || 'influence',
+                    created_by: user.id
+                };
+
+                await supabase.from('history_edges').insert(edgeData);
+            }
+
+            // Reset States
+            setDeletedNodeIds(new Set());
+            setDeletedEdgeIds(new Set());
+            await loadTimeline(); // Reload to get everything fresh with real IDs
             setHasUnsavedChanges(false);
-            alert(`${deviceName} 레이아웃이 저장되었습니다. (${movedNodes.length}개 노드 업데이트)`);
+            alert('저장 완료되었습니다.');
+
         } catch (error) {
-            console.error('Error saving layout:', error);
-            setLoading(false);
+            console.error('Save failed:', error);
             alert('저장 실패');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -333,7 +475,13 @@ export default function HistoryTimelinePage() {
             setLoading(true);
             const { data: nodesData } = await supabase
                 .from('history_nodes')
-                .select('*, linked_playlist:learning_playlists(*), linked_document:learning_documents(*), linked_video:learning_videos(*), linked_category:learning_categories(*)')
+                .select(`
+                    *,
+                    linked_video:learning_resources!linked_video_id(*),
+                    linked_document:learning_resources!linked_document_id(*),
+                    linked_playlist:learning_resources!linked_playlist_id(*),
+                    linked_category:learning_resources!linked_category_id(*)
+                `)
                 .order('year', { ascending: true });
 
             const { data: edgesData } = await supabase
@@ -353,30 +501,33 @@ export default function HistoryTimelinePage() {
                 let category = node.category;
                 let thumbnail_url = null;
                 let image_url = null;
+                let nodeType = 'default';
 
                 if (lp) {
-                    title = lp.title;
-                    year = lp.year;
-                    desc = lp.description;
-                    thumbnail_url = lp.thumbnail_url;
-                } else if (ld) {
-                    title = ld.title;
-                    year = ld.year;
-                    desc = ld.content;
-                    image_url = ld.image_url; // Person photo
-                } else if (lv) {
-                    title = lv.title;
-                    year = lv.year;
-                    desc = lv.description;
-                    // Generate YouTube thumbnail from video ID
-                    if (lv.youtube_video_id) {
-                        thumbnail_url = `https://img.youtube.com/vi/${lv.youtube_video_id}/mqdefault.jpg`;
-                    }
+                    title = lp.title || title;
+                    desc = lp.description || desc;
+                    thumbnail_url = lp.image_url || (lp.metadata?.thumbnail_url);
+                    nodeType = 'playlist';
+                    category = 'playlist';
                 } else if (lc) {
-                    title = lc.name;
-                    year = node.year;
-                    desc = 'Category Folder';
-                    category = 'folder';
+                    title = lc.title || title;
+                    desc = lc.description || desc;
+                    thumbnail_url = lc.image_url;
+                    // Preserve 'playlist' type if it was originally a playlist
+                    nodeType = node.category === 'playlist' ? 'playlist' : 'folder';
+                    category = node.category === 'playlist' ? 'playlist' : 'folder';
+                } else if (ld) {
+                    title = ld.title || title;
+                    desc = ld.description || desc;
+                    image_url = ld.image_url;
+                    nodeType = ld.type === 'person' ? 'person' : 'document';
+                    category = ld.type === 'person' ? 'person' : 'document';
+                } else if (lv) {
+                    title = lv.title || title;
+                    desc = lv.description || desc;
+                    thumbnail_url = lv.image_url || (lv.metadata?.youtube_video_id ? `https://img.youtube.com/vi/${lv.metadata.youtube_video_id}/mqdefault.jpg` : null);
+                    nodeType = 'video';
+                    category = 'video';
                 }
 
                 return {
@@ -392,7 +543,7 @@ export default function HistoryTimelinePage() {
                         date: node.date,
                         year,
                         description: desc,
-                        youtube_url: node.youtube_url,
+                        youtube_url: node.youtube_url || lv?.url || lp?.url,
                         category,
                         tags: node.tags,
                         linked_playlist_id: node.linked_playlist_id,
@@ -405,7 +556,7 @@ export default function HistoryTimelinePage() {
                         onViewDetail: handleViewDetail,
                         onPlayVideo: handlePlayVideo,
                         onPreviewLinkedResource: (id: string, type: string, title: string) => setPreviewResource({ id, type, title }),
-                        nodeType: lp ? 'playlist' : (ld ? 'document' : (lv ? 'video' : (lc ? 'category' : 'default'))),
+                        nodeType: nodeType,
                     },
                 };
             });
@@ -612,45 +763,27 @@ export default function HistoryTimelinePage() {
     const onConnect = useCallback(
         (params: Connection) => {
             if (!user) return;
-            if (params.source === params.target) return; // Prevent self-links
+            // Local Edge Creation
+            // Generates a temp negative ID for the edge
+            // Use current timestamp based random suffix to avoid collision in same session safely
+            const tempEdgeId = `temp_edge_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-            const newEdge = {
-                source_id: parseInt(params.source!),
-                target_id: parseInt(params.target!),
-                source_handle: params.sourceHandle,
-                target_handle: params.targetHandle,
+            const newEdge: Edge = {
+                id: tempEdgeId,
+                source: params.source!,
+                target: params.target!,
+                sourceHandle: params.sourceHandle,
+                targetHandle: params.targetHandle,
+                type: 'default',
                 label: '',
-                relation_type: 'influence',
-                created_by: user.id,
+                animated: false,
+                data: { relationType: 'influence' }
             };
 
-            supabase
-                .from('history_edges')
-                .insert(newEdge)
-                .select()
-                .maybeSingle()
-                .then(({ data, error }) => {
-                    if (error) {
-                        console.error('Error saving connection:', error);
-                        if (error.message.includes('column') && error.message.includes('not found')) {
-                            alert('DB 마이그레이션이 필요합니다. 상세 안내를 확인해 주세요.');
-                        } else {
-                            alert(`연결 저장 실패: ${error.message}`);
-                        }
-                        return;
-                    }
-                    if (data) {
-                        setEdges((eds) => addEdge({
-                            ...params,
-                            id: String(data.id),
-                            type: 'default',
-                            label: '',
-                            data: { relationType: 'influence' }
-                        }, eds));
-                    }
-                });
+            setEdges((eds) => addEdge(newEdge, eds));
+            setHasUnsavedChanges(true);
         },
-        [user, setEdges]
+        [user, setEdges, edges]
     );
 
     const onEdgeClick = useCallback(
@@ -670,54 +803,43 @@ export default function HistoryTimelinePage() {
     };
 
     const handleSaveNode = async (nodeData: Partial<HistoryNodeData> & { addToDrawer?: boolean }) => {
+        console.log('🟢 [handleSaveNode] START', { nodeData, addToDrawer: nodeData.addToDrawer });
         if (!user) return;
 
         try {
-            // Use existing IDs from editingNode if available, otherwise they will be null initially
             let linkedVideoId = editingNode?.linked_video_id || nodeData.linked_video_id;
             let linkedDocumentId = editingNode?.linked_document_id || nodeData.linked_document_id;
             let linkedPlaylistId = editingNode?.linked_playlist_id || nodeData.linked_playlist_id;
+            let linkedCategoryId = editingNode?.linked_category_id || nodeData.linked_category_id;
+
             const { addToDrawer, ...cleanNodeData } = nodeData;
 
-            // Resource Creation Logic for BOTH Create and Update
+            // --- 1. 자료 서랍에 추가 (최초 추가 시 미분류 설정) ---
             if (addToDrawer) {
+                console.log('🔵 [handleSaveNode] addToDrawer=true, finding handler...');
                 try {
-                    const youtubeId = cleanNodeData.youtube_url ? parseVideoUrl(cleanNodeData.youtube_url).videoId : null;
+                    const handler = findHandler(cleanNodeData.youtube_url, cleanNodeData.category || '');
 
-                    if (youtubeId) {
-                        // Create Video Resource
-                        const { data: videoData, error: vError } = await supabase
-                            .from('learning_videos')
-                            .insert({
-                                title: cleanNodeData.title,
-                                youtube_video_id: youtubeId,
-                                description: cleanNodeData.description,
-                                year: cleanNodeData.year,
-                                is_public: true
-                                // created_by: user.id // Removed to fix schema error
-                            })
-                            .select()
-                            .single();
+                    if (handler) {
+                        // 중요: handler.save 내부에서 is_unclassified: true가 포함되도록 하거나,
+                        // 여기서 직접 override가 가능한 구조라면 아래와 같이 데이터를 구성합니다.
+                        const resourcePayload = {
+                            ...cleanNodeData,
+                            is_unclassified: true, // DB 컬럼이 추가되었으므로 명시적 설정
+                            category_id: null      // 최초 추가 시엔 어떤 폴더에도 속하지 않음
+                        };
 
-                        if (vError) throw vError;
-                        linkedVideoId = videoData.id;
-                    } else {
-                        // Create Document Resource
-                        const { data: docData, error: dError } = await supabase
-                            .from('learning_documents')
-                            .insert({
-                                title: cleanNodeData.title,
-                                content: cleanNodeData.description,
-                                year: cleanNodeData.year,
-                                image_url: cleanNodeData.image_url || null,
-                                is_public: true
-                                // created_by: user.id // Removed to fix schema error
-                            })
-                            .select()
-                            .single();
+                        const result = await handler.save(resourcePayload, user.id);
 
-                        if (dError) throw dError;
-                        linkedDocumentId = docData.id;
+                        if (result) {
+                            if (result.resourceType === 'playlist') linkedPlaylistId = result.resourceId;
+                            else if (result.resourceType === 'video') linkedVideoId = result.resourceId;
+                            else if (result.resourceType === 'document') linkedDocumentId = result.resourceId;
+                            else if (result.resourceType === 'person') linkedDocumentId = result.resourceId;
+                            else if (result.resourceType === 'category' || result.resourceType === 'general') {
+                                linkedCategoryId = result.resourceId;
+                            }
+                        }
                     }
                 } catch (resourceError) {
                     console.error('Failed to create linked resource:', resourceError);
@@ -727,35 +849,17 @@ export default function HistoryTimelinePage() {
                 }
             }
 
+            // --- 2. 기존 노드 수정 (이미 존재하는 노드) ---
             if (editingNode) {
-                console.log('--- DEBUG: handleSaveNode Start ---');
-                console.log('Editing Node ID:', editingNode.id);
-                console.log('Input Description (JSON):', JSON.stringify(cleanNodeData.description));
-
-                // Fetch fresh node data to ensure we have the correct linked IDs
-                const { data: currentNode, error: fetchError } = await supabase
-                    .from('history_nodes')
-                    .select('linked_video_id, linked_document_id, linked_playlist_id')
-                    .eq('id', editingNode.id)
-                    .single();
-
-                if (fetchError) {
-                    console.error('Failed to fetch current node data:', fetchError);
-                } else if (currentNode) {
-                    console.log('Fetched Linked IDs:', currentNode);
-                    linkedVideoId = currentNode.linked_video_id;
-                    linkedDocumentId = currentNode.linked_document_id;
-                    linkedPlaylistId = currentNode.linked_playlist_id;
-                }
-
-                // Remove image_url from node data (it's only for learning_documents)
-                const { image_url, ...nodeUpdateData } = cleanNodeData;
-
+                // ... (기존 수정 로직 유지)
+                const { image_url, url, ...nodeUpdateData } = cleanNodeData;
                 const updateData = {
                     ...nodeUpdateData,
+                    youtube_url: cleanNodeData.youtube_url || url,
                     linked_video_id: linkedVideoId,
                     linked_document_id: linkedDocumentId,
-                    linked_playlist_id: linkedPlaylistId
+                    linked_playlist_id: linkedPlaylistId,
+                    linked_category_id: linkedCategoryId
                 };
 
                 const { error } = await supabase
@@ -763,85 +867,59 @@ export default function HistoryTimelinePage() {
                     .update(updateData)
                     .eq('id', editingNode.id);
                 if (error) throw error;
-
-                // Sync updates to linked resources if they exist
-                if (linkedVideoId) {
-                    console.log('Updating Linked Video:', linkedVideoId);
-                    const { data: vData, error: vErr } = await supabase
-                        .from('learning_videos')
-                        .update({
-                            title: cleanNodeData.title,
-                            description: cleanNodeData.description,
-                            year: cleanNodeData.year,
-                            youtube_video_id: cleanNodeData.youtube_url ? parseVideoUrl(cleanNodeData.youtube_url).videoId : undefined
-                        })
-                        .eq('id', linkedVideoId)
-                        .select()
-                        .single();
-                    if (vErr) console.error('Video Update Error:', vErr);
-                    else console.log('Video Updated Result:', vData);
-                } else if (linkedDocumentId) {
-                    console.log('Updating Linked Document:', linkedDocumentId);
-                    const { data: dData, error: dErr } = await supabase
-                        .from('learning_documents')
-                        .update({
-                            title: cleanNodeData.title,
-                            content: cleanNodeData.description,
-                            year: cleanNodeData.year,
-                            image_url: cleanNodeData.image_url || null
-                        })
-                        .eq('id', linkedDocumentId)
-                        .select()
-                        .single();
-                    if (dErr) console.error('Document Update Error:', dErr);
-                    else console.log('Document Updated Result Content (JSON):', dData ? JSON.stringify(dData.content) : 'No Data Returned');
-                } else if (linkedPlaylistId) {
-                    console.log('Updating Linked Playlist:', linkedPlaylistId);
-                    const { data: pData, error: pErr } = await supabase
-                        .from('learning_playlists')
-                        .update({
-                            title: cleanNodeData.title,
-                            description: cleanNodeData.description,
-                            year: cleanNodeData.year
-                        })
-                        .eq('id', linkedPlaylistId)
-                        .select()
-                        .single();
-                    if (pErr) console.error('Playlist Update Error:', pErr);
-                    else console.log('Playlist Updated Result:', pData);
-                } else {
-                    console.log('No Linked Resource Found to Update');
-                }
-                console.log('--- DEBUG: handleSaveNode End ---');
-            } else {
+            }
+            // --- 3. 새 노드 생성 (Local-First 생성) ---
+            else {
                 const center = rfInstance?.getViewport() || { x: 0, y: 0, zoom: 1 };
                 const position = {
                     x: -center.x / center.zoom + 100,
                     y: -center.y / center.zoom + 100,
                 };
 
-                // Remove image_url from node data (it's only for learning_documents)
-                const { image_url, ...nodeInsertData } = cleanNodeData;
+                const { image_url, url, ...nodeInsertData } = cleanNodeData;
 
-                const newNodeData = {
-                    ...nodeInsertData,
-                    linked_video_id: linkedVideoId,
-                    linked_document_id: linkedDocumentId,
-                    position_x: position.x,
-                    position_y: position.y,
-                    created_by: user.id,
+                // 시각적 피드백을 위해 노드 타입 결정
+                let finalNodeType = 'default';
+                let finalCategory = nodeInsertData.category || 'general';
+
+                if (linkedPlaylistId) { finalNodeType = 'playlist'; finalCategory = 'playlist'; }
+                else if (linkedCategoryId) { finalNodeType = 'folder'; finalCategory = 'folder'; }
+                else if (linkedDocumentId) {
+                    const isPerson = nodeInsertData.category === 'person';
+                    finalNodeType = isPerson ? 'person' : 'document';
+                    finalCategory = isPerson ? 'person' : 'document';
+                }
+                else if (linkedVideoId) { finalNodeType = 'video'; finalCategory = 'video'; }
+
+                const tempId = getTempId();
+                const newLocalNode: Node = {
+                    id: tempId,
+                    type: 'historyNode',
+                    position: position,
+                    data: {
+                        ...nodeInsertData,
+                        id: tempId,
+                        linked_video_id: linkedVideoId,
+                        linked_document_id: linkedDocumentId,
+                        linked_playlist_id: linkedPlaylistId,
+                        linked_category_id: linkedCategoryId,
+                        onEdit: handleEditNode,
+                        onViewDetail: handleViewDetail,
+                        onPlayVideo: handlePlayVideo,
+                        onPreviewLinkedResource: (id: string, type: string, title: string) => setPreviewResource({ id, type, title }),
+                        nodeType: finalNodeType,
+                        category: finalCategory,
+                    }
                 };
 
-                const { error } = await supabase
-                    .from('history_nodes')
-                    .insert(newNodeData);
-                if (error) throw error;
+                setNodes(nds => [...nds, newLocalNode]);
+                setHasUnsavedChanges(true); // 편집 모드 저장 버튼을 활성화 시킴
             }
-            loadTimeline(); // Reload to reflect changes
+
             setIsEditorOpen(false);
             if (nodeData.addToDrawer) {
-                setDrawerRefreshKey(prev => prev + 1); // Refresh drawer
-                alert('자료 서랍에 추가되고 노드가 저장되었습니다.');
+                setDrawerRefreshKey(prev => prev + 1); // 서랍 새로고침
+                alert('자료 보관함(미분류)에 추가되었습니다.');
             }
         } catch (error) {
             console.error('Error saving node:', error);
@@ -850,24 +928,33 @@ export default function HistoryTimelinePage() {
     };
 
     const handleDeleteNode = async (id: number) => {
-        if (!window.confirm('정말 이 노드를 삭제하시겠습니까?')) return;
-        try {
-            const { error } = await supabase.from('history_nodes').delete().eq('id', id);
-            if (error) throw error;
+        if (!window.confirm('정말 이 노드를 삭제하시겠습니까? (저장 시 영구 반영)')) return;
 
-            // Remove node from local state instead of reloading
-            setNodes((nds) => nds.filter((node) => node.id !== String(id)));
+        const strId = String(id);
 
-            // Also remove any edges connected to this node
-            setEdges((eds) => eds.filter((edge) =>
-                edge.source !== String(id) && edge.target !== String(id)
-            ));
+        // Local Delete Logic
+        if (!isTempId(strId)) {
+            // If it's a real DB node, mark for deletion
+            setDeletedNodeIds(prev => new Set(prev).add(strId));
 
-            setIsEditorOpen(false);
-        } catch (error) {
-            console.error('Error deleting node:', error);
-            alert('삭제 실패');
+            // Also mark connected edges for deletion (if they are real)
+            const connectedEdges = edges.filter(e => e.source === strId || e.target === strId);
+            const realEdgeIds = connectedEdges.filter(e => !isTempId(e.id)).map(e => e.id);
+            if (realEdgeIds.length > 0) {
+                setDeletedEdgeIds(prev => {
+                    const next = new Set(prev);
+                    realEdgeIds.forEach(eid => next.add(eid));
+                    return next;
+                });
+            }
         }
+
+        // Just remove from UI state
+        setNodes((nds) => nds.filter((node) => node.id !== strId));
+        setEdges((eds) => eds.filter((edge) => edge.source !== strId && edge.target !== strId));
+
+        setHasUnsavedChanges(true);
+        setIsEditorOpen(false);
     };
 
 
@@ -876,17 +963,73 @@ export default function HistoryTimelinePage() {
         event.dataTransfer.dropEffect = 'move';
     }, []);
 
-    const onResourceDragStart = (_e: React.DragEvent, resource: any) => {
+    const onResourceDragStart = useCallback((_e: React.DragEvent, resource: any) => {
         setDraggedResource(resource);
-    };
+    }, []);
 
-    const handleDrawerItemClick = (id: string, type: string, title: string) => {
+    const handleDrawerItemClick = useCallback((id: string, type: string, title: string) => {
         // Just set the preview state, specialized modals will handle fetching
         setPreviewResource({ id, type, title });
-    };
+    }, []);
+
+    const handleMoveResource = useCallback(async (id: string, targetCategoryId: string | null, isUnclassified: boolean = false) => {
+        if (!isAdmin) {
+            alert('관리자 권한이 필요합니다.');
+            return;
+        }
+
+        // Optimistic Update
+        setResourceData(prev => {
+            const next = { ...prev };
+            let found = false;
+            // Check playlists too now
+            ['folders', 'videos', 'documents', 'playlists'].forEach(key => {
+                const list = next[key as keyof typeof next];
+                if (Array.isArray(list)) {
+                    (next as any)[key] = list.map((r: any) => {
+                        if (r.id === id) {
+                            found = true;
+                            console.log(`✨ [Optimistic] Found item in ${key}:`, r.title);
+                            return { ...r, category_id: targetCategoryId, is_unclassified: isUnclassified };
+                        }
+                        return r;
+                    });
+                }
+            });
+
+            // 🔥 CRITICAL FIX: Sync categories with folders
+            next.categories = next.folders;
+
+            if (!found) console.warn(`⚠️ [Optimistic] Item ${id} not found in any list!`);
+            return next;
+        });
+
+        console.log(`📡 [handleMoveResource] Moving ${id} -> Category: ${targetCategoryId}, Unclassified: ${isUnclassified}`);
+
+        try {
+            const { error } = await supabase
+                .from('learning_resources')
+                .update({
+                    category_id: targetCategoryId,
+                    is_unclassified: isUnclassified
+                })
+                .eq('id', id);
+
+            if (error) throw error;
+
+            console.log('✅ Resource moved successfully:', id);
+            // We don't call setDrawerRefreshKey here to avoid full "refresh" feel.
+            // optimistic update already handled the UI.
+        } catch (err) {
+            console.error('Failed to move resource:', err);
+            // Refresh to sync if failed
+            setDrawerRefreshKey(prev => prev + 1);
+            alert('자료 이동에 실패했습니다.');
+        }
+    }, [isAdmin]);
 
     const onDrop = useCallback(
-        (event: any) => {
+        async (event: any) => {
             event.preventDefault();
             if (!rfInstance || !user) return;
 
@@ -898,6 +1041,17 @@ export default function HistoryTimelinePage() {
                 const json = event.dataTransfer.getData('application/json');
                 if (json) {
                     draggedData = JSON.parse(json);
+
+                    // DEBUG: Trace Dropped Data
+                    console.log('📥 [Timeline] Drop Received:', {
+                        rawJson: json,
+                        parsedData: draggedData,
+                        type: draggedData.type,
+                        internalType: draggedData.internal_type,
+                        hasItems: draggedData.items?.length > 0,
+                        itemCount: draggedData.items?.length,
+                        rawItems: draggedData.items
+                    });
                 }
             } catch (e) {
                 // Ignore parsing errors
@@ -940,70 +1094,185 @@ export default function HistoryTimelinePage() {
                 created_by: user.id,
             };
 
-            // Handle Types
-            if (draggedData.type === 'CATEGORY_MOVE') {
-                newNodeData.linked_category_id = draggedData.id;
-                newNodeData.category = 'folder';
-                newNodeData.title = draggedData.name;
-            } else if (draggedData.type === 'playlist' || (draggedData.type === 'PLAYLIST_MOVE' && (!draggedData.resourceType || draggedData.resourceType === 'playlist'))) {
-                newNodeData.linked_playlist_id = draggedData.id;
-            } else if (draggedData.type === 'document' || (draggedData.type === 'PLAYLIST_MOVE' && draggedData.resourceType === 'document')) {
-                newNodeData.linked_document_id = draggedData.id;
-            } else if (draggedData.type === 'video' || (draggedData.type === 'PLAYLIST_MOVE' && (draggedData.resourceType === 'video' || draggedData.resourceType === 'standalone_video'))) {
-                newNodeData.linked_video_id = draggedData.id;
-            }
+            // 3. Robust Type Detection (Folder vs Single Item)
+            const isFolder = draggedData.type === 'category' || draggedData.type === 'playlist' ||
+                draggedData.internal_type === 'CATEGORY_MOVE' || draggedData.internal_type === 'PLAYLIST_MOVE' ||
+                draggedData.resourceType === 'playlist';
 
-            supabase
-                .from('history_nodes')
-                .insert(newNodeData)
-                .select()
-                .maybeSingle()
-                .then(({ data, error }) => {
-                    if (error) {
-                        console.error('Error creating node from resource:', error);
-                        alert('노드 생성 실패');
-                    } else if (data) {
-                        // Local update without reload
-                        const newNode: Node = {
-                            id: String(data.id),
+            if (isFolder) {
+                setLoading(true);
+                try {
+                    // Fetch all items inside this folder from Unified Table (learning_resources)
+                    const { data: itemsData, error: itemsError } = await supabase
+                        .from('learning_resources')
+                        .select('*')
+                        .eq('category_id', draggedData.id);
+
+                    if (itemsError) throw itemsError;
+                    const items = (itemsData || []).map(normalizeResource);
+
+                    if (items.length > 0 && window.confirm(`'${draggedData.title || draggedData.name}' 폴더 안의 ${items.length}개 항목을 펼치시겠습니까?\n(취소 시 단일 폴더 노드로 생성됩니다)`)) {
+                        // --- UNPACK MODE ---
+                        const totalItems = items.length;
+                        let batchYear = draggedData.year;
+                        if (!batchYear) {
+                            const input = window.prompt(`총 ${totalItems}개 자료의 연도를 입력해주세요:`, year.toString());
+                            if (input) batchYear = parseInt(input, 10);
+                            if (!batchYear || isNaN(batchYear)) batchYear = year;
+                        }
+
+                        const startTempId = getTempId();
+                        let currentTempId = parseInt(startTempId);
+                        const newNodes: Node[] = [];
+
+                        // Parent Node (Folder)
+                        const parentNode: Node = {
+                            id: String(currentTempId--),
                             type: 'historyNode',
-                            position: {
-                                x: (isMobile ? data.mobile_x : data.position_x) || data.position_x || 0,
-                                y: (isMobile ? data.mobile_y : data.position_y) || data.position_y || 0
-                            },
+                            position: { x: position.x, y: position.y },
                             data: {
-                                id: data.id,
-                                title: data.title,
-                                date: data.date,
-                                year: data.year,
-                                description: data.description,
-                                youtube_url: data.youtube_url,
-                                category: data.category,
-                                tags: data.tags,
-                                linked_playlist_id: data.linked_playlist_id,
-                                linked_document_id: data.linked_document_id,
-                                linked_video_id: data.linked_video_id,
-                                linked_category_id: data.linked_category_id,
+                                title: draggedData.title || draggedData.name,
+                                year: batchYear,
+                                category: 'folder',
+                                description: 'Folder Group',
+                                created_by: user.id,
+                                nodeType: 'folder',
+                                linked_category_id: draggedData.id,
+                                id: currentTempId + 1,
                                 onEdit: handleEditNode,
                                 onViewDetail: handleViewDetail,
-                                onPlayVideo: handlePlayVideo,
                                 onPreviewLinkedResource: (id: string, type: string, title: string) => setPreviewResource({ id, type, title }),
-                                nodeType: data.linked_playlist_id ? 'playlist' : (data.linked_document_id ? 'document' : (data.linked_video_id ? 'video' : (data.linked_category_id ? 'category' : 'default'))),
                             }
                         };
-                        setNodes((nds) => nds.concat(newNode));
+                        newNodes.push(parentNode);
+
+                        // Layout settings for unpacked items
+                        const GRID_WIDTH = 450;
+                        const GRID_HEIGHT = 450;
+                        const COLS = Math.ceil(Math.sqrt(totalItems)) + 1;
+                        let offsetX = 0;
+                        let offsetY = 350;
+
+                        // Children Nodes
+                        items.forEach((item) => {
+                            const childId = String(currentTempId--);
+                            const itemType = item.type === 'person' ? 'person' : (item.type === 'document' ? 'document' : (item.type === 'video' ? 'video' : 'default'));
+
+                            const posX = position.x + offsetX - ((COLS * GRID_WIDTH) / 2);
+                            const posY = position.y + offsetY;
+
+                            offsetX += GRID_WIDTH;
+                            if (offsetX >= GRID_WIDTH * COLS) {
+                                offsetX = 0;
+                                offsetY += GRID_HEIGHT;
+                            }
+
+                            const childNode: Node = {
+                                id: childId,
+                                type: 'historyNode',
+                                position: { x: posX, y: posY },
+                                data: {
+                                    title: item.title,
+                                    year: batchYear,
+                                    category: itemType,
+                                    linked_video_id: itemType === 'video' ? item.id : undefined,
+                                    linked_document_id: (itemType === 'document' || itemType === 'person') ? item.id : undefined,
+                                    description: item.description || '',
+                                    created_by: user.id,
+                                    nodeType: itemType,
+                                    id: parseInt(childId),
+                                    onEdit: handleEditNode,
+                                    onViewDetail: handleViewDetail,
+                                    onPlayVideo: handlePlayVideo,
+                                    onPreviewLinkedResource: (id: string, type: string, title: string) => setPreviewResource({ id, type, title }),
+                                    image_url: item.image_url,
+                                    url: item.url
+                                }
+                            };
+                            newNodes.push(childNode);
+                        });
+
+                        // Create Edges
+                        const newEdges: Edge[] = newNodes.slice(1).map(child => ({
+                            id: `edge-${parentNode.id}-${child.id}-${Date.now()}`,
+                            source: parentNode.id,
+                            target: child.id,
+                            type: 'default',
+                            data: { relationType: 'contains' }
+                        }));
+
+                        setNodes(prev => [...prev, ...newNodes]);
+                        setEdges(prev => [...prev, ...newEdges]);
+                        setHasUnsavedChanges(true);
+                        setLoading(false);
+                        return;
+                    } else {
+                        // --- SINGLE FOLDER NODE ---
+                        newNodeData.linked_category_id = draggedData.id;
+                        newNodeData.nodeType = 'folder';
+                        newNodeData.category = 'folder';
+                        newNodeData.title = draggedData.title || draggedData.name;
                     }
-                });
+                } catch (err) {
+                    console.error('Drop process error:', err);
+                } finally {
+                    setLoading(false);
+                }
+            } else {
+                // --- SINGLE ITEM MODE ---
+                const rawType = draggedData.type?.toLowerCase();
+                const isPerson = rawType === 'person' || draggedData.subtype === 'person';
+                const isVideo = rawType === 'video' || draggedData.resourceType === 'video' || draggedData.resourceType === 'standalone_video';
+
+                if (isVideo) {
+                    newNodeData.linked_video_id = draggedData.id;
+                    newNodeData.nodeType = 'video';
+                    newNodeData.category = 'video';
+                } else if (rawType === 'document' || rawType === 'doc' || isPerson) {
+                    newNodeData.linked_document_id = draggedData.id;
+                    newNodeData.nodeType = isPerson ? 'person' : 'document';
+                    newNodeData.category = isPerson ? 'person' : 'document';
+                }
+
+                newNodeData.title = draggedData.title || draggedData.name;
+                newNodeData.image_url = draggedData.image_url;
+                newNodeData.description = draggedData.description;
+                newNodeData.url = draggedData.url || draggedData.youtube_url;
+            }
+
+            // NEW: Local Create Logic for Single Drop
+            // Single Node Insert (Local)
+            const tempId = getTempId();
+            const newNode: Node = {
+                id: tempId,
+                type: 'historyNode',
+                position: {
+                    x: newNodeData.position_x,
+                    y: newNodeData.position_y
+                },
+                data: {
+                    ...newNodeData, // Contains raw data
+                    id: tempId,
+                    onEdit: handleEditNode,
+                    onViewDetail: handleViewDetail,
+                    onPlayVideo: handlePlayVideo,
+                    onPreviewLinkedResource: (id: string, type: string, title: string) => setPreviewResource({ id, type, title }),
+                    nodeType: newNodeData.nodeType || 'default'
+                }
+            };
+            setNodes((nds) => nds.concat(newNode));
+            setHasUnsavedChanges(true);
         },
-        [rfInstance, user, draggedResource]
+        [rfInstance, user, draggedResource, getTempId, handleEditNode, handleViewDetail, handlePlayVideo, isMobile]
     );
 
+    /*
     const toggleAutoLayout = () => {
         if (!nodes.length) return;
         const nextState = !isAutoLayout;
         setIsAutoLayout(nextState);
         localStorage.setItem('history_auto_layout', String(nextState));
-
+     
         if (nextState) {
             // Apply Auto Layout
             const sortedNodes = [...nodes].sort((a, b) => (a.data.year || 0) - (b.data.year || 0));
@@ -1018,18 +1287,31 @@ export default function HistoryTimelinePage() {
             loadTimeline();
         }
     };
-
-    if (loading) {
-        return (
-            <div className="history-timeline-loading">
-                <div className="loading-spinner"></div>
-                <p>타임라인 로딩 중...</p>
-            </div>
-        );
-    }
+    */
 
     return (
-        <div className="history-timeline-page">
+        <div className="history-timeline-page" style={{ width: '100%', height: '100vh', position: 'relative' }}>
+            {/* Loading Indicator (Non-blocking) */}
+            {loading && (
+                <div style={{
+                    position: 'absolute',
+                    top: '80px',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    zIndex: 2000,
+                    background: 'rgba(0,0,0,0.7)',
+                    color: 'white',
+                    padding: '8px 16px',
+                    borderRadius: '20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                }}>
+                    <div className="loading-spinner" style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff' }}></div>
+                    <span style={{ fontSize: '14px' }}>로딩 중...</span>
+                </div>
+            )}
+
             <div className="history-floating-toolbar">
                 {/* Year sort button hidden
                 <button
@@ -1051,11 +1333,29 @@ export default function HistoryTimelinePage() {
                         <span>편집 모드</span>
                     </button>
                 )}
+                {isEditMode && hasUnsavedChanges && (
+                    <button
+                        className="toolbar-btn cancel-btn"
+                        onClick={async () => {
+                            if (window.confirm('저장하지 않은 모든 변경사항을 취소하시겠습니까?')) {
+                                setDeletedNodeIds(new Set());
+                                setDeletedEdgeIds(new Set());
+                                await loadTimeline(); // Just reload DB data, discarding local changes
+                                setHasUnsavedChanges(false);
+                            }
+                        }}
+                        title="변경사항 취소 (되돌리기)"
+                        style={{ color: '#ef4444', borderColor: '#fca5a5' }}
+                    >
+                        <i className="ri-arrow-go-back-line"></i>
+                        <span>되돌리기</span>
+                    </button>
+                )}
                 {isEditMode && (
                     <button className="toolbar-btn save-btn" onClick={handleSaveLayout} title="현재 레이아웃 저장" style={{ color: '#60a5fa', borderColor: '#3b82f6' }}>
                         <i className="ri-save-3-line"></i>
                         <span>저장</span>
-                    </button>
+                    </button> // This was existing
                 )}
                 <button
                     className={`toolbar-btn ${isDrawerOpen ? 'active' : ''}`}
@@ -1092,8 +1392,8 @@ export default function HistoryTimelinePage() {
                     nodesDraggable={!isAutoLayout && isEditMode}
                     nodesConnectable={isEditMode}
                     elementsSelectable={true}
-                    nodeTypes={STATIC_NODE_TYPES}
-                    edgeTypes={STATIC_EDGE_TYPES}
+                    nodeTypes={nodeTypes}
+                    edgeTypes={edgeTypes}
                     isValidConnection={IS_VALID_CONNECTION}
                     connectionMode={ConnectionMode.Loose}
                     minZoom={0.05}
@@ -1206,7 +1506,13 @@ export default function HistoryTimelinePage() {
                 onClose={() => setIsDrawerOpen(false)}
                 onDragStart={onResourceDragStart}
                 onItemClick={handleDrawerItemClick}
+                onMoveResource={handleMoveResource}
+                onCategoryChange={fetchResourceData}
                 refreshKey={drawerRefreshKey}
+                categories={resourceData.categories}
+                playlists={resourceData.playlists || []}
+                videos={resourceData.videos}
+                documents={resourceData.documents}
             />
         </div>
     );

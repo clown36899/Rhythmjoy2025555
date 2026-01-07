@@ -5,6 +5,17 @@ export interface HistoryNodeData {
     year?: number;
     description?: string;
     youtube_url?: string;
+    url?: string;
+    // Unified Resoruce Fields
+    type?: 'VIDEO' | 'PLAYLIST' | 'DOCUMENT' | 'PERSON' | string;
+    metadata?: any; // For flexible data (duration, is_public, etc)
+
+    // Legacy mapping (keep optional for now)
+    subtype?: string;
+    youtube_video_id?: string;
+    youtube_playlist_id?: string;
+
+    user_id?: string;
     category?: string;
     tags?: string[];
     linked_playlist_id?: string;

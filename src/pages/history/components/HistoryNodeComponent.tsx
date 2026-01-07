@@ -54,30 +54,35 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
             case 'event': return <i className="ri-calendar-event-line"></i>;
             case 'music': return <i className="ri-music-2-line"></i>;
             case 'place': return <i className="ri-map-pin-line"></i>;
+            case 'folder':
+            case 'category': return <i className="ri-folder-line"></i>;
+            case 'playlist': return <i className="ri-disc-line"></i>;
+            case 'video': return <i className="ri-movie-line"></i>;
+            case 'document': return <i className="ri-file-text-line"></i>;
             default: return <i className="ri-bookmark-line"></i>;
         }
     };
 
     const getCategoryColor = () => {
         switch (data.category) {
-            case 'genre':
-                return '#6366f1';
-            case 'person':
-                return '#ec4899';
-            case 'event':
-                return '#10b981';
-            case 'music':
-                return '#f59e0b';
-            case 'place':
-                return '#3b82f6';
-            default:
-                return '#8b5cf6';
+            case 'genre': return '#6366f1';
+            case 'person': return '#ec4899';
+            case 'event': return '#10b981';
+            case 'music': return '#f59e0b';
+            case 'place': return '#3b82f6';
+            case 'folder':
+            case 'category': return '#8b5cf6'; // Standard Purple
+            case 'playlist': return '#f43f5e'; // Rose
+            case 'video': return '#ef4444'; // Red
+            case 'document': return '#64748b'; // Slate
+            default: return '#8b5cf6';
         }
     };
 
     const linkedType = data.linked_playlist_id ? 'playlist' :
-        data.linked_document_id ? 'document' :
-            data.linked_video_id ? 'video' : 'none';
+        data.linked_category_id ? 'folder' :
+            data.linked_document_id ? 'document' :
+                data.linked_video_id ? 'video' : 'none';
 
     return (
         <div
@@ -141,7 +146,7 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
                             {getCategoryIcon(data.category || 'general')}
                         </span>
                     )}
-                    {(data.linked_playlist_id || data.linked_document_id || data.linked_video_id) && (
+                    {(data.linked_playlist_id || data.linked_document_id || data.linked_video_id || data.linked_category_id) && (
                         <span className={`history-node-link-badge ${linkedType}`} title="학습 자료와 연동됨">
                             <i className="ri-link"></i>
                         </span>
@@ -150,7 +155,11 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
 
                 <h3 className="history-node-title">
                     <span style={{ marginRight: '3px' }}>
-                        {data.nodeType === 'playlist' ? '💿' : data.nodeType === 'document' ? '📄' : data.nodeType === 'video' ? '📹' : data.nodeType === 'category' ? '📁' : '📅'}
+                        {data.nodeType === 'playlist' ? '💿' :
+                            data.nodeType === 'document' ? '📄' :
+                                data.nodeType === 'video' ? '📹' :
+                                    (data.nodeType === 'category' || data.nodeType === 'folder') ? '📁' :
+                                        '📅'}
                     </span>
                     {data.title}
                 </h3>
@@ -175,7 +184,7 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
                     <button className="node-action-btn btn-edit" onClick={handleEdit} title="수정">
                         <i className="ri-edit-line"></i>
                     </button>
-                    {(data.linked_playlist_id || data.linked_document_id || data.linked_video_id) && (
+                    {(data.linked_playlist_id || data.linked_document_id || data.linked_video_id || data.linked_category_id) && (
                         <button
                             className="node-action-btn btn-linked-resource"
                             onClick={(e) => {
@@ -183,6 +192,8 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
                                 if (data.onPreviewLinkedResource) {
                                     if (data.linked_playlist_id) {
                                         data.onPreviewLinkedResource(data.linked_playlist_id, 'playlist', data.title);
+                                    } else if (data.linked_category_id) {
+                                        data.onPreviewLinkedResource(data.linked_category_id, 'playlist', data.title); // Treat category as playlist in preview
                                     } else if (data.linked_document_id) {
                                         data.onPreviewLinkedResource(data.linked_document_id, 'document', data.title);
                                     } else if (data.linked_video_id) {

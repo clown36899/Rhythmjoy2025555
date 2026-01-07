@@ -47,15 +47,73 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
         }
     }, [node]);
 
-    // Auto-check drawer for person category and load resources for video category
+    // --- Draft Recovery Logic ---
+    const DRAFT_KEY = 'node_editor_draft';
+
     useEffect(() => {
-        if (formData.category === 'person') {
-            setFormData(prev => ({ ...prev, addToDrawer: true }));
+        if (!node) {
+            const draft = localStorage.getItem(DRAFT_KEY);
+            if (draft) {
+                try {
+                    const parsed = JSON.parse(draft);
+                    if (parsed && (parsed.title || parsed.description || parsed.youtube_url) && window.confirm('작성 중인 임시 내용이 있습니다. 복구하시겠습니까?')) {
+                        setFormData(prev => ({ ...prev, ...parsed }));
+                        if (parsed.image_url) setImagePreview(parsed.image_url);
+                    } else {
+                        // If user declines, or draft is empty/invalid, clear it? 
+                        // Maybe keep it if they just want to start fresh but keep draft for later? 
+                        // Standard behavior is usually clear or ignore. I'll clear if they decline explicitly.
+                        if (draft) localStorage.removeItem(DRAFT_KEY);
+                    }
+                } catch (e) {
+                    console.error('Failed to parse draft', e);
+                }
+            }
         }
-        // Load playlists and videos for video category
-        if (formData.category === 'video') {
-            setFormData(prev => ({ ...prev, addToDrawer: true }));
-            loadResources();
+    }, [node]);
+
+    useEffect(() => {
+        if (!node) {
+            const timer = setTimeout(() => {
+                localStorage.setItem(DRAFT_KEY, JSON.stringify(formData));
+            }, 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [formData, node]);
+    // ---------------------------
+
+
+    // Auto-check drawer for person category and load resources for video category
+    // Auto-Detect Category from URL
+    useEffect(() => {
+        const url = formData.youtube_url;
+        if (url) {
+            if (url.includes('list=')) {
+                setFormData(prev => {
+                    if (prev.category !== 'playlist') return { ...prev, category: 'playlist', addToDrawer: true };
+                    return prev;
+                });
+            } else if (url.includes('v=') || url.includes('youtu.be/')) {
+                setFormData(prev => {
+                    if (prev.category !== 'video') return { ...prev, category: 'video', addToDrawer: true };
+                    return prev;
+                });
+            }
+        }
+    }, [formData.youtube_url]);
+
+    // Enforce Drawer Policy & Load Resources
+    useEffect(() => {
+        const strictCategories = ['person', 'playlist', 'video', 'document'];
+        if (strictCategories.includes(formData.category)) {
+            setFormData(prev => {
+                if (!prev.addToDrawer) return { ...prev, addToDrawer: true };
+                return prev;
+            });
+
+            if (formData.category === 'video') {
+                loadResources();
+            }
         }
     }, [formData.category]);
 
@@ -195,6 +253,7 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
         };
 
         onSave(data);
+        localStorage.removeItem(DRAFT_KEY);
     };
 
     const handleResourceSelect = (resource: any, type: 'playlist' | 'video') => {
@@ -202,6 +261,8 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
             ...prev,
             title: resource.title,
             youtube_url: resource.youtube_url || '',
+            category: type,
+            addToDrawer: true
         }));
     };
 
@@ -264,12 +325,11 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                             value={formData.category}
                             onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                         >
-                            <option value="general">일반</option>
-                            <option value="genre">장르</option>
+                            <option value="general">일반 (폴더)</option>
                             <option value="person">인물</option>
-                            <option value="event">이벤트</option>
-                            <option value="music">음악</option>
+                            <option value="playlist">재생목록</option>
                             <option value="video">영상</option>
+                            <option value="document">문서</option>
                         </select>
                     </div>
 
@@ -418,12 +478,14 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                     )}
 
                     <div className="form-group">
-                        <label>유튜브 URL</label>
+                        <label>
+                            {['playlist', 'video'].includes(formData.category) ? '유튜브 URL' : '참조 링크 (URL)'}
+                        </label>
                         <input
                             type="url"
                             value={formData.youtube_url}
                             onChange={(e) => setFormData({ ...formData, youtube_url: e.target.value })}
-                            placeholder="https://www.youtube.com/watch?v=..."
+                            placeholder={['playlist', 'video'].includes(formData.category) ? "https://www.youtube.com/watch?v=..." : "https://example.com/..."}
                         />
                         {videoInfo?.thumbnailUrl && (
                             <div className="video-preview">
@@ -506,10 +568,18 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                                 id="addToDrawer"
                                 checked={formData.addToDrawer}
                                 onChange={(e) => setFormData({ ...formData, addToDrawer: e.target.checked })}
-                                style={{ width: 'auto', margin: 0 }}
+                                disabled={formData.category !== 'general'}
+                                style={{ width: 'auto', margin: 0, opacity: formData.category !== 'general' ? 0.5 : 1, cursor: formData.category !== 'general' ? 'not-allowed' : 'pointer' }}
                             />
-                            <label htmlFor="addToDrawer" style={{ margin: 0, cursor: 'pointer', color: '#60a5fa' }}>
-                                자료 서랍에 원본 추가하기
+                            <label
+                                htmlFor="addToDrawer"
+                                style={{
+                                    margin: 0,
+                                    cursor: formData.category !== 'general' ? 'not-allowed' : 'pointer',
+                                    color: formData.category !== 'general' ? '#888' : '#60a5fa'
+                                }}
+                            >
+                                {formData.category !== 'general' ? '자료 서랍에 자동 저장됩니다' : '자료 서랍에 원본 추가하기'}
                             </label>
                         </div>
                     )}

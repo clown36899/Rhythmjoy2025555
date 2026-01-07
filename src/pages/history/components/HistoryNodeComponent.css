@@ -129,8 +129,21 @@
     background: #3b82f6;
 }
 
-.badge-general {
+.badge-general,
+.badge-folder {
     background: #8b5cf6;
+}
+
+.badge-video {
+    background: #ef4444;
+}
+
+.badge-playlist {
+    background: #f59e0b;
+}
+
+.badge-document {
+    background: #10b981;
 }
 
 .history-node-title {

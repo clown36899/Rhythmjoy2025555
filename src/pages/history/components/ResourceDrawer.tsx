@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../../../lib/supabase';
+import { useState, useEffect, useMemo } from 'react';
 import './ResourceDrawer.css';
 import { CategoryManager } from '../../learning/components/CategoryManager';
 
@@ -7,13 +6,15 @@ interface ResourceItem {
     id: string;
     title: string;
     year: number;
-    type: 'playlist' | 'document' | 'video';
+    type: 'playlist' | 'document' | 'video' | 'general'; // Added 'general' for folders
     category_id?: string;
     description?: string;
     youtube_url?: string;
     content?: string;
     hasYear?: boolean;
     created_at?: string;
+    items?: any[]; // Child items for local unpack
+    is_unclassified?: boolean; // Added for proper tracking
 }
 
 interface Props {
@@ -22,95 +23,141 @@ interface Props {
     onDragStart: (e: React.DragEvent, item: any) => void;
     onItemClick?: (id: string, type: string, title: string) => void;
     refreshKey?: number;
+    // Injected Data
+    categories: any[];
+    playlists: any[];
+    videos: any[]; // These are ALL videos (for unpack)
+    documents: any[];
+    onMoveResource?: (id: string, targetCategoryId: string | null) => void;
+    onCategoryChange?: () => void;
 }
 
-export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refreshKey }: Props) => {
-    const [items, setItems] = useState<ResourceItem[]>([]);
-    const [loading, setLoading] = useState(false);
+export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refreshKey: _refreshKey, categories, playlists, videos, documents, onMoveResource, onCategoryChange }: Props) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterMode, setFilterMode] = useState<'all' | 'year'>('all');
+    const [width, setWidth] = useState(360);
+    const [isResizing, setIsResizing] = useState(false);
+
+    // 🔍 DEBUG: Log received props
+    useEffect(() => {
+        console.log('🎯 [ResourceDrawer] Received props:', {
+            categoriesCount: categories?.length || 0,
+            categories: categories,
+            playlistsCount: playlists?.length || 0,
+            videosCount: videos?.length || 0,
+            documentsCount: documents?.length || 0
+        });
+    }, [categories, playlists, videos, documents]);
 
     useEffect(() => {
-        if (isOpen) {
-            fetchResources();
+        const handleMouseMove = (e: MouseEvent) => {
+            if (!isResizing) return;
+            const newWidth = window.innerWidth - e.clientX;
+            if (newWidth >= 300 && newWidth <= window.innerWidth * 0.9) {
+                setWidth(newWidth);
+            }
+        };
+
+        const handleMouseUp = () => {
+            setIsResizing(false);
+            document.body.style.cursor = '';
+        };
+
+        if (isResizing) {
+            window.addEventListener('mousemove', handleMouseMove);
+            window.addEventListener('mouseup', handleMouseUp);
+            document.body.style.cursor = 'ew-resize';
         }
-    }, [isOpen, refreshKey]);
 
-    const fetchResources = async () => {
-        try {
-            setLoading(true);
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+            document.body.style.cursor = '';
+        };
+    }, [isResizing]);
 
-            // Fetch Playlists (fetch all, filter later)
-            const { data: playlists, error: pError } = await supabase
-                .from('learning_playlists')
-                .select('*')
-                .eq('is_public', true) // Basic visibility check, or removal if admin
-                .order('created_at', { ascending: false });
+    const isExpanded = width > 600;
 
-            if (pError) throw pError;
+    // Combine resources for the list view
+    const items = useMemo(() => {
+        // Include all videos for the tree view; CategoryManager will place them correctly
+        const allVideos = videos || [];
 
-            // Fetch Documents
-            const { data: documents, error: dError } = await supabase
-                .from('learning_documents')
-                .select('*')
-                .eq('is_public', true)
-                .order('created_at', { ascending: false });
+        console.log('🔍 [ResourceDrawer] Building items:', {
+            categoriesCount: categories?.length || 0,
+            playlistsCount: playlists?.length || 0,
+            documentsCount: documents?.length || 0,
+            videosCount: videos?.length || 0
+        });
 
-            if (dError) throw dError;
+        const result = [
+            // 🔥 CRITICAL: Include categories (folders) first!
+            ...(categories || []).map(c => ({
+                id: c.id,
+                title: c.title || c.name || '무제 폴더',
+                year: c.year || 0,
+                hasYear: !!c.year,
+                // 🔥 FIX: Respect null (Root) if defined. Only fallback if undefined.
+                category_id: c.category_id !== undefined ? c.category_id : (c.parent_id ?? null),
+                is_unclassified: c.is_unclassified ?? false,
+                type: 'general' as const, // Folders have type='general'
+                created_at: c.created_at
+            })),
+            ...(playlists || []).map(p => ({
+                id: p.id,
+                title: p.title,
+                year: p.year || 0,
+                hasYear: !!p.year,
+                category_id: p.category_id,
+                is_unclassified: p.is_unclassified ?? false, // 🔥 CRITICAL: Pass is_unclassified
+                type: 'playlist' as const,
+                description: p.description,
+                youtube_url: p.youtube_playlist_id ? `https://www.youtube.com/playlist?list=${p.youtube_playlist_id}` : undefined,
+                created_at: p.created_at,
+                items: videos?.filter(v => v.category_id === p.id) || []
+            })),
+            ...(documents || []).map(d => ({
+                id: d.id,
+                title: d.title,
+                year: d.year || 0,
+                hasYear: !!d.year,
+                category_id: d.category_id,
+                is_unclassified: d.is_unclassified ?? false, // 🔥 CRITICAL: Pass is_unclassified
+                type: d.type, // DB의 type을 그대로 사용 (PERSON, DOCUMENT 등)
+                content: d.content,
+                created_at: d.created_at,
+                image_url: d.image_url
+            })),
+            ...(allVideos || []).map(v => ({
+                id: v.id,
+                title: v.title,
+                year: v.year || 0,
+                hasYear: !!v.year,
+                category_id: v.category_id,
+                is_unclassified: v.is_unclassified ?? false, // 🔥 CRITICAL: Pass is_unclassified
+                type: 'video' as const,
+                description: v.description,
+                youtube_url: `https://www.youtube.com/watch?v=${v.youtube_video_id}`,
+                created_at: v.created_at
+            }))
+        ];
 
-            // Fetch Standalone Videos
-            const { data: videos, error: vError } = await supabase
-                .from('learning_videos')
-                .select('*')
-                .is('playlist_id', null)
-                .eq('is_public', true)
-                .order('created_at', { ascending: false });
+        console.log('✅ [ResourceDrawer] Items built:', {
+            totalItems: result.length,
+            folders: result.filter(i => i.type === 'general').length,
+            playlists: result.filter(i => i.type === 'playlist').length,
+            videos: result.filter(i => i.type === 'video').length,
+            documents: result.filter(i => i.type !== 'general' && i.type !== 'playlist' && i.type !== 'video').length
+        });
 
-            if (vError) throw vError;
-
-            const combined: ResourceItem[] = [
-                ...(playlists || []).map(p => ({
-                    id: p.id,
-                    title: p.title,
-                    year: p.year || 0, // 0 if null
-                    hasYear: !!p.year,
-                    category_id: p.category_id,
-                    type: 'playlist' as const,
-                    description: p.description,
-                    youtube_url: p.youtube_playlist_id ? `https://www.youtube.com/playlist?list=${p.youtube_playlist_id}` : undefined,
-                    created_at: p.created_at
-                })),
-                ...(documents || []).map(d => ({
-                    id: d.id,
-                    title: d.title,
-                    year: d.year || 0,
-                    hasYear: !!d.year,
-                    category_id: d.category_id,
-                    type: 'document' as const,
-                    content: d.content,
-                    created_at: d.created_at
-                })),
-                ...(videos || []).map(v => ({
-                    id: v.id,
-                    title: v.title,
-                    year: v.year || 0,
-                    hasYear: !!v.year,
-                    category_id: v.category_id,
-                    type: 'video' as const,
-                    description: v.description,
-                    youtube_url: `https://www.youtube.com/watch?v=${v.youtube_video_id}`,
-                    created_at: v.created_at
-                }))
-            ];
-
-            // Sort logic handled in rendering
-            setItems(combined);
-        } catch (err) {
-            console.error('Failed to fetch resources for drawer:', err);
-        } finally {
-            setLoading(false);
-        }
-    };
+        return result;
+    }, [
+        // 🔥 CRITICAL: Use JSON.stringify to detect deep changes in data
+        JSON.stringify(categories),
+        JSON.stringify(playlists),
+        JSON.stringify(documents),
+        JSON.stringify(videos)
+    ]);
 
     // Filter and Group Logic
     const filteredList = items.filter(item =>
@@ -154,14 +201,6 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refr
         </div>
     );
 
-    // Map items for CategoryManager
-    const managerItems = filteredList.map(item => ({
-        id: item.id,
-        title: item.title,
-        category_id: item.category_id || null, // Ensure string | null compatibility
-        type: item.type === 'video' ? 'standalone_video' : item.type
-    })) as any[];
-
     const handleResourceClick = (id: string, type: string = 'playlist') => {
         const item = items.find(i => i.id === id);
         if (onItemClick) {
@@ -170,7 +209,15 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refr
     };
 
     return (
-        <div className={`resource-drawer ${isOpen ? 'open' : ''}`}>
+        <div
+            className={`resource-drawer ${isOpen ? 'open' : ''} ${isExpanded ? 'expanded' : ''}`}
+            style={{ width, right: isOpen ? 0 : -width }}
+        >
+            <div
+                className={`resize-handle ${isResizing ? 'resizing' : ''}`}
+                onMouseDown={() => setIsResizing(true)}
+            />
+
             <div className="drawer-header">
                 <h2 className="manual-label-wrapper">
                     <span className="translated-part">데이터 서랍</span>
@@ -208,9 +255,7 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refr
             </div>
 
             <div className="drawer-content">
-                {loading ? (
-                    <div className="drawer-loading">불러오는 중...</div>
-                ) : filterMode === 'year' ? (
+                {filterMode === 'year' ? (
                     decades.length > 0 ? (
                         decades.map(decade => (
                             <div key={decade} className="decade-section">
@@ -229,12 +274,13 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refr
                     // 'all' mode - Category Tree
                     <div className="category-tree-wrapper">
                         <CategoryManager
-                            onCategoryChange={() => { }} // ReadOnly, no change
-                            readOnly={true}
-                            playlists={managerItems}
-                            onSelect={() => { }} // No select action needed in drawer
-                            dragSourceMode={true} // Enable dragging out
+                            onCategoryChange={onCategoryChange || (() => { })}
+                            readOnly={!isExpanded}
+                            resources={items} // 🔥 SIMPLIFIED: Pass all items as single prop
+                            onSelect={() => { }}
+                            dragSourceMode={true}
                             onPlaylistClick={handleResourceClick}
+                            onMovePlaylist={onMoveResource}
                         />
                     </div>
                 )}
