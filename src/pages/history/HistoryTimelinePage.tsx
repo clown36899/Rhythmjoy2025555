@@ -172,9 +172,12 @@ export default function HistoryTimelinePage() {
             const { data, error } = await supabase
                 .from('learning_resources')
                 .select('*')
+                .order('order_index', { ascending: true })
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
+
+            console.log('📡 [fetchResourceData] Raw Data from Supabase (First 2):', (data || []).slice(0, 2).map((r: any) => ({ title: r.title, grid_row: r.grid_row, grid_col: r.grid_column })));
 
             const allResources = (data || []).map(normalizeResource);
 
@@ -182,6 +185,7 @@ export default function HistoryTimelinePage() {
 
             // Reverted: All general types are Folders
             const folders = allResources.filter((r: any) => r.type === 'general');
+            console.log('✅ [fetchResourceData] Data Sample (First 3):', allResources.slice(0, 3).map(r => ({ title: r.title, row: r.grid_row, col: r.grid_column })));
             console.log('✅ [fetchResourceData] Folders (and Playlists) found:', folders.length);
 
             setResourceData({
@@ -967,15 +971,40 @@ export default function HistoryTimelinePage() {
         setDraggedResource(resource);
     }, []);
 
-    const handleDrawerItemClick = useCallback((id: string, type: string, title: string) => {
+    const handleDrawerItemClick = useCallback((item: any) => {
         // Just set the preview state, specialized modals will handle fetching
-        setPreviewResource({ id, type, title });
+        setPreviewResource({ id: item.id, type: item.type, title: item.title });
     }, []);
 
-    const handleMoveResource = useCallback(async (id: string, targetCategoryId: string | null, isUnclassified: boolean = false) => {
+    const handleMoveResource = useCallback(async (id: string, targetCategoryId: string | null, isUnclassified: boolean = false, gridRow?: number, gridColumn?: number) => {
         if (!isAdmin) {
             alert('관리자 권한이 필요합니다.');
             return;
+        }
+
+        if (targetCategoryId === id) {
+            console.warn('Cannot move item into itself');
+            return;
+        }
+
+        // 🔥 CRITICAL FIX: Verify Target is a FOLDER (type='general')
+        // Prevents "File inside File" corruption where items disappear.
+        if (targetCategoryId) {
+            try {
+                const { data: targetCheck } = await supabase
+                    .from('learning_resources')
+                    .select('type, title')
+                    .eq('id', targetCategoryId)
+                    .single();
+
+                if (targetCheck && targetCheck.type !== 'general') {
+                    console.error(`⛔ ALARM: Tying to move item into a non-folder (${targetCheck.type})! Aborting.`);
+                    alert(`Invalid Move: '${targetCheck.title}' is not a folder.`);
+                    return;
+                }
+            } catch (err) {
+                console.warn('Validation check failed, but proceeding cautiously:', err);
+            }
         }
 
         // Optimistic Update
@@ -990,7 +1019,13 @@ export default function HistoryTimelinePage() {
                         if (r.id === id) {
                             found = true;
                             console.log(`✨ [Optimistic] Found item in ${key}:`, r.title);
-                            return { ...r, category_id: targetCategoryId, is_unclassified: isUnclassified };
+                            return {
+                                ...r,
+                                category_id: targetCategoryId,
+                                is_unclassified: isUnclassified,
+                                grid_row: gridRow ?? r.grid_row ?? 0,
+                                grid_column: gridColumn ?? r.grid_column ?? 0
+                            };
                         }
                         return r;
                     });
@@ -1004,29 +1039,138 @@ export default function HistoryTimelinePage() {
             return next;
         });
 
-        console.log(`📡 [handleMoveResource] Moving ${id} -> Category: ${targetCategoryId}, Unclassified: ${isUnclassified}`);
+        console.log(`📡 [handleMoveResource] Moving ${id} -> Category: ${targetCategoryId}, Unclassified: ${isUnclassified}, Grid: (${gridRow}, ${gridColumn})`);
 
         try {
+            const updateData: any = {
+                category_id: targetCategoryId,
+                is_unclassified: isUnclassified
+            };
+
+            // Only update grid coordinates if provided (root-level items)
+            if (gridRow !== undefined) updateData.grid_row = gridRow;
+            if (gridColumn !== undefined) updateData.grid_column = gridColumn;
+
             const { error } = await supabase
                 .from('learning_resources')
-                .update({
-                    category_id: targetCategoryId,
-                    is_unclassified: isUnclassified
-                })
+                .update(updateData)
                 .eq('id', id);
 
             if (error) throw error;
 
             console.log('✅ Resource moved successfully:', id);
             // We don't call setDrawerRefreshKey here to avoid full "refresh" feel.
-            // optimistic update already handled the UI.
         } catch (err) {
-            console.error('Failed to move resource:', err);
-            // Refresh to sync if failed
-            setDrawerRefreshKey(prev => prev + 1);
-            alert('자료 이동에 실패했습니다.');
+            console.error('❌ Failed to move resource:', err);
+            // Revert on failure (reload)
+            fetchResourceData();
         }
-    }, [isAdmin]);
+    }, [isAdmin, fetchResourceData]);
+
+    // Handle Reorder Resource (Drag & Drop Reordering)
+    const handleReorderResource = useCallback(async (sourceId: string, targetId: string, position: 'before' | 'after', gridRow?: number, gridColumn?: number) => {
+        if (!isAdmin) {
+            alert('관리자 권한이 필요합니다.');
+            return;
+        }
+        if (!user) {
+            console.error('User not authenticated');
+            return;
+        }
+
+        console.log(`🔃 [Reorder] ${sourceId} ${position} ${targetId}`);
+
+        // Find items to calculate new order
+        // We need to look in both folders and playlists (which are empty arrays) - wait, unified 'folders' list.
+        // Actually we need to find them in the current view list.
+        // Since we are reordering Root items, we look at 'folders' that have parent_id=null (or category_id=null).
+
+        // Optimistic Update? Too complex for calculation here, better to just update DB and fetch.
+        // Or simplified optimistic: just fetch after.
+
+        try {
+            // 1. Get target item's info
+            const { data: targetData } = await supabase
+                .from('learning_resources')
+                .select('category_id, order_index, type, is_unclassified')
+                .eq('id', targetId)
+                .single();
+
+            if (!targetData) throw new Error('Target not found');
+
+            const parentId = targetData.category_id;
+            const targetIsUnclassified = targetData.is_unclassified;
+
+            // 1.5 Fetch SOURCE item's FULL info (needed for upsert constraint satisfaction)
+            const { data: sourceData } = await supabase
+                .from('learning_resources')
+                .select('*')
+                .eq('id', sourceId)
+                .single();
+
+            if (!sourceData) throw new Error('Source not found');
+
+            // 2. Fetch all siblings in that parent to calculate indices
+            // 🔥 CRITICAL: Fetch ALL columns (*) to satisfy upsert constraints when shifting indices
+            let query = supabase
+                .from('learning_resources')
+                .select('*')
+                .order('order_index', { ascending: true });
+
+            if (parentId) {
+                query = query.eq('category_id', parentId);
+            } else {
+                query = query.is('category_id', null).eq('is_unclassified', targetIsUnclassified);
+            }
+
+            const { data: siblings } = await query;
+            if (!siblings) throw new Error('Siblings not found');
+
+            // 3. Calculate new index
+            let newSiblings = siblings.filter(s => s.id !== sourceId); // Remove source if present
+            const targetIndex = newSiblings.findIndex(s => s.id === targetId);
+
+            // Insert at new position
+            let insertIndex = targetIndex;
+            if (position === 'after') insertIndex += 1;
+
+            // Re-insert source (Use fetched sourceData)
+            newSiblings.splice(insertIndex, 0, { ...sourceData, order_index: 0 });
+
+            // 4. Update order_indices for all affected
+            const updates = newSiblings.map((s, idx) => {
+                const payload: any = {
+                    ...s, // 🔥 Include ALL existing fields (preserves type, title, etc.)
+                    order_index: (idx + 1) * 100, // Reset spacing
+                    user_id: user.id // Ensure user_id is explicit
+                };
+
+                // Force update parent/type info for the source item (Cross-folder reorder)
+                if (s.id === sourceId) {
+                    payload.category_id = parentId;
+                    payload.is_unclassified = targetIsUnclassified;
+                    // 🔥 CRITICAL: Update grid coordinates for the source item
+                    if (gridRow !== undefined) payload.grid_row = gridRow;
+                    if (gridColumn !== undefined) payload.grid_column = gridColumn;
+                }
+                return payload;
+            });
+
+            // Apply updates via upsert
+            // Since we provide ALL columns (via ...s), constraints are satisfied.
+            const { error } = await supabase
+                .from('learning_resources')
+                .upsert(updates);
+
+            if (error) throw error;
+            console.log('✅ Reorder successful');
+
+            fetchResourceData();
+
+        } catch (err) {
+            console.error('❌ Failed to reorder:', err);
+        }
+    }, [isAdmin, fetchResourceData]);
 
     const onDrop = useCallback(
         async (event: any) => {
@@ -1145,6 +1289,8 @@ export default function HistoryTimelinePage() {
                             }
                         };
                         newNodes.push(parentNode);
+
+
 
                         // Layout settings for unpacked items
                         const GRID_WIDTH = 450;
@@ -1507,6 +1653,7 @@ export default function HistoryTimelinePage() {
                 onDragStart={onResourceDragStart}
                 onItemClick={handleDrawerItemClick}
                 onMoveResource={handleMoveResource}
+                onReorderResource={handleReorderResource}
                 onCategoryChange={fetchResourceData}
                 refreshKey={drawerRefreshKey}
                 categories={resourceData.categories}

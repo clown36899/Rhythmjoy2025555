@@ -21,18 +21,19 @@ interface Props {
     isOpen: boolean;
     onClose: () => void;
     onDragStart: (e: React.DragEvent, item: any) => void;
-    onItemClick?: (id: string, type: string, title: string) => void;
-    refreshKey?: number;
+    onItemClick: (item: any) => void;
+    refreshKey: number;
     // Injected Data
     categories: any[];
     playlists: any[];
     videos: any[]; // These are ALL videos (for unpack)
     documents: any[];
-    onMoveResource?: (id: string, targetCategoryId: string | null) => void;
-    onCategoryChange?: () => void;
+    onMoveResource?: (id: string, targetCategoryId: string | null, isUnclassified: boolean) => void;
+    onReorderResource?: (sourceId: string, targetId: string, position: 'before' | 'after') => void;
+    onCategoryChange: () => void;
 }
 
-export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refreshKey: _refreshKey, categories, playlists, videos, documents, onMoveResource, onCategoryChange }: Props) => {
+export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refreshKey, categories, playlists, videos, documents, onMoveResource, onReorderResource, onCategoryChange }: Props) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterMode, setFilterMode] = useState<'all' | 'year'>('all');
     const [width, setWidth] = useState(360);
@@ -101,7 +102,10 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refr
                 category_id: c.category_id !== undefined ? c.category_id : (c.parent_id ?? null),
                 is_unclassified: c.is_unclassified ?? false,
                 type: 'general' as const, // Folders have type='general'
-                created_at: c.created_at
+                created_at: c.created_at,
+                grid_row: c.grid_row,
+                grid_column: c.grid_column,
+                order_index: c.order_index
             })),
             ...(playlists || []).map(p => ({
                 id: p.id,
@@ -114,7 +118,10 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refr
                 description: p.description,
                 youtube_url: p.youtube_playlist_id ? `https://www.youtube.com/playlist?list=${p.youtube_playlist_id}` : undefined,
                 created_at: p.created_at,
-                items: videos?.filter(v => v.category_id === p.id) || []
+                items: videos?.filter(v => v.category_id === p.id) || [],
+                grid_row: p.grid_row,
+                grid_column: p.grid_column,
+                order_index: p.order_index
             })),
             ...(documents || []).map(d => ({
                 id: d.id,
@@ -126,7 +133,10 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refr
                 type: d.type, // DB의 type을 그대로 사용 (PERSON, DOCUMENT 등)
                 content: d.content,
                 created_at: d.created_at,
-                image_url: d.image_url
+                image_url: d.image_url,
+                grid_row: d.grid_row,
+                grid_column: d.grid_column,
+                order_index: d.order_index
             })),
             ...(allVideos || []).map(v => ({
                 id: v.id,
@@ -138,7 +148,10 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refr
                 type: 'video' as const,
                 description: v.description,
                 youtube_url: `https://www.youtube.com/watch?v=${v.youtube_video_id}`,
-                created_at: v.created_at
+                created_at: v.created_at,
+                grid_row: v.grid_row,
+                grid_column: v.grid_column,
+                order_index: v.order_index
             }))
         ];
 
@@ -201,10 +214,9 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refr
         </div>
     );
 
-    const handleResourceClick = (id: string, type: string = 'playlist') => {
-        const item = items.find(i => i.id === id);
+    const handleResourceClick = (item: ResourceItem) => {
         if (onItemClick) {
-            onItemClick(id, type, item?.title || '제목 없음');
+            onItemClick(item);
         }
     };
 
@@ -274,13 +286,14 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refr
                     // 'all' mode - Category Tree
                     <div className="category-tree-wrapper">
                         <CategoryManager
-                            onCategoryChange={onCategoryChange || (() => { })}
+                            resources={items}
+                            onItemClick={handleResourceClick}
+                            onMoveResource={onMoveResource}
+                            onReorderResource={onReorderResource}
+                            refreshKey={refreshKey}
+                            onCategoryChange={onCategoryChange}
                             readOnly={!isExpanded}
-                            resources={items} // 🔥 SIMPLIFIED: Pass all items as single prop
-                            onSelect={() => { }}
                             dragSourceMode={true}
-                            onPlaylistClick={handleResourceClick}
-                            onMovePlaylist={onMoveResource}
                         />
                     </div>
                 )}
