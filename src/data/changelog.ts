@@ -8,6 +8,17 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '3.4.1',
+        date: '2026-01-08',
+        changes: [
+            '[✨ 기능] 카테고리 매니저 드래그 앤 드롭 고도화 (At Home 차단 로직 도입)',
+            '[✨ 기능] 폴더 진입(Inside) 시각 효과 정밀 교격 (네온 스타일 + 컨테이너 밀착)',
+            '[✨ 기능] 폴더 진입 판정 범위 확장 (70%) 및 조작 편의성 향상',
+            '[🐛 Fix] 린트 에러 수정 및 폴더 내부 드롭 차단(BLOCKED) 버그 해결',
+            '[🔧 개선] 불필요한 렌더링 로그 제거 및 실시간 상태 추적 로깅 시스템 구축'
+        ]
+    },
+    {
         version: '3.4.0',
         date: '2026-01-07',
         changes: [

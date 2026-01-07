@@ -475,33 +475,30 @@
     }
 }
 
-/* 2. Reparent: High Visibility Highlight (Inside Folder) */
+/* 2. Reparent: Refined High-Visibility Highlight (Inside Folder) */
 .itemContent.dragOver-active,
 .itemContent.reorder-inside {
-    background-color: rgba(59, 130, 246, 0.4) !important;
-    /* Opacity increased from 0.2 */
-    border: 3px solid #3b82f6 !important;
-    /* Thicker border */
+    background-color: rgba(30, 144, 255, 0.5) !important;
+    border: 2px solid #00bfff !important;
+    outline: 2px solid rgba(0, 191, 246, 0.6) !important;
+    outline-offset: 0;
     box-shadow:
-        0 0 20px rgba(59, 130, 246, 0.6),
-        inset 0 0 15px rgba(59, 130, 246, 0.4) !important;
-    transform: scale(1.04);
-    /* More pronounced scale */
-    z-index: 100;
-    animation: drag-pulse 1.5s infinite;
+        0 0 20px rgba(30, 144, 255, 0.4),
+        inset 0 0 15px rgba(30, 144, 255, 0.3) !important;
+    transform: scale(1.02);
+    z-index: 1000;
+    animation: drag-neat-pulse 1.2s infinite alternate ease-in-out;
 }
 
-@keyframes drag-pulse {
+@keyframes drag-neat-pulse {
     0% {
-        box-shadow: 0 0 15px rgba(59, 130, 246, 0.5), inset 0 0 10px rgba(59, 130, 246, 0.3);
-    }
-
-    50% {
-        box-shadow: 0 0 30px rgba(59, 130, 246, 0.8), inset 0 0 20px rgba(59, 130, 246, 0.5);
+        background-color: rgba(30, 144, 255, 0.4);
+        box-shadow: 0 0 15px rgba(30, 144, 255, 0.3), inset 0 0 10px rgba(30, 144, 255, 0.2);
     }
 
     100% {
-        box-shadow: 0 0 15px rgba(59, 130, 246, 0.5), inset 0 0 10px rgba(59, 130, 246, 0.3);
+        background-color: rgba(30, 144, 255, 0.6);
+        box-shadow: 0 0 30px rgba(30, 144, 255, 0.7), inset 0 0 20px rgba(30, 144, 255, 0.5);
     }
 }
 
