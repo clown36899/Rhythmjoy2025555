@@ -494,23 +494,23 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                     ...(category.parent_id === null && !category.is_unclassified ? {
                         marginBottom: '10px'
                     } : {}),
-                    boxShadow: dropIndicator?.targetId === category.id ? (
-                        (dropIndicator?.position === 'top' || dropIndicator?.position === 'before') ? 'inset 0 4px 0 0 #3b82f6' :
-                            (dropIndicator?.position === 'bottom' || dropIndicator?.position === 'after') ? 'inset 0 -4px 0 0 #3b82f6' :
-                                dropIndicator?.position === 'left' ? 'inset 4px 0 0 0 #3b82f6' :
-                                    dropIndicator?.position === 'right' ? 'inset -4px 0 0 0 #3b82f6' :
-                                        'none'
-                    ) : 'none',
                     backgroundColor: 'transparent',
                     transition: 'all 0.1s ease',
-                    // Inside highlight moved to itemContent
+                    // All indicators moved to itemContent for better precision when expanded
                 }}
             >
                 <div
                     className={`itemContent ${isSelected ? 'selected' : ''} ${dragDest === category.id ? 'dragOver-active' : ''}`}
                     style={{
                         backgroundColor: dropIndicator?.targetId === category.id && dropIndicator?.position === 'inside' ? 'rgba(59, 130, 246, 0.2)' : 'transparent',
-                        boxShadow: dropIndicator?.targetId === category.id && dropIndicator?.position === 'inside' ? 'inset 0 0 0 2px #3b82f6' : 'none',
+                        boxShadow: dropIndicator?.targetId === category.id ? (
+                            (dropIndicator?.position === 'top' || dropIndicator?.position === 'before') ? 'inset 0 4px 0 0 #3b82f6' :
+                                (dropIndicator?.position === 'bottom' || dropIndicator?.position === 'after') ? 'inset 0 -4px 0 0 #3b82f6' :
+                                    dropIndicator?.position === 'left' ? 'inset 4px 0 0 0 #3b82f6' :
+                                        dropIndicator?.position === 'right' ? 'inset -4px 0 0 0 #3b82f6' :
+                                            dropIndicator?.position === 'inside' ? 'inset 0 0 0 2px #3b82f6' :
+                                                'none'
+                        ) : 'none',
                         borderRadius: '4px'
                     }}
                     onDragOver={(e) => onDragOver(e, category.id, true)}
@@ -566,7 +566,8 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
 
                         // 🔥 VISUAL-COORDINATE-BASED Proximity Logic (Responsive Grid Safe)
                         const container = e.currentTarget;
-                        const children = Array.from(container.querySelectorAll('.treeItem[data-id]'));
+                        // 🔥 FIX: Only consider root-level items in columns to avoid misplaced indicators for expanded folders
+                        const children = Array.from(container.querySelectorAll('.grid-column > .treeItem[data-id]'));
 
                         if (children.length === 0) {
                             setDropIndicator(null);
@@ -579,7 +580,9 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
 
                         // Step 1: Build visual map with coordinates
                         const visualItems = children.map(child => {
-                            const rect = child.getBoundingClientRect();
+                            // 🔥 Use header rect for folders to prevent indicators from appearing at the bottom of expanded branches
+                            const rectItem = child.querySelector('.itemContent') || child;
+                            const rect = rectItem.getBoundingClientRect();
                             return {
                                 element: child,
                                 id: child.getAttribute('data-id')!,
