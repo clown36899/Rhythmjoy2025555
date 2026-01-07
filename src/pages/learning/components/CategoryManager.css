@@ -365,19 +365,59 @@
     vertical-align: top;
 }
 
-/* Insertion Lines - No Layout Shift */
-.treeItem.dragOver-reorder-top::before {
+/* Reorder Indicators (Separated by pseudo-elements) */
+.itemContent.reorder-top::before,
+.itemContent.reorder-before::before {
     content: '';
     position: absolute;
-    top: 0;
+    top: -7px;
     left: 0;
     right: 0;
     height: 4px;
     background-color: #3b82f6;
-    z-index: 1000;
-    pointer-events: none;
     border-radius: 2px;
     box-shadow: 0 0 4px rgba(59, 130, 246, 0.5);
+    z-index: 100;
+}
+
+.itemContent.reorder-bottom::after,
+.itemContent.reorder-after::after {
+    content: '';
+    position: absolute;
+    bottom: -7px;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background-color: #3b82f6;
+    border-radius: 2px;
+    box-shadow: 0 0 4px rgba(59, 130, 246, 0.5);
+    z-index: 100;
+}
+
+.itemContent.reorder-left::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -12px;
+    width: 4px;
+    background-color: #3b82f6;
+    border-radius: 2px;
+    box-shadow: 0 0 4px rgba(59, 130, 246, 0.5);
+    z-index: 100;
+}
+
+.itemContent.reorder-right::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: -12px;
+    width: 4px;
+    background-color: #3b82f6;
+    border-radius: 2px;
+    box-shadow: 0 0 4px rgba(59, 130, 246, 0.5);
+    z-index: 100;
 }
 
 .treeItem.dragOver-reparent::before {
@@ -435,13 +475,34 @@
     }
 }
 
-/* 2. Reparent: Clean Highlight + Dummy */
-.dragOver-reparent {
-    background-color: rgba(59, 130, 246, 0.25) !important;
-    border: 2px dashed #60a5fa !important;
-    border-radius: 4px;
-    box-shadow: 0 0 8px rgba(59, 130, 246, 0.4);
-    transition: all 0.2s ease;
+/* 2. Reparent: High Visibility Highlight (Inside Folder) */
+.itemContent.dragOver-active,
+.itemContent.reorder-inside {
+    background-color: rgba(59, 130, 246, 0.4) !important;
+    /* Opacity increased from 0.2 */
+    border: 3px solid #3b82f6 !important;
+    /* Thicker border */
+    box-shadow:
+        0 0 20px rgba(59, 130, 246, 0.6),
+        inset 0 0 15px rgba(59, 130, 246, 0.4) !important;
+    transform: scale(1.04);
+    /* More pronounced scale */
+    z-index: 100;
+    animation: drag-pulse 1.5s infinite;
+}
+
+@keyframes drag-pulse {
+    0% {
+        box-shadow: 0 0 15px rgba(59, 130, 246, 0.5), inset 0 0 10px rgba(59, 130, 246, 0.3);
+    }
+
+    50% {
+        box-shadow: 0 0 30px rgba(59, 130, 246, 0.8), inset 0 0 20px rgba(59, 130, 246, 0.5);
+    }
+
+    100% {
+        box-shadow: 0 0 15px rgba(59, 130, 246, 0.5), inset 0 0 10px rgba(59, 130, 246, 0.3);
+    }
 }
 
 /* Dummy Child - Keep it but ensure no pointer events */

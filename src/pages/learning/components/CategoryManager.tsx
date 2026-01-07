@@ -57,6 +57,7 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
     } = props;
 
     // State for UI only (not data)
+    const draggingIdRef = useRef<string | null>(null);
     const [dragDest, setDragDest] = useState<string | null>(null);
     const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
     const [dropIndicator, setDropIndicator] = useState<{
@@ -65,6 +66,15 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
         isTargetFolder?: boolean,
         isProximity?: boolean
     } | null>(null);
+
+    // 🛡️ [Nuclear Logging] Indicator State Tracker
+    useMemo(() => {
+        if (dropIndicator) {
+            console.log('🚨 [INDICATOR_UPDATE]', dropIndicator);
+        } else {
+            // console.log('🚨 [INDICATOR_CLEAR]');
+        }
+    }, [dropIndicator]);
     const dropIndicatorRef = useRef<{
         targetId: string,
         position: 'before' | 'after' | 'inside' | 'top' | 'bottom' | 'left' | 'right',
@@ -227,8 +237,23 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
     const isLoading = false;
 
 
+    // --- 🛡️ Safety Helpers ---
+    const isDescendantOf = useCallback((targetId: string, searchId: string) => {
+        if (!searchId || !targetId) return false;
+        let currentItem = normalizedCategories.find(c => c.id === targetId);
+        let depth = 0; // Guard against infinite loops
+        while (currentItem && currentItem.parent_id && depth < 50) {
+            if (currentItem.parent_id === searchId) return true;
+            currentItem = normalizedCategories.find(c => c.id === currentItem!.parent_id);
+            depth++;
+        }
+        return false;
+    }, [normalizedCategories]);
+
     const onDragStart = (e: React.DragEvent, item: any, type: string) => {
         if (readOnly && !dragSourceMode) return;
+        console.log('🚀 [DRAG_START]', { id: item.id, type });
+        draggingIdRef.current = item.id;
         e.stopPropagation();
         const payload = {
             type: 'INTERNAL_MOVE', // Standardize type for internal moves
@@ -241,7 +266,50 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
         e.dataTransfer.effectAllowed = 'move';
     };
 
+    const onDragEnd = () => {
+        console.log('🏁 [DRAG_END]', { lastId: draggingIdRef.current });
+        draggingIdRef.current = null;
+        setDragDest(null);
+        setDropIndicator(null);
+        dropIndicatorRef.current = null;
+    };
+
+
     const onDragOver = (e: React.DragEvent, id: string, isFolder: boolean = false) => {
+        const currentDraggingId = draggingIdRef.current;
+        const rootContainer = document.getElementById('root-main-zone');
+
+        // 🔥 Step 0: [At Home Check] 
+        // If mouse is near original spot, block all indicators (even on neighbors)
+        if (currentDraggingId && rootContainer) {
+            const originEl = rootContainer.querySelector(`.treeItem[data-id="${currentDraggingId}"]`);
+            if (originEl) {
+                const rect = originEl.getBoundingClientRect();
+                const buffer = 20;
+                if (e.clientX >= rect.left - buffer && e.clientX <= rect.right + buffer &&
+                    e.clientY >= rect.top - buffer && e.clientY <= rect.bottom + buffer) {
+                    if (dropIndicator) {
+                        console.log('🚫 [ITEM_OVER] Near Home Area - clearing indicator');
+                        setDropIndicator(null);
+                    }
+                    dropIndicatorRef.current = null;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return;
+                }
+            }
+        }
+
+        // 🔥 RECURSION PREVENTION: Block self or descendant targets
+        if (currentDraggingId && (id === currentDraggingId || isDescendantOf(id, currentDraggingId))) {
+            if (dropIndicator) setDropIndicator(null);
+            dropIndicatorRef.current = null;
+
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+        }
+
         e.preventDefault();
         e.stopPropagation();
 
@@ -254,19 +322,13 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
         let position: 'before' | 'after' | 'inside' | 'top' | 'bottom' | 'left' | 'right' = 'after';
 
         if (isFolder) {
-            // Folders: Balanced thresholds (top: 25%, bottom: 25%, center: 50%)
-            if (y < 0.25) {
-                position = 'top';
-            } else if (y > 0.75) {
-                position = 'bottom';
-            } else if (x > 0.3 && x < 0.7) {
-                // Inside: centered 50% vertical, 40% horizontal
-                position = 'inside';
-            } else if (x < 0.5) {
-                position = 'left';
-            } else {
-                position = 'right';
-            }
+            // Folders: Very generous Inside zone (70% center area)
+            // Reordering only happens at the very edges (15% margins)
+            if (y < 0.15) position = 'top';
+            else if (y > 0.85) position = 'bottom';
+            else if (x < 0.15) position = 'left';
+            else if (x > 0.85) position = 'right';
+            else position = 'inside';
         } else {
             // Files/Playlists: 25% top/bottom thresholds for precise reordering
             if (y < 0.25) position = 'top';
@@ -276,19 +338,22 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
         }
 
         if (dropIndicator?.targetId !== id || dropIndicator?.position !== position) {
-            const newIndicator = { targetId: id, position };
+            const newIndicator = { targetId: id, position, isTargetFolder: isFolder };
             dropIndicatorRef.current = newIndicator; // Sync Ref
-            setDropIndicator(newIndicator);
+            if (newIndicator.targetId !== dropIndicator?.targetId || newIndicator.position !== dropIndicator?.position) {
+                console.log('🔹 [ITEM_OVER] Setting indicator:', newIndicator);
+                setDropIndicator(newIndicator);
+            }
 
             // Also update dragDest for visual highlight if 'inside'
-            if (position === 'inside') {
+            if (position === 'inside' && isFolder) {
                 if (dragDest !== id) setDragDest(id);
             } else {
-                if (dragDest) setDragDest(null);
+                if (dragDest === id) setDragDest(null);
             }
         } else {
             // Even if state didn't change, keep ref fresh
-            dropIndicatorRef.current = { targetId: id, position };
+            dropIndicatorRef.current = { targetId: id, position, isTargetFolder: isFolder };
         }
     };
 
@@ -307,6 +372,13 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
         try {
             const data = JSON.parse(e.dataTransfer.getData('application/json'));
             const draggedId = data.id;
+
+            // 🔥 FINAL RECURSION SAFETY: Block invalid drops that somehow bypassed onDragOver
+            // (Target cannot be the dragged item itself OR any descendant of the dragged item)
+            if (currentIndicator?.targetId && (currentIndicator.targetId === draggedId || isDescendantOf(currentIndicator.targetId, draggedId))) {
+                console.warn('⚠️ [CategoryManager] Blocked illegal recursive move:', { draggedId, targetId: currentIndicator.targetId });
+                return;
+            }
 
             // 🔥 Calculate Grid Coordinates from mouse position (Snap-to-Grid)
             // Use the main container ID to ensure consistency when dropping on items
@@ -405,9 +477,7 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
     const renderPlaylistItem = (playlist: Playlist) => {
         const isSelected = selectedId === playlist.id;
 
-        if (playlist.category_id === null && !playlist.is_unclassified) {
-            console.log(`🎨 [CategoryManager] Render PlaylistItem (${playlist.title}) Row: ${playlist.grid_row ?? 'none'}, Col: ${playlist.grid_column ?? 'none'}`);
-        }
+        // Render Logic
 
         // 🔥 FIX: Display correct icon based on type
         const getIcon = () => {
@@ -421,9 +491,10 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
             <div
                 key={playlist.id}
                 data-id={playlist.id}
-                className={`treeItem playlistItem ${isSelected ? 'selected' : ''} ${dragDest === playlist.id ? 'dragOver-active' : ''}`}
+                className={`treeItem playlistItem ${isSelected ? 'selected' : ''}`}
                 draggable
                 onDragStart={(e) => onDragStart(e, playlist, 'PLAYLIST')}
+                onDragEnd={onDragEnd}
                 // Reorder Logic: Check position
                 onDragOver={(e) => onDragOver(e, playlist.id, false)}
                 onDragLeave={(e) => {
@@ -438,26 +509,32 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                     onItemClick?.(playlist);
                 }}
                 style={{
-                    // Root-level items no longer use absolute positioning
-                    // They flow naturally within their column container
                     position: 'relative',
                     width: '100%',
                     minHeight: '10px',
                     ...(playlist.category_id === null && !playlist.is_unclassified ? {
                         marginBottom: '10px'
                     } : {}),
-                    boxShadow: dropIndicator?.targetId === playlist.id ? (
-                        (dropIndicator?.position === 'top' || dropIndicator?.position === 'before') ? 'inset 0 4px 0 0 #3b82f6' :
-                            (dropIndicator?.position === 'bottom' || dropIndicator?.position === 'after') ? 'inset 0 -4px 0 0 #3b82f6' :
-                                dropIndicator?.position === 'left' ? 'inset 4px 0 0 0 #3b82f6' :
-                                    dropIndicator?.position === 'right' ? 'inset -4px 0 0 0 #3b82f6' :
-                                        dropIndicator?.position === 'inside' ? 'inset 0 0 0 2px #3b82f6' : 'none'
-                    ) : 'none',
+                    backgroundColor: 'transparent',
+                    transition: 'all 0.1s ease',
                     opacity: dropIndicator?.targetId === playlist.id && dropIndicator?.position === 'inside' ? 0.5 : 1
                 }}
             >
-                <span className="folderIcon">{getIcon()}</span>
-                <span className="categoryName">{playlist.title}</span>
+                <div
+                    className={`itemContent ${isSelected ? 'selected' : ''} 
+                        ${dropIndicator?.targetId === playlist.id ? `reorder-${dropIndicator.position}` : ''}
+                        ${dragDest === playlist.id ? 'dragOver-active' : ''}`}
+                    style={{
+                        backgroundColor: dropIndicator?.targetId === playlist.id && dropIndicator?.position === 'inside' ? 'rgba(59, 130, 246, 0.2)' : 'transparent',
+                        borderRadius: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        width: '100%'
+                    }}
+                >
+                    <span className="folderIcon">{getIcon()}</span>
+                    <span className="categoryName">{playlist.title}</span>
+                </div>
             </div>
         );
     };
@@ -475,17 +552,16 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
         const hasChildren = childFolders.length > 0 || playlistsInFolder.length > 0;
         const isSelected = selectedId === category.id;
 
-        if (category.parent_id === null && !category.is_unclassified) {
-            console.log(`🎨 [CategoryManager] Rendering FolderItem (${category.name}) at Row: ${category.grid_row}, Col: ${category.grid_column}`);
-        }
+        // Render Logic
 
         return (
             <div
                 key={category.id}
                 data-id={category.id}
-                className={`treeItem treeBranch ${isCollapsed ? 'collapsed' : 'expanded'} ${isSelected ? 'selected' : ''} ${dragDest === category.id ? 'dragOver-active' : ''}`}
+                className={`treeItem treeBranch ${isCollapsed ? 'collapsed' : 'expanded'} ${isSelected ? 'selected' : ''}`}
                 draggable
                 onDragStart={(e) => onDragStart(e, category, 'CATEGORY')}
+                onDragEnd={onDragEnd}
                 style={{
                     // Root-level folders no longer use absolute positioning
                     position: 'relative',
@@ -500,17 +576,11 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                 }}
             >
                 <div
-                    className={`itemContent ${isSelected ? 'selected' : ''} ${dragDest === category.id ? 'dragOver-active' : ''}`}
+                    className={`itemContent ${isSelected ? 'selected' : ''} 
+                        ${dropIndicator?.targetId === category.id ? `reorder-${dropIndicator.position}` : ''}
+                        ${dragDest === category.id ? 'dragOver-active' : ''}`}
                     style={{
                         backgroundColor: dropIndicator?.targetId === category.id && dropIndicator?.position === 'inside' ? 'rgba(59, 130, 246, 0.2)' : 'transparent',
-                        boxShadow: dropIndicator?.targetId === category.id ? (
-                            (dropIndicator?.position === 'top' || dropIndicator?.position === 'before') ? 'inset 0 4px 0 0 #3b82f6' :
-                                (dropIndicator?.position === 'bottom' || dropIndicator?.position === 'after') ? 'inset 0 -4px 0 0 #3b82f6' :
-                                    dropIndicator?.position === 'left' ? 'inset 4px 0 0 0 #3b82f6' :
-                                        dropIndicator?.position === 'right' ? 'inset -4px 0 0 0 #3b82f6' :
-                                            dropIndicator?.position === 'inside' ? 'inset 0 0 0 2px #3b82f6' :
-                                                'none'
-                        ) : 'none',
                         borderRadius: '4px'
                     }}
                     onDragOver={(e) => onDragOver(e, category.id, true)}
@@ -561,106 +631,103 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                 <div
                     className={`root-main-zone ${dragDest === 'ROOT' ? 'active' : ''}`}
                     onDragOver={(e) => {
+                        const containerEl = e.currentTarget;
+                        const mx = e.clientX;
+                        const my = e.clientY;
+                        const dragId = draggingIdRef.current;
+
+                        // 🔥 Step 0: [At Home Check]
+                        if (dragId) {
+                            const originEl = containerEl.querySelector(`.treeItem[data-id="${dragId}"]`);
+                            if (originEl) {
+                                const rect = originEl.getBoundingClientRect();
+                                const buffer = 20;
+                                if (mx >= rect.left - buffer && mx <= rect.right + buffer &&
+                                    my >= rect.top - buffer && my <= rect.bottom + buffer) {
+                                    if (dropIndicator) {
+                                        console.log('🚫 [ROOT_OVER] Inside Source Area - clearing indicator');
+                                        setDropIndicator(null);
+                                    }
+                                    dropIndicatorRef.current = null;
+                                    e.preventDefault();
+                                    return;
+                                }
+                            }
+                        }
+
                         e.preventDefault();
                         if (dragDest !== 'ROOT') setDragDest('ROOT');
 
-                        // 🔥 VISUAL-COORDINATE-BASED Proximity Logic (Responsive Grid Safe)
-                        const container = e.currentTarget;
-                        // 🔥 FIX: Only consider root-level items in columns to avoid misplaced indicators for expanded folders
-                        const children = Array.from(container.querySelectorAll('.grid-column > .treeItem[data-id]'));
+                        // 🔥 FIX: Only consider root-level items in columns AND ignore the dragging item itself
+                        const children = Array.from(containerEl.querySelectorAll('.grid-column > .treeItem[data-id]'))
+                            .filter(child => child.getAttribute('data-id') !== dragId);
 
                         if (children.length === 0) {
-                            setDropIndicator(null);
+                            if (dropIndicator) setDropIndicator(null);
                             dropIndicatorRef.current = null;
                             return;
                         }
 
-                        const mx = e.clientX;
-                        const my = e.clientY;
-
-                        // Step 1: Build visual map with coordinates
+                        // Step 1: Build visual map
                         const visualItems = children.map(child => {
-                            // 🔥 Use header rect for folders to prevent indicators from appearing at the bottom of expanded branches
                             const rectItem = child.querySelector('.itemContent') || child;
-                            const rect = rectItem.getBoundingClientRect();
+                            const r = rectItem.getBoundingClientRect();
                             return {
                                 element: child,
                                 id: child.getAttribute('data-id')!,
-                                rect,
-                                centerX: rect.left + rect.width / 2,
-                                centerY: rect.top + rect.height / 2,
-                                top: rect.top,
-                                left: rect.left
+                                rect: r,
+                                centerX: r.left + r.width / 2,
+                                centerY: r.top + r.height / 2,
+                                top: r.top,
+                                left: r.left
                             };
                         });
 
-                        // Step 2: Sort by VISUAL position (top-to-bottom, left-to-right)
-                        // This ensures correct ordering in responsive grids
+                        // Step 2: Sort
                         visualItems.sort((a, b) => {
-                            const rowThreshold = 20; // Items within 20px vertically are considered same row
-                            if (Math.abs(a.top - b.top) < rowThreshold) {
-                                return a.left - b.left; // Same row: sort by X
-                            }
-                            return a.top - b.top; // Different rows: sort by Y
+                            const rowThreshold = 20;
+                            if (Math.abs(a.top - b.top) < rowThreshold) return a.left - b.left;
+                            return a.top - b.top;
                         });
 
-                        // Step 3: Find nearest item by distance
+                        // Step 3: Find nearest
                         let minDist = Infinity;
                         let nearestItem = visualItems[0];
-
                         visualItems.forEach(item => {
-                            const dist = Math.hypot(mx - item.centerX, my - item.centerY);
-                            if (dist < minDist) {
-                                minDist = dist;
+                            const d = Math.hypot(mx - item.centerX, my - item.centerY);
+                            if (d < minDist) {
+                                minDist = d;
                                 nearestItem = item;
                             }
                         });
 
-                        // 🔥 PROXIMITY THRESHOLD: If too far from any item, don't set a reorder indicator.
-                        // This allows dropping in empty space to create new rows/cols.
+                        // Proximity threshold
                         if (minDist > 80) {
                             if (dropIndicator) setDropIndicator(null);
                             dropIndicatorRef.current = null;
                             return;
                         }
 
-                        // Step 4: Determine position relative to nearest item
-                        const rect = nearestItem.rect;
-                        const x = (mx - rect.left) / rect.width;
-                        const y = (my - rect.top) / rect.height;
+                        // Step 4: Determine position
+                        const r = nearestItem.rect;
+                        const ix = (mx - r.left) / r.width;
+                        const iy = (my - r.top) / r.height;
 
-                        let position: 'top' | 'bottom' | 'left' | 'right' = 'bottom';
+                        let pos: 'top' | 'bottom' | 'left' | 'right' = 'bottom';
+                        if (iy < 0.3) pos = 'top';
+                        else if (iy > 0.7) pos = 'bottom';
+                        else if (ix < 0.5) pos = 'left';
+                        else pos = 'right';
 
-                        // Prioritize vertical placement for natural grid flow
-                        if (y < 0.3) position = 'top';
-                        else if (y > 0.7) position = 'bottom';
-                        else if (x < 0.5) position = 'left';
-                        else position = 'right';
+                        let lPos: 'before' | 'after' = (pos === 'top' || pos === 'left') ? 'before' : 'after';
 
-                        // Step 5: Convert visual position to logical before/after based on VISUAL order
-                        let logicalPosition: 'before' | 'after' = 'after';
+                        const proxInd = { targetId: nearestItem.id, position: pos, logicalPosition: lPos, isProximity: true } as any;
 
-                        if (position === 'top' || position === 'left') {
-                            logicalPosition = 'before';
-                        } else {
-                            logicalPosition = 'after';
+                        if (dropIndicator?.targetId !== nearestItem.id || dropIndicator?.position !== pos) {
+                            console.log('🎯 [ROOT_OVER] Setting proximity indicator:', proxInd);
+                            setDropIndicator(proxInd);
                         }
-
-                        // Apply indicator
-                        const proxIndicator = {
-                            targetId: nearestItem.id,
-                            position,
-                            logicalPosition,
-                            isProximity: true
-                        } as any;
-
-                        dropIndicatorRef.current = proxIndicator;
-
-                        if (dropIndicator?.targetId !== nearestItem.id || dropIndicator?.position !== position) {
-                            setDropIndicator(proxIndicator);
-                        } else {
-                            dropIndicatorRef.current = proxIndicator;
-                        }
+                        dropIndicatorRef.current = proxInd;
                     }}
                     onDrop={(e) => onDrop(e, null, false)}
                     id="root-main-zone"
