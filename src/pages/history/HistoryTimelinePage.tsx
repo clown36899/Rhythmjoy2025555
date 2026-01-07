@@ -1205,15 +1205,17 @@ export default function HistoryTimelinePage() {
                 if (json) {
                     draggedData = JSON.parse(json);
 
+                    // Standardize internal move properties
+                    if (draggedData.type === 'INTERNAL_MOVE') {
+                        draggedData.id = draggedData.id;
+                        draggedData.type = (draggedData.internalType || draggedData.internal_type || '').toLowerCase().replace('_move', '');
+                    }
+
                     // DEBUG: Trace Dropped Data
                     console.log('📥 [Timeline] Drop Received:', {
-                        rawJson: json,
-                        parsedData: draggedData,
                         type: draggedData.type,
-                        internalType: draggedData.internal_type,
-                        hasItems: draggedData.items?.length > 0,
-                        itemCount: draggedData.items?.length,
-                        rawItems: draggedData.items
+                        id: draggedData.id,
+                        title: draggedData.title || draggedData.name
                     });
                 }
             } catch (e) {
@@ -1265,106 +1267,151 @@ export default function HistoryTimelinePage() {
             if (isFolder) {
                 setLoading(true);
                 try {
-                    // Fetch all items inside this folder from Unified Table (learning_resources)
-                    const { data: itemsData, error: itemsError } = await supabase
+                    // 🔥 RECURSIVE UNPACKING: Fetch ALL descendants (including sub-categories)
+                    const { data: allResourcesData, error: fetchError } = await supabase
                         .from('learning_resources')
-                        .select('*')
-                        .eq('category_id', draggedData.id);
+                        .select('*');
 
-                    if (itemsError) throw itemsError;
-                    const items = (itemsData || []).map(normalizeResource);
+                    if (fetchError) throw fetchError;
+                    const allRes = allResourcesData || [];
 
-                    if (items.length > 0 && window.confirm(`'${draggedData.title || draggedData.name}' 폴더 안의 ${items.length}개 항목을 펼치시겠습니까?\n(취소 시 단일 폴더 노드로 생성됩니다)`)) {
-                        // --- UNPACK MODE ---
-                        const totalItems = items.length;
-                        let batchYear = draggedData.year;
-                        if (!batchYear) {
-                            const input = window.prompt(`총 ${totalItems}개 자료의 연도를 입력해주세요:`, year.toString());
-                            if (input) batchYear = parseInt(input, 10);
-                            if (!batchYear || isNaN(batchYear)) batchYear = year;
-                        }
+                    // Recursive helper to build flat list of descendants with hierarchy info
+                    const collectDescendants = (parentId: string, currentLevel: number): any[] => {
+                        const directChildren = allRes.filter(r => r.category_id === parentId);
+                        let results: any[] = [];
+                        directChildren.forEach(child => {
+                            results.push({ ...child, level: currentLevel, parentId });
+                            if (child.type === 'general') { // If it's a folder/category
+                                results = [...results, ...collectDescendants(child.id, currentLevel + 1)];
+                            }
+                        });
+                        return results;
+                    };
 
+                    const descendants = collectDescendants(draggedData.id, 1);
+                    const totalItems = descendants.length;
+
+                    if (totalItems > 0 && window.confirm(`'${draggedData.title || draggedData.name}' 폴더와 하위 ${totalItems}개 항목을 계층 구조로 펼치시겠습니까?`)) {
+                        const newNodes: Node[] = [];
+                        const newEdges: Edge[] = [];
                         const startTempId = getTempId();
                         let currentTempId = parseInt(startTempId);
-                        const newNodes: Node[] = [];
 
-                        // Parent Node (Folder)
-                        const parentNode: Node = {
-                            id: String(currentTempId--),
+                        // 1. Root Node (Current Folder)
+                        const rootNodeId = String(currentTempId--);
+                        const rootNode: Node = {
+                            id: rootNodeId,
                             type: 'historyNode',
                             position: { x: position.x, y: position.y },
                             data: {
                                 title: draggedData.title || draggedData.name,
-                                year: batchYear,
+                                year: year,
                                 category: 'folder',
-                                description: 'Folder Group',
-                                created_by: user.id,
                                 nodeType: 'folder',
                                 linked_category_id: draggedData.id,
-                                id: currentTempId + 1,
+                                id: parseInt(rootNodeId),
                                 onEdit: handleEditNode,
                                 onViewDetail: handleViewDetail,
                                 onPreviewLinkedResource: (id: string, type: string, title: string) => setPreviewResource({ id, type, title }),
                             }
                         };
-                        newNodes.push(parentNode);
+                        newNodes.push(rootNode);
 
+                        // 2. Map for quick access [original_id -> newNodeId]
+                        const idMap = new Map<string, string>();
+                        idMap.set(draggedData.id, rootNodeId);
 
+                        // 3. Layout Calculation (Recursive Tree Style)
+                        const LEVEL_HEIGHT = 450;
+                        const NODE_WIDTH = 600; // More breathing room
 
-                        // Layout settings for unpacked items
-                        const GRID_WIDTH = 450;
-                        const GRID_HEIGHT = 450;
-                        const COLS = Math.ceil(Math.sqrt(totalItems)) + 1;
-                        let offsetX = 0;
-                        let offsetY = 350;
-
-                        // Children Nodes
-                        items.forEach((item) => {
-                            const childId = String(currentTempId--);
-                            const itemType = item.type === 'person' ? 'person' : (item.type === 'document' ? 'document' : (item.type === 'video' ? 'video' : 'default'));
-
-                            const posX = position.x + offsetX - ((COLS * GRID_WIDTH) / 2);
-                            const posY = position.y + offsetY;
-
-                            offsetX += GRID_WIDTH;
-                            if (offsetX >= GRID_WIDTH * COLS) {
-                                offsetX = 0;
-                                offsetY += GRID_HEIGHT;
-                            }
-
-                            const childNode: Node = {
-                                id: childId,
-                                type: 'historyNode',
-                                position: { x: posX, y: posY },
-                                data: {
-                                    title: item.title,
-                                    year: batchYear,
-                                    category: itemType,
-                                    linked_video_id: itemType === 'video' ? item.id : undefined,
-                                    linked_document_id: (itemType === 'document' || itemType === 'person') ? item.id : undefined,
-                                    description: item.description || '',
-                                    created_by: user.id,
-                                    nodeType: itemType,
-                                    id: parseInt(childId),
-                                    onEdit: handleEditNode,
-                                    onViewDetail: handleViewDetail,
-                                    onPlayVideo: handlePlayVideo,
-                                    onPreviewLinkedResource: (id: string, type: string, title: string) => setPreviewResource({ id, type, title }),
-                                    image_url: item.image_url,
-                                    url: item.url
-                                }
-                            };
-                            newNodes.push(childNode);
+                        // Organize by parent to calculate widths
+                        const childrenMap: { [key: string]: any[] } = {};
+                        descendants.forEach(d => {
+                            const pid = d.parentId || draggedData.id;
+                            if (!childrenMap[pid]) childrenMap[pid] = [];
+                            childrenMap[pid].push(d);
                         });
 
-                        // Create Edges
-                        const newEdges: Edge[] = newNodes.slice(1).map(child => ({
-                            id: `edge-${parentNode.id}-${child.id}-${Date.now()}`,
-                            source: parentNode.id,
-                            target: child.id,
-                            type: 'default',
-                            data: { relationType: 'contains' }
-                        }));
+                        // Pass 1: Calculate sub-tree total widths to prevent overlaps
+                        const subtreeWidthMap = new Map<string, number>();
+                        const calculateWidth = (id: string): number => {
+                            const children = childrenMap[id] || [];
+                            if (children.length === 0) return NODE_WIDTH;
+                            const totalWidth = children.reduce((acc, child) => acc + calculateWidth(child.id), 0);
+                            subtreeWidthMap.set(id, totalWidth);
+                            return totalWidth;
+                        };
+                        calculateWidth(draggedData.id);
+
+                        // Pass 2: Assign positions using sub-tree widths
+                        const assignPositions = (parentId: string, currentX: number, currentY: number) => {
+                            const children = childrenMap[parentId] || [];
+                            if (children.length === 0) return;
+
+                            const totalParentWidth = subtreeWidthMap.get(parentId) || (children.length * NODE_WIDTH);
+                            let startX = currentX - (totalParentWidth / 2);
+
+                            children.forEach((child) => {
+                                const childSubtreeWidth = subtreeWidthMap.get(child.id) || NODE_WIDTH;
+                                const nodeId = String(currentTempId--);
+                                idMap.set(child.id, nodeId);
+
+                                // Center this child within its own subtree space
+                                const posX = startX + (childSubtreeWidth / 2);
+                                const posY = currentY + LEVEL_HEIGHT;
+
+                                // Update startX for next sibling
+                                startX += childSubtreeWidth;
+
+                                const itemType = child.type === 'person' ? 'person' : (child.type === 'document' ? 'document' : (child.type === 'video' ? 'video' : (child.type === 'general' ? 'folder' : 'default')));
+
+                                const newNode: Node = {
+                                    id: nodeId,
+                                    type: 'historyNode',
+                                    position: { x: posX, y: posY },
+                                    data: {
+                                        title: child.title,
+                                        year: year,
+                                        category: itemType,
+                                        nodeType: itemType,
+                                        linked_category_id: child.type === 'general' ? child.id : undefined,
+                                        linked_video_id: child.type === 'video' ? child.id : undefined,
+                                        linked_document_id: (child.type === 'document' || child.type === 'person') ? child.id : undefined,
+                                        description: child.description || '',
+                                        created_by: user.id,
+                                        id: parseInt(nodeId),
+                                        onEdit: handleEditNode,
+                                        onViewDetail: handleViewDetail,
+                                        onPlayVideo: handlePlayVideo,
+                                        onPreviewLinkedResource: (id: string, type: string, title: string) => setPreviewResource({ id, type, title }),
+                                        image_url: child.image_url,
+                                        url: child.url
+                                    }
+                                };
+                                newNodes.push(newNode);
+
+                                // Edge to Parent
+                                const pNodeId = idMap.get(parentId);
+                                if (pNodeId) {
+                                    newEdges.push({
+                                        id: `edge-${pNodeId}-${nodeId}-${Date.now()}`,
+                                        source: pNodeId,
+                                        target: nodeId,
+                                        sourceHandle: 'bottom',
+                                        targetHandle: 'top',
+                                        type: 'default', // Smooth Bezier curves as requested
+                                        data: { relationType: 'contains' }
+                                    });
+                                }
+
+                                // Recurse for sub-children
+                                assignPositions(child.id, posX, posY);
+                            });
+                        };
+
+                        // Start positioning from Root
+                        assignPositions(draggedData.id, position.x, position.y);
 
                         setNodes(prev => [...prev, ...newNodes]);
                         setEdges(prev => [...prev, ...newEdges]);

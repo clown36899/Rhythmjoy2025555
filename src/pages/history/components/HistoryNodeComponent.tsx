@@ -89,11 +89,15 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
             className={`history-node linked-type-${linkedType}`}
             style={{ borderColor: getCategoryColor() }}
         >
-            {/* Simple Handles: With ConnectionMode.Loose, one handle per side is enough */}
-            <Handle type="source" position={Position.Top} id="top" />
+            {/* Simple Handles: Defined as both source and target for flexibility */}
+            <Handle type="target" position={Position.Top} id="top" />
             <Handle type="source" position={Position.Bottom} id="bottom" />
-            <Handle type="source" position={Position.Left} id="left" style={{ top: '50%' }} />
-            <Handle type="source" position={Position.Right} id="right" style={{ top: '50%' }} />
+            <Handle type="target" position={Position.Left} id="left-in" style={{ top: '50%' }} />
+            <Handle type="source" position={Position.Right} id="right-out" style={{ top: '50%' }} />
+
+            {/* Generic handles for loose connections */}
+            <Handle type="source" position={Position.Top} id="top-source" style={{ opacity: 0 }} />
+            <Handle type="target" position={Position.Bottom} id="bottom-target" style={{ opacity: 0 }} />
 
             {/* Person Avatar for person category */}
             {data.category === 'person' && data.image_url && (
