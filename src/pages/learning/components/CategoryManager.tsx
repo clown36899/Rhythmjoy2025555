@@ -243,15 +243,15 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
         let position: 'before' | 'after' | 'inside' | 'top' | 'bottom' | 'left' | 'right' = 'inside';
 
         if (isFolder) {
-            // Folders: Very intentional 'inside' zone (center 20% in Y, center 40% in X)
-            // Smaller 'inside' area prevents accidental moves into folders.
-            if (y > 0.4 && y < 0.6 && x > 0.3 && x < 0.7) {
+            // Folders: More generous 'inside' zone (center 60% in Y, center 60% in X)
+            // This makes it easier to drop into folders while still allowing for edge-based reordering.
+            if (y > 0.2 && y < 0.8 && x > 0.2 && x < 0.8) {
                 position = 'inside';
-            } else if (y < 0.4) {
+            } else if (y < 0.2) {
                 position = 'top';
-            } else if (y > 0.6) {
+            } else if (y > 0.8) {
                 position = 'bottom';
-            } else if (x < 0.5) {
+            } else if (x < 0.2) {
                 position = 'left';
             } else {
                 position = 'right';
@@ -425,7 +425,7 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                     // They flow naturally within their column container
                     position: 'relative',
                     width: '100%',
-                    minHeight: '40px',
+                    minHeight: '10px',
                     ...(playlist.category_id === null && !playlist.is_unclassified ? {
                         marginBottom: '10px'
                     } : {}),
@@ -484,11 +484,18 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                                     dropIndicator?.position === 'right' ? 'inset -4px 0 0 0 #3b82f6' :
                                         'none'
                     ) : 'none',
-                    // Inside highlight handled by class
+                    backgroundColor: 'transparent',
+                    transition: 'all 0.1s ease',
+                    // Inside highlight moved to itemContent
                 }}
             >
                 <div
                     className={`itemContent ${isSelected ? 'selected' : ''} ${dragDest === category.id ? 'dragOver-active' : ''}`}
+                    style={{
+                        backgroundColor: dropIndicator?.targetId === category.id && dropIndicator?.position === 'inside' ? 'rgba(59, 130, 246, 0.2)' : 'transparent',
+                        boxShadow: dropIndicator?.targetId === category.id && dropIndicator?.position === 'inside' ? 'inset 0 0 0 2px #3b82f6' : 'none',
+                        borderRadius: '4px'
+                    }}
                     onDragOver={(e) => onDragOver(e, category.id, true)}
                     onDragLeave={(e) => {
                         if (e.currentTarget.contains(e.relatedTarget as Node)) return;
