@@ -17,15 +17,23 @@ interface Props {
 interface LearningDocument {
     id: string;
     title: string;
-    content: string;
-    year: number | null;
-    category_id: string;
+    content: string; // Mapped from description
+    year?: number | null; // Optional in learning_resources
+    category_id: string | null;
     is_public: boolean;
-    author_id: string;
+    is_on_timeline?: boolean; // Added for TS check
+    author_id: string; // Mapped from user_id
     created_at: string;
-    is_on_timeline: boolean;
+    image_url?: string;
+    metadata?: any;
+    author?: {
+        email: string;
+        user_metadata: {
+            full_name?: string;
+            avatar_url?: string;
+        }
+    }
 }
-
 export const DocumentDetailModal = ({ documentId, onClose, onUpdate }: Props) => {
     const { user } = useAuth();
     const [doc, setDoc] = useState<LearningDocument | null>(null);
@@ -36,8 +44,10 @@ export const DocumentDetailModal = ({ documentId, onClose, onUpdate }: Props) =>
     const [editTitle, setEditTitle] = useState('');
     const [editContent, setEditContent] = useState('');
     const [editYear, setEditYear] = useState<string>('');
+    const [editCategory, setEditCategory] = useState(''); // New state for category
     const [editIsPublic, setEditIsPublic] = useState(true);
-    const [editIsOnTimeline, setEditIsOnTimeline] = useState(false);
+    const [editIsOnTimeline, setEditIsOnTimeline] = useState(false); // This will likely move to metadata
+    const [imageUrl, setImageUrl] = useState(''); // New state for image_url
 
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -64,22 +74,38 @@ export const DocumentDetailModal = ({ documentId, onClose, onUpdate }: Props) =>
     const fetchDocument = async () => {
         try {
             setLoading(true);
+            // 1. Fetch Document (from learning_resources)
             const { data, error } = await supabase
-                .from('learning_documents')
+                .from('learning_resources')
                 .select('*')
                 .eq('id', documentId)
                 .maybeSingle();
 
             if (error) throw error;
             if (!data) throw new Error('문서를 찾을 수 없습니다.');
-            setDoc(data);
 
-            // Sync edit states
-            setEditTitle(data.title);
-            setEditContent(data.content || '');
-            setEditYear(data.year?.toString() || '');
-            setEditIsPublic(data.is_public);
-            setEditIsOnTimeline(data.is_on_timeline);
+            // Map learning_resources fields to Document interface
+            // description -> content
+            // user_id -> author_id
+            const mappedDoc: LearningDocument = {
+                ...data,
+                content: data.description || '', // Content is stored in description
+                author_id: data.user_id,
+                year: data.year || data.metadata?.year || null, // Try to get year if exists
+                is_public: data.is_public ?? data.metadata?.is_public ?? true, // Default true if undefined
+                is_on_timeline: data.metadata?.is_on_timeline ?? false // Assume is_on_timeline is in metadata
+            };
+
+            setDoc(mappedDoc);
+
+            // Edit states
+            setEditTitle(mappedDoc.title);
+            setEditContent(mappedDoc.content);
+            setEditYear(mappedDoc.year?.toString() || '');
+            setEditCategory(mappedDoc.category_id || '');
+            setEditIsPublic(mappedDoc.is_public ?? true); // default true if undefined
+            setEditIsOnTimeline(mappedDoc.is_on_timeline ?? false); // Assume is_on_timeline is in metadata
+            setImageUrl(mappedDoc.image_url || '');
 
         } catch (err) {
             console.error('Failed to fetch document:', err);
@@ -96,19 +122,30 @@ export const DocumentDetailModal = ({ documentId, onClose, onUpdate }: Props) =>
 
             if (!editTitle.trim()) throw new Error('제목을 입력해주세요.');
 
-            const { error: updateError } = await supabase
-                .from('learning_documents')
+            const { data: updatedData, error: updateError } = await supabase
+                .from('learning_resources')
                 .update({
                     title: editTitle,
-                    content: editContent,
-                    year: editYear ? parseInt(editYear) : null,
-                    is_public: editIsPublic,
-                    is_on_timeline: editIsOnTimeline,
-                    updated_at: new Date().toISOString()
+                    description: editContent, // Map content back to description
+                    category_id: editCategory,
+                    image_url: imageUrl,
+                    updated_at: new Date().toISOString(),
+                    is_public: editIsPublic, // Assuming is_public is a direct column now
+                    metadata: {
+                        ...(doc?.metadata || {}),
+                        year: editYear ? parseInt(editYear) : null, // Store year in metadata to be safe
+                        is_on_timeline: editIsOnTimeline // Store is_on_timeline in metadata
+                    }
                 })
-                .eq('id', documentId);
+                .eq('id', documentId)
+                .select(); // 업데이트된 데이터 반환 요청
 
             if (updateError) throw updateError;
+
+            // Verify update actually happened
+            if (!updatedData || updatedData.length === 0) {
+                throw new Error('내용이 저장되지 않았습니다. 수정 권한이 없거나 이미 삭제된 문서일 수 있습니다.');
+            }
 
             setIsEditing(false);
             fetchDocument();
@@ -127,7 +164,7 @@ export const DocumentDetailModal = ({ documentId, onClose, onUpdate }: Props) =>
         try {
             setIsSaving(true);
             const { error: deleteError } = await supabase
-                .from('learning_documents')
+                .from('learning_resources')
                 .delete()
                 .eq('id', documentId);
 

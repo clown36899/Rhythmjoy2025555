@@ -145,28 +145,47 @@ export class VideoHandler implements ResourceHandler {
             is_public: true
         };
 
-        // 3. Create Video in Unified DB
-        const { data: saved, error } = await supabase
-            .from(RESOURCE_TABLE)
-            .insert({
-                title: title,
-                description: description,
-                image_url: videoInfo?.thumbnail || null, // Fixed: thumbnailUrl -> thumbnail
-                url: data.youtube_url,
-                type: 'video',
-                category_id: data.linked_category_id,
-                user_id: userId,
-                metadata: metadata
-            })
-            .select()
-            .single();
+        if (data.linked_video_id) {
+            // UPDATE existing
+            const { data: updated, error } = await supabase
+                .from(RESOURCE_TABLE)
+                .update({
+                    title: title,
+                    description: description,
+                    image_url: videoInfo?.thumbnail || null,
+                    url: data.youtube_url,
+                    updated_at: new Date().toISOString(),
+                    // Don't overwrite metadata completely, merge it? Or replace?
+                    // For now simple replace or merge if we fetched existing.
+                    // Let's assume metadata update is safe.
+                    metadata: metadata
+                })
+                .eq('id', data.linked_video_id)
+                .select()
+                .single();
 
-        if (error) throw error;
+            if (error) throw error;
+            return { resourceId: updated.id, resourceType: 'video' };
+        } else {
+            // INSERT new
+            const { data: saved, error } = await supabase
+                .from(RESOURCE_TABLE)
+                .insert({
+                    title: title,
+                    description: description,
+                    image_url: videoInfo?.thumbnail || null, // Fixed: thumbnailUrl -> thumbnail
+                    url: data.youtube_url,
+                    type: 'video',
+                    category_id: data.linked_category_id,
+                    user_id: userId,
+                    metadata: metadata
+                })
+                .select()
+                .single();
 
-        return {
-            resourceId: saved.id,
-            resourceType: 'video'
-        };
+            if (error) throw error;
+            return { resourceId: saved.id, resourceType: 'video' };
+        }
     }
 
     async delete(id: string) {
@@ -185,27 +204,54 @@ export class DocumentHandler implements ResourceHandler {
         const isPerson = data.category === 'person';
         const type = isPerson ? 'person' : 'document';
 
-        const { data: saved, error } = await supabase
-            .from(RESOURCE_TABLE)
-            .insert({
-                title: data.title || 'Untitled Document',
-                description: data.description, // Mapped from description/content
-                url: data.youtube_url || data.url || null,
-                category_id: data.linked_category_id,
-                user_id: userId,
-                image_url: data.image_url || null,
-                type: type, // Explicit type!
-                metadata: {} // Empty metadata for now
-            })
-            .select()
-            .single();
+        // Check if we are updating an existing document/person based on ID
+        const linkedId = data.linked_document_id;
 
-        if (error) throw error;
+        if (linkedId) {
+            // UPDATE
+            const { data: updated, error } = await supabase
+                .from(RESOURCE_TABLE)
+                .update({
+                    title: data.title || 'Untitled Document',
+                    description: data.description,
+                    url: data.youtube_url || data.url || null,
+                    category_id: data.linked_category_id, // Update category if changed? Or keep? Let's update.
+                    image_url: data.image_url || null,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', linkedId)
+                .select()
+                .single();
 
-        return {
-            resourceId: saved.id,
-            resourceType: isPerson ? 'person' : 'document'
-        };
+            if (error) throw error;
+            return {
+                resourceId: updated.id,
+                resourceType: isPerson ? 'person' : 'document'
+            };
+        } else {
+            // INSERT
+            const { data: saved, error } = await supabase
+                .from(RESOURCE_TABLE)
+                .insert({
+                    title: data.title || 'Untitled Document',
+                    description: data.description, // Mapped from description/content
+                    url: data.youtube_url || data.url || null,
+                    category_id: data.linked_category_id,
+                    user_id: userId,
+                    image_url: data.image_url || null,
+                    type: type, // Explicit type!
+                    metadata: {} // Empty metadata for now
+                })
+                .select()
+                .single();
+
+            if (error) throw error;
+
+            return {
+                resourceId: saved.id,
+                resourceType: isPerson ? 'person' : 'document'
+            };
+        }
     }
 
     async delete(id: string) {

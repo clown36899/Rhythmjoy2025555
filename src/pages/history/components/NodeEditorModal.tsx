@@ -250,6 +250,11 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                 .filter(Boolean),
             addToDrawer: formData.addToDrawer,
             image_url,
+            // Pass existing linked IDs to ensure update logic works
+            linked_video_id: node?.linked_video_id,
+            linked_document_id: node?.linked_document_id,
+            linked_playlist_id: node?.linked_playlist_id,
+            linked_category_id: node?.linked_category_id,
         };
 
         onSave(data);

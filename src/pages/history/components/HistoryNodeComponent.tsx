@@ -116,7 +116,7 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
             )}
 
             {/* Thumbnail */}
-            {thumbnailUrl && (
+            {thumbnailUrl && data.category !== 'person' && (
                 <div className="history-node-thumbnail" onClick={handleThumbnailClick}>
                     <img src={thumbnailUrl} alt={data.title} />
                     <div className="history-node-play-overlay">

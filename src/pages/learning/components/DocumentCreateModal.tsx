@@ -78,15 +78,20 @@ export const DocumentCreateModal = ({ onClose, onSuccess }: Props) => {
             if (!user) throw new Error('로그인이 필요합니다.');
 
             const { error: insertError } = await supabase
-                .from('learning_documents')
+                .from('learning_resources')
                 .insert({
                     title,
-                    content,
-                    year: year ? parseInt(year) : null,
-                    is_on_timeline: isOnTimeline,
+                    description: content, // Map content to description
                     category_id: categoryId,
-                    is_public: isPublic,
-                    author_id: user.id
+                    user_id: user.id, // Map author_id to user_id
+                    type: 'document', // Explicit type
+                    is_public: isPublic, // Assuming direct column exists, else put in metadata
+                    metadata: {
+                        year: year ? parseInt(year) : null,
+                        is_on_timeline: isOnTimeline,
+                        // If is_public is not a column, uncomment below:
+                        // is_public: isPublic
+                    }
                 });
 
             if (insertError) throw insertError;

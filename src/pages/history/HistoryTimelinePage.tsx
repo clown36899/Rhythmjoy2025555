@@ -28,6 +28,7 @@ import './HistoryTimeline.css';
 import type { HistoryNodeData } from './types';
 import { useSetPageAction } from '../../contexts/PageActionContext';
 import { findHandler } from './utils/resourceHandlers';
+import { parseVideoUrl } from '../../utils/videoEmbed';
 
 const initialNodes: Node[] = [];
 const initialEdges: Edge[] = [];
@@ -511,12 +512,14 @@ export default function HistoryTimelinePage() {
                     title = lp.title || title;
                     desc = lp.description || desc;
                     thumbnail_url = lp.image_url || (lp.metadata?.thumbnail_url);
+                    image_url = lp.image_url; // 🔥 Ensure image_url is also set
                     nodeType = 'playlist';
                     category = 'playlist';
                 } else if (lc) {
                     title = lc.title || title;
                     desc = lc.description || desc;
                     thumbnail_url = lc.image_url;
+                    image_url = lc.image_url;
                     // Preserve 'playlist' type if it was originally a playlist
                     nodeType = node.category === 'playlist' ? 'playlist' : 'folder';
                     category = node.category === 'playlist' ? 'playlist' : 'folder';
@@ -524,14 +527,23 @@ export default function HistoryTimelinePage() {
                     title = ld.title || title;
                     desc = ld.description || desc;
                     image_url = ld.image_url;
+                    thumbnail_url = ld.image_url; // 🔥 For documents/persons
                     nodeType = ld.type === 'person' ? 'person' : 'document';
                     category = ld.type === 'person' ? 'person' : 'document';
                 } else if (lv) {
                     title = lv.title || title;
                     desc = lv.description || desc;
+                    image_url = lv.image_url;
                     thumbnail_url = lv.image_url || (lv.metadata?.youtube_video_id ? `https://img.youtube.com/vi/${lv.metadata.youtube_video_id}/mqdefault.jpg` : null);
                     nodeType = 'video';
                     category = 'video';
+                }
+
+                // 🔥 FINAL FALLBACK: If thumbnail_url is missing but google/youtube url exists
+                const finalYoutubeUrl = node.youtube_url || lv?.url || lp?.url;
+                if (!thumbnail_url && finalYoutubeUrl) {
+                    const vInfo = parseVideoUrl(finalYoutubeUrl);
+                    if (vInfo?.thumbnailUrl) thumbnail_url = vInfo.thumbnailUrl;
                 }
 
                 return {
@@ -547,7 +559,7 @@ export default function HistoryTimelinePage() {
                         date: node.date,
                         year,
                         description: desc,
-                        youtube_url: node.youtube_url || lv?.url || lp?.url,
+                        youtube_url: finalYoutubeUrl,
                         category,
                         tags: node.tags,
                         linked_playlist_id: node.linked_playlist_id,
@@ -829,6 +841,12 @@ export default function HistoryTimelinePage() {
                         // 여기서 직접 override가 가능한 구조라면 아래와 같이 데이터를 구성합니다.
                         const resourcePayload = {
                             ...cleanNodeData,
+                            // Pass resolved IDs to handler for update logic
+                            linked_video_id: linkedVideoId,
+                            linked_document_id: linkedDocumentId,
+                            linked_playlist_id: linkedPlaylistId,
+                            linked_category_id: linkedCategoryId,
+
                             is_unclassified: true, // DB 컬럼이 추가되었으므로 명시적 설정
                             category_id: null      // 최초 추가 시엔 어떤 폴더에도 속하지 않음
                         };
@@ -871,9 +889,42 @@ export default function HistoryTimelinePage() {
                     .update(updateData)
                     .eq('id', editingNode.id);
                 if (error) throw error;
-            }
+
+                // Update local state immediately
+                setNodes((nds) =>
+                    nds.map((n) => {
+                        if (n.id === String(editingNode.id)) {
+                            return {
+                                ...n,
+                                data: {
+                                    ...n.data,
+                                    ...updateData,
+                                    // Ensure display properties are updated
+                                    title: updateData.title || n.data.title,
+                                    description: updateData.description || n.data.description,
+                                    year: updateData.year !== undefined ? updateData.year : n.data.year,
+                                    date: updateData.date !== undefined ? updateData.date : n.data.date,
+                                    // Update linked IDs if they changed
+                                    linked_video_id: linkedVideoId,
+                                    linked_document_id: linkedDocumentId,
+                                    linked_playlist_id: linkedPlaylistId,
+                                    linked_category_id: linkedCategoryId,
+                                    // Update visual props helper
+                                    image_url: updateData.image_url || (n.data as any).image_url,
+                                    thumbnail_url: updateData.image_url || (n.data as any).thumbnail_url
+                                },
+                            };
+                        }
+                        return n;
+                    })
+                );
+
+                if (addToDrawer) {
+                    setDrawerRefreshKey(prev => prev + 1);
+                }
+            } // This closes the `if (editingNode)` block
             // --- 3. 새 노드 생성 (Local-First 생성) ---
-            else {
+            else { // This `else` now correctly pairs with `if (editingNode)`
                 const center = rfInstance?.getViewport() || { x: 0, y: 0, zoom: 1 };
                 const position = {
                     x: -center.x / center.zoom + 100,
@@ -1207,16 +1258,24 @@ export default function HistoryTimelinePage() {
 
                     // Standardize internal move properties
                     if (draggedData.type === 'INTERNAL_MOVE') {
-                        draggedData.id = draggedData.id;
-                        draggedData.type = (draggedData.internalType || draggedData.internal_type || '').toLowerCase().replace('_move', '');
-                    }
+                        // 🔥 CRITICAL: Find original resource to get full details (title, url, image_url)
+                        const allResources = [...resourceData.folders, ...resourceData.videos, ...resourceData.documents];
+                        const original = allResources.find(r => r.id === draggedData.id);
 
-                    // DEBUG: Trace Dropped Data
-                    console.log('📥 [Timeline] Drop Received:', {
-                        type: draggedData.type,
-                        id: draggedData.id,
-                        title: draggedData.title || draggedData.name
-                    });
+                        if (original) {
+                            console.log('✨ [onDrop] Resolved original resource for internal move:', original.title);
+                            draggedData = {
+                                ...original,
+                                ...draggedData, // Keep ID and move-specific flags
+                                type: original.type || (draggedData.internalType || '').toLowerCase().replace('_move', ''),
+                                title: original.title || draggedData.title || draggedData.name,
+                                image_url: original.image_url,
+                                url: original.url
+                            };
+                        } else {
+                            draggedData.type = (draggedData.internalType || draggedData.internal_type || '').toLowerCase().replace('_move', '');
+                        }
+                    }
                 }
             } catch (e) {
                 // Ignore parsing errors
@@ -1260,14 +1319,13 @@ export default function HistoryTimelinePage() {
             };
 
             // 3. Robust Type Detection (Folder vs Single Item)
-            const isFolder = draggedData.type === 'category' || draggedData.type === 'playlist' ||
-                draggedData.internal_type === 'CATEGORY_MOVE' || draggedData.internal_type === 'PLAYLIST_MOVE' ||
-                draggedData.resourceType === 'playlist';
+            const isFolder = draggedData.type === 'category' || (draggedData.type === 'general' && !draggedData.youtube_url);
+            const isVideo = draggedData.type === 'video' || draggedData.type === 'playlist' || !!draggedData.youtube_url || draggedData.resourceType === 'video';
 
             if (isFolder) {
                 setLoading(true);
                 try {
-                    // 🔥 RECURSIVE UNPACKING: Fetch ALL descendants (including sub-categories)
+                    // 🔥 RECURSIVE UNPACKING: Fetch ALL descendants
                     const { data: allResourcesData, error: fetchError } = await supabase
                         .from('learning_resources')
                         .select('*');
@@ -1275,13 +1333,12 @@ export default function HistoryTimelinePage() {
                     if (fetchError) throw fetchError;
                     const allRes = allResourcesData || [];
 
-                    // Recursive helper to build flat list of descendants with hierarchy info
                     const collectDescendants = (parentId: string, currentLevel: number): any[] => {
                         const directChildren = allRes.filter(r => r.category_id === parentId);
                         let results: any[] = [];
                         directChildren.forEach(child => {
                             results.push({ ...child, level: currentLevel, parentId });
-                            if (child.type === 'general') { // If it's a folder/category
+                            if (child.type === 'general') {
                                 results = [...results, ...collectDescendants(child.id, currentLevel + 1)];
                             }
                         });
@@ -1297,8 +1354,13 @@ export default function HistoryTimelinePage() {
                         const startTempId = getTempId();
                         let currentTempId = parseInt(startTempId);
 
+                        // 2. Map for quick access [original_id -> newNodeId]
+                        const idMap = new Map<string, string>();
+
                         // 1. Root Node (Current Folder)
                         const rootNodeId = String(currentTempId--);
+                        idMap.set(draggedData.id, rootNodeId);
+
                         const rootNode: Node = {
                             id: rootNodeId,
                             type: 'historyNode',
@@ -1317,13 +1379,9 @@ export default function HistoryTimelinePage() {
                         };
                         newNodes.push(rootNode);
 
-                        // 2. Map for quick access [original_id -> newNodeId]
-                        const idMap = new Map<string, string>();
-                        idMap.set(draggedData.id, rootNodeId);
-
                         // 3. Layout Calculation (Recursive Tree Style)
                         const LEVEL_HEIGHT = 450;
-                        const NODE_WIDTH = 600; // More breathing room
+                        const NODE_WIDTH = 600;
 
                         // Organize by parent to calculate widths
                         const childrenMap: { [key: string]: any[] } = {};
@@ -1386,7 +1444,9 @@ export default function HistoryTimelinePage() {
                                         onPlayVideo: handlePlayVideo,
                                         onPreviewLinkedResource: (id: string, type: string, title: string) => setPreviewResource({ id, type, title }),
                                         image_url: child.image_url,
-                                        url: child.url
+                                        thumbnail_url: child.image_url, // 🔥 Map to thumbnail_url for HistoryNodeComponent
+                                        url: child.url,
+                                        youtube_url: itemType === 'video' ? child.url : undefined // 🔥 Map to youtube_url for videos
                                     }
                                 };
                                 newNodes.push(newNode);
@@ -1434,12 +1494,12 @@ export default function HistoryTimelinePage() {
                 // --- SINGLE ITEM MODE ---
                 const rawType = draggedData.type?.toLowerCase();
                 const isPerson = rawType === 'person' || draggedData.subtype === 'person';
-                const isVideo = rawType === 'video' || draggedData.resourceType === 'video' || draggedData.resourceType === 'standalone_video';
 
                 if (isVideo) {
                     newNodeData.linked_video_id = draggedData.id;
                     newNodeData.nodeType = 'video';
                     newNodeData.category = 'video';
+                    newNodeData.youtube_url = draggedData.youtube_url || draggedData.url;
                 } else if (rawType === 'document' || rawType === 'doc' || isPerson) {
                     newNodeData.linked_document_id = draggedData.id;
                     newNodeData.nodeType = isPerson ? 'person' : 'document';
@@ -1448,12 +1508,24 @@ export default function HistoryTimelinePage() {
 
                 newNodeData.title = draggedData.title || draggedData.name;
                 newNodeData.image_url = draggedData.image_url;
+                newNodeData.thumbnail_url = draggedData.image_url || draggedData.thumbnail_url; // 🔥 Map to thumbnail_url
                 newNodeData.description = draggedData.description;
                 newNodeData.url = draggedData.url || draggedData.youtube_url;
+                if (!newNodeData.youtube_url && isVideo) {
+                    newNodeData.youtube_url = newNodeData.url;
+                }
+
+                // Fallback thumbnail for videos (CRITICAL for individual items)
+                if (isVideo && (!newNodeData.thumbnail_url || newNodeData.thumbnail_url === '') && newNodeData.youtube_url) {
+                    const vInfo = parseVideoUrl(newNodeData.youtube_url);
+                    if (vInfo?.thumbnailUrl) {
+                        console.log('📸 [onDrop] Generated fallback thumbnail for single video:', vInfo.thumbnailUrl);
+                        newNodeData.thumbnail_url = vInfo.thumbnailUrl;
+                    }
+                }
             }
 
-            // NEW: Local Create Logic for Single Drop
-            // Single Node Insert (Local)
+            // NEW: Local Create Logic for Single Drop (or single folder node)
             const tempId = getTempId();
             const newNode: Node = {
                 id: tempId,
@@ -1475,7 +1547,7 @@ export default function HistoryTimelinePage() {
             setNodes((nds) => nds.concat(newNode));
             setHasUnsavedChanges(true);
         },
-        [rfInstance, user, draggedResource, getTempId, handleEditNode, handleViewDetail, handlePlayVideo, isMobile]
+        [rfInstance, user, draggedResource, resourceData, getTempId, handleEditNode, handleViewDetail, handlePlayVideo, setLoading, setNodes, setEdges, setPreviewResource, setHasUnsavedChanges]
     );
 
     /*
@@ -1699,7 +1771,7 @@ export default function HistoryTimelinePage() {
                 />
             )}
 
-            {previewResource && previewResource.type === 'document' && (
+            {previewResource && (previewResource.type === 'document' || previewResource.type === 'person') && (
                 <DocumentDetailModal
                     documentId={previewResource.id}
                     onClose={() => setPreviewResource(null)}

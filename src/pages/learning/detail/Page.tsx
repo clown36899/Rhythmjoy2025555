@@ -102,7 +102,6 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
 
     // Legacy states kept for sidebar compatibility (though sidebar is hidden on mobile now)
     const [isPlaylistOpen, setIsPlaylistOpen] = useState(false);
-    const [isBookmarksOpen, setIsBookmarksOpen] = useState(true);
 
     const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false); // Description Toggle State
     const [isOverflowing, setIsOverflowing] = useState(false); // Check if description overflows
@@ -301,149 +300,148 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                 targetId = targetId.replace('playlist:', '');
             }
 
-            // Check if it's a standalone video (prefixed with 'video:')
-            if (targetId.startsWith('video:')) {
-                const videoId = targetId.replace('video:', '');
-
-                // 1. Fetch Target Video Info
-                const { data: targetVideo, error: videoError } = await supabase
-                    .from('learning_videos')
-                    .select('*')
-                    .eq('id', videoId)
-                    .maybeSingle();
-
-                if (videoError) throw videoError;
-                if (!targetVideo) {
-                    setError('요청하신 영상을 찾을 수 없습니다.');
-                    return;
-                }
-
-                let playlistVideos = [targetVideo];
-                let contextTitle = targetVideo.title;
-
-                // 2. If it belongs to a category, try to fetch sibling videos (Auto-Playlist)
-                if (targetVideo.category_id) {
-                    // 1. Get Category Name
-                    const { data: catData } = await supabase
-                        .from('learning_categories')
-                        .select('name')
-                        .eq('id', targetVideo.category_id)
-                        .maybeSingle();
-
-                    if (catData) {
-                        contextTitle = catData.name;
-                    }
-
-                    // 2. Fetch Siblings (Same category, No playlist_id)
-                    const { data: siblings, error: siblingsError } = await supabase
-                        .from('learning_videos')
-                        .select('*')
-                        .eq('category_id', targetVideo.category_id)
-                        .is('playlist_id', null)
-                        .order('order_index', { ascending: true })
-                        .order('created_at', { ascending: false }); // Secondary sort
-
-                    if (!siblingsError && siblings && siblings.length > 0) {
-                        playlistVideos = siblings;
-                    }
-                }
-
-                // Create a playlist context object
-                setPlaylist({
-                    id: targetVideo.category_id ? `category:${targetVideo.category_id}` : targetVideo.id,
-                    title: contextTitle,
-                    description: '',
-                    author_id: targetVideo.author_id,
-                    year: targetVideo.year,
-                    is_on_timeline: targetVideo.is_on_timeline
-                });
-
-                setVideos(playlistVideos);
-
-                // Find and set correct index
-                const targetIndex = playlistVideos.findIndex(v => v.id === videoId);
-                setCurrentVideoIndex(targetIndex !== -1 ? targetIndex : 0);
-
-                return;
-            }
-
-            // Check if it's a Folder Playlist (prefixed with 'category:')
-            if (targetId.startsWith('category:')) {
-                const categoryId = targetId.replace('category:', '');
-
-                // 1. Fetch Category Info (as Playlist)
-                const { data: categoryData, error: categoryError } = await supabase
-                    .from('learning_categories')
-                    .select('*')
-                    .eq('id', categoryId)
-                    .maybeSingle();
-
-                if (categoryError) throw categoryError;
-                if (!categoryData) {
-                    setError('요청하신 폴더를 찾을 수 없습니다.');
-                    return;
-                }
-
-                setPlaylist({
-                    id: categoryData.id,
-                    title: categoryData.name,
-                    description: '', // Category doesn't have description yet
-                    author_id: '', // Not needed for folder
-                    year: undefined,
-                    is_on_timeline: undefined
-                });
-
-                // 2. Fetch Videos in Category
-                const { data: videoData, error: videoError } = await supabase
-                    .from('learning_videos')
-                    .select('*')
-                    .eq('category_id', categoryId)
-                    .is('playlist_id', null) // Only standalone videos in folder
-                    .order('order_index', { ascending: true });
-
-                if (videoError) throw videoError;
-
-                if (videoData && videoData.length > 0) {
-                    setVideos(videoData);
-                } else {
-                    setVideos([]);
-                }
-                return;
-            }
-
-            // Normal Playlist Logic
-            // 1. Fetch Playlist Info
-            const { data: listData, error: listError } = await supabase
-                .from('learning_playlists')
+            // Unified Fetch Logic for learning_resources
+            // 1. Fetch Target Resource
+            const { data: targetResource, error: resourceError } = await supabase
+                .from('learning_resources')
                 .select('*')
                 .eq('id', targetId)
                 .maybeSingle();
 
-            if (listError) throw listError;
-
-            if (!listData) {
-                console.warn('[DetailPage] Playlist not found for ID:', targetId);
-                setError('요청하신 재생목록을 찾을 수 없거나 접근 권한이 없습니다.');
+            if (resourceError) throw resourceError;
+            if (!targetResource) {
+                // Fallback: Check if it's a standalone video ID that was passed directly?
+                // (Existing logic handled video: prefix, but let's be robust)
+                console.warn('[DetailPage] Resource not found for ID:', targetId);
+                setError('요청하신 자료를 찾을 수 없습니다.');
                 return;
             }
 
-            setPlaylist(listData);
+            // Case A: Target is a Video (Standalone)
+            if (targetResource.type === 'video') {
+                const mappedVideo: Video = {
+                    ...targetResource,
+                    // Map metadata fields
+                    youtube_video_id: targetResource.metadata?.youtube_video_id || '',
+                    duration: targetResource.metadata?.duration || 0,
+                    memo: targetResource.description || '', // Map description to memo? Or keep separate?
+                    // Legacy: memo was a column. New: description.
+                    playlist_id: targetResource.metadata?.playlist_id || null,
+                    order_index: targetResource.order_index || 0
+                };
 
-            // 2. Fetch Videos
+                let playlistVideos = [mappedVideo];
+                let contextTitle = targetResource.title;
+
+                // Attempt to fetch siblings logic (Same category, or playlist context)
+                if (targetResource.category_id) {
+                    // Fetch Category Name
+                    const { data: catData } = await supabase
+                        .from('learning_resources')
+                        .select('title')
+                        .eq('id', targetResource.category_id)
+                        .maybeSingle();
+                    if (catData) contextTitle = catData.title;
+
+                    // Fetch Siblings
+                    const { data: siblings } = await supabase
+                        .from('learning_resources')
+                        .select('*')
+                        .eq('type', 'video')
+                        .eq('category_id', targetResource.category_id)
+                        .order('order_index', { ascending: true })
+                        .order('created_at', { ascending: false });
+
+                    if (siblings && siblings.length > 0) {
+                        playlistVideos = siblings.map((v: any) => ({
+                            ...v,
+                            youtube_video_id: v.metadata?.youtube_video_id || '',
+                            duration: v.metadata?.duration || 0,
+                            memo: v.description || '',
+                            playlist_id: v.metadata?.playlist_id || null
+                        }));
+                    }
+                } else if (targetResource.metadata?.playlist_id) {
+                    // It's in a playlist (migrated style)
+                    // Fetch playlist resource for title? (Maybe skip for now to save query)
+                    const { data: siblings } = await supabase
+                        .from('learning_resources')
+                        .select('*')
+                        .eq('type', 'video')
+                        .contains('metadata', { playlist_id: targetResource.metadata.playlist_id })
+                        .order('order_index', { ascending: true });
+
+                    if (siblings && siblings.length > 0) {
+                        playlistVideos = siblings.map((v: any) => ({
+                            ...v,
+                            youtube_video_id: v.metadata?.youtube_video_id || '',
+                            duration: v.metadata?.duration || 0,
+                            memo: v.description || '',
+                            playlist_id: v.metadata?.playlist_id || null
+                        }));
+                    }
+                }
+
+                setPlaylist({
+                    id: targetResource.category_id ? `category:${targetResource.category_id}` : targetResource.id,
+                    title: contextTitle,
+                    description: '',
+                    author_id: targetResource.user_id,
+                    year: targetResource.metadata?.year,
+                    is_on_timeline: targetResource.metadata?.is_on_timeline
+                });
+
+                setVideos(playlistVideos);
+
+                // Find and set correct index using targetId
+                const idx = playlistVideos.findIndex(v => v.id === targetId);
+                setCurrentVideoIndex(idx !== -1 ? idx : 0);
+                return;
+            }
+
+            // Case B: Target is a Playlist or Category (Folder) -> Type 'general'
+            // (Or migrated 'playlist' if type was preserved, but migration said 'general')
+            // We treat 'general' as a container.
+
+            setPlaylist({
+                id: targetResource.id,
+                title: targetResource.title,
+                description: targetResource.description || '',
+                author_id: targetResource.user_id,
+                year: targetResource.metadata?.year,
+                is_on_timeline: targetResource.metadata?.is_on_timeline
+            });
+
+            // Fetch Videos
+            // Logic: Videos where category_id = targetId OR metadata->playlist_id = targetId
+            // This covers both new structure (child of folder) and migrated structure (linked by playlist_id)
             const { data: videoData, error: videoError } = await supabase
-                .from('learning_videos')
+                .from('learning_resources')
                 .select('*')
-                .eq('playlist_id', targetId)
+                .eq('type', 'video')
+                .or(`category_id.eq.${targetId},metadata->>playlist_id.eq.${targetId}`)
                 .order('order_index', { ascending: true });
 
             if (videoError) throw videoError;
 
             if (videoData && videoData.length > 0) {
-                setVideos(videoData);
-                // initial bookmark fetch for first video happens in effect below
+                const mappedVideos = videoData.map((v: any) => ({
+                    ...v,
+                    youtube_video_id: v.metadata?.youtube_video_id || '',
+                    duration: v.metadata?.duration || 0,
+                    memo: v.description || '',
+                    playlist_id: v.metadata?.playlist_id || null
+                }));
+                setVideos(mappedVideos);
             } else {
                 setVideos([]);
             }
+
+            /* 
+               Legacy code removed:
+               - Redundant logic for 'category:' vs 'playlist:' vs 'video:'
+               - 'learning_playlists', 'learning_videos', 'learning_categories' queries
+            */
         } catch (err: any) {
             console.error('Error fetching playlist:', err);
             setError(err.message || '데이터를 불러오는 중 오류가 발생했습니다.');
@@ -627,73 +625,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         setShowBookmarkModal(true);
     };
 
-    const handleCopyBookmarks = async () => {
-        if (!bookmarks.length) {
-            alert('복사할 북마크가 없습니다.');
-            return;
-        }
-        try {
-            const dataToCopy = bookmarks.map(({ timestamp, label, is_overlay, overlay_x, overlay_y, overlay_duration, overlay_scale }) => ({
-                timestamp,
-                label,
-                is_overlay,
-                overlay_x,
-                overlay_y,
-                overlay_duration,
-                overlay_scale
-            }));
-            await navigator.clipboard.writeText(JSON.stringify(dataToCopy, null, 2));
-            alert('북마크가 클립보드에 복사되었습니다.');
-        } catch (err) {
-            console.error('Copy failed', err);
-            alert('복사 실패');
-        }
-    };
 
-    const handlePasteBookmarks = async () => {
-        if (!isAdmin) return;
-        try {
-            const text = await navigator.clipboard.readText();
-            if (!text) return;
-            const parsed = JSON.parse(text);
-            if (!Array.isArray(parsed)) {
-                alert('잘못된 북마크 데이터입니다.');
-                return;
-            }
-
-            const video = videos[currentVideoIndex];
-            if (!video) return;
-
-            const confirmMsg = `클립보드에 있는 ${parsed.length}개의 북마크를 현재 영상에 추가하시겠습니까?`;
-            if (!window.confirm(confirmMsg)) return;
-
-            let successCount = 0;
-            for (const item of parsed) {
-                if (typeof item.timestamp !== 'number' || !item.label) continue;
-
-                const { error } = await supabase
-                    .from('learning_video_bookmarks')
-                    .insert({
-                        video_id: video.id,
-                        timestamp: item.timestamp,
-                        label: item.label,
-                        is_overlay: item.is_overlay,
-                        overlay_x: item.overlay_x,
-                        overlay_y: item.overlay_y,
-                        overlay_duration: item.overlay_duration,
-                        overlay_scale: item.overlay_scale
-                    });
-
-                if (!error) successCount++;
-            }
-
-            alert(`${successCount}개의 북마크를 붙여넣었습니다.`);
-            fetchBookmarks(video.id);
-        } catch (err) {
-            console.error('Paste failed', err);
-            alert('붙여넣기 실패 (데이터 형식을 확인해주세요)');
-        }
-    };
 
     const handleEditBookmark = (id: string) => {
         if (!isAdmin) return;
