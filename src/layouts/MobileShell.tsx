@@ -192,8 +192,10 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
 
   // Layout Mode: Determine if we need wide layout (for full-screen features like Swinpedia)
   const isWideLayout = useMemo(() => {
-    return currentPath.startsWith('/learning') || currentPath.startsWith('/history');
-  }, [currentPath]);
+    const searchParams = new URLSearchParams(location.search);
+    const category = searchParams.get('category');
+    return currentPath.startsWith('/learning') || currentPath.startsWith('/history') || (currentPath === '/board' && category === 'history');
+  }, [currentPath, location.search]);
 
   // Apply global layout class to html (to override index.css max-width constraint on html & body)
   useEffect(() => {

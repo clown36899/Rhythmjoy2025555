@@ -123,40 +123,42 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
     }, [activeCategory, categories]);
 
     return (
-        <div className="board-tab-bar">
-            <div className="board-tab-scroller" ref={scrollerRef}>
-                {categories.map((cat, index) => (
-                    <div key={cat.id} style={{ display: 'flex', alignItems: 'center' }}>
-                        {index > 0 && (
-                            <span style={{
-                                color: 'rgba(255,255,255,0.2)',
-                                fontSize: '10px',
-                                margin: '0 2px',
-                                transform: 'translateY(-1px)',
-                                fontWeight: 300
-                            }}>|</span>
-                        )}
-                        <button
-                            ref={el => { tabRefs.current[cat.id] = el; }}
-                            className={`board-tab-item ${activeCategory === cat.id ? 'active' : ''}`}
-                            onClick={() => onCategoryChange(cat.id as BoardCategory)}
-                        >
-                            <i className={`${cat.icon} board-tab-icon`}></i>
-                            <span className="board-tab-label">{cat.label}</span>
-                            {cat.isWip && <span className="tab-wip-badge">준비중</span>}
-                        </button>
-                    </div>
-                ))}
-                <div
-                    className="board-tab-indicator"
-                    style={{
-                        transform: `translateX(${indicatorStyle.left}px)`,
-                        width: `${indicatorStyle.width}px`,
-                        opacity: indicatorStyle.width > 0 ? 1 : 0,
-                        visibility: indicatorStyle.width > 0 ? 'visible' : 'hidden',
-                        transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-                    }}
-                />
+        <div className="board-tab-outer">
+            <div className="board-tab-bar">
+                <div className="board-tab-scroller" ref={scrollerRef}>
+                    {categories.map((cat, index) => (
+                        <div key={cat.id} style={{ display: 'flex', alignItems: 'center' }}>
+                            {index > 0 && (
+                                <span style={{
+                                    color: 'rgba(255,255,255,0.2)',
+                                    fontSize: '10px',
+                                    margin: '0 2px',
+                                    transform: 'translateY(-1px)',
+                                    fontWeight: 300
+                                }}>|</span>
+                            )}
+                            <button
+                                ref={el => { tabRefs.current[cat.id] = el; }}
+                                className={`board-tab-item ${activeCategory === cat.id ? 'active' : ''}`}
+                                onClick={() => onCategoryChange(cat.id as BoardCategory)}
+                            >
+                                <i className={`${cat.icon} board-tab-icon`}></i>
+                                <span className="board-tab-label">{cat.label}</span>
+                                {cat.isWip && <span className="tab-wip-badge">준비중</span>}
+                            </button>
+                        </div>
+                    ))}
+                    <div
+                        className="board-tab-indicator"
+                        style={{
+                            transform: `translateX(${indicatorStyle.left}px)`,
+                            width: `${indicatorStyle.width}px`,
+                            opacity: indicatorStyle.width > 0 ? 1 : 0,
+                            visibility: indicatorStyle.width > 0 ? 'visible' : 'hidden',
+                            transition: 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                        }}
+                    />
+                </div>
             </div>
         </div>
     );

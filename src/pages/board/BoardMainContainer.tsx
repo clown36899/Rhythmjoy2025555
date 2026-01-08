@@ -16,6 +16,7 @@ import DevLog from './components/DevLog';
 import AnonymousWriteModal from './components/AnonymousWriteModal';
 import BoardDetailModal from './components/BoardDetailModal';
 import { useModal } from '../../hooks/useModal';
+import HistoryTimelinePage from '../history/HistoryTimelinePage';
 import './board.css';
 
 // Hooks
@@ -128,10 +129,6 @@ export default function BoardMainContainer() {
 
     // Handle Category Change
     const handleCategoryChange = (newCategory: BoardCategory) => {
-        if (newCategory === 'history') {
-            navigate('/history');
-            return;
-        }
         setSearchParams({ category: newCategory }, { replace: true });
     };
 
@@ -270,7 +267,7 @@ export default function BoardMainContainer() {
     };
 
     return (
-        <div className="board-page-container">
+        <div className={`board-page-container ${category === 'history' ? 'is-history-mode' : ''}`}>
             <BoardTabBar
                 activeCategory={category}
                 onCategoryChange={handleCategoryChange}
@@ -298,6 +295,10 @@ export default function BoardMainContainer() {
                     </div>
                 ) : category === 'dev-log' ? (
                     <DevLog />
+                ) : category === 'history' ? (
+                    <div style={{ marginTop: '-48px' }}>
+                        <HistoryTimelinePage />
+                    </div>
                 ) : category === 'anonymous' ? (
                     <AnonymousPostList
                         posts={currentPosts as AnonymousBoardPost[]}

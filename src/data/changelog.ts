@@ -8,6 +8,17 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '3.5.0',
+        date: '2026-01-08',
+        changes: [
+            '[✨ 기능] 라이브러리 게시판 통합 및 실시간 임베딩 (탭 메뉴 유지)',
+            '[✨ 기능] YouTube URL 및 일반 첨부 링크(attachment_url) 필드 분리 관리',
+            '[✨ 기능] 라이브러리 전체 화면 확장 레이아웃 적용 (배경 확장 & 메뉴 중앙 정렬)',
+            '[🎨 UI] 익명 게시판 가독성 개선 및 상단 바 UI 고도화',
+            '[🔧 개선] 라이브러리 "준비중" 배지 제거 및 정식 서비스 전환'
+        ]
+    },
+    {
         version: '3.4.2',
         date: '2026-01-08',
         changes: [

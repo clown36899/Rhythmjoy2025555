@@ -1,4 +1,4 @@
-.board-prefix-tab-bar {
+.board-prefix-tab-outer {
     background-color: rgb(23 23 23 / 85%);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -7,8 +7,13 @@
     top: 108px;
     left: 0;
     right: 0;
-    margin: 0 auto;
     z-index: 44;
+    width: 100%;
+    transition: top 0.3s ease;
+}
+
+.board-prefix-tab-bar {
+    margin: 0 auto;
     width: 100%;
     max-width: 650px;
     height: 48px;
@@ -19,7 +24,6 @@
     align-items: center;
     padding: 0 4px;
     scrollbar-width: none;
-    transition: top 0.3s ease;
 }
 
 .board-prefix-scroller {
