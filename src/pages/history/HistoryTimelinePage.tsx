@@ -23,6 +23,7 @@ import { NodeEditorModal } from './components/NodeEditorModal';
 import { NodeDetailModal } from './components/NodeDetailModal';
 import { VideoPlayerModal } from './components/VideoPlayerModal';
 import { ResourceDrawer } from './components/ResourceDrawer';
+import { EditExitPromptModal } from './components/EditExitPromptModal';
 import { DocumentDetailModal } from '../learning/components/DocumentDetailModal';
 import { PlaylistModal } from '../learning/components/PlaylistModal';
 import './HistoryTimeline.css';
@@ -165,9 +166,11 @@ export default function HistoryTimelinePage() {
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
     const [initialNodePositions, setInitialNodePositions] = useState<Map<string, { x: number, y: number }>>(new Map());
+    const [exitPromptOpen, setExitPromptOpen] = useState(false); // New: Custom prompt state
     // New State for Local-First Editing
     const [deletedNodeIds, setDeletedNodeIds] = useState<Set<string>>(new Set());
     const [deletedEdgeIds, setDeletedEdgeIds] = useState<Set<string>>(new Set());
+    const [modifiedNodeIds, setModifiedNodeIds] = useState<Set<string>>(new Set()); // New: Track modified node content
 
     // Define types inside component with useMemo to ensure stable references
     const nodeTypes = useMemo(() => STATIC_NODE_TYPES, []);
@@ -344,11 +347,18 @@ export default function HistoryTimelinePage() {
             setLoading(true);
 
             // 1. Process Deletions
+            console.log('🗑️ [handleSaveLayout] Deleting Nodes:', Array.from(deletedNodeIds));
+            console.log('🗑️ [handleSaveLayout] Deleting Edges:', Array.from(deletedEdgeIds));
+
             if (deletedEdgeIds.size > 0) {
-                await supabase.from('history_edges').delete().in('id', Array.from(deletedEdgeIds));
+                const ids = Array.from(deletedEdgeIds).map(id => parseInt(id));
+                const { data, error: edgeDelErr } = await supabase.from('history_edges').delete().in('id', ids).select();
+                console.log('🗑️ [Edge Delete Result]', { ids, data, error: edgeDelErr });
             }
             if (deletedNodeIds.size > 0) {
-                await supabase.from('history_nodes').delete().in('id', Array.from(deletedNodeIds));
+                const ids = Array.from(deletedNodeIds).map(id => parseInt(id));
+                const { data, error: nodeDelErr } = await supabase.from('history_nodes').delete().in('id', ids).select();
+                console.log('🗑️ [Node Delete Result]', { ids, data, error: nodeDelErr });
             }
 
             // 2. Process New Nodes (Temp IDs)
@@ -387,30 +397,55 @@ export default function HistoryTimelinePage() {
                 }
             }
 
-            // 3. Process Updates (Existing Nodes)
-            const movedNodes = existingNodes.filter(node => {
+            // 3. Process Updates (Existing Nodes: Position OR Content)
+            const changesToUpdate = new Set<string>();
+
+            // Add moved nodes
+            existingNodes.forEach(node => {
                 const initial = initialNodePositions.get(node.id);
-                if (!initial) return true; // Shouldn't happen for existing
-                // Check if position OR data changed (simple heuristic or specific flags?)
-                // For now, assume any existing node might have pos changed.
-                return initial.x !== node.position.x || initial.y !== node.position.y;
+                if (initial && (initial.x !== node.position.x || initial.y !== node.position.y)) {
+                    changesToUpdate.add(node.id);
+                }
             });
-            // Also need to handle data updates if edited via modal? 
-            // Currently modal edits are immediate DB saves. 
-            // Wait, previous handleSaveNode did direct update. 
-            // If we want FULL transaction, modal updates should also appear here. 
-            // BUT, for now let's stick to LAYOUT + Creation/Deletion being transactional. 
-            // Modal edits to EXISTING nodes can remain direct for simplicity or...
-            // User asked for "Add node -> Local". They didn't explicitly forbid "Edit node -> Direct".
-            // Let's keep position updates here.
 
-            const updates = movedNodes.map(node => {
-                const updateData = isMobile
-                    ? { mobile_x: node.position.x, mobile_y: node.position.y }
-                    : { position_x: node.position.x, position_y: node.position.y };
+            // Add tracked content changes
+            modifiedNodeIds.forEach(id => changesToUpdate.add(id));
 
-                return supabase.from('history_nodes').update(updateData).eq('id', parseInt(node.id));
-            });
+            const updates = Array.from(changesToUpdate).map(id => {
+                const node = nodes.find(n => n.id === id);
+                if (!node) return null;
+
+                const dbData: any = {
+                    updated_at: new Date()
+                };
+
+                // Position
+                if (isMobile) {
+                    dbData.mobile_x = node.position.x;
+                    dbData.mobile_y = node.position.y;
+                } else {
+                    dbData.position_x = node.position.x;
+                    dbData.position_y = node.position.y;
+                }
+
+                // Content (Always include these if we are updating, to ensure latest state is saved)
+                // We rely on the node.data being up-to-date from handleSaveNode's local update.
+                dbData.title = node.data.title;
+                dbData.description = node.data.description;
+                dbData.year = node.data.year;
+                dbData.date = node.data.date;
+                dbData.category = node.data.category;
+                dbData.image_url = node.data.image_url;
+                dbData.youtube_url = node.data.youtube_url;
+                dbData.linked_video_id = node.data.linked_video_id;
+                dbData.linked_document_id = node.data.linked_document_id;
+                dbData.linked_playlist_id = node.data.linked_playlist_id;
+                dbData.linked_category_id = node.data.linked_category_id;
+                dbData.nodeType = node.data.nodeType;
+
+                return supabase.from('history_nodes').update(dbData).eq('id', parseInt(id));
+            }).filter(Boolean);
+
             await Promise.all(updates);
 
             // 4. Process New Edges (Local Only -> DB)
@@ -441,6 +476,7 @@ export default function HistoryTimelinePage() {
             // Reset States
             setDeletedNodeIds(new Set());
             setDeletedEdgeIds(new Set());
+            setModifiedNodeIds(new Set()); // Reset modified tracking
             await loadTimeline(); // Reload to get everything fresh with real IDs
             setHasUnsavedChanges(false);
             alert('저장 완료되었습니다.');
@@ -455,20 +491,33 @@ export default function HistoryTimelinePage() {
 
     const handleToggleEditMode = () => {
         if (isEditMode) {
-            // Turning OFF
+            // Turning OFF Edit Mode
             if (hasUnsavedChanges) {
-                if (window.confirm('저장하지 않은 변경사항이 있습니다. 저장하고 편집 모드를 종료하시겠습니까?\n(취소 시 편집 모드가 유지됩니다)')) {
-                    handleSaveLayout().then(() => {
-                        setIsEditMode(false);
-                    });
-                }
+                // Show custom Prompt instead of window.confirm
+                setExitPromptOpen(true);
             } else {
                 setIsEditMode(false);
             }
         } else {
-            // Turning ON
+            // Turning ON Edit Mode
             setIsEditMode(true);
         }
+    };
+
+    const handleExitWithSave = async () => {
+        await handleSaveLayout();
+        setExitPromptOpen(false);
+        setIsEditMode(false);
+    };
+
+    const handleExitWithoutSave = async () => {
+        setDeletedNodeIds(new Set());
+        setDeletedEdgeIds(new Set());
+        setModifiedNodeIds(new Set());
+        await loadTimeline(); // Discard changes
+        setHasUnsavedChanges(false);
+        setExitPromptOpen(false);
+        setIsEditMode(false);
     };
 
     const handleEditNode = (nodeData: HistoryNodeData) => {
@@ -834,7 +883,8 @@ export default function HistoryTimelinePage() {
             // Local Edge Creation
             // Generates a temp negative ID for the edge
             // Use current timestamp based random suffix to avoid collision in same session safely
-            const tempEdgeId = `temp_edge_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+            // Fix: Use negative numeric ID so isTempId() recognizes it as a new (unsaved) edge
+            const tempEdgeId = String(-Date.now());
 
             const newEdge: Edge = {
                 id: tempEdgeId,
@@ -933,14 +983,14 @@ export default function HistoryTimelinePage() {
                     linked_video_id: linkedVideoId,
                     linked_document_id: linkedDocumentId,
                     linked_playlist_id: linkedPlaylistId,
-                    linked_category_id: linkedCategoryId
+                    linked_category_id: linkedCategoryId,
+                    // Ensure visual fields are carried over
+                    image_url: image_url,
                 };
 
-                const { error } = await supabase
-                    .from('history_nodes')
-                    .update(updateData)
-                    .eq('id', editingNode.id);
-                if (error) throw error;
+                // Track modification instead of saving to DB immediately
+                setModifiedNodeIds(prev => new Set(prev).add(String(editingNode.id)));
+                setHasUnsavedChanges(true);
 
                 // Update local state immediately
                 setNodes((nds) =>
@@ -961,7 +1011,6 @@ export default function HistoryTimelinePage() {
                                     linked_document_id: linkedDocumentId,
                                     linked_playlist_id: linkedPlaylistId,
                                     linked_category_id: linkedCategoryId,
-                                    // Update visual props helper
                                     // Update visual props helper
                                     image_url: image_url || (n.data as any).image_url,
                                     thumbnail_url: image_url || (n.data as any).thumbnail_url
@@ -1758,6 +1807,13 @@ export default function HistoryTimelinePage() {
                     onClose={() => setIsEditorOpen(false)}
                 />
             )}
+
+            <EditExitPromptModal
+                isOpen={exitPromptOpen}
+                onSave={handleExitWithSave}
+                onDiscard={handleExitWithoutSave}
+                onCancel={() => setExitPromptOpen(false)}
+            />
 
             {isVideoPlayerOpen && playingVideoUrl && (
                 <VideoPlayerModal
