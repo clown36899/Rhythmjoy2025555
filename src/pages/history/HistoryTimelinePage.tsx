@@ -1788,8 +1788,10 @@ export default function HistoryTimelinePage() {
                     maxZoom={2}
                     onDrop={onDrop}
                     onDragOver={onDragOver}
+                    selectionOnDrag={isEditMode && !isMobile}
+                    panOnDrag={[1, 2]}
                 >
-                    <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
+                    <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#333333" />
                     <Controls />
                     <MiniMap
                         nodeColor={GET_NODE_COLOR}
