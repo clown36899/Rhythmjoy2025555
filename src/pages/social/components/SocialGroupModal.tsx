@@ -180,10 +180,34 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (isSubmitting) return;
+
         if (!user) {
             window.dispatchEvent(new CustomEvent('openLoginModal', {
                 detail: { message: '단체 등록은 로그인 후 이용 가능합니다.' }
             }));
+            return;
+        }
+
+        // [New Safety Check] Ensure board_users record prevents FK error
+        try {
+            const { data: bu, error: buError } = await supabase
+                .from('board_users')
+                .select('user_id')
+                .eq('user_id', user.id)
+                .maybeSingle();
+
+            if (buError) throw buError;
+            if (!bu) {
+                // This really shouldn't happen with the AuthContext fix, but as a final safety net:
+                alert("사용자 프로필 정보가 없습니다.\n잠시 후 다시 시도하거나, 재로그인 해주세요.");
+                // Optional: Trigger profile refresh or registration modal here if we had access
+                return;
+            }
+        } catch (e) {
+            console.error("Error checking board_users:", e);
+            // Proceed anyway? No, it will likely fail.
+            alert("사용자 정보를 확인하는 중 오류가 발생했습니다.");
             return;
         }
         if (!name.trim()) {

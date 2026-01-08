@@ -75,6 +75,57 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return localStorage.getItem(`${storagePrefix}billboardUserName`);
   });
 
+  // helper to ensure board_users exists
+  const ensureBoardUser = async (userObj: User) => {
+    if (!userObj) return;
+
+    try {
+      const { data } = await supabase
+        .from('board_users')
+        .select('user_id')
+        .eq('user_id', userObj.id)
+        .maybeSingle();
+
+      if (!data) {
+        console.log('[AuthContext] board_users record missing for', userObj.email, '- Creating now...');
+        // 2. Insert default
+        // 구글 로그인 등의 경우 메타데이터에서 이름/아바타 추출
+        const metadata = userObj.user_metadata || {};
+        const nickname = metadata.name || metadata.full_name || userObj.email?.split('@')[0] || 'User';
+        const profileImage = metadata.avatar_url || metadata.picture || null;
+
+        // nickname 중복 방지를 위해 간단한 suffix 로직 필요할 수 있으나, 
+        // 우선은 충돌 시 DB 오류 나면 handle 해야 함. 
+        // 여기서는 간단히 타임스탬프 붙이거나, 그냥 시도.
+        // board_users의 nickname이 unique라면 충돌 가능성 있음.
+        // 임시로 random suffix
+        const randomSuffix = Math.floor(Math.random() * 10000).toString();
+        const safeNickname = `${nickname}_${randomSuffix}`;
+
+        const { error: insertError } = await supabase
+          .from('board_users')
+          .insert([
+            {
+              user_id: userObj.id,
+              nickname: safeNickname, // Unique key constraint avoidance
+              profile_image: profileImage,
+              // database.types.ts 안에는 email 컬럼이 board_users에 없음. (auth.users에만 있음)
+              // 따라서 email은 제외.
+            }
+          ]);
+
+        if (insertError) {
+          console.error('[AuthContext] Error creating board_users record:', insertError);
+          // 닉네임 중복 에러일 경우 재시도 로직 등이 필요할 수 있음
+        } else {
+          console.log('[AuthContext] Successfully created board_users record.');
+        }
+      }
+    } catch (e) {
+      console.error('[AuthContext] ensureBoardUser execution error:', e);
+    }
+  };
+
   // User Profile State - 초기값 localStorage에서 로드 (깜빡임 방지)
   const [userProfile, setUserProfile] = useState<{ nickname: string; profile_image: string | null } | null>(() => {
     const cached = localStorage.getItem(`${storagePrefix}userProfile`);
@@ -420,12 +471,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (currentUser) {
           setUserProperties({ login_status: 'logged_in' });
           setUserId(currentUser.id);
-          if (event === 'SIGNED_IN') {
+          if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
             logEvent('Auth', 'Login', 'Success');
             // Clear login in progress flag
             sessionStorage.removeItem('kakao_login_in_progress');
             sessionStorage.removeItem('kakao_login_start_time');
             setIsAuthProcessing(false);
+
+            // [FIX] Ensure board_users record exists (especially for Google/Apple login)
+            // 익명 함수 내부에서 비동기 호출
+            (async () => {
+              try {
+                await ensureBoardUser(currentUser);
+                await refreshUserProfile();
+              } catch (err) {
+                console.error('[AuthContext] Failed to ensure board user:', err);
+              }
+            })();
           }
         }
       } else if (event === 'USER_UPDATED' && !session) {
