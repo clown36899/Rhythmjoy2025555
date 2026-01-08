@@ -844,57 +844,6 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         }
     };
 
-    // --- Bookmark Copy/Paste Handlers ---
-    const handleCopyBookmarks = async () => {
-        if (!bookmarks || bookmarks.length === 0) {
-            alert('복사할 타임스탬프가 없습니다.');
-            return;
-        }
-        try {
-            const dataStr = JSON.stringify(bookmarks);
-            await navigator.clipboard.writeText(dataStr);
-            alert(`타임스탬프 ${bookmarks.length}개가 클립보드에 복사되었습니다.`);
-        } catch (err) {
-            console.error('Failed to copy keys:', err);
-            alert('복사 실패');
-        }
-    };
-
-    const handlePasteBookmarks = async () => {
-        const video = videos[currentVideoIndex];
-        if (!video) return;
-
-        try {
-            const text = await navigator.clipboard.readText();
-            const imported = JSON.parse(text);
-            if (!Array.isArray(imported)) {
-                alert('잘못된 형식입니다 (배열이 아닙니다).');
-                return;
-            }
-
-            if (!window.confirm(`${imported.length}개의 타임스탬프를 현재 영상에 붙여넣으시겠습니까?`)) return;
-
-            let successCount = 0;
-            for (const item of imported) {
-                // id, created_at, video_id are excluded/overwritten
-                const { id, created_at, video_id, ...rest } = item;
-
-                const { error } = await supabase.from('learning_video_bookmarks').insert({
-                    ...rest,
-                    video_id: video.id
-                });
-
-                if (!error) successCount++;
-            }
-
-            alert(`${successCount}개 추가 완료`);
-            fetchBookmarks(video.id);
-        } catch (err) {
-            console.error(err);
-            alert('붙여넣기 실패: 클립보드 내용이 올바른 JSON 형식이 아닙니다.');
-        }
-    };
-
     const handleUpdateTimelineSettings = async () => {
         if (!isAdmin) return;
         if (!playlist) return;
@@ -1116,12 +1065,6 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                                         <div className="ld-bookmark-toolbar">
                                             <button onClick={handleAddBookmark} className="ld-bookmark-tool-btn primary">
                                                 <span className="ld-tool-icon">+</span> 추가
-                                            </button>
-                                            <button onClick={handleCopyBookmarks} className="ld-bookmark-tool-btn" title="전체 복사">
-                                                <span className="ld-tool-icon">📋</span>
-                                            </button>
-                                            <button onClick={handlePasteBookmarks} className="ld-bookmark-tool-btn" title="붙여넣기">
-                                                <span className="ld-tool-icon">📑</span>
                                             </button>
                                         </div>
                                     </div>

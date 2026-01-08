@@ -169,9 +169,9 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
                         if (data.category === 'person') {
                             handleViewDetail(e);
                         }
-                        // 문서/폴더/카테고리 노드는 상세보기 (기존 미리보기에서 변경)
+                        // 문서/폴더/카테고리 노드는 미리보기 (상세 모달)
                         else if (data.nodeType === 'document' || data.nodeType === 'folder' || data.nodeType === 'category' || data.nodeType === 'general') {
-                            handleViewDetail(e);
+                            handleThumbnailClick(e);
                         }
                         // 비디오/재생목록도 미리보기
                         else if (data.nodeType === 'video' || data.nodeType === 'playlist') {
@@ -227,11 +227,9 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
                     <button className="node-action-btn btn-detail" onClick={handleViewDetail} title="상세보기">
                         <i className="ri-fullscreen-line"></i>
                     </button>
-                    {data.isEditMode && (
-                        <button className="node-action-btn btn-edit" onClick={handleEdit} title="수정">
-                            <i className="ri-edit-line"></i>
-                        </button>
-                    )}
+                    <button className="node-action-btn btn-edit" onClick={handleEdit} title="수정">
+                        <i className="ri-edit-line"></i>
+                    </button>
                     {(data.linked_playlist_id || data.linked_document_id || data.linked_video_id || data.linked_category_id) && (
                         <button
                             className="node-action-btn btn-linked-resource"

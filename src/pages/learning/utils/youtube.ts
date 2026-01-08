@@ -97,7 +97,7 @@ export const fetchPlaylistVideos = async (playlistId: string): Promise<YouTubeVi
     const data = await response.json();
 
     return data.items.map((item: any) => ({
-        id: item.snippet.resourceId.videoId, // 🔥 FIX: Use actual video ID, not playlist item ID
+        id: item.id,
         title: item.snippet.title,
         description: item.snippet.description,
         thumbnail: item.snippet.thumbnails?.high?.url || item.snippet.thumbnails?.medium?.url,
