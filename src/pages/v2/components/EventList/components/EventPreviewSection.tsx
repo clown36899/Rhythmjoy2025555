@@ -171,7 +171,7 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                             <h3 style={{
                                 margin: 0,
                                 color: '#fff',
-                                fontSize: '20px',
+                                fontSize: 'clamp(0.1rem, 4vw, 1.5rem)',
                                 fontWeight: '700',
                                 letterSpacing: '-0.5px'
                             }}>
@@ -181,7 +181,7 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                         <p style={{
                             margin: '0 0 16px 0',
                             color: 'rgba(255, 255, 255, 0.9)',
-                            fontSize: '14px',
+                            fontSize: 'clamp(0.1rem, 3vw, 1.5rem)',
                             lineHeight: '1.6'
                         }}>
                             한번도 안춰본 분들을 위한 동호회 정보를 확인해보세요

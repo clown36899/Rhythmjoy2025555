@@ -52,9 +52,9 @@ const EventPhotoFinderPage: React.FC = () => {
                 <div className="header-left-content">
                     <div className="header-events-content">
                         <img src="/logo.png" alt="RhythmJoy Logo" className="header-logo" />
-                        <h1 className="header-title">
+                        {/* <h1 className="header-title">
                             내 사진 찾기 AI
-                        </h1>
+                        </h1> */}
                     </div>
                 </div>
             </header>

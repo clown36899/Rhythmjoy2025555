@@ -1,20 +1,21 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useBlocker } from 'react-router-dom';
 import ReactFlow, {
+    useNodesState,
+    useEdgesState,
     Controls,
     Background,
     MiniMap,
-    useNodesState,
-    useEdgesState,
+    ConnectionMode,
     addEdge,
     BackgroundVariant,
-    ConnectionMode,
     getBezierPath,
     BaseEdge,
 } from 'reactflow';
-import type { Node, Edge, Connection, ReactFlowInstance, EdgeProps } from 'reactflow';
+import type { Node as RFNode, Edge, Connection, ReactFlowInstance, EdgeProps } from 'reactflow'; // Import Node as RFNode
 import 'reactflow/dist/style.css';
 import { supabase } from '../../lib/supabase';
+import { parseVideoUrl } from '../../utils/videoEmbed';
 import { useAuth } from '../../contexts/AuthContext';
 import HistoryNodeComponent from './components/HistoryNodeComponent';
 import DecadeNodeComponent from './components/DecadeNodeComponent';
@@ -28,9 +29,8 @@ import './HistoryTimeline.css';
 import type { HistoryNodeData } from './types';
 import { useSetPageAction } from '../../contexts/PageActionContext';
 import { findHandler } from './utils/resourceHandlers';
-import { parseVideoUrl } from '../../utils/videoEmbed';
 
-const initialNodes: Node[] = [];
+const initialNodes: RFNode[] = [];
 const initialEdges: Edge[] = [];
 
 // STRICT STATIC DEFINITIONS: Defined outside the component to guarantee stable references
@@ -80,7 +80,7 @@ const CustomBezierEdge = ({
 
 const IS_VALID_CONNECTION = (connection: Connection) => connection.source !== connection.target;
 
-const GET_NODE_COLOR = (node: Node) => {
+const GET_NODE_COLOR = (node: RFNode) => {
     switch (node.data?.category) {
         case 'genre': return '#6366f1';
         case 'person': return '#ec4899';
@@ -186,7 +186,7 @@ export default function HistoryTimelinePage() {
 
             // Reverted: All general types are Folders
             const folders = allResources.filter((r: any) => r.type === 'general');
-            console.log('✅ [fetchResourceData] Data Sample (First 3):', allResources.slice(0, 3).map(r => ({ title: r.title, row: r.grid_row, col: r.grid_column })));
+            console.log('✅ [fetchResourceData] Data Sample (First 3):', allResources.slice(0, 3).map((r: any) => ({ title: r.title, row: r.grid_row, col: r.grid_column })));
             console.log('✅ [fetchResourceData] Folders (and Playlists) found:', folders.length);
 
             setResourceData({
@@ -307,7 +307,7 @@ export default function HistoryTimelinePage() {
     const handleSaveLayout = async () => {
         if (!user || !isAdmin || !isEditMode) return;
         const deviceName = isMobile ? '모바일' : '데스크탑';
-        if (!window.confirm(`현재 ${deviceName} 레이아웃 및 변경사항을 저장하시겠습니까?`)) return;
+        if (!window.confirm(`현재 ${deviceName} 레이아웃 및 변경사항을 저장하시겠습니까 ? `)) return;
 
         try {
             setLoading(true);
@@ -445,10 +445,31 @@ export default function HistoryTimelinePage() {
         setIsEditorOpen(true);
     };
 
-    const handlePlayVideo = (videoUrl: string, playlistId?: string | null) => {
-        setPlayingVideoUrl(videoUrl);
-        setPlayingPlaylistId(playlistId || null);
-        setIsVideoPlayerOpen(true);
+    const handlePlayVideo = (videoUrl: string, playlistId?: string | null, linkedVideoId?: string | null) => {
+        // Try to determine the best available video ID
+        let effectiveVideoId = linkedVideoId;
+
+        // If linkedVideoId is missing or invalid (e.g. not 11 chars), define it from URL
+        if (!effectiveVideoId || effectiveVideoId.length !== 11) {
+            const parsed = parseVideoUrl(videoUrl);
+            if (parsed && parsed.videoId) {
+                effectiveVideoId = parsed.videoId;
+            }
+        }
+
+        if (effectiveVideoId && effectiveVideoId.length === 11) {
+            // Use detailed player (PlaylistModal acting as video player)
+            setPreviewResource({
+                id: effectiveVideoId,
+                type: 'video',
+                title: 'Video Player'
+            });
+        } else {
+            // Fallback to simple player if no valid ID found
+            setPlayingVideoUrl(videoUrl);
+            setPlayingPlaylistId(playlistId || null);
+            setIsVideoPlayerOpen(true);
+        }
     };
 
     const handleViewDetail = (nodeData: HistoryNodeData) => {
@@ -481,11 +502,11 @@ export default function HistoryTimelinePage() {
             const { data: nodesData } = await supabase
                 .from('history_nodes')
                 .select(`
-                    *,
-                    linked_video:learning_resources!linked_video_id(*),
-                    linked_document:learning_resources!linked_document_id(*),
-                    linked_playlist:learning_resources!linked_playlist_id(*),
-                    linked_category:learning_resources!linked_category_id(*)
+    *,
+    linked_video: learning_resources!linked_video_id(*),
+        linked_document: learning_resources!linked_document_id(*),
+            linked_playlist: learning_resources!linked_playlist_id(*),
+                linked_category: learning_resources!linked_category_id(*)
                 `)
                 .order('year', { ascending: true });
 
@@ -493,7 +514,7 @@ export default function HistoryTimelinePage() {
                 .from('history_edges')
                 .select('*');
 
-            const flowNodes: Node[] = (nodesData || []).map((node: any) => {
+            const flowNodes: RFNode[] = (nodesData || []).map((node: any) => {
                 const lp = node.linked_playlist;
                 const ld = node.linked_document;
                 const lv = node.linked_video;
@@ -586,7 +607,7 @@ export default function HistoryTimelinePage() {
             });
             setInitialNodePositions(positions);
 
-            const flowEdges: Edge[] = (edgesData || []).map((edge) => ({
+            const flowEdges: Edge[] = (edgesData || []).map((edge: any) => ({
                 id: String(edge.id),
                 source: String(edge.source_id),
                 target: String(edge.target_id),
@@ -631,7 +652,7 @@ export default function HistoryTimelinePage() {
         [onNodesChange]
     );
 
-    const onNodeDrag = useCallback((event: React.MouseEvent, _node: Node) => {
+    const onNodeDrag = useCallback((event: React.MouseEvent, _node: RFNode) => {
         // Use mouse coordinates directly for better accuracy
         const elements = document.elementsFromPoint(event.clientX, event.clientY);
 
@@ -666,9 +687,9 @@ export default function HistoryTimelinePage() {
     }, [highlightedEdgeId]);
 
     const onNodeDragStop = useCallback(
-        (_: any, node: Node) => {
+        (_: any, node: RFNode) => {
             // Helper to find closest handle on 'node' relative to 'targetNode'
-            const getClosestHandle = (node: Node, targetNode: Node) => {
+            const getClosestHandle = (node: RFNode, targetNode: RFNode) => {
                 const nodeCenter = {
                     x: node.position.x + (node.width || 150) / 2,
                     y: node.position.y + (node.height || 100) / 2
@@ -910,8 +931,9 @@ export default function HistoryTimelinePage() {
                                     linked_playlist_id: linkedPlaylistId,
                                     linked_category_id: linkedCategoryId,
                                     // Update visual props helper
-                                    image_url: updateData.image_url || (n.data as any).image_url,
-                                    thumbnail_url: updateData.image_url || (n.data as any).thumbnail_url
+                                    // Update visual props helper
+                                    image_url: image_url || (n.data as any).image_url,
+                                    thumbnail_url: image_url || (n.data as any).thumbnail_url
                                 },
                             };
                         }
@@ -947,7 +969,7 @@ export default function HistoryTimelinePage() {
                 else if (linkedVideoId) { finalNodeType = 'video'; finalCategory = 'video'; }
 
                 const tempId = getTempId();
-                const newLocalNode: Node = {
+                const newLocalNode: RFNode = {
                     id: tempId,
                     type: 'historyNode',
                     position: position,
@@ -964,6 +986,8 @@ export default function HistoryTimelinePage() {
                         onPreviewLinkedResource: (id: string, type: string, title: string) => setPreviewResource({ id, type, title }),
                         nodeType: finalNodeType,
                         category: finalCategory,
+                        image_url: image_url,
+                        thumbnail_url: image_url || (nodeInsertData as any).thumbnail_url
                     }
                 };
 
@@ -1208,7 +1232,7 @@ export default function HistoryTimelinePage() {
             newSiblings.splice(insertIndex, 0, { ...sourceData, order_index: 0 });
 
             // 4. Update order_indices for all affected
-            const updates = newSiblings.map((s, idx) => {
+            const updates = newSiblings.map((s: any, idx: number) => { // Type 'any' for s to handle generic Supabase response
                 const payload: any = {
                     ...s, // 🔥 Include ALL existing fields (preserves type, title, etc.)
                     order_index: (idx + 1) * 100, // Reset spacing
@@ -1260,7 +1284,7 @@ export default function HistoryTimelinePage() {
                     if (draggedData.type === 'INTERNAL_MOVE') {
                         // 🔥 CRITICAL: Find original resource to get full details (title, url, image_url)
                         const allResources = [...resourceData.folders, ...resourceData.videos, ...resourceData.documents];
-                        const original = allResources.find(r => r.id === draggedData.id);
+                        const original = allResources.find((r: any) => r.id === draggedData.id); // Type 'any' for r
 
                         if (original) {
                             console.log('✨ [onDrop] Resolved original resource for internal move:', original.title);
@@ -1334,9 +1358,9 @@ export default function HistoryTimelinePage() {
                     const allRes = allResourcesData || [];
 
                     const collectDescendants = (parentId: string, currentLevel: number): any[] => {
-                        const directChildren = allRes.filter(r => r.category_id === parentId);
+                        const directChildren = allRes.filter((r: any) => r.category_id === parentId);
                         let results: any[] = [];
-                        directChildren.forEach(child => {
+                        directChildren.forEach((child: any) => {
                             results.push({ ...child, level: currentLevel, parentId });
                             if (child.type === 'general') {
                                 results = [...results, ...collectDescendants(child.id, currentLevel + 1)];
@@ -1349,7 +1373,7 @@ export default function HistoryTimelinePage() {
                     const totalItems = descendants.length;
 
                     if (totalItems > 0 && window.confirm(`'${draggedData.title || draggedData.name}' 폴더와 하위 ${totalItems}개 항목을 계층 구조로 펼치시겠습니까?`)) {
-                        const newNodes: Node[] = [];
+                        const newNodes: RFNode[] = [];
                         const newEdges: Edge[] = [];
                         const startTempId = getTempId();
                         let currentTempId = parseInt(startTempId);
@@ -1361,7 +1385,7 @@ export default function HistoryTimelinePage() {
                         const rootNodeId = String(currentTempId--);
                         idMap.set(draggedData.id, rootNodeId);
 
-                        const rootNode: Node = {
+                        const rootNode: RFNode = {
                             id: rootNodeId,
                             type: 'historyNode',
                             position: { x: position.x, y: position.y },
@@ -1424,7 +1448,7 @@ export default function HistoryTimelinePage() {
 
                                 const itemType = child.type === 'person' ? 'person' : (child.type === 'document' ? 'document' : (child.type === 'video' ? 'video' : (child.type === 'general' ? 'folder' : 'default')));
 
-                                const newNode: Node = {
+                                const newNode: RFNode = {
                                     id: nodeId,
                                     type: 'historyNode',
                                     position: { x: posX, y: posY },
@@ -1527,7 +1551,7 @@ export default function HistoryTimelinePage() {
 
             // NEW: Local Create Logic for Single Drop (or single folder node)
             const tempId = getTempId();
-            const newNode: Node = {
+            const newNode: RFNode = {
                 id: tempId,
                 type: 'historyNode',
                 position: {
@@ -1771,7 +1795,7 @@ export default function HistoryTimelinePage() {
                 />
             )}
 
-            {previewResource && (previewResource.type === 'document' || previewResource.type === 'person') && (
+            {previewResource && (previewResource.type === 'document' || previewResource.type === 'person' || previewResource.type === 'folder' || previewResource.type === 'general') && (
                 <DocumentDetailModal
                     documentId={previewResource.id}
                     onClose={() => setPreviewResource(null)}

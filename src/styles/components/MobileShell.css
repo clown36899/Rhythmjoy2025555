@@ -377,7 +377,7 @@
 }
 
 .header-title {
-  font-size: min(4vw, 1.45rem);
+  font-size: clamp(0.41rem, 4.5vw, 2rem) !important;
   font-weight: bold;
   color: white;
   white-space: nowrap;

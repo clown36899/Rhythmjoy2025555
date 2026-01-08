@@ -42,7 +42,7 @@
     background: none;
     border: none;
     color: #d8dce4;
-    font-size: 0.95rem;
+    font-size: clamp(0.7rem, 2.5vw, 1rem);
     font-weight: 400;
     white-space: nowrap;
     position: relative;

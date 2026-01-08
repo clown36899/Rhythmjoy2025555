@@ -298,6 +298,8 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
             let targetId = rawTargetId;
             if (targetId.startsWith('playlist:')) {
                 targetId = targetId.replace('playlist:', '');
+            } else if (targetId.startsWith('video:')) {
+                targetId = targetId.replace('video:', '');
             }
 
             // Unified Fetch Logic for learning_resources
@@ -508,6 +510,17 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
             newDiv.id = playerId;
             newDiv.className = 'ld-youtube-player';
             container.appendChild(newDiv);
+
+            // Validate video ID (must be 11 chars)
+            if (!videoId || videoId.length !== 11) {
+                console.error('Invalid video ID:', videoId);
+                newDiv.innerHTML = `<div style="display:flex;justify-content:center;align-items:center;height:100%;background:#000;color:#fff;flex-direction:column;gap:10px;">
+                    <i class="ri-error-warning-line" style="font-size:2rem;color:#ef4444"></i>
+                    <p>유효하지 않은 동영상 ID입니다.</p>
+                    <p style="font-size:0.8rem;opacity:0.7">ID: ${videoId}</p>
+                </div>`;
+                return;
+            }
 
             playerRef.current = new window.YT.Player(playerId, {
                 videoId,

@@ -207,7 +207,7 @@
 }
 
 .all-social-card-title {
-    font-size: 1rem;
+    font-size: clamp(0.1rem, 3vw, 1rem);
     font-weight: 500;
     color: #d6d6d6;
     margin: 0 0 6px 0;

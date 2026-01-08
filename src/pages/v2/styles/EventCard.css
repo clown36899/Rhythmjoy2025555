@@ -318,7 +318,7 @@
 
 /* 이벤트 카드 제목 텍스트 */
 .card-title-text-event {
-  font-size: 0.8375rem;
+  font-size: clamp(0.41rem, 3vw, 1rem);
   font-weight: 500;
   line-height: 1.3;
   color: #e6e6e6;

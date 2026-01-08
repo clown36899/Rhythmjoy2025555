@@ -1,19 +1,31 @@
 import { memo } from 'react';
 import { Handle, Position } from 'reactflow';
 import type { NodeProps } from 'reactflow';
-import { parseVideoUrl } from '../../../utils/videoEmbed';
+import { parseVideoUrl, validateYouTubeThumbnailUrl } from '../../../utils/videoEmbed';
 import './HistoryNodeComponent.css';
 import type { HistoryNodeData } from '../types';
 
 function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
     // Prioritize thumbnail from linked resource, then fall back to youtube_url
     const videoInfo = data.youtube_url ? parseVideoUrl(data.youtube_url) : null;
-    const thumbnailUrl = data.thumbnail_url || videoInfo?.thumbnailUrl || null;
+    let validThumbnailUrl: string | null = null;
+
+    // First check explicit thumbnail_url
+    if (data.thumbnail_url) {
+        validThumbnailUrl = validateYouTubeThumbnailUrl(data.thumbnail_url);
+    }
+
+    // If invalid or missing, try video info
+    if (!validThumbnailUrl && videoInfo?.thumbnailUrl) {
+        validThumbnailUrl = validateYouTubeThumbnailUrl(videoInfo.thumbnailUrl);
+    }
+
+    const thumbnailUrl = validThumbnailUrl;
 
     const handlePlayVideo = (e: React.MouseEvent) => {
         e.stopPropagation();
         if (data.youtube_url && data.onPlayVideo) {
-            data.onPlayVideo(data.youtube_url, data.linked_playlist_id);
+            data.onPlayVideo(data.youtube_url, data.linked_playlist_id, data.linked_video_id);
         }
     };
 
@@ -41,9 +53,12 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
             data.onPreviewLinkedResource(data.linked_video_id, 'video', data.title);
         } else if (data.nodeType === 'document' && data.onPreviewLinkedResource && data.linked_document_id) {
             data.onPreviewLinkedResource(data.linked_document_id, 'document', data.title);
+        } else if ((data.nodeType === 'folder' || data.nodeType === 'category' || data.nodeType === 'general') && data.onPreviewLinkedResource && data.linked_category_id) {
+            data.onPreviewLinkedResource(data.linked_category_id, 'folder', data.title);
         } else if (data.youtube_url && data.onPlayVideo) {
             // Fallback to playing YouTube video
-            data.onPlayVideo(data.youtube_url, data.linked_playlist_id);
+            // Pass linked_video_id to support detailed player with timestamps
+            data.onPlayVideo(data.youtube_url, data.linked_playlist_id, data.linked_video_id);
         }
     };
 
@@ -90,14 +105,22 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
             style={{ borderColor: getCategoryColor() }}
         >
             {/* Simple Handles: Defined as both source and target for flexibility */}
+            {/* Reliable Handles: Source and Target for all directions with standard IDs */}
+            {/* Top: Target (primary) & Source */}
             <Handle type="target" position={Position.Top} id="top" />
-            <Handle type="source" position={Position.Bottom} id="bottom" />
-            <Handle type="target" position={Position.Left} id="left-in" style={{ top: '50%' }} />
-            <Handle type="source" position={Position.Right} id="right-out" style={{ top: '50%' }} />
+            <Handle type="source" position={Position.Top} id="top" style={{ top: 0, opacity: 0 }} />
 
-            {/* Generic handles for loose connections */}
-            <Handle type="source" position={Position.Top} id="top-source" style={{ opacity: 0 }} />
-            <Handle type="target" position={Position.Bottom} id="bottom-target" style={{ opacity: 0 }} />
+            {/* Bottom: Source (primary) & Target */}
+            <Handle type="source" position={Position.Bottom} id="bottom" />
+            <Handle type="target" position={Position.Bottom} id="bottom" style={{ bottom: 0, opacity: 0 }} />
+
+            {/* Left: Target (primary) & Source */}
+            <Handle type="target" position={Position.Left} id="left" style={{ top: '50%' }} />
+            <Handle type="source" position={Position.Left} id="left" style={{ top: '50%', opacity: 0 }} />
+
+            {/* Right: Source (primary) & Target */}
+            <Handle type="source" position={Position.Right} id="right" style={{ top: '50%' }} />
+            <Handle type="target" position={Position.Right} id="right" style={{ top: '50%', opacity: 0 }} />
 
             {/* Person Avatar for person category */}
             {data.category === 'person' && data.image_url && (
@@ -135,13 +158,21 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
                         if (data.category === 'person') {
                             handleViewDetail(e);
                         }
-                        // 문서 노드는 미리보기
-                        else if (data.nodeType === 'document') {
+                        // 문서/폴더/카테고리 노드는 미리보기 (상세 모달)
+                        else if (data.nodeType === 'document' || data.nodeType === 'folder' || data.nodeType === 'category' || data.nodeType === 'general') {
                             handleThumbnailClick(e);
+                        }
+                        // 비디오/재생목록도 미리보기
+                        else if (data.nodeType === 'video' || data.nodeType === 'playlist') {
+                            handleThumbnailClick(e);
+                        }
+                        // 그 외의 경우 (기본 노드 등) 상세 보기
+                        else {
+                            handleViewDetail(e);
                         }
                     }
                 }}
-                style={{ cursor: (data.category === 'person' || data.nodeType === 'document') ? 'pointer' : 'default' }}
+                style={{ cursor: 'pointer' }}
             >
                 <div className="node-header">
                     <span className="node-year">{data.year || data.date}</span>

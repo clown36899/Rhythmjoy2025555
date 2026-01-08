@@ -146,7 +146,7 @@
 /* 모든 푸터 버튼 공통: 글자가 화면에 맞춰 유어하게 줄어듦 */
 .group-wide-footer button {
     white-space: nowrap;
-    font-size: clamp(0.6rem, 2.5vw, 0.8rem);
+    font-size: clamp(1px, 2.2vw, 0.8rem);
     padding: 6px clamp(6px, 1.5vw, 12px);
     border-radius: 8px;
     font-weight: 700;
@@ -202,7 +202,7 @@
 
     .group-wide-footer button {
         padding: 6px 8px;
-        font-size: clamp(0.55rem, 3vw, 0.75rem);
+
     }
 }
 
@@ -230,7 +230,7 @@
     background: #1a1a1a;
     border: 1px solid rgba(255, 255, 255, 0.05);
     color: #9ca3af;
-    font-size: 0.95rem;
+    font-size: clamp(0.1rem, 3.2vw, 1rem);
     font-weight: 700;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);

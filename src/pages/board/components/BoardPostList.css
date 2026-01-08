@@ -157,7 +157,7 @@
 
 .anonymous-mode .board-post-content {
     color: var(--memo-text-content) !important;
-    font-size: 0.88rem;
+    font-size: clamp(0.1rem, 3vw, 1rem);
     line-height: 1.6;
     letter-spacing: -0.02em;
     margin: 0 !important;

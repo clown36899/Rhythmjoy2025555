@@ -75,3 +75,16 @@ export function getVideoProviderName(url: string): string {
   const parsed = parseVideoUrl(url);
   return parsed.provider === "youtube" ? "YouTube" : "";
 }
+
+export function validateYouTubeThumbnailUrl(url: string | null | undefined): string | null {
+  if (!url) return null;
+  // Check if it's a YouTube thumbnail URL
+  if (url.includes('img.youtube.com/vi/')) {
+    const match = url.match(/vi\/([^\/]+)\//);
+    // If ID is found but not 11 characters (likely a playlist ID or error), return null
+    if (match && match[1] && match[1].length !== 11) {
+      return null;
+    }
+  }
+  return url;
+}
