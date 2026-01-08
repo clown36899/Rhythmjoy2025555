@@ -227,9 +227,11 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
                     <button className="node-action-btn btn-detail" onClick={handleViewDetail} title="상세보기">
                         <i className="ri-fullscreen-line"></i>
                     </button>
-                    <button className="node-action-btn btn-edit" onClick={handleEdit} title="수정">
-                        <i className="ri-edit-line"></i>
-                    </button>
+                    {data.isEditMode && (
+                        <button className="node-action-btn btn-edit" onClick={handleEdit} title="수정">
+                            <i className="ri-edit-line"></i>
+                        </button>
+                    )}
                     {(data.linked_playlist_id || data.linked_document_id || data.linked_video_id || data.linked_category_id) && (
                         <button
                             className="node-action-btn btn-linked-resource"

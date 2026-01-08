@@ -296,10 +296,46 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
             setError(null);
 
             let targetId = rawTargetId;
+            let isStandalone = false;
+
             if (targetId.startsWith('playlist:')) {
                 targetId = targetId.replace('playlist:', '');
             } else if (targetId.startsWith('video:')) {
                 targetId = targetId.replace('video:', '');
+            } else if (targetId.startsWith('standalone_video:')) {
+                // Bypass DB check for direct YouTube IDs
+                targetId = targetId.replace('standalone_video:', '');
+                isStandalone = true;
+            }
+
+            // A) Direct YouTube ID handling (bypass DB)
+            if (isStandalone) {
+                // Create a mock video object
+                const mockVideo: Video = {
+                    id: `temp-${targetId}`,
+                    title: 'YouTube Video',
+                    youtube_video_id: targetId,
+                    order_index: 0,
+                    duration: 0,
+                    memo: '',
+                    playlist_id: null
+                };
+
+                setVideos([mockVideo]);
+                setPlaylist({
+                    id: 'standalone',
+                    title: 'YouTube Video',
+                    description: '',
+                    author_id: '',
+                    year: undefined,
+                    is_on_timeline: false
+                });
+                setCurrentVideoIndex(0);
+
+                // Try to fetch real title from YouTube API if possible, or just leave generic
+                // (Optional: fetchVideoDetails here if needed)
+
+                return;
             }
 
             // Unified Fetch Logic for learning_resources
@@ -458,6 +494,12 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
     }, [currentVideoIndex, videos, refreshTrigger]);
 
     const fetchBookmarks = async (videoId: string) => {
+        // Skip fetching for temporary/standalone videos that aren't in the DB
+        if (videoId.startsWith('temp-')) {
+            setBookmarks([]);
+            return;
+        }
+
         const { data, error } = await supabase
             .from('learning_video_bookmarks')
             .select('*')

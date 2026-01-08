@@ -547,8 +547,8 @@ export default function HistoryTimelinePage() {
             // Use detailed player (PlaylistModal acting as video player)
             setPreviewResource({
                 id: effectiveVideoId,
-                type: 'video',
-                title: 'Video Player'
+                type: 'standalone_video', // Explicitly mark as direct YouTube ID
+                title: 'Viewing Video'
             });
         } else {
             // Fallback to simple player if no valid ID found
@@ -656,16 +656,17 @@ export default function HistoryTimelinePage() {
         return () => document.removeEventListener('contextmenu', handleContextMenu, true);
     }, [isEditMode, isSelectionMode]);
 
-    // Update all nodes with current isSelectionMode state
+    // Update all nodes with current mode states
     useEffect(() => {
         setNodes(nds => nds.map(node => ({
             ...node,
             data: {
                 ...node.data,
-                isSelectionMode
+                isSelectionMode,
+                isEditMode // Pass edit mode state to nodes
             }
         })));
-    }, [isSelectionMode, setNodes]);
+    }, [isSelectionMode, isEditMode, setNodes]);
 
     const loadTimeline = async () => {
         try {
@@ -765,6 +766,7 @@ export default function HistoryTimelinePage() {
                         onPlayVideo: handlePlayVideo,
                         onPreviewLinkedResource: (id: string, type: string, title: string) => setPreviewResource({ id, type, title }),
                         nodeType: nodeType,
+                        isEditMode, // Initial state
                     },
                 };
             });
@@ -2141,7 +2143,11 @@ export default function HistoryTimelinePage() {
 
             {previewResource && (previewResource.type === 'playlist' || previewResource.type === 'video' || previewResource.type === 'standalone_video') && (
                 <PlaylistModal
-                    playlistId={previewResource.type === 'video' || previewResource.type === 'standalone_video' ? `video:${previewResource.id}` : previewResource.id}
+                    playlistId={
+                        previewResource.type === 'standalone_video'
+                            ? `standalone_video:${previewResource.id}`
+                            : (previewResource.type === 'video' ? `video:${previewResource.id}` : previewResource.id)
+                    }
                     onClose={() => setPreviewResource(null)}
                 />
             )}

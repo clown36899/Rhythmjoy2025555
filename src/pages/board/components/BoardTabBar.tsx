@@ -15,7 +15,7 @@ const DEFAULT_CATEGORIES = [
     { id: 'anonymous', label: '익명 게시판', icon: 'ri-user-secret-line' },
     { id: 'trade', label: '양도/양수', icon: 'ri-exchange-line' },
     { id: 'notice', label: '건의/공지', icon: 'ri-megaphone-line' },
-    { id: 'history', label: '댄스 라이브러리', icon: 'ri-book-read-line', isWip: true },
+    { id: 'history', label: '라이브러리', icon: 'ri-youtube-line', isWip: true },
     { id: 'market', label: '벼룩시장', icon: 'ri-store-2-line' },
     { id: 'dev-log', label: '개발일지', icon: 'ri-code-box-line' },
 ];
@@ -62,8 +62,8 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
                 // Add history tab
                 mapped.push({
                     id: 'history',
-                    label: '댄스 라이브러리',
-                    icon: 'ri-book-read-line',
+                    label: '라이브러리',
+                    icon: 'ri-youtube-line',
                     isWip: true
                 });
 
@@ -99,7 +99,7 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
             case 'free': return 'ri-chat-1-line';
             case 'dev-log': return 'ri-code-box-line';
             case 'anonymous': return 'ri-user-secret-line';
-            case 'history': return 'ri-book-read-line';
+            case 'history': return 'ri-youtube-line';
             default: return 'ri-chat-3-line';
         }
     };
@@ -126,17 +126,27 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
     return (
         <div className="board-tab-bar">
             <div className="board-tab-scroller" ref={scrollerRef}>
-                {categories.map((cat) => (
-                    <button
-                        key={cat.id}
-                        ref={el => { tabRefs.current[cat.id] = el; }}
-                        className={`board-tab-item ${activeCategory === cat.id ? 'active' : ''}`}
-                        onClick={() => onCategoryChange(cat.id as BoardCategory)}
-                    >
-                        <i className={`${cat.icon} board-tab-icon`}></i>
-                        <span className="board-tab-label">{cat.label}</span>
-                        {cat.isWip && <span className="tab-wip-badge">준비중</span>}
-                    </button>
+                {categories.map((cat, index) => (
+                    <div key={cat.id} style={{ display: 'flex', alignItems: 'center' }}>
+                        {index > 0 && (
+                            <span style={{
+                                color: 'rgba(255,255,255,0.2)',
+                                fontSize: '10px',
+                                margin: '0 2px',
+                                transform: 'translateY(-1px)',
+                                fontWeight: 300
+                            }}>|</span>
+                        )}
+                        <button
+                            ref={el => { tabRefs.current[cat.id] = el; }}
+                            className={`board-tab-item ${activeCategory === cat.id ? 'active' : ''}`}
+                            onClick={() => onCategoryChange(cat.id as BoardCategory)}
+                        >
+                            <i className={`${cat.icon} board-tab-icon`}></i>
+                            <span className="board-tab-label">{cat.label}</span>
+                            {cat.isWip && <span className="tab-wip-badge">준비중</span>}
+                        </button>
+                    </div>
                 ))}
                 <div
                     className="board-tab-indicator"
