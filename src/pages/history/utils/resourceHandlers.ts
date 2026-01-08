@@ -260,7 +260,73 @@ export class DocumentHandler implements ResourceHandler {
     }
 }
 
+export class CategoryHandler implements ResourceHandler {
+    match(_url: string, category: string): boolean {
+        return category === 'general' || category === 'folder';
+    }
+
+    async save(data: Partial<HistoryNodeData>, userId: string): Promise<ResourceSaveResult | null> {
+        // Check if we are updating existing
+        const linkedId = data.linked_category_id;
+        const insertData = {
+            title: data.title || 'New Folder',
+            description: data.description,
+            type: 'general',
+            user_id: userId,
+            image_url: data.image_url || null,
+            category_id: (data as any).category_id || (data as any).linked_category_id || null, // Parent Folder
+            is_unclassified: (data as any).is_unclassified ?? true // Default to true if not specified
+        };
+
+        // If updating, we should already have the ID, but save usually handles create too.
+        // Wait, data.linked_category_id is the ID of THIS resource if we are editing it?
+        // Or is it the "Parent Category"?  
+        // In handleSaveNode: `linkedCategoryId = resourceId`. So it is THIS resource.
+        // But `cleanNodeData.linked_category_id` might be ambiguous.
+        // However, handleSaveNode passes `resourcePayload` (line 1160 in HistoryTimelinePage).
+        // If it sends `linked_category_id`, it usually means the ID of the node itself? 
+        // No, HistoryNodeData `linked_category_id` refers to the LINKED resource.
+
+        // If we are CREATING, linkedId is null.
+        // If we are EDITING, linkedId is set.
+
+        if (linkedId) {
+            const { data: updated, error } = await supabase
+                .from(RESOURCE_TABLE)
+                .update({
+                    title: data.title,
+                    description: data.description,
+                    image_url: data.image_url,
+                    updated_at: new Date().toISOString()
+                })
+                .eq('id', linkedId)
+                .select()
+                .single();
+
+            if (error) throw error;
+            return { resourceId: updated.id, resourceType: 'general' };
+        } else {
+            // INSERT
+            // Note: If creating a SUB-folder, we need the parent ID.
+            // But HistoryNodeData doesn't strictly separate "Parent ID" from "Linked ID".
+            // Typically NodeEditorModal provides `category_id` in formData?
+            // Let's assume data.category_id is passed if available.
+            // If not, it's root.
+
+            const { data: saved, error } = await supabase
+                .from(RESOURCE_TABLE)
+                .insert(insertData)
+                .select()
+                .single();
+
+            if (error) throw error;
+            return { resourceId: saved.id, resourceType: 'general' };
+        }
+    }
+}
+
 export const resourceHandlers: ResourceHandler[] = [
+    new CategoryHandler(), // Check categories first
     new PlaylistHandler(),
     new VideoHandler(),
     new DocumentHandler()

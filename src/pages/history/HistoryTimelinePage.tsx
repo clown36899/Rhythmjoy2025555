@@ -1,3 +1,25 @@
+//
+// 🏛️ History Timeline Architecture (Source of Truth)
+//
+// 1. Separation of Concerns:
+//    - `history_nodes` Table:
+//      - Role: Canvas Positioning & Linkage.
+//      - Stores: `position_x`, `position_y`, and Link IDs (`linked_video_id`, etc.).
+//      - For Linked Nodes: `title`, `description`, `year`, `date`, `category` MUST be NULL.
+//
+//    - `learning_resources` Table:
+//      - Role: Content & Metadata Authority.
+//      - Stores: `title`, `description`, `image_url`, `youtube_url`, `year`, `date`, `category`.
+//
+// 2. Editing Flow:
+//    - When a user edits a Linked Node in the Timeline:
+//      - Content changes (Title, Year, Desc) -> Synced directly to `learning_resources`.
+//      - Position changes (Drag) -> Saved to `history_nodes`.
+//
+// 3. Unlinked Nodes (Legacy/Standalone):
+//    - Store all data directly in `history_nodes`.
+//
+
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useBlocker } from 'react-router-dom';
 import ReactFlow, {
@@ -111,8 +133,8 @@ const createHistoryRFNode = (
     handlers: {
         onEdit: (node: any) => void;
         onViewDetail: (item: any) => void;
-        onPlayVideo: (url: string, id?: string) => void;
-        onPreviewLinkedResource: (id: string, type: string, title: string) => void;
+        onPlayVideo: (url: string, playlistId?: string | null, linkedVideoId?: string | null) => void;
+        onPreviewLinkedResource: (id: string, type: string, title: string, nodeId?: string) => void;
     },
     isSelectionMode: boolean = false
 ): RFNode => {
@@ -162,7 +184,7 @@ export default function HistoryTimelinePage() {
     // Resource Drawer State
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [draggedResource, setDraggedResource] = useState<any>(null);
-    const [previewResource, setPreviewResource] = useState<{ id: string, type: string, title: string } | null>(null);
+    const [previewResource, setPreviewResource] = useState<{ id: string, type: string, title: string, nodeId?: string, autoEdit?: boolean } | null>(null);
     const [highlightedEdgeId, setHighlightedEdgeId] = useState<string | null>(null);
     const [isEditMode, setIsEditMode] = useState(false);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -378,9 +400,22 @@ export default function HistoryTimelinePage() {
                 // Remove temp properties
                 const { onEdit, onViewDetail, onPlayVideo, onPreviewLinkedResource, nodeType, thumbnail_url, image_url, url, ...dbData } = nodeData;
 
-                // Ensure youtube_url is populated from url if missing
-                if (url && !dbData.youtube_url) {
-                    dbData.youtube_url = url;
+                // 🔥 REFERENCE POINT ARCHITECTURE (New Nodes)
+                const isLinked = dbData.linked_video_id || dbData.linked_document_id || dbData.linked_playlist_id || dbData.linked_category_id;
+
+                if (isLinked) {
+                    // For linked nodes, DO NOT save redundant content
+                    delete dbData.title;
+                    delete dbData.description;
+                    delete dbData.image_url;
+                    delete dbData.youtube_url;
+                    delete dbData.category;
+                    // Keep year/date as positioning
+                } else {
+                    // For standalone nodes, ensure youtube_url is valid
+                    if (url && !dbData.youtube_url) {
+                        dbData.youtube_url = url;
+                    }
                 }
 
                 // Ensure positions are set
@@ -436,18 +471,42 @@ export default function HistoryTimelinePage() {
 
                 // Content (Always include these if we are updating, to ensure latest state is saved)
                 // We rely on the node.data being up-to-date from handleSaveNode's local update.
-                dbData.title = node.data.title;
-                dbData.description = node.data.description;
-                dbData.year = node.data.year;
-                dbData.date = node.data.date;
-                dbData.category = node.data.category;
-                dbData.image_url = node.data.image_url;
-                dbData.youtube_url = node.data.youtube_url;
-                dbData.linked_video_id = node.data.linked_video_id;
-                dbData.linked_document_id = node.data.linked_document_id;
-                dbData.linked_playlist_id = node.data.linked_playlist_id;
-                dbData.linked_category_id = node.data.linked_category_id;
-                dbData.nodeType = node.data.nodeType;
+
+                // 🔥 REFERENCE POINT ARCHITECTURE: 
+                // If this node is linked to a Learning Resource, the History Node is just a POINTER + POSITION.
+                // We do NOT save title, description, or media to history_nodes to avoid data duplication.
+                const isLinked = node.data.linked_video_id || node.data.linked_document_id || node.data.linked_playlist_id || node.data.linked_category_id;
+
+                if (!isLinked) {
+                    dbData.title = node.data.title;
+                    dbData.description = node.data.description;
+                    dbData.image_url = node.data.image_url;
+                    dbData.youtube_url = node.data.youtube_url;
+                    dbData.category = node.data.category;
+                    dbData.year = node.data.year;
+                    dbData.date = node.data.date;
+                } else {
+                    // 🔥 ARCHITECTURE ENFORCEMENT: 
+                    // Linked nodes derive ALL data (Content + Year/Date) from the Learning Resource.
+                    // History Node stores ONLY Position (x, y) and the Link ID.
+                    dbData.title = null;
+                    dbData.description = null;
+                    dbData.image_url = null;
+                    dbData.youtube_url = null;
+                    dbData.category = null;
+                    dbData.year = null;
+                    dbData.date = null;
+                }
+
+                dbData.linked_video_id = node.data.linked_video_id || null;
+                dbData.linked_document_id = node.data.linked_document_id || null;
+                dbData.linked_playlist_id = node.data.linked_playlist_id || null;
+                // dbData.linked_category_id = node.data.linked_category_id || null; // Migration pending check
+
+                // Remove undefined keys (but keep nulls to clear data)
+                Object.keys(dbData).forEach(key => dbData[key] === undefined && delete dbData[key]);
+
+                console.log('📦 [Update Node Payload]', { id, dbData }); // DEBUG LOG
 
                 return supabase.from('history_nodes').update(dbData).eq('id', parseInt(id));
             }).filter(Boolean);
@@ -527,11 +586,20 @@ export default function HistoryTimelinePage() {
     };
 
     const handleEditNode = (nodeData: HistoryNodeData) => {
+        // 🔥 CHANGED: Always open the Node Editor even for linked nodes.
+        // This allows users to edit the Node Position, Linkage, or break the link.
+        // The NodeEditorModal should handle the "Resource is Source of Truth" UI (e.g. disabled Title/Desc).
+
+        // if (nodeData.linked_category_id && (nodeData.category === 'folder' || nodeData.category === 'playlist')) { ... }
+        // if (nodeData.linked_document_id && (nodeData.category === 'document' || nodeData.category === 'person')) { ... }
+
         setEditingNode(nodeData);
         setIsEditorOpen(true);
     };
 
-    const handlePlayVideo = (videoUrl: string, playlistId?: string | null, linkedVideoId?: string | null) => {
+
+
+    const handlePlayVideo = (videoUrl: string, playlistId?: string | null, linkedVideoId?: string | null, nodeId?: string) => {
         // Try to determine the best available video ID
         let effectiveVideoId = linkedVideoId;
 
@@ -548,7 +616,8 @@ export default function HistoryTimelinePage() {
             setPreviewResource({
                 id: effectiveVideoId,
                 type: 'standalone_video', // Explicitly mark as direct YouTube ID
-                title: 'Viewing Video'
+                title: 'Viewing Video',
+                nodeId // Pass nodeId
             });
         } else {
             // Fallback to simple player if no valid ID found
@@ -695,6 +764,7 @@ export default function HistoryTimelinePage() {
                 // Determine display data
                 let title = node.title;
                 let year = node.year;
+                let date = node.date;
                 let desc = node.description;
                 let category = node.category;
                 let thumbnail_url = null;
@@ -702,30 +772,43 @@ export default function HistoryTimelinePage() {
                 let nodeType = 'default';
 
                 if (lp) {
+                    // ⚠️ CRITICAL: Linked Resource is the SOURCE OF TRUTH.
+                    // Always prefer 'lp' fields over 'node' fields.
                     title = lp.title || title;
                     desc = lp.description || desc;
+                    year = lp.year || year;
+                    date = lp.date || date;
                     thumbnail_url = lp.image_url || (lp.metadata?.thumbnail_url);
-                    image_url = lp.image_url; // 🔥 Ensure image_url is also set
+                    image_url = lp.image_url;
                     nodeType = 'playlist';
                     category = 'playlist';
                 } else if (lc) {
+                    // 🔥 SYNC: Always prioritize Library data over Node data
                     title = lc.title || title;
                     desc = lc.description || desc;
+                    // Prioritize root column year, fallback to metadata
+                    year = lc.year || (lc.metadata?.year ? parseInt(lc.metadata.year) : year);
+                    date = lc.date || date;
                     thumbnail_url = lc.image_url;
                     image_url = lc.image_url;
+
                     // Preserve 'playlist' type if it was originally a playlist
                     nodeType = node.category === 'playlist' ? 'playlist' : 'folder';
                     category = node.category === 'playlist' ? 'playlist' : 'folder';
                 } else if (ld) {
                     title = ld.title || title;
                     desc = ld.description || desc;
+                    year = ld.year || year;
+                    date = ld.date || date;
                     image_url = ld.image_url;
-                    thumbnail_url = ld.image_url; // 🔥 For documents/persons
+                    thumbnail_url = ld.image_url;
                     nodeType = ld.type === 'person' ? 'person' : 'document';
                     category = ld.type === 'person' ? 'person' : 'document';
                 } else if (lv) {
                     title = lv.title || title;
                     desc = lv.description || desc;
+                    year = lv.year || year; // Video resource usually lacks year but if added, use it
+                    // Video date is often 'release_date' or similar, but sticking to standard props
                     image_url = lv.image_url;
                     thumbnail_url = lv.image_url || (lv.metadata?.youtube_video_id ? `https://img.youtube.com/vi/${lv.metadata.youtube_video_id}/mqdefault.jpg` : null);
                     nodeType = 'video';
@@ -1108,8 +1191,62 @@ export default function HistoryTimelinePage() {
 
             // --- 2. 기존 노드 수정 (이미 존재하는 노드) ---
             if (editingNode) {
-                // ... (기존 수정 로직 유지)
                 const { image_url, url, ...nodeUpdateData } = cleanNodeData;
+
+                // 🔥 CHANGED: Direct Update to Source of Truth (learning_resources)
+                // ⚠️ ARCHITECTURE RULE: Content (Title, Desc, Year, Media) lives in `learning_resources`.
+                // If this node is linked, we MUST update the source resource immediately.
+                // Do NOT save these fields to `history_nodes` for linked items.
+                let sourceUpdated = false;
+
+                if (linkedVideoId || linkedDocumentId || linkedPlaylistId || linkedCategoryId) {
+                    const resourceId = linkedVideoId || linkedDocumentId || linkedPlaylistId || linkedCategoryId;
+                    const updatePayload: any = {};
+                    if (nodeUpdateData.title) updatePayload.title = nodeUpdateData.title;
+                    if (nodeUpdateData.description) updatePayload.description = nodeUpdateData.description;
+                    if (image_url) updatePayload.image_url = image_url;
+                    if (nodeUpdateData.year !== undefined) updatePayload.year = nodeUpdateData.year;
+                    if (nodeUpdateData.category) {
+                        const typeMap: Record<string, string> = {
+                            'folder': 'general',
+                            'general': 'general',
+                            'document': 'document',
+                            'person': 'person',
+                            'playlist': 'playlist',
+                            'video': 'video'
+                        };
+                        if (typeMap[nodeUpdateData.category]) {
+                            updatePayload.type = typeMap[nodeUpdateData.category];
+                        }
+                    }
+
+                    if (Object.keys(updatePayload).length > 0) {
+                        console.log('⚡ [handleSaveNode] Syncing changes to learning_resources:', { resourceId, updatePayload });
+                        const { error: resourceErr } = await supabase
+                            .from('learning_resources')
+                            .update(updatePayload)
+                            .eq('id', resourceId);
+
+                        if (resourceErr) {
+                            console.error('Failed to sync to learning_resources:', resourceErr);
+                            alert('원본 리소스 수정에 실패했습니다.');
+                            return;
+                        }
+                        sourceUpdated = true;
+                    }
+                }
+
+                // 🔥 CHANGED: Handle Resource-Only Edits (from Drawer)
+                // If this is a proxy node for the drawer, stop here. Do NOT update history nodes.
+                if ((editingNode as any)?.isResourceEditOnly) {
+                    if (sourceUpdated) {
+                        setDrawerRefreshKey(prev => prev + 1);
+                        alert('자료가 수정되었습니다.');
+                    }
+                    setIsEditorOpen(false);
+                    return;
+                }
+
                 const updateData = {
                     ...nodeUpdateData,
                     youtube_url: cleanNodeData.youtube_url || url,
@@ -1154,7 +1291,7 @@ export default function HistoryTimelinePage() {
                     })
                 );
 
-                if (addToDrawer) {
+                if (addToDrawer || sourceUpdated) {
                     setDrawerRefreshKey(prev => prev + 1);
                 }
             } // This closes the `if (editingNode)` block
@@ -1555,6 +1692,38 @@ export default function HistoryTimelinePage() {
         }
     }, [isAdmin, fetchResourceData]);
 
+    const handleEditDrawerResource = useCallback((resource: any) => {
+        console.log('✏️ [Edit Resource From Drawer]', resource);
+
+        // Construct a "Proxy Node" that matches what NodeEditorModal expects.
+        // This allows us to reuse the editor UI and Logic.
+        // We set 'isResourceEditOnly' flag to prevent saving this as a history node.
+        const fakeNode: any = {
+            id: resource.id,
+
+
+            title: resource.title || resource.name, // Handle Category vs Resource naming
+            description: resource.description,
+            year: resource.year,
+            date: resource.created_at, // Use created_at as date fallback
+            image_url: resource.image_url,
+            youtube_url: resource.youtube_url,
+
+            // Map Linked IDs based on type
+            linked_playlist_id: resource.type === 'playlist' ? resource.id : null,
+            linked_video_id: (resource.type === 'video' || resource.type === 'standalone_video') ? resource.id : null,
+            linked_document_id: (resource.type === 'document' || resource.type === 'person') ? resource.id : null,
+            linked_category_id: (resource.type === 'general' || resource.type === 'folder' || !resource.type) ? resource.id : null, // Assuming general = folder
+
+            category: resource.type || 'general',
+            isResourceEditOnly: true // 🚩 FLAG: Drawer Edit Mode
+
+        };
+
+        setEditingNode(fakeNode);
+        setIsEditorOpen(true);
+    }, []);
+
     const onDrop = useCallback(
         async (event: any) => {
             event.preventDefault();
@@ -1687,8 +1856,12 @@ export default function HistoryTimelinePage() {
                             {
                                 onEdit: handleEditNode,
                                 onViewDetail: handleViewDetail,
-                                onPlayVideo: handlePlayVideo,
-                                onPreviewLinkedResource: (id: string, type: string, title: string) => setPreviewResource({ id, type, title }),
+                                onPlayVideo: (url: string, playlistId?: string | null, linkedVideoId?: string | null) => {
+                                    const parsed = url ? parseVideoUrl(url) : null;
+                                    const targetId = linkedVideoId || playlistId || parsed?.videoId || null;
+                                    if (targetId) handlePlayVideo(targetId, null, null, 'start-node');
+                                },
+                                onPreviewLinkedResource: (id: string, type: string, title: string) => setPreviewResource({ id, type, title, nodeId: 'start-node' }),
                             }
                         );
                         newNodes.push(rootNode);
@@ -1854,7 +2027,7 @@ export default function HistoryTimelinePage() {
                     onEdit: handleEditNode,
                     onViewDetail: handleViewDetail,
                     onPlayVideo: handlePlayVideo,
-                    onPreviewLinkedResource: (id: string, type: string, title: string) => setPreviewResource({ id, type, title }),
+                    onPreviewLinkedResource: (id: string, type: string, title: string, nodeId?: string) => setPreviewResource({ id, type, title, nodeId }),
                 }
             );
             setNodes((nds) => nds.concat(newNode));
@@ -2139,6 +2312,14 @@ export default function HistoryTimelinePage() {
                     documentId={previewResource.id}
                     onClose={() => setPreviewResource(null)}
                     isEditMode={isEditMode}
+                    autoEdit={previewResource.autoEdit}
+                    onEditNode={() => {
+                        setPreviewResource(null);
+                        if (previewResource.nodeId) {
+                            const node = nodes.find(n => n.id === previewResource.nodeId);
+                            if (node) handleEditNode(node.data);
+                        }
+                    }}
                 />
             )}
 
@@ -2172,6 +2353,7 @@ export default function HistoryTimelinePage() {
                 isEditMode={isEditMode}
                 isAdmin={isAdmin}
                 onToggleEditMode={handleToggleEditMode}
+                onEditResource={handleEditDrawerResource}
             />
 
             {/* Context Menu */}

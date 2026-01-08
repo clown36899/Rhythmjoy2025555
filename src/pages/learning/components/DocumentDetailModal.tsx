@@ -13,6 +13,8 @@ interface Props {
     onClose: () => void;
     onUpdate?: () => void;
     isEditMode?: boolean;
+    onEditNode?: () => void;
+    autoEdit?: boolean;
 }
 
 interface LearningDocument {
@@ -35,11 +37,11 @@ interface LearningDocument {
         }
     }
 }
-export const DocumentDetailModal = ({ documentId, onClose, onUpdate, isEditMode }: Props) => {
+export const DocumentDetailModal = ({ documentId, onClose, onUpdate, isEditMode, onEditNode, autoEdit }: Props) => {
     const { user } = useAuth();
     const [doc, setDoc] = useState<LearningDocument | null>(null);
     const [loading, setLoading] = useState(true);
-    const [isEditing, setIsEditing] = useState(false);
+    const [isEditing, setIsEditing] = useState(autoEdit || false);
 
     // Edit Form States
     const [editTitle, setEditTitle] = useState('');
@@ -130,14 +132,14 @@ export const DocumentDetailModal = ({ documentId, onClose, onUpdate, isEditMode 
                 .update({
                     title: editTitle,
                     description: editContent, // Map content back to description
-                    category_id: editCategory,
+                    category_id: editCategory || null, // Convert empty string to null for UUID column
                     image_url: imageUrl,
                     updated_at: new Date().toISOString(),
-                    is_public: editIsPublic, // Assuming is_public is a direct column now
                     metadata: {
                         ...(doc?.metadata || {}),
                         year: editYear ? parseInt(editYear) : null, // Store year in metadata to be safe
-                        is_on_timeline: editIsOnTimeline // Store is_on_timeline in metadata
+                        is_on_timeline: editIsOnTimeline, // Store is_on_timeline in metadata
+                        is_public: editIsPublic // Store is_public in metadata as it's not a column
                     }
                 })
                 .eq('id', documentId)
@@ -275,8 +277,11 @@ export const DocumentDetailModal = ({ documentId, onClose, onUpdate, isEditMode 
                         {isEditing ? '이미지/문서 편집' : doc.title}
                     </h3>
                     <div style={{ display: 'flex', gap: '8px' }}>
-                        {canEdit && !isEditing && (
-                            <button className="ddm-cancelButton" onClick={() => setIsEditing(true)}>편집</button>
+                        {canEdit && (
+                            <button className="ddm-cancelButton" onClick={() => {
+                                if (onEditNode) onEditNode();
+                                else setIsEditing(true);
+                            }}>편집</button>
                         )}
                         <button onClick={onClose} className="ddm-closeButton">✕</button>
                     </div>

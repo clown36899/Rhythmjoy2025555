@@ -38,6 +38,7 @@ interface Props {
     resources?: any[]; // 🔥 SIMPLIFIED: Single prop for all resources
     onMoveResource?: (playlistId: string, targetCategoryId: string | null, isUnclassified: boolean, gridRow?: number, gridColumn?: number) => void;
     onItemClick?: (item: any) => void;
+    onEditItem?: (item: any) => void;
     onReorderResource?: (sourceId: string, targetId: string, position: 'before' | 'after', gridRow?: number, gridColumn?: number) => void;
     onDeleteResource?: (id: string, type: string) => void;
     onRenameResource?: (id: string, newName: string, type: string) => void;
@@ -55,6 +56,7 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
         resources: injectedResources = [], // 🔥 Single resources prop
         onMoveResource,
         onItemClick,
+        onEditItem,
         onReorderResource,
         onDeleteResource,
         onRenameResource,
@@ -580,7 +582,14 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                             <span className="categoryName">{playlist.title}</span>
                             {!readOnly && (
                                 <div className="actions">
-                                    <button className="actionBtn" onClick={(e) => { e.stopPropagation(); startEditing(playlist.id, playlist.title); }}>✏️</button>
+                                    <button className="actionBtn" onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (onEditItem) {
+                                            onEditItem(playlist);
+                                        } else {
+                                            startEditing(playlist.id, playlist.title);
+                                        }
+                                    }}>✏️</button>
                                     <button className="actionBtn deleteBtn" onClick={(e) => { e.stopPropagation(); onDeleteResource?.(playlist.id, playlist.type || 'playlist'); }}>🗑️</button>
                                 </div>
                             )}
@@ -686,20 +695,29 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                             <span className="categoryName">{category.name}</span>
                             {!readOnly && (
                                 <div className="actions">
-                                    <button className="actionBtn" onClick={(e) => { e.stopPropagation(); startEditing(category.id, category.name); }}>✏️</button>
+                                    <button className="actionBtn" onClick={(e) => {
+                                        e.stopPropagation();
+                                        if (onEditItem) {
+                                            onEditItem(category);
+                                        } else {
+                                            startEditing(category.id, category.name);
+                                        }
+                                    }}>✏️</button>
                                     <button className="actionBtn deleteBtn" onClick={(e) => { e.stopPropagation(); onDeleteResource?.(category.id, 'general'); }}>🗑️</button>
                                 </div>
                             )}
                         </>
                     )}
                 </div>
-                {!isCollapsed && hasChildren && (
-                    <div className="treeChildren" style={{ marginLeft: '16px', borderLeft: '1px solid #444', display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                        {childFolders.map(renderTreeItem)}
-                        {playlistsInFolder.map(renderPlaylistItem)}
-                    </div>
-                )}
-            </div>
+                {
+                    !isCollapsed && hasChildren && (
+                        <div className="treeChildren" style={{ marginLeft: '16px', borderLeft: '1px solid #444', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            {childFolders.map(renderTreeItem)}
+                            {playlistsInFolder.map(renderPlaylistItem)}
+                        </div>
+                    )
+                }
+            </div >
         );
     };
 

@@ -36,9 +36,10 @@ interface Props {
     isEditMode?: boolean;
     isAdmin?: boolean;
     onToggleEditMode?: () => void;
+    onEditResource?: (item: any) => void;
 }
 
-export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refreshKey, categories, playlists, videos, documents, onMoveResource, onReorderResource, onDeleteResource, onRenameResource, onCategoryChange, isEditMode = false, isAdmin = false, onToggleEditMode }: Props) => {
+export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refreshKey, categories, playlists, videos, documents, onMoveResource, onReorderResource, onDeleteResource, onRenameResource, onCategoryChange, isEditMode = false, isAdmin = false, onToggleEditMode, onEditResource }: Props) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterMode, setFilterMode] = useState<'all' | 'year'>('all');
     const [width, setWidth] = useState(360);
@@ -386,6 +387,7 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refr
                             readOnly={!isEditMode}
                             dragSourceMode={true}
                             scale={treeScale}
+                            onEditItem={onEditResource}
                         />
                     </div>
                 )}

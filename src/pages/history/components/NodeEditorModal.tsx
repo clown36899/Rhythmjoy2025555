@@ -1,3 +1,13 @@
+//
+// 🏛️ History Node Editor
+//
+// ⚠️ ARCHITECTURE NOTE:
+// For Linked Nodes, this editor acts as a "Proxy Editor" for the underlying Learning Resource.
+// - All inputs (Title, Desc, Year) are UNLOCKED.
+// - Changes are passed to `onSave`, which then performs a Direct Sync to `learning_resources`.
+// - This ensures the user can edit the "Source of Truth" without leaving the Timeline.
+//
+
 import React, { useState, useEffect } from 'react';
 import { parseVideoUrl } from '../../../utils/videoEmbed';
 import { supabase } from '../../../lib/supabase';
@@ -8,9 +18,10 @@ interface NodeEditorModalProps {
     onSave: (data: any) => void;
     onDelete?: (id: number) => void;
     onClose: () => void;
+    onEditSource?: () => void;
 }
 
-export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, onDelete, onClose }) => {
+export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, onDelete, onClose, onEditSource }) => {
     const [formData, setFormData] = useState({
         title: '',
         year: '',
@@ -279,19 +290,29 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
         }
     };
 
+    // Detect if this is a linked node (Source of Truth is elsewhere)
+    const isLinked = node && (node.linked_playlist_id || node.linked_document_id || node.linked_video_id || node.linked_category_id);
+
     const videoInfo = formData.youtube_url ? parseVideoUrl(formData.youtube_url) : null;
 
+    const handleOverlayClick = (e: React.MouseEvent) => {
+        if (e.target === e.currentTarget) {
+            onClose();
+        }
+    };
+
     return (
-        <div className="node-editor-modal-overlay" onClick={onClose}>
-            <div className="node-editor-modal" onClick={(e) => e.stopPropagation()}>
+        <div className="node-editor-modal-overlay" onMouseDown={handleOverlayClick}>
+            <div className="node-editor-modal" onMouseDown={(e) => e.stopPropagation()}>
                 <div className="node-editor-header">
-                    <h2>{node ? '노드 수정' : '새 노드 추가'}</h2>
+                    <h2>{node ? (isLinked ? '연동된 노드 수정' : '노드 수정') : '새 노드 추가'}</h2>
                     <button className="node-editor-close" onClick={onClose}>
                         <i className="ri-close-line"></i>
                     </button>
                 </div>
 
                 <form className="node-editor-form" onSubmit={handleSubmit}>
+
                     <div className="form-group">
                         <label>제목 *</label>
                         <input
@@ -338,7 +359,7 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                         </select>
                     </div>
 
-                    {formData.category === 'person' && (
+                    {formData.category === 'person' && !isLinked && (
                         <>
                             <div className="info-message" style={{
                                 padding: '12px',
@@ -382,7 +403,7 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                         </>
                     )}
 
-                    {formData.category === 'video' && (
+                    {formData.category === 'video' && !isLinked && (
                         <div className="info-message" style={{
                             padding: '12px',
                             backgroundColor: 'rgba(139, 92, 246, 0.1)',
@@ -395,7 +416,7 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                         </div>
                     )}
 
-                    {formData.category === 'video' && (
+                    {formData.category === 'video' && !isLinked && (
                         <div className="form-group">
                             <label>영상 선택</label>
                             {loadingResources ? (
@@ -566,7 +587,7 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                         />
                     </div>
 
-                    {(!node || (!node.linked_playlist_id && !node.linked_document_id && !node.linked_video_id)) && (
+                    {(!node || !isLinked) && (
                         <div className="form-group checkbox-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '8px' }}>
                             <input
                                 type="checkbox"
