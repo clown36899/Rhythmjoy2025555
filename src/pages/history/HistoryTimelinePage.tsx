@@ -2138,6 +2138,7 @@ export default function HistoryTimelinePage() {
                 <DocumentDetailModal
                     documentId={previewResource.id}
                     onClose={() => setPreviewResource(null)}
+                    isEditMode={isEditMode}
                 />
             )}
 
@@ -2149,6 +2150,7 @@ export default function HistoryTimelinePage() {
                             : (previewResource.type === 'video' ? `video:${previewResource.id}` : previewResource.id)
                     }
                     onClose={() => setPreviewResource(null)}
+                    isEditMode={isEditMode}
                 />
             )}
 

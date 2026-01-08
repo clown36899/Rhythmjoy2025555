@@ -8,6 +8,16 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '3.4.2',
+        date: '2026-01-08',
+        changes: [
+            '[✨ 기능] 라이브러리 UI 개편 (명칭 변경, 아이콘 교체, 탭 구분선 추가)',
+            '[🐛 Fix] 동영상 재생 오류(UUID) 및 로딩 멈춤 현상 완전 해결',
+            '[🔧 개선] 편집 모드 연동 강화: 비편집 상태에서 모든 수정/추가 버튼 숨김 처리',
+            '[🔧 최적화] YouTube 플레이어 보안 경고(Cross-Origin) 해결'
+        ]
+    },
+    {
         version: '3.4.1',
         date: '2026-01-08',
         changes: [

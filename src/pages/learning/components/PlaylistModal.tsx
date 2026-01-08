@@ -5,9 +5,10 @@ import './PlaylistModal.css';
 interface Props {
     playlistId: string;
     onClose: () => void;
+    isEditMode?: boolean;
 }
 
-export const PlaylistModal = ({ playlistId, onClose }: Props) => {
+export const PlaylistModal = ({ playlistId, onClose, isEditMode }: Props) => {
     // Handle ESC key
     useEffect(() => {
         const handleEsc = (e: KeyboardEvent) => {
@@ -23,6 +24,7 @@ export const PlaylistModal = ({ playlistId, onClose }: Props) => {
                 <LearningDetailPage
                     playlistId={playlistId}
                     onClose={onClose}
+                    isEditMode={isEditMode}
                 />
             </div>
         </div>

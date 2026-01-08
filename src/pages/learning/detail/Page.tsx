@@ -57,15 +57,19 @@ interface Bookmark {
 interface Props {
     playlistId?: string;
     onClose?: () => void;
+    isEditMode?: boolean; // Added control for edit visibility
 }
 
-const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClose }) => {
+const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClose, isEditMode = false }) => {
     // Check both potential parameter names
     const params = useParams();
     const playlistId = propPlaylistId || params.playlistId || params.listId || params.id;
 
     const navigate = useNavigate();
     const { isAdmin } = useAuth(); // Use context
+    // Combined flag for UI rendering
+    const canEdit = isAdmin && isEditMode;
+
     const [playlist, setPlaylist] = useState<Playlist | null>(null);
     const [videos, setVideos] = useState<Video[]>([]);
     const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
@@ -232,6 +236,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                     rel: 0,
                     iv_load_policy: 3,
                     enablejsapi: 1,
+                    origin: window.location.origin, // Fix postMessage origin mismatch
                 },
                 events: {
                     onReady: (event: any) => {
@@ -573,6 +578,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                     iv_load_policy: 3,
                     autohide: 1,
                     enablejsapi: 1,
+                    origin: window.location.origin, // Fix postMessage origin mismatch
                 },
                 events: {
                     onReady: () => {
@@ -1101,22 +1107,22 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                         {/* Bookmarks Tab Content */}
                         <div className={`ld-tab-pane ld-tab-pane-bookmarks ${activeTab === 'bookmarks' ? 'active' : ''}`}>
                             <div className="ld-bookmark-section">
-                                {isAdmin && (
-                                    <div className="ld-bookmark-toolbar-wrapper">
-                                        <h3 className="ld-section-title-small">타임스탬프</h3>
+                                <div className="ld-bookmark-toolbar-wrapper">
+                                    <h3 className="ld-section-title-small">타임스탬프</h3>
+                                    {canEdit && (
                                         <div className="ld-bookmark-toolbar">
                                             <button onClick={handleAddBookmark} className="ld-bookmark-tool-btn primary">
                                                 <span className="ld-tool-icon">+</span> 추가
                                             </button>
                                         </div>
-                                    </div>
-                                )}
+                                    )}
+                                </div>
                                 <BookmarkList
                                     bookmarks={bookmarks}
                                     onSeek={seekTo}
                                     onDelete={handleDeleteBookmark}
                                     onEdit={(id) => handleEditBookmark(id)}
-                                    isAdmin={isAdmin}
+                                    isAdmin={canEdit}
                                 />
                             </div>
                         </div>
@@ -1177,7 +1183,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                                 ) : (
                                     <h2 className="ld-video-title-display">
                                         {currentVideo.title}
-                                        {isAdmin && (
+                                        {canEdit && (
                                             <button onClick={startEditingVideoTitle} className="ld-edit-button" title="제목 수정" style={{ opacity: 0.5, fontSize: '0.8em', marginLeft: '6px' }}>✎</button>
                                         )}
                                     </h2>
@@ -1214,7 +1220,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                         {currentVideo.year && <span className="ld-year-badge">#{currentVideo.year}</span>}
                                         {currentVideo.is_on_timeline && <span className="ld-timeline-badge">Timeline</span>}
-                                        {isAdmin && (
+                                        {canEdit && (
                                             <button
                                                 onClick={startEditingVideoYear}
                                                 className="ld-edit-button-small"
@@ -1233,7 +1239,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                         <div className="ld-video-memo-wrapper">
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
                                 <span style={{ fontSize: '0.85em', color: '#9ca3af' }}>메모 / 설명</span>
-                                {isAdmin && !isEditingVideoMemo && (
+                                {canEdit && !isEditingVideoMemo && (
                                     <button onClick={startEditingVideoMemo} className="ld-edit-button-small" style={{ fontSize: '11px', padding: '2px 5px' }}>✎ 메모 수정</button>
                                 )}
                             </div>
@@ -1302,7 +1308,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                                         <span className="ld-timeline-badge">Timeline ON</span>
                                     )}
                                 </div>
-                                {isAdmin && (
+                                {canEdit && (
                                     <div style={{ display: 'flex', gap: '8px' }}>
                                         {!isEditingYear && (
                                             <button
@@ -1390,7 +1396,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                             ) : (
                                 <h2 className="ld-sidebar-playlist-title">
                                     {playlist.title}
-                                    {isAdmin && (
+                                    {canEdit && (
                                         <button onClick={startEditingTitle} className="ld-edit-button" title="제목 수정">✎</button>
                                     )}
                                 </h2>

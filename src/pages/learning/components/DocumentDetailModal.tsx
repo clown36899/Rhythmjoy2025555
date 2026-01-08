@@ -12,6 +12,7 @@ interface Props {
     documentId: string;
     onClose: () => void;
     onUpdate?: () => void;
+    isEditMode?: boolean;
 }
 
 interface LearningDocument {
@@ -34,7 +35,7 @@ interface LearningDocument {
         }
     }
 }
-export const DocumentDetailModal = ({ documentId, onClose, onUpdate }: Props) => {
+export const DocumentDetailModal = ({ documentId, onClose, onUpdate, isEditMode }: Props) => {
     const { user } = useAuth();
     const [doc, setDoc] = useState<LearningDocument | null>(null);
     const [loading, setLoading] = useState(true);
@@ -66,6 +67,8 @@ export const DocumentDetailModal = ({ documentId, onClose, onUpdate }: Props) =>
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     const isAdmin = user?.email?.includes('admin') || user?.id === doc?.author_id;
+    // Combine edit permissions
+    const canEdit = isAdmin && (isEditMode ?? false);
 
     useEffect(() => {
         fetchDocument();
@@ -272,7 +275,7 @@ export const DocumentDetailModal = ({ documentId, onClose, onUpdate }: Props) =>
                         {isEditing ? '이미지/문서 편집' : doc.title}
                     </h3>
                     <div style={{ display: 'flex', gap: '8px' }}>
-                        {isAdmin && !isEditing && (
+                        {canEdit && !isEditing && (
                             <button className="ddm-cancelButton" onClick={() => setIsEditing(true)}>편집</button>
                         )}
                         <button onClick={onClose} className="ddm-closeButton">✕</button>
