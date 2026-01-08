@@ -292,7 +292,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                     )}
                     {isArchivePage && (
                       <span className="header-breadcrumb-current" style={{ position: 'relative' }}>
-                        댄스 라이브러리
+                        라이브러리
                         <span style={{
                           position: 'absolute',
                           top: '-6px',

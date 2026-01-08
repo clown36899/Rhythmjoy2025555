@@ -178,6 +178,38 @@ export default function HistoryTimelinePage() {
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId?: string } | null>(null);
     const [isSelectionMode, setIsSelectionMode] = useState(false); // Toggle selection mode
 
+    // Limit panning/zooming to node area
+    const [translateExtent, setTranslateExtent] = useState<[[number, number], [number, number]] | undefined>(undefined);
+
+    useEffect(() => {
+        if (nodes.length === 0) return;
+
+        let minX = Infinity;
+        let minY = Infinity;
+        let maxX = -Infinity;
+        let maxY = -Infinity;
+
+        nodes.forEach(node => {
+            const x = node.position.x;
+            const y = node.position.y;
+            const w = node.width || 150;
+            const h = node.height || 100;
+
+            if (x < minX) minX = x;
+            if (y < minY) minY = y;
+            if (x + w > maxX) maxX = x + w;
+            if (y + h > maxY) maxY = y + h;
+        });
+
+        const PADDING = 2000; // Adequate padding for ease of use
+        if (minX !== Infinity) {
+            setTranslateExtent([
+                [minX - PADDING, minY - PADDING],
+                [maxX + PADDING, maxY + PADDING],
+            ]);
+        }
+    }, [nodes]);
+
     // Define types inside component with useMemo to ensure stable references
     const nodeTypes = useMemo(() => STATIC_NODE_TYPES, []);
     const edgeTypes = useMemo(() => STATIC_EDGE_TYPES, []);
@@ -257,7 +289,11 @@ export default function HistoryTimelinePage() {
     }, [nodes]);
 
     // Helper to check if ID is temporary
-    const isTempId = (id: string) => parseInt(id) < 0;
+    // Helper to check if ID is temporary (negative number or non-numeric string like 'reactflow__edge...')
+    const isTempId = (id: string) => {
+        const num = parseInt(id);
+        return isNaN(num) || num < 0;
+    };
 
     useEffect(() => {
         const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -275,6 +311,19 @@ export default function HistoryTimelinePage() {
     useEffect(() => {
         if (!isAdmin) setIsEditMode(false);
     }, [isAdmin]);
+
+    // Sync isEditMode to nodes (Critical for toggling edit buttons immediately)
+    useEffect(() => {
+        setNodes((nds) =>
+            nds.map((node) => ({
+                ...node,
+                data: {
+                    ...node.data,
+                    isEditMode,
+                },
+            }))
+        );
+    }, [isEditMode, setNodes]);
 
     // -- Navigation Blocker --
     const blocker = useBlocker(
@@ -375,8 +424,8 @@ export default function HistoryTimelinePage() {
 
             for (const node of newNodes) {
                 const { id, ...nodeData } = node.data;
-                // Remove temp properties
-                const { onEdit, onViewDetail, onPlayVideo, onPreviewLinkedResource, nodeType, thumbnail_url, image_url, url, ...dbData } = nodeData;
+                // Remove temp properties (UI-only, not DB columns)
+                const { onEdit, onViewDetail, onPlayVideo, onPreviewLinkedResource, nodeType, thumbnail_url, image_url, url, isSelectionMode, ...dbData } = nodeData;
 
                 // Ensure youtube_url is populated from url if missing
                 if (url && !dbData.youtube_url) {
@@ -417,7 +466,10 @@ export default function HistoryTimelinePage() {
             // Add tracked content changes
             modifiedNodeIds.forEach(id => changesToUpdate.add(id));
 
-            const updates = Array.from(changesToUpdate).map(id => {
+            console.log('📝 [Content Update] Modified IDs:', Array.from(modifiedNodeIds));
+            console.log('📝 [Content Update] Final Update List:', Array.from(changesToUpdate));
+
+            const updates = Array.from(changesToUpdate).map(async id => {
                 const node = nodes.find(n => n.id === id);
                 if (!node) return null;
 
@@ -436,33 +488,41 @@ export default function HistoryTimelinePage() {
 
                 // Content (Always include these if we are updating, to ensure latest state is saved)
                 // We rely on the node.data being up-to-date from handleSaveNode's local update.
+                // IMPORTANT: Only include DB columns, exclude UI-only properties
                 dbData.title = node.data.title;
                 dbData.description = node.data.description;
                 dbData.year = node.data.year;
                 dbData.date = node.data.date;
                 dbData.category = node.data.category;
-                dbData.image_url = node.data.image_url;
+
+                // image_url is UI-only (computed from linked resources), not a DB column
                 dbData.youtube_url = node.data.youtube_url;
                 dbData.linked_video_id = node.data.linked_video_id;
                 dbData.linked_document_id = node.data.linked_document_id;
                 dbData.linked_playlist_id = node.data.linked_playlist_id;
                 dbData.linked_category_id = node.data.linked_category_id;
-                dbData.nodeType = node.data.nodeType;
 
-                return supabase.from('history_nodes').update(dbData).eq('id', parseInt(id));
-            }).filter(Boolean);
+                const { data, error } = await supabase.from('history_nodes').update(dbData).eq('id', parseInt(id)).select();
+
+                if (error) {
+                    console.error(`❌ [Update Failed] Node ${id}:`, error);
+                    throw error;
+                }
+                return data;
+            });
 
             await Promise.all(updates);
 
             // 4. Process New Edges (Local Only -> DB)
             const newEdges = edges.filter(e => isTempId(e.id));
+
             for (const edge of newEdges) {
                 // Resolve Source/Target IDs (might be temp mapped to real)
                 const sourceId = tempIdMap.has(edge.source) ? tempIdMap.get(edge.source) : edge.source;
                 const targetId = tempIdMap.has(edge.target) ? tempIdMap.get(edge.target) : edge.target;
 
                 if (!sourceId || !targetId || isTempId(sourceId) || isTempId(targetId)) {
-                    console.warn('Skipping edge with unresolved temp ID:', edge);
+                    console.warn('Skipping edge with unresolved temp ID:', edge, { sourceId, targetId });
                     continue;
                 }
 
@@ -476,8 +536,14 @@ export default function HistoryTimelinePage() {
                     created_by: user.id
                 };
 
-                await supabase.from('history_edges').insert(edgeData);
+                const { data: edgeRes, error: edgeErr } = await supabase.from('history_edges').insert(edgeData).select();
+
+                if (edgeErr) {
+                    console.error('Edge save error:', edgeErr);
+                    throw edgeErr;
+                }
             }
+
 
             // Reset States
             setDeletedNodeIds(new Set());
@@ -532,26 +598,18 @@ export default function HistoryTimelinePage() {
     };
 
     const handlePlayVideo = (videoUrl: string, playlistId?: string | null, linkedVideoId?: string | null) => {
-        // Try to determine the best available video ID
-        let effectiveVideoId = linkedVideoId;
-
-        // If linkedVideoId is missing or invalid (e.g. not 11 chars), define it from URL
-        if (!effectiveVideoId || effectiveVideoId.length !== 11) {
-            const parsed = parseVideoUrl(videoUrl);
-            if (parsed && parsed.videoId) {
-                effectiveVideoId = parsed.videoId;
-            }
-        }
-
-        if (effectiveVideoId && effectiveVideoId.length === 11) {
-            // Use detailed player (PlaylistModal acting as video player)
+        // 1. If we have a linked resource UUID, use it (opens PlaylistModal in video mode with DB data)
+        if (linkedVideoId) {
             setPreviewResource({
-                id: effectiveVideoId,
+                id: linkedVideoId,
                 type: 'video',
                 title: 'Video Player'
             });
-        } else {
-            // Fallback to simple player if no valid ID found
+            return;
+        }
+
+        // 2. Otherwise, just play the URL in simple player (no DB fetch)
+        if (videoUrl) {
             setPlayingVideoUrl(videoUrl);
             setPlayingPlaylistId(playlistId || null);
             setIsVideoPlayerOpen(true);
@@ -701,32 +759,36 @@ export default function HistoryTimelinePage() {
                 let nodeType = 'default';
 
                 if (lp) {
-                    title = lp.title || title;
-                    desc = lp.description || desc;
+                    title = title || lp.title; // 🔥 Prioritize node title
+                    desc = desc || lp.description;
                     thumbnail_url = lp.image_url || (lp.metadata?.thumbnail_url);
-                    image_url = lp.image_url; // 🔥 Ensure image_url is also set
+                    image_url = lp.image_url;
                     nodeType = 'playlist';
                     category = 'playlist';
                 } else if (lc) {
-                    title = lc.title || title;
-                    desc = lc.description || desc;
+                    title = title || lc.title;
+                    desc = desc || lc.description;
                     thumbnail_url = lc.image_url;
                     image_url = lc.image_url;
                     // Preserve 'playlist' type if it was originally a playlist
                     nodeType = node.category === 'playlist' ? 'playlist' : 'folder';
                     category = node.category === 'playlist' ? 'playlist' : 'folder';
                 } else if (ld) {
-                    title = ld.title || title;
-                    desc = ld.description || desc;
+                    title = title || ld.title;
+                    desc = desc || ld.description;
                     image_url = ld.image_url;
                     thumbnail_url = ld.image_url; // 🔥 For documents/persons
                     nodeType = ld.type === 'person' ? 'person' : 'document';
                     category = ld.type === 'person' ? 'person' : 'document';
                 } else if (lv) {
-                    title = lv.title || title;
-                    desc = lv.description || desc;
+                    title = title || lv.title;
+                    desc = desc || lv.description;
                     image_url = lv.image_url;
-                    thumbnail_url = lv.image_url || (lv.metadata?.youtube_video_id ? `https://img.youtube.com/vi/${lv.metadata.youtube_video_id}/mqdefault.jpg` : null);
+                    // Only generate YouTube thumbnail URL if it's actually a video (has youtube_video_id that's 11 chars)
+                    // Playlists have playlist_id instead, which should not be used for thumbnail generation
+                    const videoId = lv.metadata?.youtube_video_id;
+                    const isValidVideoId = videoId && videoId.length === 11;
+                    thumbnail_url = lv.image_url || (isValidVideoId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : null);
                     nodeType = 'video';
                     category = 'video';
                 }
@@ -1925,6 +1987,7 @@ export default function HistoryTimelinePage() {
 
             <div className="history-timeline-canvas">
                 <ReactFlow
+                    translateExtent={translateExtent}
                     nodes={nodes}
                     edges={edges}
                     onInit={setRfInstance}

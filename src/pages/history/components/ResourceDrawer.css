@@ -25,9 +25,13 @@
     z-index: 10;
 }
 
-.resize-handle:hover,
-.resize-handle.resizing {
-    background: rgba(99, 102, 241, 0.5);
+background: rgba(99, 102, 241, 0.5);
+}
+
+@media (max-width: 768px) {
+    .resize-handle {
+        display: none !important;
+    }
 }
 
 .resource-drawer.open {

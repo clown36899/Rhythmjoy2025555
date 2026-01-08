@@ -36,7 +36,21 @@ interface Props {
 export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refreshKey, categories, playlists, videos, documents, onMoveResource, onReorderResource, onCategoryChange }: Props) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterMode, setFilterMode] = useState<'all' | 'year'>('all');
-    const [width, setWidth] = useState(360);
+    const [width, setWidth] = useState(() => typeof window !== 'undefined' && window.innerWidth < 768 ? window.innerWidth : 360);
+
+    // Update width on resize
+    useEffect(() => {
+        const handleResize = () => {
+            if (window.innerWidth < 768) {
+                setWidth(window.innerWidth);
+            } else {
+                // Restore default if coming from mobile
+                if (width > 600 || width === window.innerWidth) setWidth(360);
+            }
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
     const [isResizing, setIsResizing] = useState(false);
 
     // 🔍 DEBUG: Log received props

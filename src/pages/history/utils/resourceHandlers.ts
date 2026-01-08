@@ -47,11 +47,11 @@ export class PlaylistHandler implements ResourceHandler {
                 category_id: data.linked_category_id || null, // 부모 폴더 ID
                 user_id: userId,
                 description: `YouTube Playlist: ${playlistInfo.title}`,
-                image_url: playlistInfo.thumbnail,
+                image_url: null, // 🔥 User Request: Save as plain folder without thumbnail
                 metadata: {
                     source: 'youtube_playlist',
                     playlist_id: playlistId,
-                    thumbnail_url: playlistInfo.thumbnail
+                    // thumbnail_url: playlistInfo.thumbnail // Removed to prevent confusion
                 }
             })
             .select()
