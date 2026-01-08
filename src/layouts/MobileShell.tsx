@@ -19,7 +19,7 @@ interface MobileShellProps {
 export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, userProfile, isAdmin: authIsAdmin, signInWithKakao, refreshUserProfile, signOut, isAuthProcessing, cancelAuth } = useAuth();
+  const { user, userProfile, isAdmin: authIsAdmin, refreshUserProfile, signOut, isAuthProcessing, cancelAuth } = useAuth();
   const { i18n } = useTranslation();
   const onlineUsersData = useOnlineUsers();
   const { action: pageAction } = usePageAction();

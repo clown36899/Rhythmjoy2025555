@@ -6,7 +6,6 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 
 
 import EventList from "./components/EventList";
-import { supabase } from "../../lib/supabase";
 
 
 
@@ -106,8 +105,8 @@ export default function HomePageV2() {
 
 
     // Favorites Logic - Using centralized useUserInteractions
-    const { interactions, refreshInteractions } = useUserInteractions(user?.id || null);
-    const favoriteEventIds = new Set(interactions?.event_favorites || []);
+    const { interactions, toggleEventFavorite: baseToggleEventFavorite } = useUserInteractions(user?.id || null);
+    const favoriteEventIds = useMemo(() => new Set(interactions?.event_favorites || []), [interactions]);
 
     // Toggle favorite function
     const toggleFavorite = useCallback(async (eventId: number, e?: React.MouseEvent) => {
@@ -124,34 +123,12 @@ export default function HomePageV2() {
             return;
         }
 
-        const isFav = favoriteEventIds.has(eventId);
-
-        if (isFav) {
-            // Remove
-            const { error } = await supabase
-                .from('event_favorites')
-                .delete()
-                .eq('user_id', user.id)
-                .eq('event_id', eventId);
-
-            if (error) {
-                console.error('Error removing favorite:', error);
-            } else {
-                refreshInteractions();
-            }
-        } else {
-            // Add
-            const { error } = await supabase
-                .from('event_favorites')
-                .insert({ user_id: user.id, event_id: eventId });
-
-            if (error) {
-                console.error('Error adding favorite:', error);
-            } else {
-                refreshInteractions();
-            }
+        try {
+            await baseToggleEventFavorite(eventId);
+        } catch (err) {
+            console.error('Error toggling favorite:', err);
         }
-    }, [user, favoriteEventIds, signInWithKakao, refreshInteractions]);
+    }, [user, signInWithKakao, baseToggleEventFavorite]);
 
 
 

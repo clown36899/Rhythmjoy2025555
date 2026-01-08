@@ -20,7 +20,7 @@ import SocialRecruitModal from './components/SocialRecruitModal';
 import SocialScheduleModal from './components/SocialScheduleModal';
 import EventDetailModal from '../v2/components/EventDetailModal';
 import VenueDetailModal from '../practice/components/VenueDetailModal';
-import { useEventFavorites } from '../../hooks/useEventFavorites';
+import { useUserInteractions } from '../../hooks/useUserInteractions';
 
 // Styles
 import './social.css';
@@ -36,7 +36,21 @@ const SocialPage: React.FC = () => {
   const { groups, refresh: refreshGroups } = useSocialGroups();
   const { schedules, loading: schedulesLoading, refresh: refreshSchedules } = useSocialSchedulesNew();
   const { favorites, toggleFavorite } = useSocialGroupFavorites();
-  const { favoriteEventIds, toggleFavorite: toggleEventFavorite } = useEventFavorites(user, () => navigate('/v2?login=1'));
+
+  // Favorites - Using centralized useUserInteractions
+  const { interactions, toggleEventFavorite: baseToggleEventFavorite } = useUserInteractions(user?.id || null);
+  const favoriteEventIds = useMemo(() => new Set(interactions?.event_favorites || []), [interactions]);
+
+  const toggleEventFavorite = useCallback(async (eventId: number, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (!user) {
+      if (confirm('즐겨찾기는 로그인 후 이용 가능합니다.\n확인을 눌러서 로그인을 진행해주세요')) {
+        navigate('/v2?login=1');
+      }
+      return;
+    }
+    await baseToggleEventFavorite(eventId);
+  }, [user, navigate, baseToggleEventFavorite]);
 
   // Modal States
   const socialDetailModal = useModal('socialDetail');

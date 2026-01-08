@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
+import { createContext, useContext, useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { supabase, validateAndRecoverSession } from '../lib/supabase';
 import type { User, Session } from '@supabase/supabase-js';
@@ -511,89 +511,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 
 
-  const signInWithKakao = async () => {
-    setIsAuthProcessing(true); // 즉시 스피너 표시
-    sessionStorage.setItem('kakao_login_in_progress', 'true'); // Persist across page navigation
-    sessionStorage.setItem('kakao_login_start_time', String(Date.now())); // Track start time
-    try {
-      // 로그인 전에 스크롤 위치 저장 (익명 게시판은 내부 컨테이너 스크롤 사용)
-      const boardContainer = document.querySelector('.board-posts-container');
-      const scrollY = boardContainer ? boardContainer.scrollTop : window.scrollY;
-      console.log('[AuthContext] Saving scroll position before login:', scrollY, 'from:', boardContainer ? 'container' : 'window');
-
-      console.log('[signInWithKakao] 카카오 로그인 시작 (리다이렉트 방식)');
-
-      // SDK 초기화 및 로그인 실행
-      // loginWithKakao는 리다이렉트를 수행하므로, 여기서 await를 해도 돌아오지 않을 수 있음
-      // 하지만 에러 발생 시를 대비해 try-catch를 유지
-      await initKakaoSDK();
-
-      // 리다이렉트 전까지 스피너 유지
-      // loginWithKakao는 void를 반환하지만 내부적으로 location.href를 변경함
-      loginWithKakao();
-
-      // 리다이렉트가 일어나면 이 코드는 실행되지 않거나, 페이지가 언로드됨
-      // 따라서 여기서 finally로 false를 주면 안 됨 (깜빡임 원인)
-
-    } catch (error: any) {
-      console.error('[signInWithKakao] 에러:', error);
-      alert(error.message || '카카오 로그인에 실패했습니다.');
-      // 에러가 났을 때만 스피너를 꺼줌
-      setIsAuthProcessing(false);
-      sessionStorage.removeItem('kakao_login_in_progress');
-      sessionStorage.removeItem('kakao_login_start_time');
-      throw error; // MobileShell에서 잡아서 처리하도록 전달
-    }
-  };
-
-  const signInWithGoogle = async () => {
-    console.log('[signInWithGoogle] 🚀 Starting Google login process');
-    console.log('[signInWithGoogle] Current origin:', window.location.origin);
-
-    setIsAuthProcessing(true);
-    try {
-      const authOptions = {
-        provider: 'google' as const,
-        options: {
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          },
-          redirectTo: window.location.origin,
-        },
-      };
-
-      console.log('[signInWithGoogle] Auth options:', JSON.stringify(authOptions, null, 2));
-
-      const { data, error } = await supabase.auth.signInWithOAuth(authOptions);
-
-      console.log('[signInWithGoogle] Response data:', data);
-      console.log('[signInWithGoogle] Response error:', error);
-
-      if (error) {
-        console.error('[signInWithGoogle] ❌ Supabase returned error:', {
-          message: error.message,
-          status: error.status,
-          name: error.name,
-          stack: error.stack
-        });
-        throw error;
-      }
-
-      console.log('[signInWithGoogle] ✅ OAuth request successful, redirecting...');
-    } catch (error: any) {
-      console.error('[signInWithGoogle] 💥 Caught error:', {
-        message: error.message,
-        status: error.status,
-        name: error.name,
-        fullError: error
-      });
-      alert(`구글 로그인 실패:\n${error.message || '알 수 없는 오류'}`);
-      setIsAuthProcessing(false);
-    }
-  };
-
-  const setBillboardUser = (userId: string | null, userName: string | null) => {
+  const setBillboardUser = useCallback((userId: string | null, userName: string | null) => {
     setBillboardUserId(userId);
     setBillboardUserName(userName);
     if (userId) {
@@ -606,9 +524,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } else {
       localStorage.removeItem(`${storagePrefix}billboardUserName`);
     }
-  };
+  }, [storagePrefix]);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     // localStorage에 로그 저장 (새로고침 후에도 확인 가능)
     const logToStorage = (msg: string) => {
       const logs = JSON.parse(localStorage.getItem('logout_debug_logs') || '[]');
@@ -720,31 +638,102 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logToStorage('[AuthContext.signOut] ❌ 에러 발생: ' + (error as Error).message);
       // 실패해도 페이지 리로드로 강제 초기화
       window.location.reload();
-    } finally {
-      // 성공하든 실패하든 리로드가 호출됨.
-      // 브라우저가 리로드를 처리하는 동안 JS 실행이 멈추거나 페이지가 전환됨.
-      // 만약 리로드가 즉시 되지 않는다면 Finally가 실행될 수 있음.
-      // 안전하게 false로 설정
-      // setIsAuthProcessing(false); <-- 이걸 하면 리로드 직전에 깜빡일 수 있음.
-      // 하지만 사용자가 "안 없어진다"고 했으므로, signInWithKakao 쪽 문제일 가능성이 큼.
-      // signOut은 window.location.replace('/')를 호출하므로 거의 무적.
-      // signInWithKakao는 replace를 안함!
     }
-  };
+  }, [storagePrefix, setBillboardUser]);
 
-  // 개발 환경 전용 - 단순 플래그 (UI에서만 사용)
-  const signInAsDevAdmin = import.meta.env.DEV ? () => {
-    // 실제 로그인은 하지 않고, UI에서 관리자 모드 활성화만 트리거
-    console.log('[개발 프리패스] 활성화됨 - UI 전용 모드');
-  } : undefined;
+  const signInWithKakao = useCallback(async () => {
+    setIsAuthProcessing(true); // 즉시 스피너 표시
+    sessionStorage.setItem('kakao_login_in_progress', 'true'); // Persist across page navigation
+    sessionStorage.setItem('kakao_login_start_time', String(Date.now())); // Track start time
+    try {
+      // 로그인 전에 스크롤 위치 저장 (익명 게시판은 내부 컨테이너 스크롤 사용)
+      const boardContainer = document.querySelector('.board-posts-container');
+      const scrollY = boardContainer ? boardContainer.scrollTop : window.scrollY;
+      console.log('[AuthContext] Saving scroll position before login:', scrollY, 'from:', boardContainer ? 'container' : 'window');
 
-  // 디버깅 로그 (상세) 및 GA4 관리자 상태 동기화
-  useEffect(() => {
-    // GA4 관리자 상태 동기화
-    setAdminStatus(isAdmin);
-  }, [user, isAdmin, loading, session]);
+      console.log('[signInWithKakao] 카카오 로그인 시작 (리다이렉트 방식)');
 
-  const contextValue: AuthContextType = {
+      // SDK 초기화 및 로그인 실행
+      // loginWithKakao는 리다이렉트를 수행하므로, 여기서 await를 해도 돌아오지 않을 수 있음
+      // 하지만 에러 발생 시를 대비해 try-catch를 유지
+      await initKakaoSDK();
+
+      // 리다이렉트 전까지 스피너 유지
+      // loginWithKakao는 void를 반환하지만 내부적으로 location.href를 변경함
+      loginWithKakao();
+
+      // 리다이렉트가 일어나면 이 코드는 실행되지 않거나, 페이지가 언로드됨
+      // 따라서 여기서 finally로 false를 주면 안 됨 (깜빡임 원인)
+
+    } catch (error: any) {
+      console.error('[signInWithKakao] 에러:', error);
+      alert(error.message || '카카오 로그인에 실패했습니다.');
+      // 에러가 났을 때만 스피너를 꺼줌
+      setIsAuthProcessing(false);
+      sessionStorage.removeItem('kakao_login_in_progress');
+      sessionStorage.removeItem('kakao_login_start_time');
+      throw error; // MobileShell에서 잡아서 처리하도록 전달
+    }
+  }, []);
+
+  const signInWithGoogle = useCallback(async () => {
+    console.log('[signInWithGoogle] 🚀 Starting Google login process');
+    console.log('[signInWithGoogle] Current origin:', window.location.origin);
+
+    setIsAuthProcessing(true);
+    try {
+      const authOptions = {
+        provider: 'google' as const,
+        options: {
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+          redirectTo: window.location.origin,
+        },
+      };
+
+      console.log('[signInWithGoogle] Auth options:', JSON.stringify(authOptions, null, 2));
+
+      const { data, error } = await supabase.auth.signInWithOAuth(authOptions);
+
+      console.log('[signInWithGoogle] Response data:', data);
+      console.log('[signInWithGoogle] Response error:', error);
+
+      if (error) {
+        console.error('[signInWithGoogle] ❌ Supabase returned error:', {
+          message: error.message,
+          status: error.status,
+          name: error.name,
+          stack: error.stack
+        });
+        throw error;
+      }
+
+      console.log('[signInWithGoogle] ✅ OAuth request successful, redirecting...');
+    } catch (error: any) {
+      console.error('[signInWithGoogle] 💥 Caught error:', {
+        message: error.message,
+        status: error.status,
+        name: error.name,
+        fullError: error
+      });
+      alert(`구글 로그인 실패:\n${error.message || '알 수 없는 오류'}`);
+      setIsAuthProcessing(false);
+    }
+  }, []);
+
+  const signInAsDevAdmin = useMemo(() => {
+    if (import.meta.env.DEV) {
+      return () => {
+        // 실제 로그인은 하지 않고, UI에서 관리자 모드 활성화만 트리거
+        console.log('[개발 프리패스] 활성화됨 - UI 전용 모드');
+      };
+    }
+    return undefined;
+  }, []);
+
+  const contextValue: AuthContextType = useMemo(() => ({
     user,
     session,
     isAdmin,
@@ -755,15 +744,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     userProfile,
     setBillboardUser,
     refreshUserProfile,
-    // signIn, // Removed unused function
     signInWithKakao,
     signInWithGoogle,
     signOut,
     cancelAuth,
-    validateSession, // 새로 추가된 메서드
+    validateSession,
     storagePrefix,
     ...(import.meta.env.DEV && { signInAsDevAdmin }),
-  };
+  }), [
+    user, session, isAdmin, loading, isAuthProcessing,
+    billboardUserId, billboardUserName, userProfile,
+    setBillboardUser, refreshUserProfile,
+    signInWithKakao, signInWithGoogle, signOut,
+    cancelAuth, validateSession, storagePrefix,
+    signInAsDevAdmin
+  ]);
 
   // 로딩 중일 때는 앱 렌더링을 차단하여, 하위 컴포넌트가 불안정한 세션 상태(좀비 토큰 등)로 API를 호출하는 것을 방지
   // DISABLED for login optimization - no spinner during initial load

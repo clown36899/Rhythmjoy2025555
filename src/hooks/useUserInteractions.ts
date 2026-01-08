@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useBoardData } from '../contexts/BoardDataContext';
 
 export const useUserInteractions = (userId: string | null) => {
-    const { interactions, loading, error, refreshInteractions } = useBoardData();
+    const { interactions, loading, error, refreshInteractions, toggleEventFavorite: baseToggle } = useBoardData();
 
     useEffect(() => {
         if (userId && !interactions && !loading) {
@@ -14,6 +14,7 @@ export const useUserInteractions = (userId: string | null) => {
         interactions,
         loading,
         error,
-        refreshInteractions: () => userId ? refreshInteractions(userId) : Promise.resolve()
+        refreshInteractions: () => userId ? refreshInteractions(userId) : Promise.resolve(),
+        toggleEventFavorite: (eventId: number) => userId ? baseToggle(userId, eventId) : Promise.resolve()
     };
 };

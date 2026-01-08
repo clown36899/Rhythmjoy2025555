@@ -189,7 +189,7 @@ const EventList: React.FC<EventListProps> = ({
   const [isVenueModalOpen, setIsVenueModalOpen] = useState(false);
 
   // Favorite Handlers using useUserInteractions
-  const { interactions, refreshInteractions } = useUserInteractions(user?.id || null);
+  const { interactions, toggleEventFavorite } = useUserInteractions(user?.id || null);
 
   // Convert API array to Set for fast O(1) lookups
   const favoriteEventIds = useMemo<Set<number>>(() => {
@@ -207,32 +207,12 @@ const EventList: React.FC<EventListProps> = ({
       return;
     }
 
-    const isFav = favoriteEventIds.has(eventId);
-
     try {
-      if (isFav) {
-        // Remove
-        const { error } = await supabase
-          .from('event_favorites')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('event_id', eventId);
-        if (error) throw error;
-      } else {
-        // Add
-        const { error } = await supabase
-          .from('event_favorites')
-          .insert({ user_id: user.id, event_id: eventId });
-        if (error) throw error;
-      }
-
-      // Refresh global state
-      await refreshInteractions();
+      await toggleEventFavorite(eventId);
     } catch (err) {
       console.error('Error toggling favorite:', err);
-      alert('즐겨찾기 변경 중 오류가 발생했습니다.');
     }
-  }, [user, favoriteEventIds, refreshInteractions]);
+  }, [user, toggleEventFavorite]);
 
   // Update logic (moved to EventList for orchestration)
   const handleSaveEvent = async (formData: any, imageFile: File | null) => {

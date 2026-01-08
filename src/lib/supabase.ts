@@ -164,139 +164,146 @@ export interface EventFavorite {
   created_at: string;
 }
 
-// 세션 검증 결과 캐싱을 위한 변수
+// 세션 검증 결과 캐싱 및 락킹을 위한 변수
 let lastValidationTime = 0;
 const VALIDATION_CACHE_TIME = 60000; // 60초
+let validationPromise: Promise<any> | null = null;
 
 /**
  * 세션 유효성 검증 및 자동 복구
  * @returns 유효한 세션 또는 null
  */
 export const validateAndRecoverSession = async (): Promise<any> => {
-  try {
-    const now = Date.now();
-
-    // 1. 단기 캐시 확인 (60초 이내면 서버 호출 없이 로컬 세션 반환)
-    const { data: { session: localSession } } = await supabase.auth.getSession();
-
-    if (localSession && (now - lastValidationTime < VALIDATION_CACHE_TIME)) {
-      authLogger.log('[Supabase] ⚡ Using cached session validation (Short-circuit)');
-      return localSession;
-    }
-
-    console.log('[Supabase] 🔍 Validating session with server...');
-
-    // 🔥 getSession()에도 타임아웃 추가 (모바일에서 무한 대기 방지)
-    const getSessionWithTimeout = Promise.race([
-      supabase.auth.getSession(),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('getSession timeout')), 5000)
-      )
-    ]);
-
-    let session = localSession;
-    let error;
-    try {
-      const result = await getSessionWithTimeout as any;
-      if (result.data?.session) {
-        session = result.data.session;
-      }
-      error = result.error;
-    } catch (timeoutError) {
-      console.warn('[Supabase] ⏱️ getSession() timeout - utilizing local session');
-      // 타임아웃 발생 시 로컬 세션 유지 (로그아웃 방지)
-      session = localSession;
-    }
-
-    // 에러 발생 시 세션 정리
-    if (error) {
-      authLogger.log('[Supabase] ❌ Session validation error:', error);
-      console.error('[Supabase] ❌ Session validation error:', error);
-      await supabase.auth.signOut({ scope: 'local' });
-      return null;
-    }
-
-    // 세션이 없으면 null 반환
-    if (!session) {
-      console.log('[Supabase] ℹ️ No session found');
-      return null;
-    }
-
-    // 세션 만료 체크
-    if (session.expires_at) {
-      const expiresAt = new Date(session.expires_at * 1000);
-      const now = new Date();
-
-      // 만료되었으면 갱신 시도
-      if (expiresAt < now) {
-        authLogger.log('[Supabase] ⏰ Session expired, attempting refresh...');
-        const { data, error: refreshError } = await supabase.auth.refreshSession();
-
-        if (refreshError) {
-          authLogger.log('[Supabase] ❌ Session refresh failed:', refreshError);
-          await supabase.auth.signOut({ scope: 'local' });
-          return null;
-        }
-
-        console.log('[Supabase] ✅ Session refreshed successfully');
-        lastValidationTime = Date.now();
-        return data.session;
-      }
-    }
-
-    // [중요] 로컬 스토리지의 토큰이 위변조되었거나 서버에서 만료되었는지 확실히 검증하기 위해 getUser() 호출
-    // getSession()은 로컬 상태만 확인할 수 있어 위변조된 토큰도 유효하다고 판단할 수 있음
-    console.log('[Supabase] 🔐 Verifying token with server (getUser)...');
-
-    // 🔥 모바일에서 getUser()가 무한 대기하는 문제 해결: 2초 타임아웃 추가
-    const getUserWithTimeout = Promise.race([
-      supabase.auth.getUser(),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('getUser timeout')), 10000)
-      )
-    ]);
-
-    try {
-      const { error: userError } = await getUserWithTimeout as any;
-
-      if (userError) {
-        console.error('[Supabase] ❌ Token validation failed on server:', userError);
-        // 서버에서 명확하게 "유효하지 않은 토큰"이라고 응답한 경우에만 세션 정리 (네트워크 오류 제외)
-        const isAuthError = (userError as any).status === 401 ||
-          (userError as any).status === 403 ||
-          userError.message?.toLowerCase().includes('invalid') ||
-          userError.message?.toLowerCase().includes('expired') ||
-          userError.message?.toLowerCase().includes('not found');
-
-        if (isAuthError) {
-          authLogger.log('[Supabase] 🗑️ Clearing invalid/expired session', { message: userError.message });
-          console.warn('[Supabase] 🗑️ Clearing invalid/expired session');
-          await supabase.auth.signOut({ scope: 'local' });
-          return null;
-        } else {
-          console.warn('[Supabase] 🛡️ Server error but not auth related - keeping local session');
-        }
-      }
-    } catch (timeoutError) {
-      console.warn('[Supabase] ⏱️ getUser() timeout - proceeding with local session');
-      // 타임아웃은 네트워크 지연일 뿐 세션이 깨진 것이 아니므로, 
-      // 로컬 세션을 믿고 일단 반환 (로그인 유지)
-      return session;
-    }
-
-    console.log('[Supabase] ✅ Session is valid and verified by server');
-    lastValidationTime = Date.now();
-    return session;
-  } catch (e) {
-    console.error('[Supabase] 💥 Session recovery failed:', e);
-    // 복구 실패 시 세션 정리
-    try {
-      await supabase.auth.signOut({ scope: 'local' });
-    } catch (signOutError) {
-      console.warn('[Supabase] SignOut after recovery failure also failed:', signOutError);
-    }
-    return null;
+  // 1. 이미 검증이 진행 중이라면 해당 프로미스 반환 (중복 호출 방지/락킹)
+  if (validationPromise) {
+    authLogger.log('[Supabase] 🔄 Waiting for existing validation promise...');
+    return validationPromise;
   }
+
+  // 검증 프로세스를 프로미스 변수에 할당하여 락킹 시작
+  validationPromise = (async () => {
+    try {
+      const now = Date.now();
+
+      // 1. 단기 캐시 확인 (60초 이내면 서버 호출 없이 로컬 세션 반환)
+      const { data: { session: localSession } } = await supabase.auth.getSession();
+
+      if (localSession && (now - lastValidationTime < VALIDATION_CACHE_TIME)) {
+        authLogger.log('[Supabase] ⚡ Using cached session validation (Short-circuit)');
+        return localSession;
+      }
+
+      console.log('[Supabase] 🔍 Validating session with server...');
+
+      // 🔥 getSession()에도 타임아웃 추가 (모바일에서 무한 대기 방지)
+      const getSessionWithTimeout = Promise.race([
+        supabase.auth.getSession(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('getSession timeout')), 5000)
+        )
+      ]);
+
+      let session = localSession;
+      let error;
+      try {
+        const result = await getSessionWithTimeout as any;
+        if (result.data?.session) {
+          session = result.data.session;
+        }
+        error = result.error;
+      } catch (timeoutError) {
+        console.warn('[Supabase] ⏱️ getSession() timeout - utilizing local session');
+        session = localSession;
+      }
+
+      // 에러 발생 시 세션 정리 (Refresh 한도 초과 등)
+      if (error) {
+        authLogger.log('[Supabase] ❌ Session validation error:', error);
+        if (error.message?.includes('token_revoked') || error.message?.includes('Refresh Token has been revoked')) {
+          console.error('[Supabase] 🗑️ Token revoked - clearing local session');
+          await supabase.auth.signOut({ scope: 'local' });
+          return null;
+        }
+        return session; // 일반 에러는 일단 로컬 세션 유지
+      }
+
+      // 세션이 없으면 null 반환
+      if (!session) {
+        console.log('[Supabase] ℹ️ No session found');
+        return null;
+      }
+
+      // 세션 만료 체크
+      if (session.expires_at) {
+        const expiresAt = new Date(session.expires_at * 1000);
+        const now = new Date();
+
+        // 만료되었거나 곧 만료(1분 이내)되면 갱신 시도
+        if (expiresAt.getTime() - now.getTime() < 60000) {
+          authLogger.log('[Supabase] ⏰ Session expiring soon, attempting refresh...');
+          const { data, error: refreshError } = await supabase.auth.refreshSession();
+
+          if (refreshError) {
+            authLogger.log('[Supabase] ❌ Session refresh failed:', refreshError);
+            if (refreshError.message?.includes('token_revoked') || refreshError.message?.includes('Refresh Token has been revoked')) {
+              await supabase.auth.signOut({ scope: 'local' });
+              return null;
+            }
+            return session;
+          }
+
+          console.log('[Supabase] ✅ Session refreshed successfully');
+          lastValidationTime = Date.now();
+          return data.session;
+        }
+      }
+
+      // [중요] 로컬 스토리지의 토큰 위변조 여부 확인을 위해 getUser() 호출
+      console.log('[Supabase] 🔐 Verifying token with server (getUser)...');
+
+      const getUserWithTimeout = Promise.race([
+        supabase.auth.getUser(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('getUser timeout')), 10000)
+        )
+      ]);
+
+      try {
+        const { error: userError } = await getUserWithTimeout as any;
+
+        if (userError) {
+          console.error('[Supabase] ❌ Token validation failed on server:', userError);
+          const isAuthError = (userError as any).status === 401 ||
+            (userError as any).status === 403 ||
+            userError.message?.toLowerCase().includes('invalid') ||
+            userError.message?.toLowerCase().includes('expired') ||
+            userError.message?.toLowerCase().includes('not found') ||
+            userError.message?.toLowerCase().includes('revoked');
+
+          if (isAuthError) {
+            authLogger.log('[Supabase] 🗑️ Clearing invalid/expired session', { message: userError.message });
+            await supabase.auth.signOut({ scope: 'local' });
+            return null;
+          }
+        }
+      } catch (timeoutError) {
+        console.warn('[Supabase] ⏱️ getUser() timeout - proceeding with local session');
+        return session;
+      }
+
+      console.log('[Supabase] ✅ Session is valid and verified by server');
+      lastValidationTime = Date.now();
+      return session;
+    } catch (e) {
+      console.error('[Supabase] 💥 Session recovery failed:', e);
+      return null;
+    } finally {
+      // 락 해제
+      validationPromise = null;
+    }
+  })();
+
+  return validationPromise;
 };
 
 /**

@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../../lib/supabase';
-import type { BoardPost } from '../page';
+import type { StandardBoardPost, AnonymousBoardPost } from '../../../types/board';
+
+export type BoardPost = StandardBoardPost | AnonymousBoardPost;
 import type { BoardCategory } from '../components/BoardTabBar';
 
 interface UseBoardPostsProps {
@@ -43,10 +45,6 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
 
             if (!isAnon) {
                 query = query.eq('category', category);
-
-                if (prefixId) {
-                    query = query.eq('prefix_id', prefixId);
-                }
             }
 
             // Sorting: Notices first, then custom order (pinning), then latest
@@ -105,7 +103,7 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
         } finally {
             setLoading(false);
         }
-    }, [category, isAdminChecked, isRealAdmin, prefixId]);
+    }, [category, isAdminChecked, isRealAdmin]);
 
     // Initial load
     useEffect(() => {
@@ -222,8 +220,11 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
     }, [category]);
 
     // Pagination Logic
-    const totalPages = Math.ceil(posts.length / postsPerPage);
-    const currentPosts = posts.slice((currentPage - 1) * postsPerPage, currentPage * postsPerPage);
+    const filteredPosts = prefixId
+        ? posts.filter(p => p.is_notice || (p as StandardBoardPost).prefix_id === prefixId)
+        : posts;
+    const totalPages = Math.ceil(filteredPosts.length / postsPerPage);
+    const currentPosts = filteredPosts.slice((currentPage - 1) * postsPerPage, currentPage * postsPerPage);
 
     const goToPage = (page: number) => {
         if (page >= 1 && page <= totalPages) {

@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBoardData } from '../../contexts/BoardDataContext';
 import { useSetPageAction } from '../../contexts/PageActionContext';
@@ -36,37 +35,6 @@ export default function BoardMainContainer() {
     const selectedPostId = searchParams.get('postId');
     const [postsPerPage] = useState(10);
     const [selectedPrefixId, setSelectedPrefixId] = useState<number | null>(null);
-    const [prefixes, setPrefixes] = useState<any[]>([]);
-
-    // Fetch prefixes that are actually used in posts
-    useEffect(() => {
-        const fetchPrefixes = async () => {
-            // First, get distinct prefix_ids from posts in this category
-            const { data: posts } = await supabase
-                .from('board_posts')
-                .select('prefix_id')
-                .eq('category', category)
-                .not('prefix_id', 'is', null);
-
-            if (!posts || posts.length === 0) {
-                setPrefixes([]);
-                return;
-            }
-
-            // Get unique prefix IDs
-            const usedPrefixIds = [...new Set(posts.map(p => p.prefix_id))];
-
-            // Use prefixes from BoardDataContext instead of fetching
-            const allPrefixes = boardData?.prefixes?.[category] || [];
-            const filteredPrefixes = allPrefixes.filter((prefix: any) =>
-                usedPrefixIds.includes(prefix.id)
-            );
-
-            console.log('[BoardMainContainer] Used prefixes for category:', category, 'data:', filteredPrefixes);
-            setPrefixes(filteredPrefixes);
-        };
-        fetchPrefixes();
-    }, [category, boardData]);
 
     // Ensure category is always in URL to prevent back navigation issues
     useEffect(() => {
@@ -96,6 +64,7 @@ export default function BoardMainContainer() {
 
     // Custom Hooks
     const {
+        posts,
         loading, // Use this for loading indicators
         loadPosts,
         currentPage,
@@ -111,6 +80,21 @@ export default function BoardMainContainer() {
         isRealAdmin,
         prefixId: selectedPrefixId
     });
+
+    // Use prefixes that are actually used in current posts
+    const prefixes = useMemo(() => {
+        if (!posts || posts.length === 0) return [];
+
+        // Get unique prefix IDs from ALL loaded posts in this category (only for Standard Board)
+        const usedPrefixIds = new Set(posts.map((p: any) => p.prefix_id).filter(Boolean));
+        if (usedPrefixIds.size === 0) return [];
+
+        // Use prefixes from BoardDataContext to get metadata (name, color, etc.)
+        const allPrefixes = boardData?.prefixes?.[category] || [];
+        return allPrefixes.filter((prefix: any) =>
+            usedPrefixIds.has(prefix.id)
+        );
+    }, [posts, boardData, category]);
 
     const {
         likedPostIds,

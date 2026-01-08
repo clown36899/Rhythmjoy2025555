@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, useCallback, useMemo, type ReactNode } from 'react';
 import { supabase } from '../lib/supabase';
 
 interface BoardCategory {
@@ -106,6 +106,7 @@ interface BoardDataContextType {
     error: string | null;
     refreshData: () => Promise<void>;
     refreshInteractions: (userId: string) => Promise<void>;
+    toggleEventFavorite: (userId: string, eventId: number) => Promise<void>;
 }
 
 const BoardDataContext = createContext<BoardDataContextType | undefined>(undefined);
@@ -136,6 +137,33 @@ export const BoardDataProvider = ({ children }: { children: ReactNode }) => {
             });
         }
     }, []);
+
+    const toggleEventFavorite = useCallback(async (userId: string, eventId: number) => {
+        try {
+            const isFavorite = interactions?.event_favorites.includes(eventId) ||
+                interactions?.event_favorites.includes(String(eventId));
+
+            if (isFavorite) {
+                const { error } = await supabase
+                    .from('event_favorites')
+                    .delete()
+                    .eq('user_id', userId)
+                    .eq('event_id', eventId);
+                if (error) throw error;
+            } else {
+                const { error } = await supabase
+                    .from('event_favorites')
+                    .insert({ user_id: userId, event_id: eventId });
+                if (error) throw error;
+            }
+
+            // Immediately refresh local state
+            await fetchInteractions(userId);
+        } catch (err) {
+            console.error('[BoardDataContext] toggleEventFavorite Error:', err);
+            throw err;
+        }
+    }, [interactions, fetchInteractions]);
 
     const fetchData = async () => {
         try {
@@ -169,15 +197,18 @@ export const BoardDataProvider = ({ children }: { children: ReactNode }) => {
         await fetchData();
     };
 
+    const contextValue = useMemo(() => ({
+        data,
+        interactions,
+        loading,
+        error,
+        refreshData,
+        refreshInteractions: fetchInteractions,
+        toggleEventFavorite
+    }), [data, interactions, loading, error, refreshData, fetchInteractions, toggleEventFavorite]);
+
     return (
-        <BoardDataContext.Provider value={{
-            data,
-            interactions,
-            loading,
-            error,
-            refreshData,
-            refreshInteractions: fetchInteractions
-        }}>
+        <BoardDataContext.Provider value={contextValue}>
             {children}
         </BoardDataContext.Provider>
     );

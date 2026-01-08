@@ -43,9 +43,10 @@
   /* height: calc(100vh - 110px); REMOVED */
   flex: 1;
   /* NEW: Fill remaining vertical space automatically */
-  overflow-y: auto;
+  /* overflow-y: auto; */
   /* Internal scroll */
   margin-top: 0;
+  overflow: hidden;
   padding-bottom: 150px;
   /* Generous bottom padding */
   -webkit-overflow-scrolling: touch;

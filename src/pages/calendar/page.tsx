@@ -12,7 +12,7 @@ import EventDetailModal from "../v2/components/EventDetailModal";
 import CalendarSearchModal from "../v2/components/CalendarSearchModal";
 import VenueDetailModal from "../practice/components/VenueDetailModal";
 import { useAuth } from "../../contexts/AuthContext";
-import { useEventFavorites } from "../../hooks/useEventFavorites";
+import { useUserInteractions } from "../../hooks/useUserInteractions";
 import { useSetPageAction } from "../../contexts/PageActionContext";
 
 const EventPasswordModal = lazy(() => import("../v2/components/EventPasswordModal"));
@@ -52,8 +52,9 @@ export default function CalendarPage() {
     const [isAdmin, setIsAdmin] = useState(false);
     const [adminType, setAdminType] = useState<"super" | "sub" | null>(null);
 
-    // Favorites - using centralized hook
-    const { favoriteEventIds, toggleFavorite } = useEventFavorites(user, signInWithKakao);
+    // Favorites - Using centralized useUserInteractions
+    const { interactions, toggleEventFavorite } = useUserInteractions(user?.id || null);
+    const favoriteEventIds = useMemo(() => new Set(interactions?.event_favorites || []), [interactions]);
 
     // Venue Modal State
     const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null);
@@ -423,7 +424,16 @@ export default function CalendarPage() {
                     onDelete={(id: any) => eventModal.handleDeleteEvent(typeof id === 'number' ? id : id.id)}
                     onEdit={(event: any) => eventModal.handleEditClick(event)}
                     isFavorite={favoriteEventIds.has(eventModal.selectedEvent.id)}
-                    onToggleFavorite={(e: any) => eventModal.selectedEvent && toggleFavorite(eventModal.selectedEvent.id, e)}
+                    onToggleFavorite={(e: any) => {
+                        e?.stopPropagation();
+                        if (!user) {
+                            if (confirm('즐겨찾기는 로그인 후 이용 가능합니다.\n확인을 눌러서 로그인을 진행해주세요')) {
+                                signInWithKakao();
+                            }
+                            return;
+                        }
+                        eventModal.selectedEvent && toggleEventFavorite(eventModal.selectedEvent.id);
+                    }}
                     onOpenVenueDetail={handleVenueClick}
                 />
             )}

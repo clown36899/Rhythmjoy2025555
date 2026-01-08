@@ -37,6 +37,7 @@ interface EventPreviewSectionProps {
     handleToggleFavorite: (id: number, e: React.MouseEvent) => void;
     searchParams: URLSearchParams;
     setSearchParams: (params: URLSearchParams) => void;
+    onSectionViewModeChange: (mode: 'preview' | 'viewAll-events' | 'viewAll-classes') => void;
 }
 
 export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
@@ -62,6 +63,7 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
     handleToggleFavorite,
     searchParams,
     setSearchParams,
+    onSectionViewModeChange,
 }) => {
 
 
