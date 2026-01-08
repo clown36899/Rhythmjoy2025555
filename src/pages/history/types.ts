@@ -5,6 +5,7 @@ export interface HistoryNodeData {
     year?: number;
     description?: string;
     youtube_url?: string;
+    attachment_url?: string;
     url?: string;
     // Unified Resoruce Fields
     type?: 'VIDEO' | 'PLAYLIST' | 'DOCUMENT' | 'PERSON' | string;

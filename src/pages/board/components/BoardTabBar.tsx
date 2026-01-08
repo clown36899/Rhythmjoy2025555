@@ -15,7 +15,7 @@ const DEFAULT_CATEGORIES = [
     { id: 'anonymous', label: '익명 게시판', icon: 'ri-user-secret-line' },
     { id: 'trade', label: '양도/양수', icon: 'ri-exchange-line' },
     { id: 'notice', label: '건의/공지', icon: 'ri-megaphone-line' },
-    { id: 'history', label: '라이브러리', icon: 'ri-youtube-line', isWip: true },
+    { id: 'history', label: '라이브러리', icon: 'ri-youtube-line' },
     { id: 'market', label: '벼룩시장', icon: 'ri-store-2-line' },
     { id: 'dev-log', label: '개발일지', icon: 'ri-code-box-line' },
 ];
@@ -63,8 +63,7 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
                 mapped.push({
                     id: 'history',
                     label: '라이브러리',
-                    icon: 'ri-youtube-line',
-                    isWip: true
+                    icon: 'ri-youtube-line'
                 });
 
                 // Add dev-log tab at the end if not already present

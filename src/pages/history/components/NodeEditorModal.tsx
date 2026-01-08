@@ -28,6 +28,7 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
         date: '',
         description: '',
         youtube_url: '',
+        attachment_url: '',
         category: 'general',
         tags: '',
         addToDrawer: false,
@@ -47,6 +48,7 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                 date: node.date || '',
                 description: node.description || '',
                 youtube_url: node.youtube_url || '',
+                attachment_url: node.attachment_url || '',
                 category: node.category || 'general',
                 tags: node.tags?.join(', ') || '',
                 addToDrawer: false,
@@ -254,6 +256,7 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
             date: formData.date || null,
             description: formData.description,
             youtube_url: formData.youtube_url,
+            attachment_url: formData.attachment_url,
             category: formData.category,
             tags: formData.tags
                 .split(',')
@@ -359,7 +362,7 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                         </select>
                     </div>
 
-                    {formData.category === 'person' && !isLinked && (
+                    {formData.category === 'person' && (
                         <>
                             <div className="info-message" style={{
                                 padding: '12px',
@@ -503,21 +506,34 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                         </div>
                     )}
 
+                    {['playlist', 'video'].includes(formData.category) && (
+                        <div className="form-group">
+                            <label>유튜브 URL</label>
+                            <input
+                                type="url"
+                                value={formData.youtube_url}
+                                onChange={(e) => setFormData({ ...formData, youtube_url: e.target.value })}
+                                placeholder="https://www.youtube.com/watch?v=..."
+                            />
+                            {videoInfo?.thumbnailUrl && (
+                                <div className="video-preview">
+                                    <img src={videoInfo.thumbnailUrl} alt="Preview" />
+                                </div>
+                            )}
+                        </div>
+                    )}
+
                     <div className="form-group">
-                        <label>
-                            {['playlist', 'video'].includes(formData.category) ? '유튜브 URL' : '참조 링크 (URL)'}
-                        </label>
+                        <label>첨부 링크 (선택)</label>
                         <input
                             type="url"
-                            value={formData.youtube_url}
-                            onChange={(e) => setFormData({ ...formData, youtube_url: e.target.value })}
-                            placeholder={['playlist', 'video'].includes(formData.category) ? "https://www.youtube.com/watch?v=..." : "https://example.com/..."}
+                            value={formData.attachment_url}
+                            onChange={(e) => setFormData({ ...formData, attachment_url: e.target.value })}
+                            placeholder="https://ko.wikipedia.org/wiki/..."
                         />
-                        {videoInfo?.thumbnailUrl && (
-                            <div className="video-preview">
-                                <img src={videoInfo.thumbnailUrl} alt="Preview" />
-                            </div>
-                        )}
+                        <small style={{ color: '#888', fontSize: '0.85rem', marginTop: '4px', display: 'block' }}>
+                            위키피디아, 참고 자료 등의 링크를 입력하세요
+                        </small>
                     </div>
 
                     <div className="form-group">

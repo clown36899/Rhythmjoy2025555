@@ -59,6 +59,66 @@ export const NodeDetailModal: React.FC<NodeDetailModalProps> = ({ nodeData, onCl
                         </div>
                     )}
 
+                    {nodeData.youtube_url && !videoId && (
+                        <div className="detail-link" style={{
+                            padding: '16px',
+                            backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                            border: '1px solid rgba(139, 92, 246, 0.3)',
+                            borderRadius: '8px',
+                            marginBottom: '16px'
+                        }}>
+                            <div style={{ marginBottom: '8px', color: '#a78bfa', fontSize: '0.9rem' }}>
+                                <i className="ri-youtube-line"></i> 유튜브 링크
+                            </div>
+                            <a
+                                href={nodeData.youtube_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                    color: '#a78bfa',
+                                    textDecoration: 'none',
+                                    wordBreak: 'break-all',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px'
+                                }}
+                            >
+                                {nodeData.youtube_url}
+                                <i className="ri-external-link-line"></i>
+                            </a>
+                        </div>
+                    )}
+
+                    {nodeData.attachment_url && (
+                        <div className="detail-link" style={{
+                            padding: '16px',
+                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                            border: '1px solid rgba(59, 130, 246, 0.3)',
+                            borderRadius: '8px',
+                            marginBottom: '16px'
+                        }}>
+                            <div style={{ marginBottom: '8px', color: '#60a5fa', fontSize: '0.9rem' }}>
+                                <i className="ri-link"></i> 첨부 링크
+                            </div>
+                            <a
+                                href={nodeData.attachment_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                    color: '#60a5fa',
+                                    textDecoration: 'none',
+                                    wordBreak: 'break-all',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '8px'
+                                }}
+                            >
+                                {nodeData.attachment_url}
+                                <i className="ri-external-link-line"></i>
+                            </a>
+                        </div>
+                    )}
+
                     <div className="detail-description">
                         {nodeData.description ? (
                             renderTextWithLinksAndResources(nodeData.description, () => { })

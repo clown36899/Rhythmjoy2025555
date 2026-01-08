@@ -398,19 +398,18 @@ export default function HistoryTimelinePage() {
             for (const node of newNodes) {
                 const { id, ...nodeData } = node.data;
                 // Remove temp properties
-                const { onEdit, onViewDetail, onPlayVideo, onPreviewLinkedResource, nodeType, thumbnail_url, image_url, url, ...dbData } = nodeData;
+                const { onEdit, onViewDetail, onPlayVideo, onPreviewLinkedResource, nodeType, thumbnail_url, image_url, url, isEditMode, isSelectionMode, ...dbData } = nodeData;
 
                 // 🔥 REFERENCE POINT ARCHITECTURE (New Nodes)
                 const isLinked = dbData.linked_video_id || dbData.linked_document_id || dbData.linked_playlist_id || dbData.linked_category_id;
 
                 if (isLinked) {
-                    // For linked nodes, DO NOT save redundant content
-                    delete dbData.title;
+                    // For linked nodes, keep title (required by DB) but remove other redundant content
+                    // Title is kept for display purposes even though it's sourced from learning_resources
                     delete dbData.description;
                     delete dbData.image_url;
                     delete dbData.youtube_url;
-                    delete dbData.category;
-                    // Keep year/date as positioning
+                    // Keep year/date as positioning, keep category for filtering
                 } else {
                     // For standalone nodes, ensure youtube_url is valid
                     if (url && !dbData.youtube_url) {
@@ -478,6 +477,7 @@ export default function HistoryTimelinePage() {
                 const isLinked = node.data.linked_video_id || node.data.linked_document_id || node.data.linked_playlist_id || node.data.linked_category_id;
 
                 if (!isLinked) {
+                    // Standalone nodes: save all content
                     dbData.title = node.data.title;
                     dbData.description = node.data.description;
                     dbData.image_url = node.data.image_url;
@@ -485,18 +485,8 @@ export default function HistoryTimelinePage() {
                     dbData.category = node.data.category;
                     dbData.year = node.data.year;
                     dbData.date = node.data.date;
-                } else {
-                    // 🔥 ARCHITECTURE ENFORCEMENT: 
-                    // Linked nodes derive ALL data (Content + Year/Date) from the Learning Resource.
-                    // History Node stores ONLY Position (x, y) and the Link ID.
-                    dbData.title = null;
-                    dbData.description = null;
-                    dbData.image_url = null;
-                    dbData.youtube_url = null;
-                    dbData.category = null;
-                    dbData.year = null;
-                    dbData.date = null;
                 }
+                // For linked nodes: don't save any content (it comes from learning_resources)
 
                 dbData.linked_video_id = node.data.linked_video_id || null;
                 dbData.linked_document_id = node.data.linked_document_id || null;
@@ -822,6 +812,9 @@ export default function HistoryTimelinePage() {
                     if (vInfo?.thumbnailUrl) thumbnail_url = vInfo.thumbnailUrl;
                 }
 
+                // Get attachment_url from node or linked resource
+                const attachmentUrl = node.attachment_url || lv?.attachment_url || ld?.attachment_url || lp?.attachment_url || lc?.attachment_url;
+
                 return {
                     id: String(node.id),
                     type: 'historyNode',
@@ -836,6 +829,7 @@ export default function HistoryTimelinePage() {
                         year,
                         description: desc,
                         youtube_url: finalYoutubeUrl,
+                        attachment_url: attachmentUrl,
                         category,
                         tags: node.tags,
                         linked_playlist_id: node.linked_playlist_id,
@@ -1205,6 +1199,8 @@ export default function HistoryTimelinePage() {
                     if (nodeUpdateData.title) updatePayload.title = nodeUpdateData.title;
                     if (nodeUpdateData.description) updatePayload.description = nodeUpdateData.description;
                     if (image_url) updatePayload.image_url = image_url;
+                    if (nodeUpdateData.youtube_url || url) updatePayload.url = nodeUpdateData.youtube_url || url;
+                    if (nodeUpdateData.attachment_url !== undefined) updatePayload.attachment_url = nodeUpdateData.attachment_url;
                     if (nodeUpdateData.year !== undefined) updatePayload.year = nodeUpdateData.year;
                     if (nodeUpdateData.category) {
                         const typeMap: Record<string, string> = {
@@ -1778,8 +1774,9 @@ export default function HistoryTimelinePage() {
             // Use the resource's year if available, otherwise null
             const year = draggedData.year || null;
 
+
             const newNodeData: any = {
-                title: draggedData.title || (draggedData.name),
+                title: draggedData.title || draggedData.name || '제목 없음',
                 year: year,
                 category: 'event',
                 description: draggedData.description || '',
