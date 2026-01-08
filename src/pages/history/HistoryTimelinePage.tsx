@@ -101,6 +101,37 @@ const STATIC_EDGE_TYPES = {
     default: CustomBezierEdge,
 };
 
+// Helper: Standardize Node Creation
+// Unifies logic from handleSaveNode and onDrop to ensure consistent properties (image_url, handlers, etc.)
+const createHistoryRFNode = (
+    id: string,
+    position: { x: number; y: number },
+    data: any,
+    handlers: {
+        onEdit: (node: any) => void;
+        onViewDetail: (item: any) => void;
+        onPlayVideo: (url: string, id?: string) => void;
+        onPreviewLinkedResource: (id: string, type: string, title: string) => void;
+    }
+): RFNode => {
+    return {
+        id,
+        type: 'historyNode',
+        position,
+        data: {
+            ...data,
+            id,
+            // Consistency Fallbacks
+            thumbnail_url: data.thumbnail_url || data.image_url,
+            // Handlers
+            onEdit: handlers.onEdit,
+            onViewDetail: handlers.onViewDetail,
+            onPlayVideo: handlers.onPlayVideo,
+            onPreviewLinkedResource: handlers.onPreviewLinkedResource,
+        }
+    };
+};
+
 export default function HistoryTimelinePage() {
     const { user, isAdmin } = useAuth();
 
@@ -969,27 +1000,27 @@ export default function HistoryTimelinePage() {
                 else if (linkedVideoId) { finalNodeType = 'video'; finalCategory = 'video'; }
 
                 const tempId = getTempId();
-                const newLocalNode: RFNode = {
-                    id: tempId,
-                    type: 'historyNode',
-                    position: position,
-                    data: {
+
+                const newLocalNode = createHistoryRFNode(
+                    tempId,
+                    position,
+                    {
                         ...nodeInsertData,
-                        id: tempId,
                         linked_video_id: linkedVideoId,
                         linked_document_id: linkedDocumentId,
                         linked_playlist_id: linkedPlaylistId,
                         linked_category_id: linkedCategoryId,
+                        nodeType: finalNodeType,
+                        category: finalCategory,
+                        image_url: image_url,
+                    },
+                    {
                         onEdit: handleEditNode,
                         onViewDetail: handleViewDetail,
                         onPlayVideo: handlePlayVideo,
                         onPreviewLinkedResource: (id: string, type: string, title: string) => setPreviewResource({ id, type, title }),
-                        nodeType: finalNodeType,
-                        category: finalCategory,
-                        image_url: image_url,
-                        thumbnail_url: image_url || (nodeInsertData as any).thumbnail_url
                     }
-                };
+                );
 
                 setNodes(nds => [...nds, newLocalNode]);
                 setHasUnsavedChanges(true); // 편집 모드 저장 버튼을 활성화 시킴
@@ -1385,22 +1416,23 @@ export default function HistoryTimelinePage() {
                         const rootNodeId = String(currentTempId--);
                         idMap.set(draggedData.id, rootNodeId);
 
-                        const rootNode: RFNode = {
-                            id: rootNodeId,
-                            type: 'historyNode',
-                            position: { x: position.x, y: position.y },
-                            data: {
+                        const rootNode = createHistoryRFNode(
+                            rootNodeId,
+                            { x: position.x, y: position.y },
+                            {
                                 title: draggedData.title || draggedData.name,
                                 year: year,
                                 category: 'folder',
                                 nodeType: 'folder',
                                 linked_category_id: draggedData.id,
-                                id: parseInt(rootNodeId),
+                            },
+                            {
                                 onEdit: handleEditNode,
                                 onViewDetail: handleViewDetail,
+                                onPlayVideo: handlePlayVideo,
                                 onPreviewLinkedResource: (id: string, type: string, title: string) => setPreviewResource({ id, type, title }),
                             }
-                        };
+                        );
                         newNodes.push(rootNode);
 
                         // 3. Layout Calculation (Recursive Tree Style)
@@ -1448,11 +1480,10 @@ export default function HistoryTimelinePage() {
 
                                 const itemType = child.type === 'person' ? 'person' : (child.type === 'document' ? 'document' : (child.type === 'video' ? 'video' : (child.type === 'general' ? 'folder' : 'default')));
 
-                                const newNode: RFNode = {
-                                    id: nodeId,
-                                    type: 'historyNode',
-                                    position: { x: posX, y: posY },
-                                    data: {
+                                const newNode = createHistoryRFNode(
+                                    nodeId,
+                                    { x: posX, y: posY },
+                                    {
                                         title: child.title,
                                         year: year,
                                         category: itemType,
@@ -1462,17 +1493,17 @@ export default function HistoryTimelinePage() {
                                         linked_document_id: (child.type === 'document' || child.type === 'person') ? child.id : undefined,
                                         description: child.description || '',
                                         created_by: user.id,
-                                        id: parseInt(nodeId),
+                                        image_url: child.image_url,
+                                        url: child.url,
+                                        youtube_url: itemType === 'video' ? child.url : undefined
+                                    },
+                                    {
                                         onEdit: handleEditNode,
                                         onViewDetail: handleViewDetail,
                                         onPlayVideo: handlePlayVideo,
                                         onPreviewLinkedResource: (id: string, type: string, title: string) => setPreviewResource({ id, type, title }),
-                                        image_url: child.image_url,
-                                        thumbnail_url: child.image_url, // 🔥 Map to thumbnail_url for HistoryNodeComponent
-                                        url: child.url,
-                                        youtube_url: itemType === 'video' ? child.url : undefined // 🔥 Map to youtube_url for videos
                                     }
-                                };
+                                );
                                 newNodes.push(newNode);
 
                                 // Edge to Parent
@@ -1551,23 +1582,23 @@ export default function HistoryTimelinePage() {
 
             // NEW: Local Create Logic for Single Drop (or single folder node)
             const tempId = getTempId();
-            const newNode: RFNode = {
-                id: tempId,
-                type: 'historyNode',
-                position: {
+            const newNode = createHistoryRFNode(
+                tempId,
+                {
                     x: newNodeData.position_x,
                     y: newNodeData.position_y
                 },
-                data: {
+                {
                     ...newNodeData, // Contains raw data
-                    id: tempId,
+                    nodeType: newNodeData.nodeType || 'default'
+                },
+                {
                     onEdit: handleEditNode,
                     onViewDetail: handleViewDetail,
                     onPlayVideo: handlePlayVideo,
                     onPreviewLinkedResource: (id: string, type: string, title: string) => setPreviewResource({ id, type, title }),
-                    nodeType: newNodeData.nodeType || 'default'
                 }
-            };
+            );
             setNodes((nds) => nds.concat(newNode));
             setHasUnsavedChanges(true);
         },
