@@ -30,4 +30,5 @@ export interface HistoryNodeData {
     onViewDetail?: (data: HistoryNodeData) => void;
     onPlayVideo?: (url: string, playlistId?: string | null, linkedVideoId?: string | null) => void;
     onPreviewLinkedResource?: (id: string, type: string, title: string) => void;
+    isSelectionMode?: boolean; // Disable click actions in selection mode
 }

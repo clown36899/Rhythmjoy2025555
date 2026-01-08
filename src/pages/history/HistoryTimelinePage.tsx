@@ -113,7 +113,8 @@ const createHistoryRFNode = (
         onViewDetail: (item: any) => void;
         onPlayVideo: (url: string, id?: string) => void;
         onPreviewLinkedResource: (id: string, type: string, title: string) => void;
-    }
+    },
+    isSelectionMode: boolean = false
 ): RFNode => {
     return {
         id,
@@ -129,6 +130,7 @@ const createHistoryRFNode = (
             onViewDetail: handlers.onViewDetail,
             onPlayVideo: handlers.onPlayVideo,
             onPreviewLinkedResource: handlers.onPreviewLinkedResource,
+            isSelectionMode, // Pass selection mode state
         }
     };
 };
@@ -171,6 +173,10 @@ export default function HistoryTimelinePage() {
     const [deletedNodeIds, setDeletedNodeIds] = useState<Set<string>>(new Set());
     const [deletedEdgeIds, setDeletedEdgeIds] = useState<Set<string>>(new Set());
     const [modifiedNodeIds, setModifiedNodeIds] = useState<Set<string>>(new Set()); // New: Track modified node content
+
+    // Context Menu State
+    const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId?: string } | null>(null);
+    const [isSelectionMode, setIsSelectionMode] = useState(false); // Toggle selection mode
 
     // Define types inside component with useMemo to ensure stable references
     const nodeTypes = useMemo(() => STATIC_NODE_TYPES, []);
@@ -576,6 +582,91 @@ export default function HistoryTimelinePage() {
         }
     }, [rfInstance, loading, isAutoLayout]);
 
+    // Keyboard shortcut for deleting selected nodes
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            // Only in edit mode and when Delete or Backspace is pressed
+            if (!isEditMode || (event.key !== 'Delete' && event.key !== 'Backspace')) return;
+
+            // Don't trigger if user is typing in an input/textarea
+            const target = event.target as HTMLElement;
+            if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+                return;
+            }
+
+            // Get selected nodes
+            const selectedNodes = nodes.filter(node => node.selected);
+            if (selectedNodes.length === 0) return;
+
+            event.preventDefault();
+
+            // Confirm deletion
+            const confirmMsg = selectedNodes.length === 1
+                ? `"${selectedNodes[0].data.title}" 노드를 삭제하시겠습니까?`
+                : `선택한 ${selectedNodes.length}개의 노드를 삭제하시겠습니까?`;
+
+            if (!window.confirm(confirmMsg)) return;
+
+            // Mark nodes for deletion
+            selectedNodes.forEach(node => {
+                const strId = String(node.id);
+                if (!isTempId(strId)) {
+                    setDeletedNodeIds(prev => new Set(prev).add(strId));
+
+                    // Mark connected edges for deletion
+                    const connectedEdges = edges.filter(e => e.source === strId || e.target === strId);
+                    const realEdgeIds = connectedEdges.filter(e => !isTempId(e.id)).map(e => e.id);
+                    if (realEdgeIds.length > 0) {
+                        setDeletedEdgeIds(prev => {
+                            const next = new Set(prev);
+                            realEdgeIds.forEach(eid => next.add(eid));
+                            return next;
+                        });
+                    }
+                }
+            });
+
+            // Remove from UI
+            const deletedIds = new Set(selectedNodes.map(n => n.id));
+            setNodes(nds => nds.filter(node => !deletedIds.has(node.id)));
+            setEdges(eds => eds.filter(edge => !deletedIds.has(edge.source) && !deletedIds.has(edge.target)));
+            setHasUnsavedChanges(true);
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isEditMode, nodes, edges, isTempId]);
+
+    // Global right-click handler for selection mode
+    useEffect(() => {
+        if (!isEditMode || !isSelectionMode) return;
+
+        const handleContextMenu = (e: MouseEvent) => {
+            // Check if click is within the canvas area
+            const canvas = document.querySelector('.history-timeline-canvas');
+            if (canvas && canvas.contains(e.target as Node)) {
+                e.preventDefault();
+                e.stopPropagation();
+                setContextMenu({ x: e.clientX, y: e.clientY });
+            }
+        };
+
+        // Capture phase to intercept before React Flow
+        document.addEventListener('contextmenu', handleContextMenu, true);
+        return () => document.removeEventListener('contextmenu', handleContextMenu, true);
+    }, [isEditMode, isSelectionMode]);
+
+    // Update all nodes with current isSelectionMode state
+    useEffect(() => {
+        setNodes(nds => nds.map(node => ({
+            ...node,
+            data: {
+                ...node.data,
+                isSelectionMode
+            }
+        })));
+    }, [isSelectionMode, setNodes]);
+
     const loadTimeline = async () => {
         try {
             setLoading(true);
@@ -869,6 +960,46 @@ export default function HistoryTimelinePage() {
         [isAutoLayout, highlightedEdgeId, edges, user, nodes, isEditMode]
     );
 
+    // Handler: Delete selected nodes (for trash button click)
+    const handleDeleteSelected = useCallback(() => {
+        const selectedNodes = nodes.filter(node => node.selected);
+        if (selectedNodes.length === 0) {
+            alert('삭제할 노드를 선택해주세요.');
+            return;
+        }
+
+        const confirmMsg = selectedNodes.length === 1
+            ? `"${selectedNodes[0].data.title}" 노드를 삭제하시겠습니까 ? `
+            : `선택한 ${selectedNodes.length}개의 노드를 삭제하시겠습니까 ? `;
+
+        if (!window.confirm(confirmMsg)) return;
+
+        // Mark nodes for deletion
+        selectedNodes.forEach(node => {
+            const strId = String(node.id);
+            if (!isTempId(strId)) {
+                setDeletedNodeIds(prev => new Set(prev).add(strId));
+
+                // Mark connected edges for deletion
+                const connectedEdges = edges.filter(e => e.source === strId || e.target === strId);
+                const realEdgeIds = connectedEdges.filter(e => !isTempId(e.id)).map(e => e.id);
+                if (realEdgeIds.length > 0) {
+                    setDeletedEdgeIds(prev => {
+                        const next = new Set(prev);
+                        realEdgeIds.forEach(eid => next.add(eid));
+                        return next;
+                    });
+                }
+            }
+        });
+
+        // Remove from UI
+        const deletedIds = new Set(selectedNodes.map(n => n.id));
+        setNodes(nds => nds.filter(node => !deletedIds.has(node.id)));
+        setEdges(eds => eds.filter(edge => !deletedIds.has(edge.source) && !deletedIds.has(edge.target)));
+        setHasUnsavedChanges(true);
+    }, [nodes, edges, isTempId]);
+
     const onMoveEnd = useCallback(
         (_: any, viewport: { x: number, y: number, zoom: number }) => {
             if (isAutoLayout) return; // Don't save viewport in auto-layout mode
@@ -1026,7 +1157,7 @@ export default function HistoryTimelinePage() {
                 }
             } // This closes the `if (editingNode)` block
             // --- 3. 새 노드 생성 (Local-First 생성) ---
-            else { // This `else` now correctly pairs with `if (editingNode)`
+            else { // This `else ` now correctly pairs with `if (editingNode)`
                 const center = rfInstance?.getViewport() || { x: 0, y: 0, zoom: 1 };
                 const position = {
                     x: -center.x / center.zoom + 100,
@@ -1153,7 +1284,7 @@ export default function HistoryTimelinePage() {
                     .single();
 
                 if (targetCheck && targetCheck.type !== 'general') {
-                    console.error(`⛔ ALARM: Trying to move item into a non-folder (${targetCheck.type})! Aborting.`);
+                    console.error(`⛔ ALARM: Trying to move item into a non - folder(${targetCheck.type})! Aborting.`);
                     alert(`Invalid Move: '${targetCheck.title}' is not a folder.`);
                     return;
                 }
@@ -1178,7 +1309,7 @@ export default function HistoryTimelinePage() {
                     (next as any)[key] = list.map((r: any) => {
                         if (r.id === id) {
                             found = true;
-                            console.log(`✨ [Optimistic] Found item in ${key}:`, r.title);
+                            console.log(`✨[Optimistic] Found item in ${key}: `, r.title);
                             return {
                                 ...r,
                                 category_id: targetCategoryId,
@@ -1195,11 +1326,11 @@ export default function HistoryTimelinePage() {
             // 🔥 CRITICAL FIX: Sync categories with folders
             next.categories = next.folders;
 
-            if (!found) console.warn(`⚠️ [Optimistic] Item ${id} not found in any list!`);
+            if (!found) console.warn(`⚠️[Optimistic] Item ${id} not found in any list!`);
             return next;
         });
 
-        console.log(`📡 [handleMoveResource] Moving ${id} -> Category: ${targetCategoryId}, Unclassified: ${isUnclassified}, Grid: (${gridRow}, ${gridColumn})`);
+        console.log(`📡[handleMoveResource] Moving ${id} -> Category: ${targetCategoryId}, Unclassified: ${isUnclassified}, Grid: (${gridRow}, ${gridColumn})`);
 
         try {
             const updateData: any = {
@@ -1238,7 +1369,7 @@ export default function HistoryTimelinePage() {
             return;
         }
 
-        console.log(`🔃 [Reorder] ${sourceId} ${position} ${targetId}`);
+        console.log(`🔃[Reorder] ${sourceId} ${position} ${targetId}`);
 
         // Find items to calculate new order
         // We need to look in both folders and playlists (which are empty arrays) - wait, unified 'folders' list.
@@ -1763,6 +1894,33 @@ export default function HistoryTimelinePage() {
                         <span>추가</span>
                     </button>
                 )}
+                {isEditMode && (
+                    <button
+                        className={`toolbar-btn ${isSelectionMode ? 'active' : ''}`}
+                        onClick={() => setIsSelectionMode(!isSelectionMode)}
+                        title={isSelectionMode ? '이동 모드로 전환 (Shift 없이 드래그 = 이동)' : '선택 모드로 전환 (드래그 = 박스 선택)'}
+                        style={{
+                            color: isSelectionMode ? '#60a5fa' : '#9ca3af',
+                            borderColor: isSelectionMode ? '#60a5fa' : 'rgba(255,255,255,0.1)'
+                        }}
+                    >
+                        <i className={`ri-${isSelectionMode ? 'drag-move-2-fill' : 'checkbox-multiple-line'}`}></i>
+                        <span>{isSelectionMode ? '선택' : '이동'}</span>
+                    </button>
+                )}
+                {isEditMode && (
+                    <button
+                        className="toolbar-btn delete-btn"
+                        onClick={handleDeleteSelected}
+                        title="선택한 노드 삭제 (Delete 키 또는 노드를 화면 하단으로 드래그)"
+                        style={{
+                            color: '#f87171',
+                            borderColor: '#fca5a5'
+                        }}
+                    >
+                        <i className="ri-delete-bin-line"></i>
+                    </button>
+                )}
             </div>
 
             <div className="history-timeline-canvas">
@@ -1788,8 +1946,22 @@ export default function HistoryTimelinePage() {
                     maxZoom={2}
                     onDrop={onDrop}
                     onDragOver={onDragOver}
-                    selectionOnDrag={isEditMode && !isMobile}
-                    panOnDrag={[1, 2]}
+                    selectionOnDrag={isEditMode && !isMobile && isSelectionMode}
+                    panOnDrag={isEditMode && !isMobile ? !isSelectionMode : true}
+                    selectionKeyCode={isSelectionMode ? null : "Shift"}
+                    multiSelectionKeyCode="Shift"
+                    onPaneContextMenu={(event) => {
+                        if (!isEditMode) return;
+                        event.preventDefault();
+                        setContextMenu({ x: event.clientX, y: event.clientY });
+                    }}
+                    onNodeContextMenu={(event, node) => {
+                        if (!isEditMode) return;
+                        event.preventDefault();
+                        event.stopPropagation();
+                        setContextMenu({ x: event.clientX, y: event.clientY, nodeId: String(node.id) });
+                    }}
+                    onPaneClick={() => setContextMenu(null)}
                 >
                     <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#333333" />
                     <Controls />
@@ -1912,6 +2084,105 @@ export default function HistoryTimelinePage() {
                 videos={resourceData.videos}
                 documents={resourceData.documents}
             />
+
+            {/* Context Menu */}
+            {contextMenu && isEditMode && (
+                <>
+                    {/* Backdrop to close menu */}
+                    <div
+                        style={{
+                            position: 'fixed',
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            zIndex: 1999
+                        }}
+                        onClick={() => setContextMenu(null)}
+                        onContextMenu={(e) => {
+                            e.preventDefault();
+                            setContextMenu(null);
+                        }}
+                    />
+                    {/* Menu */}
+                    <div
+                        style={{
+                            position: 'fixed',
+                            top: contextMenu.y,
+                            left: contextMenu.x,
+                            background: 'rgba(17, 24, 39, 0.98)',
+                            border: '1px solid rgba(255, 255, 255, 0.1)',
+                            borderRadius: '8px',
+                            padding: '4px',
+                            minWidth: '220px',
+                            zIndex: 2000,
+                            boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
+                            backdropFilter: 'blur(10px)'
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <button
+                            onClick={() => {
+                                handleDeleteSelected();
+                                setContextMenu(null);
+                            }}
+                            style={{
+                                width: '100%',
+                                padding: '8px 12px',
+                                background: 'transparent',
+                                border: 'none',
+                                color: '#f87171',
+                                textAlign: 'left',
+                                cursor: 'pointer',
+                                borderRadius: '4px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                fontSize: '14px',
+                                transition: 'background 0.15s'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(248, 113, 113, 0.1)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                        >
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <i className="ri-delete-bin-line"></i>
+                                선택한 노드 삭제
+                            </span>
+                            <span style={{ fontSize: '12px', opacity: 0.6 }}>Delete</span>
+                        </button>
+                        <div style={{ height: '1px', background: 'rgba(255,255,255,0.05)', margin: '4px 0' }} />
+                        <button
+                            onClick={() => {
+                                setIsSelectionMode(!isSelectionMode);
+                                setContextMenu(null);
+                            }}
+                            style={{
+                                width: '100%',
+                                padding: '8px 12px',
+                                background: isSelectionMode ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+                                border: 'none',
+                                color: isSelectionMode ? '#60a5fa' : '#9ca3af',
+                                textAlign: 'left',
+                                cursor: 'pointer',
+                                borderRadius: '4px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                fontSize: '14px',
+                                transition: 'background 0.15s'
+                            }}
+                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'}
+                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                        >
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <i className="ri-checkbox-multiple-line"></i>
+                                다중 선택 모드
+                            </span>
+                            <span style={{ fontSize: '12px', opacity: 0.6 }}>Shift+Drag</span>
+                        </button>
+                    </div>
+                </>
+            )}
         </div>
     );
 }

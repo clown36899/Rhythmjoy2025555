@@ -103,6 +103,10 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
         <div
             className={`history-node linked-type-${linkedType}`}
             style={{ borderColor: getCategoryColor() }}
+            onContextMenu={(e) => {
+                // Allow context menu to bubble up to ReactFlow's onNodeContextMenu
+                // Don't prevent default here - let ReactFlow handle it
+            }}
         >
             {/* Simple Handles: Defined as both source and target for flexibility */}
             {/* Reliable Handles: Source and Target for all directions with standard IDs */}
@@ -140,7 +144,11 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
 
             {/* Thumbnail */}
             {thumbnailUrl && data.category !== 'person' && (
-                <div className="history-node-thumbnail" onClick={handleThumbnailClick}>
+                <div
+                    className="history-node-thumbnail"
+                    onClick={data.isSelectionMode ? undefined : handleThumbnailClick}
+                    style={{ cursor: data.isSelectionMode ? 'default' : 'pointer' }}
+                >
                     <img src={thumbnailUrl} alt={data.title} />
                     <div className="history-node-play-overlay">
                         <i className="ri-play-circle-fill"></i>
@@ -152,6 +160,9 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
             <div
                 className="history-node-content"
                 onClick={(e) => {
+                    // In selection mode, don't trigger any actions - just allow selection
+                    if (data.isSelectionMode) return;
+
                     // 버튼 클릭이 아닌 경우에만 처리
                     if (!(e.target as HTMLElement).closest('button')) {
                         // 인물 노드는 항상 상세보기 모달
@@ -172,7 +183,7 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
                         }
                     }
                 }}
-                style={{ cursor: 'pointer' }}
+                style={{ cursor: data.isSelectionMode ? 'default' : 'pointer' }}
             >
                 <div className="node-header">
                     <span className="node-year">{data.year || data.date}</span>
