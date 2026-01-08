@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import './ResourceDrawer.css';
 import { CategoryManager } from '../../learning/components/CategoryManager';
 
@@ -45,10 +45,12 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refr
     const [prevWidth, setPrevWidth] = useState(360);
     const [isResizing, setIsResizing] = useState(false);
     const [treeScale, setTreeScale] = useState(1);
+    const drawerRef = useRef<HTMLDivElement>(null);
 
     const handleToggleFull = () => {
-        if (width >= window.innerWidth - 10) {
-            setWidth(prevWidth);
+        const isFull = width >= window.innerWidth - 50; // Use a buffer
+        if (isFull) {
+            setWidth(prevWidth || 360);
         } else {
             setPrevWidth(width);
             setWidth(window.innerWidth);
@@ -58,23 +60,23 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refr
     // Zoom Logic for Desktop (Ctrl + Scroll)
     useEffect(() => {
         const handleWheel = (e: WheelEvent) => {
-            if (e.ctrlKey) {
+            if (e.ctrlKey || e.metaKey) { // Support Command key on Mac too
                 e.preventDefault();
                 setTreeScale(prev => {
-                    const delta = e.deltaY > 0 ? -0.1 : 0.1;
-                    const next = Math.max(0.5, Math.min(2.0, prev + delta));
+                    const delta = e.deltaY > 0 ? -0.05 : 0.05; // Finer zoom
+                    const next = Math.max(0.3, Math.min(2.0, prev + delta));
                     return next;
                 });
             }
         };
 
-        const drawer = document.querySelector('.resource-drawer-container');
+        const drawer = drawerRef.current;
         if (drawer) {
-            drawer.addEventListener('wheel', handleWheel as any, { passive: false });
+            drawer.addEventListener('wheel', handleWheel, { passive: false });
         }
         return () => {
             if (drawer) {
-                drawer.removeEventListener('wheel', handleWheel as any);
+                drawer.removeEventListener('wheel', handleWheel);
             }
         };
     }, []);
@@ -262,6 +264,7 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refr
 
     return (
         <div
+            ref={drawerRef}
             className={`resource-drawer ${isOpen ? 'open' : ''} ${isExpanded ? 'expanded' : ''}`}
             style={{ width, right: isOpen ? 0 : -width }}
         >
@@ -304,7 +307,7 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refr
                     <button
                         className="minimize-btn"
                         onClick={handleToggleFull}
-                        title={width >= window.innerWidth - 10 ? "축소" : "전체 화면"}
+                        title={width >= window.innerWidth - 50 ? "축소" : "전체 화면"}
                         style={{
                             background: 'transparent',
                             border: 'none',
@@ -319,7 +322,7 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refr
                             transition: 'all 0.2s ease'
                         }}
                     >
-                        <i className={width >= window.innerWidth - 10 ? "ri-fullscreen-exit-line" : "ri-fullscreen-line"}></i>
+                        <i className={width >= window.innerWidth - 50 ? "ri-fullscreen-exit-line" : "ri-fullscreen-line"}></i>
                     </button>
                     <button className="close-btn" onClick={onClose}>
                         <i className="ri-close-line"></i>

@@ -1535,7 +1535,7 @@ export default function HistoryTimelinePage() {
         }
     }, [isAdmin, fetchResourceData]);
 
-    const handleRenameResource = useCallback(async (id: string, newName: string, type: string) => {
+    const handleRenameResource = useCallback(async (id: string, newName: string, _type: string) => {
         if (!isAdmin) return;
         try {
             const { error } = await supabase
