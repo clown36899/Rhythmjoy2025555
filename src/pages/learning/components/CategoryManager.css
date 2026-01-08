@@ -176,6 +176,19 @@
         max-height: none;
         overflow-y: visible;
     }
+
+    #root-main-zone {
+        flex-wrap: wrap !important;
+        overflow-x: hidden !important;
+        align-content: flex-start;
+        gap: 8px !important;
+    }
+
+    .grid-column {
+        width: calc(50% - 4px) !important;
+        min-width: 0 !important;
+        margin: 0 !important;
+    }
 }
 
 /* Tree Line Implementation */
