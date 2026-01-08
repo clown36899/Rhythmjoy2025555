@@ -39,8 +39,11 @@ interface Props {
     onMoveResource?: (playlistId: string, targetCategoryId: string | null, isUnclassified: boolean, gridRow?: number, gridColumn?: number) => void;
     onItemClick?: (item: any) => void;
     onReorderResource?: (sourceId: string, targetId: string, position: 'before' | 'after', gridRow?: number, gridColumn?: number) => void;
+    onDeleteResource?: (id: string, type: string) => void;
+    onRenameResource?: (id: string, newName: string, type: string) => void;
     dragSourceMode?: boolean;
     refreshKey?: number;
+    scale?: number;
 }
 
 export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, _ref) => {
@@ -53,8 +56,31 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
         onMoveResource,
         onItemClick,
         onReorderResource,
-        dragSourceMode = false
+        onDeleteResource,
+        onRenameResource,
+        dragSourceMode = false,
+        scale = 1
     } = props;
+
+    // Edit State
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [tempName, setTempName] = useState('');
+
+    const startEditing = (id: string, currentName: string) => {
+        setEditingId(id);
+        setTempName(currentName);
+    };
+
+    const cancelEditing = () => {
+        setEditingId(null);
+        setTempName('');
+    };
+
+    const saveEditing = (id: string, type: string) => {
+        if (!tempName.trim()) return;
+        onRenameResource?.(id, tempName, type);
+        setEditingId(null);
+    };
 
     // State for UI only (not data)
     const draggingIdRef = useRef<string | null>(null);
@@ -492,7 +518,7 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                 key={playlist.id}
                 data-id={playlist.id}
                 className={`treeItem playlistItem ${isSelected ? 'selected' : ''}`}
-                draggable
+                draggable={!editingId || editingId !== playlist.id}
                 onDragStart={(e) => onDragStart(e, playlist, 'PLAYLIST')}
                 onDragEnd={onDragEnd}
                 // Reorder Logic: Check position
@@ -506,7 +532,7 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                 onDrop={(e) => onDrop(e, playlist.category_id, playlist.is_unclassified)}
                 onClick={(e) => {
                     e.stopPropagation(); // 이벤트 전파 방지
-                    onItemClick?.(playlist);
+                    if (editingId !== playlist.id) onItemClick?.(playlist);
                 }}
                 style={{
                     position: 'relative',
@@ -532,8 +558,34 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                         width: '100%'
                     }}
                 >
-                    <span className="folderIcon">{getIcon()}</span>
-                    <span className="categoryName">{playlist.title}</span>
+                    {editingId === playlist.id ? (
+                        <div className="editForm" onClick={e => e.stopPropagation()}>
+                            <input
+                                className="editInput"
+                                value={tempName}
+                                onChange={e => setTempName(e.target.value)}
+                                onClick={e => e.stopPropagation()}
+                                onKeyDown={e => {
+                                    if (e.key === 'Enter') saveEditing(playlist.id, playlist.type || 'playlist');
+                                    if (e.key === 'Escape') cancelEditing();
+                                }}
+                                autoFocus
+                            />
+                            <button className="saveBtn" onClick={(e) => { e.stopPropagation(); saveEditing(playlist.id, playlist.type || 'playlist'); }}>V</button>
+                            <button className="cancelBtn" onClick={(e) => { e.stopPropagation(); cancelEditing(); }}>X</button>
+                        </div>
+                    ) : (
+                        <>
+                            <span className="folderIcon">{getIcon()}</span>
+                            <span className="categoryName">{playlist.title}</span>
+                            {!readOnly && (
+                                <div className="actions">
+                                    <button className="actionBtn" onClick={(e) => { e.stopPropagation(); startEditing(playlist.id, playlist.title); }}>✏️</button>
+                                    <button className="actionBtn deleteBtn" onClick={(e) => { e.stopPropagation(); onDeleteResource?.(playlist.id, playlist.type || 'playlist'); }}>🗑️</button>
+                                </div>
+                            )}
+                        </>
+                    )}
                 </div>
             </div>
         );
@@ -559,7 +611,7 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                 key={category.id}
                 data-id={category.id}
                 className={`treeItem treeBranch ${isCollapsed ? 'collapsed' : 'expanded'} ${isSelected ? 'selected' : ''}`}
-                draggable
+                draggable={!editingId || editingId !== category.id}
                 onDragStart={(e) => onDragStart(e, category, 'CATEGORY')}
                 onDragEnd={onDragEnd}
                 style={{
@@ -592,26 +644,54 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                     onDrop={(e) => onDrop(e, category.id, category.is_unclassified)}
                     onClick={(e) => {
                         e.stopPropagation(); // 매우 중요: 트리 전파 방지
-                        onSelect?.(category.id);
-                        onItemClick?.(category);
+                        if (editingId !== category.id) {
+                            onSelect?.(category.id);
+                            onItemClick?.(category);
+                        }
                     }}
                 >
-                    <span
-                        className="collapseToggle"
-                        style={{ visibility: hasChildren ? 'visible' : 'hidden', cursor: 'pointer' }}
-                        onClick={(e) => {
-                            e.stopPropagation(); // 토글 클릭 시 선택되지 않게 방지
-                            setCollapsedIds(prev => {
-                                const next = new Set(prev);
-                                next.has(category.id) ? next.delete(category.id) : next.add(category.id);
-                                return next;
-                            });
-                        }}
-                    >
-                        {isCollapsed ? '▶' : '▼'}
-                    </span>
-                    <span className="folderIcon">{isSelected ? '📂' : '📁'}</span>
-                    <span className="categoryName">{category.name}</span>
+                    {editingId === category.id ? (
+                        <div className="editForm" onClick={e => e.stopPropagation()}>
+                            <input
+                                className="editInput"
+                                value={tempName}
+                                onChange={e => setTempName(e.target.value)}
+                                onClick={e => e.stopPropagation()}
+                                onKeyDown={e => {
+                                    if (e.key === 'Enter') saveEditing(category.id, 'general');
+                                    if (e.key === 'Escape') cancelEditing();
+                                }}
+                                autoFocus
+                            />
+                            <button className="saveBtn" onClick={(e) => { e.stopPropagation(); saveEditing(category.id, 'general'); }}>V</button>
+                            <button className="cancelBtn" onClick={(e) => { e.stopPropagation(); cancelEditing(); }}>X</button>
+                        </div>
+                    ) : (
+                        <>
+                            <span
+                                className="collapseToggle"
+                                style={{ visibility: hasChildren ? 'visible' : 'hidden', cursor: 'pointer' }}
+                                onClick={(e) => {
+                                    e.stopPropagation(); // 토글 클릭 시 선택되지 않게 방지
+                                    setCollapsedIds(prev => {
+                                        const next = new Set(prev);
+                                        next.has(category.id) ? next.delete(category.id) : next.add(category.id);
+                                        return next;
+                                    });
+                                }}
+                            >
+                                {isCollapsed ? '▶' : '▼'}
+                            </span>
+                            <span className="folderIcon">{isSelected ? '📂' : '📁'}</span>
+                            <span className="categoryName">{category.name}</span>
+                            {!readOnly && (
+                                <div className="actions">
+                                    <button className="actionBtn" onClick={(e) => { e.stopPropagation(); startEditing(category.id, category.name); }}>✏️</button>
+                                    <button className="actionBtn deleteBtn" onClick={(e) => { e.stopPropagation(); onDeleteResource?.(category.id, 'general'); }}>🗑️</button>
+                                </div>
+                            )}
+                        </>
+                    )}
                 </div>
                 {!isCollapsed && hasChildren && (
                     <div className="treeChildren" style={{ marginLeft: '16px', borderLeft: '1px solid #444', display: 'flex', flexDirection: 'column', gap: '2px' }}>
@@ -624,7 +704,12 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
     };
 
     return (
-        <div className="categoryManager">
+        <div className="categoryManager" style={{
+            transform: `scale(${scale})`,
+            transformOrigin: 'top left',
+            width: `${100 / scale}%`,
+            height: `${100 / scale}%`
+        }}>
             <div className="treeContainer" style={{ display: 'flex', gap: '20px', minHeight: '500px', padding: '20px' }}>
 
                 {/* [1. 트리/ROOT 구역] */}

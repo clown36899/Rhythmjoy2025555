@@ -1477,6 +1477,82 @@ export default function HistoryTimelinePage() {
         }
     }, [isAdmin, fetchResourceData]);
 
+    const handleDeleteResource = useCallback(async (id: string, type: string) => {
+        if (!isAdmin) return;
+
+        const isFolder = type === 'general';
+        const confirmMsg = isFolder
+            ? '이 폴더를 삭제하면 하위의 모든 폴더와 리소스(재생목록, 비디오 등)가 함께 삭제됩니다. 정말 삭제하시겠습니까?'
+            : '정말 삭제하시겠습니까?';
+
+        if (!window.confirm(confirmMsg)) return;
+
+        try {
+            if (isFolder) {
+                // Cascading Delete Strategy:
+                // 1. Fetch all items (to handle multiple generations in one go, or iterative fetch)
+                // Since this is a simple self-referencing table, we can fetch everything and find descendants.
+                const { data: allItems } = await supabase.from('learning_resources').select('id, category_id');
+
+                if (allItems) {
+                    const toDelete = new Set<string>();
+                    toDelete.add(id);
+
+                    let foundNew = true;
+                    while (foundNew) {
+                        foundNew = false;
+                        allItems.forEach(item => {
+                            if (item.category_id && toDelete.has(item.category_id) && !toDelete.has(item.id)) {
+                                toDelete.add(item.id);
+                                foundNew = true;
+                            }
+                        });
+                    }
+
+                    const idsToDelete = Array.from(toDelete);
+                    const { error } = await supabase
+                        .from('learning_resources')
+                        .delete()
+                        .in('id', idsToDelete);
+
+                    if (error) throw error;
+                }
+            } else {
+                // Simple delete for single item
+                const { error } = await supabase
+                    .from('learning_resources')
+                    .delete()
+                    .eq('id', id);
+
+                if (error) throw error;
+            }
+
+            fetchResourceData();
+            setDrawerRefreshKey(prev => prev + 1);
+        } catch (error) {
+            console.error('Delete failed:', error);
+            alert('삭제 실패: 관련 항목이 남아있거나 서버 오류가 발생했습니다.');
+        }
+    }, [isAdmin, fetchResourceData]);
+
+    const handleRenameResource = useCallback(async (id: string, newName: string, type: string) => {
+        if (!isAdmin) return;
+        try {
+            const { error } = await supabase
+                .from('learning_resources')
+                .update({ title: newName }) // 'title' seems standard in learning_resources
+                .eq('id', id);
+
+            if (error) throw error;
+
+            fetchResourceData();
+            setDrawerRefreshKey(prev => prev + 1);
+        } catch (error) {
+            console.error('Rename failed:', error);
+            alert('수정 실패');
+        }
+    }, [isAdmin, fetchResourceData]);
+
     const onDrop = useCallback(
         async (event: any) => {
             event.preventDefault();
@@ -2077,12 +2153,17 @@ export default function HistoryTimelinePage() {
                 onItemClick={handleDrawerItemClick}
                 onMoveResource={handleMoveResource}
                 onReorderResource={handleReorderResource}
+                onDeleteResource={handleDeleteResource}
+                onRenameResource={handleRenameResource}
                 onCategoryChange={fetchResourceData}
                 refreshKey={drawerRefreshKey}
                 categories={resourceData.categories}
                 playlists={resourceData.playlists || []}
                 videos={resourceData.videos}
                 documents={resourceData.documents}
+                isEditMode={isEditMode}
+                isAdmin={isAdmin}
+                onToggleEditMode={handleToggleEditMode}
             />
 
             {/* Context Menu */}

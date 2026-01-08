@@ -30,14 +30,54 @@ interface Props {
     documents: any[];
     onMoveResource?: (id: string, targetCategoryId: string | null, isUnclassified: boolean) => void;
     onReorderResource?: (sourceId: string, targetId: string, position: 'before' | 'after') => void;
+    onDeleteResource?: (id: string, type: string) => void;
+    onRenameResource?: (id: string, newName: string, type: string) => void;
     onCategoryChange: () => void;
+    isEditMode?: boolean;
+    isAdmin?: boolean;
+    onToggleEditMode?: () => void;
 }
 
-export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refreshKey, categories, playlists, videos, documents, onMoveResource, onReorderResource, onCategoryChange }: Props) => {
+export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refreshKey, categories, playlists, videos, documents, onMoveResource, onReorderResource, onDeleteResource, onRenameResource, onCategoryChange, isEditMode = false, isAdmin = false, onToggleEditMode }: Props) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterMode, setFilterMode] = useState<'all' | 'year'>('all');
     const [width, setWidth] = useState(360);
+    const [prevWidth, setPrevWidth] = useState(360);
     const [isResizing, setIsResizing] = useState(false);
+    const [treeScale, setTreeScale] = useState(1);
+
+    const handleToggleFull = () => {
+        if (width >= window.innerWidth - 10) {
+            setWidth(prevWidth);
+        } else {
+            setPrevWidth(width);
+            setWidth(window.innerWidth);
+        }
+    };
+
+    // Zoom Logic for Desktop (Ctrl + Scroll)
+    useEffect(() => {
+        const handleWheel = (e: WheelEvent) => {
+            if (e.ctrlKey) {
+                e.preventDefault();
+                setTreeScale(prev => {
+                    const delta = e.deltaY > 0 ? -0.1 : 0.1;
+                    const next = Math.max(0.5, Math.min(2.0, prev + delta));
+                    return next;
+                });
+            }
+        };
+
+        const drawer = document.querySelector('.resource-drawer-container');
+        if (drawer) {
+            drawer.addEventListener('wheel', handleWheel as any, { passive: false });
+        }
+        return () => {
+            if (drawer) {
+                drawer.removeEventListener('wheel', handleWheel as any);
+            }
+        };
+    }, []);
 
     // 🔍 DEBUG: Log received props
     useEffect(() => {
@@ -231,14 +271,60 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refr
             />
 
             <div className="drawer-header">
-                <h2 className="manual-label-wrapper">
-                    <span className="translated-part">데이터 서랍</span>
-                    <span className="fixed-part ko" translate="no">데이터 서랍</span>
-                    <span className="fixed-part en" translate="no">Data</span>
-                </h2>
-                <button className="close-btn" onClick={onClose}>
-                    <i className="ri-close-line"></i>
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <h2 className="manual-label-wrapper" style={{ margin: 0 }}>
+                        <span className="translated-part">데이터 서랍</span>
+                        <span className="fixed-part ko" translate="no">데이터 서랍</span>
+                        <span className="fixed-part en" translate="no">Data</span>
+                    </h2>
+                    {isAdmin && (
+                        <button
+                            onClick={onToggleEditMode}
+                            style={{
+                                fontSize: '11px',
+                                backgroundColor: isEditMode ? '#1d4ed8' : '#374151',
+                                color: 'white',
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                fontWeight: 'bold',
+                                border: 'none',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px'
+                            }}
+                        >
+                            <i className={`ri-${isEditMode ? 'edit-fill' : 'edit-line'}`} style={{ fontSize: '12px' }}></i>
+                            {isEditMode ? '편집 중' : '편집 시작'}
+                        </button>
+                    )}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <button
+                        className="minimize-btn"
+                        onClick={handleToggleFull}
+                        title={width >= window.innerWidth - 10 ? "축소" : "전체 화면"}
+                        style={{
+                            background: 'transparent',
+                            border: 'none',
+                            color: '#9ca3af',
+                            cursor: 'pointer',
+                            fontSize: '20px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            padding: '4px',
+                            borderRadius: '4px',
+                            transition: 'all 0.2s ease'
+                        }}
+                    >
+                        <i className={width >= window.innerWidth - 10 ? "ri-fullscreen-exit-line" : "ri-fullscreen-line"}></i>
+                    </button>
+                    <button className="close-btn" onClick={onClose}>
+                        <i className="ri-close-line"></i>
+                    </button>
+                </div>
             </div>
 
             <div className="drawer-controls">
@@ -290,10 +376,13 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refr
                             onItemClick={handleResourceClick}
                             onMoveResource={onMoveResource}
                             onReorderResource={onReorderResource}
+                            onDeleteResource={onDeleteResource}
+                            onRenameResource={onRenameResource}
                             refreshKey={refreshKey}
                             onCategoryChange={onCategoryChange}
-                            readOnly={!isExpanded}
+                            readOnly={!isEditMode}
                             dragSourceMode={true}
+                            scale={treeScale}
                         />
                     </div>
                 )}
