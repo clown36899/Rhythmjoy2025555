@@ -28,10 +28,12 @@ export const InAppBrowserGuard: React.FC = () => {
 
         // Logic 1: Android - Auto Redirect
         if (checkInApp && isAndroid) {
-            // Android Intent for breaking out to Chrome
+            // Android Intent: Open PWA if installed, otherwise fallback to Chrome browser
             const urlWithoutScheme = targetUrl.replace(/^https?:\/\//, '');
-            // intent scheme strictly targeting Chrome to avoid ambiguity
-            const intentUrl = `intent://${urlWithoutScheme}#Intent;scheme=https;package=com.android.chrome;end`;
+            // Removing package specification allows Android to check for installed PWA first
+            // If PWA is installed, it will open the PWA app
+            // If not, it will open in Chrome browser
+            const intentUrl = `intent://${urlWithoutScheme}#Intent;scheme=https;action=android.intent.action.VIEW;category=android.intent.category.BROWSABLE;end`;
 
             window.location.href = intentUrl;
         }
