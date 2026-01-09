@@ -22,16 +22,30 @@ export const InstallPromptProvider: React.FC<{ children: React.ReactNode }> = ({
 
         // PWA가 이미 설치되었는지 확인
         const checkIfInstalled = () => {
+            // 1. Standalone 모드 체크 (실제로 PWA로 실행 중)
             if (window.matchMedia('(display-mode: standalone)').matches) {
                 console.log('✅ [InstallPromptProvider] Already installed (standalone mode)');
                 setIsInstalled(true);
+                // localStorage에 설치 기록
+                localStorage.setItem('pwa_installed', 'true');
                 return true;
             }
             if ((window.navigator as any).standalone === true) {
                 console.log('✅ [InstallPromptProvider] Already installed (iOS standalone)');
                 setIsInstalled(true);
+                // localStorage에 설치 기록
+                localStorage.setItem('pwa_installed', 'true');
                 return true;
             }
+
+            // 2. localStorage에 설치 기록이 있는지 확인 (이전에 설치한 적 있음)
+            const wasInstalled = localStorage.getItem('pwa_installed') === 'true';
+            if (wasInstalled) {
+                console.log('✅ [InstallPromptProvider] Previously installed (from localStorage)');
+                setIsInstalled(true);
+                return true;
+            }
+
             console.log('📱 [InstallPromptProvider] Not installed yet');
             return false;
         };
@@ -67,6 +81,8 @@ export const InstallPromptProvider: React.FC<{ children: React.ReactNode }> = ({
             console.log('✅ [InstallPromptProvider] App installed!');
             setIsInstalled(true);
             setPromptEvent(null);
+            // localStorage에 설치 기록
+            localStorage.setItem('pwa_installed', 'true');
         };
 
         console.log('👂 [InstallPromptProvider] Registering global event listeners...');

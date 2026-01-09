@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useInstallPrompt } from '../contexts/InstallPromptContext';
 import './PWAInstallButton.css';
 
@@ -11,8 +12,16 @@ export const PWAInstallButton = () => {
 
     // 이미 설치된 PWA 열기
     const handleOpenApp = () => {
-        // PWA가 설치되어 있으면 홈으로 이동 (이미 PWA 모드에서 실행 중)
-        window.location.href = '/';
+        // PWA가 설치되어 있으면 앱으로 열기 시도
+        // 1. 새 창으로 열기 시도 (일부 브라우저에서 PWA 앱으로 열림)
+        const newWindow = window.open('/', '_blank', 'noopener,noreferrer');
+
+        // 2. 팝업이 차단되었거나 실패하면 현재 창에서 홈으로 이동
+        setTimeout(() => {
+            if (!newWindow || newWindow.closed) {
+                window.location.href = '/';
+            }
+        }, 100);
     };
 
     const handleInstallClick = async () => {
@@ -77,8 +86,8 @@ export const PWAInstallButton = () => {
                 </span>
             </div>
 
-            {/* 설치 안내 모달 */}
-            {showInstructions && (
+            {/* 설치 안내 모달 - Portal로 body에 렌더링 */}
+            {showInstructions && createPortal(
                 <div className="ios-install-modal-overlay" onClick={() => setShowInstructions(false)}>
                     <div className="ios-install-modal" onClick={(e) => e.stopPropagation()}>
                         <div className="ios-install-header">
@@ -127,7 +136,8 @@ export const PWAInstallButton = () => {
                             </div>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </>
     );
