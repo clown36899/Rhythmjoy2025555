@@ -627,19 +627,27 @@ export default function HistoryTimelinePage() {
     }, []);
 
     // Restore Viewport after rfInstance is ready
+    // Force Fit View on Mount (Default Behavior)
     useEffect(() => {
         if (rfInstance && !loading && !isAutoLayout) {
-            const savedViewport = localStorage.getItem('history_viewport');
-            if (savedViewport) {
-                try {
-                    const { x, y, zoom } = JSON.parse(savedViewport);
-                    rfInstance.setViewport({ x, y, zoom }, { duration: 0 });
-                } catch (e) {
-                    console.error('Failed to restore viewport:', e);
-                }
-            }
+            // Slight delay to ensure nodes are fully rendered and bounding boxes are ready
+            setTimeout(() => {
+                rfInstance.fitView({ duration: 0, padding: 0.2 });
+            }, 100);
         }
     }, [rfInstance, loading, isAutoLayout]);
+
+    // Handle "Library Button" Click (Fit View Trigger)
+    useEffect(() => {
+        const handleFitView = () => {
+            if (rfInstance) {
+                rfInstance.fitView({ duration: 800, padding: 0.2 });
+            }
+        };
+
+        window.addEventListener('triggerHistoryFitView', handleFitView);
+        return () => window.removeEventListener('triggerHistoryFitView', handleFitView);
+    }, [rfInstance]);
 
     // Keyboard shortcut for deleting selected nodes
     useEffect(() => {
@@ -1080,11 +1088,11 @@ export default function HistoryTimelinePage() {
     }, [nodes, edges, isTempId]);
 
     const onMoveEnd = useCallback(
-        (_: any, viewport: { x: number, y: number, zoom: number }) => {
-            if (isAutoLayout) return; // Don't save viewport in auto-layout mode
-            localStorage.setItem('history_viewport', JSON.stringify(viewport));
+        (_: any, _viewport: { x: number, y: number, zoom: number }) => {
+            // No-op: Viewport persistence disabled by design.
+            // Default view is always "Fit View" on entry.
         },
-        [isAutoLayout]
+        []
     );
 
     const onConnect = useCallback(
@@ -2102,18 +2110,22 @@ export default function HistoryTimelinePage() {
                                 setHasUnsavedChanges(false);
                             }
                         }}
-                        title="변경사항 취소 (되돌리기)"
+                        title="변경사항 취소"
                         style={{ color: '#ef4444', borderColor: '#fca5a5' }}
                     >
                         <i className="ri-arrow-go-back-line"></i>
-                        <span>되돌리기</span>
+                        <span>취소</span>
                     </button>
                 )}
                 {isEditMode && (
-                    <button className="toolbar-btn save-btn" onClick={handleSaveLayout} title="현재 레이아웃 저장" style={{ color: '#60a5fa', borderColor: '#3b82f6' }}>
-                        <i className="ri-save-3-line"></i>
-                        <span>저장</span>
-                    </button> // This was existing
+                    <button
+                        className={`toolbar-btn drawer-btn ${isDrawerOpen ? 'active' : ''}`}
+                        onClick={() => setIsDrawerOpen(prev => !prev)}
+                        title="자료 서랍 열기/닫기"
+                    >
+                        <i className="ri-database-2-line"></i>
+                        <span>서랍</span>
+                    </button>
                 )}
                 {isEditMode && (
                     <button className="toolbar-btn add-btn" onClick={handleCreateNode} title="새 노드 추가">

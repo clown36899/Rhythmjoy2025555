@@ -37,6 +37,13 @@ export function BottomNavigation() {
         const pageName = path === '/' ? 'Home' : path.replace('/', '').charAt(0).toUpperCase() + path.slice(2);
         logUserInteraction('Navigation', 'Click', pageName);
 
+        // Check for Board/History FitView Trigger
+        const isHistoryMode = currentPath === '/board' && new URLSearchParams(location.search).get('category') === 'history';
+        if (path === '/board' && isHistoryMode) {
+            window.dispatchEvent(new CustomEvent('triggerHistoryFitView'));
+            return; // Stop navigation
+        }
+
         if (path === '/' && currentPath === '/') {
             // 이벤트 달력 페이지에서 다시 누르면 새로고침 효과
             const overlay = document.createElement('div');
