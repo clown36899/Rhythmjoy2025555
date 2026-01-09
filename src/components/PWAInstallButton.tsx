@@ -9,23 +9,45 @@ export const PWAInstallButton = () => {
     const [isInstalling, setIsInstalling] = useState(false);
     const [installProgress, setInstallProgress] = useState(0);
 
-    // PWA 앱 내에서 실행 중인지 확인 (여러 방법 조합)
-    const isRunningInPWA = useMemo(() => {
-        // 1. display-mode 체크 (standalone, fullscreen, minimal-ui 모두 PWA로 간주)
-        const displayMode = window.matchMedia('(display-mode: standalone)').matches ||
-            window.matchMedia('(display-mode: fullscreen)').matches ||
-            window.matchMedia('(display-mode: minimal-ui)').matches;
+    // PWA 앱 내에서 실행 중인지 실시간 확인
+    const [isRunningInPWA, setIsRunningInPWA] = useState(false);
 
-        // 2. iOS standalone 체크
-        const iosStandalone = (window.navigator as any).standalone === true;
+    useEffect(() => {
+        const checkPWA = () => {
+            // 1. display-mode 체크 (다양한 모드 지원)
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                window.matchMedia('(display-mode: fullscreen)').matches ||
+                window.matchMedia('(display-mode: minimal-ui)').matches ||
+                window.matchMedia('(display-mode: window-controls-overlay)').matches;
 
-        // 3. URL에 utm_source=pwa 또는 start_url 체크
-        const urlParams = new URLSearchParams(window.location.search);
-        const isPWASource = urlParams.get('utm_source') === 'pwa';
+            // 2. iOS standalone 체크
+            const iosStandalone = (window.navigator as any).standalone === true;
 
-        const result = displayMode || iosStandalone || isPWASource;
-        console.log('[PWAInstallButton] Detection:', { displayMode, iosStandalone, isPWASource, result });
-        return result;
+            // 3. URL 파라미터 체크 (manifest start_url fallback)
+            const urlParams = new URLSearchParams(window.location.search);
+            const isPWASource = urlParams.get('utm_source') === 'pwa';
+
+            setIsRunningInPWA(isStandalone || iosStandalone || isPWASource);
+        };
+
+        checkPWA(); // 초기 실행
+
+        // 모드 변경 감지 리스너 등록
+        const mediaQuery = window.matchMedia('(display-mode: standalone)');
+        try {
+            mediaQuery.addEventListener('change', checkPWA);
+        } catch (e) {
+            // 구형 브라우저 호환성
+            (mediaQuery as any).addListener?.(checkPWA);
+        }
+
+        return () => {
+            try {
+                mediaQuery.removeEventListener('change', checkPWA);
+            } catch (e) {
+                (mediaQuery as any).removeListener?.(checkPWA);
+            }
+        };
     }, []);
 
     // PWA 앱 내에서는 버튼을 표시하지 않음
@@ -50,12 +72,6 @@ export const PWAInstallButton = () => {
         }, 100);
     };
 
-    const [debugLogs, setDebugLogs] = useState<string[]>([]);
-
-    const addLog = (msg: string) => {
-        setDebugLogs(prev => [...prev.slice(-4), `${new Date().toLocaleTimeString().split(' ')[0]} ${msg}`]);
-    };
-
     const handleInstallClick = async () => {
         // PWA가 이미 설치되어 있으면 앱 열기
         if (isInstalled) {
@@ -68,13 +84,23 @@ export const PWAInstallButton = () => {
         const activePrompt = promptEvent || (window as any).deferredPrompt;
 
         if (activePrompt) {
-            addLog('Prpt start'); // Prompt start
             try {
                 await activePrompt.prompt();
                 const { outcome } = await activePrompt.userChoice;
-                addLog(`Choice: ${outcome}`);
 
                 if (outcome === 'accepted') {
+                    // 데스크탑인 경우 (모바일이 아님) -> 프로그레스 바 없이 바로 완료 처리
+                    // 데스크탑은 설치 즉시 새 창이 뜨므로 여기서 뭘 보여줄 필요가 없음
+                    const isDesktop = !isIOS && !/Android/i.test(navigator.userAgent);
+
+                    if (isDesktop) {
+                        setIsInstalling(false);
+                        setPromptEvent(null);
+                        (window as any).deferredPrompt = null;
+                        return;
+                    }
+
+                    // 모바일인 경우에만 진행바 표시
                     // 설치 시작 시간 기록
                     const installStartTime = Date.now();
 
@@ -100,15 +126,26 @@ export const PWAInstallButton = () => {
 
                         clearInterval(progressInterval);
                         clearInterval(verifyInterval);
-                        setInstallProgress(100);
-                        addLog('Done! Wait 3s...');
 
-                        // 진짜 신호 후 3초 후에 앱 열기
-                        setTimeout(() => {
-                            setIsInstalling(false);
-                            setInstallProgress(0);
-                            window.location.href = '/';
-                        }, 3000);
+                        // 95% -> 100% 부드럽게 채우기 (0.5초 동안)
+                        const finalInterval = setInterval(() => {
+                            setInstallProgress(prev => {
+                                if (prev >= 100) {
+                                    clearInterval(finalInterval);
+
+                                    // 100% 도달 후 0.5초 뒤에 "앱 열기" 상태로 전환
+                                    setTimeout(() => {
+                                        setIsInstalling(false);
+                                        setInstallProgress(0);
+
+                                        // PWA 상태 갱신을 위해 새로고침
+                                        window.location.reload();
+                                    }, 500);
+                                    return 100;
+                                }
+                                return prev + 5; // 빠르게 증가
+                            });
+                        }, 50);
 
                         window.removeEventListener('appinstalled', handleAppInstalled);
                     };
@@ -116,31 +153,23 @@ export const PWAInstallButton = () => {
                     // appinstalled 이벤트 리스너
                     const handleAppInstalled = () => {
                         const timeElapsed = Date.now() - installStartTime;
-                        addLog(`Evt: appinstalled (${Math.round(timeElapsed / 1000)}s)`);
 
-                        // 너무 빨리(4초 미만) 발생한 이벤트는 "가짜/시작신호"로 간주하고 무시
+                        // 4초 미만 무시
                         if (timeElapsed < 4000) {
-                            addLog('Ignore early evt');
                             return;
                         }
 
-                        addLog('Real install evt!');
-                        finishInstallation();
+                        // 진짜 신호가 오면 -> 여기서부터 3초 뒤에 완료 처리 시작
+                        setTimeout(() => {
+                            finishInstallation();
+                        }, 3000);
                     };
                     window.addEventListener('appinstalled', handleAppInstalled);
 
-                    // API 확인용 루프 (참고 로그용으로만 남김, 완료 로직 아님)
-                    addLog('Poll start (Log only)');
+                    // API 확인용 루프 (혹시 모를 대기용)
                     verifyInterval = setInterval(async () => {
                         try {
-                            if ('getInstalledRelatedApps' in navigator) {
-                                const relatedApps = await (navigator as any).getInstalledRelatedApps();
-                                const count = relatedApps.length;
-                                if (count > 0) {
-                                    // addLog(`API found: ${count}`);
-                                    // API가 찾으면 땡큐지만, 이걸로 완료 처리는 하지 않음 (사용자 요청)
-                                }
-                            }
+                            // nothing
                         } catch (e) {
                             // ignore
                         }
@@ -153,9 +182,8 @@ export const PWAInstallButton = () => {
                             clearInterval(verifyInterval);
                             window.removeEventListener('appinstalled', handleAppInstalled);
 
-                            addLog('Timeout(60s)');
-                            alert('설치가 완료되었다면 페이지를 새로고침해주세요.');
-                            setIsInstalling(false);
+                            alert('설치 완료 확인 시간이 초과되었습니다.\n새로고침 해주세요.');
+                            window.location.reload();
                         }
                     }, 60000);
 
@@ -163,7 +191,7 @@ export const PWAInstallButton = () => {
                     (window as any).deferredPrompt = null;
                 }
             } catch (error) {
-                addLog(`Err: ${error}`);
+                console.error('설치 프롬프트 실행 중 오류:', error);
                 setIsInstalling(false);
                 setInstallProgress(0);
                 setShowInstructions(true);
@@ -174,38 +202,13 @@ export const PWAInstallButton = () => {
             if (isIOS) {
                 setShowInstructions(true);
             } else {
-                // Android/Desktop에서 promptEvent 없으면 아무것도 안 함
-                addLog('No prompt evt');
+                console.warn('⚠️ [PWAInstallButton] No install prompt available');
             }
         }
     };
 
     return (
         <>
-            {/* 디버그 로그 표시용 (Portal로 최상위 렌더링) */}
-            {isInstalling && createPortal(
-                <div style={{
-                    position: 'fixed',
-                    top: '100px', /* 헤더 피하기 위해 좀 더 내림 */
-                    left: '10px',
-                    background: 'rgba(0,0,0,0.9)',
-                    color: '#00ff00',
-                    padding: '8px',
-                    fontSize: '12px',
-                    lineHeight: '1.4',
-                    zIndex: 999999, /* z-index 상향 */
-                    pointerEvents: 'none',
-                    borderRadius: '6px',
-                    border: '1px solid #00ff00',
-                    maxWidth: '200px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
-                }}>
-                    <div style={{ borderBottom: '1px solid #333', marginBottom: '4px', fontWeight: 'bold' }}>PWA Debugger</div>
-                    {debugLogs.map((log, i) => <div key={i}>{log}</div>)}
-                </div>,
-                document.body
-            )}
-
             <div
                 onClick={isInstalling ? undefined : (isInstalled ? handleOpenApp : handleInstallClick)}
                 className={`pwa-install-button ${isInstalling ? 'installing' : ''}`}
