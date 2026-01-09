@@ -50,6 +50,12 @@ export const PWAInstallButton = () => {
         }, 100);
     };
 
+    const [debugLogs, setDebugLogs] = useState<string[]>([]);
+
+    const addLog = (msg: string) => {
+        setDebugLogs(prev => [...prev.slice(-4), `${new Date().toLocaleTimeString().split(' ')[0]} ${msg}`]);
+    };
+
     const handleInstallClick = async () => {
         // PWA가 이미 설치되어 있으면 앱 열기
         if (isInstalled) {
@@ -62,14 +68,13 @@ export const PWAInstallButton = () => {
         const activePrompt = promptEvent || (window as any).deferredPrompt;
 
         if (activePrompt) {
-            console.log('📱 PWA 설치 프롬프트 표시 (유효한 이벤트 발견)');
+            addLog('Prpt start'); // Prompt start
             try {
                 await activePrompt.prompt();
                 const { outcome } = await activePrompt.userChoice;
-                console.log(`사용자 선택 결과: ${outcome}`);
+                addLog(`Choice: ${outcome}`);
 
                 if (outcome === 'accepted') {
-                    console.log('✅ 사용자가 설치를 수락했습니다');
                     // 설치 시작 - 프로그레스 표시
                     setIsInstalling(true);
                     setInstallProgress(0);
@@ -84,15 +89,15 @@ export const PWAInstallButton = () => {
                         });
                     }, 300);
 
-                    let verifyInterval: NodeJS.Timeout; // Declare verifyInterval here so it's accessible in finishInstallation
+                    let verifyInterval: NodeJS.Timeout;
 
-                    // 설치 완료 처리 함수
+                    // 설치 완료 처리 함수 (진짜 완료될 때만 호출)
                     const finishInstallation = () => {
                         clearInterval(progressInterval);
                         clearInterval(verifyInterval);
                         setInstallProgress(100);
+                        addLog('Done! Opening...');
 
-                        // 100% 완료 후 1초 뒤 PWA 열기
                         setTimeout(() => {
                             setIsInstalling(false);
                             setInstallProgress(0);
@@ -102,58 +107,55 @@ export const PWAInstallButton = () => {
                         window.removeEventListener('appinstalled', handleAppInstalled);
                     };
 
-                    // appinstalled 이벤트 리스너 (백업용)
+                    // appinstalled 이벤트 리스너 (로그용)
                     const handleAppInstalled = () => {
-                        console.log('🎉 appinstalled 이벤트 발생!');
-                        // 굳이 여기서 바로 끝내지 않고, 검증 루프가 처리하도록 둠
-                        // 단, API 미지원 환경을 위해 여기서 바로 완료 처리할 수도 있음
-                        if (!('getInstalledRelatedApps' in navigator)) {
-                            finishInstallation();
-                        }
+                        addLog('Evt: appinstalled');
+                        // 여기서는 아무것도 하지 않고 API가 감지할 때까지 계속 기다립니다.
+                        // 사용자 폰 성능에 따라 5초가 걸릴지 10초가 걸릴지 모르기 때문입니다.
                     };
                     window.addEventListener('appinstalled', handleAppInstalled);
 
-                    // 검증 루프 시작 (즉시 시작)
-                    // appinstalled 이벤트가 안 와도, 설치가 완료되면 API 목록에 뜸
+                    // 검증 루프 (API 확인 - 1초 간격)
+                    addLog('Poll start (1s)');
                     verifyInterval = setInterval(async () => {
                         try {
-                            // 1. getInstalledRelatedApps API 지원 여부 확인
                             if ('getInstalledRelatedApps' in navigator) {
                                 const relatedApps = await (navigator as any).getInstalledRelatedApps();
-                                console.log('🔍 설치된 앱 목록 확인:', relatedApps);
-
-                                // 목록에 우리 앱이 있으면 진짜 설치 완료!
-                                if (relatedApps.length > 0) {
-                                    console.log('✅ 진짜 설치 확인됨!');
+                                const count = relatedApps.length;
+                                addLog(`API: ${count} apps`);
+                                if (count > 0) {
+                                    addLog('Found app!');
                                     finishInstallation();
                                 }
                             } else {
-                                // API 미지원 브라우저: 그냥 5초 등 일정 시간 후 완료 처리하거나
-                                // appinstalled 이벤트를 기다림. 여기서는 안전하게 패스
+                                addLog('API not supp');
                             }
                         } catch (e) {
-                            console.error('검증 중 오류:', e);
+                            addLog(`Err: ${e}`);
                         }
-                    }, 2000);
+                    }, 1000);
 
-                    // 45초 타임아웃 (안전장치)
+                    // 60초 타임아웃 (무한 대기 방지)
                     setTimeout(() => {
-                        clearInterval(progressInterval);
-                        clearInterval(verifyInterval);
-                        window.removeEventListener('appinstalled', handleAppInstalled);
-
+                        // 60초가 지나도 설치 확인이 안되면
                         if (isInstalling) {
-                            console.warn('⚠️ 설치 타임아웃');
-                            // 강제로 리셋하지 않고 사용자가 새로고침하게 둠 (가짜 성공 방지)
-                            // 단, UI에서 멈춘 느낌을 줄이기 위해 알림 표시 가능
+                            clearInterval(progressInterval);
+                            clearInterval(verifyInterval);
+                            window.removeEventListener('appinstalled', handleAppInstalled);
+
+                            addLog('Timeout(60s)');
+                            // 강제로 성공 처리하지 않음! (사용자 요청)
+                            // 대신 안내 메시지 표시
+                            alert('설치 확인 타임아웃. 새로고침해주세요.');
+                            setIsInstalling(false);
                         }
-                    }, 45000);
+                    }, 60000);
 
                     setPromptEvent(null);
                     (window as any).deferredPrompt = null;
                 }
             } catch (error) {
-                console.error('설치 프롬프트 실행 중 오류:', error);
+                addLog(`Err: ${error}`);
                 setIsInstalling(false);
                 setInstallProgress(0);
                 setShowInstructions(true);
@@ -165,13 +167,32 @@ export const PWAInstallButton = () => {
                 setShowInstructions(true);
             } else {
                 // Android/Desktop에서 promptEvent 없으면 아무것도 안 함
-                console.warn('⚠️ [PWAInstallButton] No install prompt available');
+                addLog('No prompt evt');
             }
         }
     };
 
     return (
         <>
+            {/* 디버그 로그 표시용 (임시) */}
+            {isInstalling && (
+                <div style={{
+                    position: 'fixed',
+                    top: '60px',
+                    left: '10px',
+                    background: 'rgba(0,0,0,0.8)',
+                    color: '#0f0',
+                    padding: '5px',
+                    fontSize: '10px',
+                    zIndex: 99999,
+                    pointerEvents: 'none',
+                    borderRadius: '4px',
+                    maxWidth: '150px'
+                }}>
+                    {debugLogs.map((log, i) => <div key={i}>{log}</div>)}
+                </div>
+            )}
+
             <div
                 onClick={isInstalling ? undefined : (isInstalled ? handleOpenApp : handleInstallClick)}
                 className={`pwa-install-button ${isInstalling ? 'installing' : ''}`}
