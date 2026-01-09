@@ -365,7 +365,7 @@ export default function BoardMainContainer() {
                 )}
             </div>
 
-            {isRealAdmin && (
+            {/* {isRealAdmin && (
                 <div className="board-admin-fab-container">
                     {showAdminMenu && (
                         <div className="board-admin-submenu">
@@ -384,7 +384,7 @@ export default function BoardMainContainer() {
                         {showAdminMenu ? <i className="ri-close-line"></i> : <i className="ri-settings-3-fill"></i>}
                     </button>
                 </div>
-            )}
+            )} */}
 
             <UniversalPostEditor
                 isOpen={editorModal.isOpen}
