@@ -9,9 +9,24 @@ export const PWAInstallButton = () => {
     const [isInstalling, setIsInstalling] = useState(false);
     const [installProgress, setInstallProgress] = useState(0);
 
-    // PWA 앱 내에서 실행 중인지 확인
-    const isRunningInPWA = window.matchMedia('(display-mode: standalone)').matches ||
-        (window.navigator as any).standalone === true;
+    // PWA 앱 내에서 실행 중인지 확인 (여러 방법 조합)
+    const isRunningInPWA = useMemo(() => {
+        // 1. display-mode 체크 (standalone, fullscreen, minimal-ui 모두 PWA로 간주)
+        const displayMode = window.matchMedia('(display-mode: standalone)').matches ||
+            window.matchMedia('(display-mode: fullscreen)').matches ||
+            window.matchMedia('(display-mode: minimal-ui)').matches;
+
+        // 2. iOS standalone 체크
+        const iosStandalone = (window.navigator as any).standalone === true;
+
+        // 3. URL에 utm_source=pwa 또는 start_url 체크
+        const urlParams = new URLSearchParams(window.location.search);
+        const isPWASource = urlParams.get('utm_source') === 'pwa';
+
+        const result = displayMode || iosStandalone || isPWASource;
+        console.log('[PWAInstallButton] Detection:', { displayMode, iosStandalone, isPWASource, result });
+        return result;
+    }, []);
 
     // PWA 앱 내에서는 버튼을 표시하지 않음
     if (isRunningInPWA) {
@@ -58,16 +73,15 @@ export const PWAInstallButton = () => {
                     setIsInstalling(true);
                     setInstallProgress(0);
 
-                    // 프로그레스 애니메이션 (0% → 90%)
+                    // 프로그레스 애니메이션 (천천히 증가, 95%까지만)
                     const progressInterval = setInterval(() => {
                         setInstallProgress(prev => {
-                            if (prev >= 90) {
-                                clearInterval(progressInterval);
-                                return 90;
+                            if (prev >= 95) {
+                                return 95; // 95%에서 대기
                             }
-                            return prev + 10;
+                            return prev + 1; // 1%씩 천천히 증가
                         });
-                    }, 100);
+                    }, 300); // 300ms마다 1% 증가 (약 30초)
 
                     // appinstalled 이벤트를 기다림
                     const handleInstallComplete = () => {
@@ -86,15 +100,6 @@ export const PWAInstallButton = () => {
                     };
 
                     window.addEventListener('appinstalled', handleInstallComplete);
-
-                    // 타임아웃: 10초 후에도 완료 안 되면 강제 종료
-                    setTimeout(() => {
-                        clearInterval(progressInterval);
-                        if (isInstalling) {
-                            setIsInstalling(false);
-                            setInstallProgress(0);
-                        }
-                    }, 10000);
 
                     setPromptEvent(null);
                     (window as any).deferredPrompt = null;

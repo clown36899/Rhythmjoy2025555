@@ -2,7 +2,7 @@
   "name": "댄스빌보드",
   "short_name": "댄스빌보드",
   "description": "이벤트 빌보드 디스플레이",
-  "start_url": "/",
+  "start_url": "/?utm_source=pwa",
   "display": "fullscreen",
   "scope": "/",
   "permissions": [
