@@ -17,34 +17,39 @@ const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll, on
     const { openModal } = useModalActions();
     const { isAdmin, user } = useAuth();
 
-    // Generate a random key on mount to trigger shuffle
-    const [mountKey] = React.useState(() => Math.random());
 
-    // Shuffle schedules: One-time items first, then regular items
-    const shuffledSchedules = React.useMemo(() => {
+    // Sort schedules: Domestic (Time) -> Overseas (Time)
+    const sortedSchedules = React.useMemo(() => {
         const overseas = schedules.filter(s => s.scope === 'overseas');
         const domestic = schedules.filter(s => s.scope !== 'overseas');
 
-        const oneTime = domestic.filter(s => s.date && s.date.trim() !== '');
-        const regular = domestic.filter(s => !s.date || s.date.trim() === '');
-
-        const shuffleArray = (arr: SocialSchedule[]) => {
-            const result = [...arr];
-            for (let i = result.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [result[i], result[j]] = [result[j], result[i]];
-            }
-            return result;
+        const sortByTime = (a: SocialSchedule, b: SocialSchedule) => {
+            const timeA = a.start_time || '';
+            const timeB = b.start_time || '';
+            return timeA.localeCompare(timeB);
         };
 
-        // Domestic shuffled (OneDay + Regular) + Overseas (sorted by time or shuffled? events are usually sorted by time, but here we shuffle to be safe or just append)
-        // Let's shuffle overseas too for consistency, or keep them sorted if preferred. Given "Events", maybe time sort is better.
-        // But the original code shuffled everything. Let's shuffle overseas too.
-        return [...shuffleArray(oneTime), ...shuffleArray(regular), ...shuffleArray(overseas)];
-    }, [schedules, mountKey]);
+        const sortByTypeAndTime = (a: SocialSchedule, b: SocialSchedule) => {
+            // 1. Event check (group_id === -1 is Event) -> Higher priority
+            const isEventA = a.group_id === -1;
+            const isEventB = b.group_id === -1;
+            if (isEventA !== isEventB) return isEventA ? -1 : 1;
+
+            // 2. Time
+            return sortByTime(a, b);
+        };
+
+        return [
+            ...domestic.sort(sortByTypeAndTime),
+            ...overseas.sort(sortByTime) // Overseas events likely don't need type priority, just time, but consistent scope separation is key
+        ];
+    }, [schedules]);
+
+    // shuffledSchedules 대신 sortedSchedules 사용
+    const displaySchedules = sortedSchedules;
 
     // 오늘 일정이 1개일 때는 숨김 (이번주 일정에 포함되도록)
-    if (shuffledSchedules.length === 0 || shuffledSchedules.length === 1) return null;
+    if (displaySchedules.length === 0 || displaySchedules.length === 1) return null;
 
     const getMediumImage = (item: SocialSchedule) => {
         if (item.image_thumbnail) return item.image_thumbnail;
@@ -120,11 +125,11 @@ const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll, on
             </div>
 
             <HorizontalScrollNav>
-                <div className={`today-scroller today-scroller-count-${Math.min(shuffledSchedules.length, 3)}`}>
-                    {shuffledSchedules.map((item) => (
+                <div className={`today-scroller today-scroller-count-${Math.min(displaySchedules.length, 3)}`}>
+                    {displaySchedules.map((item) => (
                         <div
                             key={item.id}
-                            className={`today-card today-card-count-${Math.min(shuffledSchedules.length, 3)}`}
+                            className={`today-card today-card-count-${Math.min(displaySchedules.length, 3)}`}
                             data-analytics-id={typeof item.id === 'number' && item.id > 1000000 ? Math.floor(item.id / 10000) : item.id}
                             data-analytics-type={item.group_id === -1 ? 'event' : 'social_schedule'}
                             data-analytics-title={item.title}

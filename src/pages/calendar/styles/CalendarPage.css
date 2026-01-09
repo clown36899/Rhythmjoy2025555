@@ -62,9 +62,9 @@ html {
 }
 
 .calendar-tab-btn.active {
-    background-color: #4a9eff;
+    background-color: #052c59;
     color: #ffffff;
-    border-color: #4a9eff;
+    border-color: #1d497c;
     font-weight: 600;
 }
 

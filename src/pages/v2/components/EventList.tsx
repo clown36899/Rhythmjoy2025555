@@ -398,8 +398,10 @@ const EventList: React.FC<EventListProps> = ({
                 created_at: e.created_at,
                 updated_at: '',
                 description: e.description,
+
                 board_users: (e as any).board_users, // Preserve author info
-                is_mapped_event: true // Use flag to recover ID on click
+                is_mapped_event: true, // Use flag to recover ID on click
+                scope: e.scope // 👈 Scope 추가
               } as any));
 
             // B. One-time Social Schedules (Date match) - Filter to only show 'social' category (not club)
@@ -410,6 +412,19 @@ const EventList: React.FC<EventListProps> = ({
 
             // Logic: Only show (A + B). Never add recurring schedules (C).
             const combined = [...todayEventsAsSocial, ...oneTimeSocials];
+
+            // 🎯 Sort: Domestic First, Global Last
+            combined.sort((a, b) => {
+              const isGlobalA = a.scope === 'overseas';
+              const isGlobalB = b.scope === 'overseas';
+              if (isGlobalA !== isGlobalB) return isGlobalA ? 1 : -1;
+
+              // Same scope: Sort by Time (start_time)
+              // If start_time is missing, fallback to empty string (top)
+              const timeA = a.start_time || '';
+              const timeB = b.start_time || '';
+              return timeA.localeCompare(timeB);
+            });
 
             return combined;
           })()}
@@ -453,7 +468,8 @@ const EventList: React.FC<EventListProps> = ({
                 updated_at: '',
                 description: e.description,
                 board_users: (e as any).board_users,
-                is_mapped_event: true
+                is_mapped_event: true,
+                scope: e.scope // 👈 Scope 추가
               } as any));
 
             // Filter socialSchedules to only show 'social' category (not club) in the summary bar
@@ -461,7 +477,25 @@ const EventList: React.FC<EventListProps> = ({
               s.v2_category === 'social' || !s.v2_category
             );
 
-            return [...weekEventsAsSocial, ...filteredSocialSchedules];
+            const combined = [...weekEventsAsSocial, ...filteredSocialSchedules];
+
+            // 🎯 Sort: Domestic First, Global Last + Date/Time
+            combined.sort((a, b) => {
+              const isGlobalA = a.scope === 'overseas';
+              const isGlobalB = b.scope === 'overseas';
+              if (isGlobalA !== isGlobalB) return isGlobalA ? 1 : -1;
+
+              // Same scope: Sort by Date then Time
+              const dateA = a.date || '';
+              const dateB = b.date || '';
+              if (dateA !== dateB) return dateA.localeCompare(dateB);
+
+              const timeA = a.start_time || '';
+              const timeB = b.start_time || '';
+              return timeA.localeCompare(timeB);
+            });
+
+            return combined;
           })()}
           refreshSocialSchedules={refreshSocial}
           futureEvents={randomizedFutureEvents}

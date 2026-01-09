@@ -673,9 +673,30 @@
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
-/* ===== Hover 추가 ===== */
-.cal-hover-text-blue-400:hover {
-  color: #60a5fa;
+/* ===== Multi-day Event Visuals ===== */
+.cal-event-continue-left {
+  border-top-left-radius: 0 !important;
+  border-bottom-left-radius: 0 !important;
+  margin-left: -4px !important;
+  width: calc(100% + 4px) !important;
+  mask-image: linear-gradient(to right, transparent, black 4px);
+  /* Fade in left side slightly or just mask? */
+  /* Better: just remove radius and pull left */
+}
+
+.cal-event-continue-right {
+  border-top-right-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  margin-right: -4px !important;
+  width: calc(100% + 4px) !important;
+}
+
+/* If both left and right continue (middle days) */
+.cal-event-continue-left.cal-event-continue-right {
+  margin-left: -4px !important;
+  margin-right: -4px !important;
+  width: calc(100% + 8px) !important;
+  border-radius: 0 !important;
 }
 
 /* ===== Pseudo 클래스 ===== */
@@ -996,7 +1017,7 @@
 }
 
 .calendar-fullscreen-title {
-  font-size: 0.6rem;
+  font-size: clamp(0rem, 2.4vw, 0.9rem);
   font-weight: 500;
   color: white;
   overflow: hidden;

@@ -455,60 +455,71 @@ export default memo(function FullEventCalendar({
 
           {/* 바디: 이벤트 리스트 */}
           <div className="calendar-cell-fullscreen-body">
-            {dayEvents.map((event) => {
-              const categoryColor = getEventColor(event.id);
-              // 사용자 요청: 전체 달력은 무조건 마이크로 이미지만 사용 (큰 이미지 로딩 방지)
-              // image_micro가 없으면 아예 이미지를 표시하지 않음 (placeholder 사용)
-              const thumbnailUrl = event.image_micro;
+            {dayEvents
+              .sort((a, b) => {
+                // 1. Duration (Longer first)
+                const durA = (new Date(a.end_date || a.date || '').getTime() - new Date(a.start_date || a.date || '').getTime());
+                const durB = (new Date(b.end_date || b.date || '').getTime() - new Date(b.start_date || b.date || '').getTime());
+                if (durB !== durA) return durB - durA;
 
+                // 2. Start Date
+                const startA = a.start_date || a.date || '';
+                const startB = b.start_date || b.date || '';
+                if (startA !== startB) return startA.localeCompare(startB);
 
+                // 3. Title
+                return a.title.localeCompare(b.title);
+              })
+              .map((event) => {
+                const categoryColor = getEventColor(event.id);
+                const thumbnailUrl = event.image_micro;
 
-              return (
-                <div
-                  key={event.id}
-                  className="calendar-fullscreen-event-card"
-                  data-event-id={event.id}
-                  role="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (onEventClick) onEventClick(event);
-                  }}
-                >
-                  <div style={{ position: 'relative', width: '100%' }}>
-                    {thumbnailUrl ? (
-                      <div className={`calendar-fullscreen-image-container ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
-                        <img
-                          src={thumbnailUrl}
-                          alt=""
-                          className="calendar-fullscreen-image"
-                          loading="lazy"
-                          decoding="async"
-                        />
+                const eStart = (event.start_date || event.date || '').substring(0, 10);
+                const eEnd = (event.end_date || event.date || '').substring(0, 10);
+                const currDate = dateString;
+
+                const isContinueLeft = eStart < currDate;
+                const isContinueRight = eEnd > currDate;
+
+                return (
+                  <div
+                    key={event.id}
+                    className={`calendar-fullscreen-event-card ${isContinueLeft ? 'cal-event-continue-left' : ''} ${isContinueRight ? 'cal-event-continue-right' : ''}`}
+                    data-event-id={event.id}
+                    role="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onEventClick) onEventClick(event);
+                    }}
+                  >
+                    <div style={{ position: 'relative', width: '100%', maxWidth: '65px' }}>
+                      {thumbnailUrl ? (
+                        <div className={`calendar-fullscreen-image-container ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
+                          <img
+                            src={thumbnailUrl}
+                            alt=""
+                            className="calendar-fullscreen-image"
+                            loading="lazy"
+                            decoding="async"
+                          />
+                        </div>
+                      ) : (
+                        <div className={`calendar-fullscreen-placeholder ${categoryColor} ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
+                          <span style={{ fontSize: '10px', color: 'white', fontWeight: 'bold' }}>
+                            {event.title.charAt(0)}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="calendar-fullscreen-title-container">
+                      <div className="calendar-fullscreen-title">
+                        {event.title}
                       </div>
-                    ) : (
-                      <div className={`calendar-fullscreen-placeholder ${categoryColor} ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
-                        <span style={{ fontSize: '10px', color: 'white', fontWeight: 'bold' }}>
-                          {event.title.charAt(0)}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* 시퀀스 배지 숨김 처리 */}
-                    {/* {dateIndex >= 0 && (
-                      <div className="calendar-event-sequence-badge">
-                        {dateIndex + 1}주차
-                      </div>
-                    )} */}
-                  </div>
-
-                  <div className="calendar-fullscreen-title-container">
-                    <div className="calendar-fullscreen-title">
-                      {event.title}
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
           </div>
         </div>
       );

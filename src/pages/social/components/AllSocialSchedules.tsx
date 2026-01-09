@@ -52,9 +52,9 @@ const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules,
         if (!schedule.date) return false;
 
         if (weekMode === 'this') {
-            // 오늘 일정이 1개일 때는 오늘 일정도 포함 (>= todayStr)
-            // 오늘 일정이 2개 이상일 때는 오늘 제외 (> todayStr)
-            const shouldIncludeToday = todaySchedulesCount === 1;
+            // Rule: If today has > 1 item, exclude them from 'This Week' (shown in Today section).
+            // If today has 0 or 1 item, include them here.
+            const shouldIncludeToday = todaySchedulesCount <= 1;
 
             if (shouldIncludeToday) {
                 if (schedule.date < todayStr) return false;
@@ -110,9 +110,17 @@ const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules,
     };
 
     const sortedSchedules = [...filteredSchedules].sort((a, b) => {
+        // 1. Scope: Domestic first, Overseas last
+        const isGlobalA = a.scope === 'overseas';
+        const isGlobalB = b.scope === 'overseas';
+        if (isGlobalA !== isGlobalB) return isGlobalA ? 1 : -1;
+
+        // 2. Date
         const dateA = a.date || '';
         const dateB = b.date || '';
         if (dateA !== dateB) return dateA.localeCompare(dateB);
+
+        // 3. Time
         return (a.start_time || '').localeCompare(b.start_time || '');
     });
 
@@ -176,7 +184,7 @@ const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules,
                             <div
                                 key={item.id}
                                 className={`all-social-card all-social-card-count-${Math.min(sortedSchedules.length, 4)}`}
-                                data-analytics-id={item.id > 1000000 ? Math.floor(item.id / 10000) : item.id}
+                                data-analytics-id={Number(item.id) > 1000000 ? Math.floor(Number(item.id) / 10000) : item.id}
                                 data-analytics-type={item.group_id === -1 ? 'event' : 'social_schedule'}
                                 data-analytics-title={item.title}
                                 data-analytics-section={`weekly_social_${weekMode}`}
