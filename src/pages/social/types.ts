@@ -78,7 +78,6 @@ export interface UnifiedSocialEvent {
   linkUrl?: string;
   description?: string;
   author_nickname?: string;
-  author_nickname?: string;
   created_at?: string;
   scope?: string;
 }

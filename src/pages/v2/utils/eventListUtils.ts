@@ -3,7 +3,7 @@ import { parseVideoUrl, isValidVideoUrl } from "../../../utils/videoEmbed";
 
 export { parseVideoUrl, isValidVideoUrl };
 
-export interface Event extends Omit<BaseEvent, 'description' | 'video_url' | 'organizer_phone' | 'capacity' | 'registered' | 'link1' | 'link2' | 'link3' | 'link_name1' | 'link_name2' | 'link_name3' | 'password' | 'show_title_on_billboard' | 'storage_path'> {
+export interface Event extends Omit<BaseEvent, 'description' | 'video_url' | 'organizer_phone' | 'capacity' | 'registered' | 'link1' | 'link2' | 'link3' | 'link_name1' | 'link_name2' | 'link_name3' | 'password' | 'show_title_on_billboard' | 'storage_path' | 'scope'> {
     description?: string | null;
     video_url?: string | null;
     organizer_phone?: string | null;
@@ -12,6 +12,7 @@ export interface Event extends Omit<BaseEvent, 'description' | 'video_url' | 'or
     link1?: string | null;
     link2?: string | null;
     link3?: string | null;
+    author_nickname?: string | null;
     link_name1?: string | null;
     link_name2?: string | null;
     link_name3?: string | null;
