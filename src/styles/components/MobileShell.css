@@ -354,7 +354,7 @@
 }
 
 .header-logo {
-  height: min(10vw, 44px);
+  height: min(14vw, 53px);
   /* 650px 이상에서 44px로 고정 */
   width: auto;
   object-fit: contain;

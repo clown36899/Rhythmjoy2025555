@@ -33,6 +33,7 @@ import ReactFlow, {
     BackgroundVariant,
     getBezierPath,
     BaseEdge,
+    SelectionMode,
 } from 'reactflow';
 import type { Node as RFNode, Edge, Connection, ReactFlowInstance, EdgeProps } from 'reactflow'; // Import Node as RFNode
 import 'reactflow/dist/style.css';
@@ -366,10 +367,10 @@ export default function HistoryTimelinePage() {
         setHasUnsavedChanges(true); // Mark as dirty
     };
 
-    const handleSaveLayout = async () => {
+    const handleSaveLayout = async (skipConfirm = false) => {
         if (!user || !isAdmin || !isEditMode) return;
         const deviceName = isMobile ? '모바일' : '데스크탑';
-        if (!window.confirm(`현재 ${deviceName} 레이아웃 및 변경사항을 저장하시겠습니까 ? `)) return;
+        if (!skipConfirm && !window.confirm(`현재 ${deviceName} 레이아웃 및 변경사항을 저장하시겠습니까 ? `)) return;
 
         try {
             setLoading(true);
@@ -532,8 +533,6 @@ export default function HistoryTimelinePage() {
             setDeletedNodeIds(new Set());
             setDeletedEdgeIds(new Set());
             setModifiedNodeIds(new Set()); // Reset modified tracking
-            await loadTimeline(); // Reload to get everything fresh with real IDs
-            setHasUnsavedChanges(false);
             setModifiedNodeIds(new Set()); // Reset modified tracking
             await loadTimeline(); // Reload to get everything fresh with real IDs
             setHasUnsavedChanges(false);
@@ -562,7 +561,7 @@ export default function HistoryTimelinePage() {
     };
 
     const handleExitWithSave = async () => {
-        await handleSaveLayout();
+        await handleSaveLayout(true);
         setExitPromptOpen(false);
         setIsEditMode(false);
     };
@@ -2202,10 +2201,9 @@ export default function HistoryTimelinePage() {
                         event.stopPropagation();
                         setContextMenu({ x: event.clientX, y: event.clientY, nodeId: String(node.id) });
                     }}
-                    onPaneClick={() => setContextMenu(null)}
                 >
                     <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#333333" />
-                    <Controls />
+                    <Controls showInteractive={false} />
                     <MiniMap
                         nodeColor={GET_NODE_COLOR}
                         zoomable

@@ -25,7 +25,7 @@
 
 @media (max-width: 480px) {
     .history-floating-toolbar {
-        top: 80px;
+        /* top: 80px; */
         /* Push down significantly on mobile to clear centered tabs */
     }
 }
@@ -60,7 +60,7 @@
 
 .toolbar-btn.active {
     background: #8b5cf6;
-    color: #ffffff;
+    color: #ffffff !important;
     border-color: #a78bfa;
 }
 
@@ -98,6 +98,25 @@
     z-index: 1000;
     box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
     transform: scale(1.05);
+}
+
+/* 🔥 Selection State (Multi-selection) */
+.react-flow__node.selected .history-node {
+    box-shadow: 0 0 0 2px #fff, 0 0 20px rgba(139, 92, 246, 0.8) !important;
+    border-color: #8b5cf6 !important;
+    z-index: 1000 !important;
+    transform: scale(1.02);
+    /* Much stronger highlight */
+    outline: 3px solid #06b6d4 !important;
+    /* Cyan-500 */
+    outline-offset: 2px;
+    box-shadow: 0 0 30px rgba(6, 182, 212, 0.6) !important;
+}
+
+/* Selection Box Style */
+.react-flow__selection {
+    background: rgba(139, 92, 246, 0.2) !important;
+    border: 1px solid #8b5cf6 !important;
 }
 
 .history-timeline-loading {
