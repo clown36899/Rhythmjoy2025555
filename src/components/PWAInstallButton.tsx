@@ -78,75 +78,76 @@ export const PWAInstallButton = () => {
                     const progressInterval = setInterval(() => {
                         setInstallProgress(prev => {
                             if (prev >= 95) {
-                                return 95; // 95%에서 무한 대기 (설치 완료될 때까지)
+                                return 95; // 95%에서 대기
                             }
                             return prev + 1; // 1%씩 천천히 증가
                         });
                     }, 300);
 
-                    // appinstalled 이벤트를 기다림
-                    const handleInstallComplete = async () => {
-                        console.log('🎉 appinstalled 이벤트 발생! (검증 시작)');
+                    let verifyInterval: NodeJS.Timeout; // Declare verifyInterval here so it's accessible in finishInstallation
 
-                        // 검증 루프 시작 (2초 간격)
-                        const verifyInterval = setInterval(async () => {
-                            try {
-                                // 1. getInstalledRelatedApps API 지원 여부 확인
-                                if ('getInstalledRelatedApps' in navigator) {
-                                    const relatedApps = await (navigator as any).getInstalledRelatedApps();
-                                    console.log('🔍 설치된 앱 목록 확인:', relatedApps);
+                    // 설치 완료 처리 함수
+                    const finishInstallation = () => {
+                        clearInterval(progressInterval);
+                        clearInterval(verifyInterval);
+                        setInstallProgress(100);
 
-                                    // 목록에 우리 앱이 있으면 진짜 설치 완료!
-                                    if (relatedApps.length > 0) {
-                                        console.log('✅ 진짜 설치 확인됨!');
-                                        finishInstallation();
-                                        return;
-                                    }
-                                } else {
-                                    // API 미지원 브라우저는 3초 딜레이 후 완료 처리 (fallback)
-                                    console.warn('⚠️ 검증 API 미지원 - 시간 기반 완료 처리');
-                                    setTimeout(finishInstallation, 3000);
-                                    return;
-                                }
-                            } catch (e) {
-                                console.error('검증 중 오류:', e);
-                                // 오류 시에도 fallback으로 완료 처리
-                                setTimeout(finishInstallation, 3000);
-                            }
-                        }, 2000);
-
-                        // 설치 완료 처리 함수
-                        const finishInstallation = () => {
-                            clearInterval(progressInterval);
-                            clearInterval(verifyInterval);
-                            setInstallProgress(100);
-
-                            // 100% 완료 후 1초 뒤 PWA 열기
-                            setTimeout(() => {
-                                setIsInstalling(false);
-                                setInstallProgress(0);
-                                window.location.href = '/';
-                            }, 1000);
-
-                            window.removeEventListener('appinstalled', handleInstallComplete);
-                        };
-
-                        // 30초 안전장치 (검증 실패해도 완료 처리)
+                        // 100% 완료 후 1초 뒤 PWA 열기
                         setTimeout(() => {
-                            if (isInstalling) {
-                                console.log('⏰ 검증 타임아웃 - 강제 완료');
-                                finishInstallation();
-                            }
-                        }, 30000);
+                            setIsInstalling(false);
+                            setInstallProgress(0);
+                            window.location.href = '/';
+                        }, 1000);
+
+                        window.removeEventListener('appinstalled', handleAppInstalled);
                     };
 
-                    // 전역 이벤트 리스너 등록
-                    window.addEventListener('appinstalled', handleInstallComplete);
-                    console.log('👂 appinstalled 이벤트 리스너 등록됨');
+                    // appinstalled 이벤트 리스너 (백업용)
+                    const handleAppInstalled = () => {
+                        console.log('🎉 appinstalled 이벤트 발생!');
+                        // 굳이 여기서 바로 끝내지 않고, 검증 루프가 처리하도록 둠
+                        // 단, API 미지원 환경을 위해 여기서 바로 완료 처리할 수도 있음
+                        if (!('getInstalledRelatedApps' in navigator)) {
+                            finishInstallation();
+                        }
+                    };
+                    window.addEventListener('appinstalled', handleAppInstalled);
 
-                    // 타임아웃 제거: 설치가 느려도 끝까지 기다림
-                    // 사용자가 설치를 중간에 취소하면 브라우저 제어권 밖이므로 
-                    // 그냥 설치중 상태로 남겨두는 게 오해 소지가 적음 (새로고침하면 리셋됨)
+                    // 검증 루프 시작 (즉시 시작)
+                    // appinstalled 이벤트가 안 와도, 설치가 완료되면 API 목록에 뜸
+                    verifyInterval = setInterval(async () => {
+                        try {
+                            // 1. getInstalledRelatedApps API 지원 여부 확인
+                            if ('getInstalledRelatedApps' in navigator) {
+                                const relatedApps = await (navigator as any).getInstalledRelatedApps();
+                                console.log('🔍 설치된 앱 목록 확인:', relatedApps);
+
+                                // 목록에 우리 앱이 있으면 진짜 설치 완료!
+                                if (relatedApps.length > 0) {
+                                    console.log('✅ 진짜 설치 확인됨!');
+                                    finishInstallation();
+                                }
+                            } else {
+                                // API 미지원 브라우저: 그냥 5초 등 일정 시간 후 완료 처리하거나
+                                // appinstalled 이벤트를 기다림. 여기서는 안전하게 패스
+                            }
+                        } catch (e) {
+                            console.error('검증 중 오류:', e);
+                        }
+                    }, 2000);
+
+                    // 45초 타임아웃 (안전장치)
+                    setTimeout(() => {
+                        clearInterval(progressInterval);
+                        clearInterval(verifyInterval);
+                        window.removeEventListener('appinstalled', handleAppInstalled);
+
+                        if (isInstalling) {
+                            console.warn('⚠️ 설치 타임아웃');
+                            // 강제로 리셋하지 않고 사용자가 새로고침하게 둠 (가짜 성공 방지)
+                            // 단, UI에서 멈춘 느낌을 줄이기 위해 알림 표시 가능
+                        }
+                    }, 45000);
 
                     setPromptEvent(null);
                     (window as any).deferredPrompt = null;
