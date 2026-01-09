@@ -9,6 +9,20 @@ export const InAppBrowserGuard: React.FC = () => {
         const userAgent = navigator.userAgent.toLowerCase();
         const targetUrl = window.location.href;
 
+        // Check if running in PWA mode (standalone)
+        const isPWA = window.matchMedia('(display-mode: standalone)').matches;
+
+        // If already in PWA, don't do anything
+        if (isPWA) {
+            return;
+        }
+
+        // Check if we already attempted redirect in this session
+        const hasAttemptedRedirect = sessionStorage.getItem('iab_redirect_attempted');
+        if (hasAttemptedRedirect) {
+            return;
+        }
+
         const isAndroid = /android/i.test(userAgent);
         const checkIfIOS = /iphone|ipad|ipod/i.test(userAgent);
 
@@ -28,6 +42,9 @@ export const InAppBrowserGuard: React.FC = () => {
 
         // Logic 1: Android - Auto Redirect
         if (checkInApp && isAndroid) {
+            // Mark that we attempted redirect
+            sessionStorage.setItem('iab_redirect_attempted', 'true');
+
             // Android Intent: Open PWA if installed, otherwise fallback to Chrome browser
             const urlWithoutScheme = targetUrl.replace(/^https?:\/\//, '');
             // Removing package specification allows Android to check for installed PWA first
