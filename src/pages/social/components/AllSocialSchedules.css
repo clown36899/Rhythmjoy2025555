@@ -170,9 +170,10 @@
 }
 
 /* 정확히 2개일 때만 이미지 높이 234px */
-.all-social-card-count-2 .all-social-card-image {
+/* 정확히 2개일 때만 이미지 높이 234px - REMOVED */
+/* .all-social-card-count-2 .all-social-card-image {
     height: 234px;
-}
+} */
 
 .all-social-placeholder {
     width: 100%;
@@ -264,7 +265,8 @@
 /* 카드 개수에 따른 반응형 레이아웃 */
 
 /* 2개일 때: 화면을 반반 */
-.all-social-count-2 {
+/* 2개일 때: 화면을 반반 - REMOVED to use default scroller */
+/* .all-social-count-2 {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
@@ -275,7 +277,7 @@
 .all-social-card-count-2 {
     width: 100%;
     max-width: none;
-}
+} */
 
 /* 3개일 때: 화면을 3등분 */
 .all-social-count-3 {
