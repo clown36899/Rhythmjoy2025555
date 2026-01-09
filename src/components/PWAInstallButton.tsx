@@ -6,6 +6,17 @@ import './PWAInstallButton.css';
 export const PWAInstallButton = () => {
     const { promptEvent, setPromptEvent, isInstalled } = useInstallPrompt();
     const [showInstructions, setShowInstructions] = useState(false);
+    const [isInstalling, setIsInstalling] = useState(false);
+    const [installProgress, setInstallProgress] = useState(0);
+
+    // PWA 앱 내에서 실행 중인지 확인
+    const isRunningInPWA = window.matchMedia('(display-mode: standalone)').matches ||
+        (window.navigator as any).standalone === true;
+
+    // PWA 앱 내에서는 버튼을 표시하지 않음
+    if (isRunningInPWA) {
+        return null;
+    }
 
     // iOS/Android 감지
     const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
@@ -43,11 +54,55 @@ export const PWAInstallButton = () => {
                 console.log(`사용자 선택 결과: ${outcome}`);
 
                 if (outcome === 'accepted') {
+                    // 설치 시작 - 프로그레스 표시
+                    setIsInstalling(true);
+                    setInstallProgress(0);
+
+                    // 프로그레스 애니메이션 (0% → 90%)
+                    const progressInterval = setInterval(() => {
+                        setInstallProgress(prev => {
+                            if (prev >= 90) {
+                                clearInterval(progressInterval);
+                                return 90;
+                            }
+                            return prev + 10;
+                        });
+                    }, 100);
+
+                    // appinstalled 이벤트를 기다림
+                    const handleInstallComplete = () => {
+                        clearInterval(progressInterval);
+                        setInstallProgress(100);
+
+                        // 100% 완료 후 1초 뒤 PWA 열기
+                        setTimeout(() => {
+                            setIsInstalling(false);
+                            setInstallProgress(0);
+                            // PWA 앱 열기
+                            window.location.href = '/';
+                        }, 1000);
+
+                        window.removeEventListener('appinstalled', handleInstallComplete);
+                    };
+
+                    window.addEventListener('appinstalled', handleInstallComplete);
+
+                    // 타임아웃: 10초 후에도 완료 안 되면 강제 종료
+                    setTimeout(() => {
+                        clearInterval(progressInterval);
+                        if (isInstalling) {
+                            setIsInstalling(false);
+                            setInstallProgress(0);
+                        }
+                    }, 10000);
+
                     setPromptEvent(null);
                     (window as any).deferredPrompt = null;
                 }
             } catch (error) {
                 console.error('설치 프롬프트 실행 중 오류:', error);
+                setIsInstalling(false);
+                setInstallProgress(0);
                 setShowInstructions(true);
             }
         } else {
@@ -65,12 +120,34 @@ export const PWAInstallButton = () => {
     return (
         <>
             <div
-                onClick={isInstalled ? handleOpenApp : handleInstallClick}
-                className="pwa-install-button"
+                onClick={isInstalling ? undefined : (isInstalled ? handleOpenApp : handleInstallClick)}
+                className={`pwa-install-button ${isInstalling ? 'installing' : ''}`}
+                style={{ position: 'relative', overflow: 'hidden', cursor: isInstalling ? 'default' : 'pointer' }}
             >
-                <i className={isInstalled ? "ri-external-link-line" : "ri-download-cloud-line"}></i>
-                <span className="manual-label-wrapper">
-                    {isInstalled ? (
+                {isInstalling && (
+                    <div
+                        className="pwa-install-progress"
+                        style={{
+                            position: 'absolute',
+                            left: 0,
+                            top: 0,
+                            bottom: 0,
+                            width: `${installProgress}%`,
+                            background: 'linear-gradient(90deg, #667eea, #764ba2)',
+                            transition: 'width 0.3s ease',
+                            zIndex: 0
+                        }}
+                    />
+                )}
+                <i className={isInstalled ? "ri-external-link-line" : "ri-download-cloud-line"} style={{ position: 'relative', zIndex: 1 }}></i>
+                <span className="manual-label-wrapper" style={{ position: 'relative', zIndex: 1 }}>
+                    {isInstalling ? (
+                        <>
+                            <span className="translated-part">Installing... {installProgress}%</span>
+                            <span className="fixed-part ko" translate="no">설치 중... {installProgress}%</span>
+                            <span className="fixed-part en" translate="no">Installing... {installProgress}%</span>
+                        </>
+                    ) : isInstalled ? (
                         <>
                             <span className="translated-part">Open App</span>
                             <span className="fixed-part ko" translate="no">앱 열기</span>
