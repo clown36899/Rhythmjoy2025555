@@ -4,7 +4,7 @@
     display: flex;
     align-items: center;
     gap: min(1vw, 6px);
-    padding: 17px min(3.5vw, 20px);
+    padding: 10px 10px 10px 10px;
     width: 100%;
     min-width: 0;
     padding-bottom: 0px;

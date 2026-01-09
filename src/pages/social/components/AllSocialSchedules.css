@@ -7,7 +7,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 min(3.5vw, 20px);
+    padding: 0px 10px 0px 8px;
     margin-bottom: min(4vw, 16px);
     width: 100%;
     min-width: 0;
@@ -220,7 +220,7 @@
 
 .all-social-place {
     font-size: 0.75rem;
-    color: #999;
+    color: #ffffff;
     font-weight: 500;
     display: flex;
     align-items: center;
@@ -329,8 +329,8 @@
 }
 
 .all-social-dday-today {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.95), rgba(220, 38, 38, 0.95));
-    animation: dday-pulse 2s ease-in-out infinite;
+    /* background: linear-gradient(135deg, rgba(239, 68, 68, 0.95), rgba(220, 38, 38, 0.95));
+    animation: dday-pulse 2s ease-in-out infinite; */
 }
 
 @keyframes dday-pulse {

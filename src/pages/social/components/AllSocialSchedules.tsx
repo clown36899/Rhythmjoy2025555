@@ -214,11 +214,11 @@ const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules,
                                             <i className="ri-calendar-event-line"></i>
                                         </div>
                                     )}
-                                    {item.start_time && (
+                                    {/* {item.start_time && (
                                         <div className="all-social-card-overlay">
                                             <span className="all-social-time">{item.start_time.substring(0, 5)}</span>
                                         </div>
-                                    )}
+                                    )} */}
                                     {(() => {
                                         const dDay = calculateDDay(item.date || null);
                                         return dDay ? (
