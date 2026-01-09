@@ -43,7 +43,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 })
 
 export interface Event {
-  id: number;
+  id: number | string;
   title: string;
   date?: string;
   start_date?: string;

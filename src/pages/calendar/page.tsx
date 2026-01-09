@@ -43,7 +43,7 @@ export default function CalendarPage() {
 
     // Event Modal States - using Hook
     const eventModal = useEventModal();
-    const [highlightedEventId, setHighlightedEventId] = useState<number | null>(null);
+    const [highlightedEventId, setHighlightedEventId] = useState<number | string | null>(null);
     const [showRegisterModal, setShowRegisterModal] = useState(false);
     const [showCalendarSearch, setShowCalendarSearch] = useState(false);
 
@@ -230,7 +230,7 @@ export default function CalendarPage() {
     // Event handlers are now provided by useEventModal Hook
 
     // 이벤트 생성 후 해당 날짜로 이동 및 하이라이트
-    const handleEventCreated = useCallback((eventId: number, eventDate: Date) => {
+    const handleEventCreated = useCallback((eventId: number | string, eventDate: Date) => {
         // 해당 월로 이동
         const targetMonth = new Date(eventDate.getFullYear(), eventDate.getMonth(), 1);
         handleMonthChange(targetMonth);
@@ -264,23 +264,39 @@ export default function CalendarPage() {
             handleNavigateMonth('next');
         };
 
+        const handleGoToToday = () => {
+            handleMonthChange(new Date());
+        };
+
         window.addEventListener('setFullscreenMode', handleSetFullscreenMode);
         window.addEventListener('openCalendarSearch', handleOpenCalendarSearch);
         window.addEventListener('prevMonth', handlePrevMonth);
         window.addEventListener('nextMonth', handleNextMonth);
+        window.addEventListener('goToToday', handleGoToToday);
 
         return () => {
             window.removeEventListener('setFullscreenMode', handleSetFullscreenMode);
             window.removeEventListener('openCalendarSearch', handleOpenCalendarSearch);
             window.removeEventListener('prevMonth', handlePrevMonth);
             window.removeEventListener('nextMonth', handleNextMonth);
+            window.removeEventListener('goToToday', handleGoToToday);
         };
-    }, [navigate, handleNavigateMonth]);
+    }, [navigate, handleNavigateMonth, handleMonthChange]);
 
     // Shell State Sync
     useEffect(() => {
         window.dispatchEvent(new CustomEvent("calendarModeChanged", { detail: "fullscreen" }));
     }, []);
+
+    // Sync currentMonth with Shell Header
+    useEffect(() => {
+        window.dispatchEvent(new CustomEvent('updateCalendarView', {
+            detail: {
+                year: currentMonth.getFullYear(),
+                month: currentMonth.getMonth()
+            }
+        }));
+    }, [currentMonth]);
 
     // FAB Registration Action
     useSetPageAction(useMemo(() => ({

@@ -655,7 +655,7 @@
 .calendar-month-label {
   color: white;
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: clamp(0rem, 6vw, 1.5rem);
   min-width: 70px;
 }
 
@@ -712,7 +712,7 @@
 .calendar-month-label {
   color: white;
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: clamp(0rem, 6vw, 1.5rem);
   min-width: 70px;
 
 }

@@ -348,22 +348,55 @@ export default function EventDetailModal({
         try {
           setIsFetchingDetail(true);
 
-          // [최적화] 작성자 닉네임을 항상 가져와서 본인 확인 및 정보 표시를 가능하게 함
-          const { data, error } = await supabase
-            .from('events')
-            .select('*, board_users(nickname)')
-            .eq('id', event.id)
-            .maybeSingle();
+          const isSocialIntegrated = String(event.id).startsWith('social-');
+          const originalId = isSocialIntegrated ? String(event.id).replace('social-', '') : event.id;
 
-          if (!error && data) {
-            // Merge prop with fetched data
-            const fullEvent = { ...event, ...(data as any) } as Event;
-            setDraftEvent(fullEvent);
-            setOriginalEvent(fullEvent); // Update baseline to full data
+          if (isSocialIntegrated) {
+            // [소셜 일정 연동] social_schedules 테이블 조회
+            const { data, error } = await supabase
+              .from('social_schedules')
+              .select('*, board_users(nickname), social_groups(name)')
+              .eq('id', originalId)
+              .maybeSingle();
 
-            // 조인된 데이터에서 닉네임 추출
-            const nickname = (data as any).board_users?.nickname;
-            if (nickname) setAuthorNickname(nickname);
+            if (!error && data) {
+              // useEvents.ts와 동일한 매핑 로직 적용
+              const mappedSocial: any = {
+                ...event,
+                ...data,
+                id: event.id, // Keep prefixed ID
+                location: data.place_name || '',
+                organizer: (Array.isArray(data.social_groups) ? (data.social_groups[0] as any)?.name : (data.social_groups as any)?.name) ||
+                  (Array.isArray(data.board_users) ? (data.board_users[0] as any)?.nickname : (data.board_users as any)?.nickname) ||
+                  '단체소셜',
+                category: data.v2_category || 'club',
+                genre: data.v2_genre || '',
+                link1: data.link_url,
+                link_name1: data.link_name,
+                board_users: Array.isArray(data.board_users) ? data.board_users[0] : data.board_users,
+                is_social_integrated: true
+              };
+              setDraftEvent(mappedSocial);
+              setOriginalEvent(mappedSocial);
+
+              const nickname = Array.isArray(data.board_users) ? (data.board_users[0] as any)?.nickname : (data.board_users as any)?.nickname;
+              if (nickname) setAuthorNickname(nickname);
+            }
+          } else {
+            // [일반 이벤트] 기존 events 테이블 조회
+            const { data, error } = await supabase
+              .from('events')
+              .select('*, board_users(nickname)')
+              .eq('id', event.id)
+              .maybeSingle();
+
+            if (!error && data) {
+              const fullEvent = { ...event, ...(data as any) } as Event;
+              setDraftEvent(fullEvent);
+              setOriginalEvent(fullEvent);
+              const nickname = (data as any).board_users?.nickname;
+              if (nickname) setAuthorNickname(nickname);
+            }
           }
         } catch (err) {
           console.error('Failed to fetch event detail:', err);

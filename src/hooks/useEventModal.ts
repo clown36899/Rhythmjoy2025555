@@ -21,7 +21,7 @@ export interface UseEventModalReturn {
     // 핸들러
     handleEditClick: (event: AppEvent, e?: React.MouseEvent) => void;
     handlePasswordSubmit: () => Promise<void>;
-    handleDeleteEvent: (eventId: number) => Promise<void>;
+    handleDeleteEvent: (eventId: number | string) => Promise<void>;
     closeAllModals: () => void;
 }
 
@@ -79,7 +79,7 @@ export function useEventModal(): UseEventModalReturn {
     }, [eventToEdit, eventPassword]);
 
     // 4. 이벤트 삭제 핸들러
-    const handleDeleteEvent = useCallback(async (eventId: number) => {
+    const handleDeleteEvent = useCallback(async (eventId: number | string) => {
         if (confirm("정말로 이 이벤트를 삭제하시겠습니까?")) {
             try {
                 const { data: { session } } = await supabase.auth.getSession();

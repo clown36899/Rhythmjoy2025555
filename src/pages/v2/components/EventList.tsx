@@ -15,6 +15,7 @@ import { useEventFilters } from "./EventList/hooks/useEventFilters";
 import { useEventSelection } from "./EventList/hooks/useEventSelection";
 import { useBoardData } from "../../../contexts/BoardDataContext";
 import { useRandomizedEvents } from "./EventList/hooks/useRandomizedEvents";
+import { useEffect } from "react";
 
 // Styles
 import "../styles/EventListSections.css";
@@ -43,7 +44,7 @@ interface EventListProps {
   calendarMode: 'collapsed' | 'expanded' | 'fullscreen';
   isAdminMode?: boolean;
   adminType?: "super" | "sub" | null;
-  highlightEvent?: { id: number } | null;
+  highlightEvent?: { id: number | string } | null;
   onEventHover?: (event: Event | null) => void;
   onSectionViewModeChange: (mode: 'preview' | 'viewAll-events' | 'viewAll-classes') => void;
 }
@@ -57,7 +58,7 @@ const EventList: React.FC<EventListProps> = ({
   adminType = null,
   highlightEvent,
   onEventHover,
-  onSectionViewModeChange
+  // onSectionViewModeChange // Unused
 }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
@@ -106,6 +107,32 @@ const EventList: React.FC<EventListProps> = ({
     classGenre: searchParams.get('class_genre'),
     clubGenre: searchParams.get('club_genre')
   });
+
+  // 3.7 Realtime Subscription to sync data immediately
+  useEffect(() => {
+    const channel = supabase
+      .channel('v2-event-list-sync')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'events' },
+        () => {
+          fetchEvents();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'social_schedules' },
+        () => {
+          fetchEvents();
+          refreshSocial();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchEvents, refreshSocial]);
 
   // 4. Derived States (Genres, etc.)
   const allGenres = useMemo(() => {
@@ -192,12 +219,12 @@ const EventList: React.FC<EventListProps> = ({
   const { interactions, toggleEventFavorite } = useUserInteractions(user?.id || null);
 
   // Convert API array to Set for fast O(1) lookups
-  const favoriteEventIds = useMemo<Set<number>>(() => {
-    if (!interactions?.event_favorites) return new Set<number>();
-    return new Set(interactions.event_favorites.map(id => Number(id)));
+  const favoriteEventIds = useMemo<Set<number | string>>(() => {
+    if (!interactions?.event_favorites) return new Set<number | string>();
+    return new Set(interactions.event_favorites);
   }, [interactions?.event_favorites]);
 
-  const handleToggleFavorite = useCallback(async (eventId: number, e?: React.MouseEvent) => {
+  const handleToggleFavorite = useCallback(async (eventId: number | string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
 
     if (!user) {
@@ -307,7 +334,7 @@ const EventList: React.FC<EventListProps> = ({
           onEventClick={(e) => onEventClick?.(e)}
           onEventHover={(id) => {
             if (id === null) onEventHover?.(null);
-            else onEventHover?.(events.find(ev => ev.id === id) ?? null);
+            else onEventHover?.(events.find(ev => String(ev.id) === String(id)) ?? null);
           }}
           highlightEvent={highlightEvent ?? null}
           selectedDate={selectedDate}
@@ -331,7 +358,7 @@ const EventList: React.FC<EventListProps> = ({
           onEventClick={(e) => onEventClick?.(e)}
           onEventHover={(id) => {
             if (id === null) onEventHover?.(null);
-            else onEventHover?.(events.find(ev => ev.id === id) ?? null);
+            else onEventHover?.(events.find(ev => String(ev.id) === String(id)) ?? null);
           }}
           highlightEvent={highlightEvent ?? null}
           selectedDate={selectedDate}
@@ -358,7 +385,7 @@ const EventList: React.FC<EventListProps> = ({
             const todayEventsAsSocial = events
               .filter(e => e.category === 'event' && (e.end_date || e.date || "") >= todayStr && (e.start_date || e.date || "") <= todayStr)
               .map(e => ({
-                id: e.id * 10000, // Keep multiplication for UI/Key collision prevention
+                id: Number(e.id) * 10000, // Keep multiplication for UI/Key collision prevention
                 group_id: -1, // Flag as Event
                 title: e.title,
                 date: e.date,
@@ -375,8 +402,11 @@ const EventList: React.FC<EventListProps> = ({
                 is_mapped_event: true // Use flag to recover ID on click
               } as any));
 
-            // B. One-time Social Schedules (Date match)
-            const oneTimeSocials = socialSchedules.filter(s => s.date && s.date === todayStr);
+            // B. One-time Social Schedules (Date match) - Filter to only show 'social' category (not club)
+            const oneTimeSocials = socialSchedules.filter(s =>
+              s.date && s.date === todayStr &&
+              (s.v2_category === 'social' || !s.v2_category)
+            );
 
             // Logic: Only show (A + B). Never add recurring schedules (C).
             const combined = [...todayEventsAsSocial, ...oneTimeSocials];
@@ -409,7 +439,7 @@ const EventList: React.FC<EventListProps> = ({
                 return eDate >= weekStartStr && eDate <= twoWeeksEndStr;
               })
               .map(e => ({
-                id: e.id * 10000,
+                id: Number(e.id) * 10000,
                 group_id: -1,
                 title: e.title,
                 date: e.date,
@@ -426,7 +456,12 @@ const EventList: React.FC<EventListProps> = ({
                 is_mapped_event: true
               } as any));
 
-            return [...weekEventsAsSocial, ...socialSchedules];
+            // Filter socialSchedules to only show 'social' category (not club) in the summary bar
+            const filteredSocialSchedules = socialSchedules.filter(s =>
+              s.v2_category === 'social' || !s.v2_category
+            );
+
+            return [...weekEventsAsSocial, ...filteredSocialSchedules];
           })()}
           refreshSocialSchedules={refreshSocial}
           futureEvents={randomizedFutureEvents}
@@ -441,26 +476,30 @@ const EventList: React.FC<EventListProps> = ({
           selectedClassGenre={searchParams.get('class_genre')}
           selectedClubGenre={searchParams.get('club_genre')}
           onEventClick={(e) => {
-            // 🎯 [SMOKING GUN FIX] 오늘의 일정 섹션에서 ID가 10,000배(예: 220 -> 2200000)가 된 경우 복원
+            // 🎯 오늘의 일정 섹션에서 ID가 10,000배(예: 220 -> 2200000)가 된 경우 복원
             if ((e as any).is_mapped_event) {
-              const originalId = Math.floor((e as any).id / 10000);
-              const originalEvent = events.find(ev => ev.id === originalId);
-              if (originalEvent) {
-                onEventClick?.(originalEvent);
-                return;
+              const idNum = Number((e as any).id);
+              if (!isNaN(idNum)) {
+                const originalId = Math.floor(idNum / 10000);
+                const originalEvent = events.find(ev => String(ev.id) === String(originalId));
+                if (originalEvent) {
+                  onEventClick?.(originalEvent);
+                  return;
+                }
               }
             }
             onEventClick?.(e);
           }}
-          onEventHover={(id: number | null) => {
+          onEventHover={(id: number | string | null) => {
             if (!onEventHover) return;
             if (id === null) {
               onEventHover(null);
               return;
             }
             // If ID is inflated (mapped event), scale it back for lookup
-            const lookupId = id > 1000000 ? Math.floor(id / 10000) : id;
-            const found = events.find(ev => ev.id === lookupId);
+            const idNum = Number(id);
+            const lookupId = (!isNaN(idNum) && idNum > 1000000) ? Math.floor(idNum / 10000) : id;
+            const found = events.find(ev => String(ev.id) === String(lookupId));
             onEventHover(found ?? null);
           }}
           highlightEvent={highlightEvent ?? null}
@@ -470,7 +509,6 @@ const EventList: React.FC<EventListProps> = ({
           handleToggleFavorite={handleToggleFavorite}
           searchParams={searchParams}
           setSearchParams={setSearchParams}
-          onSectionViewModeChange={onSectionViewModeChange}
         />
       )}
 

@@ -29,15 +29,15 @@ interface EventPreviewSectionProps {
     selectedClassGenre: string | null;
     selectedClubGenre: string | null;
     onEventClick: (event: Event) => void;
-    onEventHover?: (id: number | null) => void;
-    highlightEvent: { id: number } | null;
+    onEventHover?: (id: number | string | null) => void;
+    highlightEvent: { id: number | string } | null;
     defaultThumbnailClass: string;
     defaultThumbnailEvent: string;
-    effectiveFavoriteIds: Set<number>;
-    handleToggleFavorite: (id: number, e: React.MouseEvent) => void;
+    effectiveFavoriteIds: Set<number | string>;
+    handleToggleFavorite: (id: number | string, e: React.MouseEvent) => void;
     searchParams: URLSearchParams;
     setSearchParams: (params: URLSearchParams) => void;
-    onSectionViewModeChange: (mode: 'preview' | 'viewAll-events' | 'viewAll-classes') => void;
+    // onSectionViewModeChange: (mode: 'preview' | 'viewAll-events' | 'viewAll-classes') => void;
 }
 
 export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
@@ -63,7 +63,6 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
     handleToggleFavorite,
     searchParams,
     setSearchParams,
-    onSectionViewModeChange,
 }) => {
 
 

@@ -32,13 +32,13 @@ interface EventRegistrationModalProps {
   isOpen: boolean;
   onClose: () => void;
   selectedDate: Date;
-  onEventCreated: (createdDate: Date, eventId?: number) => void;
+  onEventCreated: (createdDate: Date, eventId?: number | string) => void;
   onMonthChange?: (date: Date) => void;
   fromBanner?: boolean;
   bannerMonthBounds?: { min: string; max: string };
   editEventData?: AppEvent | null;
   onEventUpdated?: (event: AppEvent) => void;
-  onDelete?: (eventId: number) => void;
+  onDelete?: (eventId: number | string) => void;
 }
 
 const formatDateForInput = (date: Date): string => {

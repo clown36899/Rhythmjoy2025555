@@ -109,7 +109,7 @@ export default function HomePageV2() {
     const favoriteEventIds = useMemo(() => new Set(interactions?.event_favorites || []), [interactions]);
 
     // Toggle favorite function
-    const toggleFavorite = useCallback(async (eventId: number, e?: React.MouseEvent) => {
+    const toggleFavorite = useCallback(async (eventId: number | string, e?: React.MouseEvent) => {
         e?.stopPropagation();
 
         if (!user) {

@@ -22,8 +22,8 @@ interface FullEventCalendarProps {
   onEventsUpdate?: (createdDate?: Date) => void;
   isAdminMode?: boolean;
   selectedCategory?: string;
-  highlightedEventId?: number | null;
-  hoveredEventId?: number | null;
+  highlightedEventId?: number | string | null;
+  hoveredEventId?: number | string | null;
   tabFilter?: 'all' | 'social-events' | 'classes';
 }
 
@@ -94,19 +94,17 @@ export default memo(function FullEventCalendar({
     const socialEvents = socialSchedules
       .filter(schedule => schedule.day_of_week === null || schedule.day_of_week === undefined)
       .map(schedule => ({
-        id: schedule.id + 10000000, // ID 충돌 방지를 위해 큰 숫자 추가
+        id: schedule.id + 10000000,
         title: schedule.title,
         date: schedule.date,
         start_date: schedule.date,
         end_date: schedule.date,
         event_dates: schedule.date ? [schedule.date] : [],
-        category: 'social',
-        // 모든 이미지 필드 매핑
+        category: schedule.v2_category || 'club', // v2_category 사용, 기본값 'club'
         image_micro: schedule.image_micro,
         image_thumbnail: schedule.image_thumbnail,
         image_medium: schedule.image_medium,
         source: 'social_schedules' as const,
-        // 장소 정보 매핑
         location: schedule.place_name || '',
         venue_id: schedule.venue_id ? String(schedule.venue_id) : null,
       })) as any[];
@@ -114,19 +112,25 @@ export default memo(function FullEventCalendar({
     let combined: any[] = [];
 
     if (tabFilter === 'all') {
-      // 전체: V2 이벤트 + 소셜 스케줄 (정규 제외)
       combined = [...categoryFilteredEvents, ...socialEvents];
     } else if (tabFilter === 'social-events') {
-      // 소셜&행사: V2 이벤트 중 강습/동호회 제외 + 소셜 스케줄 (정규 제외)
+      // 소셜&행사: 강습 관련 카테고리(class, regular, club)를 모두 제외
       const nonClassEvents = categoryFilteredEvents.filter(event =>
         event.category !== 'class' && event.category !== 'regular' && event.category !== 'club'
       );
-      combined = [...nonClassEvents, ...socialEvents];
+      const nonClassSocialEvents = socialEvents.filter(event =>
+        event.category !== 'class' && event.category !== 'regular' && event.category !== 'club'
+      );
+      combined = [...nonClassEvents, ...nonClassSocialEvents];
     } else if (tabFilter === 'classes') {
-      // 강습: V2 이벤트 중 강습, 정규강습, 동호회 강습
-      combined = categoryFilteredEvents.filter(event =>
+      // 강습: 강습 관련 카테고리(class, regular, club)를 모두 포함
+      const classEvents = categoryFilteredEvents.filter(event =>
         event.category === 'class' || event.category === 'regular' || event.category === 'club'
       );
+      const classSocialEvents = socialEvents.filter(event =>
+        event.category === 'class' || event.category === 'regular' || event.category === 'club'
+      );
+      combined = [...classEvents, ...classSocialEvents];
     }
 
     return combined as AppEvent[];
@@ -145,7 +149,7 @@ export default memo(function FullEventCalendar({
       'cal-bg-violet-600', 'cal-bg-purple-600', 'cal-bg-fuchsia-600', 'cal-bg-pink-600'
     ];
 
-    const map = new Map<number, string>();
+    const map = new Map<number | string, string>();
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
     const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`;
@@ -170,7 +174,7 @@ export default memo(function FullEventCalendar({
     });
 
     // ID 순으로 정렬하여 일관성 유지
-    currentMonthEvents.sort((a, b) => a.id - b.id);
+    currentMonthEvents.sort((a, b) => String(a.id).localeCompare(String(b.id)));
 
     // 각 이벤트에 순차적으로 다른 색상 할당
     currentMonthEvents.forEach((event, index) => {
@@ -181,7 +185,7 @@ export default memo(function FullEventCalendar({
   }, [filteredEvents, currentMonth]);
 
   // 이벤트 색상 가져오기 함수
-  const getEventColor = (eventId: number) => {
+  const getEventColor = (eventId: number | string) => {
     return eventColorMap.get(eventId) || 'cal-bg-gray-500';
   };
 
@@ -242,7 +246,7 @@ export default memo(function FullEventCalendar({
       // Fetch social schedules (excluding regular schedules with day_of_week)
       const socialSchedulesPromise = supabase
         .from("social_schedules")
-        .select("id,title,date,image_micro,image_thumbnail,image_medium,day_of_week,place_name,venue_id")
+        .select("id,title,date,image_micro,image_thumbnail,image_medium,day_of_week,place_name,venue_id,v2_category")
         .gte("date", startDateStr)
         .lte("date", endDateStr)
         .order("date", { ascending: true });

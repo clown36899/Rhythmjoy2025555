@@ -15,7 +15,7 @@ interface EventEditModalProps {
     onClose: () => void;
     event: Event | null;
     onSave: (formData: any, imageFile: File | null) => void;
-    onDelete: (id: number) => void;
+    onDelete: (id: number | string) => void;
     isAdmin: boolean;
     user: any;
     allGenres: string[];

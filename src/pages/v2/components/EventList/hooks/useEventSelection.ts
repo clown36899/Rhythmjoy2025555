@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { supabase } from "../../../../../lib/supabase";
-import { getLocalDateString } from "../../../utils/eventListUtils";
+import { supabase } from "../../../../../lib/supabase";
 import { useAuth } from "../../../../../contexts/AuthContext";
 import type { Event } from "../../../utils/eventListUtils";
 
@@ -12,7 +12,7 @@ interface UseEventSelectionProps {
 
 export function useEventSelection({
     isAdminMode,
-    adminType,
+    // adminType, // Unused
     fetchEvents
 }: UseEventSelectionProps) {
     const { user } = useAuth();
@@ -53,7 +53,7 @@ export function useEventSelection({
         }
     }, [isAdminMode, user]);
 
-    const handleDeleteClick = useCallback(async (eventId: number) => {
+    const handleDeleteClick = useCallback(async (eventId: number | string) => {
         if (!window.confirm("정말로 삭제하시겠습니까?")) return;
 
         try {

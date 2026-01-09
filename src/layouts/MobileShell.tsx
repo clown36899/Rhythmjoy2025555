@@ -327,7 +327,11 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                   >
                     <i className="ri-arrow-left-s-line"></i>
                   </button>
-                  <span className="calendar-month-label">
+                  <span
+                    className="calendar-month-label"
+                    onClick={() => window.dispatchEvent(new CustomEvent('goToToday'))}
+                    style={{ cursor: 'pointer' }}
+                  >
                     {calendarView.year}.{String(calendarView.month + 1).padStart(2, '0')}
                   </span>
                   <button

@@ -8,11 +8,11 @@ interface UseDeepLinkLogicProps {
 
 export function useDeepLinkLogic({ setCurrentMonth }: UseDeepLinkLogicProps) {
     const [qrLoading, setQrLoading] = useState(false);
-    const [highlightEvent, setHighlightEvent] = useState<{ id: number; nonce: number } | null>(null);
-    const [sharedEventId, setSharedEventId] = useState<number | null>(null);
+    const [highlightEvent, setHighlightEvent] = useState<{ id: number | string; nonce: number } | null>(null);
+    const [sharedEventId, setSharedEventId] = useState<number | string | null>(null);
 
     // Scroll to event in preview mode with horizontal scroll support
-    const scrollToEventInPreview = useCallback((eventId: number, category: string) => {
+    const scrollToEventInPreview = useCallback((eventId: number | string, category: string) => {
         const scrollToEvent = (retries = 10) => {
             const eventCard = document.querySelector(`[data-event-id="${eventId}"]`);
 

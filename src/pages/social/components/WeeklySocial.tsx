@@ -205,7 +205,7 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
         <div
             key={item.id}
             className="weekly-item"
-            data-analytics-id={item.id}
+            data-analytics-id={typeof item.id === 'number' && item.id > 1000000 ? Math.floor(item.id / 10000) : item.id}
             data-analytics-type={item.group_id === -1 ? 'event' : 'social'}
             data-analytics-title={item.title}
             data-analytics-section="weekly_list"
@@ -241,7 +241,7 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
         <div
             key={item.id}
             className="regular-compact-card"
-            data-analytics-id={item.id}
+            data-analytics-id={typeof item.id === 'number' && item.id > 1000000 ? Math.floor(item.id / 10000) : item.id}
             data-analytics-type="social_regular"
             data-analytics-title={item.title}
             data-analytics-section="regular_kanban"

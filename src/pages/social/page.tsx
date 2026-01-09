@@ -41,7 +41,7 @@ const SocialPage: React.FC = () => {
   const { interactions, toggleEventFavorite: baseToggleEventFavorite } = useUserInteractions(user?.id || null);
   const favoriteEventIds = useMemo(() => new Set(interactions?.event_favorites || []), [interactions]);
 
-  const toggleEventFavorite = useCallback(async (eventId: number, e?: React.MouseEvent) => {
+  const toggleEventFavorite = useCallback(async (eventId: number | string, e?: React.MouseEvent) => {
     e?.stopPropagation();
     if (!user) {
       if (confirm('즐겨찾기는 로그인 후 이용 가능합니다.\n확인을 눌러서 로그인을 진행해주세요')) {
@@ -49,7 +49,13 @@ const SocialPage: React.FC = () => {
       }
       return;
     }
-    await baseToggleEventFavorite(eventId);
+    // Only toggle if it's a numeric ID (real event)
+    if (typeof eventId === 'number') {
+      await baseToggleEventFavorite(eventId);
+    } else if (typeof eventId === 'string' && !eventId.startsWith('event-')) {
+      // Handle other potential string IDs if needed
+      await baseToggleEventFavorite(Number(eventId));
+    }
   }, [user, navigate, baseToggleEventFavorite]);
 
   // Modal States
@@ -218,7 +224,7 @@ const SocialPage: React.FC = () => {
           : e.image);
 
       return {
-        id: e.id,
+        id: `event-${e.id}`, // Add prefix to avoid collision with social_schedules ID
         group_id: -1, // 행사 구분을 위한 플래그
         title: e.title,
         date: e.start_date || e.date,
@@ -234,7 +240,7 @@ const SocialPage: React.FC = () => {
         created_at: e.created_at,
         updated_at: e.created_at,
         board_users: e.board_users, // Author info
-      } as SocialSchedule;
+      } as unknown as SocialSchedule;
     });
 
     // 3. 일회성 항목(소셜 + 행사) 합계 계산
@@ -252,7 +258,7 @@ const SocialPage: React.FC = () => {
           : e.image);
 
       const baseEvent = {
-        id: e.id,
+        id: `event-${e.id}`, // Add prefix to avoid collision
         group_id: -1, // 행사 구분을 위한 플래그
         title: e.title,
         description: e.description,
@@ -273,7 +279,7 @@ const SocialPage: React.FC = () => {
           ...baseEvent,
           date: dateStr,
           start_time: e.time, // 시간은 공통 시간 사용
-        } as SocialSchedule));
+        } as unknown as SocialSchedule));
       }
 
       // 단일 일정인 경우
@@ -281,7 +287,7 @@ const SocialPage: React.FC = () => {
         ...baseEvent,
         date: e.start_date || e.date,
         start_time: e.time,
-      } as SocialSchedule];
+      } as unknown as SocialSchedule];
     });
 
     return [...schedules, ...convertedEvents];
@@ -403,7 +409,7 @@ const SocialPage: React.FC = () => {
   };
 
   const handleEventClick = (schedule: SocialSchedule) => {
-    const originalEvent = eventsToday.find(evt => evt.id === schedule.id);
+    const originalEvent = eventsToday.find(evt => `event-${evt.id}` === String(schedule.id));
     if (originalEvent) setSelectedEvent(originalEvent);
   };
 

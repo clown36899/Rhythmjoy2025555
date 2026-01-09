@@ -106,7 +106,7 @@ interface BoardDataContextType {
     error: string | null;
     refreshData: () => Promise<void>;
     refreshInteractions: (userId: string) => Promise<void>;
-    toggleEventFavorite: (userId: string, eventId: number) => Promise<void>;
+    toggleEventFavorite: (userId: string, eventId: number | string) => Promise<void>;
 }
 
 const BoardDataContext = createContext<BoardDataContextType | undefined>(undefined);
@@ -138,7 +138,11 @@ export const BoardDataProvider = ({ children }: { children: ReactNode }) => {
         }
     }, []);
 
-    const toggleEventFavorite = useCallback(async (userId: string, eventId: number) => {
+    const toggleEventFavorite = useCallback(async (userId: string, eventId: number | string) => {
+        // Only allow numeric IDs to be favorited as they exist in the events table
+        const numericId = typeof eventId === 'number' ? eventId : Number(eventId);
+        if (isNaN(numericId)) return;
+
         try {
             const isFavorite = interactions?.event_favorites.includes(eventId) ||
                 interactions?.event_favorites.includes(String(eventId));

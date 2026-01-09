@@ -56,6 +56,11 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
     const [imagePreview, setImagePreview] = useState<string | null>(
         editSchedule?.image_url || copyFrom?.image_url || null
     );
+    const [v2DisplayType, setV2DisplayType] = useState<string>(
+        editSchedule?.v2_genre === '동호회정규강습' ? 'club_regular' :
+            editSchedule?.v2_genre === '동호회강습' ? 'club_lesson' :
+                editSchedule?.v2_category === null && editSchedule?.id ? 'social' : ''
+    );
 
     // Recruit State
     const [recruitContent, setRecruitContent] = useState('');
@@ -111,6 +116,11 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
             setLinkUrl(source.link_url || '');
             setLinkName(source.link_name || '');
             setImagePreview(source.image_url || null);
+            setV2DisplayType(
+                source.v2_genre === '동호회정규강습' ? 'club_regular' :
+                    source.v2_genre === '동호회강습' ? 'club_lesson' :
+                        'social'
+            );
         } else {
             // Reset states if no edit/copy source is provided (e.g., for new schedule)
             setTitle('');
@@ -126,6 +136,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
             setLinkName('');
             setImagePreview(null);
             setImageFile(null);
+            setV2DisplayType('social');
         }
     }, [editSchedule?.id, copyFrom?.id, isOpen]);
 
@@ -279,6 +290,11 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
             return;
         }
 
+        if (!v2DisplayType && activeTab === 'schedule') {
+            alert('v2 메인 노출 분류를 선택해주세요.');
+            return;
+        }
+
         setIsSubmitting(true);
         setLoadingMessage('일정 저장 중...');
 
@@ -364,6 +380,9 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                 address: address,
                 link_url: linkUrl || null,
                 link_name: linkName || null,
+                v2_genre: v2DisplayType === 'club_regular' ? '동호회정규강습' :
+                    v2DisplayType === 'club_lesson' ? '동호회강습' : null,
+                v2_category: v2DisplayType === 'social' ? null : 'club',
                 // user_id는 update 시 변경하지 않음 (권한 문제 방지)
                 ...(editSchedule ? {} : { user_id: user.id }),
             };
@@ -603,6 +622,27 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                                     }}
                                     placeholder="https://..."
                                 />
+                            </div>
+                        </div>
+
+                        <div className="form-section v2-display-section">
+                            <label>v2 메인 노출 분류 (필수) *</label>
+                            <select
+                                value={v2DisplayType}
+                                onChange={(e) => setV2DisplayType(e.target.value)}
+                                className="v2-display-select"
+                                required
+                            >
+                                <option value="" disabled>분류를 선택해주세요</option>
+                                <option value="social">소셜일정 (오늘일정, 이번주일정 노출)</option>
+                                <option value="club_lesson">동호회 강습 (메인 동호회섹션 노출)</option>
+                                <option value="club_regular">동호회 정규강습 (메인 동호회섹션 노출)</option>
+                            </select>
+                            <div className="v2-display-description">
+                                {v2DisplayType === 'social' && <p><i className="ri-information-line"></i> 메인 상단<strong>오늘/이번 주 일정</strong>에 노출됩니다.</p>}
+                                {v2DisplayType === 'club_lesson' && <p><i className="ri-global-line"></i> 메인 하단 <strong>[강습 & 행사]</strong> 섹션의 동호회 탭에 노출됩니다.</p>}
+                                {v2DisplayType === 'club_regular' && <p><i className="ri-calendar-check-line"></i>메인 하단 <strong>[강습 & 행사]</strong> 섹션의 동호회 정규강습 필터에 노출됩니다.</p>}
+                                {!v2DisplayType && <p className="warning"><i className="ri-error-warning-line"></i> 어디에 노출할지 반드시 선택해야 합니다.</p>}
                             </div>
                         </div>
 

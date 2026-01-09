@@ -15,6 +15,6 @@ export const useUserInteractions = (userId: string | null) => {
         loading,
         error,
         refreshInteractions: () => userId ? refreshInteractions(userId) : Promise.resolve(),
-        toggleEventFavorite: (eventId: number) => userId ? baseToggle(userId, eventId) : Promise.resolve()
+        toggleEventFavorite: (eventId: number | string) => userId ? baseToggle(userId, eventId) : Promise.resolve()
     };
 };

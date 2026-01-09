@@ -10,7 +10,7 @@ import type { Event } from "../../../pages/v2/utils/eventListUtils";
 interface EventCardProps {
   event: Event;
   onClick: () => void;
-  onMouseEnter?: (eventId: number) => void;
+  onMouseEnter?: (eventId: number | string) => void;
   onMouseLeave?: () => void;
   isHighlighted?: boolean;
   selectedDate?: Date | null;

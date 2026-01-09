@@ -11,7 +11,8 @@ export const useSocialSchedulesQuery = (groupId?: number) => {
         place_name, address, venue_id, description, 
         image_url, image_micro, image_thumbnail, image_medium, image_full,
         link_url, link_name,
-        user_id, created_at, updated_at, board_users(nickname)
+        user_id, created_at, updated_at, board_users(nickname),
+        v2_genre, v2_category
       `;
 
             let query = supabase.from('social_schedules').select(selectFields);

@@ -10,13 +10,13 @@ interface MyEventsViewProps {
         all: Event[];
     };
     onEventClick: (event: Event) => void;
-    onEventHover: (eventId: number | null) => void;
+    onEventHover: (eventId: number | string | null) => void;
     highlightEvent: any;
     selectedDate: Date | null;
     defaultThumbnailClass: string;
     defaultThumbnailEvent: string;
-    effectiveFavoriteIds: Set<number>;
-    handleToggleFavorite: (eventId: number, e?: React.MouseEvent) => void;
+    effectiveFavoriteIds: Set<number | string>;
+    handleToggleFavorite: (eventId: number | string, e?: React.MouseEvent) => void;
 }
 
 export function MyEventsView({

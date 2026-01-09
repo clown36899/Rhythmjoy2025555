@@ -27,7 +27,7 @@ export interface SocialGroup {
 
 // 2. 소셜 일정 (Schedule) 타입
 export interface SocialSchedule {
-  id: number;
+  id: number | string;
   group_id: number;
   title: string;
   date?: string; // 'YYYY-MM-DD'
@@ -50,6 +50,8 @@ export interface SocialSchedule {
   board_users?: {
     nickname: string;
   };
+  v2_genre?: string;
+  v2_category?: string;
 }
 
 export interface UnifiedSocialEvent {
