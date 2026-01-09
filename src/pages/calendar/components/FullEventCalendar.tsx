@@ -438,7 +438,7 @@ export default memo(function FullEventCalendar({
                 }`}
             >
               <span style={{ marginRight: '2px' }}>{day.getDate()}</span>
-              <div className="weekday-wrapper" style={{ fontSize: '10px', fontWeight: 'normal' }}>
+              <span className="weekday-wrapper" style={{ fontSize: '10px', fontWeight: 'normal', marginLeft: '2px' }}>
                 <span className="translated-part">
                   {todayFlag ? t('today') : t(`weekdays.${['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][day.getDay()]}`)}
                 </span>
@@ -449,7 +449,7 @@ export default memo(function FullEventCalendar({
                 <span className="fixed-part en" translate="no">
                   {(() => { const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']; return todayFlag ? 'Today' : days[day.getDay()]; })()}
                 </span>
-              </div>
+              </span>
             </span>
           </div>
 

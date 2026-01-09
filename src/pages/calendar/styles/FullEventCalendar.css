@@ -677,25 +677,23 @@
 .cal-event-continue-left {
   border-top-left-radius: 0 !important;
   border-bottom-left-radius: 0 !important;
-  margin-left: -4px !important;
-  width: calc(100% + 4px) !important;
-  mask-image: linear-gradient(to right, transparent, black 4px);
-  /* Fade in left side slightly or just mask? */
-  /* Better: just remove radius and pull left */
+  /* margin-left: -4px !important; Removed for consistent size */
+  /* width: calc(100% + 4px) !important; Removed for consistent size */
+  /* mask-image: linear-gradient(to right, transparent, black 4px); Removed */
 }
 
 .cal-event-continue-right {
   border-top-right-radius: 0 !important;
   border-bottom-right-radius: 0 !important;
-  margin-right: -4px !important;
-  width: calc(100% + 4px) !important;
+  /* margin-right: -4px !important; Removed for consistent size */
+  /* width: calc(100% + 4px) !important; Removed for consistent size */
 }
 
 /* If both left and right continue (middle days) */
 .cal-event-continue-left.cal-event-continue-right {
-  margin-left: -4px !important;
-  margin-right: -4px !important;
-  width: calc(100% + 8px) !important;
+  /* margin-left: -4px !important; */
+  /* margin-right: -4px !important; */
+  /* width: calc(100% + 8px) !important; */
   border-radius: 0 !important;
 }
 
@@ -779,6 +777,11 @@
   font-weight: 700;
   color: #d1d5dbcf;
   /* Default text color for dark background */
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: baseline !important;
+  white-space: nowrap !important;
+  gap: 2px;
 }
 
 .calendar-date-number-today {
@@ -1720,9 +1723,9 @@
 }
 
 .calendar-fullscreen-placeholder {
-  width: 50%;
-  aspect-ratio: 1 / 1;
-  border-radius: 4px;
+  width: 100%;
+  aspect-ratio: 5 / 6;
+  border-radius: 0.3rem;
   display: flex;
   align-items: center;
   justify-content: center;
