@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import CalendarSearchModal from '../v2/components/CalendarSearchModal';
+import { PWAInstallButton } from '../../components/PWAInstallButton';
 import './guide.css';
 
 declare global {
@@ -178,6 +179,9 @@ export default function GuidePage() {
           <p className="guide-hero-subtitle">
             누구나 자유롭게 이벤트와 강습을 <br></br>등록하고 공유할 수 있습니다
           </p>
+          <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center' }}>
+            <PWAInstallButton />
+          </div>
         </div>
 
         {/* Feature Cards */}

@@ -58,6 +58,16 @@
       document.getElementById('manifest-placeholder').setAttribute('href', '/manifest.json');
     })();
 
+    // PWA 설치 프롬프트 조기 캡처
+    window.deferredPrompt = null;
+    window.addEventListener('beforeinstallprompt', (e) => {
+      console.log('🚀 [index.html] beforeinstallprompt captured early');
+      e.preventDefault();
+      window.deferredPrompt = e;
+      // React 컨텍스트가 로드된 후에도 받을 수 있도록 커스텀 이벤트 발송
+      window.dispatchEvent(new CustomEvent('pwaPromptReady', { detail: e }));
+    });
+
     // 유튜브 iframe 콘솔 에러 필터링 (기능에는 영향 없음)
     const originalError = console.error;
     console.error = function (...args) {
@@ -109,7 +119,8 @@
   </noscript>
 
   <!-- Pretendard Web Font -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+  <link rel="stylesheet"
+    href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
 
   <!-- Kakao Map SDK - 항상 로드 -->
   <script type="text/javascript"

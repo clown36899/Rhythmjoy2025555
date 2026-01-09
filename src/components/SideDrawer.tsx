@@ -4,6 +4,7 @@ import { useModal } from '../hooks/useModal';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { useEffect, useState } from 'react';
+import { PWAInstallButton } from './PWAInstallButton';
 import '../styles/components/SideDrawer.css';
 
 interface SideDrawerProps {
@@ -193,6 +194,11 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                     <button className="drawer-close-btn" onClick={onClose}>
                         <i className="ri-close-line"></i>
                     </button>
+                </div>
+
+                {/* PWA 설치 버튼 - 최상단 배치 */}
+                <div style={{ padding: '0.75rem 1rem 0' }}>
+                    <PWAInstallButton />
                 </div>
 
                 <nav className="drawer-nav">
