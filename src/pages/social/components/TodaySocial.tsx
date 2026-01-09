@@ -5,6 +5,7 @@ import { useModalActions } from '../../../contexts/ModalContext';
 import { HorizontalScrollNav } from '../../v2/components/HorizontalScrollNav';
 import { useAuth } from '../../../contexts/AuthContext';
 import { getLocalDateString } from '../../v2/utils/eventListUtils';
+import { PWAInstallButton } from '../../../components/PWAInstallButton';
 
 // 1. Props 인터페이스 수정
 interface TodaySocialProps {
@@ -131,6 +132,11 @@ const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll, on
                         <span style={{ marginLeft: 'min(0.5vw, 4px)' }}>❯</span>
                     </button>
                 )}
+                <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center' }}>
+                    <div style={{ transform: 'scale(0.85)', transformOrigin: 'right center' }}>
+                        <PWAInstallButton />
+                    </div>
+                </div>
             </div>
 
             <HorizontalScrollNav>

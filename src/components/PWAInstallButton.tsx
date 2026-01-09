@@ -11,11 +11,17 @@ export const PWAInstallButton = () => {
 
     // 이미 설치된 PWA 열기
     const handleOpenApp = () => {
-        // PWA를 새 창으로 열기 (standalone 모드로 실행)
-        window.open('/', '_blank');
+        // PWA가 설치되어 있으면 홈으로 이동 (이미 PWA 모드에서 실행 중)
+        window.location.href = '/';
     };
 
     const handleInstallClick = async () => {
+        // PWA가 이미 설치되어 있으면 앱 열기
+        if (isInstalled) {
+            handleOpenApp();
+            return;
+        }
+
         // 1. React Context의 promptEvent 확인
         // 2. 전역 window.deferredPrompt 확인 (최후의 수단 fallback)
         const activePrompt = promptEvent || (window as any).deferredPrompt;
@@ -36,9 +42,14 @@ export const PWAInstallButton = () => {
                 setShowInstructions(true);
             }
         } else {
-            // 설치 가능한 이벤트가 전혀 없는 경우에만 안내 모달 표시
-            console.warn('⚠️ [PWAInstallButton] No install prompt event available');
-            setShowInstructions(true);
+            // promptEvent가 없는 경우 - iOS이거나 설치 불가능한 환경
+            // iOS는 수동 설치만 가능하므로 안내 표시
+            if (isIOS) {
+                setShowInstructions(true);
+            } else {
+                // Android/Desktop에서 promptEvent 없으면 아무것도 안 함
+                console.warn('⚠️ [PWAInstallButton] No install prompt available');
+            }
         }
     };
 
