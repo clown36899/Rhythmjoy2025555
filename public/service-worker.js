@@ -1,5 +1,5 @@
-// 빌보드 PWA 서비스 워커 (Version: 20260104-2307 - YouTube API Update)
-const CACHE_NAME = 'rhythmjoy-cache-v17';
+// 빌보드 PWA 서비스 워커 (Version: 20260110-0520 - PWA Install & Splash Update)
+const CACHE_NAME = 'rhythmjoy-cache-v18';
 
 self.addEventListener('install', (event) => {
   console.log('[SW] v17 - YouTube IFrame API Direct Implementation! 🎥');

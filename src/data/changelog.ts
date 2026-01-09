@@ -8,6 +8,16 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '3.5.2',
+        date: '2026-01-10',
+        changes: [
+            '[✨ PWA] 설치 프로세스 전면 개선 (엄격한 설치 확인 및 수동 앱 열기 유도)',
+            '[🎨 디자인] PWA 스플래시 스크린(로딩 화면) 배경색 블랙 테마 적용',
+            '[🔧 개선] 데스크탑/모바일 설치 경험 분리 및 버튼 가시성 최적화',
+            '[🐛 Fix] 모바일에서 설치 진행률 95% 멈춤 현상 해결 (이벤트 타이밍 필터링)'
+        ]
+    },
+    {
         version: '3.5.1',
         date: '2026-01-09',
         changes: [
