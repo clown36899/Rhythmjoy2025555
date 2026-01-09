@@ -125,19 +125,11 @@ export const InAppBrowserGuard: React.FC = () => {
     // Android user might see a flash of the site before being redirected, which is fine.
     // Ideally we could show a redirecting loader for Android but 'return null' is less intrusive for normal users if detection false positive.
 
-    // If it is Android and in-app, we executed redirect above. 
-    // We can show a simple message in case redirect is slow.
-    if (isInAppBrowser && !isIOS) { // Android In-App
-        return (
-            <div style={{
-                position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: '#f8f9fa', zIndex: 99999,
-                display: 'flex', justifyContent: 'center', alignItems: 'center', flexDirection: 'column'
-            }}>
-                <div style={{ width: '40px', height: '40px', border: '3px solid #ddd', borderTopColor: '#333', borderRadius: '50%', animation: 'guard-spin 1s linear infinite' }}></div>
-                <p style={{ marginTop: '20px', color: '#333', fontSize: '1.1rem', fontWeight: '600', fontFamily: 'sans-serif' }}>Chrome으로 이동 중...</p>
-                <style>{`@keyframes guard-spin { to { transform: rotate(360deg); } }`}</style>
-            </div>
-        )
+    // For Android, we executed redirect above.
+    // We render nothing (invisible guard) so the site looks normal if redirect fails or is slow,
+    // and if the user comes back, they just see the site.
+    if (isInAppBrowser && !isIOS) {
+        return null;
     }
 
     return null;
