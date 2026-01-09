@@ -4,11 +4,9 @@
 
 /* ===== 페이지 컨테이너 ===== */
 .guide-page-container {
-  height: 100vh;
-  overflow-y: auto;
+  min-height: 100vh;
   margin-top: 60px;
   padding-bottom: 142px;
-
 }
 
 /* ===== 콘텐츠 영역 ===== */

@@ -5,20 +5,19 @@
   padding-top: 60px;
   /* Safe Area for Header (60px) */
   position: relative;
-  height: 100vh;
-  /* Fallback */
-  height: 100dvh;
+  min-height: 100vh;
   /* Mobile Address Bar Fix */
   box-sizing: border-box;
   display: flex;
   /* NEW: Use Flexbox */
   flex-direction: column;
-  /* Stack children vertically */
+}
+
+/* History Mode: Force fixed height and hidden overflow */
+.board-page-container.is-history-mode {
+  height: 100vh;
+  height: 100dvh;
   overflow: hidden;
-  /* Prevent body scroll */
-  /* Stack children vertically */
-  overflow: hidden;
-  /* Prevent body scroll */
 }
 
 @keyframes fadeIn {
@@ -43,14 +42,14 @@
   /* height: calc(100vh - 110px); REMOVED */
   flex: 1;
   /* NEW: Fill remaining vertical space automatically */
-  /* overflow-y: auto; */
-  /* Internal scroll */
   margin-top: 0;
-  overflow: hidden;
   padding-bottom: 150px;
   /* Generous bottom padding */
-  -webkit-overflow-scrolling: touch;
-  /* Smooth scroll for iOS */
+}
+
+/* History Mode: Restore internal scroll for containers if needed, but container itself is fixed */
+.is-history-mode .board-posts-container {
+  overflow: hidden;
 }
 
 /* Anonymous Board Notice */
