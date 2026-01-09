@@ -11,15 +11,34 @@
   display: flex;
   /* NEW: Use Flexbox */
   flex-direction: column;
+  flex: 1;
+  /* NEW: Fill available height */
 }
 
-/* History Mode: Force fixed height and hidden overflow */
+/* History Mode: Height and Overflow Management */
 .board-page-container.is-history-mode {
-  height: 100vh;
+  min-height: 0 !important;
   height: 100dvh;
+  /* Use dynamic viewport height */
   overflow: hidden;
+  padding-top: 60px !important;
+  /* Always keep header space */
 }
 
+/* Tab Bar Positioning - Standardized */
+.board-page-container.is-history-mode .board-tab-outer {
+  top: 60px !important;
+  /* Right below header */
+  z-index: 47;
+}
+
+.board-page-container.is-history-mode .board-prefix-tab-outer {
+  top: 108px !important;
+  /* Header (60) + Tab (48) */
+  z-index: 46;
+}
+
+/* Fade in animation */
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -30,26 +49,31 @@
   }
 }
 
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
 /* ... existing code ... */
 
 /* ===== 게시글 목록 컨테이너 ===== */
 .board-posts-container {
   padding-left: 0;
   padding-right: 0;
-  padding-top: 60px;
-  /* 탭 메뉴 공간 확보 (연습실과 동일) */
-  padding-bottom: 10rem;
-  /* height: calc(100vh - 110px); REMOVED */
+  /* padding-top is handled inline by BoardMainContainer */
   flex: 1;
-  /* NEW: Fill remaining vertical space automatically */
   margin-top: 0;
-  padding-bottom: 150px;
-  /* Generous bottom padding */
+  padding-bottom: calc(65px + env(safe-area-inset-bottom));
+  /* Standard bottom nav clearance */
+  box-sizing: border-box;
 }
 
-/* History Mode: Restore internal scroll for containers if needed, but container itself is fixed */
+/* History Mode specific container adjustments */
 .is-history-mode .board-posts-container {
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  /* Ensure bottom padding is sufficient to clear bottom nav */
+  /* padding-bottom: calc(85px + env(safe-area-inset-bottom)) !important; */
 }
 
 /* Anonymous Board Notice */

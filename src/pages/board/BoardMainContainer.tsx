@@ -266,11 +266,15 @@ export default function BoardMainContainer() {
             )}
 
             <div
-                className="board-posts-container"
-                onTouchStart={onTouchStart}
+                className={`board-posts-container ${category === 'history' ? 'is-history' : ''}`}
                 onTouchMove={onTouchMove}
                 onTouchEnd={onTouchEnd}
-                style={{ paddingTop: prefixes.length > 0 ? '96px' : '48px' }}
+                style={{
+                    paddingTop: prefixes.length > 0 ? '96px' : '48px',
+                    display: category === 'history' ? 'flex' : 'block',
+                    flexDirection: 'column',
+                    flex: 1
+                }}
             >
                 {loading ? (
                     <div className="board-loading-container">
@@ -280,7 +284,7 @@ export default function BoardMainContainer() {
                 ) : category === 'dev-log' ? (
                     <DevLog />
                 ) : category === 'history' ? (
-                    <div style={{ marginTop: '-48px' }}>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
                         <HistoryTimelinePage />
                     </div>
                 ) : category === 'anonymous' ? (

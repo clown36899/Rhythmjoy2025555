@@ -1,21 +1,22 @@
 .archive-layout-container {
     display: flex;
     flex-direction: column;
-    height: 100vh;
-    height: 100svh;
+    height: 100%;
     background-color: #09090b;
     color: #fafafa;
     overflow: auto;
     padding-top: 60px;
     /* MobileShell Header offset */
-    padding-bottom: 14px;
-    /* Bottom Nav offset */
+    padding-bottom: calc(70px + env(safe-area-inset-bottom));
+    /* Bottom Nav offset + safety margin */
     box-sizing: border-box;
 }
 
 .archive-layout-container.has-sub-header {
-    padding-top: 104px;
-    /* Header(60px) + SubHeader(50px) offset */
+    padding-top: 110px;
+    /* Header(60px) + SubHeader(50px) offset + safety margin */
+    overflow: hidden;
+    /* Added: Prevent layout scroll when sub-header (canvas) is active */
 }
 
 .archive-sub-header {
@@ -39,6 +40,9 @@
 
 .archive-content {
     flex: 1;
+    display: flex;
+    /* Added: Allow children (canvas) to fill height */
+    flex-direction: column;
     position: relative;
     padding-top: 0;
     /* Content fills the padded container */
@@ -50,6 +54,11 @@
 
 .archive-content.is-history {
     overflow: hidden;
+    height: 100%;
+    /* Added: Ensure full height inheritance */
+    display: flex;
+    /* Added: Flex container for children */
+    flex-direction: column;
 }
 
 /* Legacy title and back button removed */
