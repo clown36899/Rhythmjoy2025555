@@ -2,8 +2,8 @@
 .social-detail-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(15px);
+    background: rgb(0 0 0 / 59%);
+    backdrop-filter: blur(2px);
     -webkit-backdrop-filter: blur(15px);
     display: flex;
     justify-content: center;
@@ -276,7 +276,7 @@
     .social-detail-container {
         max-height: 100dvh;
         height: 72dvh;
-        width: 325px;
+        width: 300px;
         border-radius: 2rem;
     }
 
