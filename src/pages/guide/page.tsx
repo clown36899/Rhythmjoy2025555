@@ -189,7 +189,7 @@ export default function GuidePage() {
             </div>
             <h3 className="guide-card-title">무료 등록</h3>
             <p className="guide-card-description">
-              카카오 간편 로그인으로 누구나<br />
+              간편 로그인으로 누구나<br />
               쉽고 빠르게 일정을 등록할 수 있습니다.<br /><br />
               {/* 건전한 커뮤니티 환경 조성을 위해,<br />
               서비스 이용 시 필요한 최소한의 정보가<br />
@@ -209,7 +209,7 @@ export default function GuidePage() {
             <div className="guide-card-description guide-card-list">
               <div className="guide-list-item">
                 <i className="ri-checkbox-circle-line"></i>
-                <span>카카오 로그인 후 자유롭게 등록/수정</span>
+                <span>로그인 후 자유롭게 등록/수정</span>
               </div>
               <div className="guide-list-item">
                 <i className="ri-checkbox-circle-line"></i>

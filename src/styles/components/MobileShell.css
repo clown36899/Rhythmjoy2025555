@@ -664,9 +664,10 @@
   position: fixed;
   bottom: calc(60px + env(safe-area-inset-bottom) + 16px);
   right: 16px;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
+  min-width: 56px;
+  height: 50px;
+  padding: 0 18px;
+  border-radius: 25px;
   background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   color: white;
   border: none;
@@ -674,11 +675,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   z-index: 40;
   /* Above bottom nav (z-20) */
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   /* Spring effect */
+}
+
+.shell-fab-btn .fab-label {
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .shell-fab-btn:hover {
@@ -692,7 +700,7 @@
 }
 
 .shell-fab-btn i {
-  font-size: 24px;
+  font-size: 20px;
 }
 
 
@@ -722,9 +730,10 @@
   position: fixed;
   bottom: calc(60px + env(safe-area-inset-bottom) + 16px);
   right: 16px;
-  width: 56px;
-  height: 56px;
-  border-radius: 50%;
+  min-width: 56px;
+  height: 50px;
+  padding: 0 18px;
+  border-radius: 25px;
   background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
   color: white;
   border: none;
@@ -732,11 +741,18 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   z-index: 40;
   /* Above bottom nav (z-20) */
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   /* Spring effect */
+}
+
+.shell-fab-btn .fab-label {
+  font-size: 15px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 .shell-fab-btn:hover {
@@ -750,5 +766,5 @@
 }
 
 .shell-fab-btn i {
-  font-size: 24px;
+  font-size: 20px;
 }

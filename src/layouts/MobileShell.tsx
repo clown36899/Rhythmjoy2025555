@@ -435,6 +435,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
           data-analytics-id="fab_action"
         >
           <i className={pageAction.icon}></i>
+          {pageAction.label && <span className="fab-label">{pageAction.label}</span>}
         </button>
       )}
 

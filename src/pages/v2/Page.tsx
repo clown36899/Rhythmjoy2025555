@@ -236,7 +236,7 @@ export default function HomePageV2() {
     // FAB Registration Action (Moved here to access calendarMode)
     useSetPageAction(useMemo(() => ({
         icon: 'ri-add-line',
-        label: '이벤트 등록',
+        label: '자율등록(누구나)',
         requireAuth: true,
         onClick: () => {
             window.dispatchEvent(new CustomEvent('createEventForDate', {

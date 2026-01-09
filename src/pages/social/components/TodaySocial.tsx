@@ -136,6 +136,14 @@ const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll, on
                             data-analytics-section="today_social"
                             onClick={(e) => handleScheduleClick(e, item)}
                         >
+
+                            <div className="today-card-info">
+                                <h3 className="today-card-title">{item.title}</h3>
+                                <p className="today-card-place">
+                                    <i className="ri-map-pin-line"></i>
+                                    {item.place_name || '장소 미정'}
+                                </p>
+                            </div>
                             <div className="today-card-image">
                                 {getMediumImage(item) ? (
                                     <img src={getMediumImage(item)} alt={item.title} loading="lazy" />
@@ -149,13 +157,6 @@ const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll, on
                                         <span className="today-time">{item.start_time.substring(0, 5)}</span>
                                     </div>
                                 )}
-                            </div>
-                            <div className="today-card-info">
-                                <h3 className="today-card-title">{item.title}</h3>
-                                <p className="today-card-place">
-                                    <i className="ri-map-pin-line"></i>
-                                    {item.place_name || '장소 미정'}
-                                </p>
                             </div>
                         </div>
                     ))}
