@@ -69,6 +69,7 @@ export const PWAInstallButton = () => {
                 console.log(`사용자 선택 결과: ${outcome}`);
 
                 if (outcome === 'accepted') {
+                    console.log('✅ 사용자가 설치를 수락했습니다');
                     // 설치 시작 - 프로그레스 표시
                     setIsInstalling(true);
                     setInstallProgress(0);
@@ -85,7 +86,9 @@ export const PWAInstallButton = () => {
 
                     // appinstalled 이벤트를 기다림
                     const handleInstallComplete = () => {
+                        console.log('🎉 appinstalled 이벤트 발생!');
                         clearInterval(progressInterval);
+                        clearInterval(timeoutId);
                         setInstallProgress(100);
 
                         // 100% 완료 후 1초 뒤 PWA 열기
@@ -99,7 +102,20 @@ export const PWAInstallButton = () => {
                         window.removeEventListener('appinstalled', handleInstallComplete);
                     };
 
+                    // 전역 이벤트 리스너 등록
                     window.addEventListener('appinstalled', handleInstallComplete);
+                    console.log('👂 appinstalled 이벤트 리스너 등록됨');
+
+                    // 30초 후 타임아웃 (설치가 완료되지 않으면 리셋)
+                    const timeoutId = setTimeout(() => {
+                        clearInterval(progressInterval);
+                        window.removeEventListener('appinstalled', handleInstallComplete);
+
+                        console.warn('⚠️ 설치 타임아웃 - appinstalled 이벤트가 발생하지 않았습니다');
+                        console.log('💡 설치가 완료되었다면 페이지를 새로고침하세요');
+                        setIsInstalling(false);
+                        setInstallProgress(0);
+                    }, 30000);
 
                     setPromptEvent(null);
                     (window as any).deferredPrompt = null;
