@@ -85,20 +85,59 @@ export const PWAInstallButton = () => {
                     }, 300);
 
                     // appinstalled 이벤트를 기다림
-                    const handleInstallComplete = () => {
-                        console.log('🎉 appinstalled 이벤트 발생!');
-                        clearInterval(progressInterval);
-                        setInstallProgress(100);
+                    const handleInstallComplete = async () => {
+                        console.log('🎉 appinstalled 이벤트 발생! (검증 시작)');
 
-                        // 100% 완료 후 1초 뒤 PWA 열기
+                        // 검증 루프 시작 (2초 간격)
+                        const verifyInterval = setInterval(async () => {
+                            try {
+                                // 1. getInstalledRelatedApps API 지원 여부 확인
+                                if ('getInstalledRelatedApps' in navigator) {
+                                    const relatedApps = await (navigator as any).getInstalledRelatedApps();
+                                    console.log('🔍 설치된 앱 목록 확인:', relatedApps);
+
+                                    // 목록에 우리 앱이 있으면 진짜 설치 완료!
+                                    if (relatedApps.length > 0) {
+                                        console.log('✅ 진짜 설치 확인됨!');
+                                        finishInstallation();
+                                        return;
+                                    }
+                                } else {
+                                    // API 미지원 브라우저는 3초 딜레이 후 완료 처리 (fallback)
+                                    console.warn('⚠️ 검증 API 미지원 - 시간 기반 완료 처리');
+                                    setTimeout(finishInstallation, 3000);
+                                    return;
+                                }
+                            } catch (e) {
+                                console.error('검증 중 오류:', e);
+                                // 오류 시에도 fallback으로 완료 처리
+                                setTimeout(finishInstallation, 3000);
+                            }
+                        }, 2000);
+
+                        // 설치 완료 처리 함수
+                        const finishInstallation = () => {
+                            clearInterval(progressInterval);
+                            clearInterval(verifyInterval);
+                            setInstallProgress(100);
+
+                            // 100% 완료 후 1초 뒤 PWA 열기
+                            setTimeout(() => {
+                                setIsInstalling(false);
+                                setInstallProgress(0);
+                                window.location.href = '/';
+                            }, 1000);
+
+                            window.removeEventListener('appinstalled', handleInstallComplete);
+                        };
+
+                        // 30초 안전장치 (검증 실패해도 완료 처리)
                         setTimeout(() => {
-                            setIsInstalling(false);
-                            setInstallProgress(0);
-                            // PWA 앱 열기
-                            window.location.href = '/';
-                        }, 1000);
-
-                        window.removeEventListener('appinstalled', handleInstallComplete);
+                            if (isInstalling) {
+                                console.log('⏰ 검증 타임아웃 - 강제 완료');
+                                finishInstallation();
+                            }
+                        }, 30000);
                     };
 
                     // 전역 이벤트 리스너 등록
