@@ -75,78 +75,86 @@ export const PWAInstallButton = () => {
                 addLog(`Choice: ${outcome}`);
 
                 if (outcome === 'accepted') {
+                    // 설치 시작 시간 기록
+                    const installStartTime = Date.now();
+
                     // 설치 시작 - 프로그레스 표시
                     setIsInstalling(true);
                     setInstallProgress(0);
 
-                    // 프로그레스 애니메이션 (천천히 증가, 95%까지만)
+                    // 프로그레스 애니메이션
                     const progressInterval = setInterval(() => {
                         setInstallProgress(prev => {
-                            if (prev >= 95) {
-                                return 95; // 95%에서 대기
-                            }
-                            return prev + 1; // 1%씩 천천히 증가
+                            if (prev >= 95) return 95;
+                            return prev + 1;
                         });
                     }, 300);
 
                     let verifyInterval: NodeJS.Timeout;
+                    let isFinishCalled = false;
 
-                    // 설치 완료 처리 함수 (진짜 완료될 때만 호출)
+                    // 설치 완료 처리 함수
                     const finishInstallation = () => {
+                        if (isFinishCalled) return;
+                        isFinishCalled = true;
+
                         clearInterval(progressInterval);
                         clearInterval(verifyInterval);
                         setInstallProgress(100);
-                        addLog('Done! Opening...');
+                        addLog('Done! Wait 3s...');
 
+                        // 진짜 신호 후 3초 후에 앱 열기
                         setTimeout(() => {
                             setIsInstalling(false);
                             setInstallProgress(0);
                             window.location.href = '/';
-                        }, 1000);
+                        }, 3000);
 
                         window.removeEventListener('appinstalled', handleAppInstalled);
                     };
 
-                    // appinstalled 이벤트 리스너 (로그용)
+                    // appinstalled 이벤트 리스너
                     const handleAppInstalled = () => {
-                        addLog('Evt: appinstalled');
-                        // 여기서는 아무것도 하지 않고 API가 감지할 때까지 계속 기다립니다.
-                        // 사용자 폰 성능에 따라 5초가 걸릴지 10초가 걸릴지 모르기 때문입니다.
+                        const timeElapsed = Date.now() - installStartTime;
+                        addLog(`Evt: appinstalled (${Math.round(timeElapsed / 1000)}s)`);
+
+                        // 너무 빨리(4초 미만) 발생한 이벤트는 "가짜/시작신호"로 간주하고 무시
+                        if (timeElapsed < 4000) {
+                            addLog('Ignore early evt');
+                            return;
+                        }
+
+                        addLog('Real install evt!');
+                        finishInstallation();
                     };
                     window.addEventListener('appinstalled', handleAppInstalled);
 
-                    // 검증 루프 (API 확인 - 1초 간격)
-                    addLog('Poll start (1s)');
+                    // API 확인용 루프 (참고 로그용으로만 남김, 완료 로직 아님)
+                    addLog('Poll start (Log only)');
                     verifyInterval = setInterval(async () => {
                         try {
                             if ('getInstalledRelatedApps' in navigator) {
                                 const relatedApps = await (navigator as any).getInstalledRelatedApps();
                                 const count = relatedApps.length;
-                                addLog(`API: ${count} apps`);
                                 if (count > 0) {
-                                    addLog('Found app!');
-                                    finishInstallation();
+                                    // addLog(`API found: ${count}`);
+                                    // API가 찾으면 땡큐지만, 이걸로 완료 처리는 하지 않음 (사용자 요청)
                                 }
-                            } else {
-                                addLog('API not supp');
                             }
                         } catch (e) {
-                            addLog(`Err: ${e}`);
+                            // ignore
                         }
-                    }, 1000);
+                    }, 2000);
 
-                    // 60초 타임아웃 (무한 대기 방지)
+                    // 60초 타임아웃
                     setTimeout(() => {
-                        // 60초가 지나도 설치 확인이 안되면
-                        if (isInstalling) {
+                        if (isInstalling && !isFinishCalled) {
                             clearInterval(progressInterval);
                             clearInterval(verifyInterval);
                             window.removeEventListener('appinstalled', handleAppInstalled);
 
                             addLog('Timeout(60s)');
-                            // 강제로 성공 처리하지 않음! (사용자 요청)
-                            // 대신 안내 메시지 표시
-                            alert('설치 확인 타임아웃. 새로고침해주세요.');
+                            alert('설치가 완료되었다면 페이지를 새로고침해주세요.');
                             setIsInstalling(false);
                         }
                     }, 60000);
