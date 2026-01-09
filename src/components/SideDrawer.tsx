@@ -540,6 +540,21 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                             <span className="fixed-part en" translate="no">Guide</span>
                         </span>
                     </div>
+                    {/* 사이트맵 링크 추가 */}
+                    <div className="drawer-menu-item"
+                        onClick={() => handleNavigation('/map')}
+                        data-analytics-id="nav_sitemap"
+                        data-analytics-type="nav_item"
+                        data-analytics-title="사이트맵"
+                        data-analytics-section="side_drawer_service"
+                    >
+                        <i className="ri-map-2-line"></i>
+                        <span className="manual-label-wrapper">
+                            <span className="translated-part">Site Map</span>
+                            <span className="fixed-part ko" translate="no">사이트 맵 (전체 메뉴)</span>
+                            <span className="fixed-part en" translate="no">Site Map</span>
+                        </span>
+                    </div>
                 </nav>
 
                 <div className="drawer-footer">

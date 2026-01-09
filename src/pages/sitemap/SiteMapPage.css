@@ -1,0 +1,126 @@
+.sitemap-container {
+    padding: 24px 20px 80px;
+    max-width: 800px;
+    margin: 0 auto;
+    color: #fff;
+}
+
+.sitemap-header {
+    margin-bottom: 32px;
+    text-align: center;
+}
+
+.sitemap-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.sitemap-subtitle {
+    font-size: 0.9rem;
+    color: #94a3b8;
+}
+
+.sitemap-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 16px;
+}
+
+.sitemap-card {
+    background: rgba(30, 41, 59, 0.4);
+    border: 1px solid rgba(148, 163, 184, 0.1);
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    transition: all 0.2s ease;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    backdrop-filter: blur(8px);
+}
+
+.sitemap-card:active {
+    transform: scale(0.98);
+    background: rgba(30, 41, 59, 0.6);
+}
+
+.sitemap-icon-box {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: rgba(99, 102, 241, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+    font-size: 24px;
+    color: #818cf8;
+}
+
+.sitemap-card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+
+.sitemap-card-desc {
+    font-size: 0.75rem;
+    color: #64748b;
+    line-height: 1.4;
+}
+
+.sitemap-section {
+    margin-bottom: 40px;
+}
+
+.sitemap-section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+    padding-left: 8px;
+    border-left: 3px solid #6366f1;
+    color: #e2e8f0;
+}
+
+/* Category Specific Colors */
+.sitemap-card.social .sitemap-icon-box {
+    background: rgba(236, 72, 153, 0.1);
+    color: #ec4899;
+}
+
+.sitemap-card.practice .sitemap-icon-box {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10b981;
+}
+
+.sitemap-card.calendar .sitemap-icon-box {
+    background: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+}
+
+.sitemap-card.shopping .sitemap-icon-box {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+}
+
+.sitemap-card.library .sitemap-icon-box {
+    background: rgba(139, 92, 246, 0.1);
+    color: #8b5cf6;
+}
+
+.sitemap-card.board .sitemap-icon-box {
+    background: rgba(14, 165, 233, 0.1);
+    color: #0ea5e9;
+}
+
+.sitemap-card.personal .sitemap-icon-box {
+    background: rgba(255, 99, 71, 0.1);
+    color: #ff6347;
+}

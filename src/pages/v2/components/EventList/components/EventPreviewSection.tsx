@@ -287,25 +287,36 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                             className={`manual-label-wrapper evt-genre-btn ${showGlobal ? 'active' : ''}`}
                             style={{
                                 marginLeft: '12px',
-                                padding: '4px 12px', // Slightly larger padding
+                                padding: '6px 14px',
                                 fontSize: '13px',
-                                background: showGlobal ? 'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)' : '#ffffff', // White bg for inactive
-                                color: showGlobal ? 'white' : '#64748b',
-                                border: showGlobal ? '1px solid transparent' : '1px solid #e2e8f0', // Border for inactive
-                                borderRadius: '20px',
+                                background: showGlobal ? 'linear-gradient(135deg, #2563eb 0%, #4f46e5 100%)' : '#ffffff',
+                                color: showGlobal ? '#ffffff' : '#64748b',
+                                border: showGlobal ? '1px solid transparent' : '1px solid #e2e8f0',
+                                borderRadius: '24px',
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '4px',
-                                cursor: 'pointer', // Distinct cursor
-                                transition: 'all 0.2s ease', // Smooth transition
-                                boxShadow: showGlobal ? '0 4px 12px rgba(255, 107, 107, 0.4)' : '0 1px 3px rgba(0,0,0,0.05)' // Shadow for both
+                                gap: '6px',
+                                cursor: 'pointer',
+                                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                boxShadow: showGlobal ? '0 4px 12px rgba(37, 99, 235, 0.3)' : '0 1px 2px rgba(0,0,0,0.05)',
+                                fontWeight: 500
                             }}
                         >
-                            <span style={{ fontSize: '14px' }}>🌏</span>
-                            <span className="translated-part">Global</span>
-                            <span className="fixed-part ko" translate="no" style={{ fontWeight: 600 }}>Global</span>
-                            <span className="fixed-part en" translate="no" style={{ fontWeight: 600 }}>Global</span>
-                            <i className={`ri-arrow-down-s-line evt-global-chevron ${showGlobal ? 'open' : ''}`}></i>
+                            <i className="ri-earth-line" style={{ fontSize: '16px', fontWeight: 'normal' }}></i>
+                            {showGlobal ? (
+                                <>
+                                    <span className="translated-part">Global</span>
+                                    <span className="fixed-part ko" translate="no">국외</span>
+                                    <span className="fixed-part en" translate="no">Global</span>
+                                </>
+                            ) : (
+                                <>
+                                    <span className="translated-part">Korea</span>
+                                    <span className="fixed-part ko" translate="no">국내</span>
+                                    <span className="fixed-part en" translate="no">Korea</span>
+                                </>
+                            )}
+                            <i className={`ri-arrow-down-s-line evt-global-chevron ${showGlobal ? 'open' : ''}`} style={{ transition: 'transform 0.3s ease' }}></i>
                         </button>
                     </div>
 
@@ -527,6 +538,6 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                     <ShoppingBanner />
                 )}
             </div>
-        </div>
+        </div >
     );
 };
