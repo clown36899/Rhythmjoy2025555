@@ -128,7 +128,11 @@ const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules,
     const calculateDDay = (scheduleDate: string | null): string | null => {
         if (!scheduleDate) return null;
 
-        const today = new Date(todayStr);
+        // 날짜 문자열 직접 비교 (Timezone 문제 원천 차단)
+        const todayStr = getLocalDateString();
+        if (scheduleDate === todayStr) return 'D-Day';
+
+        const today = new Date(todayStr + 'T00:00:00');
         const targetDate = new Date(scheduleDate + 'T00:00:00');
 
         const diffTime = targetDate.getTime() - today.getTime();

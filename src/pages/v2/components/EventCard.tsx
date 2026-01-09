@@ -122,16 +122,40 @@ export const EventCard = memo(({
 
   // D-day 계산 로직
   const dDay = useMemo(() => {
-    if (isPast) return null; // 지난 이벤트는 D-day 표시 안 함
+    if (isPast) return null; // 완전히 지난 이벤트는 D-day 표시 안 함
 
+    // 1. 오늘이 행사 날짜 목록(개별 일정)에 포함되는지 확인 -> 'D-Day' 표시
+    // "연속 날짜(기간) 개념 없음" -> 개별 등록 일자 중 하나와 일치해야 함.
+    if (event.event_dates && event.event_dates.length > 0) {
+      if (event.event_dates.includes(todayString)) {
+        return 'D-Day';
+      }
+    } else {
+      // event_dates가 없는 경우(단일 일정 등): 시작일이나 종료일이 오늘과 정확히 일치하는지 확인
+      const startDateStr = event.start_date || event.date;
+      const endDateStr = event.end_date || event.date;
+      if (startDateStr === todayString || endDateStr === todayString) {
+        return 'D-Day';
+      }
+    }
+
+    // 2. 미래의 행사에 대한 D-Day 계산
     const today = new Date(todayString);
     let targetDate: Date | null = null;
 
     // 이벤트 시작일 결정
     if (event.event_dates && event.event_dates.length > 0) {
-      // 다중 날짜 중 가장 빠른 날짜
-      const sortedDates = [...event.event_dates].sort();
-      targetDate = new Date(sortedDates[0] + 'T00:00:00');
+      // 다중 날짜 중 가장 빠른 날짜 (이미 위에서 오늘 포함 여부는 체크했으므로, 미래의 날짜만 남음 or 과거)
+      // 하지만 여기서 단순 정렬 후 가장 빠른 날짜를 잡으면, 이미 지난 첫날을 잡을 수도 있음.
+      // D-Day는 "앞으로 남은 날짜"를 보여주는 것이므로, "오늘 이후의 날짜 중 가장 빠른 날"을 찾아야 정확함.
+      const futureDates = event.event_dates.filter(d => d >= todayString).sort();
+      if (futureDates.length > 0) {
+        targetDate = new Date(futureDates[0] + 'T00:00:00');
+      } else if (event.event_dates.length > 0) {
+        // 모든 날짜가 과거인 경우 (isPast체크에 걸려야 하지만 혹시 모르니)
+        const sortedDates = [...event.event_dates].sort();
+        targetDate = new Date(sortedDates[0] + 'T00:00:00');
+      }
     } else {
       const startDate = event.start_date || event.date;
       if (startDate) {
@@ -145,10 +169,10 @@ export const EventCard = memo(({
     const diffTime = targetDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    if (diffDays < 0) return null; // 이미 시작한 이벤트
+    if (diffDays < 0) return null; // 이미 시작한 이벤트 (위의 기간 체크에 안 걸리고 start가 과거면 null)
     if (diffDays === 0) return 'D-Day';
     return `D-${diffDays}일`;
-  }, [todayString, isPast, event.event_dates, event.start_date, event.date]);
+  }, [todayString, isPast, event.event_dates, event.start_date, event.date, event.end_date]); // event.end_date added check
 
   // category 기반 클래스 추가
   const categoryClass = event.category === 'class' ? 'card-category-class' : 'card-category-event';

@@ -227,7 +227,7 @@ const SocialPage: React.FC = () => {
         id: `event-${e.id}`, // Add prefix to avoid collision with social_schedules ID
         group_id: -1, // 행사 구분을 위한 플래그
         title: e.title,
-        date: e.start_date || e.date,
+        date: today, // [Important] TodaySocial에 표시될 때는 '오늘' 날짜로 고정하여 D-Day 배지가 뜨도록 함 (원래 start_date가 9일이어도 오늘(10일) 노출되면 오늘임)
         start_time: e.time,
         description: e.description,
         image_url: e.image,

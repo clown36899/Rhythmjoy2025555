@@ -114,6 +114,22 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
         futureEvents.filter(e => e.scope === 'overseas'),
         [futureEvents]);
 
+    // 강습 노출 필터 로직: 시작일이 지났으면 노출하지 않음 (Today > StartDate -> Hide)
+    // 4,6,7일 수업이어도 오늘(5일)이면 미노출. 오늘(4일)이면 노출.
+    const shouldShowClass = (e: Event) => {
+        const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD local
+        let startDate = e.start_date || e.date;
+        if (e.event_dates && e.event_dates.length > 0) {
+            const sorted = [...e.event_dates].sort();
+            startDate = sorted[0];
+        }
+        if (!startDate) return true;
+        // 오늘이 시작일보다 크면(지났으면) 숨김
+        // today(5) > start(4) -> true -> Hide
+        // today(4) > start(4) -> false -> Show
+        return !(today > startDate);
+    };
+
     return (
         <div style={{ paddingBottom: '100px' }}>
             {/* 2. Today Social */}
@@ -396,20 +412,23 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
 
                 <HorizontalScrollNav>
                     <div className="evt-v2-horizontal-scroll">
-                        {regularClasses.filter(e => !selectedClassGenre || e.genre?.includes(selectedClassGenre)).map(e => (
-                            <div key={e.id} className="card-container">
-                                <EventCard
-                                    event={e}
-                                    onClick={() => onEventClick(e)}
-                                    defaultThumbnailClass={defaultThumbnailClass}
-                                    defaultThumbnailEvent={defaultThumbnailEvent}
-                                    onMouseEnter={(id) => onEventHover?.(id)}
-                                    onMouseLeave={() => onEventHover?.(null)}
-                                    isFavorite={effectiveFavoriteIds.has(e.id)}
-                                    onToggleFavorite={(ev: React.MouseEvent) => handleToggleFavorite(e.id, ev)}
-                                />
-                            </div>
-                        ))}
+                        {regularClasses
+                            .filter(shouldShowClass) // 시작일 지난 강습 숨김
+                            .filter(e => !selectedClassGenre || e.genre?.includes(selectedClassGenre))
+                            .map(e => (
+                                <div key={e.id} className="card-container">
+                                    <EventCard
+                                        event={e}
+                                        onClick={() => onEventClick(e)}
+                                        defaultThumbnailClass={defaultThumbnailClass}
+                                        defaultThumbnailEvent={defaultThumbnailEvent}
+                                        onMouseEnter={(id) => onEventHover?.(id)}
+                                        onMouseLeave={() => onEventHover?.(null)}
+                                        isFavorite={effectiveFavoriteIds.has(e.id)}
+                                        onToggleFavorite={(ev: React.MouseEvent) => handleToggleFavorite(e.id, ev)}
+                                    />
+                                </div>
+                            ))}
                     </div>
                 </HorizontalScrollNav>
             </div>
@@ -444,20 +463,23 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
 
                 <HorizontalScrollNav>
                     <div className="evt-v2-horizontal-scroll">
-                        {clubLessons.filter(e => !selectedClubGenre || e.genre?.includes(selectedClubGenre)).map(event => (
-                            <div key={event.id} className="card-container">
-                                <EventCard
-                                    event={event}
-                                    onClick={() => onEventClick?.(event)}
-                                    defaultThumbnailClass={defaultThumbnailClass}
-                                    defaultThumbnailEvent={defaultThumbnailEvent}
-                                    onMouseEnter={(id) => onEventHover?.(id)}
-                                    onMouseLeave={() => onEventHover?.(null)}
-                                    isFavorite={effectiveFavoriteIds.has(event.id)}
-                                    onToggleFavorite={(ev: React.MouseEvent) => handleToggleFavorite(event.id, ev)}
-                                />
-                            </div>
-                        ))}
+                        {clubLessons
+                            .filter(shouldShowClass) // 시작일 지난 강습 숨김
+                            .filter(e => !selectedClubGenre || e.genre?.includes(selectedClubGenre))
+                            .map(event => (
+                                <div key={event.id} className="card-container">
+                                    <EventCard
+                                        event={event}
+                                        onClick={() => onEventClick?.(event)}
+                                        defaultThumbnailClass={defaultThumbnailClass}
+                                        defaultThumbnailEvent={defaultThumbnailEvent}
+                                        onMouseEnter={(id) => onEventHover?.(id)}
+                                        onMouseLeave={() => onEventHover?.(null)}
+                                        isFavorite={effectiveFavoriteIds.has(event.id)}
+                                        onToggleFavorite={(ev: React.MouseEvent) => handleToggleFavorite(event.id, ev)}
+                                    />
+                                </div>
+                            ))}
                         {clubLessons.length === 0 && (
                             <div className="evt-v2-empty" style={{ padding: '20px' }}>진행중인 동호회 강습이 없습니다</div>
                         )}
@@ -477,20 +499,22 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
 
                 <HorizontalScrollNav>
                     <div className="evt-v2-horizontal-scroll">
-                        {clubRegularClasses.map(e => (
-                            <div key={e.id} className="card-container">
-                                <EventCard
-                                    event={e}
-                                    onClick={() => onEventClick(e)}
-                                    defaultThumbnailClass={defaultThumbnailClass}
-                                    defaultThumbnailEvent={defaultThumbnailEvent}
-                                    onMouseEnter={(id) => onEventHover?.(id)}
-                                    onMouseLeave={() => onEventHover?.(null)}
-                                    isFavorite={effectiveFavoriteIds.has(e.id)}
-                                    onToggleFavorite={(ev: React.MouseEvent) => handleToggleFavorite(e.id, ev)}
-                                />
-                            </div>
-                        ))}
+                        {clubRegularClasses
+                            .filter(shouldShowClass) // 시작일 지난 강습 숨김
+                            .map(e => (
+                                <div key={e.id} className="card-container">
+                                    <EventCard
+                                        event={e}
+                                        onClick={() => onEventClick(e)}
+                                        defaultThumbnailClass={defaultThumbnailClass}
+                                        defaultThumbnailEvent={defaultThumbnailEvent}
+                                        onMouseEnter={(id) => onEventHover?.(id)}
+                                        onMouseLeave={() => onEventHover?.(null)}
+                                        isFavorite={effectiveFavoriteIds.has(e.id)}
+                                        onToggleFavorite={(ev: React.MouseEvent) => handleToggleFavorite(e.id, ev)}
+                                    />
+                                </div>
+                            ))}
                     </div>
                 </HorizontalScrollNav>
             </div>

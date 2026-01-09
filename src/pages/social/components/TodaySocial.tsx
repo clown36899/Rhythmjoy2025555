@@ -4,6 +4,7 @@ import './TodaySocial.css';
 import { useModalActions } from '../../../contexts/ModalContext';
 import { HorizontalScrollNav } from '../../v2/components/HorizontalScrollNav';
 import { useAuth } from '../../../contexts/AuthContext';
+import { getLocalDateString } from '../../v2/utils/eventListUtils';
 
 // 1. Props 인터페이스 수정
 interface TodaySocialProps {
@@ -57,7 +58,15 @@ const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll, on
         if (item.image_micro) return item.image_micro;
         if (item.image_full) return item.image_full;
         if (item.image_url) return item.image_url;
+        if (item.image_url) return item.image_url;
         return '';
+    };
+
+    // D-day 계산 함수 (TodaySocial용)
+    // 오늘 일정 섹션에 들어왔다는 것은 이미 날짜 필터링(오늘)을 통과했다는 뜻이므로
+    // 별도의 날짜 비교 없이 무조건 'D-Day'를 반환하여 배지 누락을 방지합니다.
+    const calculateDDay = (scheduleDate: string | null): string | null => {
+        return 'D-Day';
     };
 
     const handleScheduleClick = (e: React.MouseEvent, item: SocialSchedule) => {
@@ -153,6 +162,14 @@ const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll, on
                                         <i className="ri-calendar-event-line"></i>
                                     </div>
                                 )}
+                                {(() => {
+                                    const dDay = calculateDDay(item.date || null);
+                                    return dDay ? (
+                                        <div className="all-social-dday-badge all-social-dday-today">
+                                            {dDay}
+                                        </div>
+                                    ) : null;
+                                })()}
                                 {item.start_time && (
                                     <div className="today-card-overlay">
                                         <span className="today-time">{item.start_time.substring(0, 5)}</span>
