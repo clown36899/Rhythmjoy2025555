@@ -239,8 +239,14 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refr
         <div
             key={item.id}
             className={`resource-item ${item.type}`}
-            draggable
-            onDragStart={(e) => onDragStart(e, item)}
+            draggable={isEditMode}
+            onDragStart={(e) => {
+                if (!isEditMode) {
+                    e.preventDefault();
+                    return;
+                }
+                onDragStart(e, item)
+            }}
         >
             <span className="item-icon">
                 {item.type === 'playlist' ? '💿' : item.type === 'video' ? '📹' : '📄'}
@@ -385,7 +391,7 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refr
                             refreshKey={refreshKey}
                             onCategoryChange={onCategoryChange}
                             readOnly={!isEditMode}
-                            dragSourceMode={true}
+                            dragSourceMode={isEditMode}
                             scale={treeScale}
                             onEditItem={onEditResource}
                         />
