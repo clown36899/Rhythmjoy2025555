@@ -534,7 +534,9 @@ export default function HistoryTimelinePage() {
             setModifiedNodeIds(new Set()); // Reset modified tracking
             await loadTimeline(); // Reload to get everything fresh with real IDs
             setHasUnsavedChanges(false);
-            alert('저장 완료되었습니다.');
+            setModifiedNodeIds(new Set()); // Reset modified tracking
+            await loadTimeline(); // Reload to get everything fresh with real IDs
+            setHasUnsavedChanges(false);
 
         } catch (error) {
             console.error('Save failed:', error);
@@ -2144,7 +2146,7 @@ export default function HistoryTimelinePage() {
                         }}
                     >
                         <i className={`ri-${isSelectionMode ? 'drag-move-2-fill' : 'checkbox-multiple-line'}`}></i>
-                        <span>{isSelectionMode ? '선택' : '이동'}</span>
+                        <span>{isSelectionMode ? '다중선택해제' : '다중선택'}</span>
                     </button>
                 )}
                 {isEditMode && (
@@ -2342,6 +2344,7 @@ export default function HistoryTimelinePage() {
                 isAdmin={isAdmin}
                 onToggleEditMode={handleToggleEditMode}
                 onEditResource={handleEditDrawerResource}
+                onAddNode={handleCreateNode}
             />
 
             {/* Context Menu */}

@@ -37,9 +37,10 @@ interface Props {
     isAdmin?: boolean;
     onToggleEditMode?: () => void;
     onEditResource?: (item: any) => void;
+    onAddNode?: () => void;
 }
 
-export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refreshKey, categories, playlists, videos, documents, onMoveResource, onReorderResource, onDeleteResource, onRenameResource, onCategoryChange, isEditMode = false, isAdmin = false, onToggleEditMode, onEditResource }: Props) => {
+export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refreshKey, categories, playlists, videos, documents, onMoveResource, onReorderResource, onDeleteResource, onRenameResource, onCategoryChange, isEditMode = false, isAdmin = false, onToggleEditMode, onEditResource, onAddNode }: Props) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterMode, setFilterMode] = useState<'all' | 'year'>('all');
     const [width, setWidth] = useState(360);
@@ -288,26 +289,51 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refr
                         <span className="fixed-part en" translate="no">Data</span>
                     </h2>
                     {isAdmin && (
-                        <button
-                            onClick={onToggleEditMode}
-                            style={{
-                                fontSize: '11px',
-                                backgroundColor: isEditMode ? '#1d4ed8' : '#374151',
-                                color: 'white',
-                                padding: '2px 8px',
-                                borderRadius: '4px',
-                                fontWeight: 'bold',
-                                border: 'none',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s ease',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px'
-                            }}
-                        >
-                            <i className={`ri-${isEditMode ? 'edit-fill' : 'edit-line'}`} style={{ fontSize: '12px' }}></i>
-                            {isEditMode ? '편집 중' : '편집 시작'}
-                        </button>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                            <button
+                                onClick={onToggleEditMode}
+                                style={{
+                                    fontSize: '11px',
+                                    backgroundColor: isEditMode ? '#1d4ed8' : '#374151',
+                                    color: 'white',
+                                    padding: '2px 8px',
+                                    borderRadius: '4px',
+                                    fontWeight: 'bold',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s ease',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                }}
+                            >
+                                <i className={`ri-${isEditMode ? 'edit-fill' : 'edit-line'}`} style={{ fontSize: '12px' }}></i>
+                                {isEditMode ? '편집 중' : '편집'}
+                            </button>
+                            {isEditMode && onAddNode && (
+                                <button
+                                    onClick={onAddNode}
+                                    style={{
+                                        fontSize: '11px',
+                                        backgroundColor: '#10b981',
+                                        color: 'white',
+                                        padding: '2px 8px',
+                                        borderRadius: '4px',
+                                        fontWeight: 'bold',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.2s ease',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '4px'
+                                    }}
+                                    title="새 노드 추가"
+                                >
+                                    <i className="ri-add-line" style={{ fontSize: '12px' }}></i>
+                                    추가
+                                </button>
+                            )}
+                        </div>
                     )}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
