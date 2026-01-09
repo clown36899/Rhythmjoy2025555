@@ -100,7 +100,7 @@ export default memo(function FullEventCalendar({
         start_date: schedule.date,
         end_date: schedule.date,
         event_dates: schedule.date ? [schedule.date] : [],
-        category: schedule.v2_category || 'club', // v2_category 사용, 기본값 'club'
+        category: schedule.v2_category || 'social', // v2_category가 없으면 기본값 'social' (파티/소셜)
         image_micro: schedule.image_micro,
         image_thumbnail: schedule.image_thumbnail,
         image_medium: schedule.image_medium,

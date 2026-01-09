@@ -271,22 +271,25 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                             className={`manual-label-wrapper evt-genre-btn ${showGlobal ? 'active' : ''}`}
                             style={{
                                 marginLeft: '12px',
-                                padding: '4px 10px',
+                                padding: '4px 12px', // Slightly larger padding
                                 fontSize: '13px',
-                                background: showGlobal ? 'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)' : '#f1f5f9',
+                                background: showGlobal ? 'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)' : '#ffffff', // White bg for inactive
                                 color: showGlobal ? 'white' : '#64748b',
-                                border: 'none',
+                                border: showGlobal ? '1px solid transparent' : '1px solid #e2e8f0', // Border for inactive
                                 borderRadius: '20px',
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '4px',
-                                boxShadow: showGlobal ? '0 2px 8px rgba(255, 107, 107, 0.3)' : 'none'
+                                cursor: 'pointer', // Distinct cursor
+                                transition: 'all 0.2s ease', // Smooth transition
+                                boxShadow: showGlobal ? '0 4px 12px rgba(255, 107, 107, 0.4)' : '0 1px 3px rgba(0,0,0,0.05)' // Shadow for both
                             }}
                         >
                             <span style={{ fontSize: '14px' }}>🌏</span>
                             <span className="translated-part">Global</span>
                             <span className="fixed-part ko" translate="no" style={{ fontWeight: 600 }}>Global</span>
                             <span className="fixed-part en" translate="no" style={{ fontWeight: 600 }}>Global</span>
+                            <i className={`ri-arrow-down-s-line evt-global-chevron ${showGlobal ? 'open' : ''}`}></i>
                         </button>
                     </div>
 

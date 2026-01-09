@@ -653,3 +653,21 @@
     border-color: #fafafa;
     font-weight: 600;
 }
+
+/* Global Button Chevron Icon */
+.evt-global-chevron {
+    font-size: 14px;
+    margin-left: 2px;
+    transition: transform 0.2s ease, color 0.2s ease;
+    /* Default color (inactive) - slightly lighter than text */
+    color: #0000005c !important;
+}
+
+.evt-genre-btn.active .evt-global-chevron {
+    /* Active color */
+    color: #ffffff;
+}
+
+.evt-global-chevron.open {
+    transform: rotate(180deg);
+}
