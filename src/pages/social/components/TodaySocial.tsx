@@ -94,9 +94,9 @@ const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll, on
             <div className="section-title-area" style={{ display: 'flex', alignItems: 'center', width: '100%', minWidth: 0, overflow: 'hidden' }}>
                 <i className="ri-fire-fill" style={{ color: '#ff4b2b', fontSize: 'min(4vw, 1.15rem)', flexShrink: 1 }}></i>
                 <h2 className="section-title manual-label-wrapper" style={{ flexShrink: 1, minWidth: 0, overflow: 'hidden', justifyContent: 'flex-start' }}>
-                    <span className="translated-part">Today Schedule</span>
-                    <span className="fixed-part ko" translate="no">오늘 일정</span>
-                    <span className="fixed-part en" translate="no">Today</span>
+                    <span className="translated-part">Today Schedule ({new Date().toLocaleDateString('ko-KR', { weekday: 'short' })})</span>
+                    <span className="fixed-part ko" translate="no">오늘 일정 ({new Date().toLocaleDateString('ko-KR', { weekday: 'short' })})</span>
+                    <span className="fixed-part en" translate="no">Today ({new Date().toLocaleDateString('en-US', { weekday: 'short' })})</span>
                 </h2>
                 <span className="live-badge manual-label-wrapper">
                     <span className="translated-part">LIVE {schedules.length}</span>
