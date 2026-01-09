@@ -271,8 +271,8 @@
 }
 
 .day-name {
-    font-size: 0.65rem;
-    color: #6b7280;
+    font-size: 1rem;
+    color: #c8c8c8;
 }
 
 .day-btn-v5.active .day-name {

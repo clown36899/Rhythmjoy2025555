@@ -239,7 +239,9 @@ const SocialPage: React.FC = () => {
         user_id: e.user_id,
         created_at: e.created_at,
         updated_at: e.created_at,
+        updated_at: e.created_at,
         board_users: e.board_users, // Author info
+        scope: e.scope,
       } as unknown as SocialSchedule;
     });
 
@@ -269,8 +271,10 @@ const SocialPage: React.FC = () => {
         image_full: e.image_full || e.image,
         place_name: e.location,
         user_id: e.user_id,
+        user_id: e.user_id,
         created_at: e.created_at,
         updated_at: e.created_at,
+        scope: e.scope,
       };
 
       // 다중 일정이 있는 경우 (각 일정별로 분리해서 생성)

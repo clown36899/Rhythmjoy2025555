@@ -52,6 +52,7 @@ export interface SocialSchedule {
   };
   v2_genre?: string;
   v2_category?: string;
+  scope?: string;
 }
 
 export interface UnifiedSocialEvent {
@@ -77,5 +78,7 @@ export interface UnifiedSocialEvent {
   linkUrl?: string;
   description?: string;
   author_nickname?: string;
+  author_nickname?: string;
   created_at?: string;
+  scope?: string;
 }

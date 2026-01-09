@@ -102,6 +102,18 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
         setSearchParams(p);
     };
 
+    // State for Global Section Toggle
+    const [showGlobal, setShowGlobal] = React.useState(false);
+
+    // Split events by scope
+    const domesticEvents = React.useMemo(() =>
+        futureEvents.filter(e => !e.scope || e.scope === 'domestic'),
+        [futureEvents]);
+
+    const overseasEvents = React.useMemo(() =>
+        futureEvents.filter(e => e.scope === 'overseas'),
+        [futureEvents]);
+
     return (
         <div style={{ paddingBottom: '100px' }}>
             {/* 2. Today Social */}
@@ -248,46 +260,104 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                 <div className="evt-v2-section-title">
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start' }}>
                         <i className="ri-fire-fill" style={{ color: '#f97316', marginRight: 'min(1vw, 6px)' }}></i>
-                        <span>예정된 행사</span>
-                        <span className="evt-v2-count" style={{ marginLeft: 'min(1vw, 6px)' }}>{futureEvents.length}</span>
-                    </div>
-                    <button onClick={() => window.location.href = '/calendar?category=social'} className="evt-view-all-btn manual-label-wrapper">
-                        <i className="ri-calendar-event-line" style={{ marginRight: 'min(0.5vw, 4px)' }}></i>
-                        <span className="translated-part">Calendar</span>
-                        <span className="fixed-part ko" translate="no">전체달력</span>
-                        <span className="fixed-part en" translate="no">Calendar</span>
-                        <i className="ri-arrow-right-s-line" style={{ marginLeft: 'min(0.5vw, 4px)' }}></i>
-                    </button>
-                </div>
+                        <span>{showGlobal ? 'Global Events' : '예정된 행사'}</span>
+                        <span className="evt-v2-count" style={{ marginLeft: 'min(1vw, 6px)' }}>
+                            {showGlobal ? overseasEvents.length : domesticEvents.length}
+                        </span>
 
-                <div className="evt-v2-genre-wrap">
-                    {['전체', ...allGenresStructured.event].map(g => (
+                        {/* Global Toggle Button */}
                         <button
-                            key={g}
-                            className={`evt-genre-btn ${((selectedEventGenre || '전체') === g) ? 'active' : ''}`}
-                            onClick={() => setGenreParam('event_genre', g === '전체' ? null : g)}
+                            onClick={() => setShowGlobal(!showGlobal)}
+                            className={`manual-label-wrapper evt-genre-btn ${showGlobal ? 'active' : ''}`}
+                            style={{
+                                marginLeft: '12px',
+                                padding: '4px 10px',
+                                fontSize: '13px',
+                                background: showGlobal ? 'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)' : '#f1f5f9',
+                                color: showGlobal ? 'white' : '#64748b',
+                                border: 'none',
+                                borderRadius: '20px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                boxShadow: showGlobal ? '0 2px 8px rgba(255, 107, 107, 0.3)' : 'none'
+                            }}
                         >
-                            {renderGenreLabel(g)}
+                            <span style={{ fontSize: '14px' }}>🌏</span>
+                            <span className="translated-part">Global</span>
+                            <span className="fixed-part ko" translate="no" style={{ fontWeight: 600 }}>Global</span>
+                            <span className="fixed-part en" translate="no" style={{ fontWeight: 600 }}>Global</span>
                         </button>
-                    ))}
+                    </div>
+
+                    {!showGlobal && (
+                        <button onClick={() => window.location.href = '/calendar?category=social'} className="evt-view-all-btn manual-label-wrapper">
+                            <i className="ri-calendar-event-line" style={{ marginRight: 'min(0.5vw, 4px)' }}></i>
+                            <span className="translated-part">Calendar</span>
+                            <span className="fixed-part ko" translate="no">전체달력</span>
+                            <span className="fixed-part en" translate="no">Calendar</span>
+                            <i className="ri-arrow-right-s-line" style={{ marginLeft: 'min(0.5vw, 4px)' }}></i>
+                        </button>
+                    )}
                 </div>
 
+                {/* Genre Filters (Domestic Only) */}
+                {!showGlobal && (
+                    <div className="evt-v2-genre-wrap">
+                        {['전체', ...allGenresStructured.event].map(g => (
+                            <button
+                                key={g}
+                                className={`evt-genre-btn ${((selectedEventGenre || '전체') === g) ? 'active' : ''}`}
+                                onClick={() => setGenreParam('event_genre', g === '전체' ? null : g)}
+                            >
+                                {renderGenreLabel(g)}
+                            </button>
+                        ))}
+                    </div>
+                )}
+
+                {/* Events List (Switched) */}
                 <HorizontalScrollNav>
                     <div className="evt-v2-horizontal-scroll">
-                        {futureEvents.filter(e => !selectedEventGenre || e.genre?.includes(selectedEventGenre)).map(e => (
-                            <div key={e.id} className="card-container">
-                                <EventCard
-                                    event={e}
-                                    onClick={() => onEventClick(e)}
-                                    defaultThumbnailClass={defaultThumbnailClass}
-                                    defaultThumbnailEvent={defaultThumbnailEvent}
-                                    onMouseEnter={(id) => onEventHover?.(id)}
-                                    onMouseLeave={() => onEventHover?.(null)}
-                                    isFavorite={effectiveFavoriteIds.has(e.id)}
-                                    onToggleFavorite={(ev: React.MouseEvent) => handleToggleFavorite(e.id, ev)}
-                                />
-                            </div>
-                        ))}
+                        {showGlobal ? (
+                            // Overseas Events
+                            overseasEvents.length > 0 ? (
+                                overseasEvents.map(e => (
+                                    <div key={e.id} className="card-container">
+                                        <EventCard
+                                            event={e}
+                                            onClick={() => onEventClick(e)}
+                                            defaultThumbnailClass={defaultThumbnailClass}
+                                            defaultThumbnailEvent={defaultThumbnailEvent}
+                                            onMouseEnter={(id) => onEventHover?.(id)}
+                                            onMouseLeave={() => onEventHover?.(null)}
+                                            isFavorite={effectiveFavoriteIds.has(e.id)}
+                                            onToggleFavorite={(ev: React.MouseEvent) => handleToggleFavorite(e.id, ev)}
+                                        />
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="evt-v2-empty" style={{ padding: '20px', width: '100%', textAlign: 'center' }}>
+                                    등록된 국외 행사가 없습니다.
+                                </div>
+                            )
+                        ) : (
+                            // Domestic Events
+                            domesticEvents.filter(e => !selectedEventGenre || e.genre?.includes(selectedEventGenre)).map(e => (
+                                <div key={e.id} className="card-container">
+                                    <EventCard
+                                        event={e}
+                                        onClick={() => onEventClick(e)}
+                                        defaultThumbnailClass={defaultThumbnailClass}
+                                        defaultThumbnailEvent={defaultThumbnailEvent}
+                                        onMouseEnter={(id) => onEventHover?.(id)}
+                                        onMouseLeave={() => onEventHover?.(null)}
+                                        isFavorite={effectiveFavoriteIds.has(e.id)}
+                                        onToggleFavorite={(ev: React.MouseEvent) => handleToggleFavorite(e.id, ev)}
+                                    />
+                                </div>
+                            ))
+                        )}
                     </div>
                 </HorizontalScrollNav>
             </div>

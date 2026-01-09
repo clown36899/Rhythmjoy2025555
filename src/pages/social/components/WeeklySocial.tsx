@@ -152,7 +152,15 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
             }
             // 정규 일정(날짜 없이 요일만 있는 일정)은 제외
             return false;
-        }).sort((a, b) => (a.start_time || '').localeCompare(b.start_time || ''));
+        }).sort((a, b) => {
+            // 1. Overseas check
+            const isOverA = a.scope === 'overseas' ? 1 : 0;
+            const isOverB = b.scope === 'overseas' ? 1 : 0;
+            if (isOverA !== isOverB) return isOverA - isOverB;
+
+            // 2. Time
+            return (a.start_time || '').localeCompare(b.start_time || '');
+        });
     }, [schedules, selectedDay, weekDates]);
 
     // [2] 정규 일정 전용 (요일별 그룹화)
@@ -181,6 +189,12 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                 const dateA = a.date || '';
                 const dateB = b.date || '';
                 if (dateA !== dateB) return dateA.localeCompare(dateB);
+
+                // Secondary: Overseas last
+                const isOverA = a.scope === 'overseas' ? 1 : 0;
+                const isOverB = b.scope === 'overseas' ? 1 : 0;
+                if (isOverA !== isOverB) return isOverA - isOverB;
+
                 return (a.start_time || '').localeCompare(b.start_time || '');
             });
     }, [schedules]);

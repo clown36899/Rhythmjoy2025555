@@ -58,6 +58,9 @@ interface EditableEventDetailProps {
     onExtractThumbnail?: () => void;
     // Venue Selection
     onVenueSelectClick?: () => void;
+    // Scope Selection
+    scope?: "domestic" | "overseas";
+    setScope?: (scope: "domestic" | "overseas") => void;
 }
 
 const genreColorPalette = [
@@ -117,6 +120,8 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
     videoUrl,
     onVideoChange,
     onVenueSelectClick,
+    scope,
+    setScope,
 }, ref) => {
     // Refs
     const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -611,6 +616,42 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                                         </button>
                                                     </div>
                                                 </div>
+
+                                                {/* Scope Selection (Domestic vs Overseas) - Only for Events */}
+                                                {event.category === 'event' && (
+                                                    <div className="editable-margin-bottom-lg">
+                                                        <label className="bottom-sheet-label">지역</label>
+                                                        <div className="editable-flex-row editable-width-full">
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    e.stopPropagation();
+                                                                    setScope?.('domestic');
+                                                                }}
+                                                                className={`editable-category-btn ${scope === 'domestic' ? 'event-active' : ''}`}
+                                                                style={scope !== 'domestic' ? { flex: 1, opacity: 0.5 } : { flex: 1 }}
+                                                            >
+                                                                <span className="editable-category-btn-text">🇰🇷 국내</span>
+                                                                {scope === 'domestic' && <i className="ri-check-line"></i>}
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.preventDefault();
+                                                                    e.stopPropagation();
+                                                                    setScope?.('overseas');
+                                                                }}
+                                                                className={`editable-category-btn ${scope === 'overseas' ? 'event-active' : ''}`}
+                                                                style={scope === 'overseas'
+                                                                    ? { flex: 1, background: 'linear-gradient(135deg, #FF6B6B 0%, #FF8E53 100%)', borderColor: 'transparent', color: 'white' }
+                                                                    : { flex: 1, opacity: 0.5 }
+                                                                }
+                                                            >
+                                                                <span className="editable-category-btn-text">🌏 국외 (Global)</span>
+                                                                {scope === 'overseas' && <i className="ri-check-line"></i>}
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                )}
 
                                                 {/* Genre Section - Only visible if category is selected */}
                                                 {event.category && (

@@ -76,6 +76,7 @@ export default memo(function EventRegistrationModal({
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<"class" | "event" | "">("");
   const [genre, setGenre] = useState("");
+  const [scope, setScope] = useState<"domestic" | "overseas">("domestic");
   // Password state removed - using RLS-based ownership
 
   const [link1, setLink1] = useState("");
@@ -227,6 +228,7 @@ export default memo(function EventRegistrationModal({
         setCategory((editEventData.category as "class" | "event") || "event");
         // Cast to 'any' or 'ExtendedEvent' because standard AppEvent might not have genre yet in basic types
         setGenre((editEventData as unknown as ExtendedEvent).genre || "");
+        setScope(((editEventData as any).scope as "domestic" | "overseas") || "domestic");
 
         // Password removed - using RLS
 
@@ -255,7 +257,9 @@ export default memo(function EventRegistrationModal({
         setLocationLink("");
         setDescription("");
         setCategory("");
+        setCategory("");
         setGenre("");
+        setScope("domestic");
         // setPassword removed
 
         setLink1("");
@@ -635,6 +639,7 @@ export default memo(function EventRegistrationModal({
             description,
             category,
             genre: genre || undefined,
+            scope,
             // password 필드 제거 (RLS 기반 권한 관리로 전환)
             link1,
             link_name1: linkName1,
@@ -941,6 +946,9 @@ export default memo(function EventRegistrationModal({
           setEndDate={setEndDate}
           eventDates={eventDates}
           setEventDates={setEventDates}
+          // Scope Props
+          scope={scope}
+          setScope={setScope}
           // Footer Props
           // password props removed
 

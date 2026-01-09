@@ -24,7 +24,7 @@ interface FullEventCalendarProps {
   selectedCategory?: string;
   highlightedEventId?: number | string | null;
   hoveredEventId?: number | string | null;
-  tabFilter?: 'all' | 'social-events' | 'classes';
+  tabFilter?: 'all' | 'social-events' | 'classes' | 'overseas';
 }
 
 export default memo(function FullEventCalendar({
@@ -111,30 +111,43 @@ export default memo(function FullEventCalendar({
 
     let combined: any[] = [];
 
-    if (tabFilter === 'all') {
-      combined = [...categoryFilteredEvents, ...socialEvents];
-    } else if (tabFilter === 'social-events') {
-      // 소셜&행사: 강습 관련 카테고리(class, regular, club)를 모두 제외
-      const nonClassEvents = categoryFilteredEvents.filter(event =>
-        event.category !== 'class' && event.category !== 'regular' && event.category !== 'club'
-      );
-      const nonClassSocialEvents = socialEvents.filter(event =>
-        event.category !== 'class' && event.category !== 'regular' && event.category !== 'club'
-      );
-      combined = [...nonClassEvents, ...nonClassSocialEvents];
-    } else if (tabFilter === 'classes') {
-      // 강습: 강습 관련 카테고리(class, regular, club)를 모두 포함
-      const classEvents = categoryFilteredEvents.filter(event =>
-        event.category === 'class' || event.category === 'regular' || event.category === 'club'
-      );
-      const classSocialEvents = socialEvents.filter(event =>
-        event.category === 'class' || event.category === 'regular' || event.category === 'club'
-      );
-      combined = [...classEvents, ...classSocialEvents];
+    if (tabFilter === 'overseas') {
+      // 국외: scope가 'overseas'인 것만 포함
+      const overseasEvents = events.filter(event => event.scope === 'overseas');
+      // socialSchedules는 기본적으로 국내라고 가정하므로 제외하거나, 추후 scope 추가 시 로직 변경
+      // 현재는 events 테이블의 scope만 활용
+      combined = [...overseasEvents];
+    } else {
+      // 그 외 탭(전체, 소셜, 강습): 국외 행사 제외 (scope !== 'overseas')
+      // 사용자가 "글로벌 행사는 거기서만 표시하게"라고 했으므로 여기서 제외함
+      const domesticEvents = categoryFilteredEvents.filter(e => e.scope !== 'overseas');
+
+      // socialSchedules는 scope 필드가 없거나 domestic으로 간주
+      // (만약 social_schedules에도 scope가 있다면 여기서 필터링 필요)
+
+      if (tabFilter === 'all') {
+        combined = [...domesticEvents, ...socialEvents];
+      } else if (tabFilter === 'social-events') {
+        const nonClassEvents = domesticEvents.filter(event =>
+          event.category !== 'class' && event.category !== 'regular' && event.category !== 'club'
+        );
+        const nonClassSocialEvents = socialEvents.filter(event =>
+          event.category !== 'class' && event.category !== 'regular' && event.category !== 'club'
+        );
+        combined = [...nonClassEvents, ...nonClassSocialEvents];
+      } else if (tabFilter === 'classes') {
+        const classEvents = domesticEvents.filter(event =>
+          event.category === 'class' || event.category === 'regular' || event.category === 'club'
+        );
+        const classSocialEvents = socialEvents.filter(event =>
+          event.category === 'class' || event.category === 'regular' || event.category === 'club'
+        );
+        combined = [...classEvents, ...classSocialEvents];
+      }
     }
 
     return combined as AppEvent[];
-  }, [categoryFilteredEvents, socialSchedules, tabFilter]);
+  }, [categoryFilteredEvents, socialSchedules, tabFilter, events]);
 
   // 현재 달의 이벤트별 색상 맵 생성
   const eventColorMap = useMemo(() => {
@@ -233,7 +246,7 @@ export default memo(function FullEventCalendar({
       const endOfRange = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 2, 0);
       const startDateStr = startOfRange.toISOString().split('T')[0];
       const endDateStr = endOfRange.toISOString().split('T')[0];
-      const columns = "id,title,date,start_date,end_date,event_dates,category,image_micro";
+      const columns = "id,title,date,start_date,end_date,event_dates,category,image_micro,scope";
 
       // Fetch V2 events
       const eventsPromise = supabase

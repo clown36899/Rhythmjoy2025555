@@ -39,7 +39,7 @@ export default function CalendarPage() {
         return 'all';
     }, []);
 
-    const [tabFilter, setTabFilter] = useState<'all' | 'social-events' | 'classes'>(initialTabFilter);
+    const [tabFilter, setTabFilter] = useState<'all' | 'social-events' | 'classes' | 'overseas'>(initialTabFilter as any);
 
     // Event Modal States - using Hook
     const eventModal = useEventModal();
@@ -351,11 +351,11 @@ export default function CalendarPage() {
                     className={`calendar-tab-btn ${tabFilter === 'social-events' ? 'active' : ''}`}
                     onClick={() => setTabFilter('social-events')}
                 >
-                    <i className="ri-calendar-event-fill"></i>
+                    <span style={{ fontSize: '1.25rem', lineHeight: 1 }}>🇰🇷</span>
                     <div className="tab-label-wrapper">
                         <span className="translated-part">{t('socialEvents')}</span>
                         <span className="fixed-part ko" translate="no">소셜&행사</span>
-                        <span className="fixed-part en" translate="no">Social</span>
+                        <span className="fixed-part en" translate="no">Social & event</span>
                     </div>
                 </button>
                 <button
@@ -367,6 +367,17 @@ export default function CalendarPage() {
                         <span className="translated-part">{t('classes')}</span>
                         <span className="fixed-part ko" translate="no">강습</span>
                         <span className="fixed-part en" translate="no">Class</span>
+                    </div>
+                </button>
+                <button
+                    className={`calendar-tab-btn ${tabFilter === 'overseas' ? 'active' : ''}`}
+                    onClick={() => setTabFilter('overseas')}
+                >
+                    <span style={{ fontSize: '1.25rem', lineHeight: 1 }}>🌏</span>
+                    <div className="tab-label-wrapper">
+                        <span className="translated-part">Global</span>
+                        <span className="fixed-part ko" translate="no">국외</span>
+                        <span className="fixed-part en" translate="no">Global</span>
                     </div>
                 </button>
             </div>

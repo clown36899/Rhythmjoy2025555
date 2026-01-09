@@ -4,7 +4,7 @@ import SocialSubMenu from '../components/SocialSubMenu';
 import './socialcal.css';
 
 interface SocialEvent {
-  id: number;
+  id: string; // Changed to string to support prefixes
   place_id: number;
   place_name: string;
   title: string;
@@ -12,12 +12,14 @@ interface SocialEvent {
   start_time?: string;
   end_time?: string;
   description?: string;
+  scope?: string; // 'domestic' | 'overseas'
 }
 
 export default function SocialCalendarPage() {
   const [events, setEvents] = useState<SocialEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [activeTab, setActiveTab] = useState<'all' | 'domestic' | 'overseas'>('all');
 
   useEffect(() => {
     loadEvents();
@@ -31,8 +33,11 @@ export default function SocialCalendarPage() {
       const month = currentDate.getMonth();
       const firstDay = new Date(year, month, 1);
       const lastDay = new Date(year, month + 1, 0);
+      const firstDayStr = firstDay.toISOString().split('T')[0];
+      const lastDayStr = lastDay.toISOString().split('T')[0];
 
-      const { data, error } = await supabase
+      // 1. Fetch Social Schedules
+      const schedulesPromise = supabase
         .from('social_schedules')
         .select(`
           id,
@@ -44,25 +49,94 @@ export default function SocialCalendarPage() {
           description
         `)
         .not('date', 'is', null)
-        .gte('date', firstDay.toISOString().split('T')[0])
-        .lte('date', lastDay.toISOString().split('T')[0])
-        .order('date')
-        .order('start_time');
+        .gte('date', firstDayStr)
+        .lte('date', lastDayStr);
 
-      if (error) throw error;
+      // 2. Fetch Events
+      const eventsPromise = supabase
+        .from('events')
+        .select(`
+          id,
+          location,
+          title,
+          start_date,
+          end_date,
+          date,
+          time,
+          description,
+          scope,
+          category,
+          event_dates
+        `)
+        .eq('category', 'event')
+        .or(`date.gte.${firstDayStr},start_date.gte.${firstDayStr},end_date.gte.${firstDayStr}`);
 
-      const formattedEvents = (data || []).map((item: any) => ({
-        id: item.id,
-        place_id: 0, // 더 이상 사용하지 않음
-        place_name: item.place_name || '알 수 없음',
+      const [schedulesResult, eventsResult] = await Promise.all([schedulesPromise, eventsPromise]);
+
+      if (schedulesResult.error) throw schedulesResult.error;
+      if (eventsResult.error) throw eventsResult.error;
+
+      // Process Schedules
+      const scheduleEvents: SocialEvent[] = (schedulesResult.data || []).map((item: any) => ({
+        id: `schedule-${item.id}`,
+        place_id: 0,
+        place_name: item.place_name || '장소 미정',
         title: item.title,
         date: item.date,
         start_time: item.start_time,
         end_time: item.end_time,
         description: item.description,
+        scope: 'domestic' // Default to domestic
       }));
 
-      setEvents(formattedEvents);
+      // Process Events
+      const eventEvents: SocialEvent[] = [];
+      (eventsResult.data || []).forEach((item: any) => {
+        // Handle multi-date events or ranges
+        // Simple logic: if event_dates exists, create multiple entries.
+        // If range, create multiple entries (simple expansion for calendar view)
+        // Or just map single date if simple.
+
+        const processDate = (d: string) => {
+          // Filter by current month view
+          if (d >= firstDayStr && d <= lastDayStr) {
+            eventEvents.push({
+              id: `event-${item.id}-${d}`,
+              place_id: 0,
+              place_name: item.location || '장소 미정',
+              title: item.title,
+              date: d,
+              start_time: item.time,
+              description: item.description,
+              scope: item.scope || 'domestic'
+            });
+          }
+        };
+
+        if (item.event_dates && Array.isArray(item.event_dates)) {
+          item.event_dates.forEach((d: string) => processDate(d));
+        } else if (item.start_date && item.end_date) {
+          // Loop through range
+          let loopDate = new Date(item.start_date);
+          const endDate = new Date(item.end_date);
+          while (loopDate <= endDate) {
+            processDate(loopDate.toISOString().split('T')[0]);
+            loopDate.setDate(loopDate.getDate() + 1);
+          }
+        } else if (item.date) {
+          processDate(item.date);
+        }
+      });
+
+      const allEvents = [...scheduleEvents, ...eventEvents];
+
+      // Sort by date then time
+      allEvents.sort((a, b) => {
+        if (a.date !== b.date) return a.date.localeCompare(b.date);
+        return (a.start_time || '').localeCompare(b.start_time || '');
+      });
+
+      setEvents(allEvents);
     } catch (error) {
       console.error('일정 로딩 실패:', error);
     } finally {
@@ -94,7 +168,13 @@ export default function SocialCalendarPage() {
 
   const getEventsForDate = (date: Date) => {
     const dateStr = date.toISOString().split('T')[0];
-    return events.filter(event => event.date === dateStr);
+    return events.filter(event => {
+      if (event.date !== dateStr) return false;
+      if (activeTab === 'all') return true;
+      if (activeTab === 'domestic') return event.scope !== 'overseas';
+      if (activeTab === 'overseas') return event.scope === 'overseas';
+      return true;
+    });
   };
 
   const prevMonth = () => {
@@ -144,6 +224,33 @@ export default function SocialCalendarPage() {
               >
                 <i className="ri-arrow-right-s-line text-xl"></i>
               </button>
+            </div>
+
+            {/* Filter Tabs */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '20px', gap: '8px' }}>
+              {(['all', 'domestic', 'overseas'] as const).map(tab => (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  style={{
+                    padding: '6px 16px',
+                    borderRadius: '20px',
+                    border: '1px solid #e2e8f0',
+                    backgroundColor: activeTab === tab ? '#111' : '#fff',
+                    color: activeTab === tab ? '#fff' : '#64748b',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  {tab === 'all' && <span>📅 전체</span>}
+                  {tab === 'domestic' && <span>🇰🇷 국내</span>}
+                  {tab === 'overseas' && <span>🌏 국외</span>}
+                </button>
+              ))}
             </div>
 
             {/* 요일 헤더 */}
@@ -217,7 +324,12 @@ export default function SocialCalendarPage() {
                     등록된 일정이 없습니다
                   </div>
                 ) : (
-                  events.map((event) => (
+                  events.filter(e => {
+                    if (activeTab === 'all') return true;
+                    if (activeTab === 'domestic') return e.scope !== 'overseas';
+                    if (activeTab === 'overseas') return e.scope === 'overseas';
+                    return true;
+                  }).map((event) => (
                     <div
                       key={event.id}
                       className="socialcal-event-card"

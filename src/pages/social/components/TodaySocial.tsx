@@ -22,8 +22,11 @@ const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll, on
 
     // Shuffle schedules: One-time items first, then regular items
     const shuffledSchedules = React.useMemo(() => {
-        const oneTime = schedules.filter(s => s.date && s.date.trim() !== '');
-        const regular = schedules.filter(s => !s.date || s.date.trim() === '');
+        const overseas = schedules.filter(s => s.scope === 'overseas');
+        const domestic = schedules.filter(s => s.scope !== 'overseas');
+
+        const oneTime = domestic.filter(s => s.date && s.date.trim() !== '');
+        const regular = domestic.filter(s => !s.date || s.date.trim() === '');
 
         const shuffleArray = (arr: SocialSchedule[]) => {
             const result = [...arr];
@@ -34,7 +37,10 @@ const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll, on
             return result;
         };
 
-        return [...shuffleArray(oneTime), ...shuffleArray(regular)];
+        // Domestic shuffled (OneDay + Regular) + Overseas (sorted by time or shuffled? events are usually sorted by time, but here we shuffle to be safe or just append)
+        // Let's shuffle overseas too for consistency, or keep them sorted if preferred. Given "Events", maybe time sort is better.
+        // But the original code shuffled everything. Let's shuffle overseas too.
+        return [...shuffleArray(oneTime), ...shuffleArray(regular), ...shuffleArray(overseas)];
     }, [schedules, mountKey]);
 
     // 오늘 일정이 1개일 때는 숨김 (이번주 일정에 포함되도록)
