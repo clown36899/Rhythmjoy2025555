@@ -174,23 +174,28 @@ export const PWAInstallButton = () => {
 
     return (
         <>
-            {/* 디버그 로그 표시용 (임시) */}
-            {isInstalling && (
+            {/* 디버그 로그 표시용 (Portal로 최상위 렌더링) */}
+            {isInstalling && createPortal(
                 <div style={{
                     position: 'fixed',
-                    top: '60px',
+                    top: '100px', /* 헤더 피하기 위해 좀 더 내림 */
                     left: '10px',
-                    background: 'rgba(0,0,0,0.8)',
-                    color: '#0f0',
-                    padding: '5px',
-                    fontSize: '10px',
-                    zIndex: 99999,
+                    background: 'rgba(0,0,0,0.9)',
+                    color: '#00ff00',
+                    padding: '8px',
+                    fontSize: '12px',
+                    lineHeight: '1.4',
+                    zIndex: 999999, /* z-index 상향 */
                     pointerEvents: 'none',
-                    borderRadius: '4px',
-                    maxWidth: '150px'
+                    borderRadius: '6px',
+                    border: '1px solid #00ff00',
+                    maxWidth: '200px',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.5)'
                 }}>
+                    <div style={{ borderBottom: '1px solid #333', marginBottom: '4px', fontWeight: 'bold' }}>PWA Debugger</div>
                     {debugLogs.map((log, i) => <div key={i}>{log}</div>)}
-                </div>
+                </div>,
+                document.body
             )}
 
             <div
