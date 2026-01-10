@@ -194,19 +194,19 @@ const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules,
                                 data-analytics-section={`weekly_social_${weekMode}`}
                                 onClick={(e) => handleScheduleClick(e, item)}
                             >
-                                <div className="all-social-card-info">
-                                    <span className="all-social-place">
-                                        <i className="ri-map-pin-line"></i>
-                                        {item.place_name || '장소 미정'}
-                                    </span>
-                                    {item.date && (
-                                        <span className="all-social-day-badge">
-                                            {new Date(item.date + 'T00:00:00').toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric', weekday: 'short' })}
-                                        </span>
-                                    )}
-                                    <h3 className="all-social-card-title">{item.title}</h3>
-                                </div>
                                 <div className="all-social-card-image">
+                                    <div className="all-social-card-info">
+                                        <span className="all-social-place">
+                                            <i className="ri-map-pin-line"></i>
+                                            {item.place_name || '장소 미정'}
+                                        </span>
+                                        {item.date && (
+                                            <span className="all-social-day-badge">
+                                                {new Date(item.date + 'T00:00:00').toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric', weekday: 'short' })}
+                                            </span>
+                                        )}
+                                        <h3 className="all-social-card-title">{item.title}</h3>
+                                    </div>
                                     {getMediumImage(item) ? (
                                         <img src={getMediumImage(item)} alt={item.title} loading="lazy" />
                                     ) : (
@@ -228,6 +228,7 @@ const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules,
                                         ) : null;
                                     })()}
                                 </div>
+
                             </div>
                         ))
                     ) : (

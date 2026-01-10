@@ -69,11 +69,11 @@
 
 /* Modern Split Card Design */
 .today-card {
-    flex: 0 0 130px;
-    max-width: 130px;
-    height: 240px;
-    background: #1e1e1e;
-    border-radius: 16px;
+    flex: 0 0 120px;
+    max-width: 120px;
+    height: 200px;
+    /* background: #1e1e1e; */
+    border-radius: 14px;
     overflow: hidden;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     cursor: pointer;
@@ -94,6 +94,8 @@
 .today-card-image {
     width: 100%;
     flex: 1;
+    /* border-radius: 14px; */
+
     position: relative;
     background-color: #262626;
     overflow: hidden;
@@ -102,7 +104,7 @@
 .today-card-image img {
     width: 100%;
     height: 100%;
-    object-fit: fill;
+    object-fit: cover;
     transition: transform 0.5s ease;
 }
 
@@ -122,9 +124,17 @@
     background: linear-gradient(45deg, #1f1f1f, #2a2a2a);
 }
 
-/* Remove Gradient Overlay */
-.today-card::after {
-    display: none;
+/* Gradient Overlay for Image */
+/* Gradient Overlay for Image */
+.today-card-image::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 60%;
+    background: linear-gradient(to top, rgb(29 29 29) 0%, rgb(41 41 41 / 18%) 14%, rgb(27 27 27 / 0%) 100%);
+    pointer-events: none;
 }
 
 .today-card-overlay {
@@ -150,25 +160,25 @@
 .today-card-info {
     position: relative;
     width: 100%;
-    height: 65px;
-    padding: 10px 10px 5px 10px;
+    height: 72px;
+    padding: 8px 10px 8px 10px;
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
     background: #1e1e1e;
     z-index: 2;
-    border-top: 1px solid rgba(255, 255, 255, 0.03);
+    /* border-top: 1px solid rgba(255, 255, 255, 0.03); */
     gap: 4px;
 }
 
 .today-card-title {
-    font-size: 0.82rem;
+    font-size: 0.8rem;
     font-weight: 700;
     color: rgba(255, 255, 255, 0.95);
     margin: 0;
-    padding: 0 0 0 3px;
-    line-height: 1.25;
+    padding: 0 0 0 2px;
+    line-height: 1.3;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
@@ -178,15 +188,15 @@
 
 .today-card-place {
     font-size: 0.7rem;
-    color: #ffffff;
+    color: #a3a3a3;
     margin: 0;
     display: flex;
     align-items: center;
     gap: 3px;
     font-weight: 400;
-    /* margin-top: auto; */
     width: 100%;
     overflow: hidden;
+    margin-bottom: 2px;
 }
 
 .today-card-place span,
@@ -237,11 +247,11 @@
     .today-card {
         /* flex: 0 0 145px;
         max-width: 145px; */
-        border-radius: 14px;
+        /* border-radius: 12px; */
     }
 
     .today-card-title {
-        font-size: 0.9rem;
+        font-size: 0.8rem;
     }
 }
 

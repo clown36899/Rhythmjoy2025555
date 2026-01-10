@@ -4,8 +4,8 @@
 .evt-v2-section {
     padding: 0 15px 18px 14px;
     /* margin-bottom: 13px; */
-    border-bottom: 1px solid #313131;
-    box-shadow: 0px 6px 25px -5px rgb(0 0 0 / 15%), 0 0 0 1px rgb(87 110 148 / 0%);
+    /* border-bottom: 1px solid #313131; */
+    /* box-shadow: 0px 6px 25px -5px rgb(0 0 0 / 15%), 0 0 0 1px rgb(87 110 148 / 0%); */
 }
 
 /* 진행중인 이벤트 섹션 - 독립 스타일 */
@@ -152,7 +152,7 @@
 .evt-v2-horizontal-scroll>.card-container {
     flex: 0 0 auto;
     width: 38%;
-    max-width: 160px;
+    max-width: 105px;
 }
 
 /* Empty State */

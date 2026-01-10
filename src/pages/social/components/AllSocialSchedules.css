@@ -135,7 +135,7 @@
 
 .all-social-card {
     flex: 0 0 auto;
-    width: 147px;
+    width: 127px;
     max-width: 150px;
     background: rgba(255, 255, 255, 0.05);
     border-radius: 12px;
@@ -160,21 +160,24 @@
 .all-social-card-image {
     position: relative;
     width: 100%;
-    height: auto;
-    max-height: 200px;
+    height: 100%;
+    /* Fill the card */
     background: transparent;
     overflow: hidden;
     flex: 1;
     display: flex;
-    align-items: center;
+    align-items: flex-start;
+    /* Align to top */
     justify-content: center;
-    margin-top: auto;
+    margin-top: 0;
 }
 
 .all-social-card-image img {
     width: 100%;
     height: 100%;
     object-fit: contain;
+    object-position: top;
+    /* Cover the area */
 }
 
 /* 정확히 2개일 때만 이미지 높이 234px */
@@ -212,8 +215,20 @@
 }
 
 .all-social-card-info {
-    padding: 12px 12px 8px 12px;
+    padding: 26px 12px 8px 12px;
     display: flex;
+    position: absolute;
+    width: 100%;
+    overflow: hidden;
+    bottom: 0;
+    background: linear-gradient(to bottom, rgb(0 0 0 / 0%) -1%,
+            /* 완전히 투명 */
+            rgb(0 0 0 / 85%) 54%,
+            /* 중간 지점에서 반투명 */
+            rgb(0 0 0) 97%
+            /* 완전히 검정 */
+        );
+    /* background: linear-gradient(to bottom, transparent -296%, #000000 100%); */
     flex-direction: column;
     gap: 4px;
 }
@@ -228,6 +243,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8), 0 0 2px rgba(0, 0, 0, 0.5);
 }
 
 .all-social-day-badge {
@@ -259,6 +275,7 @@
     font-size: 0.8rem;
     flex-shrink: 0;
     color: #fbc024;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }
 
 .all-social-scroller-spacer {
