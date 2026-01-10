@@ -31,6 +31,7 @@ interface Video {
     category_id?: string | null;
     playlist_id?: string | null;
     metadata?: any;
+    content?: string; // 사용자 추가 메모
 }
 
 interface Playlist {
@@ -41,6 +42,7 @@ interface Playlist {
     year?: number; // 추가
     is_on_timeline?: boolean; // 추가
     metadata?: any;
+    content?: string; // 추가
 }
 
 interface Bookmark {
@@ -99,6 +101,8 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
     const [isEditingVideoYear, setIsEditingVideoYear] = useState(false);
     const [editVideoYear, setEditVideoYear] = useState('');
     const [editVideoIsOnTimeline, setEditVideoIsOnTimeline] = useState(false);
+    const [isEditingVideoContent, setIsEditingVideoContent] = useState(false);
+    const [editVideoContent, setEditVideoContent] = useState('');
 
     const [error, setError] = useState<string | null>(null);
     const [fullDescription, setFullDescription] = useState<string | null>(null);
@@ -761,6 +765,43 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         fetchBookmarks(video.id);
     };
 
+    const handleUpdateVideoContent = async () => {
+        if (!isAdmin) return;
+        const video = videos[currentVideoIndex];
+        if (!video) return;
+
+        const { error } = await supabase
+            .from('learning_resources')
+            .update({ content: editVideoContent })
+            .eq('id', video.id);
+
+        if (error) {
+            console.error("Video content update failed", error);
+            alert("상세 메모 수정 실패");
+        } else {
+            setIsEditingVideoContent(false);
+            setRefreshTrigger(prev => prev + 1);
+        }
+    };
+
+    const handleUpdatePlaylistContent = async () => {
+        if (!isAdmin) return;
+        if (!playlist || playlist.id.startsWith('category:')) return;
+
+        const { error } = await supabase
+            .from('learning_resources')
+            .update({ content: editVideoContent }) // Reuse state for simplicity
+            .eq('id', playlist.id);
+
+        if (error) {
+            console.error("Playlist content update failed", error);
+            alert("재생목록 상세 메모 수정 실패");
+        } else {
+            setIsEditingVideoContent(false);
+            setRefreshTrigger(prev => prev + 1);
+        }
+    };
+
     // 드래그 핸들러
     const handleMarkerDragStart = () => {
         if (!isAdmin) return;
@@ -1198,9 +1239,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                                 ) : (
                                     <h2 className="ld-video-title-display">
                                         {currentVideo.title}
-                                        {canEdit && (
-                                            <button onClick={startEditingVideoTitle} className="ld-edit-button" title="제목 수정" style={{ opacity: 0.5, fontSize: '0.8em', marginLeft: '6px' }}>✎</button>
-                                        )}
+                                        {/* 영상 제목 수정 버튼 제거: 원본 정보 보호 */}
                                     </h2>
                                 )}
                             </div>
@@ -1253,10 +1292,8 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                         {/* Description (Memo) */}
                         <div className="ld-video-memo-wrapper">
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                                <span style={{ fontSize: '0.85em', color: '#9ca3af' }}>메모 / 설명</span>
-                                {canEdit && !isEditingVideoMemo && (
-                                    <button onClick={startEditingVideoMemo} className="ld-edit-button-small" style={{ fontSize: '11px', padding: '2px 5px' }}>✎ 메모 수정</button>
-                                )}
+                                <span style={{ fontSize: '0.85em', color: '#9ca3af' }}>영상 원본 정보 (메모/설명)</span>
+                                {/* 기본 정보 수정 버튼 제거: 사용자는 전용 섹션에서만 수정하도록 차단 */}
                             </div>
 
                             {isEditingVideoMemo ? (
@@ -1302,6 +1339,52 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                                 </>
                             )}
                         </div>
+
+                        {/* User Extended Note (New Section) */}
+                        <div className="ld-video-content-wrapper" style={{ marginTop: '24px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '20px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 600, color: '#60a5fa' }}>사용자 상세 메모</h3>
+                                {canEdit && !isEditingVideoContent && (
+                                    <button
+                                        onClick={() => {
+                                            setEditVideoContent(currentVideo.content || '');
+                                            setIsEditingVideoContent(true);
+                                        }}
+                                        className="ld-edit-button-small"
+                                        style={{ fontSize: '11px', padding: '4px 8px' }}
+                                    >
+                                        ✎ 상세 내용 수정
+                                    </button>
+                                )}
+                            </div>
+
+                            {isEditingVideoContent ? (
+                                <div className="ld-edit-container">
+                                    <textarea
+                                        className="ld-edit-textarea"
+                                        value={editVideoContent}
+                                        onChange={(e) => setEditVideoContent(e.target.value)}
+                                        placeholder="이 영상의 상세 배경, 강의 노트, 학습 팁 등 구체적인 내용을 입력하세요."
+                                        rows={10}
+                                        style={{ lineHeight: 1.6, width: '100%', background: '#1f2937', color: '#fff', border: '1px solid #374151', borderRadius: '4px', padding: '12px' }}
+                                    />
+                                    <div className="ld-edit-actions" style={{ marginTop: '10px', display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                        <button onClick={() => setIsEditingVideoContent(false)} className="ld-cancel-button" style={{ padding: '6px 12px', background: '#374151', color: '#d1d5db', border: 'none', borderRadius: '4px' }}>취소</button>
+                                        <button onClick={handleUpdateVideoContent} className="ld-save-button" style={{ padding: '6px 12px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: '4px' }}>저장</button>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className={`ld-video-content-display ${!currentVideo.content ? 'no-content' : ''}`} style={{ minHeight: '60px' }}>
+                                    {currentVideo.content ? (
+                                        <div style={{ lineHeight: 1.7, fontSize: '0.95rem', color: '#e5e7eb', whiteSpace: 'pre-wrap' }}>
+                                            {renderTextWithLinks(currentVideo.content)}
+                                        </div>
+                                    ) : (
+                                        <p style={{ color: '#6b7280', fontStyle: 'italic', fontSize: '0.9rem' }}>공유하고 싶은 상세 노트를 추가해 보세요.</p>
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     <div className="ld-history-section-wrapper">
@@ -1337,7 +1420,8 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                                             </button>
                                         )}
                                         {!isEditingDesc && (
-                                            <button onClick={startEditingDesc} className="ld-edit-button-small">✎ 설명 수정</button>
+                                            /* 재생목록 설명 수정 버튼 제거: 원본 정보 보호 */
+                                            null
                                         )}
                                     </div>
                                 )}
@@ -1411,9 +1495,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                             ) : (
                                 <h2 className="ld-sidebar-playlist-title">
                                     {playlist.title}
-                                    {canEdit && (
-                                        <button onClick={startEditingTitle} className="ld-edit-button" title="제목 수정">✎</button>
-                                    )}
+                                    {/* 사이드바 제목 수정 버튼 제거 */}
                                 </h2>
                             )}
                         </div>

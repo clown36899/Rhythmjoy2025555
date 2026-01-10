@@ -525,6 +525,7 @@ const LearningPage = () => {
                 <PlaylistModal
                     playlistId={viewingPlaylistId}
                     onClose={() => setViewingPlaylistId(null)}
+                    isEditMode={adminMode}
                 />
             )}
             {viewingDocId && (

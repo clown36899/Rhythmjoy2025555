@@ -33,6 +33,7 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
         tags: '',
         addToDrawer: false,
         image_url: '',
+        content: '', // 사용자 상세 메모
     });
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -53,6 +54,7 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                 tags: node.tags?.join(', ') || '',
                 addToDrawer: false,
                 image_url: node.image_url || '',
+                content: node.content || '',
             });
             if (node.image_url) {
                 setImagePreview(node.image_url);
@@ -264,6 +266,7 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                 .filter(Boolean),
             addToDrawer: formData.addToDrawer,
             image_url,
+            content: formData.content, // 사용자 상세 메모 포함
             // Pass existing linked IDs to ensure update logic works
             linked_video_id: node?.linked_video_id,
             linked_document_id: node?.linked_document_id,
@@ -317,13 +320,15 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                 <form className="node-editor-form" onSubmit={handleSubmit}>
 
                     <div className="form-group">
-                        <label>제목 *</label>
+                        <label>제목 * {isLinked && <span style={{ color: '#60a5fa', fontSize: '0.8rem', fontWeight: 'normal', marginLeft: '8px' }}>(원본 정보 - 수정 불가)</span>}</label>
                         <input
                             type="text"
                             value={formData.title}
                             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                             placeholder="예: 린디합의 탄생"
                             required
+                            disabled={isLinked}
+                            style={isLinked ? { opacity: 0.7, cursor: 'not-allowed', background: 'rgba(255,255,255,0.03)' } : {}}
                         />
                     </div>
 
@@ -548,59 +553,25 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                     </div>
 
                     <div className="form-group">
-                        <label>설명</label>
+                        <label>원본 설명 {isLinked && <span style={{ color: '#60a5fa', fontSize: '0.8rem', fontWeight: 'normal', marginLeft: '8px' }}>(원본 정보 - 수정 불가)</span>}</label>
                         <textarea
                             value={formData.description}
                             onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                            onPaste={(e) => {
-                                // Preserve line breaks when pasting HTML content
-                                e.preventDefault();
-                                const text = e.clipboardData.getData('text/html') || e.clipboardData.getData('text/plain');
-
-                                if (text.includes('<')) {
-                                    // HTML content - convert block elements to newlines
-                                    const div = document.createElement('div');
-                                    div.innerHTML = text;
-
-                                    // Replace block elements with newlines
-                                    div.querySelectorAll('p, div, br, li, h1, h2, h3, h4, h5, h6').forEach(el => {
-                                        if (el.tagName === 'BR') {
-                                            el.replaceWith('\n');
-                                        } else {
-                                            el.insertAdjacentText('afterend', '\n');
-                                        }
-                                    });
-
-                                    const plainText = div.innerText || div.textContent || '';
-                                    const target = e.target as HTMLTextAreaElement;
-                                    const start = target.selectionStart;
-                                    const end = target.selectionEnd;
-                                    const currentValue = formData.description;
-                                    const newValue = currentValue.substring(0, start) + plainText + currentValue.substring(end);
-
-                                    setFormData({ ...formData, description: newValue });
-
-                                    // Set cursor position after pasted text
-                                    setTimeout(() => {
-                                        target.selectionStart = target.selectionEnd = start + plainText.length;
-                                    }, 0);
-                                } else {
-                                    // Plain text - insert as is
-                                    const target = e.target as HTMLTextAreaElement;
-                                    const start = target.selectionStart;
-                                    const end = target.selectionEnd;
-                                    const currentValue = formData.description;
-                                    const newValue = currentValue.substring(0, start) + text + currentValue.substring(end);
-
-                                    setFormData({ ...formData, description: newValue });
-
-                                    setTimeout(() => {
-                                        target.selectionStart = target.selectionEnd = start + text.length;
-                                    }, 0);
-                                }
-                            }}
                             placeholder="이 노드에 대한 설명을 입력하세요..."
                             rows={4}
+                            disabled={isLinked}
+                            style={isLinked ? { opacity: 0.7, cursor: 'not-allowed', background: 'rgba(255,255,255,0.03)' } : {}}
+                        />
+                    </div>
+
+                    <div className="form-group" style={{ marginTop: '16px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '16px' }}>
+                        <label style={{ color: '#60a5fa', fontWeight: 'bold' }}>사용자 상세 메모</label>
+                        <textarea
+                            value={formData.content}
+                            onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                            placeholder="나만의 학습 노트나 추가 정보를 자유롭게 입력하세요. (자료 서랍과 동기화됩니다)"
+                            rows={6}
+                            style={{ border: '1px solid rgba(96, 165, 250, 0.3)', background: 'rgba(96, 165, 250, 0.02)' }}
                         />
                     </div>
 

@@ -4,6 +4,7 @@ export interface HistoryNodeData {
     date?: string;
     year?: number;
     description?: string;
+    content?: string; // 사용자 상세 메모
     youtube_url?: string;
     attachment_url?: string;
     url?: string;

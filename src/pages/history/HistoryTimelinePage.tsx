@@ -228,7 +228,7 @@ export default function HistoryTimelinePage() {
             duration: res.type === 'video' ? metadata.duration : undefined,
             playlist_data: (res.type === 'general' && metadata.original_category) ? metadata : undefined, // Check metadata for playlist info
             subtype: res.type === 'person' ? 'person' : (res.type === 'document' ? 'document' : undefined),
-            content: res.description, // Map description to content for documents
+            content: res.content || '', // Use the actual content field
         };
     }, []);
 
@@ -439,7 +439,10 @@ export default function HistoryTimelinePage() {
 
                 const { data: inserted, error } = await supabase
                     .from('history_nodes')
-                    .insert(dbData)
+                    .insert({
+                        ...dbData,
+                        content: node.data.content || null
+                    })
                     .select()
                     .single();
 
@@ -504,6 +507,11 @@ export default function HistoryTimelinePage() {
                     dbData.category = node.data.category;
                     dbData.year = node.data.year;
                     dbData.date = node.data.date;
+                    dbData.content = node.data.content; // Standalone nodes preserve content here
+                } else {
+                    // For linked nodes, also preserve content in history_nodes as a backup/local copy if needed
+                    // though the primary source is learning_resources
+                    dbData.content = node.data.content;
                 }
                 // For linked nodes: don't save any content (it comes from learning_resources)
 
@@ -791,7 +799,8 @@ export default function HistoryTimelinePage() {
                 let title = node.title;
                 let year = node.year;
                 let date = node.date;
-                let desc = node.description;
+                let desc = node.description || '';
+                let content = node.content || '';
                 let category = node.category;
                 let thumbnail_url = null;
                 let image_url = null;
@@ -802,6 +811,7 @@ export default function HistoryTimelinePage() {
                     // Always prefer 'lp' fields over 'node' fields.
                     title = lp.title || title;
                     desc = lp.description || desc;
+                    content = lp.content || content;
                     year = lp.year || year;
                     date = lp.date || date;
                     thumbnail_url = lp.image_url || (lp.metadata?.thumbnail_url);
@@ -812,6 +822,7 @@ export default function HistoryTimelinePage() {
                     // 🔥 SYNC: Always prioritize Library data over Node data
                     title = lc.title || title;
                     desc = lc.description || desc;
+                    content = lc.content || content;
                     // Prioritize root column year, fallback to metadata
                     year = lc.year || (lc.metadata?.year ? parseInt(lc.metadata.year) : year);
                     date = lc.date || date;
@@ -824,6 +835,7 @@ export default function HistoryTimelinePage() {
                 } else if (ld) {
                     title = ld.title || title;
                     desc = ld.description || desc;
+                    content = ld.content || content;
                     year = ld.year || year;
                     date = ld.date || date;
                     image_url = ld.image_url;
@@ -833,6 +845,7 @@ export default function HistoryTimelinePage() {
                 } else if (lv) {
                     title = lv.title || title;
                     desc = lv.description || desc;
+                    content = lv.content || content;
                     year = lv.year || year; // Video resource usually lacks year but if added, use it
                     // Video date is often 'release_date' or similar, but sticking to standard props
                     image_url = lv.image_url;
@@ -874,6 +887,7 @@ export default function HistoryTimelinePage() {
                         date: node.date,
                         year,
                         description: desc,
+                        content: content,
                         youtube_url: finalYoutubeUrl,
                         attachment_url: attachmentUrl,
                         category,
@@ -1664,6 +1678,7 @@ export default function HistoryTimelinePage() {
                     const updatePayload: any = {};
                     if (nodeUpdateData.title) updatePayload.title = nodeUpdateData.title;
                     if (nodeUpdateData.description) updatePayload.description = nodeUpdateData.description;
+                    if (nodeUpdateData.content) updatePayload.content = nodeUpdateData.content;
                     if (image_url) updatePayload.image_url = image_url;
                     if (nodeUpdateData.youtube_url || url) updatePayload.url = nodeUpdateData.youtube_url || url;
                     if (nodeUpdateData.attachment_url !== undefined) updatePayload.attachment_url = nodeUpdateData.attachment_url;
@@ -1736,6 +1751,7 @@ export default function HistoryTimelinePage() {
                                     // Ensure display properties are updated
                                     title: updateData.title || n.data.title,
                                     description: updateData.description || n.data.description,
+                                    content: updateData.content !== undefined ? updateData.content : n.data.content,
                                     year: updateData.year !== undefined ? updateData.year : n.data.year,
                                     date: updateData.date !== undefined ? updateData.date : n.data.date,
                                     // Update linked IDs if they changed
