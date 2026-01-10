@@ -190,6 +190,8 @@ export default function HistoryTimelinePage() {
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
     const [initialNodePositions, setInitialNodePositions] = useState<Map<string, { x: number, y: number }>>(new Map());
+    const [initialNodeParents, setInitialNodeParents] = useState<Map<string, string | undefined>>(new Map());
+    const [initialNodeDimensions, setInitialNodeDimensions] = useState<Map<string, { width?: number, height?: number }>>(new Map());
     const [exitPromptOpen, setExitPromptOpen] = useState(false); // New: Custom prompt state
     // New State for Local-First Editing
     const [deletedNodeIds, setDeletedNodeIds] = useState<Set<string>>(new Set());
@@ -429,6 +431,10 @@ export default function HistoryTimelinePage() {
                     dbData.mobile_y = node.position.y;
                 }
 
+                // Support Custom Dimensions
+                if (node.width) dbData.width = node.width;
+                if (node.height) dbData.height = node.height;
+
                 const { data: inserted, error } = await supabase
                     .from('history_nodes')
                     .insert(dbData)
@@ -444,10 +450,17 @@ export default function HistoryTimelinePage() {
             // 3. Process Updates (Existing Nodes: Position OR Content)
             const changesToUpdate = new Set<string>();
 
-            // Add moved nodes
+            // Add moved or re-parented or resized nodes
             existingNodes.forEach(node => {
-                const initial = initialNodePositions.get(node.id);
-                if (initial && (initial.x !== node.position.x || initial.y !== node.position.y)) {
+                const initPos = initialNodePositions.get(node.id);
+                const initParent = initialNodeParents.get(node.id);
+                const initDims = initialNodeDimensions.get(node.id);
+
+                const posChanged = initPos && (initPos.x !== node.position.x || initPos.y !== node.position.y);
+                const parentChanged = initParent !== node.parentNode;
+                const dimsChanged = initDims && (initDims.width !== node.width || initDims.height !== node.height);
+
+                if (posChanged || parentChanged || dimsChanged) {
                     changesToUpdate.add(node.id);
                 }
             });
@@ -499,6 +512,10 @@ export default function HistoryTimelinePage() {
 
                 // Support Container (Parent Node)
                 dbData.parent_node_id = node.parentNode ? parseInt(node.parentNode) : null;
+
+                // Support Dimensions
+                dbData.width = node.width || null;
+                dbData.height = node.height || null;
 
                 // Remove undefined keys (but keep nulls to clear data)
                 Object.keys(dbData).forEach(key => dbData[key] === undefined && delete dbData[key]);
@@ -834,7 +851,14 @@ export default function HistoryTimelinePage() {
                     id: String(node.id),
                     type: 'historyNode',
                     parentNode: node.parent_node_id ? String(node.parent_node_id) : undefined,
-                    // extent: node.parent_node_id ? 'parent' : undefined, // Removed to allow dragging out
+                    style: (node.category === 'folder' || node.category === 'playlist') ? {
+                        width: node.width || 600,
+                        height: node.height || 400,
+                        zIndex: -1
+                    } : undefined,
+                    zIndex: (node.category === 'folder' || node.category === 'playlist') ? -1 : undefined,
+                    width: node.width || undefined,
+                    height: node.height || undefined,
                     position: {
                         x: (isMobile ? node.mobile_x : node.position_x) || node.position_x || 0,
                         y: (isMobile ? node.mobile_y : node.position_y) || node.position_y || 0
@@ -888,12 +912,22 @@ export default function HistoryTimelinePage() {
 
             setNodes(flowNodes);
 
-            // Store initial positions for change tracking
+            // Store initial values for change tracking
             const positions = new Map<string, { x: number, y: number }>();
+            const parents = new Map<string, string | undefined>();
+            const dimensions = new Map<string, { width?: number, height?: number }>();
+
             flowNodes.forEach(node => {
                 positions.set(node.id, { x: node.position.x, y: node.position.y });
+                parents.set(node.id, node.parentNode);
+                dimensions.set(node.id, {
+                    width: node.width ?? undefined,
+                    height: node.height ?? undefined
+                });
             });
             setInitialNodePositions(positions);
+            setInitialNodeParents(parents);
+            setInitialNodeDimensions(dimensions);
 
             const flowEdges: Edge[] = (edgesData || []).map((edge: any) => ({
                 id: String(edge.id),
@@ -932,6 +966,19 @@ export default function HistoryTimelinePage() {
             setLoading(false);
         }
     };
+
+    // Sync isEditMode state to all nodes' data for consistent rendering
+    useEffect(() => {
+        setNodes((nds) =>
+            nds.map((node) => ({
+                ...node,
+                data: {
+                    ...node.data,
+                    isEditMode,
+                },
+            }))
+        );
+    }, [isEditMode, setNodes]);
 
     const handleNodesChange = useCallback(
         (changes: any) => {
@@ -1079,12 +1126,6 @@ export default function HistoryTimelinePage() {
                 const nodeWidth = (node as any).measured?.width || node.width || 421;
                 const nodeHeight = (node as any).measured?.height || node.height || 200;
 
-                const nodeRect = {
-                    x: nodeAbs.x,
-                    y: nodeAbs.y,
-                    width: nodeWidth,
-                    height: nodeHeight,
-                };
 
                 const nodeCenter = {
                     x: nodeAbs.x + nodeWidth / 2,
@@ -1105,8 +1146,14 @@ export default function HistoryTimelinePage() {
                         (n.data.category === 'folder' || n.data.category === 'playlist' || n.data.nodeType === 'folder' || n.data.nodeType === 'playlist')
                     );
                 } else {
-                    const overlaps = rfInstance.getIntersectingNodes(nodeRect);
-                    parentData = overlaps.find(n =>
+                    // 🛡️ REFINED ENTRY: Use center point (1x1) instead of nodeRect for more intuitive entry
+                    const enters = rfInstance.getIntersectingNodes({
+                        x: nodeCenter.x,
+                        y: nodeCenter.y,
+                        width: 1,
+                        height: 1,
+                    });
+                    parentData = enters.find(n =>
                         n.id !== node.id &&
                         (n.data.category === 'folder' || n.data.category === 'playlist' || n.data.nodeType === 'folder' || n.data.nodeType === 'playlist')
                     );
