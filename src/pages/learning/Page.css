@@ -35,8 +35,8 @@
     /* Keep max height for vertical containment if needed, but horizontal scroll handles width */
     height: calc(100vh - 120px);
     /* Enforce height for proper horizontal scroll area */
-    overflow: hidden;
-    /* Container shouldn't scroll, inner treeContainer should */
+    /* Container needs to scroll if content (scaled or not) exceeds viewport */
+    overflow: auto;
     background-color: transparent;
     padding-right: 0;
 }

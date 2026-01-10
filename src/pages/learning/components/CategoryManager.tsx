@@ -728,9 +728,11 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
             transform: `scale(${scale})`,
             transformOrigin: 'top left',
             width: `${100 / scale}%`,
-            height: `${100 / scale}%`
+            minHeight: '100%',
+            display: 'flex',
+            flexDirection: 'column'
         }}>
-            <div className="treeContainer" style={{ display: 'flex', gap: '20px', minHeight: '500px', padding: '20px' }}>
+            <div className="treeContainer" style={{ display: 'flex', gap: '20px', padding: '20px' }}>
 
                 {/* [1. 트리/ROOT 구역] */}
                 <div
@@ -845,9 +847,8 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                         borderRadius: '12px',
                         background: dragDest === 'ROOT' ? 'rgba(59, 130, 246, 0.05)' : 'transparent',
                         border: dragDest === 'ROOT' ? '2px dashed #3b82f6' : '1px solid #222',
-                        overflowX: 'auto',
-                        overflowY: 'auto',
-                        minHeight: '600px'
+                        overflowX: 'visible',
+                        overflowY: 'visible'
                     }}
                 >
                     {isLoading ? <div>Loading...</div> : (
