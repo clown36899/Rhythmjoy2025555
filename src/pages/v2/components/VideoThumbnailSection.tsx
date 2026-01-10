@@ -71,8 +71,8 @@ const VideoThumbnailSection: React.FC<Props> = ({ onVideoClick }) => {
         <section className="video-thumbnail-section">
             <div className="section-header">
                 <h2 className="section-title">
-                    <i className="ri-history-line" style={{ color: '#fff', marginRight: '6px' }}></i>
-                    히스토리
+                    <i className="ri-folder-video-line" style={{ color: '#fff', marginRight: '6px' }}></i>
+                    라이브러리
                 </h2>
                 {/* <button className="view-all-btn">전체보기</button> */}
             </div>
