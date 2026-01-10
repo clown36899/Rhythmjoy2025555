@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBoardData } from '../../contexts/BoardDataContext';
 import { useSetPageAction } from '../../contexts/PageActionContext';
@@ -24,7 +24,6 @@ import { useBoardInteractions } from './hooks/useBoardInteractions';
 
 export default function BoardMainContainer() {
     const [searchParams, setSearchParams] = useSearchParams();
-    const navigate = useNavigate();
     const { user, isAdmin } = useAuth();
     const { data: boardData, refreshData } = useBoardData();
     const [isRealAdmin, setIsRealAdmin] = useState(false);
@@ -46,7 +45,6 @@ export default function BoardMainContainer() {
     }, [searchParams, setSearchParams]);
 
     // Admin UI States
-    const [showAdminMenu, setShowAdminMenu] = useState(false);
     const [isManagementOpen, setIsManagementOpen] = useState(false);
     const [isPrefixManagementOpen, setIsPrefixManagementOpen] = useState(false);
 
@@ -267,6 +265,7 @@ export default function BoardMainContainer() {
 
             <div
                 className={`board-posts-container ${category === 'history' ? 'is-history' : ''}`}
+                onTouchStart={onTouchStart}
                 onTouchMove={onTouchMove}
                 onTouchEnd={onTouchEnd}
                 style={{
@@ -369,26 +368,7 @@ export default function BoardMainContainer() {
                 )}
             </div>
 
-            {/* {isRealAdmin && (
-                <div className="board-admin-fab-container">
-                    {showAdminMenu && (
-                        <div className="board-admin-submenu">
-                            <button onClick={() => { setIsManagementOpen(true); setShowAdminMenu(false); }}>
-                                <span>게시판 관리</span> <i className="ri-layout-masonry-line"></i>
-                            </button>
-                            <button onClick={() => { setIsPrefixManagementOpen(true); setShowAdminMenu(false); }}>
-                                <span>머릿말 관리</span> <i className="ri-text-spacing"></i>
-                            </button>
-                            <button onClick={() => { navigate('/admin/secure-members'); setShowAdminMenu(false); }}>
-                                <span>회원 관리</span> <i className="ri-user-settings-line"></i>
-                            </button>
-                        </div>
-                    )}
-                    <button onClick={() => setShowAdminMenu(!showAdminMenu)} className="board-admin-fab">
-                        {showAdminMenu ? <i className="ri-close-line"></i> : <i className="ri-settings-3-fill"></i>}
-                    </button>
-                </div>
-            )} */}
+
 
             <UniversalPostEditor
                 isOpen={editorModal.isOpen}

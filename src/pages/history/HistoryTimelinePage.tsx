@@ -33,7 +33,6 @@ import ReactFlow, {
     BackgroundVariant,
     getBezierPath,
     BaseEdge,
-    SelectionMode,
 } from 'reactflow';
 import type { Node as RFNode, Edge, Connection, ReactFlowInstance, EdgeProps } from 'reactflow'; // Import Node as RFNode
 import 'reactflow/dist/style.css';
@@ -867,6 +866,26 @@ export default function HistoryTimelinePage() {
                 };
             });
 
+            // 🛡️ CYCLE-SAFE PROTECTION: Break any circular parent-child references
+            const nodeMap = new Map<string, RFNode>();
+            flowNodes.forEach(n => nodeMap.set(n.id, n));
+
+            flowNodes.forEach(node => {
+                let currPid = node.parentNode;
+                const path = new Set<string>([node.id]);
+                while (currPid) {
+                    if (path.has(currPid)) {
+                        console.warn(`🚨 [loadTimeline] Cycle detected at node ${node.id} to parent ${currPid}. Breaking loop.`);
+                        node.parentNode = undefined;
+                        if (node.data) node.data.parent_node_id = undefined;
+                        break;
+                    }
+                    path.add(currPid);
+                    const parentNode = nodeMap.get(currPid);
+                    currPid = parentNode?.parentNode;
+                }
+            });
+
             setNodes(flowNodes);
 
             // Store initial positions for change tracking
@@ -1095,6 +1114,26 @@ export default function HistoryTimelinePage() {
 
                 if (parentData) {
                     if (node.parentNode !== parentData.id) {
+                        // Prevent Cycles (Infinite Recursion)
+                        let isCyclic = false;
+                        let curr: RFNode | undefined = parentData;
+                        const visited = new Set<string>();
+                        while (curr) {
+                            if (curr.id === node.id) {
+                                isCyclic = true;
+                                break;
+                            }
+                            if (visited.has(curr.id)) break; // Safety against existing cycles
+                            visited.add(curr.id);
+                            const nextPid: string | undefined = curr.parentNode;
+                            curr = nodes.find(n => n.id === nextPid);
+                        }
+
+                        if (isCyclic) {
+                            console.warn('❌ Cycle detected: Cannot move a parent into its own child.');
+                            return;
+                        }
+
                         const childAbs = node.positionAbsolute || node.position;
                         const parentAbs = parentData.positionAbsolute || parentData.position;
                         const relPos = { x: childAbs.x - parentAbs.x, y: childAbs.y - parentAbs.y };

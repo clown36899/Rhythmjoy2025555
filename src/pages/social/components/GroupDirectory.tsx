@@ -50,7 +50,6 @@ const GroupDirectory: React.FC<GroupDirectoryProps> = ({
     hideTitle = false,
     currentUserId,
     initialTab,
-    onEditRecruit,
     onOpenRecruit
 }) => {
     const [activeTab, setActiveTab] = useState(initialTab || 'all');

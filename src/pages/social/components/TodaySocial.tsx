@@ -4,7 +4,6 @@ import './TodaySocial.css';
 import { useModalActions } from '../../../contexts/ModalContext';
 import { HorizontalScrollNav } from '../../v2/components/HorizontalScrollNav';
 import { useAuth } from '../../../contexts/AuthContext';
-import { getLocalDateString } from '../../v2/utils/eventListUtils';
 import { PWAInstallButton } from '../../../components/PWAInstallButton';
 
 // 1. Props 인터페이스 수정
@@ -66,7 +65,7 @@ const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll, on
     // D-day 계산 함수 (TodaySocial용)
     // 오늘 일정 섹션에 들어왔다는 것은 이미 날짜 필터링(오늘)을 통과했다는 뜻이므로
     // 별도의 날짜 비교 없이 무조건 'D-Day'를 반환하여 배지 누락을 방지합니다.
-    const calculateDDay = (scheduleDate: string | null): string | null => {
+    const calculateDDay = (): string | null => {
         return 'D-Day';
     };
 
@@ -161,7 +160,7 @@ const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll, on
                                     </div>
                                 )}
                                 {(() => {
-                                    const dDay = calculateDDay(item.date || null);
+                                    const dDay = calculateDDay();
                                     return dDay ? (
                                         <div className="all-social-dday-badge all-social-dday-today">
                                             {dDay}

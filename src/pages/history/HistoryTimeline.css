@@ -23,12 +23,7 @@
     z-index: 50;
 }
 
-@media (max-width: 480px) {
-    .history-floating-toolbar {
-        /* top: 80px; */
-        /* Push down significantly on mobile to clear centered tabs */
-    }
-}
+@media (max-width: 480px) {}
 
 .toolbar-btn {
     display: flex;

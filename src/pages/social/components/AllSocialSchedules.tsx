@@ -13,7 +13,7 @@ interface AllSocialSchedulesProps {
     onRefresh?: () => void;
 }
 
-const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules, onViewAll, onEventClick, onRefresh }) => {
+const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules, onEventClick, onRefresh }) => {
     const { openModal } = useModalActions();
     const { isAdmin, user } = useAuth();
     const [weekMode, setWeekMode] = React.useState<'this' | 'next'>('this');
