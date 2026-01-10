@@ -316,17 +316,18 @@ export default function PracticeRoomList({
     setSearchSuggestions([]);
   };
 
-  if (loading) {
+  // Initial loading only (no previous data)
+  if (loading && rooms.length === 0) {
     return (
-      <div className="prl-loading-container">
+      <div className="prl-loading-container" style={{ minHeight: '300px' }}>
         <div className="prl-spinner"></div>
       </div>
     );
   }
 
-  if (rooms.length === 0) {
+  if (!loading && rooms.length === 0) {
     return (
-      <div className="prl-empty-state">
+      <div className="prl-empty-state" style={{ minHeight: '300px' }}>
         등록된 연습실이 없습니다
         {adminType === "super" && (
           <div className="prl-empty-action">
@@ -344,7 +345,25 @@ export default function PracticeRoomList({
 
   return (
     <>
-      <div className="prl-main-container">
+      <div className="prl-main-container" style={{ position: 'relative', minHeight: '300px' }}>
+        {/* Loading Overlay for subsequent fetches */}
+        {loading && rooms.length > 0 && (
+          <div style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.5)',
+            zIndex: 10,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderRadius: '12px'
+          }}>
+            <div className="prl-spinner"></div>
+          </div>
+        )}
 
         {/* 검색 키워드 배너 (Compact Style) */}
         {searchQuery && (

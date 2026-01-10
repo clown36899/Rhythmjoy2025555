@@ -4,7 +4,6 @@ import { NAVIGATION_ITEMS } from '../config/navigation';
 import '../styles/components/BottomNavigation.css';
 import {
     prefetchSocialPage,
-    prefetchPracticePage,
     prefetchBoardPage,
     prefetchGuidePage,
     prefetchShoppingPage
@@ -23,7 +22,6 @@ export function BottomNavigation() {
     useEffect(() => {
         const timer = setTimeout(() => {
             prefetchSocialPage();
-            prefetchPracticePage();
             prefetchBoardPage();
             prefetchGuidePage();
             prefetchShoppingPage();

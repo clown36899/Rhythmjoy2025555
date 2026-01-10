@@ -37,12 +37,16 @@ export default function VenueTabBar({ activeCategory, onCategoryChange }: VenueT
 
             if (error) throw error;
 
-            if (data && data.length > 0) {
-                // Get unique categories
-                const uniqueCategories = Array.from(new Set(data.map(v => v.category)));
+            if (data) {
+                // Get unique categories from DB
+                const dbCategories = Array.from(new Set(data.map(v => v.category)));
+
+                // Ensure '연습실' and '스윙바' are always included
+                const defaultCategories = ['연습실', '스윙바'];
+                const mergedCategories = Array.from(new Set([...defaultCategories, ...dbCategories]));
 
                 // Map to UI format
-                const mapped = uniqueCategories.map((category) => ({
+                const mapped = mergedCategories.map((category) => ({
                     id: category,
                     label: category,
                     icon: getIconForCategory(category)
@@ -86,13 +90,15 @@ export default function VenueTabBar({ activeCategory, onCategoryChange }: VenueT
             const left = activeTab.offsetLeft;
             const width = activeTab.offsetWidth;
             setIndicatorStyle({ left, width });
-            
-            // Scroll active tab into view
-            activeTab.scrollIntoView({ 
-                behavior: 'smooth', 
-                block: 'nearest', 
-                inline: 'center' 
+
+            // Scroll functionality removed to prevent screen jumping
+            /*
+            activeTab.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+                inline: 'center'
             });
+            */
         }
     }, [activeCategory, categories]);
 

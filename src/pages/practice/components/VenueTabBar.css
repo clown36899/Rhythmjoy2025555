@@ -1,13 +1,13 @@
 .venue-tab-bar {
     background-color: #171717;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    position: fixed;
-    top: 60px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 40;
+    position: sticky;
+    top: 0;
+    /* left: 50%; */
+    /* transform: translateX(-50%); */
+    z-index: 30;
     width: 100%;
-    max-width: 650px;
+    /* max-width: 650px; */
 }
 
 .venue-tab-scroller {

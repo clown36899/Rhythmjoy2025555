@@ -20,6 +20,7 @@ import SocialRecruitModal from './components/SocialRecruitModal';
 import SocialScheduleModal from './components/SocialScheduleModal';
 import EventDetailModal from '../v2/components/EventDetailModal';
 import VenueDetailModal from '../practice/components/VenueDetailModal';
+import PracticeSection from './components/PracticeSection';
 import { useUserInteractions } from '../../hooks/useUserInteractions';
 
 // Styles
@@ -462,20 +463,10 @@ const SocialPage: React.FC = () => {
         onOpenRecruit={(group) => setSelectedRecruitGroup(group)}
       />
 
-      {/* 3단: 단체 (standalone) */}
-      <GroupDirectory
-        groups={groups}
-        favorites={favorites}
-        onToggleFavorite={toggleFavorite}
-        onGroupClick={(group) => { setSelectedGroup(group); setIsCalendarOpen(true); }} // Schedule Button
-        onGroupDetailClick={(group) => { setDetailGroup(group); setIsDetailModalOpen(true); }} // Card Click
-        onEditGroup={handleEditGroup}
-        onAddSchedule={handleAddSchedule}
-        isAdmin={!!user}
-        currentUserId={user?.id}
-        onEditRecruit={handleEditRecruit}
-        onOpenRecruit={(group) => setSelectedRecruitGroup(group)}
-      />
+
+
+      {/* 4단: 연습실 / 바 (통합) */}
+      <PracticeSection />
 
       {/* Modals */}
       {selectedGroup && (

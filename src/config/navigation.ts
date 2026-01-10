@@ -43,14 +43,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
         iconFilled: 'ri-map-pin-fill',
         activeColor: 'text-green-500',
     },
-    {
-        label: '연습실 / 바',
-        labelEn: 'Studio',
-        path: '/practice',
-        icon: 'ri-music-2-line',
-        iconFilled: 'ri-music-2-fill',
-        activeColor: 'text-blue-500',
-    },
+
     {
         label: '쇼핑',
         labelEn: 'Shop',
