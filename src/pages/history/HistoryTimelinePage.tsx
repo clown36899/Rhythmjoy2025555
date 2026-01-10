@@ -851,18 +851,19 @@ export default function HistoryTimelinePage() {
                 // Get attachment_url from node or linked resource
                 const attachmentUrl = node.attachment_url || lv?.attachment_url || ld?.attachment_url || lp?.attachment_url || lc?.attachment_url;
 
+                const isContainer = category === 'folder' || category === 'playlist' || nodeType === 'folder' || nodeType === 'playlist';
+
                 return {
                     id: String(node.id),
                     type: 'historyNode',
                     parentNode: node.parent_node_id ? String(node.parent_node_id) : undefined,
-                    style: (node.category === 'folder' || node.category === 'playlist') ? {
-                        width: node.width || 600,
-                        height: node.height || 400,
-                        zIndex: -1
-                    } : undefined,
-                    zIndex: (node.category === 'folder' || node.category === 'playlist') ? -1 : undefined,
-                    width: node.width || undefined,
-                    height: node.height || undefined,
+                    style: {
+                        width: node.width || (isContainer ? 600 : 350),
+                        height: node.height || (isContainer ? 400 : 200),
+                        zIndex: isContainer ? -1 : undefined
+                    },
+                    width: node.width || (isContainer ? 600 : 350),
+                    height: node.height || (isContainer ? 400 : 200),
                     position: {
                         x: (isMobile ? node.mobile_x : node.position_x) || node.position_x || 0,
                         y: (isMobile ? node.mobile_y : node.position_y) || node.position_y || 0

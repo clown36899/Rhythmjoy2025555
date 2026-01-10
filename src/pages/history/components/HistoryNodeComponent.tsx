@@ -5,7 +5,7 @@ import { parseVideoUrl, validateYouTubeThumbnailUrl } from '../../../utils/video
 import './HistoryNodeComponent.css';
 import type { HistoryNodeData } from '../types';
 
-function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
+function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
     // Prioritize thumbnail from linked resource, then fall back to youtube_url
     const videoInfo = data.youtube_url ? parseVideoUrl(data.youtube_url) : null;
     let validThumbnailUrl: string | null = null;
@@ -106,21 +106,21 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
             className={`history-node linked-type-${linkedType}`}
             style={{
                 borderColor: getCategoryColor(),
-                height: isContainer ? '100%' : undefined,
-                width: isContainer ? '100%' : undefined,
-                minWidth: isContainer ? '421px' : undefined
+                height: '100%',
+                width: '100%',
+                minWidth: isContainer ? '421px' : '280px'
             }}
-            onContextMenu={(e) => {
+            onContextMenu={() => {
                 // Allow context menu to bubble up to ReactFlow's onNodeContextMenu
                 // Don't prevent default here - let ReactFlow handle it
             }}
         >
-            {/* Allow resizing for containers in Edit Mode */}
-            {data.isEditMode && (data.category === 'folder' || data.category === 'playlist' || data.nodeType === 'folder' || data.nodeType === 'playlist') && (
+            {/* Allow resizing for all nodes in Edit Mode */}
+            {data.isEditMode && (
                 <NodeResizer
-                    minWidth={420}
-                    minHeight={200}
-                    isVisible={!!data.selected}
+                    minWidth={280}
+                    minHeight={100}
+                    isVisible={!!selected}
                     lineStyle={{ border: '1px solid #a78bfa' }}
                     handleStyle={{ width: 12, height: 12, border: 'none', borderRadius: '2px', background: '#a78bfa' }}
                 />
@@ -218,7 +218,7 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
                 </div>
 
                 <h3 className="history-node-title">
-                    <span style={{ marginRight: '3px' }}>
+                    <span style={{ marginRight: '32px' }}>
                         {data.nodeType === 'playlist' ? '💿' :
                             data.nodeType === 'document' ? '📄' :
                                 data.nodeType === 'video' ? '📹' :

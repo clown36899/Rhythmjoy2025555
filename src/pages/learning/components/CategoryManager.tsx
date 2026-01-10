@@ -581,7 +581,7 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                     ) : (
                         <>
                             <span className="folderIcon">{getIcon()}</span>
-                            <span className="categoryName">{playlist.title}</span>
+                            <span className="categoryName" title={playlist.title}>{playlist.title}</span>
                             {!readOnly && (
                                 <div className="actions">
                                     <button className="actionBtn" onClick={(e) => {
@@ -694,7 +694,7 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                                 {isCollapsed ? '▶' : '▼'}
                             </span>
                             <span className="folderIcon">{isSelected ? '📂' : '📁'}</span>
-                            <span className="categoryName">{category.name}</span>
+                            <span className="categoryName" title={category.name}>{category.name}</span>
                             {!readOnly && (
                                 <div className="actions">
                                     <button className="actionBtn" onClick={(e) => {
