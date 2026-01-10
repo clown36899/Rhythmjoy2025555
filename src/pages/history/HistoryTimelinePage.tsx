@@ -401,6 +401,10 @@ export default function HistoryTimelinePage() {
                 // Remove temp properties
                 const { onEdit, onViewDetail, onPlayVideo, onPreviewLinkedResource, nodeType, thumbnail_url, image_url, url, isEditMode, isSelectionMode, ...dbData } = nodeData;
 
+                // Support Parent Node
+                // @ts-ignore
+                if (node.parentNode) dbData.parent_node_id = parseInt(node.parentNode);
+
                 // 🔥 REFERENCE POINT ARCHITECTURE (New Nodes)
                 const isLinked = dbData.linked_video_id || dbData.linked_document_id || dbData.linked_playlist_id || dbData.linked_category_id;
 
@@ -493,6 +497,9 @@ export default function HistoryTimelinePage() {
                 dbData.linked_document_id = node.data.linked_document_id || null;
                 dbData.linked_playlist_id = node.data.linked_playlist_id || null;
                 // dbData.linked_category_id = node.data.linked_category_id || null; // Migration pending check
+
+                // Support Container (Parent Node)
+                dbData.parent_node_id = node.parentNode ? parseInt(node.parentNode) : null;
 
                 // Remove undefined keys (but keep nulls to clear data)
                 Object.keys(dbData).forEach(key => dbData[key] === undefined && delete dbData[key]);
@@ -827,6 +834,8 @@ export default function HistoryTimelinePage() {
                 return {
                     id: String(node.id),
                     type: 'historyNode',
+                    parentNode: node.parent_node_id ? String(node.parent_node_id) : undefined,
+                    // extent: node.parent_node_id ? 'parent' : undefined, // Removed to allow dragging out
                     position: {
                         x: (isMobile ? node.mobile_x : node.position_x) || node.position_x || 0,
                         y: (isMobile ? node.mobile_y : node.position_y) || node.position_y || 0
@@ -845,6 +854,7 @@ export default function HistoryTimelinePage() {
                         linked_document_id: node.linked_document_id,
                         linked_video_id: node.linked_video_id,
                         linked_category_id: node.linked_category_id,
+                        parent_node_id: node.parent_node_id ? String(node.parent_node_id) : undefined,
                         thumbnail_url,
                         image_url,
                         onEdit: handleEditNode,
@@ -1042,6 +1052,361 @@ export default function HistoryTimelinePage() {
             }
 
             if (isAutoLayout || !isEditMode) return;
+
+            // 2. Handle Container (Folder) Logic
+            if (rfInstance) {
+                // Calculate Node Center
+                const nodeAbs = node.positionAbsolute || node.position;
+                const nodeCenter = {
+                    x: nodeAbs.x + (node.width || 421) / 2,
+                    y: nodeAbs.y + (node.height || 200) / 2
+                };
+
+                // Find intersecting folder based on CENTER point
+                // (More intuitive: if center is in, it's in. If center is out, it's out)
+                const intersections = nodes.filter(n =>
+                    n.id !== node.id &&
+                    (n.data.category === 'folder' || n.data.category === 'playlist' || n.data.nodeType === 'folder' || n.data.nodeType === 'playlist') &&
+                    n.positionAbsolute &&
+                    nodeCenter.x >= n.positionAbsolute.x &&
+                    nodeCenter.x <= n.positionAbsolute.x + (n.width || 421) &&
+                    nodeCenter.y >= n.positionAbsolute.y &&
+                    nodeCenter.y <= n.positionAbsolute.y + (n.height || 200)
+                );
+
+                if (intersections.length > 0) {
+                    const parentData = intersections[0];
+                    if (node.parentNode !== parentData.id) {
+                        const childAbs = node.positionAbsolute || node.position;
+                        const parentAbs = parentData.positionAbsolute || parentData.position;
+                        const relPos = { x: childAbs.x - parentAbs.x, y: childAbs.y - parentAbs.y };
+
+                        // ⚡ AUTO-CLEANUP: Remove direct edges between this child and the new parent
+                        const edgesToRemove = edges.filter(e =>
+                            (e.source === node.id && e.target === parentData.id) ||
+                            (e.target === node.id && e.source === parentData.id)
+                        );
+
+                        if (edgesToRemove.length > 0) {
+                            const edgeIdsToRemove = new Set(edgesToRemove.map(e => e.id));
+
+                            // 1. Remove from UI
+                            setEdges(eds => eds.filter(e => !edgeIdsToRemove.has(e.id)));
+
+                            // 2. Mark for DB Deletion (if not temp)
+                            const realEdgeIds = edgesToRemove.filter(e => !isTempId(e.id)).map(e => e.id);
+                            if (realEdgeIds.length > 0) {
+                                setDeletedEdgeIds(prev => {
+                                    const next = new Set(prev);
+                                    realEdgeIds.forEach(id => next.add(id));
+                                    return next;
+                                });
+                            }
+                        }
+
+                        // 2. Auto-Layout Children (Horizontal Grid)
+                        setNodes((nds) => {
+                            // Get all current children + the new one
+                            const otherChildren = nds.filter(n => n.parentNode === parentData.id && n.id !== node.id);
+                            // Combine and sort by current X position to maintain relative order
+                            const allChildren = [...otherChildren, { ...node, position: relPos }]
+                                .sort((a, b) => a.position.x - b.position.x);
+
+                            // Layout Configuration
+                            const startX = 30; // Padding Left
+                            const startY = 220; // Padding Top (Header) - Increased to 220px to clear title and buttons
+                            const gapX = 20;
+                            // const gapY = 20; // For multi-row if needed (future)
+
+                            // Re-calculate positions for ALL children
+                            let currentX = startX;
+
+                            const updatedChildrenMap = new Map(); // id -> newPosition
+                            let maxChildX = 0;
+                            let maxChildY = 0;
+
+                            allChildren.forEach(child => {
+                                const cW = child.width || 421;
+                                const cH = child.height || 200;
+
+                                const newPos = { x: currentX, y: startY };
+                                updatedChildrenMap.set(child.id, newPos);
+
+                                currentX += cW + gapX; // Advance X
+
+                                // Track max bounds for parent resizing
+                                maxChildX = Math.max(maxChildX, newPos.x + cW);
+                                maxChildY = Math.max(maxChildY, newPos.y + cH);
+                            });
+
+                            // 3. Resize Parent based on new Layout (Dynamic Sizing: Shrink OR Expand)
+                            const parentNode = nds.find(n => n.id === parentData.id);
+                            let newParentStyle = parentNode?.style;
+                            let newWidth: number | undefined;
+                            let newHeight: number | undefined;
+
+                            if (parentNode) {
+                                const pW = parentNode.width || parseInt(String(parentNode.style?.width), 10) || 421;
+                                const pH = parentNode.height || parseInt(String(parentNode.style?.height), 10) || 200;
+
+                                const rightPadding = 50;
+                                const bottomPadding = 60;
+
+                                const minW = 421;
+                                const minH = 200;
+
+                                // Calculate width based on content (Dynamic)
+                                // NOT pW, but minW
+                                const reqW = Math.max(minW, maxChildX + rightPadding);
+                                // For horizontal layout, height usually stays constant unless existing height is too small
+                                const reqH = Math.max(minH, maxChildY + bottomPadding);
+
+                                // Reset size to required size (effectively allowing shrink)
+                                if (reqW !== pW || reqH !== pH) {
+                                    newParentStyle = { ...parentNode.style, width: reqW, height: reqH };
+                                    newWidth = reqW;
+                                    newHeight = reqH;
+                                }
+                            }
+
+                            // Apply updates to Nodes State
+                            return nds.map((n) => {
+                                // Update Parent Size
+                                if (n.id === parentData.id && newParentStyle) {
+                                    return {
+                                        ...n,
+                                        style: newParentStyle,
+                                        width: newWidth ?? n.width,
+                                        height: newHeight ?? n.height
+                                    };
+                                }
+
+                                // Update Children Positions (Including the one currently being dropped)
+                                if (updatedChildrenMap.has(n.id)) {
+                                    const newPos = updatedChildrenMap.get(n.id);
+
+                                    // Special handling for the node being dropped (needs parentNode set)
+                                    if (n.id === node.id) {
+                                        return {
+                                            ...n,
+                                            parentNode: parentData.id,
+                                            position: newPos,
+                                            data: { ...n.data, parent_node_id: String(parentData.id) }
+                                        };
+                                    }
+
+                                    // Update other children to snap to grid
+                                    return {
+                                        ...n,
+                                        position: newPos
+                                    };
+                                }
+
+                                return n;
+                            });
+                        });
+                        setHasUnsavedChanges(true);
+                        return;
+                    } else {
+                        // 3. Move/Reorder INSIDE Same Folder (Snap Back / Reorder)
+                        // If we are intersecting the SAME parent, we just re-layout.
+                        // The relative position is already updated by the drag, so we just use it for sorting.
+
+                        setNodes((nds) => {
+                            // Get all current children + current node (which is already a child)
+                            // Note: 'node' passed here has updated position? 
+                            // Wait, nds has old position. 'node' arg has new position.
+                            // We need to construct the list with the 'node' having its new position.
+
+                            const otherChildren = nds.filter(n => n.parentNode === parentData.id && n.id !== node.id);
+
+                            // For the current node, we use the `node` object passed to handle (which contains dragged position)
+                            // But `node` might have absolute position. We need it to be relative for sorting if others are relative.
+                            // Actually, logic above used `relPos`.
+                            // If it's already a child, `node.position` IS relative.
+                            const allChildren = [...otherChildren, node].sort((a, b) => a.position.x - b.position.x);
+
+                            // Layout Configuration - SAME as above
+                            const startX = 30;
+                            const startY = 220;
+                            const gapX = 20;
+
+                            let currentX = startX;
+                            const updatedChildrenMap = new Map();
+                            let maxChildX = 0;
+                            let maxChildY = 0;
+
+                            allChildren.forEach(child => {
+                                const cW = child.width || 421;
+                                const cH = child.height || 200;
+
+                                const newPos = { x: currentX, y: startY };
+                                updatedChildrenMap.set(child.id, newPos);
+
+                                currentX += cW + gapX;
+
+                                maxChildX = Math.max(maxChildX, newPos.x + cW);
+                                maxChildY = Math.max(maxChildY, newPos.y + cH);
+                            });
+
+                            // Resize logic
+                            const parentNode = nds.find(n => n.id === parentData.id);
+                            let newParentStyle = parentNode?.style;
+                            let newWidth: number | undefined;
+                            let newHeight: number | undefined;
+
+                            if (parentNode) {
+                                const pW = parentNode.width || parseInt(String(parentNode.style?.width), 10) || 421;
+                                const pH = parentNode.height || parseInt(String(parentNode.style?.height), 10) || 200;
+                                const rightPadding = 50;
+                                const bottomPadding = 60;
+                                const minW = 421;
+                                const minH = 200;
+
+                                const reqW = Math.max(minW, maxChildX + rightPadding);
+                                const reqH = Math.max(minH, maxChildY + bottomPadding);
+
+                                if (reqW !== pW || reqH !== pH) {
+                                    newParentStyle = { ...parentNode.style, width: reqW, height: reqH };
+                                    newWidth = reqW;
+                                    newHeight = reqH;
+                                }
+                            }
+
+                            return nds.map((n) => {
+                                // Update Parent
+                                if (n.id === parentData.id && newParentStyle) {
+                                    return {
+                                        ...n,
+                                        style: newParentStyle,
+                                        width: newWidth ?? n.width,
+                                        height: newHeight ?? n.height
+                                    };
+                                }
+                                // Update Children
+                                if (updatedChildrenMap.has(n.id)) {
+                                    const newPos = updatedChildrenMap.get(n.id);
+                                    return {
+                                        ...n,
+                                        position: newPos
+                                    };
+                                }
+                                return n;
+                            });
+                        });
+                        setHasUnsavedChanges(true);
+                        return;
+                    }
+                } else if (node.parentNode) {
+                    // Detach Check: Only detach if TRULY dragged out.
+                    // React Flow's onNodeDragStop fires even if moving INSIDE parent. 
+                    // We rely on intersections. If intersections is empty, it means we are outside any folder.
+
+                    // But wait, if we are INSIDE the parent, getIntersectingNodes might return the parent.
+                    // The intersection filter above excludes current node.
+                    // So if we are dragging inside current parent, intersections SHOULD include the parent.
+                    // If intersections is EMPTY, it means we are outside.
+
+                    const absPos = node.positionAbsolute || { x: 0, y: 0 };
+                    const oldParentId = node.parentNode;
+
+                    setNodes((nds) => {
+                        // 1. Detach Node
+                        const updatedNodes = nds.map((n) => {
+                            if (n.id === node.id) {
+                                const { parentNode, extent, ...rest } = n;
+                                return {
+                                    ...rest,
+                                    position: absPos,
+                                    extent: undefined,
+                                    data: { ...n.data, parent_node_id: undefined }
+                                };
+                            }
+                            return n;
+                        });
+
+                        // 2. Resize Old Parent (Shrink Logic) & Re-layout Remaining Children
+                        if (oldParentId) {
+                            const parentNode = updatedNodes.find(n => n.id === oldParentId);
+                            // Find REMAINING children
+                            const remainingChildren = updatedNodes.filter(n => n.parentNode === oldParentId && n.id !== node.id);
+
+                            if (parentNode) {
+                                // Re-layout Logic (Same as insert)
+                                const startX = 30; // Padding Left
+                                const startY = 220; // Padding Top
+                                const gapX = 20;
+
+                                let currentX = startX;
+                                const updatedChildrenMap = new Map(); // id -> newPos
+                                let maxChildX = 0;
+                                let maxChildY = 0;
+
+                                // Sort remaining children by X to keep order
+                                remainingChildren.sort((a, b) => a.position.x - b.position.x);
+
+                                remainingChildren.forEach(child => {
+                                    const cW = child.width || 421;
+                                    const cH = child.height || 200;
+
+                                    const newPos = { x: currentX, y: startY };
+                                    updatedChildrenMap.set(child.id, newPos);
+
+                                    currentX += cW + gapX;
+
+                                    maxChildX = Math.max(maxChildX, newPos.x + cW);
+                                    maxChildY = Math.max(maxChildY, newPos.y + cH);
+                                });
+
+                                // Calculate Parent Size
+                                const rightPadding = 50;
+                                const bottomPadding = 80;
+                                const minW = 421;
+                                const minH = 200;
+
+                                let reqW = minW;
+                                let reqH = minH;
+
+                                if (remainingChildren.length > 0) {
+                                    reqW = Math.max(minW, maxChildX + rightPadding);
+                                    reqH = Math.max(minH, maxChildY + bottomPadding);
+                                }
+
+                                const pW = parentNode.width || parseInt(String(parentNode.style?.width), 10) || 421;
+                                const pH = parentNode.height || parseInt(String(parentNode.style?.height), 10) || 200;
+
+                                // Apply updates
+                                return updatedNodes.map(n => {
+                                    // Update Parent Size
+                                    if (n.id === oldParentId) {
+                                        if (reqW !== pW || reqH !== pH) {
+                                            return {
+                                                ...n,
+                                                style: { ...n.style, width: reqW, height: reqH },
+                                                width: reqW,
+                                                height: reqH
+                                            };
+                                        }
+                                    }
+                                    // Update Remaining Children Positions
+                                    if (updatedChildrenMap.has(n.id)) {
+                                        return {
+                                            ...n,
+                                            position: updatedChildrenMap.get(n.id)
+                                        };
+                                    }
+
+                                    return n;
+                                });
+                            }
+                        }
+
+                        return updatedNodes;
+                    });
+                    setHasUnsavedChanges(true);
+                    return;
+                }
+            }
 
             setHasUnsavedChanges(true);
         },

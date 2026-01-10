@@ -1,5 +1,5 @@
 import { memo } from 'react';
-import { Handle, Position } from 'reactflow';
+import { Handle, Position, NodeResizer } from 'reactflow';
 import type { NodeProps } from 'reactflow';
 import { parseVideoUrl, validateYouTubeThumbnailUrl } from '../../../utils/videoEmbed';
 import './HistoryNodeComponent.css';
@@ -99,15 +99,33 @@ function HistoryNodeComponent({ data }: NodeProps<HistoryNodeData>) {
             data.linked_document_id ? 'document' :
                 data.linked_video_id ? 'video' : 'none';
 
+    const isContainer = data.category === 'folder' || data.category === 'playlist' || data.nodeType === 'folder' || data.nodeType === 'playlist';
+
     return (
         <div
             className={`history-node linked-type-${linkedType}`}
-            style={{ borderColor: getCategoryColor() }}
+            style={{
+                borderColor: getCategoryColor(),
+                height: isContainer ? '100%' : undefined,
+                width: isContainer ? '100%' : undefined,
+                minWidth: isContainer ? '421px' : undefined
+            }}
             onContextMenu={(e) => {
                 // Allow context menu to bubble up to ReactFlow's onNodeContextMenu
                 // Don't prevent default here - let ReactFlow handle it
             }}
         >
+            {/* Allow resizing for containers in Edit Mode */}
+            {data.isEditMode && (data.category === 'folder' || data.category === 'playlist' || data.nodeType === 'folder' || data.nodeType === 'playlist') && (
+                <NodeResizer
+                    minWidth={420}
+                    minHeight={200}
+                    isVisible={!!data.selected}
+                    lineStyle={{ border: '1px solid #a78bfa' }}
+                    handleStyle={{ width: 12, height: 12, border: 'none', borderRadius: '2px', background: '#a78bfa' }}
+                />
+            )}
+
             {/* Simple Handles: Defined as both source and target for flexibility */}
             {/* Reliable Handles: Source and Target for all directions with standard IDs */}
             {/* Top: Target (primary) & Source */}

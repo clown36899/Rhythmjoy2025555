@@ -23,6 +23,7 @@ export interface HistoryNodeData {
     linked_document_id?: string;
     linked_video_id?: string;
     linked_category_id?: string;
+    parent_node_id?: string; // For Group/Container Logic
     thumbnail_url?: string | null;
     image_url?: string | null;
     playlist_data?: any;
