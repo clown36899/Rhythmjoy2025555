@@ -45,6 +45,7 @@ interface Props {
     dragSourceMode?: boolean;
     refreshKey?: number;
     scale?: number;
+    highlightedSourceId?: string | null;
 }
 
 export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, _ref) => {
@@ -61,7 +62,8 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
         onDeleteResource,
         onRenameResource,
         dragSourceMode = false,
-        scale = 1
+        scale = 1,
+        highlightedSourceId
     } = props;
 
     // Edit State

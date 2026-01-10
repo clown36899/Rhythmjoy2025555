@@ -30,6 +30,7 @@ interface Video {
     description?: string;
     category_id?: string | null;
     playlist_id?: string | null;
+    metadata?: any;
 }
 
 interface Playlist {
@@ -39,6 +40,7 @@ interface Playlist {
     author_id: string;
     year?: number; // 추가
     is_on_timeline?: boolean; // 추가
+    metadata?: any;
 }
 
 interface Bookmark {
@@ -431,7 +433,8 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                     description: '',
                     author_id: targetResource.user_id,
                     year: targetResource.metadata?.year,
-                    is_on_timeline: targetResource.metadata?.is_on_timeline
+                    is_on_timeline: targetResource.metadata?.is_on_timeline,
+                    metadata: targetResource.metadata
                 });
 
                 setVideos(playlistVideos);
@@ -452,7 +455,8 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                 description: targetResource.description || '',
                 author_id: targetResource.user_id,
                 year: targetResource.metadata?.year,
-                is_on_timeline: targetResource.metadata?.is_on_timeline
+                is_on_timeline: targetResource.metadata?.is_on_timeline,
+                metadata: targetResource.metadata
             });
 
             // Fetch Videos
@@ -813,20 +817,20 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
             if (playlist.id.startsWith('category:')) {
                 const categoryId = playlist.id.replace('category:', '');
                 const { error } = await supabase
-                    .from('learning_categories')
-                    .update({ name: editTitle })
+                    .from('learning_resources') // Categories are now resources
+                    .update({ title: editTitle }) // Use title instead of name
                     .eq('id', categoryId);
                 if (error) throw error;
             } else if (playlist.id.startsWith('video:')) {
                 const videoId = playlist.id.replace('video:', '');
                 const { error } = await supabase
-                    .from('learning_videos')
+                    .from('learning_resources') // Changed from learning_videos
                     .update({ title: editTitle })
                     .eq('id', videoId);
                 if (error) throw error;
             } else {
                 const { error } = await supabase
-                    .from('learning_playlists')
+                    .from('learning_resources') // Changed from learning_playlists
                     .update({ title: editTitle })
                     .eq('id', playlist.id);
                 if (error) throw error;
@@ -872,14 +876,14 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
             if (playlist.id.startsWith('video:')) {
                 const videoId = playlist.id.replace('video:', '');
                 const { error } = await supabase
-                    .from('learning_videos')
+                    .from('learning_resources')
                     .update({ description: editDesc })
                     .eq('id', videoId);
                 if (error) throw error;
             } else {
                 const { error } = await supabase
-                    .from('learning_playlists')
-                    .update({ description: editDesc })
+                    .from('learning_resources')
+                    .update({ description: editDesc }) // Playlist also uses description in learning_resources
                     .eq('id', playlist.id);
                 if (error) throw error;
             }
@@ -903,15 +907,20 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         }
 
         // DB Updates
-        const isStandalone = playlist.id.startsWith('video:'); // Use playlist.id directly
-        const table = isStandalone ? 'learning_videos' : 'learning_playlists';
+        const isStandalone = playlist.id.startsWith('video:');
         const targetId = isStandalone ? playlist.id.replace('video:', '') : playlist.id;
 
+        const existingMetadata = playlist.metadata || {};
+        const newMetadata = {
+            ...existingMetadata,
+            year: editYear ? parseInt(editYear) : null,
+            is_on_timeline: true
+        };
+
         const { error } = await supabase
-            .from(table)
+            .from('learning_resources')
             .update({
-                year: editYear ? parseInt(editYear) : null,
-                is_on_timeline: true
+                metadata: newMetadata
             })
             .eq('id', targetId);
 
@@ -943,7 +952,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         }
 
         const { error } = await supabase
-            .from('learning_videos')
+            .from('learning_resources')
             .update({ title: editVideoTitle })
             .eq('id', video.id);
 
@@ -970,11 +979,17 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         const video = videos[currentVideoIndex];
         if (!video) return;
 
+        const existingMetadata = video.metadata || {};
+        const newMetadata = {
+            ...existingMetadata,
+            year: editVideoYear ? parseInt(editVideoYear) : null,
+            is_on_timeline: editVideoIsOnTimeline
+        };
+
         const { error } = await supabase
-            .from('learning_videos')
+            .from('learning_resources')
             .update({
-                year: editVideoYear ? parseInt(editVideoYear) : null,
-                is_on_timeline: true // Always enable if setting year, or use checkbox if we add one (User asked for timeline linkage)
+                metadata: newMetadata
             })
             .eq('id', video.id);
 
@@ -1001,8 +1016,8 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         if (!video) return;
 
         const { error } = await supabase
-            .from('learning_videos')
-            .update({ memo: editVideoMemo })
+            .from('learning_resources')
+            .update({ description: editVideoMemo })
             .eq('id', video.id);
 
         if (error) {
@@ -1596,4 +1611,5 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         </div>
     );
 };
+
 export default LearningDetailPage;

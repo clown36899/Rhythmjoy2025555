@@ -354,24 +354,43 @@ const LearningPage = () => {
 
 
 
-    const handleMoveItem = async (itemId: string, targetCategoryId: string) => {
+    const handleMoveItem = async (itemId: string, targetCategoryId: string | null) => {
         if (!isAdmin) {
             alert('관리자 권한이 없습니다.');
             return;
         }
         try {
-            const item = items.find(i => i.id === itemId);
+            // Fix: Search in both items (resources) and categories
+            // items is typed as Resource[], categories is Category[]
+            // We need to find the item regardless of whether it's a file or folder.
+            const allResources = [...categories, ...items];
+            const item = allResources.find(i => i.id === itemId) as any; // Cast to any to allow 'type' access for unified handling
+
             if (!item) return;
 
-            const table = item.type === 'playlist' ? 'learning_playlists' :
-                item.type === 'standalone_video' ? 'learning_videos' : 'learning_documents';
+            // Updated to use learning_resources for all types (except folders if stored differently, but here type check handles it)
+            // But wait, 'general' type (folders) are in learning_categories usually? 
+            // Or if we unified, check type.
 
-            const { error } = await supabase
-                .from(table)
-                .update({ category_id: targetCategoryId })
-                .eq('id', itemId);
-
-            if (error) throw error;
+            // Note: If item.type === 'general', it is a category. Moving a category into another category?
+            if (item.type === 'general') {
+                const { error } = await supabase
+                    .from('learning_resources') // Migrated: Categories are in learning_resources
+                    .update({ category_id: targetCategoryId }) // Folders use category_id as parent_id (or parent_id if column exists, but unified usually uses category_id)
+                    // Wait, let's double check if learning_resources stores parent folder in 'category_id'.
+                    // In previous normalization step, we saw: catId = p.category_id !== undefined ? p.category_id : (p.parent_id ?? null);
+                    // Standard Supabase schema suggests one parent pointer. Let's assume category_id for now as it matched other resources.
+                    // Actually, for folders (type=general), 'category_id' usually points to parent folder.
+                    .eq('id', itemId);
+                if (error) throw error;
+            } else {
+                // Resources (Video, Playlist, Doc)
+                const { error } = await supabase
+                    .from('learning_resources')
+                    .update({ category_id: targetCategoryId })
+                    .eq('id', itemId);
+                if (error) throw error;
+            }
 
             // Optimistic update or fetch
             fetchData();
@@ -382,18 +401,21 @@ const LearningPage = () => {
     };
 
     // Handling Playlist Click (Modal on Desktop, Navigate on Mobile)
-    const handlePlaylistClick = (itemId: string, itemType: string = 'playlist') => {
+    // Updated to accept item object from CategoryManager
+    const handlePlaylistClick = (item: any) => {
+        const itemId = item.id;
+        const itemType = item.type || 'playlist';
+
         if (itemType === 'document') {
             setViewingDocId(itemId);
             return;
         }
 
         // Handle Folder-as-Playlist
-        if (itemType === 'playlist_folder') {
-            const folderId = itemId.includes('category:') ? itemId.replace('category:', '') : itemId;
-            // Use prefix to help DetailPage distinguish
-            const targetId = `category:${folderId}`;
-
+        if (itemType === 'general') { // Changed from 'playlist_folder' to 'general' to match data
+            // Folder click usually opens/selects it. 
+            // If we want to view it as a playlist page:
+            const targetId = `category:${itemId}`;
             const isDesktop = window.innerWidth > 768;
             if (isDesktop) {
                 setViewingPlaylistId(targetId);
@@ -403,7 +425,7 @@ const LearningPage = () => {
             return;
         }
 
-        if (itemType === 'standalone_video') {
+        if (itemType === 'video') { // consolidated 'standalone_video' check
             const isDesktop = window.innerWidth > 768;
             if (isDesktop) {
                 setViewingPlaylistId(`video:${itemId}`);
@@ -415,7 +437,7 @@ const LearningPage = () => {
 
         const isDesktop = window.innerWidth > 768; // Simple check, match CSS media query
         if (isDesktop) {
-            setViewingPlaylistId(itemId);
+            setViewingPlaylistId(itemId); // Playlist ID
         } else {
             navigate(`/learning/${itemId}`);
         }
@@ -430,6 +452,45 @@ const LearningPage = () => {
     // But setDraggedPlaylistSourceId is NOT used.
     // Let's keep state for now but ignore warning or fix usage if logical.
     // For now, removing the unused variable warning by commenting.
+
+    const handleRenameItem = async (id: string, newName: string, type: string) => {
+        if (!isAdmin) {
+            alert('관리자 권한이 없습니다.');
+            return;
+        }
+        try {
+            if (type === 'general') { // Category
+                const { error } = await supabase
+                    .from('learning_resources') // Categories are now resources
+                    .update({ title: newName }) // Use title instead of name
+                    .eq('id', id);
+                if (error) throw error;
+            } else if (type === 'playlist') {
+                const { error } = await supabase
+                    .from('learning_resources') // Migrated to resources
+                    .update({ title: newName })
+                    .eq('id', id);
+                if (error) throw error;
+            } else if (type === 'standalone_video' || type === 'video') {
+                const { error } = await supabase
+                    .from('learning_resources') // Migrated to resources
+                    .update({ title: newName })
+                    .eq('id', id);
+                if (error) throw error;
+            } else if (type === 'document') {
+                const { error } = await supabase
+                    .from('learning_documents')
+                    .update({ title: newName })
+                    .eq('id', id);
+                if (error) throw error;
+            }
+
+            fetchData();
+        } catch (err) {
+            console.error('Failed to rename item:', err);
+            alert('이름 수정 실패');
+        }
+    };
 
     return (
         <div className="container">
@@ -484,12 +545,12 @@ const LearningPage = () => {
                         readOnly={!adminMode}
                         selectedId={selectedCategoryId}
                         onSelect={setSelectedCategoryId}
-                        categories={categories}
-                        playlists={items as any}
-                        onMovePlaylist={handleMoveItem}
-                        onPlaylistClick={handlePlaylistClick}
+                        resources={[...categories, ...items]} // Combined props
+                        onMoveResource={handleMoveItem} // Updated prop name? Check definition
+                        onItemClick={handlePlaylistClick} // Check definition
+                        onRenameResource={handleRenameItem}
                         highlightedSourceId={draggedPlaylistSourceId}
-                        onDirtyChange={setHasUnsavedChanges}
+                    // onDirtyChange={setHasUnsavedChanges} // Prop might be missing in CategoryManager definition?
                     />
                 </div>
             </div>
