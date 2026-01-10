@@ -16,6 +16,8 @@ import EventDetailModal from "./components/EventDetailModal";
 import VenueDetailModal from "../practice/components/VenueDetailModal";
 // EventPasswordModal removed
 import CalendarSearchModal from "./components/CalendarSearchModal";
+import VideoThumbnailSection from "./components/VideoThumbnailSection"; // [NEW]
+import { PlaylistModal } from "../learning/components/PlaylistModal"; // [NEW]
 import { useUserInteractions } from "../../hooks/useUserInteractions";
 import { registerLocale } from "react-datepicker";
 import { ko } from "date-fns/locale/ko";
@@ -68,6 +70,9 @@ export default function HomePageV2() {
     const [showInputModal, setShowInputModal] = useState(false);
     const [eventJustCreated, setEventJustCreated] = useState<number>(0);
     const [allGenres] = useState<{ class: string[]; event: string[] }>({ class: [], event: [] });
+
+    // [NEW] Video Player State
+    const [viewingPlaylistId, setViewingPlaylistId] = useState<string | null>(null);
 
     // --------------------------------------------------------------------------------
     // 3. Custom Logic Hooks (Refactored)
@@ -421,6 +426,19 @@ export default function HomePageV2() {
 
             >
 
+                {/* Video Thumbnail Section */}
+                {!showRegistrationModal && (
+                    <VideoThumbnailSection
+                        onVideoClick={(videoId) => {
+                            // 'video:' prefix signals to PlaylistModal that it's a single video context
+                            // However, PlaylistModal expects a playlistId or special ID.
+                            // The Logic in Learning/Page.tsx handles: if (itemType === 'standalone_video') -> setViewingPlaylistId(`video:${itemId}`);
+                            // Logic in PlaylistModal -> LearningDetailPage -> fetchPlaylistData handles 'video:' prefix.
+                            setViewingPlaylistId(`video:${videoId}`);
+                        }}
+                    />
+                )}
+
                 {/* Event List - Hidden in Fullscreen Mode but still mounted for event listeners */}
                 {qrLoading ? (
                     <div className="home-loading-container"><div className="home-loading-text">이벤트 로딩 중...</div></div>
@@ -444,6 +462,13 @@ export default function HomePageV2() {
 
 
                 {/* Modals */}
+                {/* Playlist Player Modal (for Video Section) */}
+                {viewingPlaylistId && (
+                    <PlaylistModal
+                        playlistId={viewingPlaylistId}
+                        onClose={() => setViewingPlaylistId(null)}
+                    />
+                )}
 
 
                 {showRegistrationModal && selectedDate && (
