@@ -33,6 +33,7 @@ import ReactFlow, {
     BackgroundVariant,
     getBezierPath,
     BaseEdge,
+    getNodesBounds,
 } from 'reactflow';
 import type { Node as RFNode, Edge, Connection, ReactFlowInstance, EdgeProps } from 'reactflow'; // Import Node as RFNode
 import 'reactflow/dist/style.css';
@@ -197,6 +198,7 @@ export default function HistoryTimelinePage() {
     const [deletedNodeIds, setDeletedNodeIds] = useState<Set<string>>(new Set());
     const [deletedEdgeIds, setDeletedEdgeIds] = useState<Set<string>>(new Set());
     const [modifiedNodeIds, setModifiedNodeIds] = useState<Set<string>>(new Set()); // New: Track modified node content
+    const [showMiniMap, setShowMiniMap] = useState(true);
 
     // Context Menu State
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId?: string } | null>(null);
@@ -657,6 +659,8 @@ export default function HistoryTimelinePage() {
             // Slight delay to ensure nodes are fully rendered and bounding boxes are ready
             setTimeout(() => {
                 rfInstance.fitView({ duration: 0, padding: 0.2 });
+                // Force initial MiniMap check after fitView
+                updateMiniMapVisibility(rfInstance.getViewport());
             }, 100);
         }
     }, [rfInstance, loading, isAutoLayout]);
@@ -1503,12 +1507,49 @@ export default function HistoryTimelinePage() {
         setHasUnsavedChanges(true);
     }, [nodes, edges, isTempId]);
 
+    const updateMiniMapVisibility = useCallback((viewport: { x: number, y: number, zoom: number }) => {
+        if (!rfInstance) return;
+
+        const currentNodes = rfInstance.getNodes();
+        if (currentNodes.length === 0) {
+            setShowMiniMap(false);
+            return;
+        }
+
+        // Get the bounding box of all nodes
+        const bounds = getNodesBounds(currentNodes);
+
+        // Get the container dimensions
+        const renderer = document.querySelector('.react-flow__renderer');
+        if (!renderer) return;
+        const { width, height } = renderer.getBoundingClientRect();
+
+        // Transform node bounds to screen coordinates
+        const screenBounds = {
+            left: bounds.x * viewport.zoom + viewport.x,
+            top: bounds.y * viewport.zoom + viewport.y,
+            right: (bounds.x + bounds.width) * viewport.zoom + viewport.x,
+            bottom: (bounds.y + bounds.height) * viewport.zoom + viewport.y,
+        };
+
+        // Check if all nodes are within the viewport (with a small padding)
+        const padding = 20;
+        const isAllVisible =
+            screenBounds.left >= -padding &&
+            screenBounds.top >= -padding &&
+            screenBounds.right <= width + padding &&
+            screenBounds.bottom <= height + padding;
+
+        setShowMiniMap(!isAllVisible);
+    }, [rfInstance]);
+
     const onMoveEnd = useCallback(
-        (_: any, _viewport: { x: number, y: number, zoom: number }) => {
-            // No-op: Viewport persistence disabled by design.
+        (_: any, viewport: { x: number, y: number, zoom: number }) => {
+            // Viewport persistence disabled by design.
             // Default view is always "Fit View" on entry.
+            updateMiniMapVisibility(viewport);
         },
-        []
+        [updateMiniMapVisibility]
     );
 
     const onConnect = useCallback(
@@ -2797,6 +2838,11 @@ export default function HistoryTimelinePage() {
                         nodeColor={GET_NODE_COLOR}
                         zoomable
                         pannable
+                        style={{
+                            opacity: showMiniMap ? 1 : 0,
+                            pointerEvents: showMiniMap ? 'all' : 'none',
+                            transition: 'opacity 0.3s ease'
+                        }}
                     />
                 </ReactFlow>
             </div>
