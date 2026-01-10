@@ -1055,27 +1055,45 @@ export default function HistoryTimelinePage() {
 
             // 2. Handle Container (Folder) Logic
             if (rfInstance) {
-                // Calculate Node Center
+                // Calculate Hit Regions (Tiered Detection)
                 const nodeAbs = node.positionAbsolute || node.position;
-                const nodeCenter = {
-                    x: nodeAbs.x + (node.width || 421) / 2,
-                    y: nodeAbs.y + (node.height || 200) / 2
+                const nodeWidth = (node as any).measured?.width || node.width || 421;
+                const nodeHeight = (node as any).measured?.height || node.height || 200;
+
+                const nodeRect = {
+                    x: nodeAbs.x,
+                    y: nodeAbs.y,
+                    width: nodeWidth,
+                    height: nodeHeight,
                 };
 
-                // Find intersecting folder based on CENTER point
-                // (More intuitive: if center is in, it's in. If center is out, it's out)
-                const intersections = nodes.filter(n =>
-                    n.id !== node.id &&
-                    (n.data.category === 'folder' || n.data.category === 'playlist' || n.data.nodeType === 'folder' || n.data.nodeType === 'playlist') &&
-                    n.positionAbsolute &&
-                    nodeCenter.x >= n.positionAbsolute.x &&
-                    nodeCenter.x <= n.positionAbsolute.x + (n.width || 421) &&
-                    nodeCenter.y >= n.positionAbsolute.y &&
-                    nodeCenter.y <= n.positionAbsolute.y + (n.height || 200)
-                );
+                const nodeCenter = {
+                    x: nodeAbs.x + nodeWidth / 2,
+                    y: nodeAbs.y + nodeHeight / 2
+                };
 
-                if (intersections.length > 0) {
-                    const parentData = intersections[0];
+                let parentData: RFNode | undefined;
+
+                if (node.parentNode) {
+                    const centers = rfInstance.getIntersectingNodes({
+                        x: nodeCenter.x,
+                        y: nodeCenter.y,
+                        width: 1,
+                        height: 1,
+                    });
+                    parentData = centers.find(n =>
+                        n.id !== node.id &&
+                        (n.data.category === 'folder' || n.data.category === 'playlist' || n.data.nodeType === 'folder' || n.data.nodeType === 'playlist')
+                    );
+                } else {
+                    const overlaps = rfInstance.getIntersectingNodes(nodeRect);
+                    parentData = overlaps.find(n =>
+                        n.id !== node.id &&
+                        (n.data.category === 'folder' || n.data.category === 'playlist' || n.data.nodeType === 'folder' || n.data.nodeType === 'playlist')
+                    );
+                }
+
+                if (parentData) {
                     if (node.parentNode !== parentData.id) {
                         const childAbs = node.positionAbsolute || node.position;
                         const parentAbs = parentData.positionAbsolute || parentData.position;
@@ -1105,18 +1123,18 @@ export default function HistoryTimelinePage() {
                         }
 
                         // 2. Auto-Layout Children (Horizontal Grid)
+                        const targetParentId = parentData.id;
                         setNodes((nds) => {
                             // Get all current children + the new one
-                            const otherChildren = nds.filter(n => n.parentNode === parentData.id && n.id !== node.id);
+                            const otherChildren = nds.filter(n => n.parentNode === targetParentId && n.id !== node.id);
                             // Combine and sort by current X position to maintain relative order
                             const allChildren = [...otherChildren, { ...node, position: relPos }]
                                 .sort((a, b) => a.position.x - b.position.x);
 
-                            // Layout Configuration
-                            const startX = 30; // Padding Left
-                            const startY = 220; // Padding Top (Header) - Increased to 220px to clear title and buttons
-                            const gapX = 20;
-                            // const gapY = 20; // For multi-row if needed (future)
+                            // Layout Configuration - UPDATED TO MATCH onDrop
+                            const startX = 60;
+                            const startY = 220;
+                            const gapX = 40;
 
                             // Re-calculate positions for ALL children
                             let currentX = startX;
@@ -1126,8 +1144,8 @@ export default function HistoryTimelinePage() {
                             let maxChildY = 0;
 
                             allChildren.forEach(child => {
-                                const cW = child.width || 421;
-                                const cH = child.height || 200;
+                                const cW = child.width || 450;
+                                const cH = child.height || 300;
 
                                 const newPos = { x: currentX, y: startY };
                                 updatedChildrenMap.set(child.id, newPos);
@@ -1140,29 +1158,21 @@ export default function HistoryTimelinePage() {
                             });
 
                             // 3. Resize Parent based on new Layout (Dynamic Sizing: Shrink OR Expand)
-                            const parentNode = nds.find(n => n.id === parentData.id);
+                            const parentNode = nds.find(n => n.id === targetParentId);
                             let newParentStyle = parentNode?.style;
                             let newWidth: number | undefined;
                             let newHeight: number | undefined;
 
                             if (parentNode) {
-                                const pW = parentNode.width || parseInt(String(parentNode.style?.width), 10) || 421;
-                                const pH = parentNode.height || parseInt(String(parentNode.style?.height), 10) || 200;
+                                const rightPadding = 120; // Generous
+                                const bottomPadding = 120; // Generous
+                                const minW = 600;
+                                const minH = 400;
 
-                                const rightPadding = 50;
-                                const bottomPadding = 60;
-
-                                const minW = 421;
-                                const minH = 200;
-
-                                // Calculate width based on content (Dynamic)
-                                // NOT pW, but minW
                                 const reqW = Math.max(minW, maxChildX + rightPadding);
-                                // For horizontal layout, height usually stays constant unless existing height is too small
                                 const reqH = Math.max(minH, maxChildY + bottomPadding);
 
-                                // Reset size to required size (effectively allowing shrink)
-                                if (reqW !== pW || reqH !== pH) {
+                                if (reqW !== (parentNode.width || 421) || reqH !== (parentNode.height || 200)) {
                                     newParentStyle = { ...parentNode.style, width: reqW, height: reqH };
                                     newWidth = reqW;
                                     newHeight = reqH;
@@ -1171,8 +1181,17 @@ export default function HistoryTimelinePage() {
 
                             // Apply updates to Nodes State
                             return nds.map((n) => {
-                                // Update Parent Size
-                                if (n.id === parentData.id && newParentStyle) {
+                                if (n.id === node.id) {
+                                    return {
+                                        ...n,
+                                        parentNode: targetParentId,
+                                        // Update local data logic
+                                        data: { ...n.data, parent_node_id: targetParentId },
+                                        extent: undefined, // allow drag out
+                                        position: updatedChildrenMap.get(n.id) || n.position
+                                    };
+                                }
+                                if (n.id === targetParentId && newParentStyle) {
                                     return {
                                         ...n,
                                         style: newParentStyle,
@@ -1180,28 +1199,9 @@ export default function HistoryTimelinePage() {
                                         height: newHeight ?? n.height
                                     };
                                 }
-
-                                // Update Children Positions (Including the one currently being dropped)
                                 if (updatedChildrenMap.has(n.id)) {
-                                    const newPos = updatedChildrenMap.get(n.id);
-
-                                    // Special handling for the node being dropped (needs parentNode set)
-                                    if (n.id === node.id) {
-                                        return {
-                                            ...n,
-                                            parentNode: parentData.id,
-                                            position: newPos,
-                                            data: { ...n.data, parent_node_id: String(parentData.id) }
-                                        };
-                                    }
-
-                                    // Update other children to snap to grid
-                                    return {
-                                        ...n,
-                                        position: newPos
-                                    };
+                                    return { ...n, position: updatedChildrenMap.get(n.id) };
                                 }
-
                                 return n;
                             });
                         });
@@ -1209,27 +1209,14 @@ export default function HistoryTimelinePage() {
                         return;
                     } else {
                         // 3. Move/Reorder INSIDE Same Folder (Snap Back / Reorder)
-                        // If we are intersecting the SAME parent, we just re-layout.
-                        // The relative position is already updated by the drag, so we just use it for sorting.
-
+                        const targetParentId = parentData!.id;
                         setNodes((nds) => {
-                            // Get all current children + current node (which is already a child)
-                            // Note: 'node' passed here has updated position? 
-                            // Wait, nds has old position. 'node' arg has new position.
-                            // We need to construct the list with the 'node' having its new position.
-
-                            const otherChildren = nds.filter(n => n.parentNode === parentData.id && n.id !== node.id);
-
-                            // For the current node, we use the `node` object passed to handle (which contains dragged position)
-                            // But `node` might have absolute position. We need it to be relative for sorting if others are relative.
-                            // Actually, logic above used `relPos`.
-                            // If it's already a child, `node.position` IS relative.
+                            const otherChildren = nds.filter(n => n.parentNode === targetParentId && n.id !== node.id);
                             const allChildren = [...otherChildren, node].sort((a, b) => a.position.x - b.position.x);
 
-                            // Layout Configuration - SAME as above
-                            const startX = 30;
+                            const startX = 60;
                             const startY = 220;
-                            const gapX = 20;
+                            const gapX = 40;
 
                             let currentX = startX;
                             const updatedChildrenMap = new Map();
@@ -1237,36 +1224,29 @@ export default function HistoryTimelinePage() {
                             let maxChildY = 0;
 
                             allChildren.forEach(child => {
-                                const cW = child.width || 421;
-                                const cH = child.height || 200;
-
+                                const cW = child.width || 450;
+                                const cH = child.height || 300;
                                 const newPos = { x: currentX, y: startY };
                                 updatedChildrenMap.set(child.id, newPos);
-
                                 currentX += cW + gapX;
-
                                 maxChildX = Math.max(maxChildX, newPos.x + cW);
                                 maxChildY = Math.max(maxChildY, newPos.y + cH);
                             });
 
-                            // Resize logic
-                            const parentNode = nds.find(n => n.id === parentData.id);
+                            const parentNode = nds.find(n => n.id === targetParentId);
                             let newParentStyle = parentNode?.style;
                             let newWidth: number | undefined;
                             let newHeight: number | undefined;
 
                             if (parentNode) {
-                                const pW = parentNode.width || parseInt(String(parentNode.style?.width), 10) || 421;
-                                const pH = parentNode.height || parseInt(String(parentNode.style?.height), 10) || 200;
-                                const rightPadding = 50;
-                                const bottomPadding = 60;
-                                const minW = 421;
-                                const minH = 200;
-
+                                const rightPadding = 120;
+                                const bottomPadding = 120;
+                                const minW = 600;
+                                const minH = 400;
                                 const reqW = Math.max(minW, maxChildX + rightPadding);
                                 const reqH = Math.max(minH, maxChildY + bottomPadding);
 
-                                if (reqW !== pW || reqH !== pH) {
+                                if (reqW !== (parentNode.width || 421) || reqH !== (parentNode.height || 200)) {
                                     newParentStyle = { ...parentNode.style, width: reqW, height: reqH };
                                     newWidth = reqW;
                                     newHeight = reqH;
@@ -1274,22 +1254,11 @@ export default function HistoryTimelinePage() {
                             }
 
                             return nds.map((n) => {
-                                // Update Parent
-                                if (n.id === parentData.id && newParentStyle) {
-                                    return {
-                                        ...n,
-                                        style: newParentStyle,
-                                        width: newWidth ?? n.width,
-                                        height: newHeight ?? n.height
-                                    };
+                                if (n.id === targetParentId && newParentStyle) {
+                                    return { ...n, style: newParentStyle, width: newWidth ?? n.width, height: newHeight ?? n.height };
                                 }
-                                // Update Children
                                 if (updatedChildrenMap.has(n.id)) {
-                                    const newPos = updatedChildrenMap.get(n.id);
-                                    return {
-                                        ...n,
-                                        position: newPos
-                                    };
+                                    return { ...n, position: updatedChildrenMap.get(n.id) };
                                 }
                                 return n;
                             });
@@ -1297,118 +1266,113 @@ export default function HistoryTimelinePage() {
                         setHasUnsavedChanges(true);
                         return;
                     }
-                } else if (node.parentNode) {
-                    // Detach Check: Only detach if TRULY dragged out.
-                    // React Flow's onNodeDragStop fires even if moving INSIDE parent. 
-                    // We rely on intersections. If intersections is empty, it means we are outside any folder.
-
-                    // But wait, if we are INSIDE the parent, getIntersectingNodes might return the parent.
-                    // The intersection filter above excludes current node.
-                    // So if we are dragging inside current parent, intersections SHOULD include the parent.
-                    // If intersections is EMPTY, it means we are outside.
-
-                    const absPos = node.positionAbsolute || { x: 0, y: 0 };
-                    const oldParentId = node.parentNode;
-
-                    setNodes((nds) => {
-                        // 1. Detach Node
-                        const updatedNodes = nds.map((n) => {
-                            if (n.id === node.id) {
-                                const { parentNode, extent, ...rest } = n;
-                                return {
-                                    ...rest,
-                                    position: absPos,
-                                    extent: undefined,
-                                    data: { ...n.data, parent_node_id: undefined }
-                                };
-                            }
-                            return n;
-                        });
-
-                        // 2. Resize Old Parent (Shrink Logic) & Re-layout Remaining Children
-                        if (oldParentId) {
-                            const parentNode = updatedNodes.find(n => n.id === oldParentId);
-                            // Find REMAINING children
-                            const remainingChildren = updatedNodes.filter(n => n.parentNode === oldParentId && n.id !== node.id);
-
-                            if (parentNode) {
-                                // Re-layout Logic (Same as insert)
-                                const startX = 30; // Padding Left
-                                const startY = 220; // Padding Top
-                                const gapX = 20;
-
-                                let currentX = startX;
-                                const updatedChildrenMap = new Map(); // id -> newPos
-                                let maxChildX = 0;
-                                let maxChildY = 0;
-
-                                // Sort remaining children by X to keep order
-                                remainingChildren.sort((a, b) => a.position.x - b.position.x);
-
-                                remainingChildren.forEach(child => {
-                                    const cW = child.width || 421;
-                                    const cH = child.height || 200;
-
-                                    const newPos = { x: currentX, y: startY };
-                                    updatedChildrenMap.set(child.id, newPos);
-
-                                    currentX += cW + gapX;
-
-                                    maxChildX = Math.max(maxChildX, newPos.x + cW);
-                                    maxChildY = Math.max(maxChildY, newPos.y + cH);
-                                });
-
-                                // Calculate Parent Size
-                                const rightPadding = 50;
-                                const bottomPadding = 80;
-                                const minW = 421;
-                                const minH = 200;
-
-                                let reqW = minW;
-                                let reqH = minH;
-
-                                if (remainingChildren.length > 0) {
-                                    reqW = Math.max(minW, maxChildX + rightPadding);
-                                    reqH = Math.max(minH, maxChildY + bottomPadding);
-                                }
-
-                                const pW = parentNode.width || parseInt(String(parentNode.style?.width), 10) || 421;
-                                const pH = parentNode.height || parseInt(String(parentNode.style?.height), 10) || 200;
-
-                                // Apply updates
-                                return updatedNodes.map(n => {
-                                    // Update Parent Size
-                                    if (n.id === oldParentId) {
-                                        if (reqW !== pW || reqH !== pH) {
-                                            return {
-                                                ...n,
-                                                style: { ...n.style, width: reqW, height: reqH },
-                                                width: reqW,
-                                                height: reqH
-                                            };
-                                        }
-                                    }
-                                    // Update Remaining Children Positions
-                                    if (updatedChildrenMap.has(n.id)) {
-                                        return {
-                                            ...n,
-                                            position: updatedChildrenMap.get(n.id)
-                                        };
-                                    }
-
-                                    return n;
-                                });
-                            }
-                        }
-
-                        return updatedNodes;
-                    });
-                    setHasUnsavedChanges(true);
-                    return;
                 }
-            }
 
-            setHasUnsavedChanges(true);
+
+                if (node.parentNode) {
+                    // Detach Check: Use center-point logic for easier drag-out
+
+                    const parentNode = nodes.find(n => n.id === node.parentNode);
+                    let shouldDetach = false;
+
+                    if (parentNode) {
+                        const parentAbs = parentNode.positionAbsolute || parentNode.position;
+                        const parentWidth = (parentNode as any).measured?.width || parentNode.width || 600;
+                        const parentHeight = (parentNode as any).measured?.height || parentNode.height || 400;
+
+                        // Check if center is outside parent bounds
+                        const isOutside =
+                            nodeCenter.x < parentAbs.x ||
+                            nodeCenter.x > parentAbs.x + parentWidth ||
+                            nodeCenter.y < parentAbs.y ||
+                            nodeCenter.y > parentAbs.y + parentHeight;
+
+                        shouldDetach = isOutside;
+                    }
+
+                    if (shouldDetach) {
+                        // Detach Check
+                        const absPos = node.positionAbsolute || { x: 0, y: 0 };
+                        const oldParentId = node.parentNode;
+
+                        setNodes((nds) => {
+                            // 1. Detach Node
+                            const updatedNodes = nds.map((n) => {
+                                if (n.id === node.id) {
+                                    const { parentNode, extent, ...rest } = n;
+                                    return {
+                                        ...rest,
+                                        position: absPos,
+                                        extent: undefined,
+                                        data: { ...n.data, parent_node_id: undefined }
+                                    };
+                                }
+                                return n;
+                            });
+
+                            // 2. Resize Old Parent
+                            if (oldParentId) {
+                                const parentNode = updatedNodes.find(n => n.id === oldParentId);
+                                const remainingChildren = updatedNodes.filter(n => n.parentNode === oldParentId && n.id !== node.id);
+
+                                if (parentNode) {
+                                    const startX = 60;
+                                    const startY = 220;
+                                    const gapX = 40;
+                                    let currentX = startX;
+                                    let maxChildX = 0;
+                                    let maxChildY = 0;
+
+                                    remainingChildren.sort((a, b) => a.position.x - b.position.x);
+                                    const updatedChildrenMap = new Map();
+
+                                    remainingChildren.forEach(child => {
+                                        const cW = child.width || 450;
+                                        const cH = child.height || 300;
+                                        const newPos = { x: currentX, y: startY };
+                                        updatedChildrenMap.set(child.id, newPos);
+                                        currentX += cW + gapX;
+                                        maxChildX = Math.max(maxChildX, newPos.x + cW);
+                                        maxChildY = Math.max(maxChildY, newPos.y + cH);
+                                    });
+
+                                    const rightPadding = 120;
+                                    const bottomPadding = 120;
+                                    const minW = 600;
+                                    const minH = 400;
+
+                                    let reqW = minW;
+                                    let reqH = minH;
+
+                                    if (remainingChildren.length > 0) {
+                                        reqW = Math.max(minW, maxChildX + rightPadding);
+                                        reqH = Math.max(minH, maxChildY + bottomPadding);
+                                    }
+
+                                    const pW = parentNode.width || 421;
+                                    const pH = parentNode.height || 200;
+
+                                    return updatedNodes.map(n => {
+                                        if (n.id === oldParentId) {
+                                            if (reqW !== pW || reqH !== pH) {
+                                                return { ...n, style: { ...n.style, width: reqW, height: reqH }, width: reqW, height: reqH };
+                                            }
+                                        }
+                                        if (updatedChildrenMap.has(n.id)) {
+                                            return { ...n, position: updatedChildrenMap.get(n.id) };
+                                        }
+                                        return n;
+                                    });
+                                }
+                            }
+                            return updatedNodes;
+                        });
+                        setHasUnsavedChanges(true);
+                    } // End Detach
+                }
+
+                setHasUnsavedChanges(true);
+            } // End if rfInstance
         },
         [isAutoLayout, highlightedEdgeId, edges, user, nodes, isEditMode]
     );
@@ -2148,6 +2112,141 @@ export default function HistoryTimelinePage() {
             // Use the resource's year if available, otherwise null
             const year = draggedData.year || null;
 
+            // ⚡ CHECK DROP TARGET (Is it landing on a Folder?)
+            // We check if the mouse cursor (position) is inside any existing folder node
+            // ⚡ CHECK DROP TARGET (Is it landing on a Folder?) using React Flow Instance
+            // We construct a dummy node rect at the drop position to check for intersections
+            const hitBox = {
+                id: 'drop-hit-box',
+                position: position,
+                width: 10, // Small buffer
+                height: 10,
+                data: {}
+            };
+
+            const intersections = rfInstance.getIntersectingNodes(hitBox);
+            const targetFolder = intersections.find(n =>
+                n.data.category === 'folder' || n.data.category === 'playlist' || n.data.nodeType === 'folder' || n.data.nodeType === 'playlist'
+            );
+
+            if (targetFolder) {
+                // DROP INTO FOLDER DETECTED
+                console.log('✅ Drop Target Detected:', targetFolder.data.title);
+
+                // Create the new node immediately as a child of this folder
+                const newNodeId = getTempId();
+                const itemType = (draggedData.type === 'category' || (draggedData.type === 'general' && !draggedData.youtube_url)) ? 'folder' :
+                    (draggedData.type === 'video' || !!draggedData.youtube_url || draggedData.resourceType === 'video') ? 'video' :
+                        (draggedData.type === 'document') ? 'document' :
+                            (draggedData.type === 'person') ? 'person' : 'default';
+
+                // Calculate Relative Position (Raw)
+                const relPos = {
+                    x: position.x - (targetFolder.positionAbsolute?.x || 0),
+                    y: position.y - (targetFolder.positionAbsolute?.y || 0)
+                };
+
+                const newNode = createHistoryRFNode(
+                    newNodeId,
+                    relPos, // Initial position, will be fixed by auto-layout below
+                    {
+                        title: draggedData.title || draggedData.name || '제목 없음',
+                        year: year,
+                        category: itemType,
+                        nodeType: itemType,
+                        description: draggedData.description || '',
+                        youtube_url: draggedData.youtube_url || '',
+                        linked_category_id: itemType === 'folder' ? draggedData.id : undefined,
+                        linked_video_id: itemType === 'video' ? draggedData.id : undefined,
+                        linked_document_id: (itemType === 'document' || itemType === 'person') ? draggedData.id : undefined,
+                        image_url: draggedData.image_url,
+                        url: draggedData.url,
+                        created_by: user.id
+                    },
+                    {
+                        onEdit: handleEditNode,
+                        onViewDetail: handleViewDetail,
+                        onPlayVideo: handlePlayVideo,
+                        onPreviewLinkedResource: (id: string, type: string, title: string) => setPreviewResource({ id, type, title }),
+                    }
+                );
+
+                // Assign Parent
+                newNode.parentNode = targetFolder.id;
+                newNode.data.parent_node_id = targetFolder.id;
+
+                setNodes((nds) => {
+                    // AUTO-LAYOUT LOGIC (Insert & Sort)
+                    const otherChildren = nds.filter(n => n.parentNode === targetFolder.id);
+                    const allChildren = [...otherChildren, newNode].sort((a, b) => a.position.x - b.position.x);
+
+                    const startX = 30;
+                    const startY = 220; // Matches the configured padding
+                    const gapX = 20;
+
+                    let currentX = startX;
+                    let maxChildX = 0;
+                    let maxChildY = 0;
+
+                    const updatedChildrenMap = new Map();
+
+                    allChildren.forEach(child => {
+                        const cW = child.width || 421;
+                        const cH = child.height || 200;
+                        const newPos = { x: currentX, y: startY };
+                        updatedChildrenMap.set(child.id, newPos);
+                        currentX += cW + gapX;
+                        maxChildX = Math.max(maxChildX, newPos.x + cW);
+                        maxChildY = Math.max(maxChildY, newPos.y + cH);
+                    });
+
+                    // Resize Parent Logic
+                    const parentNode = nds.find(n => n.id === targetFolder.id);
+                    let newParentStyle = parentNode?.style;
+                    let newWidth: number | undefined;
+                    let newHeight: number | undefined;
+
+                    if (parentNode) {
+                        const pW = parentNode.width || parseInt(String(parentNode.style?.width), 10) || 421;
+                        const pH = parentNode.height || parseInt(String(parentNode.style?.height), 10) || 200;
+                        const rightPadding = 50;
+                        const bottomPadding = 60;
+                        const minW = 421;
+                        const minH = 200;
+
+                        const reqW = Math.max(minW, maxChildX + rightPadding);
+                        const reqH = Math.max(minH, maxChildY + bottomPadding);
+
+                        if (reqW !== pW || reqH !== pH) {
+                            newParentStyle = { ...parentNode.style, width: reqW, height: reqH };
+                            newWidth = reqW;
+                            newHeight = reqH;
+                        }
+                    }
+
+                    // Return new state with added node + updated layout
+                    return [...nds, newNode].map(n => {
+                        if (n.id === newNodeId) {
+                            // Ensure the new node gets the layout position
+                            if (updatedChildrenMap.has(n.id)) {
+                                return { ...n, position: updatedChildrenMap.get(n.id) };
+                            }
+                            return n;
+                        }
+                        if (n.id === targetFolder.id && newParentStyle) {
+                            return { ...n, style: newParentStyle, width: newWidth ?? n.width, height: newHeight ?? n.height };
+                        }
+                        if (updatedChildrenMap.has(n.id)) {
+                            return { ...n, position: updatedChildrenMap.get(n.id) };
+                        }
+                        return n;
+                    });
+                });
+
+                setHasUnsavedChanges(true);
+                setLoading(false);
+                return; // ⛔ EXIT EARLY - Do not proceed to standard logic
+            }
 
             const newNodeData: any = {
                 title: draggedData.title || draggedData.name || '제목 없음',
@@ -2228,98 +2327,137 @@ export default function HistoryTimelinePage() {
                         );
                         newNodes.push(rootNode);
 
-                        // 3. Layout Calculation (Recursive Tree Style)
-                        const LEVEL_HEIGHT = 450;
-                        const NODE_WIDTH = 600;
+                        // 3. Layout Calculation (Container Style - Nested)
+                        // Goal: Create nodes with parentNode set, and resize parents to fit children.
+                        // Strategy: Bottom-up (deepest level first) to ensure parents know their children's size.
 
-                        // Organize by parent to calculate widths
-                        const childrenMap: { [key: string]: any[] } = {};
-                        descendants.forEach(d => {
-                            const pid = d.parentId || draggedData.id;
-                            if (!childrenMap[pid]) childrenMap[pid] = [];
-                            childrenMap[pid].push(d);
+                        const nodesByLevel: { [level: number]: RFNode[] } = {};
+                        const maxLevel = Math.max(...descendants.map(d => d.level)) || 0;
+
+                        // 3.1 Create ALL child nodes first (initially default size/pos)
+                        descendants.forEach(child => {
+                            const nodeId = String(currentTempId--);
+                            idMap.set(child.id, nodeId);
+
+                            const itemType = child.type === 'category' || child.type === 'general' ? 'folder' :
+                                (child.type === 'video' || child.type === 'playlist' || !!child.youtube_url) ? 'video' :
+                                    (child.type === 'document') ? 'document' :
+                                        (child.type === 'person') ? 'person' : 'default';
+
+                            const newNode = createHistoryRFNode(
+                                nodeId,
+                                { x: 0, y: 0 }, // Temp position, will be relative to parent
+                                {
+                                    title: child.title,
+                                    year: year,
+                                    category: itemType,
+                                    nodeType: itemType,
+                                    linked_category_id: child.type === 'general' ? child.id : undefined,
+                                    linked_video_id: (child.type === 'video' || child.type === 'playlist') ? child.id : undefined,
+                                    linked_document_id: (child.type === 'document' || child.type === 'person') ? child.id : undefined,
+                                    description: child.description || '',
+                                    created_by: user.id,
+                                    image_url: child.image_url,
+                                    url: child.url,
+                                    youtube_url: itemType === 'video' ? child.url : undefined,
+                                    // Set Parent Data immediately
+                                    parent_node_id: idMap.get(child.parentId) || rootNodeId,
+                                },
+                                {
+                                    onEdit: handleEditNode,
+                                    onViewDetail: handleViewDetail,
+                                    onPlayVideo: handlePlayVideo,
+                                    onPreviewLinkedResource: (id: string, type: string, title: string) => setPreviewResource({ id, type, title }),
+                                }
+                            );
+
+                            // Assign actual RF parentNode
+                            newNode.parentNode = idMap.get(child.parentId) || rootNodeId;
+                            newNode.extent = undefined; // Allow dragging out
+
+                            if (!nodesByLevel[child.level]) nodesByLevel[child.level] = [];
+                            nodesByLevel[child.level].push(newNode);
                         });
 
-                        // Pass 1: Calculate sub-tree total widths to prevent overlaps
-                        const subtreeWidthMap = new Map<string, number>();
-                        const calculateWidth = (id: string): number => {
-                            const children = childrenMap[id] || [];
-                            if (children.length === 0) return NODE_WIDTH;
-                            const totalWidth = children.reduce((acc, child) => acc + calculateWidth(child.id), 0);
-                            subtreeWidthMap.set(id, totalWidth);
-                            return totalWidth;
+                        // 3.2 Add Root Node to the mix (So we can query it)
+                        const allCreatedNodes = [rootNode, ...Object.values(nodesByLevel).flat()];
+
+                        // Helper to find/update nodes in our temporary list
+                        const updateTempNode = (nId: string, transform: (n: RFNode) => RFNode) => {
+                            const idx = allCreatedNodes.findIndex(n => n.id === nId);
+                            if (idx !== -1) allCreatedNodes[idx] = transform(allCreatedNodes[idx]);
+
+                            // Also update rootNode ref if it was modified
+                            if (nId === rootNodeId) {
+                                // rootNode variable is const, but we push allCreatedNodes to state.
+                                // We'll rely on allCreatedNodes for the final setNodes
+                            }
                         };
-                        calculateWidth(draggedData.id);
+                        const getTempNode = (nId: string) => allCreatedNodes.find(n => n.id === nId);
 
-                        // Pass 2: Assign positions using sub-tree widths
-                        const assignPositions = (parentId: string, currentX: number, currentY: number) => {
-                            const children = childrenMap[parentId] || [];
-                            if (children.length === 0) return;
-
-                            const totalParentWidth = subtreeWidthMap.get(parentId) || (children.length * NODE_WIDTH);
-                            let startX = currentX - (totalParentWidth / 2);
-
-                            children.forEach((child) => {
-                                const childSubtreeWidth = subtreeWidthMap.get(child.id) || NODE_WIDTH;
-                                const nodeId = String(currentTempId--);
-                                idMap.set(child.id, nodeId);
-
-                                // Center this child within its own subtree space
-                                const posX = startX + (childSubtreeWidth / 2);
-                                const posY = currentY + LEVEL_HEIGHT;
-
-                                // Update startX for next sibling
-                                startX += childSubtreeWidth;
-
-                                const itemType = child.type === 'person' ? 'person' : (child.type === 'document' ? 'document' : (child.type === 'video' ? 'video' : (child.type === 'general' ? 'folder' : 'default')));
-
-                                const newNode = createHistoryRFNode(
-                                    nodeId,
-                                    { x: posX, y: posY },
-                                    {
-                                        title: child.title,
-                                        year: year,
-                                        category: itemType,
-                                        nodeType: itemType,
-                                        linked_category_id: child.type === 'general' ? child.id : undefined,
-                                        linked_video_id: child.type === 'video' ? child.id : undefined,
-                                        linked_document_id: (child.type === 'document' || child.type === 'person') ? child.id : undefined,
-                                        description: child.description || '',
-                                        created_by: user.id,
-                                        image_url: child.image_url,
-                                        url: child.url,
-                                        youtube_url: itemType === 'video' ? child.url : undefined
-                                    },
-                                    {
-                                        onEdit: handleEditNode,
-                                        onViewDetail: handleViewDetail,
-                                        onPlayVideo: handlePlayVideo,
-                                        onPreviewLinkedResource: (id: string, type: string, title: string) => setPreviewResource({ id, type, title }),
-                                    }
-                                );
-                                newNodes.push(newNode);
-
-                                // Edge to Parent
-                                const pNodeId = idMap.get(parentId);
-                                if (pNodeId) {
-                                    newEdges.push({
-                                        id: `edge-${pNodeId}-${nodeId}-${Date.now()}`,
-                                        source: pNodeId,
-                                        target: nodeId,
-                                        sourceHandle: 'bottom',
-                                        targetHandle: 'top',
-                                        type: 'default', // Smooth Bezier curves as requested
-                                        data: { relationType: 'contains' }
-                                    });
-                                }
-
-                                // Recurse for sub-children
-                                assignPositions(child.id, posX, posY);
+                        // 3.3 Iterate Levels Bottom-Up
+                        for (let lvl = maxLevel; lvl >= 1; lvl--) {
+                            const childrenAtLevel = nodesByLevel[lvl] || [];
+                            // Group by parent
+                            const childrenByParent: { [pid: string]: RFNode[] } = {};
+                            childrenAtLevel.forEach(c => {
+                                const pid = c.parentNode || rootNodeId;
+                                if (!childrenByParent[pid]) childrenByParent[pid] = [];
+                                childrenByParent[pid].push(c);
                             });
-                        };
 
-                        // Start positioning from Root
-                        assignPositions(draggedData.id, position.x, position.y);
+                            // For each parent, apply Horizontal Layout
+                            Object.entries(childrenByParent).forEach(([pid, children]) => {
+                                const startX = 30;
+                                const startY = 220; // Padding
+                                const gapX = 20;
+
+                                let currentX = startX;
+                                let maxChildX = 0;
+                                let maxChildY = 0;
+
+                                // Sort logic if needed (currently insertion order)
+
+                                children.forEach(child => {
+                                    const cW = child.width || 421;
+                                    const cH = child.height || 200;
+
+                                    const newPos = { x: currentX, y: startY };
+
+                                    // Update Child Position
+                                    updateTempNode(child.id, n => ({ ...n, position: newPos }));
+
+                                    currentX += cW + gapX;
+                                    maxChildX = Math.max(maxChildX, newPos.x + cW);
+                                    maxChildY = Math.max(maxChildY, newPos.y + cH);
+                                });
+
+                                // Resize Parent
+                                const parent = getTempNode(pid);
+                                if (parent) {
+                                    const rightPadding = 120; // Generous right padding
+                                    const bottomPadding = 120; // Generous bottom padding
+                                    const minW = 600;
+                                    const minH = 400;
+
+                                    const reqW = Math.max(minW, maxChildX + rightPadding);
+                                    const reqH = Math.max(minH, maxChildY + bottomPadding);
+
+                                    // Update Parent Size
+                                    updateTempNode(pid, n => ({
+                                        ...n,
+                                        style: { ...n.style, width: reqW, height: reqH },
+                                        width: reqW,
+                                        height: reqH
+                                    }));
+                                }
+                            });
+                        }
+
+                        // Use allCreatedNodes as the final list
+                        newNodes.length = 0;
+                        newNodes.push(...allCreatedNodes);
+                        // No new edges needed
 
                         setNodes(prev => [...prev, ...newNodes]);
                         setEdges(prev => [...prev, ...newEdges]);
