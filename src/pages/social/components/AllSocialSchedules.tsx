@@ -72,7 +72,34 @@ const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules,
         return true;
     });
 
-    if (filteredSchedules.length === 0 && weekMode === 'this') return null;
+    // 자동 탭 전환 로직: 이번주 일정이 없고 현재 '이번주' 탭이라면 '다음주'로 자동 전환
+    // (특히 일요일처럼 이번주 잔여 일정이 없는 경우 유용)
+    React.useEffect(() => {
+        if (weekMode === 'this') {
+            const thisWeekSchedules = schedules.filter(schedule => {
+                if (schedule.day_of_week !== null && schedule.day_of_week !== undefined) return false;
+                if (!schedule.date) return false;
+
+                const shouldIncludeToday = todaySchedulesCount <= 1;
+                if (shouldIncludeToday) {
+                    if (schedule.date < todayStr) return false;
+                } else {
+                    if (schedule.date <= todayStr) return false;
+                }
+
+                if (schedule.date > thisWeekEndStr) return false;
+                return true;
+            });
+
+            // 이번주는 없고 다음주는 일정이 있을 가능성이 높으므로 자동 전환
+            if (thisWeekSchedules.length === 0) {
+                setWeekMode('next');
+            }
+        }
+    }, [schedules, todaySchedulesCount, todayStr, thisWeekEndStr]); // weekMode를 의존성에서 제외하여 수동 전환 방해 방지
+
+    // 전체 일정이 하나도 없는 경우(이번주/다음주 모두)에만 섹션 숨김
+    if (schedules.length === 0) return null;
 
     const getMediumImage = (item: SocialSchedule) => {
         if (item.image_thumbnail) return item.image_thumbnail;
@@ -182,12 +209,12 @@ const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules,
             </div>
 
             <HorizontalScrollNav>
-                <div className={`all-social-scroller all-social-count-${Math.min(sortedSchedules.length, 4)}`}>
+                <div className="all-social-scroller">
                     {sortedSchedules.length > 0 ? (
                         sortedSchedules.map((item) => (
                             <div
                                 key={item.id}
-                                className={`all-social-card all-social-card-count-${Math.min(sortedSchedules.length, 4)}`}
+                                className="all-social-card"
                                 data-analytics-id={Number(item.id) > 1000000 ? Math.floor(Number(item.id) / 10000) : item.id}
                                 data-analytics-type={item.group_id === -1 ? 'event' : 'social_schedule'}
                                 data-analytics-title={item.title}

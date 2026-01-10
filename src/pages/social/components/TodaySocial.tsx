@@ -49,8 +49,8 @@ const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll, on
     // shuffledSchedules 대신 sortedSchedules 사용
     const displaySchedules = sortedSchedules;
 
-    // 오늘 일정이 1개일 때는 숨김 (이번주 일정에 포함되도록)
-    if (displaySchedules.length === 0 || displaySchedules.length === 1) return null;
+    // 오늘 일정이 0개일 때만 숨김
+    if (displaySchedules.length === 0) return null;
 
     const getMediumImage = (item: SocialSchedule) => {
         if (item.image_thumbnail) return item.image_thumbnail;
@@ -139,11 +139,11 @@ const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll, on
             </div>
 
             <HorizontalScrollNav>
-                <div className={`today-scroller today-scroller-count-${Math.min(displaySchedules.length, 3)}`}>
+                <div className="today-scroller">
                     {displaySchedules.map((item) => (
                         <div
                             key={item.id}
-                            className={`today-card today-card-count-${Math.min(displaySchedules.length, 3)}`}
+                            className="today-card"
                             data-analytics-id={typeof item.id === 'number' && item.id > 1000000 ? Math.floor(item.id / 10000) : item.id}
                             data-analytics-type={item.group_id === -1 ? 'event' : 'social_schedule'}
                             data-analytics-title={item.title}
