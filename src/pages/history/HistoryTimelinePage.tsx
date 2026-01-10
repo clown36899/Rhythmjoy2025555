@@ -858,12 +858,12 @@ export default function HistoryTimelinePage() {
                     type: 'historyNode',
                     parentNode: node.parent_node_id ? String(node.parent_node_id) : undefined,
                     style: {
-                        width: node.width || (isContainer ? 600 : 350),
-                        height: node.height || (isContainer ? 400 : 200),
+                        width: node.width || (isContainer ? 640 : 320),
+                        height: node.height || (isContainer ? 480 : 160),
                         zIndex: isContainer ? -1 : undefined
                     },
-                    width: node.width || (isContainer ? 600 : 350),
-                    height: node.height || (isContainer ? 400 : 200),
+                    width: node.width || (isContainer ? 640 : 320),
+                    height: node.height || (isContainer ? 480 : 160),
                     position: {
                         x: (isMobile ? node.mobile_x : node.position_x) || node.position_x || 0,
                         y: (isMobile ? node.mobile_y : node.position_y) || node.position_y || 0
@@ -2821,6 +2821,8 @@ export default function HistoryTimelinePage() {
                     panOnDrag={isEditMode && !isMobile ? !isSelectionMode : true}
                     selectionKeyCode={isSelectionMode ? null : "Shift"}
                     multiSelectionKeyCode="Shift"
+                    snapToGrid={isEditMode}
+                    snapGrid={[80, 80]} // 도트 스냅 간격 (80px 격자)
                     onPaneContextMenu={(event) => {
                         if (!isEditMode) return;
                         event.preventDefault();
@@ -2833,7 +2835,7 @@ export default function HistoryTimelinePage() {
                         setContextMenu({ x: event.clientX, y: event.clientY, nodeId: String(node.id) });
                     }}
                 >
-                    <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#333333" />
+                    <Background variant={BackgroundVariant.Dots} gap={80} size={3} color="#ffffff7d" /> {/* 배경 도트 설정 (80px) */}
                     <Controls showInteractive={false} />
                     <MiniMap
                         nodeColor={GET_NODE_COLOR}

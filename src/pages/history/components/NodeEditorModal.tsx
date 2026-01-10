@@ -353,6 +353,12 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                         <select
                             value={formData.category}
                             onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                            disabled={!!node}
+                            style={{
+                                cursor: !!node ? 'not-allowed' : 'pointer',
+                                opacity: !!node ? 0.7 : 1,
+                                backgroundColor: !!node ? 'rgba(255, 255, 255, 0.05)' : undefined
+                            }}
                         >
                             <option value="general">일반 (폴더)</option>
                             <option value="person">인물</option>
@@ -360,6 +366,11 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                             <option value="video">영상</option>
                             <option value="document">문서</option>
                         </select>
+                        {!!node && (
+                            <small style={{ color: '#888', display: 'block', marginTop: '6px', fontSize: '0.85rem' }}>
+                                ℹ️ 기존 노드의 카테고리는 수정할 수 없습니다. 변경이 필요하면 새 노드를 생성해 주세요.
+                            </small>
+                        )}
                     </div>
 
                     {formData.category === 'person' && (
