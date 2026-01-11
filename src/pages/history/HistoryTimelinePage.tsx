@@ -1128,6 +1128,40 @@ export default function HistoryTimelinePage() {
         [onNodesChange, isShiftPressed, setHasUnsavedChanges, setModifiedNodeIds]
     );
 
+    // Highlight connected edges when nodes are selected
+    // Use useMemo to get selected node IDs to avoid infinite loop
+    const selectedNodeIds = useMemo(() => {
+        return new Set(nodes.filter(n => n.selected).map(n => n.id));
+    }, [nodes]);
+
+    useEffect(() => {
+        if (selectedNodeIds.size > 0) {
+            // Get all connected edges
+            const connectedEdgeIds = new Set<string>();
+            selectedNodeIds.forEach(nodeId => {
+                edges.forEach(edge => {
+                    if (edge.source === nodeId || edge.target === nodeId) {
+                        connectedEdgeIds.add(edge.id);
+                    }
+                });
+            });
+
+            // Update edge styles
+            setEdges(eds => eds.map(edge => ({
+                ...edge,
+                style: connectedEdgeIds.has(edge.id)
+                    ? { ...edge.style, stroke: '#22d3ee', strokeWidth: 5 }
+                    : { ...edge.style, stroke: '#8b5cf6', strokeWidth: 2 }
+            })));
+        } else {
+            // Reset all edges to default style
+            setEdges(eds => eds.map(edge => ({
+                ...edge,
+                style: { ...edge.style, stroke: '#8b5cf6', strokeWidth: 2 }
+            })));
+        }
+    }, [selectedNodeIds, setEdges]);
+
     const onNodeDrag = useCallback((event: React.MouseEvent, _node: RFNode) => {
         // Use mouse coordinates directly for better accuracy
         const elements = document.elementsFromPoint(event.clientX, event.clientY);
