@@ -21,7 +21,7 @@ body {
   max-width: 650px;
   margin: 0 auto;
   width: 100% !important;
-  min-height: 100vh;
+  min-height: 100svh;
 }
 
 /* 🖥️ Desktop Support: 650px fixed width (Base rule applies) */
@@ -34,7 +34,8 @@ html.layout-wide-mode #root {
   max-width: none !important;
   margin: 0 !important;
   width: 100% !important;
-  height: 100% !important;
+  height: 100svh !important;
+  overflow: hidden !important;
 }
 
 /* 📱 Mobile PWA Portrait Lock (Fallback for iOS) */
@@ -294,7 +295,7 @@ html {
   top: 0;
   left: 0;
   width: 100%;
-  height: 100vh;
+  height: 100svh;
   background-color: rgba(0, 0, 0, 0.7);
   display: flex;
   flex-direction: column;

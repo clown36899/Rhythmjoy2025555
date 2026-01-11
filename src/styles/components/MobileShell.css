@@ -27,7 +27,7 @@
 
 /* ===== 컨테이너 클래스 ===== */
 .shell-container {
-  min-height: 100vh;
+  min-height: 100svh;
 }
 
 .shell-container.layout-wide {

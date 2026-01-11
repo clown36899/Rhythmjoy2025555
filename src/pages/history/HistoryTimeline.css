@@ -78,6 +78,8 @@
     /* Fill remaining space */
     background: #000000;
     overflow: hidden;
+    touch-action: none;
+    /* Prevent address bar jitter during dragging */
 }
 
 /* Interaction States */
