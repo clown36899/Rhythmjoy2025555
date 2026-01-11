@@ -19,6 +19,7 @@ export interface HistoryNodeData {
 
     user_id?: string;
     category?: string;
+    z_index?: number; // 뎁스 조절용
     tags?: string[];
     linked_playlist_id?: string;
     linked_document_id?: string;

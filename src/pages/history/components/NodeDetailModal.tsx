@@ -22,6 +22,7 @@ export const NodeDetailModal: React.FC<NodeDetailModalProps> = ({ nodeData, onCl
     };
 
     const videoId = getYoutubeId(nodeData.youtube_url);
+    const isLinked = !!(nodeData.linked_playlist_id || nodeData.linked_document_id || nodeData.linked_video_id || nodeData.linked_category_id);
 
     return (
         <div className="node-detail-overlay" onClick={onClose}>
@@ -119,11 +120,35 @@ export const NodeDetailModal: React.FC<NodeDetailModalProps> = ({ nodeData, onCl
                         </div>
                     )}
 
-                    <div className="detail-description">
-                        {nodeData.description ? (
-                            renderTextWithLinksAndResources(nodeData.description, () => { })
+                    {/* 연동 노드(영상/재생목록)의 경우 원본 설명 노출 */}
+                    {isLinked && ['video', 'playlist'].includes(nodeData.category || '') && nodeData.description && (
+                        <div className="detail-description original-info" style={{
+                            marginBottom: '20px',
+                            padding: '12px',
+                            background: 'rgba(255,255,255,0.03)',
+                            borderRadius: '8px',
+                            borderLeft: '3px solid rgba(255,255,255,0.1)'
+                        }}>
+                            <div style={{ fontSize: '0.8rem', color: '#888', marginBottom: '8px', fontWeight: 'bold' }}>
+                                <i className="ri-information-line"></i> 원본 정보
+                            </div>
+                            <div style={{ fontSize: '0.95rem', color: 'rgba(255,255,255,0.7)', lineHeight: '1.6' }}>
+                                {renderTextWithLinksAndResources(nodeData.description, () => { })}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* 사용자 상세 메모 (핵심 내용) */}
+                    <div className="detail-description user-content">
+                        {nodeData.content ? (
+                            renderTextWithLinksAndResources(nodeData.content, () => { })
                         ) : (
-                            <p className="no-desc">설명이 없습니다.</p>
+                            // 영상/재생목록이 아니고 설명이 있는 경우(과거 데이터 호환성) 설명이라도 보여줌
+                            !['video', 'playlist'].includes(nodeData.category || '') && nodeData.description ? (
+                                renderTextWithLinksAndResources(nodeData.description, () => { })
+                            ) : (
+                                <p className="no-desc">내용이 없습니다.</p>
+                            )
                         )}
                     </div>
 

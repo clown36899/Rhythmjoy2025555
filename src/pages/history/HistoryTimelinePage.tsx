@@ -202,6 +202,24 @@ export default function HistoryTimelinePage() {
     // Context Menu State
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId?: string } | null>(null);
     const [isSelectionMode, setIsSelectionMode] = useState(false); // Toggle selection mode
+    const [isShiftPressed, setIsShiftPressed] = useState(false);
+
+    // Track Shift Key for Additive Selection
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Shift') setIsShiftPressed(true);
+        };
+        const handleKeyUp = (e: KeyboardEvent) => {
+            if (e.key === 'Shift') setIsShiftPressed(false);
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        window.addEventListener('keyup', handleKeyUp);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('keyup', handleKeyUp);
+        };
+    }, []);
 
     // Define types inside component with useMemo to ensure stable references
     const nodeTypes = useMemo(() => STATIC_NODE_TYPES, []);
@@ -300,6 +318,15 @@ export default function HistoryTimelinePage() {
     useEffect(() => {
         if (!isAdmin) setIsEditMode(false);
     }, [isAdmin]);
+
+    // 🔥 Sync isEditMode to all nodes so they render NodeResizer
+    useEffect(() => {
+        setNodes((nds) => nds.map((node) => ({
+            ...node,
+            data: { ...node.data, isEditMode }
+        })));
+    }, [isEditMode, setNodes]);
+
 
     // -- Navigation Blocker --
     const blocker = useBlocker(
@@ -603,6 +630,41 @@ export default function HistoryTimelinePage() {
         setHasUnsavedChanges(false);
         setExitPromptOpen(false);
         setIsEditMode(false);
+    };
+
+    const handleUpdateNodeZIndex = async (nodeId: string, action: 'front' | 'back') => {
+        const targetNode = nodes.find(n => n.id === nodeId);
+        if (!targetNode) return;
+
+        // Calculate new zIndex
+        // For 'front': max current zIndex + 1
+        // For 'back': min current zIndex - 1
+        const currentZIndices = nodes.map(n => n.style?.zIndex as number || 0);
+        let newZIndex = 0;
+
+        if (action === 'front') {
+            newZIndex = Math.max(...currentZIndices, 0) + 1;
+        } else {
+            newZIndex = Math.min(...currentZIndices, 0) - 1;
+        }
+
+        // Update local state immediately
+        setNodes(nds => nds.map(n =>
+            n.id === nodeId ? { ...n, style: { ...n.style, zIndex: newZIndex } } : n
+        ));
+        setHasUnsavedChanges(true);
+        setModifiedNodeIds(prev => new Set(prev).add(nodeId));
+
+        // Save to DB (Background)
+        const { error } = await supabase
+            .from('history_nodes')
+            .update({ z_index: newZIndex })
+            .eq('id', parseInt(nodeId));
+
+        if (error) {
+            console.error('Error updating z_index:', error);
+            // Optionally rollback on error, but for UX we usually keep the local state and log the error
+        }
     };
 
     const handleEditNode = (nodeData: HistoryNodeData) => {
@@ -913,7 +975,8 @@ export default function HistoryTimelinePage() {
                     style: {
                         width: node.width || (isContainer ? 640 : 320),
                         height: node.height || (isContainer ? 480 : 160),
-                        zIndex: isContainer ? -1 : undefined
+                        // 🔥 FIX: If z_index is default (0), containers should be -1 to stay behind children.
+                        zIndex: (node.z_index && node.z_index !== 0) ? node.z_index : (isContainer ? -1 : 0)
                     },
                     width: node.width || (isContainer ? 640 : 320),
                     height: node.height || (isContainer ? 480 : 160),
@@ -1041,9 +1104,28 @@ export default function HistoryTimelinePage() {
 
     const handleNodesChange = useCallback(
         (changes: any) => {
-            onNodesChange(changes);
+            // Additive Selection: If Shift is pressed, don't allow 'deselect' type changes
+            let filteredChanges = changes;
+            if (isShiftPressed) {
+                filteredChanges = changes.filter((c: any) => {
+                    if (c.type === 'select' && c.selected === false) {
+                        return false; // Skip deselection
+                    }
+                    return true;
+                });
+            }
+
+            // Detect dimension changes (resize) and mark for save
+            changes.forEach((change: any) => {
+                if (change.type === 'dimensions' && change.id && !isTempId(change.id)) {
+                    setHasUnsavedChanges(true);
+                    setModifiedNodeIds((prev) => new Set(prev).add(change.id));
+                }
+            });
+
+            onNodesChange(filteredChanges);
         },
-        [onNodesChange]
+        [onNodesChange, isShiftPressed, setHasUnsavedChanges, setModifiedNodeIds]
     );
 
     const onNodeDrag = useCallback((event: React.MouseEvent, _node: RFNode) => {
@@ -1080,8 +1162,194 @@ export default function HistoryTimelinePage() {
         }
     }, [highlightedEdgeId]);
 
+    // Shared Logic for both Single and Multi-selection Drag Stop
+    const handleDragStopLogic = useCallback((event: any, node: RFNode, nodesToProcess: RFNode[]) => {
+        // 2. Handle Group Container (Folder) Logic
+        if (rfInstance && nodesToProcess.length > 0) {
+            // ⚡ CRITICAL: Use the coordinates from nodesToProcess (latest from drag event)
+            const latestAbsPosMap = new Map<string, { x: number, y: number }>();
+            nodesToProcess.forEach(dn => {
+                latestAbsPosMap.set(dn.id, dn.positionAbsolute || dn.position);
+            });
+
+            // Calculate Bounding Box Center of ALL dragged nodes for better target detection
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            nodesToProcess.forEach(dn => {
+                const pos = dn.positionAbsolute || dn.position;
+                const w = (dn as any).measured?.width || dn.width || 421;
+                const h = (dn as any).measured?.height || dn.height || 200;
+                minX = Math.min(minX, pos.x);
+                minY = Math.min(minY, pos.y);
+                maxX = Math.max(maxX, pos.x + w);
+                maxY = Math.max(maxY, pos.y + h);
+            });
+
+            const groupCenter = {
+                x: (minX + maxX) / 2,
+                y: (minY + maxY) / 2
+            };
+
+            // Find potential target parent under GROUP CENTER
+            const centers = rfInstance.getIntersectingNodes({
+                x: groupCenter.x,
+                y: groupCenter.y,
+                width: 1,
+                height: 1,
+            });
+
+            console.log('🔍 [handleDragStopLogic] Debug:', {
+                draggedNodesCount: nodesToProcess.length,
+                groupCenter,
+                intersectingNodesCount: centers.length,
+                intersectingNodes: centers.map(n => ({ id: n.id, type: n.type, category: n.data.category, title: n.data.title }))
+            });
+
+            const targetParent = centers.find(n => {
+                const isFolder = n.data.category === 'folder' || n.data.category === 'playlist' ||
+                    n.data.nodeType === 'folder' || n.data.nodeType === 'playlist' ||
+                    n.type === 'decadeNode'; // Also allow decade nodes if they act as containers
+                return !nodesToProcess.some(dn => dn.id === n.id) && isFolder;
+            });
+
+            const targetParentId = targetParent?.id || null;
+            const foldersToUpdate = new Set<string>();
+            if (targetParentId) foldersToUpdate.add(targetParentId);
+
+            // Identify which nodes are entering/exiting/staying
+            const nodesToReparent: { node: RFNode, oldParentId: string | null, newParentId: string | null }[] = [];
+
+            nodesToProcess.forEach(dn => {
+                const currentParentId = dn.parentNode || null;
+                if (currentParentId === targetParentId && currentParentId) {
+                    foldersToUpdate.add(currentParentId);
+                }
+                if (currentParentId !== targetParentId) {
+                    // Cycle Check
+                    let isCyclic = false;
+                    if (targetParentId) {
+                        let curr: RFNode | undefined = targetParent;
+                        const visited = new Set<string>();
+                        while (curr) {
+                            if (curr.id === dn.id) { isCyclic = true; break; }
+                            if (visited.has(curr.id)) break;
+                            visited.add(curr.id);
+                            curr = nodes.find(n => n.id === curr?.parentNode);
+                        }
+                    }
+
+                    if (!isCyclic) {
+                        nodesToReparent.push({ node: dn, oldParentId: currentParentId, newParentId: targetParentId });
+                        if (currentParentId) foldersToUpdate.add(currentParentId);
+                    }
+                }
+            });
+
+            if (foldersToUpdate.size > 0) {
+                const reparentedIds = new Set(nodesToReparent.map(item => item.node.id));
+
+                setNodes((nds) => {
+                    let updatedNodes = [...nds];
+
+                    // 1. Update Parenting and Positions for reparented nodes
+                    updatedNodes = updatedNodes.map(n => {
+                        if (reparentedIds.has(n.id)) {
+                            // ⚡ Use the LATEST absolute position from our captured map
+                            const absPos = latestAbsPosMap.get(n.id) || n.positionAbsolute || n.position;
+
+                            if (targetParentId) {
+                                // New Parent: Find ITS position in the current snapshot
+                                const parentNode = nds.find(p => p.id === targetParentId);
+                                const parentAbs = parentNode?.positionAbsolute || parentNode?.position || { x: 0, y: 0 };
+
+                                return {
+                                    ...n,
+                                    parentNode: targetParentId,
+                                    position: { x: absPos.x - parentAbs.x, y: absPos.y - parentAbs.y },
+                                    data: { ...n.data, parent_node_id: targetParentId },
+                                    extent: undefined
+                                };
+                            } else {
+                                // Detach: Back to root canvas
+                                return {
+                                    ...n,
+                                    parentNode: undefined,
+                                    position: absPos,
+                                    data: { ...n.data, parent_node_id: null },
+                                    extent: undefined
+                                };
+                            }
+                        }
+                        return n;
+                    });
+
+                    // 2. Batch Auto-Layout for ALL affected folders
+                    foldersToUpdate.forEach(pid => {
+                        const siblings = updatedNodes.filter(n => n.parentNode === pid);
+                        if (siblings.length === 0) {
+                            updatedNodes = updatedNodes.map(n => n.id === pid ? { ...n, style: { ...n.style, width: 600, height: 400 }, width: 600, height: 400 } : n);
+                            return;
+                        }
+
+                        // ⚡ PRESERVE ORDER: Sort by CURRENT relative X
+                        const sortedChildren = siblings.sort((a, b) => a.position.x - b.position.x);
+
+                        const startX = 60;
+                        const startY = 220;
+                        const gapX = 40;
+                        let currentX = startX;
+                        let maxMX = 0, maxMY = 0;
+
+                        const updatedChildrenMap = new Map();
+                        sortedChildren.forEach(child => {
+                            const cW = child.width || 450;
+                            const cH = child.height || 300;
+                            const newPos = { x: currentX, y: startY };
+                            updatedChildrenMap.set(child.id, newPos);
+                            currentX += cW + gapX;
+                            maxMX = Math.max(maxMX, newPos.x + cW);
+                            maxMY = Math.max(maxMY, newPos.y + cH);
+                        });
+
+                        // Resize Parent
+                        const w = Math.max(600, maxMX + 120);
+                        const h = Math.max(400, maxMY + 120);
+
+                        updatedNodes = updatedNodes.map(n => {
+                            if (n.id === pid) {
+                                return { ...n, style: { ...n.style, width: w, height: h }, width: w, height: h };
+                            }
+                            if (updatedChildrenMap.has(n.id)) {
+                                return { ...n, position: updatedChildrenMap.get(n.id) };
+                            }
+                            return n;
+                        });
+                    });
+
+                    return updatedNodes;
+                });
+
+                // 3. Persistent DB Update (Only for REAL nodes)
+                const realNodesToUpdate = nodesToReparent.filter(item => !isTempId(item.node.id));
+
+                if (realNodesToUpdate.length > 0) {
+                    const updates = realNodesToUpdate.map(item => {
+                        const pid = item.newParentId ? parseInt(item.newParentId) : null;
+                        return supabase.from('history_nodes').update({ parent_node_id: pid }).eq('id', parseInt(item.node.id));
+                    });
+                    Promise.all(updates).then(results => {
+                        if (results.some(r => r.error)) console.error('Error batch updating parents');
+                    });
+
+                    setHasUnsavedChanges(true);
+                    realNodesToUpdate.forEach(item => setModifiedNodeIds(prev => new Set(prev).add(item.node.id)));
+                    if (targetParentId && !isTempId(targetParentId)) setModifiedNodeIds(prev => new Set(prev).add(targetParentId));
+                }
+            }
+        }
+    }, [rfInstance, nodes, setNodes, setHasUnsavedChanges, supabase, setModifiedNodeIds]);
+
     const onNodeDragStop = useCallback(
-        (_: any, node: RFNode) => {
+        (_: any, node: RFNode, draggedNodes: RFNode[]) => {
             // Helper to find closest handle on 'node' relative to 'targetNode'
             const getClosestHandle = (node: RFNode, targetNode: RFNode) => {
                 const nodeCenter = {
@@ -1103,39 +1371,36 @@ export default function HistoryTimelinePage() {
                 }
             };
 
-            // 1. Handle Edge Splitting
-            if (highlightedEdgeId) {
+            const nodesToProcess = draggedNodes.length > 0 ? draggedNodes : [node];
+
+            // 1. Handle Edge Splitting (Only for single node)
+            if (nodesToProcess.length === 1 && highlightedEdgeId) {
                 const edge = edges.find(e => e.id === highlightedEdgeId);
                 if (edge) {
                     const sourceNode = nodes.find(n => n.id === edge.source);
                     const targetNode = nodes.find(n => n.id === edge.target);
 
                     if (sourceNode && targetNode && window.confirm('이 노드를 연결선 사이에 추가하시겠습니까?')) {
-                        // Split logic
                         const sourceId = edge.source;
                         const targetId = edge.target;
                         const nodeId = node.id;
 
-                        // Delete original edge
                         supabase.from('history_edges').delete().eq('id', edge.id).then();
 
-                        // Create new edges
-                        // Edge 1: Source(Original Handle) -> NewNode(Closest-to-Source Handle)
                         const newEdge1 = {
                             source_id: parseInt(sourceId),
-                            source_handle: edge.sourceHandle || 'bottom', // Keep original or default
+                            source_handle: edge.sourceHandle || 'bottom',
                             target_id: parseInt(nodeId),
-                            target_handle: getClosestHandle(node, sourceNode), // closest to source
+                            target_handle: getClosestHandle(node, sourceNode),
                             created_by: user?.id,
                             relation_type: 'influence'
                         };
 
-                        // Edge 2: NewNode(Closest-to-Target Handle) -> Target(Original Handle)
                         const newEdge2 = {
                             source_id: parseInt(nodeId),
-                            source_handle: getClosestHandle(node, targetNode), // closest to target
+                            source_handle: getClosestHandle(node, targetNode),
                             target_id: parseInt(targetId),
-                            target_handle: edge.targetHandle || 'top', // Keep original or default
+                            target_handle: edge.targetHandle || 'top',
                             created_by: user?.id,
                             relation_type: 'influence'
                         };
@@ -1165,7 +1430,6 @@ export default function HistoryTimelinePage() {
                                     };
                                     return [...filtered, e1, e2];
                                 });
-                                // Mark as dirty since new node position might need saving
                                 setHasUnsavedChanges(true);
                             }
                         });
@@ -1176,350 +1440,35 @@ export default function HistoryTimelinePage() {
                 return;
             }
 
+
             if (isAutoLayout || !isEditMode) return;
 
-            // 2. Handle Container (Folder) Logic
-            if (rfInstance) {
-                // Calculate Hit Regions (Tiered Detection)
-                const nodeAbs = node.positionAbsolute || node.position;
-                const nodeWidth = (node as any).measured?.width || node.width || 421;
-                const nodeHeight = (node as any).measured?.height || node.height || 200;
-
-
-                const nodeCenter = {
-                    x: nodeAbs.x + nodeWidth / 2,
-                    y: nodeAbs.y + nodeHeight / 2
-                };
-
-                let parentData: RFNode | undefined;
-
-                if (node.parentNode) {
-                    const centers = rfInstance.getIntersectingNodes({
-                        x: nodeCenter.x,
-                        y: nodeCenter.y,
-                        width: 1,
-                        height: 1,
-                    });
-                    parentData = centers.find(n =>
-                        n.id !== node.id &&
-                        (n.data.category === 'folder' || n.data.category === 'playlist' || n.data.nodeType === 'folder' || n.data.nodeType === 'playlist')
-                    );
-                } else {
-                    // 🛡️ REFINED ENTRY: Use center point (1x1) instead of nodeRect for more intuitive entry
-                    const enters = rfInstance.getIntersectingNodes({
-                        x: nodeCenter.x,
-                        y: nodeCenter.y,
-                        width: 1,
-                        height: 1,
-                    });
-                    parentData = enters.find(n =>
-                        n.id !== node.id &&
-                        (n.data.category === 'folder' || n.data.category === 'playlist' || n.data.nodeType === 'folder' || n.data.nodeType === 'playlist')
-                    );
-                }
-
-                if (parentData) {
-                    if (node.parentNode !== parentData.id) {
-                        // Prevent Cycles (Infinite Recursion)
-                        let isCyclic = false;
-                        let curr: RFNode | undefined = parentData;
-                        const visited = new Set<string>();
-                        while (curr) {
-                            if (curr.id === node.id) {
-                                isCyclic = true;
-                                break;
-                            }
-                            if (visited.has(curr.id)) break; // Safety against existing cycles
-                            visited.add(curr.id);
-                            const nextPid: string | undefined = curr.parentNode;
-                            curr = nodes.find(n => n.id === nextPid);
-                        }
-
-                        if (isCyclic) {
-                            console.warn('❌ Cycle detected: Cannot move a parent into its own child.');
-                            return;
-                        }
-
-                        const childAbs = node.positionAbsolute || node.position;
-                        const parentAbs = parentData.positionAbsolute || parentData.position;
-                        const relPos = { x: childAbs.x - parentAbs.x, y: childAbs.y - parentAbs.y };
-
-                        // ⚡ AUTO-CLEANUP: Remove direct edges between this child and the new parent
-                        const edgesToRemove = edges.filter(e =>
-                            (e.source === node.id && e.target === parentData.id) ||
-                            (e.target === node.id && e.source === parentData.id)
-                        );
-
-                        if (edgesToRemove.length > 0) {
-                            const edgeIdsToRemove = new Set(edgesToRemove.map(e => e.id));
-
-                            // 1. Remove from UI
-                            setEdges(eds => eds.filter(e => !edgeIdsToRemove.has(e.id)));
-
-                            // 2. Mark for DB Deletion (if not temp)
-                            const realEdgeIds = edgesToRemove.filter(e => !isTempId(e.id)).map(e => e.id);
-                            if (realEdgeIds.length > 0) {
-                                setDeletedEdgeIds(prev => {
-                                    const next = new Set(prev);
-                                    realEdgeIds.forEach(id => next.add(id));
-                                    return next;
-                                });
-                            }
-                        }
-
-                        // 2. Auto-Layout Children (Horizontal Grid)
-                        const targetParentId = parentData.id;
-                        setNodes((nds) => {
-                            // Get all current children + the new one
-                            const otherChildren = nds.filter(n => n.parentNode === targetParentId && n.id !== node.id);
-                            // Combine and sort by current X position to maintain relative order
-                            const allChildren = [...otherChildren, { ...node, position: relPos }]
-                                .sort((a, b) => a.position.x - b.position.x);
-
-                            // Layout Configuration - UPDATED TO MATCH onDrop
-                            const startX = 60;
-                            const startY = 220;
-                            const gapX = 40;
-
-                            // Re-calculate positions for ALL children
-                            let currentX = startX;
-
-                            const updatedChildrenMap = new Map(); // id -> newPosition
-                            let maxChildX = 0;
-                            let maxChildY = 0;
-
-                            allChildren.forEach(child => {
-                                const cW = child.width || 450;
-                                const cH = child.height || 300;
-
-                                const newPos = { x: currentX, y: startY };
-                                updatedChildrenMap.set(child.id, newPos);
-
-                                currentX += cW + gapX; // Advance X
-
-                                // Track max bounds for parent resizing
-                                maxChildX = Math.max(maxChildX, newPos.x + cW);
-                                maxChildY = Math.max(maxChildY, newPos.y + cH);
-                            });
-
-                            // 3. Resize Parent based on new Layout (Dynamic Sizing: Shrink OR Expand)
-                            const parentNode = nds.find(n => n.id === targetParentId);
-                            let newParentStyle = parentNode?.style;
-                            let newWidth: number | undefined;
-                            let newHeight: number | undefined;
-
-                            if (parentNode) {
-                                const rightPadding = 120; // Generous
-                                const bottomPadding = 120; // Generous
-                                const minW = 600;
-                                const minH = 400;
-
-                                const reqW = Math.max(minW, maxChildX + rightPadding);
-                                const reqH = Math.max(minH, maxChildY + bottomPadding);
-
-                                if (reqW !== (parentNode.width || 421) || reqH !== (parentNode.height || 200)) {
-                                    newParentStyle = { ...parentNode.style, width: reqW, height: reqH };
-                                    newWidth = reqW;
-                                    newHeight = reqH;
-                                }
-                            }
-
-                            // Apply updates to Nodes State
-                            return nds.map((n) => {
-                                if (n.id === node.id) {
-                                    return {
-                                        ...n,
-                                        parentNode: targetParentId,
-                                        // Update local data logic
-                                        data: { ...n.data, parent_node_id: targetParentId },
-                                        extent: undefined, // allow drag out
-                                        position: updatedChildrenMap.get(n.id) || n.position
-                                    };
-                                }
-                                if (n.id === targetParentId && newParentStyle) {
-                                    return {
-                                        ...n,
-                                        style: newParentStyle,
-                                        width: newWidth ?? n.width,
-                                        height: newHeight ?? n.height
-                                    };
-                                }
-                                if (updatedChildrenMap.has(n.id)) {
-                                    return { ...n, position: updatedChildrenMap.get(n.id) };
-                                }
-                                return n;
-                            });
-                        });
-                        setHasUnsavedChanges(true);
-                        return;
-                    } else {
-                        // 3. Move/Reorder INSIDE Same Folder (Snap Back / Reorder)
-                        const targetParentId = parentData!.id;
-                        setNodes((nds) => {
-                            const otherChildren = nds.filter(n => n.parentNode === targetParentId && n.id !== node.id);
-                            const allChildren = [...otherChildren, node].sort((a, b) => a.position.x - b.position.x);
-
-                            const startX = 60;
-                            const startY = 220;
-                            const gapX = 40;
-
-                            let currentX = startX;
-                            const updatedChildrenMap = new Map();
-                            let maxChildX = 0;
-                            let maxChildY = 0;
-
-                            allChildren.forEach(child => {
-                                const cW = child.width || 450;
-                                const cH = child.height || 300;
-                                const newPos = { x: currentX, y: startY };
-                                updatedChildrenMap.set(child.id, newPos);
-                                currentX += cW + gapX;
-                                maxChildX = Math.max(maxChildX, newPos.x + cW);
-                                maxChildY = Math.max(maxChildY, newPos.y + cH);
-                            });
-
-                            const parentNode = nds.find(n => n.id === targetParentId);
-                            let newParentStyle = parentNode?.style;
-                            let newWidth: number | undefined;
-                            let newHeight: number | undefined;
-
-                            if (parentNode) {
-                                const rightPadding = 120;
-                                const bottomPadding = 120;
-                                const minW = 600;
-                                const minH = 400;
-                                const reqW = Math.max(minW, maxChildX + rightPadding);
-                                const reqH = Math.max(minH, maxChildY + bottomPadding);
-
-                                if (reqW !== (parentNode.width || 421) || reqH !== (parentNode.height || 200)) {
-                                    newParentStyle = { ...parentNode.style, width: reqW, height: reqH };
-                                    newWidth = reqW;
-                                    newHeight = reqH;
-                                }
-                            }
-
-                            return nds.map((n) => {
-                                if (n.id === targetParentId && newParentStyle) {
-                                    return { ...n, style: newParentStyle, width: newWidth ?? n.width, height: newHeight ?? n.height };
-                                }
-                                if (updatedChildrenMap.has(n.id)) {
-                                    return { ...n, position: updatedChildrenMap.get(n.id) };
-                                }
-                                return n;
-                            });
-                        });
-                        setHasUnsavedChanges(true);
-                        return;
-                    }
-                }
-
-
-                if (node.parentNode) {
-                    // Detach Check: Use center-point logic for easier drag-out
-
-                    const parentNode = nodes.find(n => n.id === node.parentNode);
-                    let shouldDetach = false;
-
-                    if (parentNode) {
-                        const parentAbs = parentNode.positionAbsolute || parentNode.position;
-                        const parentWidth = (parentNode as any).measured?.width || parentNode.width || 600;
-                        const parentHeight = (parentNode as any).measured?.height || parentNode.height || 400;
-
-                        // Check if center is outside parent bounds
-                        const isOutside =
-                            nodeCenter.x < parentAbs.x ||
-                            nodeCenter.x > parentAbs.x + parentWidth ||
-                            nodeCenter.y < parentAbs.y ||
-                            nodeCenter.y > parentAbs.y + parentHeight;
-
-                        shouldDetach = isOutside;
-                    }
-
-                    if (shouldDetach) {
-                        // Detach Check
-                        const absPos = node.positionAbsolute || { x: 0, y: 0 };
-                        const oldParentId = node.parentNode;
-
-                        setNodes((nds) => {
-                            // 1. Detach Node
-                            const updatedNodes = nds.map((n) => {
-                                if (n.id === node.id) {
-                                    const { parentNode, extent, ...rest } = n;
-                                    return {
-                                        ...rest,
-                                        position: absPos,
-                                        extent: undefined,
-                                        data: { ...n.data, parent_node_id: undefined }
-                                    };
-                                }
-                                return n;
-                            });
-
-                            // 2. Resize Old Parent
-                            if (oldParentId) {
-                                const parentNode = updatedNodes.find(n => n.id === oldParentId);
-                                const remainingChildren = updatedNodes.filter(n => n.parentNode === oldParentId && n.id !== node.id);
-
-                                if (parentNode) {
-                                    const startX = 60;
-                                    const startY = 220;
-                                    const gapX = 40;
-                                    let currentX = startX;
-                                    let maxChildX = 0;
-                                    let maxChildY = 0;
-
-                                    remainingChildren.sort((a, b) => a.position.x - b.position.x);
-                                    const updatedChildrenMap = new Map();
-
-                                    remainingChildren.forEach(child => {
-                                        const cW = child.width || 450;
-                                        const cH = child.height || 300;
-                                        const newPos = { x: currentX, y: startY };
-                                        updatedChildrenMap.set(child.id, newPos);
-                                        currentX += cW + gapX;
-                                        maxChildX = Math.max(maxChildX, newPos.x + cW);
-                                        maxChildY = Math.max(maxChildY, newPos.y + cH);
-                                    });
-
-                                    const rightPadding = 120;
-                                    const bottomPadding = 120;
-                                    const minW = 600;
-                                    const minH = 400;
-
-                                    let reqW = minW;
-                                    let reqH = minH;
-
-                                    if (remainingChildren.length > 0) {
-                                        reqW = Math.max(minW, maxChildX + rightPadding);
-                                        reqH = Math.max(minH, maxChildY + bottomPadding);
-                                    }
-
-                                    const pW = parentNode.width || 421;
-                                    const pH = parentNode.height || 200;
-
-                                    return updatedNodes.map(n => {
-                                        if (n.id === oldParentId) {
-                                            if (reqW !== pW || reqH !== pH) {
-                                                return { ...n, style: { ...n.style, width: reqW, height: reqH }, width: reqW, height: reqH };
-                                            }
-                                        }
-                                        if (updatedChildrenMap.has(n.id)) {
-                                            return { ...n, position: updatedChildrenMap.get(n.id) };
-                                        }
-                                        return n;
-                                    });
-                                }
-                            }
-                            return updatedNodes;
-                        });
-                        setHasUnsavedChanges(true);
-                    } // End Detach
-                }
-
-                setHasUnsavedChanges(true);
-            } // End if rfInstance
+            // Delegate Folder/Parenting Logic
+            handleDragStopLogic(null, node, nodesToProcess);
         },
-        [isAutoLayout, highlightedEdgeId, edges, user, nodes, isEditMode]
+        [highlightedEdgeId, edges, nodes, user, isAutoLayout, isEditMode, setEdges, setNodes, setHasUnsavedChanges, supabase, setModifiedNodeIds, handleDragStopLogic]
+    );
+
+    // New Handler for Multi-Selection Drag Stop
+    const onSelectionDragStop = useCallback((_: any, selectionNodes: RFNode[]) => {
+        if (isAutoLayout || !isEditMode) return;
+        // Identify "primary" node as the first one just for reference, or none
+        const primaryNode = selectionNodes[0];
+        handleDragStopLogic(_, primaryNode, selectionNodes);
+    }, [isAutoLayout, isEditMode, handleDragStopLogic]);
+
+    const updateMiniMapVisibility = useCallback((_viewport: { x: number, y: number, zoom: number }) => {
+        // Auto-hide logic disabled as per user request for manual control
+        return;
+    }, []);
+
+    const onMoveEnd = useCallback(
+        (_: any, viewport: { x: number, y: number, zoom: number }) => {
+            // Viewport persistence disabled by design.
+            // Default view is always "Fit View" on entry.
+            updateMiniMapVisibility(viewport);
+        },
+        [updateMiniMapVisibility]
     );
 
     // Handler: Delete selected nodes (for trash button click)
@@ -1562,19 +1511,6 @@ export default function HistoryTimelinePage() {
         setHasUnsavedChanges(true);
     }, [nodes, edges, isTempId]);
 
-    const updateMiniMapVisibility = useCallback((_viewport: { x: number, y: number, zoom: number }) => {
-        // Auto-hide logic disabled as per user request for manual control
-        return;
-    }, []);
-
-    const onMoveEnd = useCallback(
-        (_: any, viewport: { x: number, y: number, zoom: number }) => {
-            // Viewport persistence disabled by design.
-            // Default view is always "Fit View" on entry.
-            updateMiniMapVisibility(viewport);
-        },
-        [updateMiniMapVisibility]
-    );
 
     const onConnect = useCallback(
         (params: Connection) => {
@@ -2847,6 +2783,8 @@ export default function HistoryTimelinePage() {
                     onEdgeClick={onEdgeClick}
                     onNodeDrag={isEditMode ? onNodeDrag : undefined}
                     onNodeDragStop={isEditMode ? onNodeDragStop : undefined}
+
+                    onSelectionDragStop={isEditMode ? onSelectionDragStop : undefined}
                     onMoveEnd={onMoveEnd}
                     nodesDraggable={!isAutoLayout && isEditMode}
                     nodesConnectable={isEditMode}
@@ -2864,7 +2802,7 @@ export default function HistoryTimelinePage() {
                     selectionKeyCode={isSelectionMode ? null : "Shift"}
                     multiSelectionKeyCode="Shift"
                     snapToGrid={isEditMode}
-                    snapGrid={[80, 80]} // 도트 스냅 간격 (80px 격자)
+                    snapGrid={[50, 50]} // 도트 스냅 간격 (50px 격자)
                     onPaneContextMenu={(event) => {
                         if (!isEditMode) return;
                         event.preventDefault();
@@ -2877,7 +2815,7 @@ export default function HistoryTimelinePage() {
                         setContextMenu({ x: event.clientX, y: event.clientY, nodeId: String(node.id) });
                     }}
                 >
-                    <Background variant={BackgroundVariant.Dots} gap={80} size={3} color="#ffffff7d" /> {/* 배경 도트 설정 (80px) */}
+                    <Background variant={BackgroundVariant.Dots} gap={50} size={3} color="#ffffff7d" /> {/* 배경 도트 설정 (50px) */}
                     <Controls showInteractive={false} position="top-left" />
                     {showMiniMap && (
                         <MiniMap
@@ -3094,6 +3032,62 @@ export default function HistoryTimelinePage() {
                             <span style={{ fontSize: '12px', opacity: 0.6 }}>Delete</span>
                         </button>
                         <div style={{ height: '1px', background: 'rgba(255,255,255,0.05)', margin: '4px 0' }} />
+
+                        {/* Z-Index Controls */}
+                        {contextMenu.nodeId && (
+                            <>
+                                <button
+                                    onClick={() => {
+                                        if (contextMenu.nodeId) handleUpdateNodeZIndex(contextMenu.nodeId, 'front');
+                                        setContextMenu(null);
+                                    }}
+                                    style={{
+                                        width: '100%',
+                                        padding: '8px 12px',
+                                        background: 'transparent',
+                                        border: 'none',
+                                        color: '#60a5fa',
+                                        textAlign: 'left',
+                                        cursor: 'pointer',
+                                        borderRadius: '4px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        fontSize: '14px'
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'}
+                                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                >
+                                    <i className="ri-bring-to-front"></i> 맨 앞으로 가져오기
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        if (contextMenu.nodeId) handleUpdateNodeZIndex(contextMenu.nodeId, 'back');
+                                        setContextMenu(null);
+                                    }}
+                                    style={{
+                                        width: '100%',
+                                        padding: '8px 12px',
+                                        background: 'transparent',
+                                        border: 'none',
+                                        color: '#9ca3af',
+                                        textAlign: 'left',
+                                        cursor: 'pointer',
+                                        borderRadius: '4px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        fontSize: '14px'
+                                    }}
+                                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'}
+                                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                >
+                                    <i className="ri-send-to-back"></i> 맨 뒤로 보내기
+                                </button>
+                                <div style={{ height: '1px', background: 'rgba(255,255,255,0.05)', margin: '4px 0' }} />
+                            </>
+                        )}
+
                         <button
                             onClick={() => {
                                 setIsSelectionMode(!isSelectionMode);

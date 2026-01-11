@@ -121,8 +121,7 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
                     minWidth={320}
                     minHeight={160}
                     isVisible={!!selected}
-                    lineStyle={{ border: '1px solid #a78bfa' }}
-                    handleStyle={{ width: 12, height: 12, border: 'none', borderRadius: '2px', background: '#a78bfa' }}
+                    lineStyle={{ border: '2px solid #a78bfa' }}
                 />
             )}
 
@@ -178,30 +177,16 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
             <div
                 className="history-node-content"
                 onClick={(e) => {
-                    // In selection mode, don't trigger any actions - just allow selection
-                    if (data.isSelectionMode) return;
+                    // In selection mode OR edit mode, don't trigger detail view - just allow selection
+                    if (data.isSelectionMode || data.isEditMode) return;
 
                     // 버튼 클릭이 아닌 경우에만 처리
                     if (!(e.target as HTMLElement).closest('button')) {
-                        // 인물 노드는 항상 상세보기 모달
-                        if (data.category === 'person') {
-                            handleViewDetail(e);
-                        }
-                        // 문서/폴더/카테고리 노드는 미리보기 (상세 모달)
-                        else if (data.nodeType === 'document' || data.nodeType === 'folder' || data.nodeType === 'category' || data.nodeType === 'general') {
-                            handleThumbnailClick(e);
-                        }
-                        // 비디오/재생목록도 미리보기
-                        else if (data.nodeType === 'video' || data.nodeType === 'playlist') {
-                            handleThumbnailClick(e);
-                        }
-                        // 그 외의 경우 (기본 노드 등) 상세 보기
-                        else {
-                            handleViewDetail(e);
-                        }
+                        // 일반 모드에서만 본체 클릭 시 상세 보기 모달(NodeDetailModal)을 띄움
+                        handleViewDetail(e);
                     }
                 }}
-                style={{ cursor: data.isSelectionMode ? 'default' : 'pointer' }}
+                style={{ cursor: (data.isSelectionMode || data.isEditMode) ? 'default' : 'pointer' }}
             >
                 <div className="node-header">
                     <span className="node-year">{data.year || data.date}</span>

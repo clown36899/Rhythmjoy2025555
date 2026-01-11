@@ -558,25 +558,29 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                         </small>
                     </div>
 
-                    <div className="form-group">
-                        <label>원본 설명 {isLinked && <span style={{ color: '#60a5fa', fontSize: '0.8rem', fontWeight: 'normal', marginLeft: '8px' }}>(원본 정보 - 수정 불가)</span>}</label>
-                        <textarea
-                            value={formData.description}
-                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                            placeholder="이 노드에 대한 설명을 입력하세요..."
-                            rows={4}
-                            disabled={isLinked}
-                            style={isLinked ? { opacity: 0.7, cursor: 'not-allowed', background: 'rgba(255,255,255,0.03)' } : {}}
-                        />
-                    </div>
+                    {/* (영상/재생목록 연동 시에만) 원본 설명 - 항상 읽기 전용 */}
+                    {isLinked && ['video', 'playlist'].includes(formData.category) && (
+                        <div className="form-group">
+                            <label>원본 설명 <span style={{ color: '#60a5fa', fontSize: '0.8rem', fontWeight: 'normal', marginLeft: '8px' }}>(원본 정보 - 수정 불가)</span></label>
+                            <textarea
+                                value={formData.description}
+                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                placeholder="원본 설명이 없습니다."
+                                rows={3}
+                                disabled={true}
+                                style={{ opacity: 0.7, cursor: 'not-allowed', background: 'rgba(255,255,255,0.03)' }}
+                            />
+                        </div>
+                    )}
 
+                    {/* 상세 메모 - 모든 노드의 "기본" 편집 필드 */}
                     <div className="form-group" style={{ marginTop: '16px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '16px' }}>
-                        <label style={{ color: '#60a5fa', fontWeight: 'bold' }}>사용자 상세 메모</label>
+                        <label style={{ color: '#60a5fa', fontWeight: 'bold' }}>상세 메모 (직접 편집)</label>
                         <textarea
                             value={formData.content}
                             onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                            placeholder="나만의 학습 노트나 추가 정보를 자유롭게 입력하세요. (자료 서랍과 동기화됩니다)"
-                            rows={6}
+                            placeholder="이 노드에 대한 설명이나 나만의 노트를 자유롭게 입력하세요. (자료 서랍과 동기화됩니다)"
+                            rows={8}
                             style={{ border: '1px solid rgba(96, 165, 250, 0.3)', background: 'rgba(96, 165, 250, 0.02)' }}
                         />
                     </div>

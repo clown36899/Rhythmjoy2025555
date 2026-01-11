@@ -174,10 +174,9 @@
   background-color: #1a1a1a;
 }
 
-.standard-view .board-post-card-notice {
-  /* background-color: rgb(52 52 52 / 48%); */
-  /* Slightly Adjusted opacity */
-}
+/* .standard-view .board-post-card-notice {
+  background-color: rgb(52 52 52 / 48%);
+} */
 
 /* New Top Row container for Image + Content */
 .standard-view .board-post-top-row {

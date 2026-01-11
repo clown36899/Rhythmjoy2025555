@@ -10,7 +10,6 @@ import StandardPostList from './components/StandardPostList';
 import type { AnonymousBoardPost, StandardBoardPost } from '../../types/board';
 import UniversalPostEditor from './components/UniversalPostEditor';
 import BoardManagementModal from './components/BoardManagementModal';
-import BoardPrefixManagementModal from '../../components/BoardPrefixManagementModal';
 import DevLog from './components/DevLog';
 import AnonymousWriteModal from './components/AnonymousWriteModal';
 import BoardDetailModal from './components/BoardDetailModal';
@@ -46,7 +45,6 @@ export default function BoardMainContainer() {
 
     // Admin UI States
     const [isManagementOpen, setIsManagementOpen] = useState(false);
-    const [isPrefixManagementOpen, setIsPrefixManagementOpen] = useState(false);
 
     // Reset pagination and filter when category changes
     useEffect(() => {

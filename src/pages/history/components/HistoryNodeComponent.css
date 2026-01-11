@@ -5,6 +5,9 @@
     width: 421px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     transition: all 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    /* overflow: hidden removed to allow NodeResizer handles to be visible outside the border */
 }
 
 .history-node:hover {
@@ -80,6 +83,26 @@
     display: flex;
     flex-direction: column;
     gap: 8px;
+    flex: 1;
+    /* 남은 높이를 모두 차지하여 Footer를 바닥으로 밀어냄 */
+    min-height: 0;
+    /* Flexbox 버그 방지 */
+    overflow-y: auto;
+    /* 컨텐츠가 넘치면 스크롤하여 Footer 공간 확보 */
+}
+
+/* 스크롤바 커스텀 */
+.history-node-content::-webkit-scrollbar {
+    width: 4px;
+}
+
+.history-node-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+}
+
+.history-node-content::-webkit-scrollbar-track {
+    background: transparent;
 }
 
 .node-header {
@@ -90,7 +113,7 @@
 }
 
 .node-year {
-    font-size: 14px;
+    font-size: 2rem;
     font-weight: 700;
     color: #a78bfa;
     background: rgba(167, 139, 250, 0.1);
@@ -248,21 +271,33 @@
     display: flex;
     justify-content: flex-end;
     gap: 8px;
-    margin-top: 12px;
-    padding-top: 12px;
+    margin-top: auto;
+    /* 상단 컨텐츠와 거리를 벌리며 하단 고정 */
+    padding: 12px 16px;
+    /* 좌우 패딩 추가 및 상하 패딩 조정 */
     border-top: 1px solid rgba(255, 255, 255, 0.1);
+    flex-shrink: 0;
+    /* 공간이 부족해도 줄어들지 않음 */
+    flex-wrap: wrap;
+    /* 버튼이 많으면 줄바꿈 */
+    background: inherit;
+    /* 노드 배경과 동일하게 */
+    position: relative;
+    /* z-index 적용을 위해 포지션 지정 */
+    z-index: 10;
+    /* 컨텐츠보다 위에 표시 */
 }
 
 .node-action-btn {
-    width: 32px;
-    height: 32px;
+    width: 62px;
+    height: 62px;
     border-radius: 6px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
+    font-size: 40px;
     transition: all 0.2s;
     background: rgba(255, 255, 255, 0.08);
     color: #e5e7eb;
@@ -361,4 +396,27 @@
     to {
         stroke-dashoffset: 0;
     }
+}
+
+
+/* Resize Handle Override - Using correct React Flow class names */
+.react-flow__resize-control.line {
+    border-color: rgba(139, 92, 246, 0.5) !important;
+    border-width: 2px !important;
+}
+
+.react-flow__resize-control.handle {
+    width: 24px !important;
+    height: 24px !important;
+    background: #8b5cf6 !important;
+    border: 3px solid #fff !important;
+    border-radius: 4px !important;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5) !important;
+    transition: transform 0.2s ease !important;
+    z-index: 200 !important;
+}
+
+.react-flow__resize-control.handle:hover {
+    transform: scale(1.5) !important;
+    background: #6366f1 !important;
 }
