@@ -24,6 +24,16 @@ const CustomBezierEdge = ({
 
     return (
         <>
+            {/* Interaction Area: Massive Hit Area for Tool-free Selection */}
+            <path
+                d={edgePath}
+                fill="none"
+                stroke="transparent"
+                strokeWidth={100} // Increased to 100px for foolproof selection
+                className="react-flow__edge-interaction"
+                style={{ cursor: 'pointer' }}
+            />
+            {/* Visible path */}
             <path
                 id={id}
                 style={{

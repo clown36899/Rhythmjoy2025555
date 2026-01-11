@@ -26,7 +26,9 @@ interface HistoryCanvasProps {
     onDrop: (event: React.DragEvent) => void;
     onDragOver: (event: React.DragEvent) => void;
     onEdgeDoubleClick?: (event: any, edge: any) => void;
+    onEdgeClick?: (event: any, edge: any) => void;
     onEdgeContextMenu?: (event: any, edge: any) => void;
+    onEdgesDelete?: (edges: any[]) => void;
     isSelectionMode: boolean;
 }
 
@@ -52,7 +54,9 @@ export const HistoryCanvas = ({
     onDrop,
     onDragOver,
     onEdgeDoubleClick,
+    onEdgeClick,
     onEdgeContextMenu,
+    onEdgesDelete,
     isSelectionMode
 }: HistoryCanvasProps) => {
     // console.log('🎨 [HistoryCanvas] Rendering. Nodes:', nodes.length, 'Edges:', edges.length);
@@ -76,7 +80,9 @@ export const HistoryCanvas = ({
                 onDrop={onDrop}
                 onDragOver={onDragOver}
                 onEdgeDoubleClick={onEdgeDoubleClick}
+                onEdgeClick={onEdgeClick}
                 onEdgeContextMenu={onEdgeContextMenu}
+                onEdgesDelete={onEdgesDelete}
                 nodeTypes={nodeTypes}
                 edgeTypes={edgeTypes}
                 isValidConnection={isValidConnection}

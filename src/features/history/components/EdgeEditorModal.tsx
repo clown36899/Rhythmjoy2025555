@@ -42,11 +42,7 @@ export const EdgeEditorModal: React.FC<EdgeEditorModalProps> = ({ edge, onSave, 
                 <div className="edge-modal-footer">
                     <button
                         className="btn-delete-edge"
-                        onClick={() => {
-                            if (window.confirm('이 연결선을 삭제하시겠습니까?')) {
-                                onDelete(edge.id);
-                            }
-                        }}
+                        onClick={() => onDelete(edge.id)}
                     >
                         <i className="ri-delete-bin-line"></i> 삭제
                     </button>

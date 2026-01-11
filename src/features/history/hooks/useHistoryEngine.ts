@@ -616,7 +616,6 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
      * 엣지 삭제
      */
     const handleDeleteEdge = useCallback(async (edgeId: string) => {
-        if (!window.confirm('이 연결을 삭제하시겠습니까?')) return;
         try {
             const { error } = await supabase.from('history_edges').delete().eq('id', edgeId);
             if (error) throw error;

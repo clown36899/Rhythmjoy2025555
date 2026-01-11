@@ -154,6 +154,24 @@ function HistoryTimelinePage() {
         setIsEdgeModalOpen(true);
     }, []);
 
+    const onEdgeClick = useCallback((_event: any, edge: any) => {
+        if (!isAdmin || isSelectionMode) return;
+        setEditingEdge(edge);
+        setIsEdgeModalOpen(true);
+    }, [isAdmin, isSelectionMode]);
+
+    const onEdgeContextMenu = useCallback((event: any, edge: any) => {
+        event.preventDefault();
+        if (!isAdmin) return;
+        setEditingEdge(edge);
+        setIsEdgeModalOpen(true);
+    }, [isAdmin]);
+
+    const onEdgesDelete = useCallback((edgesToDelete: any[]) => {
+        if (!isAdmin) return;
+        edgesToDelete.forEach(edge => handleDeleteEdge(edge.id));
+    }, [isAdmin, handleDeleteEdge]);
+
     // 6. 드래그 앤 드롭 처리
     const onDragOver = useCallback((event: React.DragEvent) => {
         event.preventDefault();
@@ -362,6 +380,9 @@ function HistoryTimelinePage() {
                     onDrop={onDrop}
                     onDragOver={onDragOver}
                     onEdgeDoubleClick={onEdgeDoubleClick}
+                    onEdgeClick={onEdgeClick}
+                    onEdgeContextMenu={onEdgeContextMenu}
+                    onEdgesDelete={onEdgesDelete}
                     isSelectionMode={isSelectionMode}
                 />
             </main>
@@ -455,7 +476,7 @@ function HistoryTimelinePage() {
                 <EdgeEditorModal
                     edge={editingEdge}
                     onSave={async (id, label) => {
-                        await handleUpdateEdge(id, label);
+                        await handleUpdateEdge(id, { label });
                         setIsEdgeModalOpen(false);
                     }}
                     onDelete={async (id) => {
