@@ -96,11 +96,21 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
             return;
         }
 
+        // 0. Folder Type -> Preview Resource (NOT Navigate)
+        if (data.nodeType === 'folder' && data.linked_category_id && data.onPreviewLinkedResource) {
+            e.stopPropagation();
+            data.onPreviewLinkedResource(data.linked_category_id, 'folder', data.title);
+            return;
+        }
+
         // 1. Container Type (Portal/Group) -> Navigate
         if (isContainer) {
             e.stopPropagation();
             if (data.onNavigate) {
-                data.onNavigate(String(data.id), data.title);
+                // Double check it's not a folder to be safe
+                if (data.nodeType !== 'folder') {
+                    data.onNavigate(String(data.id), data.title);
+                }
             }
             return;
         }

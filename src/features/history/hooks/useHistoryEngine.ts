@@ -178,7 +178,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null }: UseHistoryEn
             const isNew = !nodeData.id;
             const finalData = {
                 ...nodeData,
-                user_id: userId,
+                created_by: userId,
                 space_id: currentSpaceId,
                 parent_node_id: nodeData.parent_node_id || currentRootId
             };
@@ -278,7 +278,8 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null }: UseHistoryEn
         const refNode = allNodesRef.current.get(node.id);
         if (refNode) {
             refNode.position = node.position;
-            handleSaveLayout();
+            // Removed auto-save to prevent network spam. Layout is saved on explicit 'Save' or 'Exit'.
+            // handleSaveLayout(); 
         }
     }, []);
 

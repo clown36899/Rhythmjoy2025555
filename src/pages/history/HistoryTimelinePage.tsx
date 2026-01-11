@@ -209,6 +209,10 @@ function HistoryTimelinePage() {
             node.data.isEditMode = isEditMode;
             node.data.isSelectionMode = isSelectionMode;
             node.data.isShiftPressed = isShiftPressed;
+
+            // 🔥 Critical: React Flow root properties must be updated explicitly
+            node.draggable = isEditMode;
+            node.connectable = isEditMode;
         });
 
         // 필터 조건 구성
@@ -220,11 +224,13 @@ function HistoryTimelinePage() {
         // We use a broader trigger here to be safe, but the 'nodes' dep without guard would loop.
         // We rely on 'currentRootId', 'filter', etc. for normal updates.
         // For the 'initial load' case where nodes exist but lack handlers, 'missingHandlers' is key.
+        // Also sync if Edit Mode state mismatches (to apply draggable updates)
+        const editModeChanged = firstNode ? firstNode.data.isEditMode !== isEditMode : true;
 
-        if (missingHandlers || !firstNode) {
+        if (missingHandlers || !firstNode || editModeChanged) {
             syncVisualization(currentRootId, filters);
         } else {
-            // Normal update (filters, mode changes)
+            // Normal update (filters, only if explicit dependencies changed)
             syncVisualization(currentRootId, filters);
         }
 
