@@ -198,7 +198,7 @@ export default function HistoryTimelinePage() {
     const [deletedNodeIds, setDeletedNodeIds] = useState<Set<string>>(new Set());
     const [deletedEdgeIds, setDeletedEdgeIds] = useState<Set<string>>(new Set());
     const [modifiedNodeIds, setModifiedNodeIds] = useState<Set<string>>(new Set()); // New: Track modified node content
-    const [showMiniMap, setShowMiniMap] = useState(true); // Now acts as a manual toggle
+    const [showMiniMap, setShowMiniMap] = useState(false); // 기본값 숨김
 
     // Context Menu State
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId?: string } | null>(null);
@@ -481,14 +481,11 @@ export default function HistoryTimelinePage() {
                     // updated_at is handled by DB trigger
                 };
 
-                // Position
-                if (isMobile) {
-                    dbData.mobile_x = node.position.x;
-                    dbData.mobile_y = node.position.y;
-                } else {
-                    dbData.position_x = node.position.x;
-                    dbData.position_y = node.position.y;
-                }
+                // Position (Always sync desktop and mobile positions as per user request)
+                dbData.position_x = node.position.x;
+                dbData.position_y = node.position.y;
+                dbData.mobile_x = node.position.x;
+                dbData.mobile_y = node.position.y;
 
                 // Content (Always include these if we are updating, to ensure latest state is saved)
                 // We rely on the node.data being up-to-date from handleSaveNode's local update.
@@ -878,8 +875,8 @@ export default function HistoryTimelinePage() {
                     width: node.width || (isContainer ? 640 : 320),
                     height: node.height || (isContainer ? 480 : 160),
                     position: {
-                        x: (isMobile ? node.mobile_x : node.position_x) || node.position_x || 0,
-                        y: (isMobile ? node.mobile_y : node.position_y) || node.position_y || 0
+                        x: node.position_x || 0,
+                        y: node.position_y || 0
                     },
                     data: {
                         id: node.id,
@@ -2792,7 +2789,7 @@ export default function HistoryTimelinePage() {
                     }}
                 >
                     <i className={showMiniMap ? 'ri-map-2-fill' : 'ri-map-2-line'}></i>
-                    <span>지도</span>
+                    <span>미니맵</span>
                 </button>
             </div>
 
