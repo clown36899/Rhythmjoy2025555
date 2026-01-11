@@ -98,6 +98,8 @@ export const HistoryCanvas = ({
                 <MiniMap
                     nodeColor={getNodeColor}
                     maskColor="rgba(0, 0, 0, 0.1)"
+                    pannable
+                    zoomable
                 />
             </ReactFlow>
         </div>

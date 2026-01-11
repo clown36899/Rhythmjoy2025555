@@ -3,7 +3,7 @@ import { Handle, Position, NodeResizer } from 'reactflow';
 import type { NodeProps } from 'reactflow';
 import { parseVideoUrl, validateYouTubeThumbnailUrl } from '../../../utils/videoEmbed';
 import './HistoryNodeComponent.css';
-import type { HistoryNodeData } from '../types';
+import type { HistoryNodeData } from '../types/index';
 import { CATEGORY_COLORS } from '../utils/constants';
 
 function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
@@ -160,8 +160,8 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
                     minHeight={100}
                     isVisible={!!selected}
                     lineStyle={{ border: '2px solid #a78bfa' }}
-                    onResizeStop={(e, params) => {
-                        console.log('📐 Resize Stop:', data.title, params.width, params.height);
+                    onResizeEnd={(_e: any, params: any) => {
+                        console.log('📐 Resize End:', data.title, params.width, params.height);
                         data.onResizeStop?.(data.id, params.width, params.height);
                     }}
                 />

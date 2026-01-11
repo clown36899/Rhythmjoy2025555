@@ -478,6 +478,9 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
         const refNode = allNodesRef.current.get(node.id);
         if (refNode) {
             refNode.position = node.position;
+            // Sync dimensions if updated by resizer before drag stop
+            if (node.width) refNode.width = node.width;
+            if (node.height) refNode.height = node.height;
         }
 
         // Helper: Calculate Intersection Ratio
@@ -564,14 +567,21 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
     }, [nodes, currentRootId, handleMoveToParent]);
 
     const handleSaveLayout = useCallback(async () => {
-        const updates = Array.from(allNodesRef.current.values()).map(n => ({
-            id: Number(n.id),
-            position_x: Math.round(n.position.x),
-            position_y: Math.round(n.position.y),
-            width: Number(n.style?.width) || 320,
-            height: Number(n.style?.height) || 160,
-            z_index: Number(n.style?.zIndex) || 0
-        }));
+        const updates = Array.from(allNodesRef.current.values()).map(n => {
+            const w = Number(n.width) || Number(n.style?.width) || 320;
+            const h = Number(n.height) || Number(n.style?.height) || 160;
+
+            return {
+                id: Number(n.id),
+                position_x: Math.round(n.position.x),
+                position_y: Math.round(n.position.y),
+                width: w,
+                height: h,
+                z_index: Number(n.style?.zIndex) || (n.zIndex && n.zIndex !== 0 ? n.zIndex : 0)
+            };
+        });
+
+        console.log('📋 [HistoryEngine] Preparing Layout Save. Sample Node:', updates[0]);
 
         try {
             // Upsert fails if required fields (title) are missing for potential inserts.
@@ -798,6 +808,6 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
         handleUpdateEdge,
         handleMoveToParent,
         generateDecadeNodes,
-        handleResizeStop // 🔥 Expose
+        handleResizeStop
     };
 };

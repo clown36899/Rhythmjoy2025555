@@ -38,7 +38,7 @@ function HistoryTimelinePage() {
         currentRootId, handleNavigate, allNodesRef, syncVisualization,
         handleSaveNode, handleDeleteNodes, onNodeDragStop, handleDrop, handleSaveLayout,
         handleUpdateZIndex, handleConnect, handleDeleteEdge, handleUpdateEdge, handleMoveToParent,
-        handleResizeStop // 🔥 Added
+        handleResizeStop
     } = useHistoryEngine({ userId: user?.id, isAdmin: !!isAdmin, isEditMode });
 
     useEffect(() => {
