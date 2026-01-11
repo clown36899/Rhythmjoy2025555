@@ -657,17 +657,61 @@ export default function HistoryTimelinePage() {
     }, []);
 
     // Restore Viewport after rfInstance is ready
-    // Force Fit View on Mount (Default Behavior)
+    // Force Fit HEIGHT on Mount (User Request)
     useEffect(() => {
-        if (rfInstance && !loading && !isAutoLayout) {
-            // Slight delay to ensure nodes are fully rendered and bounding boxes are ready
+        if (rfInstance && !loading && !isAutoLayout && nodes.length > 0) {
+            // Slight delay to ensure nodes are fully rendered and measured
             setTimeout(() => {
-                rfInstance.fitView({ duration: 0, padding: 0.2 });
-                // Force initial MiniMap check after fitView
-                updateMiniMapVisibility(rfInstance.getViewport());
-            }, 100);
+                const container = document.querySelector('.history-timeline-canvas');
+                if (!container) return;
+
+                const flowNodes = rfInstance.getNodes();
+                if (flowNodes.length === 0) return;
+
+                // Calculate vertical bounds
+                const bounds = flowNodes.reduce(
+                    (acc, node) => {
+                        const h = node.height || 150; // Fallback height
+                        const w = node.width || 250;  // Fallback width
+                        return {
+                            minX: Math.min(acc.minX, node.position.x),
+                            minY: Math.min(acc.minY, node.position.y),
+                            maxX: Math.max(acc.maxX, node.position.x + w),
+                            maxY: Math.max(acc.maxY, node.position.y + h),
+                        };
+                    },
+                    { minX: Infinity, minY: Infinity, maxX: -Infinity, maxY: -Infinity }
+                );
+
+                if (bounds.minY === Infinity) return;
+
+                const nodesHeight = bounds.maxY - bounds.minY;
+                const containerHeight = container.clientHeight;
+                const containerWidth = container.clientWidth;
+
+                // Vertical Padding (total)
+                const vPadding = 80;
+
+                // Calculate Zoom based ONLY on Height
+                let zoom = containerHeight / (nodesHeight + vPadding);
+
+                // Clamp zoom to reasonable levels
+                zoom = Math.min(Math.max(zoom, 0.1), 1.5);
+
+                const centerX = (bounds.minX + bounds.maxX) / 2;
+                const centerY = (bounds.minY + bounds.maxY) / 2;
+
+                // Center the view on the nodes at calculated zoom level
+                rfInstance.setViewport({
+                    x: (containerWidth / 2) - (centerX * zoom),
+                    y: (containerHeight / 2) - (centerY * zoom),
+                    zoom: zoom,
+                });
+
+                updateMiniMapVisibility({ x: (containerWidth / 2) - (centerX * zoom), y: (containerHeight / 2) - (centerY * zoom), zoom });
+            }, 300);
         }
-    }, [rfInstance, loading, isAutoLayout]);
+    }, [rfInstance, loading, isAutoLayout, nodes.length === 0]);
 
     // Handle "Library Button" Click (Fit View Trigger)
     useEffect(() => {
