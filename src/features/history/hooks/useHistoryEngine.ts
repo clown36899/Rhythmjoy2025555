@@ -310,7 +310,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                     let x = n.position.x, y = n.position.y;
                     let curr = n;
                     while (curr.parentNode) {
-                        const p = nodes.find(x => x.id === curr.parentNode);
+                        const p = allNodesRef.current.get(String(curr.parentNode));
                         if (p) { x += p.position.x; y += p.position.y; curr = p; }
                         else break;
                     }
@@ -321,7 +321,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                 let parentAbs = { x: 0, y: 0 };
 
                 if (newParentId) {
-                    const parentNode = nodes.find(n => n.id === String(newParentId));
+                    const parentNode = allNodesRef.current.get(String(newParentId));
                     if (parentNode) {
                         parentAbs = getAbs(parentNode);
                     }
@@ -329,6 +329,38 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
 
                 newX = nodeAbs.x - parentAbs.x;
                 newY = nodeAbs.y - parentAbs.y;
+
+                // 🔥 Special Case: Moving UP (out of a portal)
+                // When moving to a parent level higher than the current view
+                if (currentRootId) {
+                    let traceNode = allNodesRef.current.get(String(currentRootId));
+                    let representativePortal: any = null;
+
+                    // Trace up from currentRootId to find the node whose parent is targetParentIdStr
+                    while (traceNode) {
+                        const traceParentIdStr = traceNode.data.parent_node_id ? String(traceNode.data.parent_node_id) : null;
+                        if (traceParentIdStr === targetParentIdStr) {
+                            representativePortal = traceNode;
+                            break;
+                        }
+                        if (!traceParentIdStr) break;
+                        traceNode = allNodesRef.current.get(traceParentIdStr);
+                    }
+
+                    if (representativePortal) {
+                        // Place next to the representative portal in the target level
+                        const portalWidth = representativePortal.width || Number(representativePortal.style?.width) || 421;
+                        newX = representativePortal.position.x + portalWidth + 120;
+                        newY = representativePortal.position.y;
+
+                        console.log('🚀 [HistoryEngine] Portal Exit Placement:', {
+                            node: node.data.title,
+                            pushedToPortal: representativePortal.data.title,
+                            newX,
+                            newY
+                        });
+                    }
+                }
             }
 
             const dbData: any = {
@@ -355,113 +387,6 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
 
         try {
             await Promise.all(updates);
-
-            // 2. Auto Reflow & Resize Logic (Row-Snap Layout)
-            const reflowPromises = Array.from(parentsToResize).map(async (parentId) => {
-                if (!parentId || parentId === 'null') return;
-
-                const children = Array.from(allNodesRef.current.values())
-                    .filter(n => String(n.data?.parent_node_id) === String(parentId));
-
-                // 1. Sort by Y to identify rows Top-Down
-                children.sort((a, b) => a.position.y - b.position.y);
-
-                const ROW_TOLERANCE = 80;
-                const rows: { avgY: number, nodes: any[] }[] = [];
-
-                // 2. Group into Rows
-                for (const child of children) {
-                    const bestRow = rows.find(r => Math.abs(r.avgY - child.position.y) < ROW_TOLERANCE);
-                    if (bestRow) {
-                        bestRow.nodes.push(child);
-                    } else {
-                        rows.push({ avgY: child.position.y, nodes: [child] });
-                    }
-                }
-
-                const PADDING = 60;
-                const PADDING_TOP = 140;
-                const GAP = 40;
-
-                let currentY = PADDING_TOP;
-                let contentMaxX = 0;
-                let contentMaxY = 0;
-                const childUpdates = [];
-
-                // 3. Layout Rows (Stack Vertically)
-                for (const row of rows) {
-                    // Sort nodes within row by X (Left-to-Right)
-                    row.nodes.sort((a, b) => a.position.x - b.position.x);
-
-                    let currentX = PADDING;
-                    let rowMaxHeight = 0;
-
-                    for (const child of row.nodes) {
-                        // Measure Size
-                        const isGroup = child.data?.category === 'folder' || child.data?.category === 'canvas' || child.data?.nodeType === 'folder';
-                        const defaultW = isGroup ? 640 : 320;
-                        const defaultH = isGroup ? 480 : 160;
-                        const w = child.width || Number(child.style?.width) || defaultW;
-                        const h = child.height || Number(child.style?.height) || defaultH;
-
-                        // Position Update
-                        const newX = currentX;
-                        const newY = currentY;
-
-                        if (Math.abs(child.position.x - newX) > 1 || Math.abs(child.position.y - newY) > 1) {
-                            childUpdates.push({ id: child.data.id, position_x: newX, position_y: newY });
-                            const updatedNode = { ...child, position: { x: newX, y: newY } };
-                            allNodesRef.current.set(child.id, updatedNode);
-                        }
-
-                        // Advance Cursor
-                        currentX += w + GAP;
-                        rowMaxHeight = Math.max(rowMaxHeight, h);
-                        contentMaxX = Math.max(contentMaxX, newX + w);
-                    }
-                    // Advance Row
-                    currentY += rowMaxHeight + GAP;
-                }
-                contentMaxY = currentY;
-
-                // 4. Batch Update Children
-                if (childUpdates.length > 0) {
-                    await Promise.all(childUpdates.map(u =>
-                        supabase.from('history_nodes').update({
-                            position_x: u.position_x,
-                            position_y: u.position_y
-                        }).eq('id', u.id)
-                    ));
-                }
-
-                // 5. Resize Parent
-                let newWidth = 640;
-                let newHeight = 480;
-
-                if (children.length > 0) {
-                    newWidth = Math.max(640, contentMaxX + PADDING);
-                    newHeight = Math.max(480, contentMaxY);
-                }
-
-                const { data, error } = await supabase.from('history_nodes')
-                    .update({ width: newWidth, height: newHeight })
-                    .eq('id', parentId)
-                    .select()
-                    .single();
-
-                if (!error && data) {
-                    const updatedParent = mapDbNodeToRFNode(data, {
-                        onNavigate: handleNavigate,
-                        onSelectionChange: (sid: string, selected: boolean) => {
-                            setNodes(nds => nds.map(node => node.id === sid ? { ...node, selected } : node));
-                        },
-                        onResizeStop: handleResizeStop
-                    }, isEditMode);
-                    allNodesRef.current.set(updatedParent.id, updatedParent);
-                }
-            });
-
-            await Promise.all(reflowPromises);
 
             syncVisualization(currentRootId);
         } catch (err) {

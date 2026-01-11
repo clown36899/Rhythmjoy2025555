@@ -246,6 +246,16 @@ function HistoryTimelinePage() {
         nodes[0]?.data?.onPlayVideo // Detect if handlers are present (Optimization to avoid deep comparison)
     ]);
 
+    // 🔥 New: Auto fitView when navigating levels or filters change
+    useEffect(() => {
+        if (rfInstance && !loading && nodes.length > 0) {
+            // Give React Flow a frame to calculate internal layouts
+            requestAnimationFrame(() => {
+                rfInstance.fitView({ padding: 0.1 });
+            });
+        }
+    }, [currentRootId, rfInstance, loading, nodes.length, searchQuery, filterCategory]);
+
     return (
         <div className="history-timeline-container">
             <header className="timeline-header">

@@ -97,7 +97,7 @@ export const HistoryCanvas = ({
                 <Controls />
                 <MiniMap
                     nodeColor={getNodeColor}
-                    maskColor="rgba(0, 0, 0, 0.1)"
+                    maskColor="rgba(0, 0, 0, 0.5)"
                     pannable
                     zoomable
                 />
