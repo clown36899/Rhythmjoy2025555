@@ -17,6 +17,15 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
         thumbnailUrl = validateYouTubeThumbnailUrl(videoInfo.thumbnailUrl);
     }
 
+    // [V7] Dynamic Resize Constraints: Prevent node from being too small for its content
+    const isCanvas = data.nodeType === 'canvas' || data.category === 'canvas';
+    const hasThumbnail = (!!thumbnailUrl || !!data.image_url) && data.category !== 'person';
+
+    // Canvas: Higher minimums for the large "ENTER" label and internal space
+    // Thumbnail: Higher minHeight to fit the image + header
+    const dynamicMinWidth = isCanvas ? 420 : 320;
+    const dynamicMinHeight = isCanvas ? 250 : (hasThumbnail ? 320 : 140);
+
     const handlePlayVideo = (e: React.MouseEvent) => {
         e.stopPropagation();
         if (data.youtube_url && data.onPlayVideo) {
@@ -140,7 +149,7 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
     };
     return (
         <div
-            className={`history-node linked-type-${linkedType}`}
+            className={`history-node linked-type-${linkedType} ${data.nodeType === 'canvas' ? 'is-canvas-portal' : ''}`}
             style={{
                 borderColor: categoryColor,
                 height: '100%',
@@ -153,11 +162,14 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
             }}
             title={isContainer ? "클릭하여 열기" : undefined}
         >
+            {data.nodeType === 'canvas' && (
+                <div className="canvas-portal-label">ENTER</div>
+            )}
             {/* Allow resizing for all nodes in Edit Mode */}
             {data.isEditMode && (
                 <NodeResizer
-                    minWidth={100}
-                    minHeight={100}
+                    minWidth={dynamicMinWidth}
+                    minHeight={dynamicMinHeight}
                     isVisible={!!selected}
                     lineStyle={{ border: '2px solid #a78bfa' }}
                     onResizeEnd={(_e: any, params: any) => {

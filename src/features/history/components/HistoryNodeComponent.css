@@ -10,6 +10,34 @@
     /* overflow: hidden removed to allow NodeResizer handles to be visible outside the border */
 }
 
+/* Canvas Portal Unique Style */
+.history-node.is-canvas-portal {
+    border-color: #22d3ee !important;
+    /* Cyan border */
+    border-width: 3px;
+    box-shadow: 0 0 20px rgba(34, 211, 238, 0.3);
+}
+
+.canvas-portal-label {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    background: #22d3ee;
+    color: #0f172a;
+    font-size: 40px;
+    /* Increased 4x from 10px */
+    font-weight: 900;
+    padding: 8px 20px;
+    /* Adjusted padding for larger text */
+    border-radius: 8px;
+    /* Slightly more rounded */
+    letter-spacing: 2px;
+    z-index: 50;
+    pointer-events: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+
 .history-node:hover {
     transform: translateY(-4px);
     box-shadow: 0 15px 40px rgba(139, 92, 246, 0.4);
@@ -86,10 +114,6 @@
     flex-direction: column;
     gap: 8px;
     flex: 1;
-    min-width: 388px;
-    /* 420px - padding(32px) */
-    min-height: 320px;
-    /* Increased to fit header, title, description, and footer comfortably */
     overflow-y: auto;
 }
 
