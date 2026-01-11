@@ -20,7 +20,7 @@
 //    - Store all data directly in `history_nodes`.
 //
 
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useBlocker } from 'react-router-dom';
 import ReactFlow, {
     useNodesState,
@@ -204,6 +204,13 @@ export default function HistoryTimelinePage() {
     const [isSelectionMode, setIsSelectionMode] = useState(false); // Toggle selection mode
     const [isShiftPressed, setIsShiftPressed] = useState(false);
 
+    // --- Drill-down Navigation State ---
+    const [currentRootId, setCurrentRootId] = useState<string | null>(null);
+    const [breadcrumbs, setBreadcrumbs] = useState<{ id: string | null; title: string }[]>([
+        { id: null, title: 'Home' }
+    ]);
+    const allNodesRef = useRef<Map<string, RFNode>>(new Map()); // Store ALL nodes structure
+
     // Track Shift Key for Additive Selection
     useEffect(() => {
         const handleKeyDown = (e: KeyboardEvent) => {
@@ -319,13 +326,7 @@ export default function HistoryTimelinePage() {
         if (!isAdmin) setIsEditMode(false);
     }, [isAdmin]);
 
-    // 🔥 Sync isEditMode to all nodes so they render NodeResizer
-    useEffect(() => {
-        setNodes((nds) => nds.map((node) => ({
-            ...node,
-            data: { ...node.data, isEditMode }
-        })));
-    }, [isEditMode, setNodes]);
+
 
 
     // -- Navigation Blocker --
@@ -931,9 +932,17 @@ export default function HistoryTimelinePage() {
                     thumbnail_url = lc.image_url;
                     image_url = lc.image_url;
 
-                    // Preserve 'playlist' type if it was originally a playlist
-                    nodeType = node.category === 'playlist' ? 'playlist' : 'folder';
-                    category = node.category === 'playlist' ? 'playlist' : 'folder';
+                    // Preserve 'playlist' and 'canvas' types specifically
+                    if (node.category === 'playlist' || lc.type === 'playlist') {
+                        nodeType = 'playlist';
+                        category = 'playlist';
+                    } else if (node.category === 'canvas' || lc.type === 'canvas' || (lc.type === 'general' && lc.metadata?.subtype === 'canvas')) {
+                        nodeType = 'canvas';
+                        category = 'canvas';
+                    } else {
+                        nodeType = 'folder';
+                        category = 'folder';
+                    }
                 } else if (ld) {
                     title = ld.title || title;
                     desc = ld.description || desc;
@@ -1032,7 +1041,20 @@ export default function HistoryTimelinePage() {
                 }
             });
 
-            setNodes(flowNodes);
+            // 1. Sync all nodes to global ref
+            allNodesRef.current.clear();
+            flowNodes.forEach(node => allNodesRef.current.set(node.id, node));
+
+            // 2. Filter nodes for current view (Drill-down)
+            const visibleNodes = flowNodes.filter(n => {
+                const pid = n.parentNode || null;
+                // Use currentRootId state (captured in closure or current render)
+                // Note: If loadTimeline is called after persistence, we want to stay in current view.
+                if (currentRootId === null) return !pid;
+                return pid === currentRootId;
+            });
+
+            setNodes(visibleNodes);
 
             // Store initial values for change tracking
             const positions = new Map<string, { x: number, y: number }>();
@@ -1102,6 +1124,64 @@ export default function HistoryTimelinePage() {
         );
     }, [isEditMode, setNodes]);
 
+    // --- Navigation Logic ---
+    const handleNavigate = useCallback((targetId: string | null, targetTitle: string = 'Folder') => {
+        // 0. Safety Check & Get Latest Nodes
+        if (!rfInstance) return;
+        const currentNodes = rfInstance.getNodes();
+
+        // 1. Save current view state to allNodesRef before leaving
+        currentNodes.forEach(node => {
+            allNodesRef.current.set(node.id, node);
+        });
+
+        // 2. Update Breadcrumbs
+        setBreadcrumbs(prev => {
+            if (targetId === null) return [{ id: null, title: 'Home' }];
+
+            // Check if target is already in breadcrumbs (going back)
+            const existingIndex = prev.findIndex(b => b.id === targetId);
+            if (existingIndex !== -1) {
+                return prev.slice(0, existingIndex + 1);
+            }
+
+            // Allow navigating deeper only if we are currently at the parent level (simple validation)
+            // Or just append if valid drill-down
+            return [...prev, { id: targetId, title: targetTitle }];
+        });
+
+        // 3. Set New Root
+        setCurrentRootId(targetId);
+
+        // 4. Load Nodes for Target Level
+        const nextNodes = Array.from(allNodesRef.current.values()).filter(n => {
+            const pid = n.parentNode || null;
+            // ReactFlow uses string parentNode, our logic uses null for root
+            if (targetId === null) return !pid;
+            return pid === targetId;
+        });
+
+        setNodes(nextNodes);
+        setEdges([]); // Edges also need filtering if we tracked them globally, but for now clear them or need edge filtering logic
+
+        // Disable selection mode on nav
+        setIsSelectionMode(false);
+    }, [rfInstance, setNodes, setEdges]);
+
+    // 🔥 Sync isEditMode and Handlers to all nodes
+    // Moved here to fix hoisting issue (handleNavigate must be defined)
+    useEffect(() => {
+        setNodes((nds) => nds.map((node) => ({
+            ...node,
+            data: {
+                ...node.data,
+                isEditMode,
+                // Inject Navigation Handler dynamically
+                onNavigate: (id: string | null, title: string) => handleNavigate(id, title)
+            }
+        })));
+    }, [isEditMode, setNodes, handleNavigate]);
+
     const handleNodesChange = useCallback(
         (changes: any) => {
             // Additive Selection: If Shift is pressed, don't allow 'deselect' type changes
@@ -1115,8 +1195,26 @@ export default function HistoryTimelinePage() {
                 });
             }
 
-            // Detect dimension changes (resize) and mark for save
+            // Sync changes to allNodesRef immediately
             changes.forEach((change: any) => {
+                if (change.type === 'position' && change.position) {
+                    const node = allNodesRef.current.get(change.id);
+                    if (node) {
+                        allNodesRef.current.set(change.id, { ...node, position: change.position });
+                    }
+                }
+                if (change.type === 'dimensions' && change.dimensions) {
+                    const node = allNodesRef.current.get(change.id);
+                    if (node) {
+                        // Dimension change often comes with resizing
+                        allNodesRef.current.set(change.id, { ...node, width: change.dimensions.width, height: change.dimensions.height });
+                    }
+                }
+                if (change.type === 'select') {
+                    // Update selection state in ref too? No, selection is transient.
+                }
+
+                // Detect dimension changes (resize) and mark for save (Original Logic)
                 if (change.type === 'dimensions' && change.id && !isTempId(change.id)) {
                     setHasUnsavedChanges(true);
                     setModifiedNodeIds((prev) => new Set(prev).add(change.id));
@@ -1197,7 +1295,7 @@ export default function HistoryTimelinePage() {
     }, [highlightedEdgeId]);
 
     // Shared Logic for both Single and Multi-selection Drag Stop
-    const handleDragStopLogic = useCallback((event: any, node: RFNode, nodesToProcess: RFNode[]) => {
+    const handleDragStopLogic = useCallback((_event: any, _node: RFNode, nodesToProcess: RFNode[]) => {
         // 2. Handle Group Container (Folder) Logic
         if (rfInstance && nodesToProcess.length > 0) {
             // ⚡ CRITICAL: Use the coordinates from nodesToProcess (latest from drag event)
@@ -1604,10 +1702,17 @@ export default function HistoryTimelinePage() {
             // --- 1. 자료 서랍에 추가 (최초 추가 시 미분류 설정) ---
             if (addToDrawer) {
                 console.log('🔵 [handleSaveNode] addToDrawer=true, finding handler...');
+                console.log('🧐 [Debug] Inputs for findHandler:', {
+                    url: cleanNodeData.youtube_url,
+                    category: cleanNodeData.category,
+                    raw_node_data: cleanNodeData
+                });
+
                 try {
                     const handler = findHandler(cleanNodeData.youtube_url, cleanNodeData.category || '');
 
                     if (handler) {
+                        console.log('🎯 [Debug] findHandler found:', handler.constructor.name);
                         // 중요: handler.save 내부에서 is_unclassified: true가 포함되도록 하거나,
                         // 여기서 직접 override가 가능한 구조라면 아래와 같이 데이터를 구성합니다.
                         const resourcePayload = {
@@ -1666,6 +1771,7 @@ export default function HistoryTimelinePage() {
                         const typeMap: Record<string, string> = {
                             'folder': 'general',
                             'general': 'general',
+                            'canvas': 'canvas', // Use Explicit 'canvas' type
                             'document': 'document',
                             'person': 'person',
                             'playlist': 'playlist',
@@ -1767,7 +1873,12 @@ export default function HistoryTimelinePage() {
                 let finalCategory = nodeInsertData.category || 'general';
 
                 if (linkedPlaylistId) { finalNodeType = 'playlist'; finalCategory = 'playlist'; }
-                else if (linkedCategoryId) { finalNodeType = 'folder'; finalCategory = 'folder'; }
+                else if (linkedCategoryId) {
+                    // Check if it was saved as 'canvas'
+                    const isCanvas = nodeInsertData.category === 'canvas';
+                    finalNodeType = isCanvas ? 'canvas' : 'folder';
+                    finalCategory = isCanvas ? 'canvas' : 'folder';
+                }
                 else if (linkedDocumentId) {
                     const isPerson = nodeInsertData.category === 'person';
                     finalNodeType = isPerson ? 'person' : 'document';
@@ -1789,6 +1900,7 @@ export default function HistoryTimelinePage() {
                         nodeType: finalNodeType,
                         category: finalCategory,
                         image_url: image_url,
+                        onNavigate: handleNavigate, // 🔥 Inject Navigation Handler immediately
                     },
                     {
                         onEdit: handleEditNode,
@@ -1797,6 +1909,12 @@ export default function HistoryTimelinePage() {
                         onPreviewLinkedResource: (id: string, type: string, title: string) => setPreviewResource({ id, type, title }),
                     }
                 );
+
+                // 🔥 Assign Parent if in Drill-down View
+                if (currentRootId) {
+                    newLocalNode.parentNode = currentRootId;
+                    newLocalNode.data.parent_node_id = currentRootId;
+                }
 
                 setNodes(nds => [...nds, newLocalNode]);
                 setHasUnsavedChanges(true); // 편집 모드 저장 버튼을 활성화 시킴
@@ -1813,7 +1931,7 @@ export default function HistoryTimelinePage() {
         }
     };
 
-    const handleDeleteNode = async (id: number) => {
+    const handleDeleteNode = async (id: number | string) => {
         if (!window.confirm('정말 이 노드를 삭제하시겠습니까? (저장 시 영구 반영)')) return;
 
         const strId = String(id);
@@ -2382,6 +2500,7 @@ export default function HistoryTimelinePage() {
                 mobile_x: position.x,
                 mobile_y: position.y,
                 created_by: user.id,
+                parent_node_id: currentRootId ? parseInt(currentRootId) : null, // Assign to current canvas level
             };
 
             // 3. Robust Type Detection (Folder vs Single Item)
@@ -2806,7 +2925,51 @@ export default function HistoryTimelinePage() {
                 </button>
             </div>
 
-            <div className="history-timeline-canvas">
+
+
+            <div className="history-timeline-canvas" style={{ position: 'relative' }}>
+                {/* Breadcrumbs Navigation */}
+                <div style={{
+                    position: 'absolute',
+                    top: '20px',
+                    left: '80px', // Space for Controls
+                    zIndex: 10,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    background: 'rgba(0, 0, 0, 0.6)',
+                    padding: '8px 16px',
+                    borderRadius: '20px',
+                    backdropFilter: 'blur(4px)',
+                    color: 'white',
+                    fontSize: '14px',
+                    pointerEvents: 'auto'
+                }}>
+                    {breadcrumbs.map((crumb, index) => (
+                        <div key={crumb.id || 'root'} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <span
+                                onClick={() => handleNavigate(crumb.id, crumb.title)}
+                                style={{
+                                    cursor: 'pointer',
+                                    opacity: index === breadcrumbs.length - 1 ? 1 : 0.7,
+                                    fontWeight: index === breadcrumbs.length - 1 ? 'bold' : 'normal',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px'
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
+                                onMouseLeave={(e) => e.currentTarget.style.opacity = index === breadcrumbs.length - 1 ? '1' : '0.7'}
+                            >
+                                {index === 0 && <i className="ri-home-fill"></i>}
+                                {crumb.title}
+                            </span>
+                            {index < breadcrumbs.length - 1 && (
+                                <span style={{ opacity: 0.5 }}><i className="ri-arrow-right-s-line"></i></span>
+                            )}
+                        </div>
+                    ))}
+                </div>
+
                 <ReactFlow
                     nodes={nodes}
                     edges={edges}
@@ -2867,14 +3030,16 @@ export default function HistoryTimelinePage() {
                 </ReactFlow>
             </div>
 
-            {isEditorOpen && (
-                <NodeEditorModal
-                    node={editingNode}
-                    onSave={handleSaveNode}
-                    onDelete={handleDeleteNode}
-                    onClose={() => setIsEditorOpen(false)}
-                />
-            )}
+            {
+                isEditorOpen && (
+                    <NodeEditorModal
+                        node={editingNode}
+                        onSave={handleSaveNode}
+                        onDelete={() => editingNode && handleDeleteNode(editingNode.id)}
+                        onClose={() => setIsEditorOpen(false)}
+                    />
+                )
+            }
 
             <EditExitPromptModal
                 isOpen={exitPromptOpen}
@@ -2883,100 +3048,110 @@ export default function HistoryTimelinePage() {
                 onCancel={() => setExitPromptOpen(false)}
             />
 
-            {isVideoPlayerOpen && playingVideoUrl && (
-                <VideoPlayerModal
-                    youtubeUrl={playingVideoUrl}
-                    playlistId={playingPlaylistId}
-                    onClose={() => {
-                        setIsVideoPlayerOpen(false);
-                        setPlayingVideoUrl(null);
-                        setPlayingPlaylistId(null);
-                    }}
-                />
-            )}
+            {
+                isVideoPlayerOpen && playingVideoUrl && (
+                    <VideoPlayerModal
+                        youtubeUrl={playingVideoUrl}
+                        playlistId={playingPlaylistId}
+                        onClose={() => {
+                            setIsVideoPlayerOpen(false);
+                            setPlayingVideoUrl(null);
+                            setPlayingPlaylistId(null);
+                        }}
+                    />
+                )
+            }
 
-            {edgeModalState.isOpen && edgeModalState.edge && (
-                <div className="edge-modal-overlay">
-                    <div className="edge-modal-content">
-                        <h3>연결 관리</h3>
-                        <div className="edge-input-group">
-                            <label>연결 설명 (관계)</label>
-                            <input
-                                autoFocus
-                                type="text"
-                                defaultValue={edgeModalState.edge.label as string}
-                                placeholder="예: 영향을 줌, 발전함"
-                                id="edge-label-input"
-                                className="edge-input"
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        const input = document.getElementById('edge-label-input') as HTMLInputElement;
-                                        if (input) handleUpdateEdge(input.value);
-                                    }
-                                }}
-                            />
-                        </div>
-                        <div className="edge-Modal-footer">
-                            <button className="btn-delete-edge" onClick={handleDeleteEdge}>연결 삭제</button>
-                            <div className="right-actions">
-                                <button className="btn-cancel" onClick={() => setEdgeModalState({ isOpen: false, edge: null })}>취소</button>
-                                <button
-                                    className="btn-save-edge"
-                                    onClick={() => {
-                                        const input = document.getElementById('edge-label-input') as HTMLInputElement;
-                                        if (input) handleUpdateEdge(input.value);
+            {
+                edgeModalState.isOpen && edgeModalState.edge && (
+                    <div className="edge-modal-overlay">
+                        <div className="edge-modal-content">
+                            <h3>연결 관리</h3>
+                            <div className="edge-input-group">
+                                <label>연결 설명 (관계)</label>
+                                <input
+                                    autoFocus
+                                    type="text"
+                                    defaultValue={edgeModalState.edge.label as string}
+                                    placeholder="예: 영향을 줌, 발전함"
+                                    id="edge-label-input"
+                                    className="edge-input"
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            const input = document.getElementById('edge-label-input') as HTMLInputElement;
+                                            if (input) handleUpdateEdge(input.value);
+                                        }
                                     }}
-                                >
-                                    저장
-                                </button>
+                                />
+                            </div>
+                            <div className="edge-Modal-footer">
+                                <button className="btn-delete-edge" onClick={handleDeleteEdge}>연결 삭제</button>
+                                <div className="right-actions">
+                                    <button className="btn-cancel" onClick={() => setEdgeModalState({ isOpen: false, edge: null })}>취소</button>
+                                    <button
+                                        className="btn-save-edge"
+                                        onClick={() => {
+                                            const input = document.getElementById('edge-label-input') as HTMLInputElement;
+                                            if (input) handleUpdateEdge(input.value);
+                                        }}
+                                    >
+                                        저장
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )
+            }
 
-            {isDetailOpen && viewingNode && (
-                <NodeDetailModal
-                    nodeData={viewingNode}
-                    onClose={() => {
-                        setIsDetailOpen(false);
-                        setViewingNode(null);
-                    }}
-                    onEdit={() => {
-                        setIsDetailOpen(false);
-                        handleEditNode(viewingNode);
-                        setViewingNode(null);
-                    }}
-                />
-            )}
+            {
+                isDetailOpen && viewingNode && (
+                    <NodeDetailModal
+                        nodeData={viewingNode}
+                        onClose={() => {
+                            setIsDetailOpen(false);
+                            setViewingNode(null);
+                        }}
+                        onEdit={() => {
+                            setIsDetailOpen(false);
+                            handleEditNode(viewingNode);
+                            setViewingNode(null);
+                        }}
+                    />
+                )
+            }
 
-            {previewResource && (previewResource.type === 'document' || previewResource.type === 'person' || previewResource.type === 'folder' || previewResource.type === 'general') && (
-                <DocumentDetailModal
-                    documentId={previewResource.id}
-                    onClose={() => setPreviewResource(null)}
-                    isEditMode={isEditMode}
-                    autoEdit={previewResource.autoEdit}
-                    onEditNode={() => {
-                        setPreviewResource(null);
-                        if (previewResource.nodeId) {
-                            const node = nodes.find(n => n.id === previewResource.nodeId);
-                            if (node) handleEditNode(node.data);
+            {
+                previewResource && (previewResource.type === 'document' || previewResource.type === 'person' || previewResource.type === 'folder' || previewResource.type === 'general') && (
+                    <DocumentDetailModal
+                        documentId={previewResource!.id}
+                        onClose={() => setPreviewResource(null)}
+                        isEditMode={isEditMode}
+                        autoEdit={previewResource.autoEdit}
+                        onEditNode={() => {
+                            setPreviewResource(null);
+                            if (previewResource!.nodeId) {
+                                const node = nodes.find(n => n.id === previewResource!.nodeId);
+                                if (node) handleEditNode(node.data);
+                            }
+                        }}
+                    />
+                )
+            }
+
+            {
+                previewResource && (previewResource.type === 'playlist' || previewResource.type === 'video' || previewResource.type === 'standalone_video') && (
+                    <PlaylistModal
+                        playlistId={
+                            previewResource!.type === 'standalone_video'
+                                ? `standalone_video:${previewResource!.id}`
+                                : (previewResource!.type === 'video' ? `video:${previewResource!.id}` : previewResource!.id)
                         }
-                    }}
-                />
-            )}
-
-            {previewResource && (previewResource.type === 'playlist' || previewResource.type === 'video' || previewResource.type === 'standalone_video') && (
-                <PlaylistModal
-                    playlistId={
-                        previewResource.type === 'standalone_video'
-                            ? `standalone_video:${previewResource.id}`
-                            : (previewResource.type === 'video' ? `video:${previewResource.id}` : previewResource.id)
-                    }
-                    onClose={() => setPreviewResource(null)}
-                    isEditMode={isEditMode}
-                />
-            )}
+                        onClose={() => setPreviewResource(null)}
+                        isEditMode={isEditMode}
+                    />
+                )
+            }
 
             <ResourceDrawer
                 isOpen={isDrawerOpen}
@@ -3001,159 +3176,161 @@ export default function HistoryTimelinePage() {
             />
 
             {/* Context Menu */}
-            {contextMenu && isEditMode && (
-                <>
-                    {/* Backdrop to close menu */}
-                    <div
-                        style={{
-                            position: 'fixed',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            zIndex: 1999
-                        }}
-                        onClick={() => setContextMenu(null)}
-                        onContextMenu={(e) => {
-                            e.preventDefault();
-                            setContextMenu(null);
-                        }}
-                    />
-                    {/* Menu */}
-                    <div
-                        style={{
-                            position: 'fixed',
-                            top: contextMenu.y,
-                            left: contextMenu.x,
-                            background: 'rgba(17, 24, 39, 0.98)',
-                            border: '1px solid rgba(255, 255, 255, 0.1)',
-                            borderRadius: '8px',
-                            padding: '4px',
-                            minWidth: '220px',
-                            zIndex: 2000,
-                            boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
-                            backdropFilter: 'blur(10px)'
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <button
-                            onClick={() => {
-                                handleDeleteSelected();
+            {
+                contextMenu && isEditMode && (
+                    <>
+                        {/* Backdrop to close menu */}
+                        <div
+                            style={{
+                                position: 'fixed',
+                                top: 0,
+                                left: 0,
+                                right: 0,
+                                bottom: 0,
+                                zIndex: 1999
+                            }}
+                            onClick={() => setContextMenu(null)}
+                            onContextMenu={(e) => {
+                                e.preventDefault();
                                 setContextMenu(null);
                             }}
+                        />
+                        {/* Menu */}
+                        <div
                             style={{
-                                width: '100%',
-                                padding: '8px 12px',
-                                background: 'transparent',
-                                border: 'none',
-                                color: '#f87171',
-                                textAlign: 'left',
-                                cursor: 'pointer',
-                                borderRadius: '4px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                fontSize: '14px',
-                                transition: 'background 0.15s'
+                                position: 'fixed',
+                                top: contextMenu.y,
+                                left: contextMenu.x,
+                                background: 'rgba(17, 24, 39, 0.98)',
+                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                borderRadius: '8px',
+                                padding: '4px',
+                                minWidth: '220px',
+                                zIndex: 2000,
+                                boxShadow: '0 10px 40px rgba(0,0,0,0.5)',
+                                backdropFilter: 'blur(10px)'
                             }}
-                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(248, 113, 113, 0.1)'}
-                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                            onClick={(e) => e.stopPropagation()}
                         >
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <i className="ri-delete-bin-line"></i>
-                                선택한 노드 삭제
-                            </span>
-                            <span style={{ fontSize: '12px', opacity: 0.6 }}>Delete</span>
-                        </button>
-                        <div style={{ height: '1px', background: 'rgba(255,255,255,0.05)', margin: '4px 0' }} />
+                            <button
+                                onClick={() => {
+                                    handleDeleteSelected();
+                                    setContextMenu(null);
+                                }}
+                                style={{
+                                    width: '100%',
+                                    padding: '8px 12px',
+                                    background: 'transparent',
+                                    border: 'none',
+                                    color: '#f87171',
+                                    textAlign: 'left',
+                                    cursor: 'pointer',
+                                    borderRadius: '4px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    fontSize: '14px',
+                                    transition: 'background 0.15s'
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(248, 113, 113, 0.1)'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                            >
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <i className="ri-delete-bin-line"></i>
+                                    선택한 노드 삭제
+                                </span>
+                                <span style={{ fontSize: '12px', opacity: 0.6 }}>Delete</span>
+                            </button>
+                            <div style={{ height: '1px', background: 'rgba(255,255,255,0.05)', margin: '4px 0' }} />
 
-                        {/* Z-Index Controls */}
-                        {contextMenu.nodeId && (
-                            <>
-                                <button
-                                    onClick={() => {
-                                        if (contextMenu.nodeId) handleUpdateNodeZIndex(contextMenu.nodeId, 'front');
-                                        setContextMenu(null);
-                                    }}
-                                    style={{
-                                        width: '100%',
-                                        padding: '8px 12px',
-                                        background: 'transparent',
-                                        border: 'none',
-                                        color: '#60a5fa',
-                                        textAlign: 'left',
-                                        cursor: 'pointer',
-                                        borderRadius: '4px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '8px',
-                                        fontSize: '14px'
-                                    }}
-                                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'}
-                                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                                >
-                                    <i className="ri-bring-to-front"></i> 맨 앞으로 가져오기
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        if (contextMenu.nodeId) handleUpdateNodeZIndex(contextMenu.nodeId, 'back');
-                                        setContextMenu(null);
-                                    }}
-                                    style={{
-                                        width: '100%',
-                                        padding: '8px 12px',
-                                        background: 'transparent',
-                                        border: 'none',
-                                        color: '#9ca3af',
-                                        textAlign: 'left',
-                                        cursor: 'pointer',
-                                        borderRadius: '4px',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '8px',
-                                        fontSize: '14px'
-                                    }}
-                                    onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'}
-                                    onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                                >
-                                    <i className="ri-send-to-back"></i> 맨 뒤로 보내기
-                                </button>
-                                <div style={{ height: '1px', background: 'rgba(255,255,255,0.05)', margin: '4px 0' }} />
-                            </>
-                        )}
+                            {/* Z-Index Controls */}
+                            {contextMenu.nodeId && (
+                                <>
+                                    <button
+                                        onClick={() => {
+                                            if (contextMenu.nodeId) handleUpdateNodeZIndex(contextMenu.nodeId, 'front');
+                                            setContextMenu(null);
+                                        }}
+                                        style={{
+                                            width: '100%',
+                                            padding: '8px 12px',
+                                            background: 'transparent',
+                                            border: 'none',
+                                            color: '#60a5fa',
+                                            textAlign: 'left',
+                                            cursor: 'pointer',
+                                            borderRadius: '4px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '8px',
+                                            fontSize: '14px'
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'}
+                                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                    >
+                                        <i className="ri-bring-to-front"></i> 맨 앞으로 가져오기
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            if (contextMenu.nodeId) handleUpdateNodeZIndex(contextMenu.nodeId, 'back');
+                                            setContextMenu(null);
+                                        }}
+                                        style={{
+                                            width: '100%',
+                                            padding: '8px 12px',
+                                            background: 'transparent',
+                                            border: 'none',
+                                            color: '#9ca3af',
+                                            textAlign: 'left',
+                                            cursor: 'pointer',
+                                            borderRadius: '4px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '8px',
+                                            fontSize: '14px'
+                                        }}
+                                        onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'}
+                                        onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                                    >
+                                        <i className="ri-send-to-back"></i> 맨 뒤로 보내기
+                                    </button>
+                                    <div style={{ height: '1px', background: 'rgba(255,255,255,0.05)', margin: '4px 0' }} />
+                                </>
+                            )}
 
-                        <button
-                            onClick={() => {
-                                setIsSelectionMode(!isSelectionMode);
-                                setContextMenu(null);
-                            }}
-                            style={{
-                                width: '100%',
-                                padding: '8px 12px',
-                                background: isSelectionMode ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
-                                border: 'none',
-                                color: isSelectionMode ? '#60a5fa' : '#9ca3af',
-                                textAlign: 'left',
-                                cursor: 'pointer',
-                                borderRadius: '4px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'space-between',
-                                fontSize: '14px',
-                                transition: 'background 0.15s'
-                            }}
-                            onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'}
-                            onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
-                        >
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <i className="ri-checkbox-multiple-line"></i>
-                                다중 선택 모드
-                            </span>
-                            <span style={{ fontSize: '12px', opacity: 0.6 }}>Shift+Drag</span>
-                        </button>
-                    </div>
-                </>
-            )}
-        </div>
+                            <button
+                                onClick={() => {
+                                    setIsSelectionMode(!isSelectionMode);
+                                    setContextMenu(null);
+                                }}
+                                style={{
+                                    width: '100%',
+                                    padding: '8px 12px',
+                                    background: isSelectionMode ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
+                                    border: 'none',
+                                    color: isSelectionMode ? '#60a5fa' : '#9ca3af',
+                                    textAlign: 'left',
+                                    cursor: 'pointer',
+                                    borderRadius: '4px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'space-between',
+                                    fontSize: '14px',
+                                    transition: 'background 0.15s'
+                                }}
+                                onMouseEnter={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)'}
+                                onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                            >
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <i className="ri-checkbox-multiple-line"></i>
+                                    다중 선택 모드
+                                </span>
+                                <span style={{ fontSize: '12px', opacity: 0.6 }}>Shift+Drag</span>
+                            </button>
+                        </div>
+                    </>
+                )
+            }
+        </div >
     );
 }

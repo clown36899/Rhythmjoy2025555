@@ -36,4 +36,5 @@ export interface HistoryNodeData {
     onPreviewLinkedResource?: (id: string, type: string, title: string) => void;
     isSelectionMode?: boolean; // Disable click actions in selection mode
     isEditMode?: boolean; // Show/Hide edit controls
+    onNavigate?: (id: string | null, title: string) => void;
 }

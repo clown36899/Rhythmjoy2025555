@@ -12,7 +12,7 @@ import {
 
 export interface ResourceSaveResult {
     resourceId: string;
-    resourceType: 'playlist' | 'video' | 'document' | 'person' | 'category' | 'general';
+    resourceType: 'playlist' | 'video' | 'document' | 'person' | 'category' | 'general' | 'canvas';
 }
 
 export interface ResourceHandler {
@@ -195,7 +195,10 @@ export class VideoHandler implements ResourceHandler {
 }
 
 export class DocumentHandler implements ResourceHandler {
-    match(url: string, _category: string): boolean {
+    match(url: string, category: string): boolean {
+        // 🔥 BLOCKER: Prevent DocumentHandler from stealing explicit container types
+        if (category === 'canvas' || category === 'general' || category === 'folder') return false;
+
         if (!url) return true;
         return !url.includes('youtube.com') && !url.includes('youtu.be');
     }
@@ -262,33 +265,29 @@ export class DocumentHandler implements ResourceHandler {
 
 export class CategoryHandler implements ResourceHandler {
     match(_url: string, category: string): boolean {
-        return category === 'general' || category === 'folder';
+        return category === 'general' || category === 'folder' || category === 'canvas';
     }
 
     async save(data: Partial<HistoryNodeData>, userId: string): Promise<ResourceSaveResult | null> {
         // Check if we are updating existing
         const linkedId = data.linked_category_id;
+
+        // Determine type based on category input
+        const isCanvas = data.category === 'canvas';
+        // ⚠️ SAFEST APPROACH: Use 'general' type (DB might restrict values) but differentiate via metadata
+        const resourceType = 'general';
+        const metadata = isCanvas ? { subtype: 'canvas' } : {};
+
         const insertData = {
-            title: data.title || 'New Folder',
+            title: data.title || (isCanvas ? 'New Canvas' : 'New Folder'),
             description: data.description,
-            type: 'general',
+            type: resourceType,
             user_id: userId,
             image_url: data.image_url || null,
             category_id: (data as any).category_id || (data as any).linked_category_id || null, // Parent Folder
-            is_unclassified: (data as any).is_unclassified ?? true // Default to true if not specified
+            is_unclassified: (data as any).is_unclassified ?? true, // Default to true if not specified
+            metadata: metadata
         };
-
-        // If updating, we should already have the ID, but save usually handles create too.
-        // Wait, data.linked_category_id is the ID of THIS resource if we are editing it?
-        // Or is it the "Parent Category"?  
-        // In handleSaveNode: `linkedCategoryId = resourceId`. So it is THIS resource.
-        // But `cleanNodeData.linked_category_id` might be ambiguous.
-        // However, handleSaveNode passes `resourcePayload` (line 1160 in HistoryTimelinePage).
-        // If it sends `linked_category_id`, it usually means the ID of the node itself? 
-        // No, HistoryNodeData `linked_category_id` refers to the LINKED resource.
-
-        // If we are CREATING, linkedId is null.
-        // If we are EDITING, linkedId is set.
 
         if (linkedId) {
             const { data: updated, error } = await supabase
@@ -297,6 +296,8 @@ export class CategoryHandler implements ResourceHandler {
                     title: data.title,
                     description: data.description,
                     image_url: data.image_url,
+                    type: resourceType,
+                    metadata: metadata, // Update metadata
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', linkedId)
@@ -304,15 +305,10 @@ export class CategoryHandler implements ResourceHandler {
                 .single();
 
             if (error) throw error;
-            return { resourceId: updated.id, resourceType: 'general' };
+            // Return 'canvas' resourceType so frontend logic handles it correctly, even if DB says 'general'
+            return { resourceId: updated.id, resourceType: isCanvas ? 'canvas' : 'general' };
         } else {
             // INSERT
-            // Note: If creating a SUB-folder, we need the parent ID.
-            // But HistoryNodeData doesn't strictly separate "Parent ID" from "Linked ID".
-            // Typically NodeEditorModal provides `category_id` in formData?
-            // Let's assume data.category_id is passed if available.
-            // If not, it's root.
-
             const { data: saved, error } = await supabase
                 .from(RESOURCE_TABLE)
                 .insert(insertData)
@@ -320,7 +316,7 @@ export class CategoryHandler implements ResourceHandler {
                 .single();
 
             if (error) throw error;
-            return { resourceId: saved.id, resourceType: 'general' };
+            return { resourceId: saved.id, resourceType: isCanvas ? 'canvas' : 'general' };
         }
     }
 }

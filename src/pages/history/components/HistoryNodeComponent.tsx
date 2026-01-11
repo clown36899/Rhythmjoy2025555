@@ -69,6 +69,7 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
             case 'event': return <i className="ri-calendar-event-line"></i>;
             case 'music': return <i className="ri-music-2-line"></i>;
             case 'place': return <i className="ri-map-pin-line"></i>;
+            case 'canvas': return <i className="ri-artboard-line"></i>; // Canvas Room Icon
             case 'folder':
             case 'category': return <i className="ri-folder-line"></i>;
             case 'playlist': return <i className="ri-disc-line"></i>;
@@ -85,6 +86,7 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
             case 'event': return '#10b981';
             case 'music': return '#f59e0b';
             case 'place': return '#3b82f6';
+            case 'canvas': return '#f472b6'; // Pink-ish for Canvas
             case 'folder':
             case 'category': return '#8b5cf6'; // Standard Purple
             case 'playlist': return '#f43f5e'; // Rose
@@ -95,11 +97,12 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
     };
 
     const linkedType = data.linked_playlist_id ? 'playlist' :
-        data.linked_category_id ? 'folder' :
+        data.linked_category_id ? (data.category === 'canvas' ? 'canvas' : 'folder') :
             data.linked_document_id ? 'document' :
                 data.linked_video_id ? 'video' : 'none';
 
-    const isContainer = data.category === 'folder' || data.category === 'playlist' || data.nodeType === 'folder' || data.nodeType === 'playlist';
+    // 🔥 Only 'canvas' is navigable (Drill-down supported)
+    const isContainer = data.category === 'canvas' || data.nodeType === 'canvas';
 
     return (
         <div
@@ -113,6 +116,13 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
                 // Allow context menu to bubble up to ReactFlow's onNodeContextMenu
                 // Don't prevent default here - let ReactFlow handle it
             }}
+            onDoubleClick={(e) => {
+                if (data.onNavigate && isContainer) {
+                    e.stopPropagation();
+                    data.onNavigate(String(data.id), data.title);
+                }
+            }}
+            title={isContainer ? "더블 클릭하여 열기" : undefined}
         >
             {/* Allow resizing for all nodes in Edit Mode */}
             {data.isEditMode && (

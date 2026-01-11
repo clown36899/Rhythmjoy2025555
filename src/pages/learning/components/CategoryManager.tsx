@@ -13,6 +13,8 @@ interface Category {
     order_index?: number;
     grid_row?: number;
     grid_column?: number;
+    type?: string; // Added for Canvas distinction
+    metadata?: any; // Added for flexible properties (e.g. subtype)
 }
 
 interface Playlist {
@@ -63,7 +65,7 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
         onRenameResource,
         dragSourceMode = false,
         scale = 1,
-        highlightedSourceId
+        // highlightedSourceId
     } = props;
 
     // Edit State
@@ -117,22 +119,23 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
     // --- 📊 Data Derivation (Memoized) ---
     // 🔥 AUTO-CLASSIFY by type
     const injectedCategories = useMemo(() => {
-        const folders = injectedResources.filter((r: any) => r.type === 'general');
+        // Include both 'general' (folders) and 'canvas' (sub-canvases)
+        const folders = injectedResources.filter((r: any) => r.type === 'general' || r.type === 'canvas');
         console.log('🔍 [CategoryManager] Auto-classified folders:', {
             totalResources: injectedResources.length,
             folders: folders.length,
-            folderItems: folders.map((f: any) => ({ id: f.id, title: f.title, is_unclassified: f.is_unclassified }))
+            folderItems: folders.map((f: any) => ({ id: f.id, title: f.title, is_unclassified: f.is_unclassified, type: f.type }))
         });
         return folders;
     }, [injectedResources]);
 
     const injectedPlaylists = useMemo(() => {
-        // 🔥 CRITICAL: Folders (type='general') must NEVER be in playlists
-        const files = injectedResources.filter((r: any) => r.type !== 'general');
-        console.log('🔍 [CategoryManager] Auto-classified files (EXCLUDING folders):', {
+        // 🔥 CRITICAL: Folders (type='general') AND Canvases (type='canvas') must NEVER be in playlists
+        const files = injectedResources.filter((r: any) => r.type !== 'general' && r.type !== 'canvas');
+        console.log('🔍 [CategoryManager] Auto-classified files (EXCLUDING folders/canvases):', {
             totalResources: injectedResources.length,
             files: files.length,
-            foldersExcluded: injectedResources.filter((r: any) => r.type === 'general').length,
+            foldersExcluded: injectedResources.filter((r: any) => r.type === 'general' || r.type === 'canvas').length,
             types: files.reduce((acc: any, f: any) => {
                 acc[f.type || 'unknown'] = (acc[f.type || 'unknown'] || 0) + 1;
                 return acc;
@@ -140,6 +143,8 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
         });
         return files;
     }, [injectedResources]);
+
+
 
     // --- 📊 Data Derivation (Memoized) ---
     // 1. Normalize Categories
@@ -693,7 +698,12 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                             >
                                 {isCollapsed ? '▶' : '▼'}
                             </span>
-                            <span className="folderIcon">{isSelected ? '📂' : '📁'}</span>
+                            <span className="folderIcon">
+                                {isSelected
+                                    ? (category.type === 'canvas' || (category as any).metadata?.subtype === 'canvas' ? '🚪' : '📂')
+                                    : (category.type === 'canvas' || (category as any).metadata?.subtype === 'canvas' ? '🚪' : '📁')
+                                }
+                            </span>
                             <span className="categoryName" title={category.name}>{category.name}</span>
                             {!readOnly && (
                                 <div className="actions">

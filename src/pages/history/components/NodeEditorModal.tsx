@@ -372,11 +372,17 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                             }}
                         >
                             <option value="general">일반 (폴더)</option>
+                            <option value="canvas">서브 캔버스 (방)</option>
                             <option value="person">인물</option>
                             <option value="playlist">재생목록</option>
                             <option value="video">영상</option>
                             <option value="document">문서</option>
                         </select>
+                        {formData.category === 'canvas' && (
+                            <small style={{ color: '#a78bfa', display: 'block', marginTop: '6px', fontSize: '0.85rem' }}>
+                                🚪 더블 클릭하여 들어갈 수 있는 새로운 캔버스 공간을 만듭니다.
+                            </small>
+                        )}
                         {!!node && (
                             <small style={{ color: '#888', display: 'block', marginTop: '6px', fontSize: '0.85rem' }}>
                                 ℹ️ 기존 노드의 카테고리는 수정할 수 없습니다. 변경이 필요하면 새 노드를 생성해 주세요.
