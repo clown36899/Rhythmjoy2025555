@@ -2,7 +2,7 @@
 import React from 'react';
 import './NodeDetailModal.css';
 import type { HistoryNodeData } from '../types';
-import { renderTextWithLinksAndResources } from '../../learning/utils/linkRenderer';
+import { renderTextWithLinksAndResources } from '../../../pages/learning/utils/linkRenderer';
 
 interface NodeDetailModalProps {
     nodeData: HistoryNodeData;

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import './ResourceDrawer.css';
-import { CategoryManager } from '../../learning/components/CategoryManager';
+import { CategoryManager } from '../../../pages/learning/components/CategoryManager';
 
 interface ResourceItem {
     id: string;

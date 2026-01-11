@@ -3,24 +3,19 @@ import { Handle, Position, NodeResizer } from 'reactflow';
 import type { NodeProps } from 'reactflow';
 import { parseVideoUrl, validateYouTubeThumbnailUrl } from '../../../utils/videoEmbed';
 import './HistoryNodeComponent.css';
-import type { HistoryNodeData } from '../types';
+import type { HistoryNodeData } from '../types/index';
+import { CATEGORY_COLORS } from '../utils/constants';
 
 function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
-    // Prioritize thumbnail from linked resource, then fall back to youtube_url
     const videoInfo = data.youtube_url ? parseVideoUrl(data.youtube_url) : null;
-    let validThumbnailUrl: string | null = null;
+    let thumbnailUrl: string | null = null;
 
-    // First check explicit thumbnail_url
     if (data.thumbnail_url) {
-        validThumbnailUrl = validateYouTubeThumbnailUrl(data.thumbnail_url);
+        thumbnailUrl = validateYouTubeThumbnailUrl(data.thumbnail_url);
     }
-
-    // If invalid or missing, try video info
-    if (!validThumbnailUrl && videoInfo?.thumbnailUrl) {
-        validThumbnailUrl = validateYouTubeThumbnailUrl(videoInfo.thumbnailUrl);
+    if (!thumbnailUrl && videoInfo?.thumbnailUrl) {
+        thumbnailUrl = validateYouTubeThumbnailUrl(videoInfo.thumbnailUrl);
     }
-
-    const thumbnailUrl = validThumbnailUrl;
 
     const handlePlayVideo = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -31,33 +26,27 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
 
     const handleEdit = (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (data.onEdit) {
-            data.onEdit(data);
-        }
+        if (data.onEdit) data.onEdit(data);
     };
 
     const handleViewDetail = (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (data.onViewDetail) {
-            data.onViewDetail(data);
-        }
+        if (data.onViewDetail) data.onViewDetail(data);
     };
 
     const handleThumbnailClick = (e: React.MouseEvent) => {
         e.stopPropagation();
+        if (!data.onPreviewLinkedResource) return;
 
-        // Execute appropriate action based on node type
-        if (data.nodeType === 'playlist' && data.onPreviewLinkedResource && data.linked_playlist_id) {
+        if (data.nodeType === 'playlist' && data.linked_playlist_id) {
             data.onPreviewLinkedResource(data.linked_playlist_id, 'playlist', data.title);
-        } else if (data.nodeType === 'video' && data.onPreviewLinkedResource && data.linked_video_id) {
+        } else if (data.nodeType === 'video' && data.linked_video_id) {
             data.onPreviewLinkedResource(data.linked_video_id, 'video', data.title);
-        } else if (data.nodeType === 'document' && data.onPreviewLinkedResource && data.linked_document_id) {
+        } else if (data.nodeType === 'document' && data.linked_document_id) {
             data.onPreviewLinkedResource(data.linked_document_id, 'document', data.title);
-        } else if ((data.nodeType === 'folder' || data.nodeType === 'category' || data.nodeType === 'general') && data.onPreviewLinkedResource && data.linked_category_id) {
+        } else if (data.linked_category_id) {
             data.onPreviewLinkedResource(data.linked_category_id, 'folder', data.title);
         } else if (data.youtube_url && data.onPlayVideo) {
-            // Fallback to playing YouTube video
-            // Pass linked_video_id to support detailed player with timestamps
             data.onPlayVideo(data.youtube_url, data.linked_playlist_id, data.linked_video_id);
         }
     };
@@ -69,7 +58,7 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
             case 'event': return <i className="ri-calendar-event-line"></i>;
             case 'music': return <i className="ri-music-2-line"></i>;
             case 'place': return <i className="ri-map-pin-line"></i>;
-            case 'canvas': return <i className="ri-artboard-line"></i>; // Canvas Room Icon
+            case 'canvas': return <i className="ri-artboard-line"></i>;
             case 'folder':
             case 'category': return <i className="ri-folder-line"></i>;
             case 'playlist': return <i className="ri-disc-line"></i>;
@@ -79,50 +68,81 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
         }
     };
 
-    const getCategoryColor = () => {
-        switch (data.category) {
-            case 'genre': return '#6366f1';
-            case 'person': return '#ec4899';
-            case 'event': return '#10b981';
-            case 'music': return '#f59e0b';
-            case 'place': return '#3b82f6';
-            case 'canvas': return '#f472b6'; // Pink-ish for Canvas
-            case 'folder':
-            case 'category': return '#8b5cf6'; // Standard Purple
-            case 'playlist': return '#f43f5e'; // Rose
-            case 'video': return '#ef4444'; // Red
-            case 'document': return '#64748b'; // Slate
-            default: return '#8b5cf6';
-        }
-    };
+    const categoryColor = CATEGORY_COLORS[data.category || 'default'] || CATEGORY_COLORS.default;
 
     const linkedType = data.linked_playlist_id ? 'playlist' :
         data.linked_category_id ? (data.category === 'canvas' ? 'canvas' : 'folder') :
             data.linked_document_id ? 'document' :
                 data.linked_video_id ? 'video' : 'none';
 
-    // 🔥 Only 'canvas' is navigable (Drill-down supported)
-    const isContainer = data.category === 'canvas' || data.nodeType === 'canvas';
+    /**
+     * V7 컨테이너 로직: behavior 필드를 우선 신뢰
+     */
+    const isContainer = data.node_behavior === 'PORTAL' || data.node_behavior === 'GROUP' ||
+        data.containerMode === 'portal' || data.containerMode === 'group';
 
+    const handleNodeClick = (e: React.MouseEvent) => {
+        // console.log('🖱️ [HistoryNode] Click:', { id: data.id, title: data.title, type: data.nodeType });
+
+        if (data.isSelectionMode) {
+            e.stopPropagation();
+            data.onSelectionChange && data.onSelectionChange(String(data.id), !data.isSelected);
+            return;
+        }
+
+        if (data.isEditMode) {
+            e.stopPropagation();
+            data.onEdit && data.onEdit(data);
+            return;
+        }
+
+        // 1. Container Type (Portal/Group) -> Navigate
+        if (isContainer) {
+            e.stopPropagation();
+            if (data.onNavigate) {
+                data.onNavigate(String(data.id), data.title);
+            }
+            return;
+        }
+
+        // 2. Video Type -> Play
+        if (data.onPlayVideo && data.youtube_url) {
+            e.stopPropagation();
+            data.onPlayVideo(data.youtube_url, data.linked_playlist_id, data.linked_video_id);
+            return;
+        }
+
+        // 3. Playlist / Document -> Preview Resource
+        if (data.onPreviewLinkedResource) {
+            if (data.nodeType === 'playlist' && data.linked_playlist_id) {
+                e.stopPropagation();
+                data.onPreviewLinkedResource(data.linked_playlist_id, 'playlist', data.title);
+                return;
+            }
+            if (data.nodeType === 'document' && data.linked_document_id) {
+                e.stopPropagation();
+                data.onPreviewLinkedResource(data.linked_document_id, 'document', data.title);
+                return;
+            }
+        }
+
+        // 4. Default -> View Detail Modal
+        handleViewDetail(e);
+    };
     return (
         <div
             className={`history-node linked-type-${linkedType}`}
             style={{
-                borderColor: getCategoryColor(),
+                borderColor: categoryColor,
                 height: '100%',
                 width: '100%'
             }}
+            onClick={handleNodeClick} // 🔥 Use dedicated handler that manages propagation
             onContextMenu={() => {
                 // Allow context menu to bubble up to ReactFlow's onNodeContextMenu
                 // Don't prevent default here - let ReactFlow handle it
             }}
-            onDoubleClick={(e) => {
-                if (data.onNavigate && isContainer) {
-                    e.stopPropagation();
-                    data.onNavigate(String(data.id), data.title);
-                }
-            }}
-            title={isContainer ? "더블 클릭하여 열기" : undefined}
+            title={isContainer ? "클릭하여 열기" : undefined}
         >
             {/* Allow resizing for all nodes in Edit Mode */}
             {data.isEditMode && (
@@ -156,12 +176,7 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
             {data.category === 'person' && data.image_url && (
                 <div
                     className="person-avatar"
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        if (data.onViewDetail) {
-                            data.onViewDetail(data);
-                        }
-                    }}
+                    onClick={handleNodeClick} // 🔥 Use centralized handler
                     style={{ cursor: 'pointer' }}
                 >
                     <img src={data.image_url} alt={data.title} />
@@ -191,8 +206,8 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
 
                     // 버튼 클릭이 아닌 경우에만 처리
                     if (!(e.target as HTMLElement).closest('button')) {
-                        // 일반 모드에서만 본체 클릭 시 상세 보기 모달(NodeDetailModal)을 띄움
-                        handleViewDetail(e);
+                        // 🔥 Use centralized handler to respect isContainer logic
+                        handleNodeClick(e);
                     }
                 }}
                 style={{ cursor: (data.isSelectionMode || data.isEditMode) ? 'default' : 'pointer' }}

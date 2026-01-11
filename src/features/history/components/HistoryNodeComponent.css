@@ -65,6 +65,8 @@
     background: rgba(0, 0, 0, 0.4);
     opacity: 0;
     transition: opacity 0.3s ease;
+    pointer-events: none;
+    /* 클릭 이벤트 통과 */
 }
 
 .history-node-thumbnail:hover .history-node-play-overlay {

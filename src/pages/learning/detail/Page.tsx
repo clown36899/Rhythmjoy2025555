@@ -313,6 +313,10 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                 targetId = targetId.replace('playlist:', '');
             } else if (targetId.startsWith('video:')) {
                 targetId = targetId.replace('video:', '');
+                // Check if it's a UUID (hyphens) - if not, treat as standalone (legacy support)
+                if (!targetId.includes('-')) {
+                    isStandalone = true;
+                }
             } else if (targetId.startsWith('standalone_video:')) {
                 // Bypass DB check for direct YouTube IDs
                 targetId = targetId.replace('standalone_video:', '');
@@ -488,17 +492,11 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                 setVideos([]);
             }
 
-            /* 
-               Legacy code removed:
-               - Redundant logic for 'category:' vs 'playlist:' vs 'video:'
-               - 'learning_playlists', 'learning_videos', 'learning_categories' queries
-            */
         } catch (err: any) {
             console.error('Error fetching playlist:', err);
             setError(err.message || '데이터를 불러오는 중 오류가 발생했습니다.');
         }
     };
-
     useEffect(() => {
         if (videos.length > 0) {
             const video = videos[currentVideoIndex];
@@ -1420,8 +1418,12 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                                             </button>
                                         )}
                                         {!isEditingDesc && (
-                                            /* 재생목록 설명 수정 버튼 제거: 원본 정보 보호 */
-                                            null
+                                            <button
+                                                onClick={startEditingDesc}
+                                                className="ld-edit-button-small"
+                                            >
+                                                ✎ 설명 수정
+                                            </button>
                                         )}
                                     </div>
                                 )}
@@ -1495,7 +1497,15 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                             ) : (
                                 <h2 className="ld-sidebar-playlist-title">
                                     {playlist.title}
-                                    {/* 사이드바 제목 수정 버튼 제거 */}
+                                    {canEdit && (
+                                        <button
+                                            onClick={startEditingTitle}
+                                            className="ld-edit-button-small"
+                                            style={{ marginLeft: '8px', fontSize: '12px', padding: '2px 6px' }}
+                                        >
+                                            ✎
+                                        </button>
+                                    )}
                                 </h2>
                             )}
                         </div>

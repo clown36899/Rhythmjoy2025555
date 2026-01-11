@@ -72,8 +72,22 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  /* Ensure bottom padding is sufficient to clear bottom nav */
-  /* padding-bottom: calc(85px + env(safe-area-inset-bottom)) !important; */
+  flex: 1;
+  min-height: 0;
+  /* Crucial for nested flex scrolling */
+  height: 100%;
+  /* Remove padding-bottom: 0 to check if it fixes visual overlap */
+  /* Re-enable bottom padding to clear the fixed navigation bar */
+  padding-bottom: calc(65px + env(safe-area-inset-bottom)) !important;
+}
+
+/* Ensure the wrapper div in BoardMainContainer fills space */
+.is-history-mode .board-posts-container>div {
+  flex: 1;
+  display: flex !important;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
 }
 
 /* Anonymous Board Notice */
