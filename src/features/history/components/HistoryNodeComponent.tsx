@@ -3,7 +3,7 @@ import { Handle, Position, NodeResizer } from 'reactflow';
 import type { NodeProps } from 'reactflow';
 import { parseVideoUrl, validateYouTubeThumbnailUrl } from '../../../utils/videoEmbed';
 import './HistoryNodeComponent.css';
-import type { HistoryNodeData } from '../types/index';
+import type { HistoryNodeData } from '../types';
 import { CATEGORY_COLORS } from '../utils/constants';
 
 function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {

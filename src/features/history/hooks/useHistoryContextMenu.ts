@@ -6,7 +6,8 @@ export const useHistoryContextMenu = (
     handleSaveNode: (data: any) => Promise<any>,
     nodes: any[],
     handleUpdateZIndex: (ids: string[], action: 'front' | 'back') => Promise<void>,
-    handleMoveToParent: (ids: string[], targetParentId: string | null) => Promise<void>
+    handleMoveToParent: (ids: string[], targetParentId: string | null) => Promise<void>,
+    breadcrumbs: { id: string | null; title: string }[]
 ) => {
     const [contextMenu, setContextMenu] = useState<{
         x: number;
@@ -63,18 +64,26 @@ export const useHistoryContextMenu = (
     }, [contextMenu, handleSaveNode, closeContextMenu]);
 
     /**
-     * 상위 계층으로 이동 (지능형 엔진 핸들러 사용)
+     * 상위 계층으로 이동 (Breadcrumb 기반)
      */
     const handleMoveUp = useCallback(async () => {
-        if (!contextMenu || !contextMenu.currentParentId) return;
+        if (!contextMenu) return;
 
-        // 부모 노드를 찾아 그 부모(조부모) ID 획격 (엔진 Ref를 활용하는 handleMoveToParent에 위임)
-        const parentNode = nodes.find(n => n.id === contextMenu.currentParentId);
-        const grandParentId = parentNode?.parentNode || null;
+        // 탐색 경로(Breadcrumb)가 2개 이상일 때만 상위 이동 가능 (Root > Folder > Current)
+        if (breadcrumbs.length < 2) {
+            alert('최상위 경로입니다.');
+            return;
+        }
 
-        await handleMoveToParent(contextMenu.selectedIds, grandParentId);
-        closeContextMenu();
-    }, [contextMenu, nodes, handleMoveToParent, closeContextMenu]);
+        // 바로 윗 단계 경로 ID 찾기 (Breadcrumb의 뒤에서 두 번째 아이템)
+        const parentBreadcrumb = breadcrumbs[breadcrumbs.length - 2];
+        const targetParentId = parentBreadcrumb.id; // null이면 Root
+
+        if (window.confirm(`선택한 노드를 상위 폴더('${parentBreadcrumb.title}')로 이동하시겠습니까?`)) {
+            await handleMoveToParent(contextMenu.selectedIds, targetParentId);
+            closeContextMenu();
+        }
+    }, [contextMenu, breadcrumbs, handleMoveToParent, closeContextMenu]);
 
     /**
      * 레이어 순서 변경

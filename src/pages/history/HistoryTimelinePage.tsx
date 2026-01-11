@@ -30,13 +30,15 @@ import { parseVideoUrl } from '../../utils/videoEmbed';
 function HistoryTimelinePage() {
     const { user, isAdmin } = useAuth();
 
+    const [isEditMode, setIsEditMode] = useState(false);
+
     // 1. 핵심 엔진 주입
     const {
         nodes, edges, onNodesChange, onEdgesChange, loading, breadcrumbs,
         currentRootId, handleNavigate, allNodesRef, syncVisualization,
         handleSaveNode, handleDeleteNodes, onNodeDragStop, handleDrop, handleSaveLayout,
         handleUpdateZIndex, handleConnect, handleDeleteEdge, handleUpdateEdge, handleMoveToParent
-    } = useHistoryEngine({ userId: user?.id, isAdmin: !!isAdmin });
+    } = useHistoryEngine({ userId: user?.id, isAdmin: !!isAdmin, isEditMode });
 
     useEffect(() => {
         console.log('🎬 [HistoryTimelinePage] Nodes from Engine:', nodes?.length);
@@ -44,7 +46,7 @@ function HistoryTimelinePage() {
 
     // 2. UI 상태 관리
     const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
-    const [isEditMode, setIsEditMode] = useState(false);
+    // isEditMode moved up
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
@@ -140,7 +142,7 @@ function HistoryTimelinePage() {
     const {
         contextMenu, onNodeContextMenu, onPaneContextMenu, closeContextMenu,
         handleDelete, handleUpdateColor, handleMoveUp, handleZIndex
-    } = useHistoryContextMenu(handleDeleteNodes, handleSaveNode, nodes, handleUpdateZIndex, handleMoveToParent);
+    } = useHistoryContextMenu(handleDeleteNodes, handleSaveNode, nodes, handleUpdateZIndex, handleMoveToParent, breadcrumbs);
 
     // 엣지 편집 상태
     const [isEdgeModalOpen, setIsEdgeModalOpen] = useState(false);
@@ -251,7 +253,27 @@ function HistoryTimelinePage() {
                     </button>
                     <div className="breadcrumb-area">
                         {breadcrumbs.map((b, i) => (
-                            <span key={b.id || 'root'} onClick={() => handleNavigate(b.id, b.title)}>
+                            <span
+                                key={b.id || 'root'}
+                                onClick={() => handleNavigate(b.id, b.title)}
+                                onDragOver={(e) => {
+                                    e.preventDefault();
+                                    e.currentTarget.style.fontWeight = 'bold';
+                                    e.currentTarget.style.color = '#60a5fa';
+                                }}
+                                onDragLeave={(e) => {
+                                    e.currentTarget.style.fontWeight = 'normal';
+                                    e.currentTarget.style.color = '';
+                                }}
+                                onDrop={(e) => {
+                                    e.preventDefault();
+                                    e.currentTarget.style.fontWeight = 'normal';
+                                    e.currentTarget.style.color = '';
+                                    // Handle HTML5 drop if implemented, but primarily this is a target for onNodeDragStop detection
+                                }}
+                                data-breadcrumb-id={b.id || 'null'} // Marker for detection
+                                className="breadcrumb-item"
+                            >
                                 {i > 0 && <i className="ri-arrow-right-s-line"></i>}
                                 {b.title}
                             </span>

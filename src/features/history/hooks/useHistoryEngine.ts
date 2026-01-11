@@ -14,9 +14,10 @@ interface UseHistoryEngineProps {
     userId: string | undefined;
     isAdmin: boolean;
     initialSpaceId?: string | number | null;
+    isEditMode: boolean; // Added prop
 }
 
-export const useHistoryEngine = ({ userId, initialSpaceId = null }: UseHistoryEngineProps) => {
+export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: UseHistoryEngineProps) => {
     // 1. 핵심 상태 관리
     const [nodes, setNodes, onNodesChange] = useNodesState<any>([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState<Edge[]>([]);
@@ -272,16 +273,290 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null }: UseHistoryEn
     }, [currentRootId, syncVisualization, handleNavigate]);
 
     /**
+     * 계층 변경 (Parent Node 변경) & 자동 크기 조절
+     */
+    const handleMoveToParent = useCallback(async (nodeIds: string[], newParentId: string | null) => {
+        // 1. Prepare for Auto-Resize
+        const parentsToResize = new Set<string>();
+        if (newParentId) parentsToResize.add(String(newParentId));
+
+        const updates = nodeIds.map(async (id) => {
+            const node = nodes.find(n => n.id === id);
+            if (!node) return null;
+
+            if (newParentId === node.id) {
+                console.warn('⚠️ Cannot move node to itself');
+                return null;
+            }
+
+            // Track old parent for resize
+            if (node.data.parent_node_id) {
+                parentsToResize.add(String(node.data.parent_node_id));
+            }
+
+            // Calculate new relative position
+            let newX = node.position.x;
+            let newY = node.position.y;
+
+            const oldParentId = node.data.parent_node_id ? String(node.data.parent_node_id) : null;
+            const targetParentIdStr = newParentId ? String(newParentId) : null;
+
+            if (oldParentId !== targetParentIdStr) {
+                const getAbs = (n: any) => {
+                    if (n.positionAbsolute) return n.positionAbsolute;
+                    let x = n.position.x, y = n.position.y;
+                    let curr = n;
+                    while (curr.parentNode) {
+                        const p = nodes.find(x => x.id === curr.parentNode);
+                        if (p) { x += p.position.x; y += p.position.y; curr = p; }
+                        else break;
+                    }
+                    return { x, y };
+                };
+
+                const nodeAbs = getAbs(node);
+                let parentAbs = { x: 0, y: 0 };
+
+                if (newParentId) {
+                    const parentNode = nodes.find(n => n.id === String(newParentId));
+                    if (parentNode) {
+                        parentAbs = getAbs(parentNode);
+                    }
+                }
+
+                newX = nodeAbs.x - parentAbs.x;
+                newY = nodeAbs.y - parentAbs.y;
+            }
+
+            const dbData: any = {
+                id: node.data.id,
+                position_x: newX,
+                position_y: newY,
+                parent_node_id: newParentId ? Number(newParentId) : null
+            };
+
+            const { data, error } = await supabase.from('history_nodes').update(dbData).eq('id', node.data.id).select().single();
+            if (error) throw error;
+
+            const updated = mapDbNodeToRFNode(data, {
+                onNavigate: handleNavigate,
+                onSelectionChange: (sid: string, selected: boolean) => {
+                    setNodes(nds => nds.map(node => node.id === sid ? { ...node, selected } : node));
+                }
+            }, isEditMode);
+
+            allNodesRef.current.set(updated.id, updated);
+            return updated;
+        });
+
+        try {
+            await Promise.all(updates);
+
+            // 2. Auto Reflow & Resize Logic (Row-Snap Layout)
+            const reflowPromises = Array.from(parentsToResize).map(async (parentId) => {
+                if (!parentId || parentId === 'null') return;
+
+                const children = Array.from(allNodesRef.current.values())
+                    .filter(n => String(n.data?.parent_node_id) === String(parentId));
+
+                // 1. Sort by Y to identify rows Top-Down
+                children.sort((a, b) => a.position.y - b.position.y);
+
+                const ROW_TOLERANCE = 80;
+                const rows: { avgY: number, nodes: any[] }[] = [];
+
+                // 2. Group into Rows
+                for (const child of children) {
+                    const bestRow = rows.find(r => Math.abs(r.avgY - child.position.y) < ROW_TOLERANCE);
+                    if (bestRow) {
+                        bestRow.nodes.push(child);
+                    } else {
+                        rows.push({ avgY: child.position.y, nodes: [child] });
+                    }
+                }
+
+                const PADDING = 60;
+                const PADDING_TOP = 140;
+                const GAP = 40;
+
+                let currentY = PADDING_TOP;
+                let contentMaxX = 0;
+                let contentMaxY = 0;
+                const childUpdates = [];
+
+                // 3. Layout Rows (Stack Vertically)
+                for (const row of rows) {
+                    // Sort nodes within row by X (Left-to-Right)
+                    row.nodes.sort((a, b) => a.position.x - b.position.x);
+
+                    let currentX = PADDING;
+                    let rowMaxHeight = 0;
+
+                    for (const child of row.nodes) {
+                        // Measure Size
+                        const isGroup = child.data?.category === 'folder' || child.data?.category === 'canvas' || child.data?.nodeType === 'folder';
+                        const defaultW = isGroup ? 640 : 320;
+                        const defaultH = isGroup ? 480 : 160;
+                        const w = child.width || Number(child.style?.width) || defaultW;
+                        const h = child.height || Number(child.style?.height) || defaultH;
+
+                        // Position Update
+                        const newX = currentX;
+                        const newY = currentY;
+
+                        if (Math.abs(child.position.x - newX) > 1 || Math.abs(child.position.y - newY) > 1) {
+                            childUpdates.push({ id: child.data.id, position_x: newX, position_y: newY });
+                            const updatedNode = { ...child, position: { x: newX, y: newY } };
+                            allNodesRef.current.set(child.id, updatedNode);
+                        }
+
+                        // Advance Cursor
+                        currentX += w + GAP;
+                        rowMaxHeight = Math.max(rowMaxHeight, h);
+                        contentMaxX = Math.max(contentMaxX, newX + w);
+                    }
+                    // Advance Row
+                    currentY += rowMaxHeight + GAP;
+                }
+                contentMaxY = currentY;
+
+                // 4. Batch Update Children
+                if (childUpdates.length > 0) {
+                    await Promise.all(childUpdates.map(u =>
+                        supabase.from('history_nodes').update({
+                            position_x: u.position_x,
+                            position_y: u.position_y
+                        }).eq('id', u.id)
+                    ));
+                }
+
+                // 5. Resize Parent
+                let newWidth = 640;
+                let newHeight = 480;
+
+                if (children.length > 0) {
+                    newWidth = Math.max(640, contentMaxX + PADDING);
+                    newHeight = Math.max(480, contentMaxY);
+                }
+
+                const { data, error } = await supabase.from('history_nodes')
+                    .update({ width: newWidth, height: newHeight })
+                    .eq('id', parentId)
+                    .select()
+                    .single();
+
+                if (!error && data) {
+                    const updatedParent = mapDbNodeToRFNode(data, {
+                        onNavigate: handleNavigate,
+                        onSelectionChange: (sid: string, selected: boolean) => {
+                            setNodes(nds => nds.map(node => node.id === sid ? { ...node, selected } : node));
+                        }
+                    }, isEditMode);
+                    allNodesRef.current.set(updatedParent.id, updatedParent);
+                }
+            });
+
+            await Promise.all(reflowPromises);
+
+            syncVisualization(currentRootId);
+        } catch (err) {
+            console.error('🚨 [HistoryEngine] Move Failed:', err);
+            loadTimeline();
+        }
+    }, [nodes, currentRootId, syncVisualization, handleNavigate, loadTimeline, isEditMode]);
+
+    /**
      * 노드 위치 저장 (Batch Upsert)
      */
-    const onNodeDragStop = useCallback((_: any, node: any) => {
+    const onNodeDragStop = useCallback((event: any, node: any) => {
+        // 1. Update internal Ref
         const refNode = allNodesRef.current.get(node.id);
         if (refNode) {
             refNode.position = node.position;
-            // Removed auto-save to prevent network spam. Layout is saved on explicit 'Save' or 'Exit'.
-            // handleSaveLayout(); 
         }
-    }, []);
+
+        // Helper: Calculate Intersection Ratio
+        const getIntersectionRatio = (r1: any, r2: any) => {
+            const x1 = Math.max(r1.x, r2.x);
+            const y1 = Math.max(r1.y, r2.y);
+            const x2 = Math.min(r1.x + r1.w, r2.x + r2.w);
+            const y2 = Math.min(r1.y + r1.h, r2.y + r2.h);
+            if (x2 < x1 || y2 < y1) return 0;
+            const intersectArea = (x2 - x1) * (y2 - y1);
+            const nodeArea = r1.w * r1.h;
+            return intersectArea / nodeArea;
+        };
+
+        const nodeRect = {
+            x: node.positionAbsolute?.x ?? node.position.x,
+            y: node.positionAbsolute?.y ?? node.position.y,
+            w: node.width || Number(node.style?.width) || 320,
+            h: node.height || Number(node.style?.height) || 160
+        };
+
+        // 2. Logic: Move Out (Escape Parent)
+        // If the node has a parent visible on the canvas, check if we dragged it out.
+        const parentId = node.data?.parent_node_id;
+        if (parentId) {
+            // Find parent in CURRENT VISIBLE nodes (not just ref)
+            const parentNode = nodes.find(n => n.id === String(parentId));
+            if (parentNode) {
+                const parentRect = {
+                    x: parentNode.positionAbsolute?.x ?? parentNode.position.x,
+                    y: parentNode.positionAbsolute?.y ?? parentNode.position.y,
+                    w: parentNode.width || Number(parentNode.style?.width) || 640,
+                    h: parentNode.height || Number(parentNode.style?.height) || 480
+                };
+
+                const ratio = getIntersectionRatio(nodeRect, parentRect);
+                // If less than 50% overlap, move out (Magnetic Snap)
+                if (ratio < 0.5) {
+                    const grandParentId = parentNode.data?.parent_node_id || null;
+                    console.log('🧲 Magnetic Out: Moving to', grandParentId);
+                    handleMoveToParent([node.id], grandParentId);
+                    return;
+                }
+            }
+        }
+
+        // 3. Logic: Move In (Enter Folder)
+        // Check overlap with other visible folders
+        const potentialParents = nodes.filter(n =>
+            n.id !== node.id &&
+            (n.data?.category === 'folder' || n.data?.category === 'canvas' || n.data?.nodeType === 'folder')
+        );
+
+        for (const target of potentialParents) {
+            const targetRect = {
+                x: target.positionAbsolute?.x ?? target.position.x,
+                y: target.positionAbsolute?.y ?? target.position.y,
+                w: target.width || Number(target.style?.width) || 640,
+                h: target.height || Number(target.style?.height) || 480
+            };
+
+            const ratio = getIntersectionRatio(nodeRect, targetRect);
+            if (ratio > 0.5) {
+                console.log('🧲 Magnetic In: Moving into', target.data.title);
+                handleMoveToParent([node.id], target.id);
+                return;
+            }
+        }
+
+        // 4. Fallback: Breadcrumb Drop (Client-Point Checks)
+        const clientX = event.clientX || event.sourceEvent?.clientX;
+        const clientY = event.clientY || event.sourceEvent?.clientY;
+        if (clientX && clientY) {
+            const elements = document.elementsFromPoint(clientX, clientY);
+            const breadcrumbEl = elements.find(el => el.getAttribute('data-breadcrumb-id') !== null);
+            if (breadcrumbEl) {
+                const targetIdStr = breadcrumbEl.getAttribute('data-breadcrumb-id');
+                const targetId = targetIdStr === 'null' ? null : targetIdStr;
+                if (String(targetId) !== String(currentRootId)) {
+                    handleMoveToParent([node.id], targetId);
+                }
+            }
+        }
+    }, [nodes, currentRootId, handleMoveToParent]);
 
     const handleSaveLayout = useCallback(async () => {
         const updates = Array.from(allNodesRef.current.values()).map(n => ({
@@ -391,51 +666,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null }: UseHistoryEn
         }
     }, [currentRootId, syncVisualization]);
 
-    /**
-     * 계층 변경 (Parent Node 변경)
-     */
-    const handleMoveToParent = useCallback(async (nodeIds: string[], newParentId: string | null) => {
-        const nodesToMove = nodes.filter(n => nodeIds.includes(n.id));
-        const updates = nodesToMove.map(async (n) => {
-            // 사이클 방지 (자신 혹은 자신의 자식을 부모로 삼을 수 없음)
-            if (newParentId === n.id) {
-                console.warn('⚠️ Cannot move node to itself');
-                return null;
-            }
 
-            const hasChangedParent = String(n.data.parent_node_id) !== String(newParentId || '');
-
-            const dbData: any = {
-                id: n.data.id,
-                position_x: n.position.x,
-                position_y: n.position.y
-            };
-
-            if (hasChangedParent) {
-                dbData.parent_node_id = newParentId ? Number(newParentId) : null;
-            }
-
-            const { data, error } = await supabase.from('history_nodes').update(dbData).eq('id', n.data.id).select().single();
-            if (error) throw error;
-
-            const updated = mapDbNodeToRFNode(data, {
-                onNavigate: handleNavigate,
-                onSelectionChange: (sid: string, selected: boolean) => {
-                    setNodes(nds => nds.map(node => node.id === sid ? { ...node, selected } : node));
-                }
-            });
-            allNodesRef.current.set(updated.id, updated);
-            return updated;
-        });
-
-        try {
-            await Promise.all(updates);
-            syncVisualization(currentRootId);
-        } catch (err) {
-            console.error('🚨 [HistoryEngine] Move Failed:', err);
-            loadTimeline();
-        }
-    }, [nodes, currentRootId, syncVisualization, handleNavigate, loadTimeline]);
 
     /**
      * 외부 리소스 드롭 시 노드 생성

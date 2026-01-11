@@ -69,7 +69,7 @@ export const projectNodesToView = (
             ...node,
             parentNode: visualParent,
             // React Flow의 extent 설정은 부모가 있을 때만 유효함
-            extent: visualParent ? 'parent' : undefined
+            // extent: visualParent ? 'parent' : undefined // Removed restrict to allow drag-out from group
         };
     });
 };
