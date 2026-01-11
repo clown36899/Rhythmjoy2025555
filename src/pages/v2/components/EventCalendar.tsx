@@ -134,11 +134,11 @@ export default memo(function EventCalendar({
     });
 
     // ID 순으로 정렬하여 일관성 유지
-    currentMonthEvents.sort((a, b) => a.id - b.id);
+    currentMonthEvents.sort((a, b) => Number(a.id) - Number(b.id));
 
     // 각 이벤트에 순차적으로 다른 색상 할당
     currentMonthEvents.forEach((event, index) => {
-      map.set(event.id, colors[index % colors.length]);
+      map.set(Number(event.id), colors[index % colors.length]);
     });
 
     return map;
@@ -348,7 +348,9 @@ export default memo(function EventCalendar({
     const sortedEvents = [...multiDayEvents].sort((a, b) => {
       const dateA = a.start_date || a.date || "";
       const dateB = b.start_date || b.date || "";
-      return dateA.localeCompare(dateB);
+      const dateComp = dateA.localeCompare(dateB);
+      if (dateComp !== 0) return dateComp;
+      return Number(a.id) - Number(b.id);
     });
 
     // 레인 할당: 겹치지 않는 이벤트는 같은 레인 사용 가능 (최대 3개 레인)
@@ -363,7 +365,7 @@ export default memo(function EventCalendar({
       for (let i = 0; i < Math.min(lanes.length, 3); i++) {
         if (lanes[i].endDate < startDate) {
           assignedLane = i;
-          lanes[i] = { endDate, eventId: event.id };
+          lanes[i] = { endDate, eventId: Number(event.id) };
           break;
         }
       }
@@ -371,7 +373,7 @@ export default memo(function EventCalendar({
       // 사용 가능한 레인이 없고 레인이 3개 미만이면 새 레인 추가
       if (assignedLane === -1 && lanes.length < 3) {
         assignedLane = lanes.length;
-        lanes.push({ endDate, eventId: event.id });
+        lanes.push({ endDate, eventId: Number(event.id) });
       }
 
       // 레인을 할당받지 못한 경우 (3개 모두 사용 중) 처리하지 않음
@@ -381,7 +383,7 @@ export default memo(function EventCalendar({
       let colorBg: string;
       if (isFullscreen) {
         // 전체화면 모드: 이벤트 ID 기반 고유 색상
-        colorBg = getEventColor(event.id, event.category);
+        colorBg = getEventColor(Number(event.id), event.category);
       } else {
         // 일반 모드: 카테고리와 레인에 따라 색상 결정
         if (event.category === "class") {
@@ -403,7 +405,7 @@ export default memo(function EventCalendar({
         }
       }
 
-      map.set(event.id, { lane: assignedLane, color: colorBg });
+      map.set(Number(event.id), { lane: assignedLane, color: colorBg });
     });
 
     return map;
@@ -593,8 +595,8 @@ export default memo(function EventCalendar({
         });
 
         multiDayEvents.forEach((event) => {
-          const laneInfo = eventLaneMap.get(event.id);
-          if (!laneInfo || laneInfo.lane >= 3 || processedEvents.has(event.id)) return;
+          const laneInfo = eventLaneMap.get(Number(event.id));
+          if (!laneInfo || laneInfo.lane >= 3 || processedEvents.has(Number(event.id))) return;
 
           const startDate = event.start_date || event.date || "";
           const endDate = event.end_date || event.date || "";
@@ -603,7 +605,7 @@ export default memo(function EventCalendar({
           // 이 주에서 시작하는 이벤트만 처리
           if (!isStart) return;
 
-          processedEvents.add(event.id);
+          processedEvents.add(Number(event.id));
 
           // 이 주에서 이벤트가 차지하는 칸 수 계산
           let span = 1;
@@ -630,15 +632,15 @@ export default memo(function EventCalendar({
                   const ed = e.end_date || e.date || "";
                   return sd !== ed;
                 })
-                .map((e) => e.id),
+                .map((e) => Number(e.id)),
             )
             : null;
 
-          const isFaded = selectedDateEventIds !== null && !selectedDateEventIds.has(event.id);
-          const isHovered = viewMode === "month" && hoveredEventId === event.id;
+          const isFaded = selectedDateEventIds !== null && !selectedDateEventIds.has(Number(event.id));
+          const isHovered = viewMode === "month" && hoveredEventId === Number(event.id);
 
           titleSegments.push({
-            eventId: event.id,
+            eventId: Number(event.id),
             title: event.title || '',
             lane: laneInfo.lane,
             weekRow,
@@ -745,7 +747,7 @@ export default memo(function EventCalendar({
           {/* 바디: 이벤트 리스트 */}
           <div className="calendar-cell-fullscreen-body">
             {dayEvents.map((event) => {
-              const categoryColor = getEventColor(event.id, event.category);
+              const categoryColor = getEventColor(Number(event.id), event.category);
               const thumbnailUrl = getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
 
               // 개별 날짜 설정이 여러 개일 때 순번 계산
@@ -770,7 +772,7 @@ export default memo(function EventCalendar({
                   <div style={{ position: 'relative', width: '100%' }}>
                     {/* 이미지 (있으면 표시) */}
                     {thumbnailUrl ? (
-                      <div className={`calendar-fullscreen-image-container ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
+                      <div className={`calendar-fullscreen-image-container ${highlightedEventId === Number(event.id) ? 'calendar-event-highlighted' : ''}`}>
                         <img
                           src={thumbnailUrl}
                           alt=""
@@ -780,7 +782,7 @@ export default memo(function EventCalendar({
                         />
                       </div>
                     ) : (
-                      <div className={`calendar-fullscreen-placeholder ${categoryColor} ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
+                      <div className={`calendar-fullscreen-placeholder ${categoryColor} ${highlightedEventId === Number(event.id) ? 'calendar-event-highlighted' : ''}`}>
                         <span style={{ fontSize: '10px', color: 'white', fontWeight: 'bold' }}>
                           {event.title.charAt(0)}
                         </span>
@@ -846,7 +848,7 @@ export default memo(function EventCalendar({
               const endDate = (event.end_date || event.date || "").substring(0, 10);
               return startDate !== endDate;
             })
-            .map((event) => event.id),
+            .map((event) => Number(event.id)),
         )
         : null;
 
@@ -854,7 +856,7 @@ export default memo(function EventCalendar({
       const eventBarsMap = new Map<number, any>();
 
       multiDayEvents.forEach((event) => {
-        const laneInfo = eventLaneMap.get(event.id);
+        const laneInfo = eventLaneMap.get(Number(event.id));
         if (!laneInfo || laneInfo.lane >= 3) return;
 
         const startDate = (event.start_date || event.date || "").substring(0, 10);
@@ -862,10 +864,10 @@ export default memo(function EventCalendar({
         const isStart = dateString === startDate;
         const isEnd = dateString === endDate;
 
-        const isFaded = selectedDateEventIds !== null && !selectedDateEventIds.has(event.id);
+        const isFaded = selectedDateEventIds !== null && !selectedDateEventIds.has(Number(event.id));
 
         eventBarsMap.set(laneInfo.lane, {
-          eventId: event.id,
+          eventId: Number(event.id),
           isStart,
           isEnd,
           categoryColor: laneInfo.color,
@@ -912,7 +914,7 @@ export default memo(function EventCalendar({
 
             {/* 단일 이벤트 표시 - 크기에 따라 숫자 또는 바 */}
             {singleDayEvents.length > 0 && (() => {
-              const isHoveredSingle = viewMode === "month" && hoveredEventId !== null && singleDayEvents.some((e) => e.id === hoveredEventId);
+              const isHoveredSingle = viewMode === "month" && hoveredEventId !== null && singleDayEvents.some((e) => Number(e.id) === hoveredEventId);
               const showAsBars = cellHeight > 55;
 
               if (!showAsBars) {
@@ -934,8 +936,8 @@ export default memo(function EventCalendar({
               style={{ top: '28px', pointerEvents: 'none' }}
             >
               {singleDayEvents.slice(0, Math.floor((cellHeight - 30) / 16)).map((event) => {
-                const categoryColor = getEventColor(event.id, event.category);
-                const isHovered = viewMode === "month" && hoveredEventId === event.id;
+                const categoryColor = getEventColor(Number(event.id), event.category);
+                const isHovered = viewMode === "month" && hoveredEventId === Number(event.id);
                 return (
                   <div
                     key={event.id}

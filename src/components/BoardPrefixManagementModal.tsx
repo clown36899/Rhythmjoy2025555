@@ -15,6 +15,7 @@ export interface BoardPrefix {
 interface BoardPrefixManagementModalProps {
   isOpen: boolean;
   onClose: () => void;
+  initialCategory?: string;
 }
 
 const VIBRANT_PALETTE = [
@@ -33,7 +34,8 @@ const getRandomUniqueColor = (existingColors: string[]) => {
 
 export default function BoardPrefixManagementModal({
   isOpen,
-  onClose
+  onClose,
+  initialCategory
 }: BoardPrefixManagementModalProps) {
   const [prefixes, setPrefixes] = useState<BoardPrefix[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,7 +43,7 @@ export default function BoardPrefixManagementModal({
   const [editingId, setEditingId] = useState<number | null>(null);
 
   // Category State
-  const [selectedCategory, setSelectedCategory] = useState<string>('free'); // Default to free or first available
+  const [selectedCategory, setSelectedCategory] = useState<string>(initialCategory || 'free');
   const [categories, setCategories] = useState<{ code: string, name: string }[]>([]);
 
   const [newPrefix, setNewPrefix] = useState({
@@ -66,14 +68,17 @@ export default function BoardPrefixManagementModal({
 
   // Load prefixes whenever category changes
   useEffect(() => {
-    if (isOpen && selectedCategory) {
+    if (isOpen) {
+      if (initialCategory && !selectedCategory) {
+        setSelectedCategory(initialCategory);
+      }
       loadPrefixes();
       // Reset form when category changes
       setShowAddForm(false);
       setEditingId(null);
       setNewPrefix({ name: '', color: '#3B82F6', admin_only: false });
     }
-  }, [isOpen, selectedCategory]);
+  }, [isOpen, selectedCategory, initialCategory]);
 
   // Random color when form opens (ONLY if not editing)
   useEffect(() => {
@@ -84,7 +89,8 @@ export default function BoardPrefixManagementModal({
         color: getRandomUniqueColor(existingColors)
       }));
     }
-  }, [showAddForm, editingId]); // Run when form opens or edit mode changes
+  }, [showAddForm, editingId, prefixes]); // Run when form opens or edit mode changes
+
 
   const loadCategories = async () => {
     const { data } = await supabase.from('board_categories').select('code, name').order('display_order');
@@ -224,7 +230,7 @@ export default function BoardPrefixManagementModal({
   if (!isOpen) return null;
 
   const modalContent = (
-    <div className="bpm-overlay">
+    <div className="bpm-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="bpm-container" translate="no">
         <div className="bpm-header">
           <h2 className="bpm-title">머릿말 관리</h2>
@@ -258,53 +264,12 @@ export default function BoardPrefixManagementModal({
             </div>
           ) : (
             <div className="bpm-content-inner">
-              <div className="bpm-prefix-list">
-                {prefixes.length === 0 && <div style={{ textAlign: 'center', color: '#888', padding: '20px' }}>등록된 머릿말이 없습니다.</div>}
-                {prefixes.map((prefix) => (
-                  <div key={prefix.id} className="bpm-prefix-item">
-                    <div className="bpm-prefix-info">
-                      <span
-                        className="bpm-prefix-badge"
-                        style={{ backgroundColor: prefix.color }}
-                      >
-                        {prefix.name}
-                      </span>
-                      {prefix.admin_only && (
-                        <span className="bpm-prefix-admin-badge">
-                          관리자 전용
-                        </span>
-                      )}
-                    </div>
-
-                    <div className="bpm-prefix-actions" style={{ display: 'flex', gap: '4px' }}>
-                      <button
-                        onClick={() => handleEditClick(prefix)}
-                        className="bpm-prefix-edit-btn"
-                        style={{
-                          padding: '6px', border: 'none', background: 'transparent',
-                          cursor: 'pointer', color: '#666', borderRadius: '4px',
-                          transition: 'background 0.2s'
-                        }}
-                        title="수정"
-                      >
-                        <i className="ri-pencil-line"></i>
-                      </button>
-                      <button
-                        onClick={() => handleDeletePrefix(prefix.id, prefix.name)}
-                        className="bpm-prefix-delete-btn"
-                      >
-                        <i className="bpm-prefix-delete-icon ri-delete-bin-line"></i>
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
+              {/* Add/Edit Form moved to the TOP */}
               {showAddForm ? (
-                <div className="bpm-add-form">
+                <div className="bpm-add-form" style={{ marginBottom: '20px', border: '1px solid var(--bpm-blue-500)' }}>
                   <div className="bpm-add-form-inner">
-                    <h3 style={{ fontSize: '15px', fontWeight: 'bold', marginBottom: '15px', color: '#333' }}>
-                      {editingId ? '머릿말 수정' : '새 머릿말 추가'}
+                    <h3 style={{ fontSize: '15px', fontWeight: 'bold', marginBottom: '15px', color: '#fff' }}>
+                      {editingId ? '📍 머릿말 수정' : '➕ 새 머릿말 추가'}
                     </h3>
 
                     <div className="bpm-form-group">
@@ -315,6 +280,7 @@ export default function BoardPrefixManagementModal({
                         onChange={(e) => setNewPrefix(prev => ({ ...prev, name: e.target.value }))}
                         className="bpm-form-input"
                         placeholder="예: 후기, 질문, 정보 등"
+                        autoFocus
                       />
                     </div>
 
@@ -365,10 +331,10 @@ export default function BoardPrefixManagementModal({
                               key={color}
                               onClick={() => setNewPrefix(prev => ({ ...prev, color }))}
                               style={{
-                                width: '100%', paddingTop: '100%', // Square aspect ratio
+                                width: '100%', paddingTop: '100%',
                                 backgroundColor: color,
                                 borderRadius: '4px',
-                                border: newPrefix.color === color ? '2px solid #333' : '1px solid #ddd',
+                                border: newPrefix.color === color ? '2px solid #fff' : '1px solid #ddd',
                                 cursor: 'pointer',
                                 position: 'relative'
                               }}
@@ -403,17 +369,69 @@ export default function BoardPrefixManagementModal({
                         disabled={isSubmitting}
                         className="bpm-form-btn bpm-form-btn-submit"
                       >
-                        {isSubmitting ? '저장 중...' : (editingId ? '수정 저장' : '추가')}
+                        {isSubmitting ? '저장 중...' : (editingId ? '수정 저장' : '추가 완료')}
                       </button>
                     </div>
                   </div>
                 </div>
               ) : (
-                <button onClick={() => setShowAddForm(true)} className="bpm-add-btn">
+                <button
+                  onClick={() => setShowAddForm(true)}
+                  className="bpm-add-btn"
+                  style={{ marginBottom: '20px' }}
+                >
                   <i className="bpm-add-btn-icon ri-add-line"></i>
-                  새 머릿말 추가 ({categories.find(c => c.code === selectedCategory)?.name})
+                  새 머릿말 추가 ({categories.find(c => c.code === selectedCategory)?.name || '...'})
                 </button>
               )}
+
+              <div className="bpm-prefix-list">
+                <h4 style={{ fontSize: '13px', color: '#9ca3af', marginBottom: '10px' }}>기존 머릿말 목록</h4>
+                {prefixes.length === 0 && <div style={{ textAlign: 'center', color: '#888', padding: '20px' }}>등록된 머릿말이 없습니다.</div>}
+                {prefixes.map((prefix) => (
+                  <div key={prefix.id} className="bpm-prefix-item" style={{ border: editingId === prefix.id ? '2px solid var(--bpm-blue-500)' : 'none' }}>
+                    <div className="bpm-prefix-info">
+                      <span
+                        className="bpm-prefix-badge"
+                        style={{ backgroundColor: prefix.color }}
+                      >
+                        {prefix.name}
+                      </span>
+                      {prefix.admin_only && (
+                        <span className="bpm-prefix-admin-badge">
+                          관리자
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="bpm-prefix-actions" style={{ display: 'flex', gap: '4px' }}>
+                      <button
+                        onClick={() => handleEditClick(prefix)}
+                        className="bpm-prefix-edit-btn"
+                        style={{
+                          padding: '8px', border: 'none', background: 'rgba(255,255,255,0.05)',
+                          cursor: 'pointer', color: '#ddd', borderRadius: '6px',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center'
+                        }}
+                        title="수정"
+                      >
+                        <i className="ri-pencil-line" style={{ fontSize: '18px' }}></i>
+                      </button>
+                      <button
+                        onClick={() => handleDeletePrefix(prefix.id, prefix.name)}
+                        className="bpm-prefix-delete-btn"
+                        style={{
+                          padding: '8px', border: 'none', background: 'rgba(255,255,255,0.05)',
+                          cursor: 'pointer', color: '#f87171', borderRadius: '6px',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center'
+                        }}
+                      >
+                        <i className="ri-delete-bin-line" style={{ fontSize: '18px' }}></i>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>

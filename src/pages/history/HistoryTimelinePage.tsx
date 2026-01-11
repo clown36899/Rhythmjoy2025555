@@ -33,7 +33,6 @@ import ReactFlow, {
     BackgroundVariant,
     getBezierPath,
     BaseEdge,
-    getNodesBounds,
 } from 'reactflow';
 import type { Node as RFNode, Edge, Connection, ReactFlowInstance, EdgeProps } from 'reactflow'; // Import Node as RFNode
 import 'reactflow/dist/style.css';
@@ -1519,7 +1518,7 @@ export default function HistoryTimelinePage() {
         setHasUnsavedChanges(true);
     }, [nodes, edges, isTempId]);
 
-    const updateMiniMapVisibility = useCallback((viewport: { x: number, y: number, zoom: number }) => {
+    const updateMiniMapVisibility = useCallback((_viewport: { x: number, y: number, zoom: number }) => {
         // Auto-hide logic disabled as per user request for manual control
         return;
     }, []);
@@ -2835,7 +2834,7 @@ export default function HistoryTimelinePage() {
                     }}
                 >
                     <Background variant={BackgroundVariant.Dots} gap={80} size={3} color="#ffffff7d" /> {/* 배경 도트 설정 (80px) */}
-                    <Controls showInteractive={false} />
+                    <Controls showInteractive={false} position="top-left" />
                     {showMiniMap && (
                         <MiniMap
                             nodeColor={GET_NODE_COLOR}

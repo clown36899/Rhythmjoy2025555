@@ -49,7 +49,7 @@
 
 /* Label Styles */
 .bottom-nav-label {
-    font-size: clamp(0.5rem, 2.5vw, 0.8125rem);
+    font-size: clamp(0.5rem, 3.5vw, 0.8125rem);
     /* Scales down from 13px only when screen is narrow */
     font-weight: 500;
     line-height: 1.25;

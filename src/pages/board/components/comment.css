@@ -3,7 +3,7 @@
 /* Comment Section */
 .comment-section {
     border-top: 1px solid var(--border-color);
-    margin-top: 1rem;
+    /* margin-top: 1rem; */
 }
 
 .comment-section-header {
@@ -29,7 +29,7 @@
 /* Comment Form - Integrated / Threaded */
 .comment-form {
     margin-bottom: 20px;
-    padding: 12px 0;
+    padding: 44px 0;
     background: transparent;
     border: none;
     backdrop-filter: none;
@@ -43,7 +43,7 @@
     content: '';
     position: absolute;
     left: -14px;
-    top: 24px;
+    top: 49px;
     /* Adjusted to align with author name */
     width: 14px;
     height: 12px;
@@ -221,7 +221,7 @@
     content: '';
     position: absolute;
     left: -14px;
-    top: 20px;
+    top: 14px;
     width: 14px;
     height: 12px;
     border-left: 1px solid rgba(255, 255, 255, 0.1);
@@ -282,11 +282,11 @@
 }
 
 .comment-item-content {
-    color: var(--text-primary);
+    color: #d1d5dc;
     line-height: 1.6;
     white-space: pre-wrap;
     word-break: break-word;
-    font-size: 0.9375rem;
+    font-size: clamp(0.1rem, 14px, 1rem);
     margin-bottom: 0.8rem;
 }
 

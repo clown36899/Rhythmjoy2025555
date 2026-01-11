@@ -222,18 +222,6 @@ export default function CommentSection({ postId, category }: CommentSectionProps
             )}
 
             {/* Always show form for NEW comments at the top (disabled when editing) */}
-            <CommentForm
-                postId={postId}
-                category={category}
-                onCommentAdded={(newComment) => {
-                    // Optimistic Add
-                    if (newComment) {
-                        setComments(prev => [...prev, { ...newComment, author_profile_image: user?.user_metadata?.profile_image || null } as any]);
-                    }
-                }}
-                disabled={!!editingComment}
-            />
-
             <div className="comment-list">
                 {loading ? (
                     <div className="comment-loading">
@@ -281,6 +269,19 @@ export default function CommentSection({ postId, category }: CommentSectionProps
                     ))
                 )}
             </div>
+            <CommentForm
+                postId={postId}
+                category={category}
+                onCommentAdded={(newComment) => {
+                    // Optimistic Add
+                    if (newComment) {
+                        setComments(prev => [...prev, { ...newComment, author_profile_image: user?.user_metadata?.profile_image || null } as any]);
+                    }
+                }}
+                disabled={!!editingComment}
+            />
+
+
         </div>
     );
 }

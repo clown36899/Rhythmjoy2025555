@@ -407,12 +407,6 @@ export default function BoardMainContainer() {
                 />
             )}
 
-            {isPrefixManagementOpen && (
-                <BoardPrefixManagementModal
-                    isOpen={isPrefixManagementOpen}
-                    onClose={() => { setIsPrefixManagementOpen(false); loadPosts(); }}
-                />
-            )}
 
             {/* Board Detail Modal */}
             {selectedPostId && (

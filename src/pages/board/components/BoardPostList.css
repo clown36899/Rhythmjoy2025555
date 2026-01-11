@@ -64,12 +64,13 @@
 /* Modern Anonymous Card */
 .anonymous-mode .board-post-card.is-memo {
     background: var(--memo-card-bg);
-    border: 0px solid var(--memo-card-border);
-    border-radius: 0px;
+    /* border: 1px solid var(--memo-card-border); */
+    border-radius: 15px;
     padding: 5px;
+    margin: 11px;
     display: flex;
     flex-direction: column;
-    width: 100%;
+    /* width: 100%; */
     box-sizing: border-box;
     box-shadow: var(--memo-shadow-idle);
     transition: all 0.2s ease;
@@ -157,12 +158,12 @@
 
 .anonymous-mode .board-post-content {
     color: var(--memo-text-content) !important;
-    font-size: clamp(0.1rem, 3vw, 1rem);
-    line-height: 1.6;
+    font-size: clamp(0.1rem, 14px, 1rem);
+    line-height: 1.4;
     letter-spacing: -0.02em;
     margin: 0 !important;
     white-space: pre-wrap;
-    padding: 5px 39px;
+    padding: 5px 20px 5px 39px;
 }
 
 /* Thumbnail */
@@ -287,7 +288,7 @@
 
 .anonymous-mode .memo-comment-toggle {
     background: rgba(255, 255, 255, 0.05);
-    border: 1px solid var(--memo-card-border);
+    border: 0px solid var(--memo-card-border);
     color: var(--memo-text-meta);
     font-weight: 700;
     display: flex;
@@ -335,7 +336,8 @@
     position: relative;
     background: transparent;
     margin-top: 16px;
-    padding-left: 20px;
+    padding-left: 58px;
+    padding-right: 22px;
     border: none;
 }
 
@@ -351,7 +353,7 @@
 .anonymous-mode .inline-comment-section::after {
     content: '';
     position: absolute;
-    left: 6px;
+    left: 43px;
     top: -8px;
     bottom: 28px;
     width: 1px;
@@ -360,14 +362,13 @@
 
 .anonymous-mode .inline-comment-section-dot {
     position: absolute;
-    left: 4px;
+    left: 42px;
     top: -11px;
-    width: 5px;
-    height: 5px;
+    width: 3px;
+    height: 3px;
     background: var(--memo-card-accent);
     border-radius: 50%;
     z-index: 2;
-    box-shadow: 0 0 8px var(--memo-card-accent);
 }
 
 /* Lightbox */

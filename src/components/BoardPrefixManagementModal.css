@@ -1,6 +1,18 @@
 /* BoardPrefixManagementModal.css - BoardPrefixManagementModal 컴포넌트 전용 스타일 */
 
 /* ===== CSS 변수 정의 ===== */
+:root {
+  --bpm-blue-500: #3b82f6;
+  --bpm-blue-600: #2563eb;
+  --bpm-blue-700: #1d4ed8;
+  --bpm-gray-50: #f9fafb;
+  --bpm-gray-100: #f3f4f6;
+  --bpm-gray-200: #e5e7eb;
+  --bpm-gray-700: #374151;
+  --bpm-gray-800: #1f2937;
+  --bpm-gray-900: #111827;
+}
+
 /* ===== 모달 오버레이 ===== */
 .bpm-overlay {
   position: fixed;
