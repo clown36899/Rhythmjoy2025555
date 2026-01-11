@@ -91,8 +91,7 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
         }
 
         if (data.isEditMode) {
-            e.stopPropagation();
-            data.onEdit && data.onEdit(data);
+            // Edit Mode: Allow bubbling for selection (NodeResizer), do not auto-open edit modal
             return;
         }
 
@@ -157,10 +156,14 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
             {/* Allow resizing for all nodes in Edit Mode */}
             {data.isEditMode && (
                 <NodeResizer
-                    minWidth={420}
-                    minHeight={300}
+                    minWidth={100}
+                    minHeight={100}
                     isVisible={!!selected}
                     lineStyle={{ border: '2px solid #a78bfa' }}
+                    onResizeStop={(e, params) => {
+                        console.log('📐 Resize Stop:', data.title, params.width, params.height);
+                        data.onResizeStop?.(data.id, params.width, params.height);
+                    }}
                 />
             )}
 

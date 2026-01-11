@@ -105,7 +105,8 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                 onNavigate: (id: string | null, title: string) => handleNavigate(id, title),
                 onSelectionChange: (id: string, selected: boolean) => {
                     setNodes(nds => nds.map(node => node.id === id ? { ...node, selected } : node));
-                }
+                },
+                onResizeStop: handleResizeStop
             };
 
             const flowNodes = (nodesData || []).map(node => mapDbNodeToRFNode(node, handlers));
@@ -200,7 +201,8 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                 onNavigate: (id: string | null, title: string) => handleNavigate(id, title),
                 onSelectionChange: (id: string, selected: boolean) => {
                     setNodes(nds => nds.map(node => node.id === id ? { ...node, selected } : node));
-                }
+                },
+                onResizeStop: handleResizeStop
             });
             allNodesRef.current.set(updatedNode.id, updatedNode);
 
@@ -257,7 +259,8 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                     onNavigate: handleNavigate,
                     onSelectionChange: (sid: string, selected: boolean) => {
                         setNodes(nds => nds.map(node => node.id === sid ? { ...node, selected } : node));
-                    }
+                    },
+                    onResizeStop: handleResizeStop
                 });
                 allNodesRef.current.set(updated.id, updated);
                 return updated;
@@ -342,7 +345,8 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                 onNavigate: handleNavigate,
                 onSelectionChange: (sid: string, selected: boolean) => {
                     setNodes(nds => nds.map(node => node.id === sid ? { ...node, selected } : node));
-                }
+                },
+                onResizeStop: handleResizeStop
             }, isEditMode);
 
             allNodesRef.current.set(updated.id, updated);
@@ -450,7 +454,8 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                         onNavigate: handleNavigate,
                         onSelectionChange: (sid: string, selected: boolean) => {
                             setNodes(nds => nds.map(node => node.id === sid ? { ...node, selected } : node));
-                        }
+                        },
+                        onResizeStop: handleResizeStop
                     }, isEditMode);
                     allNodesRef.current.set(updatedParent.id, updatedParent);
                 }
@@ -589,6 +594,28 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
     }, []);
 
     /**
+     * 노드 리사이즈 종료 시 DB 저장
+     */
+    const handleResizeStop = useCallback(async (id: string | number, width: number, height: number) => {
+        // 1. Update Ref
+        const refNode = allNodesRef.current.get(String(id));
+        if (refNode) {
+            refNode.width = width;
+            refNode.height = height;
+            refNode.style = { ...refNode.style, width, height };
+        }
+
+        // 2. Update DB (Ensure ID is numeric for Supabase)
+        try {
+            const numericId = Number(id);
+            await supabase.from('history_nodes').update({ width, height }).eq('id', numericId);
+            console.log('💾 [HistoryEngine] Resize Saved:', { id: numericId, width, height });
+        } catch (err) {
+            console.error('🚨 [HistoryEngine] Resize Save Failed:', err);
+        }
+    }, []);
+
+    /**
      * 엣지 생성 (Connect)
      */
     const handleConnect = useCallback(async (params: any) => {
@@ -712,7 +739,8 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                 onNavigate: handleNavigate,
                 onSelectionChange: (sid: string, selected: boolean) => {
                     setNodes(nds => nds.map(node => node.id === sid ? { ...node, selected } : node));
-                }
+                },
+                onResizeStop: handleResizeStop
             });
             allNodesRef.current.set(updated.id, updated);
             syncVisualization(currentRootId);
@@ -769,6 +797,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
         handleDeleteEdge,
         handleUpdateEdge,
         handleMoveToParent,
-        generateDecadeNodes
+        generateDecadeNodes,
+        handleResizeStop // 🔥 Expose
     };
 };

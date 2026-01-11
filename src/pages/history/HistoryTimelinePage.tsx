@@ -37,7 +37,8 @@ function HistoryTimelinePage() {
         nodes, edges, onNodesChange, onEdgesChange, loading, breadcrumbs,
         currentRootId, handleNavigate, allNodesRef, syncVisualization,
         handleSaveNode, handleDeleteNodes, onNodeDragStop, handleDrop, handleSaveLayout,
-        handleUpdateZIndex, handleConnect, handleDeleteEdge, handleUpdateEdge, handleMoveToParent
+        handleUpdateZIndex, handleConnect, handleDeleteEdge, handleUpdateEdge, handleMoveToParent,
+        handleResizeStop // 🔥 Added
     } = useHistoryEngine({ userId: user?.id, isAdmin: !!isAdmin, isEditMode });
 
     useEffect(() => {
@@ -215,6 +216,7 @@ function HistoryTimelinePage() {
             // 🔥 Critical: React Flow root properties must be updated explicitly
             node.draggable = isEditMode;
             node.connectable = isEditMode;
+            node.data.onResizeStop = handleResizeStop; // 🔥 Inject Handler
         });
 
         // 필터 조건 구성

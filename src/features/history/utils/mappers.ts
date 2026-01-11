@@ -13,6 +13,7 @@ export const mapDbNodeToRFNode = (
         onPreviewLinkedResource?: (id: string, type: string, title: string) => void;
         onNavigate?: (id: string | null, title: string) => void;
         onSelectionChange?: (id: string, selected: boolean) => void;
+        onResizeStop?: (id: string | number, width: number, height: number) => void;
     },
     isEditMode: boolean = false
 ): HistoryRFNode => {
