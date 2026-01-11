@@ -198,7 +198,7 @@ export default function HistoryTimelinePage() {
     const [deletedNodeIds, setDeletedNodeIds] = useState<Set<string>>(new Set());
     const [deletedEdgeIds, setDeletedEdgeIds] = useState<Set<string>>(new Set());
     const [modifiedNodeIds, setModifiedNodeIds] = useState<Set<string>>(new Set()); // New: Track modified node content
-    const [showMiniMap, setShowMiniMap] = useState(true);
+    const [showMiniMap, setShowMiniMap] = useState(true); // Now acts as a manual toggle
 
     // Context Menu State
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId?: string } | null>(null);
@@ -478,7 +478,7 @@ export default function HistoryTimelinePage() {
                 if (!node) return null;
 
                 const dbData: any = {
-                    updated_at: new Date()
+                    // updated_at is handled by DB trigger
                 };
 
                 // Position
@@ -502,23 +502,20 @@ export default function HistoryTimelinePage() {
                     // Standalone nodes: save all content
                     dbData.title = node.data.title;
                     dbData.description = node.data.description;
-                    dbData.image_url = node.data.image_url;
+                    // image_url is NOT in history_nodes table, removed to avoid 400 error
                     dbData.youtube_url = node.data.youtube_url;
                     dbData.category = node.data.category;
-                    dbData.year = node.data.year;
-                    dbData.date = node.data.date;
-                    dbData.content = node.data.content; // Standalone nodes preserve content here
-                } else {
-                    // For linked nodes, also preserve content in history_nodes as a backup/local copy if needed
-                    // though the primary source is learning_resources
-                    dbData.content = node.data.content;
+                    dbData.year = (node.data.year === '' || node.data.year === undefined) ? null : Number(node.data.year);
+                    dbData.date = node.data.date || null;
                 }
+                // We don't save 'content' to history_nodes to avoid 400 errors if columns are not migrated yet.
+                // The primary authority for 'content' is learning_resources for linked nodes.
                 // For linked nodes: don't save any content (it comes from learning_resources)
 
                 dbData.linked_video_id = node.data.linked_video_id || null;
                 dbData.linked_document_id = node.data.linked_document_id || null;
                 dbData.linked_playlist_id = node.data.linked_playlist_id || null;
-                // dbData.linked_category_id = node.data.linked_category_id || null; // Migration pending check
+                dbData.linked_category_id = node.data.linked_category_id || null;
 
                 // Support Container (Parent Node)
                 dbData.parent_node_id = node.parentNode ? parseInt(node.parentNode) : null;
@@ -532,7 +529,10 @@ export default function HistoryTimelinePage() {
 
                 console.log('📦 [Update Node Payload]', { id, dbData }); // DEBUG LOG
 
-                return supabase.from('history_nodes').update(dbData).eq('id', parseInt(id));
+                return supabase
+                    .from('history_nodes')
+                    .update(dbData)
+                    .eq('id', Number(id)); // Ensure ID is a number
             }).filter(Boolean);
 
             await Promise.all(updates);
@@ -1523,40 +1523,9 @@ export default function HistoryTimelinePage() {
     }, [nodes, edges, isTempId]);
 
     const updateMiniMapVisibility = useCallback((viewport: { x: number, y: number, zoom: number }) => {
-        if (!rfInstance) return;
-
-        const currentNodes = rfInstance.getNodes();
-        if (currentNodes.length === 0) {
-            setShowMiniMap(false);
-            return;
-        }
-
-        // Get the bounding box of all nodes
-        const bounds = getNodesBounds(currentNodes);
-
-        // Get the container dimensions
-        const renderer = document.querySelector('.react-flow__renderer');
-        if (!renderer) return;
-        const { width, height } = renderer.getBoundingClientRect();
-
-        // Transform node bounds to screen coordinates
-        const screenBounds = {
-            left: bounds.x * viewport.zoom + viewport.x,
-            top: bounds.y * viewport.zoom + viewport.y,
-            right: (bounds.x + bounds.width) * viewport.zoom + viewport.x,
-            bottom: (bounds.y + bounds.height) * viewport.zoom + viewport.y,
-        };
-
-        // Check if all nodes are within the viewport (with a small padding)
-        const padding = 20;
-        const isAllVisible =
-            screenBounds.left >= -padding &&
-            screenBounds.top >= -padding &&
-            screenBounds.right <= width + padding &&
-            screenBounds.bottom <= height + padding;
-
-        setShowMiniMap(!isAllVisible);
-    }, [rfInstance]);
+        // Auto-hide logic disabled as per user request for manual control
+        return;
+    }, []);
 
     const onMoveEnd = useCallback(
         (_: any, viewport: { x: number, y: number, zoom: number }) => {
@@ -2808,6 +2777,23 @@ export default function HistoryTimelinePage() {
                         <i className="ri-delete-bin-line"></i>
                     </button>
                 )}
+
+                {/* MiniMap Toggle Button */}
+                <button
+                    className={`toolbar-btn ${showMiniMap ? 'active' : ''}`}
+                    onClick={() => {
+                        console.log('🗺️ [MiniMap Toggle] Pre:', showMiniMap, 'Post:', !showMiniMap);
+                        setShowMiniMap(!showMiniMap);
+                    }}
+                    title={showMiniMap ? '미니맵 숨기기' : '미니맵 보이기'}
+                    style={{
+                        color: showMiniMap ? '#60a5fa' : '#9ca3af',
+                        borderColor: showMiniMap ? '#60a5fa' : 'rgba(255,255,255,0.1)'
+                    }}
+                >
+                    <i className={showMiniMap ? 'ri-map-2-fill' : 'ri-map-2-line'}></i>
+                    <span>지도</span>
+                </button>
             </div>
 
             <div className="history-timeline-canvas">
@@ -2853,16 +2839,19 @@ export default function HistoryTimelinePage() {
                 >
                     <Background variant={BackgroundVariant.Dots} gap={80} size={3} color="#ffffff7d" /> {/* 배경 도트 설정 (80px) */}
                     <Controls showInteractive={false} />
-                    <MiniMap
-                        nodeColor={GET_NODE_COLOR}
-                        zoomable
-                        pannable
-                        style={{
-                            opacity: showMiniMap ? 1 : 0,
-                            pointerEvents: showMiniMap ? 'all' : 'none',
-                            transition: 'opacity 0.3s ease'
-                        }}
-                    />
+                    {showMiniMap && (
+                        <MiniMap
+                            nodeColor={GET_NODE_COLOR}
+                            zoomable
+                            pannable
+                            style={{
+                                background: 'rgba(30, 30, 30, 0.7)',
+                                borderRadius: '12px',
+                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                overflow: 'hidden'
+                            }}
+                        />
+                    )}
                 </ReactFlow>
             </div>
 

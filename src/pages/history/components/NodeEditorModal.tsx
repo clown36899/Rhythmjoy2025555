@@ -135,22 +135,28 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
     const loadResources = async () => {
         setLoadingResources(true);
         try {
-            // Load playlists
-            const { data: playlistData } = await supabase
-                .from('playlists')
-                .select('id, title, youtube_url')
+            // Load playlists from unified table
+            const { data: playlistResources } = await supabase
+                .from('learning_resources')
+                .select('id, title, url')
+                .eq('type', 'playlist')
                 .order('created_at', { ascending: false })
                 .limit(20);
 
-            // Load individual videos
-            const { data: videoData } = await supabase
-                .from('videos')
-                .select('id, title, youtube_url')
+            // Load individual videos from unified table
+            const { data: videoResources } = await supabase
+                .from('learning_resources')
+                .select('id, title, url')
+                .eq('type', 'video')
                 .order('created_at', { ascending: false })
                 .limit(20);
 
-            setPlaylists(playlistData || []);
-            setVideos(videoData || []);
+            // Map 'url' to 'youtube_url' for compatibility with existing UI logic
+            const mappedPlaylists = (playlistResources || []).map(r => ({ ...r, youtube_url: r.url }));
+            const mappedVideos = (videoResources || []).map(r => ({ ...r, youtube_url: r.url }));
+
+            setPlaylists(mappedPlaylists);
+            setVideos(mappedVideos);
         } catch (error) {
             console.error('Failed to load resources:', error);
         } finally {
