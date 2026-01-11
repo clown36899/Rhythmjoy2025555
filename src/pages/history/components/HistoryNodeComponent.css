@@ -84,11 +84,11 @@
     flex-direction: column;
     gap: 8px;
     flex: 1;
-    /* 남은 높이를 모두 차지하여 Footer를 바닥으로 밀어냄 */
-    min-height: 0;
-    /* Flexbox 버그 방지 */
+    min-width: 388px;
+    /* 420px - padding(32px) */
+    min-height: 320px;
+    /* Increased to fit header, title, description, and footer comfortably */
     overflow-y: auto;
-    /* 컨텐츠가 넘치면 스크롤하여 Footer 공간 확보 */
 }
 
 /* 스크롤바 커스텀 */
@@ -174,7 +174,11 @@
     font-size: 2.7rem;
     font-weight: 600;
     color: #fff;
-    line-height: 1.4;
+    line-height: 1.3;
+    word-break: keep-all;
+    /* 단어 단위로 줄바꿈 */
+    overflow-wrap: break-word;
+    /* 긴 단어는 줄바꿈 */
 }
 
 .history-node-badge i {

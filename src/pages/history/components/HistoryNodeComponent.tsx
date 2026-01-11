@@ -107,8 +107,7 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
             style={{
                 borderColor: getCategoryColor(),
                 height: '100%',
-                width: '100%',
-                minWidth: isContainer ? '480px' : '320px'
+                width: '100%'
             }}
             onContextMenu={() => {
                 // Allow context menu to bubble up to ReactFlow's onNodeContextMenu
@@ -118,8 +117,8 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
             {/* Allow resizing for all nodes in Edit Mode */}
             {data.isEditMode && (
                 <NodeResizer
-                    minWidth={320}
-                    minHeight={160}
+                    minWidth={420}
+                    minHeight={300}
                     isVisible={!!selected}
                     lineStyle={{ border: '2px solid #a78bfa' }}
                 />
