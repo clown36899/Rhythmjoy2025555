@@ -684,3 +684,73 @@
     transform: scale(1.15);
     border-color: rgba(255, 255, 255, 0.4);
 }
+
+/* Floating Canvas Controls (Moved from Header) */
+.floating-canvas-controls {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    flex-direction: column;
+    /* Vertical Stack */
+    align-items: flex-end;
+    /* Align right */
+    gap: 10px;
+    z-index: 50;
+    pointer-events: none;
+}
+
+.floating-actions-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    animation: slideDown 0.2s ease-out;
+}
+
+.floating-canvas-controls .action-btn {
+    pointer-events: auto;
+    background: rgba(17, 24, 39, 0.85);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    color: #e5e7eb;
+    min-width: 110px;
+    justify-content: flex-start;
+    /* Left align text inside button */
+    padding: 10px 14px;
+}
+
+.floating-canvas-controls .action-btn:hover {
+    background: rgba(31, 41, 55, 0.95);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateX(-2px);
+    /* Slight bump left for feedback */
+}
+
+.floating-canvas-controls .action-btn.active {
+    background: rgba(139, 92, 246, 0.8);
+    border-color: #8b5cf6;
+    color: white;
+}
+
+.floating-canvas-controls .action-btn.save-btn {
+    background: rgba(16, 185, 129, 0.8);
+    border-color: #059669;
+}
+
+.floating-canvas-controls .action-btn.save-btn:hover {
+    background: rgba(5, 150, 105, 0.9);
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

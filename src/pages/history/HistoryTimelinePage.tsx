@@ -708,65 +708,6 @@ function HistoryTimelinePage() {
                         <option value="person">인물</option>
                     </select>
                 </div>
-                <div className="header-actions">
-                    {/* 선택 모드 토글 (관리자 전용) */}
-                    {isAdmin && (
-                        <button
-                            className={`action-btn ${isSelectionMode ? 'active' : ''}`}
-                            onClick={() => setIsSelectionMode(!isSelectionMode)}
-                            title={isSelectionMode ? '화면 이동 모드' : '박스 선택 모드'}
-                        >
-                            <i className={isSelectionMode ? 'ri-cursor-fill' : 'ri-qr-scan-2-line'}></i>
-                            {isSelectionMode ? '선택 모드' : '자유 모드'}
-                        </button>
-                    )}
-
-                    {/* 편집 모드 토글 (모든 로그인 유저에게 노출, 실제 권한은 내부에서 제어) */}
-                    {user && (
-                        <button
-                            className={`action-btn ${isEditMode ? 'active' : ''}`}
-                            onClick={() => setIsEditMode(!isEditMode)}
-                            title={isEditMode ? "편집 모드 종료" : "편집 모드 시작"}
-                        >
-                            <i className="ri-edit-2-line"></i>
-                            {isEditMode ? '완료' : '편집'}
-                        </button>
-                    )}
-
-                    {/* 항목 추가 버튼 - 편집 모드일 때만 노출 */}
-                    {isEditMode && (
-                        <button
-                            className="action-btn"
-                            onClick={() => {
-                                // 캔버스 중앙에 노드 추가 (기존 로직 유지)
-                                const center = {
-                                    x: -((rfInstance?.getViewport().x || 0) - (window.innerWidth / 2)) / (rfInstance?.getViewport().zoom || 1),
-                                    y: -((rfInstance?.getViewport().y || 0) - (window.innerHeight / 2)) / (rfInstance?.getViewport().zoom || 1)
-                                };
-                                onDrop({
-                                    clientX: window.innerWidth / 2,
-                                    clientY: window.innerHeight / 2,
-                                    dataTransfer: {
-                                        getData: () => JSON.stringify({
-                                            type: 'historyNode',
-                                            title: '새 항목',
-                                            year: new Date().getFullYear(),
-                                            category: 'default'
-                                        })
-                                    } as any
-                                } as React.DragEvent);
-                            }}
-                        >
-                            <i className="ri-add-line"></i>
-                            항목 추가
-                        </button>
-                    )}
-                    {isEditMode && isAdmin && ( // Only show save button if in edit mode AND admin
-                        <button className="action-btn save-btn" onClick={handleSaveLayout}>
-                            <i className="ri-save-line"></i> 저장
-                        </button>
-                    )}
-                </div>
             </header>
 
             <main className="timeline-main history-timeline-canvas">
@@ -788,6 +729,70 @@ function HistoryTimelinePage() {
                     onEdgesDelete={onEdgesDelete}
                     isSelectionMode={isSelectionMode}
                 />
+
+                <div className="floating-canvas-controls">
+                    {/* 1. Main Toggle: Edit Mode (Always Visible if User) */}
+                    {user && (
+                        <button
+                            className={`action-btn ${isEditMode ? 'active' : ''}`}
+                            onClick={() => setIsEditMode(!isEditMode)}
+                            title={isEditMode ? "편집 모드 종료" : "편집 모드 시작"}
+                        >
+                            <i className="ri-edit-2-line"></i>
+                            {isEditMode ? '완료' : '편집'}
+                        </button>
+                    )}
+
+                    {/* 2. Sub Actions (Expand Downwards) */}
+                    {isEditMode && (
+                        <div className="floating-actions-group">
+                            {/* Select Mode (Admin Only) */}
+                            {isAdmin && (
+                                <button
+                                    className={`action-btn ${isSelectionMode ? 'active' : ''}`}
+                                    onClick={() => setIsSelectionMode(!isSelectionMode)}
+                                    title={isSelectionMode ? '화면 이동 모드' : '박스 선택 모드'}
+                                >
+                                    <i className={isSelectionMode ? 'ri-cursor-fill' : 'ri-qr-scan-2-line'}></i>
+                                    {isSelectionMode ? '선택 모드' : '자유 모드'}
+                                </button>
+                            )}
+
+                            {/* Add Item */}
+                            <button
+                                className="action-btn"
+                                onClick={() => {
+                                    const center = {
+                                        x: -((rfInstance?.getViewport().x || 0) - (window.innerWidth / 2)) / (rfInstance?.getViewport().zoom || 1),
+                                        y: -((rfInstance?.getViewport().y || 0) - (window.innerHeight / 2)) / (rfInstance?.getViewport().zoom || 1)
+                                    };
+                                    onDrop({
+                                        clientX: window.innerWidth / 2,
+                                        clientY: window.innerHeight / 2,
+                                        dataTransfer: {
+                                            getData: () => JSON.stringify({
+                                                type: 'historyNode',
+                                                title: '새 항목',
+                                                year: new Date().getFullYear(),
+                                                category: 'default'
+                                            })
+                                        } as any
+                                    } as React.DragEvent);
+                                }}
+                            >
+                                <i className="ri-add-line"></i>
+                                항목 추가
+                            </button>
+
+                            {/* Save (Admin Only) */}
+                            {isAdmin && (
+                                <button className="action-btn save-btn" onClick={handleSaveLayout}>
+                                    <i className="ri-save-line"></i> 저장
+                                </button>
+                            )}
+                        </div>
+                    )}
+                </div>
             </main>
 
             {/* Context Menu UI */}
