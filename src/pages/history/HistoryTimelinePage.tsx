@@ -13,11 +13,11 @@ import {
     NodeEditorModal,
     NodeDetailModal,
     ResourceDrawer,
-    EditExitPromptModal,
-    EdgeEditorModal
 } from '../../features/history/components';
+import { EditExitPromptModal } from '../../features/history/components/EditExitPromptModal';
+import { EdgeEditorModal } from '../../features/history/components/EdgeEditorModal';
 import type { ResourceDrawerHandle } from '../../features/history/components/ResourceDrawer';
-import { DocumentDetailModal } from '../learning/components/DocumentDetailModal';
+// Learning Modals (Legacy support for drawer)
 import { PlaylistModal } from '../learning/components/PlaylistModal';
 import { PlaylistImportModal } from '../learning/components/PlaylistImportModal';
 import { DocumentCreateModal } from '../learning/components/DocumentCreateModal';
@@ -841,7 +841,33 @@ function HistoryTimelinePage() {
                     e.dataTransfer.setData('application/reactflow', JSON.stringify(item));
                     e.dataTransfer.effectAllowed = 'move';
                 }}
-                onItemClick={(item) => setPreviewResource({ id: item.id, type: item.type, title: item.title })}
+                onItemClick={(item) => {
+                    // 🔥 Split Logic: Videos/Playlists use separate modal, others unified
+                    if (item.type === 'video' || item.type === 'playlist') {
+                        setPreviewResource({
+                            id: item.type === 'video' ? `video:${item.id}` : item.id,
+                            type: item.type,
+                            title: item.title
+                        });
+                    } else {
+                        // 🔥 Unified Detail View for Folders, Documents, Persons
+                        handleViewDetail({
+                            id: item.id,
+                            title: item.title,
+                            category: item.type as any,
+                            year: item.year || new Date().getFullYear(),
+                            content: (item as any).content || (item as any).description,
+                            youtube_url: (item as any).youtube_url,
+                            attachment_url: (item as any).attachment_url,
+                            image_url: (item as any).image_url,
+                            linked_document_id: (item.type === 'document' || item.type === 'person') ? item.id : undefined,
+                            linked_category_id: item.type === 'general' ? item.id : undefined,
+                            position_x: 0,
+                            position_y: 0,
+                            node_behavior: 'LEAF'
+                        });
+                    }
+                }}
                 refreshKey={drawerRefreshKey}
                 {...resourceData}
                 isEditMode={isEditMode}
@@ -914,18 +940,11 @@ function HistoryTimelinePage() {
                 }}
             />
 
-            {/* Video Player handled via PlaylistModal with video: prefix */}
-
-            {previewResource?.type === 'playlist' && (
+            {/* Combined into NodeDetailModal - Unused legacy modals removed */}
+            {/* 🔥 Video/Playlist Modal (Separate from NodeDetail as requested) */}
+            {(previewResource?.type === 'playlist' || previewResource?.type === 'video') && (
                 <PlaylistModal
                     playlistId={previewResource.id}
-                    onClose={() => setPreviewResource(null)}
-                />
-            )}
-
-            {(previewResource?.type === 'document' || previewResource?.type === 'person') && (
-                <DocumentDetailModal
-                    documentId={previewResource.id}
                     onClose={() => setPreviewResource(null)}
                 />
             )}
