@@ -116,7 +116,7 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
 
         const table = category === 'anonymous' ? 'board_anonymous_posts' : 'board_posts';
 
-        console.log(`[Realtime] Subscribing to ${table} for category: ${category}`);
+        // console.log(`[Realtime] Subscribing to ${table} for category: ${category}`);
 
         const channel = supabase
             .channel(`board_posts:${category}`)
@@ -129,7 +129,7 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
                     // Removed filter for DELETE to work properly
                 },
                 (payload) => {
-                    console.log(`[Realtime] ${payload.eventType} event received:`, payload);
+                    // console.log(`[Realtime] ${payload.eventType} event received:`, payload);
 
                     // Handle INSERT - add new post to top without reload
                     if (payload.eventType === 'INSERT' && payload.new) {
@@ -149,7 +149,7 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
                             ...prevPosts
                         ]);
 
-                        console.log('[Realtime] Added new post without reload');
+                        // console.log('[Realtime] Added new post without reload');
                         return;
                     }
 
@@ -162,7 +162,7 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
                             setPosts(prevPosts =>
                                 prevPosts.filter(post => String(post.id) !== String(newData.id))
                             );
-                            console.log('[Realtime] Post soft-deleted (hidden)');
+                            // console.log('[Realtime] Post soft-deleted (hidden)');
                             return;
                         }
 
@@ -181,7 +181,7 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
                             )
                         );
 
-                        console.log('[Realtime] Updated post without reload');
+                        // console.log('[Realtime] Updated post without reload');
                         return;
                     }
 
@@ -193,14 +193,14 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
                             prevPosts.filter(post => String(post.id) !== String(deletedPost.id))
                         );
 
-                        console.log('[Realtime] Removed post without reload');
+                        // console.log('[Realtime] Removed post without reload');
                     }
                 }
             )
             .subscribe((status) => {
-                console.log(`[Realtime] ${table} subscription status:`, status);
+                // console.log(`[Realtime] ${table} subscription status:`, status);
                 if (status === 'SUBSCRIBED') {
-                    console.log(`[Realtime] Successfully subscribed to ${table}`);
+                    // console.log(`[Realtime] Successfully subscribed to ${table}`);
                 } else if (status === 'CHANNEL_ERROR') {
                     console.error(`[Realtime] ${table} channel error`);
                 } else if (status === 'TIMED_OUT') {
@@ -209,7 +209,7 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
             });
 
         return () => {
-            console.log(`[Realtime] Unsubscribing from ${table} for category: ${category}`);
+            // console.log(`[Realtime] Unsubscribing from ${table} for category: ${category}`);
             supabase.removeChannel(channel);
         };
     }, [category, isAdminChecked]);

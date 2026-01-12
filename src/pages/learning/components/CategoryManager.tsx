@@ -1,4 +1,4 @@
-import { useState, forwardRef, useCallback, useMemo, useRef, useImperativeHandle } from 'react';
+import { useState, forwardRef, useCallback, useMemo, useRef, useImperativeHandle, memo } from 'react';
 import { createPortal } from 'react-dom';
 import './CategoryManager.css';
 import './CategoryManager_gap.css';
@@ -82,7 +82,7 @@ const FloatingTooltip = ({ text, x, y, visible }: { text: string, x: number, y: 
     );
 };
 
-export const CategoryManager = forwardRef<CategoryManagerHandle, CategoryManagerProps>(({
+export const CategoryManager = memo(forwardRef<CategoryManagerHandle, CategoryManagerProps>(({
     onCategoryChange: _onCategoryChange,
     readOnly = false,
     selectedId,
@@ -221,11 +221,11 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, CategoryManager
             (r.metadata?.subtype === 'canvas') ||
             !r.type // 🔥 IMPORTANT: Standard categories often don't have a type prop
         );
-        console.log('🔍 [CategoryManager] Auto-classified folders:', {
-            totalResources: injectedResources.length,
-            folders: folders.length,
-            folderItems: folders.map((f: any) => ({ id: f.id, title: f.title || f.name, is_unclassified: f.is_unclassified, type: f.type }))
-        });
+        // console.log('🔍 [CategoryManager] Auto-classified folders:', {
+        //     totalResources: injectedResources.length,
+        //     folders: folders.length,
+        //     folderItems: folders.map((f: any) => ({ id: f.id, title: f.title || f.name, is_unclassified: f.is_unclassified, type: f.type }))
+        // });
         return folders;
     }, [injectedResources]);
 
@@ -238,15 +238,15 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, CategoryManager
             r.type !== 'canvas' &&
             r.metadata?.subtype !== 'canvas'
         );
-        console.log('🔍 [CategoryManager] Auto-classified files (EXCLUDING folders/canvases):', {
-            totalResources: injectedResources.length,
-            files: files.length,
-            foldersExcluded: injectedResources.filter((r: any) => r.type === 'general' || r.type === 'canvas' || !r.type).length,
-            types: files.reduce((acc: any, f: any) => {
-                acc[f.type || 'unknown'] = (acc[f.type || 'unknown'] || 0) + 1;
-                return acc;
-            }, {})
-        });
+        // console.log('🔍 [CategoryManager] Auto-classified files (EXCLUDING folders/canvases):', {
+        //     totalResources: injectedResources.length,
+        //     files: files.length,
+        //     foldersExcluded: injectedResources.filter((r: any) => r.type === 'general' || r.type === 'canvas' || !r.type).length,
+        //     types: files.reduce((acc: any, f: any) => {
+        //         acc[f.type || 'unknown'] = (acc[f.type || 'unknown'] || 0) + 1;
+        //         return acc;
+        //     }, {})
+        // });
         return files;
     }, [injectedResources]);
 
@@ -257,10 +257,10 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, CategoryManager
     const normalizedCategories = useMemo(() => {
         const injectedItems = injectedCategories.map(c => ({ id: c.id, name: c.name || c.title, category_id: c.category_id, parent_id: c.parent_id }));
 
-        console.log('🔍 [CategoryManager] Normalizing categories:', {
-            injectedCategoriesCount: injectedItems.length,
-            sample: injectedItems.slice(0, 2)
-        });
+        // console.log('🔍 [CategoryManager] Normalizing categories:', {
+        //     injectedCategoriesCount: injectedItems.length,
+        //     sample: injectedItems.slice(0, 2)
+        // });
 
         // First pass: Map basic fields
         let items = injectedCategories.map((c: any) => ({
@@ -288,11 +288,11 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, CategoryManager
             return item;
         });
 
-        console.log('✅ [CategoryManager] Normalized categories (with orphan fix):', {
-            count: items.length,
-            orphansFixed: items.filter((i: any) => i.parent_id === null && injectedItems.find(x => x.id === i.id)?.category_id !== null).length,
-            gridDataSample: items.slice(0, 3).map(c => ({ name: c.name, row: c.grid_row, col: c.grid_column }))
-        });
+        // console.log('✅ [CategoryManager] Normalized categories (with orphan fix):', {
+        //     count: items.length,
+        //     orphansFixed: items.filter((i: any) => i.parent_id === null && injectedItems.find(x => x.id === i.id)?.category_id !== null).length,
+        //     gridDataSample: items.slice(0, 3).map(c => ({ name: c.name, row: c.grid_row, col: c.grid_column }))
+        // });
 
         return items;
     }, [injectedCategories]);
@@ -303,9 +303,9 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, CategoryManager
         // Wait, injectedPlaylists usage depends on separate logic.
         // If we reverted separation, injectedPlaylists might be empty or contain non-general items.
 
-        console.log('🔍 [CategoryManager] Normalizing playlists:', {
-            injectedPlaylistsCount: injectedPlaylists.length
-        });
+        // console.log('🔍 [CategoryManager] Normalizing playlists:', {
+        //     injectedPlaylistsCount: injectedPlaylists.length
+        // });
 
         // Get Set of valid Category IDs for O(1) lookup
         const validCategoryIds = new Set(normalizedCategories.map(c => c.id));
@@ -326,21 +326,21 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, CategoryManager
             };
         });
 
-        console.log('✅ [CategoryManager] Normalized playlists (with orphan fix):', {
-            count: result.length,
-            orphansFixed: result.filter((p: any) => p.category_id === null && injectedPlaylists.find(x => x.id === p.id)?.category_id !== null).length,
-            types: result.reduce((acc: any, curr: any) => {
-                acc[curr.type] = (acc[curr.type] || 0) + 1;
-                return acc;
-            }, {}),
-            gridDataSample: result.slice(0, 5).map((p: any) => ({
-                id: p.id,
-                title: p.title,
-                grid_row: p.grid_row,
-                grid_column: p.grid_column,
-                order_index: p.order_index
-            }))
-        });
+        // console.log('✅ [CategoryManager] Normalized playlists (with orphan fix):', {
+        //     count: result.length,
+        //     orphansFixed: result.filter((p: any) => p.category_id === null && injectedPlaylists.find(x => x.id === p.id)?.category_id !== null).length,
+        //     types: result.reduce((acc: any, curr: any) => {
+        //         acc[curr.type] = (acc[curr.type] || 0) + 1;
+        //         return acc;
+        //     }, {}),
+        //     gridDataSample: result.slice(0, 5).map((p: any) => ({
+        //         id: p.id,
+        //         title: p.title,
+        //         grid_row: p.grid_row,
+        //         grid_column: p.grid_column,
+        //         order_index: p.order_index
+        //     }))
+        // });
 
         return result;
     }, [injectedPlaylists, normalizedCategories]);
@@ -357,18 +357,18 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, CategoryManager
 
     const tree = useMemo(() => {
         const classifiedFolders = normalizedCategories.filter((c: Category) => !c.is_unclassified);
-        console.log('🌳 [CategoryManager] Building tree:', {
-            normalizedCategoriesCount: normalizedCategories.length,
-            classifiedFoldersCount: classifiedFolders.length,
-            classifiedFolders: classifiedFolders.map(c => ({ id: c.id, parent_id: c.parent_id }))
-        });
+        // console.log('🌳 [CategoryManager] Building tree:', {
+        //     normalizedCategoriesCount: normalizedCategories.length,
+        //     classifiedFoldersCount: classifiedFolders.length,
+        //     classifiedFolders: classifiedFolders.map(c => ({ id: c.id, parent_id: c.parent_id }))
+        // });
 
         const result = buildTree(classifiedFolders, null); // Get Root Nodes
 
-        console.log('✅ [CategoryManager] Tree built:', {
-            rootNodesCount: result.length,
-            rootNodes: result.map(n => ({ id: n.id, name: n.name }))
-        });
+        // console.log('✅ [CategoryManager] Tree built:', {
+        //     rootNodesCount: result.length,
+        //     rootNodes: result.map(n => ({ id: n.id, name: n.name }))
+        // });
 
         return result;
     }, [normalizedCategories, buildTree]);
@@ -1138,4 +1138,4 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, CategoryManager
             <FloatingTooltip {...tooltip} />
         </div>
     );
-});
+}));

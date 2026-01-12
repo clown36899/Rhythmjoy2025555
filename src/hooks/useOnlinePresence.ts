@@ -35,7 +35,7 @@ export function useOnlinePresence() {
         const dataKey = `${type}-${user?.id}-${userProfile?.nickname}-${isAdmin}`;
 
         if (lastTrackedRef.current === dataKey) {
-            console.log('[Presence] 🚫 중복 트래킹 방지:', type);
+            // console.log('[Presence] 🚫 중복 트래킹 방지:', type);
             return;
         }
 
@@ -50,7 +50,7 @@ export function useOnlinePresence() {
         };
 
         try {
-            console.log(`[Presence] 📤 트래킹 전송: ${type}`);
+            // console.log(`[Presence] 📤 트래킹 전송: ${type}`);
             const res = await globalPresenceChannel.track(presenceData);
             if (res === 'ok') {
                 lastTrackedRef.current = dataKey; // 전송 성공 시에만 갱신
@@ -66,7 +66,7 @@ export function useOnlinePresence() {
 
         const setupChannel = async () => {
             if (!globalPresenceChannel) {
-                console.log('[Presence] 🛰️ 채널 생성');
+                // console.log('[Presence] 🛰️ 채널 생성');
                 globalPresenceChannel = supabase.channel('online-users');
 
                 globalPresenceChannel
@@ -91,7 +91,7 @@ export function useOnlinePresence() {
         return () => {
             mounted = false;
             if (globalPresenceChannel) {
-                console.log('[Presence] 🔌 채널 연결 해제');
+                // console.log('[Presence] 🔌 채널 연결 해제');
                 // 페이지 이동 시에도 연결을 끊도록 수정
                 globalPresenceChannel.unsubscribe();
                 supabase.removeChannel(globalPresenceChannel);
@@ -113,7 +113,7 @@ export function useOnlinePresence() {
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible' && isSubscribed) {
-                console.log('[Presence] 👁️ 탭 활성화 - Presence 재등록');
+                // console.log('[Presence] 👁️ 탭 활성화 - Presence 재등록');
                 // 탭이 다시 활성화되면 강제로 재등록
                 lastTrackedRef.current = null; // 중복 방지 리셋
                 trackUser();

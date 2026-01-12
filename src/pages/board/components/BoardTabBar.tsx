@@ -78,7 +78,7 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
                 setCategories(mapped);
             } else {
                 // Failsafe: If DB empty, show defaults
-                console.warn('DB categories empty, using defaults');
+                // console.warn('DB categories empty, using defaults');
                 setCategories(DEFAULT_CATEGORIES);
             }
 

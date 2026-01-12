@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import ReactFlow, {
     Background,
     Controls,
@@ -33,14 +33,7 @@ interface HistoryCanvasProps {
     isSelectionMode: boolean;
 }
 
-const nodeTypes = {
-    historyNode: HistoryNodeComponent,
-    decadeNode: DecadeNodeComponent,
-};
 
-const edgeTypes = {
-    default: CustomBezierEdge,
-};
 
 export const HistoryCanvas = ({
     nodes,
@@ -62,6 +55,16 @@ export const HistoryCanvas = ({
     isSelectionMode
 }: HistoryCanvasProps) => {
     // console.log('🎨 [HistoryCanvas] Rendering. Nodes:', nodes.length, 'Edges:', edges.length);
+
+    // 🔥 Fix: Memoize nodeTypes and edgeTypes to prevent React Flow warning/re-renders
+    const nodeTypes = useMemo(() => ({
+        historyNode: HistoryNodeComponent,
+        decadeNode: DecadeNodeComponent,
+    }), []);
+
+    const edgeTypes = useMemo(() => ({
+        default: CustomBezierEdge,
+    }), []);
 
     const getNodeColor = useCallback((node: any) => {
         return CATEGORY_COLORS[node.data?.category || 'default'] || CATEGORY_COLORS.default;

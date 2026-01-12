@@ -15,7 +15,7 @@ let isAdminUser = typeof window !== 'undefined' ? localStorage.getItem(ADMIN_SHI
  */
 export const setAdminStatus = (isAdmin: boolean) => {
     if (isAdminUser !== isAdmin) {
-        console.log(`[Analytics] 👤 관리자 상태 변경: ${isAdminUser} -> ${isAdmin}`);
+        // console.log(`[Analytics] 👤 관리자 상태 변경: ${isAdminUser} -> ${isAdmin}`);
         isAdminUser = isAdmin;
 
         // 다음 새로고침 시 즉각 반영을 위해 저장소 영속화
@@ -123,19 +123,19 @@ const isAllowedEnvironment = () => {
 
     // 1. 봇 트래킹 체크
     if (isBot()) {
-        console.log('[Analytics] 🤖 Bot detected. Action skipped.');
+        // console.log('[Analytics] 🤖 Bot detected. Action skipped.');
         return false;
     }
 
     // 2. 관리자(개발자) 세션 체크 - DB 용량 절약을 위해 관리자는 로깅 제외
     if (isAdminUser) {
-        console.log('[Analytics] 🛡️ Admin session detected. Action skipped.');
+        // console.log('[Analytics] 🛡️ Admin session detected. Action skipped.');
         return false;
     }
 
     // 3. 개발 환경 체크 (로컬/스테이징)
     if (isDevelopment()) {
-        console.log('[Analytics] 🛠️ Development mode detected. Action skipped.');
+        // console.log('[Analytics] 🛠️ Development mode detected. Action skipped.');
         return false;
     }
 
@@ -143,7 +143,7 @@ const isAllowedEnvironment = () => {
     const hostname = window.location.hostname;
     const allowedDomains = ['swingenjoy.com', 'swingandjoy.com', 'www.swingenjoy.com', 'www.swingandjoy.com'];
     if (!allowedDomains.includes(hostname) && !isDevelopment()) {
-        console.log(`[Analytics] ⚠️ Non-production domain detected (${hostname}). Action skipped.`);
+        // console.log(`[Analytics] ⚠️ Non-production domain detected (${hostname}). Action skipped.`);
         return false;
     }
 
@@ -193,7 +193,7 @@ const initGA = () => {
                     debug_mode: isDevelopment() || isAdminUser
                 }
             });
-            console.log(`[Analytics] ✅ GA4 Initialized (${MEASUREMENT_ID === DEV_ID ? 'DEV' : 'PROD'})`);
+            // console.log(`[Analytics] ✅ GA4 Initialized (${MEASUREMENT_ID === DEV_ID ? 'DEV' : 'PROD'})`);
         } catch (error) {
             console.error('[Analytics] ❌ 초기화 실패:', error);
         }
@@ -218,7 +218,7 @@ export const logPageView = (path: string, title?: string) => {
     if (MEASUREMENT_ID) {
         try {
             ReactGA.send({ hitType: 'pageview', page: path, title: title });
-            console.log('[Analytics] ✅ Page view sent:', { path, title });
+            // console.log('[Analytics] ✅ Page view sent:', { path, title });
         } catch (error) {
             console.error('[Analytics] ❌ 페이지뷰 전송 실패:', error);
         }
@@ -241,7 +241,7 @@ export const logEvent = (category: string, action: string, label?: string) => {
                 action,
                 label,
             });
-            console.log('[Analytics] ✅ Event sent:', { category, action, label });
+            // console.log('[Analytics] ✅ Event sent:', { category, action, label });
         } catch (error) {
             console.error('[Analytics] ❌ 이벤트 전송 실패:', error);
         }

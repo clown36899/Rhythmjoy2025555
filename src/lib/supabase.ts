@@ -6,11 +6,11 @@ const supabaseUrl = import.meta.env.VITE_PUBLIC_SUPABASE_URL || 'https://placeho
 const supabaseAnonKey = import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key'
 
 // 환경변수 디버깅 (외부 브라우저 확인용)
-console.log('[Supabase] 환경변수 확인:', {
-  url: supabaseUrl,
-  hasAnonKey: !!supabaseAnonKey && supabaseAnonKey !== 'placeholder-anon-key',
-  adminEmail: import.meta.env.VITE_ADMIN_EMAIL || '없음'
-});
+// console.log('[Supabase] 환경변수 확인:', {
+//   url: supabaseUrl,
+//   hasAnonKey: !!supabaseAnonKey && supabaseAnonKey !== 'placeholder-anon-key',
+//   adminEmail: import.meta.env.VITE_ADMIN_EMAIL || '없음'
+// });
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
@@ -194,7 +194,8 @@ export const validateAndRecoverSession = async (): Promise<any> => {
         return localSession;
       }
 
-      console.log('[Supabase] 🔍 Validating session with server...');
+      // console.log('[Supabase] 🔍 Validating session with server...');
+
 
       // 🔥 getSession()에도 타임아웃 추가 (모바일에서 무한 대기 방지)
       const getSessionWithTimeout = Promise.race([
@@ -260,7 +261,8 @@ export const validateAndRecoverSession = async (): Promise<any> => {
       }
 
       // [중요] 로컬 스토리지의 토큰 위변조 여부 확인을 위해 getUser() 호출
-      console.log('[Supabase] 🔐 Verifying token with server (getUser)...');
+      // console.log('[Supabase] 🔐 Verifying token with server (getUser)...');
+
 
       const getUserWithTimeout = Promise.race([
         supabase.auth.getUser(),
@@ -292,7 +294,7 @@ export const validateAndRecoverSession = async (): Promise<any> => {
         return session;
       }
 
-      console.log('[Supabase] ✅ Session is valid and verified by server');
+      // console.log('[Supabase] ✅ Session is valid and verified by server');
       lastValidationTime = Date.now();
       return session;
     } catch (e) {

@@ -63,7 +63,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
         // 1. 검색 및 필터링 적용
         // 1. 검색 적용
         if (filters?.search) {
-            console.log('🔍 Filtering nodes with:', filters);
+            // console.log('🔍 Filtering nodes with:', filters);
 
             // [Helper] 해당 노드가 캔버스(Portal) 내부에 있는지 재귀적으로 확인
             const isNodeInsideCanvas = (node: any): boolean => {
@@ -100,7 +100,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
 
             // [FIX] 검색어가 있는데 결과가 없으면 즉시 빈 화면 처리
             if (filters.search && primaryMatches.length === 0) {
-                console.log('🚫 No matches found for search query:', filters.search);
+                // console.log('🚫 No matches found for search query:', filters.search);
                 setNodes([]);
                 setEdges([]);
                 return;
@@ -152,7 +152,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
             const finalNodeIds = expandedIds;
             const relevantEdges = allEdges.filter(e => finalNodeIds.has(e.source) && finalNodeIds.has(e.target));
 
-            console.log(`📊 Filtered: Primary(${primaryMatches.length}) + Neighbors(${neighbors.length}) + Extracted(${finalNodes.length - primaryMatches.length - neighbors.length})`);
+            // console.log(`📊 Filtered: Primary(${primaryMatches.length}) + Neighbors(${neighbors.length}) + Extracted(${finalNodes.length - primaryMatches.length - neighbors.length})`);
 
             setNodes(prevNodes => {
                 return finalNodes.map(n => {
@@ -229,7 +229,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
     const loadTimeline = useCallback(async () => {
         try {
             setLoading(true);
-            console.log('📡 [HistoryEngine] Loading Timeline Data...');
+            // console.log('📡 [HistoryEngine] Loading Timeline Data...');
 
             // 1. 노드 페칭
             const { data: nodesData, error: nodesErr } = await supabase
@@ -378,7 +378,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
      * 계층 이동 (Drill-down / Up)
      */
     const handleNavigate = useCallback((nodeId: string | null, title: string) => {
-        console.log('📂 [HistoryEngine] Navigating to:', nodeId, title);
+        // console.log('📂 [HistoryEngine] Navigating to:', nodeId, title);
         setCurrentRootId(nodeId);
 
         if (nodeId === null) {
@@ -563,7 +563,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
      * 계층 변경 (Parent Node 변경) & 자동 크기 조절
      */
     const handleMoveToParent = useCallback(async (nodeIds: string[], newParentId: string | null) => {
-        console.log(`🔍 [FolderDebug] handleMoveToParent called. Nodes: ${nodeIds.join(', ')} -> NewParent: ${newParentId}`);
+        // console.log(`🔍 [FolderDebug] handleMoveToParent called. Nodes: ${nodeIds.join(', ')} -> NewParent: ${newParentId}`);
         // 1. Prepare for Auto-Resize
         const parentsToResize = new Set<string>();
         if (newParentId) parentsToResize.add(String(newParentId));
@@ -641,12 +641,12 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                         newX = representativePortal.position.x + portalWidth + 120;
                         newY = representativePortal.position.y;
 
-                        console.log('🚀 [HistoryEngine] Portal Exit Placement:', {
-                            node: node.data.title,
-                            pushedToPortal: representativePortal.data.title,
-                            newX,
-                            newY
-                        });
+                        // console.log('🚀 [HistoryEngine] Portal Exit Placement:', {
+                        //     node: node.data.title,
+                        //     pushedToPortal: representativePortal.data.title,
+                        //     newX,
+                        //     newY
+                        // });
                     }
                 }
             }
@@ -749,7 +749,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                 // If less than 20% overlap, move out (Magnetic Snap)
                 if (ratio < 0.2) {
                     const grandParentId = parentNode.data?.parent_node_id || null;
-                    console.log('🧲 Magnetic Out: Moving to', grandParentId);
+                    // console.log('🧲 Magnetic Out: Moving to', grandParentId);
                     handleMoveToParent([node.id], grandParentId);
                     return;
                 }
@@ -773,7 +773,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
 
             const ratio = getIntersectionRatio(nodeRect, targetRect);
             if (ratio > 0.2) {
-                console.log('🧲 Magnetic In: Moving into', target.data.title);
+                // console.log('🧲 Magnetic In: Moving into', target.data.title);
                 handleMoveToParent([node.id], target.id);
                 return;
             }
@@ -833,7 +833,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
             };
         });
 
-        console.log('📋 [HistoryEngine] Preparing Layout Save. Sample Node:', updates[0]);
+        // console.log('📋 [HistoryEngine] Preparing Layout Save. Sample Node:', updates[0]);
 
         try {
             // Upsert fails if required fields (title) are missing for potential inserts.
@@ -849,7 +849,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
             );
 
             await Promise.all(promises);
-            console.log('💾 [HistoryEngine] Layout Saved (Update Mode)');
+            // console.log('💾 [HistoryEngine] Layout Saved (Update Mode)');
             setHasUnsavedChanges(false);
         } catch (err) {
             console.error('🚨 [HistoryEngine] Layout Save Failed:', err);
@@ -885,7 +885,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
 
                 // 🔥 [New Fix] 자식 노드 크기가 바뀌면 부모 폴더 크기도 같이 맞춰줘야 함.
                 if (data.parent_node_id) {
-                    console.log('📐 [FolderSync] Resizing parent due to child resize:', data.parent_node_id);
+                    // console.log('📐 [FolderSync] Resizing parent due to child resize:', data.parent_node_id);
                     await rearrangeFolderChildren(String(data.parent_node_id));
                     await updateParentSize(String(data.parent_node_id));
                 }
@@ -893,7 +893,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                 // 🔥 [UX Fix] 부모 크기 변경사항을 즉시 화면에 반영 (Sync)
                 syncVisualization(currentRootId);
             }
-            console.log('💾 [HistoryEngine] Resize Saved:', { id: numericId, width, height });
+            // console.log('💾 [HistoryEngine] Resize Saved:', { id: numericId, width, height });
         } catch (err) {
             console.error('🚨 [HistoryEngine] Resize Save Failed:', err);
         }

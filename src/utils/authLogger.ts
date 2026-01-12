@@ -7,7 +7,7 @@ export const authLogger = {
             // Keep only last 100 logs
             if (logs.length > 100) logs.shift();
             localStorage.setItem('auth_debug_logs', JSON.stringify(logs));
-            console.log(`[AuthDebug] ${message}`, data || '');
+            // console.log(`[AuthDebug] ${message}`, data || '');
         } catch (e) {
             console.warn('Failed to save auth log', e);
         }

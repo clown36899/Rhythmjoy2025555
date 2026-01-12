@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
+import { useState, useEffect, useMemo, useRef, forwardRef, useImperativeHandle, memo } from 'react';
 import './ResourceDrawer.css';
 import { CategoryManager } from '../../../pages/learning/components/CategoryManager';
 import type { CategoryManagerHandle } from '../../../pages/learning/components/CategoryManager';
@@ -48,7 +48,8 @@ export interface ResourceDrawerHandle {
     startCreatingFolder: () => void;
 }
 
-export const ResourceDrawer = forwardRef<ResourceDrawerHandle, Props>(({ isOpen, onClose, onDragStart, onItemClick, refreshKey, categories, playlists, videos, documents, onMoveResource, onReorderResource, onDeleteResource, onRenameResource, onCategoryChange, isEditMode = false, isAdmin = false, userId, onToggleEditMode, onEditResource, onAddNode, onCreateCategory, onAddClick }, ref) => {
+export const ResourceDrawer = memo(forwardRef<ResourceDrawerHandle, Props>(({ isOpen, onClose, onDragStart, onItemClick, refreshKey, categories, playlists, videos, documents, onMoveResource, onReorderResource, onDeleteResource, onRenameResource, onCategoryChange, isEditMode = false, isAdmin = false, userId, onToggleEditMode, onEditResource, onAddNode, onCreateCategory, onAddClick }, ref) => {
+    // ... Existing state and effects ...
     const [searchTerm, setSearchTerm] = useState('');
     const [filterMode, setFilterMode] = useState<'all' | 'year'>('all');
     const [width, setWidth] = useState(360);
@@ -60,7 +61,7 @@ export const ResourceDrawer = forwardRef<ResourceDrawerHandle, Props>(({ isOpen,
 
     useImperativeHandle(ref, () => ({
         startCreatingFolder: () => {
-            console.log('📂 [ResourceDrawer] startCreatingFolder called -> trigger CategoryManager');
+            // console.log('📂 [ResourceDrawer] startCreatingFolder called -> trigger CategoryManager');
             categoryManagerRef.current?.startCreatingFolder();
         }
     }));
@@ -100,15 +101,15 @@ export const ResourceDrawer = forwardRef<ResourceDrawerHandle, Props>(({ isOpen,
     }, []);
 
     // 🔍 DEBUG: Log received props
-    useEffect(() => {
-        console.log('🎯 [ResourceDrawer] Received props:', {
-            categoriesCount: categories?.length || 0,
-            categories: categories,
-            playlistsCount: playlists?.length || 0,
-            videosCount: videos?.length || 0,
-            documentsCount: documents?.length || 0
-        });
-    }, [categories, playlists, videos, documents]);
+    // useEffect(() => {
+    //     console.log('🎯 [ResourceDrawer] Received props:', {
+    //         categoriesCount: categories?.length || 0,
+    //         categories: categories,
+    //         playlistsCount: playlists?.length || 0,
+    //         videosCount: videos?.length || 0,
+    //         documentsCount: documents?.length || 0
+    //     });
+    // }, [categories, playlists, videos, documents]);
 
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
@@ -144,12 +145,12 @@ export const ResourceDrawer = forwardRef<ResourceDrawerHandle, Props>(({ isOpen,
         // Include all videos for the tree view; CategoryManager will place them correctly
         const allVideos = videos || [];
 
-        console.log('🔍 [ResourceDrawer] Building items:', {
-            categoriesCount: categories?.length || 0,
-            playlistsCount: playlists?.length || 0,
-            documentsCount: documents?.length || 0,
-            videosCount: videos?.length || 0
-        });
+        // console.log('🔍 [ResourceDrawer] Building items:', {
+        //     categoriesCount: categories?.length || 0,
+        //     playlistsCount: playlists?.length || 0,
+        //     documentsCount: documents?.length || 0,
+        //     videosCount: videos?.length || 0
+        // });
 
         const result = [
             // 🔥 CRITICAL: Include categories (folders) first!
@@ -215,23 +216,18 @@ export const ResourceDrawer = forwardRef<ResourceDrawerHandle, Props>(({ isOpen,
             }))
         ];
 
-        console.log('✅ [ResourceDrawer] Items built:', {
-            totalItems: result.length,
-            folders: result.filter(i => i.type === 'general').length,
-            playlists: result.filter(i => i.type === 'playlist').length,
-            videos: result.filter(i => i.type === 'video').length,
-            documents: result.filter(i => i.type !== 'general' && i.type !== 'playlist' && i.type !== 'video').length
-        });
+        // console.log('✅ [ResourceDrawer] Items built:', {
+        //     totalItems: result.length,
+        //     folders: result.filter(i => i.type === 'general').length,
+        //     playlists: result.filter(i => i.type === 'playlist').length,
+        //     videos: result.filter(i => i.type === 'video').length,
+        //     documents: result.filter(i => i.type !== 'general' && i.type !== 'playlist' && i.type !== 'video').length
+        // });
 
         return result;
-    }, [
-        // 🔥 CRITICAL: Use JSON.stringify to detect deep changes in data
-        JSON.stringify(categories),
-        JSON.stringify(playlists),
-        JSON.stringify(documents),
-        JSON.stringify(videos)
-    ]);
+    }, [categories, playlists, documents, videos]);
 
+    // ... Filter and Group Logic ...
     // Filter and Group Logic
     const filteredList = items.filter(item =>
         item.title.toLowerCase().includes(searchTerm.toLowerCase())
@@ -455,4 +451,4 @@ export const ResourceDrawer = forwardRef<ResourceDrawerHandle, Props>(({ isOpen,
             </div>
         </div>
     );
-});
+}));

@@ -48,7 +48,7 @@ function HistoryTimelinePage() {
     } = useHistoryEngine({ userId: user?.id, isAdmin: !!isAdmin, isEditMode });
 
     useEffect(() => {
-        console.log('🎬 [HistoryTimelinePage] Nodes from Engine:', nodes?.length);
+        // console.log('🎬 [HistoryTimelinePage] Nodes from Engine:', nodes?.length);
     }, [nodes]);
 
     // 2. UI 상태 관리
@@ -83,7 +83,7 @@ function HistoryTimelinePage() {
     // 3. 리소스 데이터 로딩 (서랍용)
     const fetchResourceData = useCallback(async () => {
         try {
-            console.log('🔄 [HistoryTimelinePage] fetchResourceData starting...');
+            // console.log('🔄 [HistoryTimelinePage] fetchResourceData starting...');
             // 1. Categories (Folders) - These are still in learning_categories according to migrations
             const { data: catData, error: catError } = await supabase
                 .from('learning_categories')
@@ -149,7 +149,7 @@ function HistoryTimelinePage() {
                 documents: resources.filter(r => r.type === 'document' || r.type === 'person'),
                 videos: resources.filter(r => r.type === 'video')
             });
-            console.log('✅ [HistoryTimelinePage] fetchResourceData complete');
+            // console.log('✅ [HistoryTimelinePage] fetchResourceData complete');
         } catch (err) {
             console.error('❌ [HistoryTimelinePage] fetchResourceData failed:', err);
         }
@@ -169,6 +169,50 @@ function HistoryTimelinePage() {
         setViewingNode(node);
         setIsDetailOpen(true);
     }, []);
+
+    // 🔥 Memoized Handlers for ResourceDrawer Optimization
+    const handleDrawerItemClick = useCallback((item: any) => {
+        if (item.type === 'video' || item.type === 'playlist') {
+            setPreviewResource({
+                id: item.type === 'video' ? `video:${item.id}` : item.id,
+                type: item.type,
+                title: item.title
+            });
+        } else {
+            // Unified Detail View for Folders, Documents, Persons
+            handleViewDetail({
+                id: item.id,
+                title: item.title,
+                category: item.type as any,
+                year: item.year || new Date().getFullYear(),
+                content: (item as any).content || (item as any).description,
+                youtube_url: (item as any).youtube_url,
+                attachment_url: (item as any).attachment_url,
+                image_url: (item as any).image_url,
+                linked_document_id: (item.type === 'document' || item.type === 'person') ? item.id : undefined,
+                linked_category_id: item.type === 'general' ? item.id : undefined,
+                position_x: 0,
+                position_y: 0,
+                node_behavior: 'LEAF'
+            });
+        }
+    }, [handleViewDetail]);
+
+    const handleCategoryChange = useCallback(() => setDrawerRefreshKey(k => k + 1), []);
+    const handleCreatePlaylist = useCallback(() => setShowImportModal(true), []);
+    const handleCreateDocument = useCallback(() => setShowDocumentModal(true), []);
+    const handleAddClick = useCallback(() => {
+        console.log('➕ [HistoryTimelinePage] onAddClick received');
+        setUnifiedModalContext('drawer');
+        setShowUnifiedModal(true);
+    }, []);
+
+    const memoizedResourceData = useMemo(() => ({
+        categories: resourceData.categories,
+        playlists: resourceData.playlists,
+        videos: resourceData.videos,
+        documents: resourceData.documents
+    }), [resourceData]);
 
     const handlePlayVideo = useCallback((url: string, _playlistId?: string | null, linkedVideoId?: string | null) => {
         // 1. If we have a DB Video ID (UUID), use it for full features (Bookmarks etc)
@@ -833,51 +877,19 @@ function HistoryTimelinePage() {
                     e.dataTransfer.setData('application/reactflow', JSON.stringify(item));
                     e.dataTransfer.effectAllowed = 'move';
                 }}
-                onItemClick={(item) => {
-                    // 🔥 Split Logic: Videos/Playlists use separate modal, others unified
-                    if (item.type === 'video' || item.type === 'playlist') {
-                        setPreviewResource({
-                            id: item.type === 'video' ? `video:${item.id}` : item.id,
-                            type: item.type,
-                            title: item.title
-                        });
-                    } else {
-                        // 🔥 Unified Detail View for Folders, Documents, Persons
-                        handleViewDetail({
-                            id: item.id,
-                            title: item.title,
-                            category: item.type as any,
-                            year: item.year || new Date().getFullYear(),
-                            content: (item as any).content || (item as any).description,
-                            youtube_url: (item as any).youtube_url,
-                            attachment_url: (item as any).attachment_url,
-                            image_url: (item as any).image_url,
-                            linked_document_id: (item.type === 'document' || item.type === 'person') ? item.id : undefined,
-                            linked_category_id: item.type === 'general' ? item.id : undefined,
-                            position_x: 0,
-                            position_y: 0,
-                            node_behavior: 'LEAF'
-                        });
-                    }
-                }}
+                onItemClick={handleDrawerItemClick}
                 refreshKey={drawerRefreshKey}
-                {...resourceData}
+                {...memoizedResourceData}
                 isEditMode={isEditMode}
                 isAdmin={!!isAdmin}
                 userId={user?.id}
-                onCategoryChange={() => setDrawerRefreshKey(k => k + 1)}
+                onCategoryChange={handleCategoryChange}
                 onCreateCategory={handleCreateCategory}
                 onDeleteResource={handleDeleteResource}
                 onRenameResource={handleRenameResource}
                 onMoveResource={handleMoveResource}
                 onReorderResource={handleReorderResource}
-                onCreatePlaylist={() => setShowImportModal(true)}
-                onCreateDocument={() => setShowDocumentModal(true)}
-                onAddClick={() => {
-                    console.log('➕ [HistoryTimelinePage] onAddClick received from ResourceDrawer');
-                    setUnifiedModalContext('drawer');
-                    setShowUnifiedModal(true);
-                }}
+                onAddClick={handleAddClick}
             />
 
             {/* Modals */}

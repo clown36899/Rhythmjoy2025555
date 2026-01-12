@@ -173,7 +173,7 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
                     isVisible={!!selected}
                     lineStyle={{ border: '2px solid #a78bfa' }}
                     onResizeEnd={(_e: any, params: any) => {
-                        console.log('📐 Resize End:', data.title, params.width, params.height);
+                        // console.log('📐 Resize End:', data.title, params.width, params.height);
                         data.onResizeStop?.(data.id, params.width, params.height);
                     }}
                 />
