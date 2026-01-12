@@ -177,27 +177,50 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
         }
 
         // 2. 계층 구조 투영 (V7 Projection Engine)
-        console.log('🔄 Syncing visualization. rootId:', rootId, 'Total nodes:', allNodes.length);
         const rawProjectedNodes = projectNodesToView(allNodes, rootId);
 
         // 3. 엣지 필터링 (가시 노드 간의 연결만 표시)
         const visibleNodeIds = new Set(rawProjectedNodes.map(n => n.id));
         const visibleEdges = allEdges.filter(e => visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target));
 
-        console.log('✨ Projection complete. Visible Nodes:', rawProjectedNodes.length, 'Visible Edges:', visibleEdges.length);
-
         setNodes(prevNodes => {
-            return rawProjectedNodes.map(n => {
-                // 🔥 [UX Fix] 기존 선택 상태 유지 (함수형 업데이트 사용으로 의존성 제거)
+            const nextNodes = rawProjectedNodes.map(n => {
                 const isSelected = prevNodes.find(prev => prev.id === n.id)?.selected || false;
                 return {
                     ...n,
                     selected: isSelected
                 };
             });
+
+            // 🔥 [Optimization] Deep Equality Check to prevent re-renders
+            if (prevNodes.length === nextNodes.length) {
+                const isSame = prevNodes.every((prev, idx) => {
+                    const next = nextNodes[idx];
+                    return prev.id === next.id &&
+                        Math.round(prev.position.x) === Math.round(next.position.x) &&
+                        Math.round(prev.position.y) === Math.round(next.position.y) &&
+                        prev.selected === next.selected &&
+                        prev.width === next.width &&
+                        prev.height === next.height &&
+                        prev.zIndex === next.zIndex &&
+                        prev.data?.title === next.data?.title &&
+                        prev.data?.isEditMode === next.data?.isEditMode && // 🔥 Mode Sync
+                        prev.data?.isSelectionMode === next.data?.isSelectionMode; // 🔥 Mode Sync
+                });
+                if (isSame) return prevNodes;
+            }
+
+            return nextNodes;
         });
 
-        setEdges(visibleEdges);
+        setEdges(prevEdges => {
+            // Simple check for edges
+            if (prevEdges.length === visibleEdges.length) {
+                const isSame = prevEdges.every((prev, idx) => prev.id === visibleEdges[idx].id);
+                if (isSame) return prevEdges;
+            }
+            return visibleEdges;
+        });
     }, [allNodesRef, allEdgesRef, setNodes, setEdges]);
 
     /**
@@ -659,7 +682,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
 
             // Auto-Sort & Resize for affected folders
             if (parentsToResize.size > 0) {
-                console.log(`🔍 [FolderDebug] Triggering Sort & Resize for: ${Array.from(parentsToResize).join(', ')}`);
+                // console.log(`🔍 [FolderDebug] Triggering Sort & Resize for: ${Array.from(parentsToResize).join(', ')}`);
                 for (const pid of Array.from(parentsToResize)) {
                     // Safe call check (in case functions are defined below)
                     if (rearrangeFolderChildren) await rearrangeFolderChildren(pid);
