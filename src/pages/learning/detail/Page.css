@@ -5,7 +5,7 @@
     /* Mobile: Allow natural growth */
     height: auto;
     min-height: 100%;
-    background-color: #111827;
+    /* background-color: #111827; */
     /* gray-900 */
     overflow: visible;
     /* Enable Page Scroll on Mobile */
@@ -38,22 +38,14 @@
     /* Mobile: Natural expansion */
     height: auto;
     position: relative;
-    background-color: #111827;
+    /* background-color: #111827; */
     overflow: visible;
     /* Mobile: Let page scroll */
     padding-bottom: 200px;
 }
 
 @media (min-width: 768px) {
-    .ld-player-area {
-        /* Desktop: Internal Scroll */
-        height: 100%;
-        overflow-y: auto;
-        padding-bottom: 0;
-        /* Fix: Force fill remaining width */
-        flex: 1;
-        min-width: 0;
-    }
+    .ld-player-area {}
 }
 
 /* Header (Back Button in Modal) */
@@ -499,7 +491,7 @@
 /* Video Metadata (Title & Memo) - Visible on all devices */
 .ld-video-metadata {
     padding: 10px 20px 0 20px;
-    background-color: #111827;
+    /* background-color: #111827; */
     border-bottom: 1px solid #1f2937;
 }
 
@@ -560,7 +552,7 @@
 /* Collapsible Video Memo Wrapper */
 .ld-video-memo-wrapper {
     padding: 12px 20px;
-    background-color: #111827;
+    /* background-color: #111827; */
 }
 
 /* Collapsible Video Memo */
@@ -705,7 +697,7 @@
 /* Right: Sidebar */
 .ld-sidebar {
     width: 100%;
-    background-color: #111827;
+    /* background-color: #111827; */
     border-left: 1px solid #1f2937;
     display: flex;
     flex-direction: column;
@@ -727,7 +719,7 @@
     padding: 7px 24px;
     /* Increased padding */
     border-bottom: 1px solid #1f2937;
-    background-color: #111827;
+    /* background-color: #111827; */
     z-index: 10;
 }
 
@@ -795,7 +787,7 @@
     display: flex;
     gap: 12px;
     transition: all 0.2s;
-    border: 1px solid transparent;
+    border: 1px solid #85858540;
 }
 
 .ld-video-item-active {
@@ -1572,17 +1564,7 @@
     background: rgba(59, 130, 246, 0.05);
 }
 
-/* Main Player Area Layout Fix */
-.ld-player-area {
-    display: flex;
-    flex-direction: column;
-    /* height: 100%; -> Removed to allow natural expansion */
-    height: auto;
-    position: relative;
-    background-color: #111827;
-    overflow: visible;
-    /* Allow content to expand page */
-}
+
 
 /* Ensure children don't overflow unexpectedly */
 .ld-player-wrapper,
@@ -1611,19 +1593,6 @@
     height: 100%;
     overflow: hidden;
     /* Prevent body scroll */
-}
-
-/* Left: Player Area - Parent Container */
-.ld-player-area {
-    display: flex;
-    flex-direction: column;
-    /* Mobile: Natural expansion */
-    height: auto;
-    position: relative;
-    background-color: #111827;
-    overflow: visible;
-    /* Mobile: Let page scroll */
-    padding-bottom: 200px;
 }
 
 /* Scrollable Content Container (Desktop Only, Default Visible/Auto) */
