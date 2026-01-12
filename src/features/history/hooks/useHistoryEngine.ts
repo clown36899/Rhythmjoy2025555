@@ -42,13 +42,23 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
         // 1. 검색 및 필터링 적용
         if (filters?.search || filters?.category) {
             console.log('🔍 Filtering nodes with:', filters);
-            allNodes = allNodes.filter(n => {
+            const filteredNodes = allNodes.filter(n => {
                 const matchesSearch = !filters.search || n.data.title.toLowerCase().includes(filters.search.toLowerCase());
                 const matchesCategory = !filters.category || n.data.category === filters.category;
                 return matchesSearch && matchesCategory;
             });
-            console.log('📊 Filtered nodes count:', allNodes.length);
-            setNodes(allNodes);
+
+            console.log('📊 Filtered nodes count:', filteredNodes.length);
+
+            // 중요: 검색 결과에서는 계층 구조를 무시하고 평면적으로 표시해야 함 (부모 노드가 필터링되면 크래시 발생)
+            const flattenedResults = filteredNodes.map(n => ({
+                ...n,
+                parentNode: undefined,
+                extent: undefined,
+                draggable: true
+            }));
+
+            setNodes(flattenedResults);
             setEdges([]);
             return;
         }
@@ -177,24 +187,83 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
     const handleSaveNode = useCallback(async (nodeData: any) => {
         try {
             setLoading(true);
-            const isNew = !nodeData.id;
-            const finalData = {
-                ...nodeData,
-                created_by: userId,
-                space_id: currentSpaceId,
-                parent_node_id: nodeData.parent_node_id || currentRootId
-            };
 
-            let result;
-            if (isNew) {
-                // 신규 생성
-                result = await supabase.from('history_nodes').insert(finalData).select().single();
-            } else {
-                // 기존 수정
-                result = await supabase.from('history_nodes').update(finalData).eq('id', nodeData.id).select().single();
+            // 0. Proxy Sync: 연동된 리소스가 있다면 원본 데이터도 함께 업데이트 (Source of Truth 동기화)
+            try {
+                const syncData: any = {
+                    title: nodeData.title,
+                    description: nodeData.description,
+                    content: nodeData.content,
+                    image_url: nodeData.image_url
+                };
+
+                // 리소스 테이블(영상, 문서, 재생목록 등)
+                if (nodeData.linked_video_id || nodeData.linked_document_id || nodeData.linked_playlist_id) {
+                    const resourceId = nodeData.linked_video_id || nodeData.linked_document_id || nodeData.linked_playlist_id;
+                    const resourceSync = {
+                        ...syncData,
+                        year: nodeData.year,
+                        date: nodeData.date
+                    };
+                    await supabase.from('learning_resources').update(resourceSync).eq('id', resourceId);
+                }
+
+                // 카테고리 테이블 (폴더 등)
+                if (nodeData.linked_category_id) {
+                    await supabase.from('learning_categories').update(syncData).eq('id', nodeData.linked_category_id);
+                }
+            } catch (syncErr) {
+                console.warn('⚠️ [HistoryEngine] Proxy Sync partly failed:', syncErr);
             }
 
-            if (result.error) throw result.error;
+            const isNew = !nodeData.id;
+
+            // 🔥 CRITICAL: DB 컬럼에 존재하지 않는 필드들(핸들러, 조인된 객체 등) 제거
+            const validColumns = [
+                'title', 'description', 'content', 'year', 'date',
+                'youtube_url', 'attachment_url', 'category', 'tags',
+                'position_x', 'position_y', 'width', 'height', 'z_index',
+                'parent_node_id', 'space_id', 'created_by', 'node_behavior', 'content_data',
+                'linked_video_id', 'linked_document_id', 'linked_playlist_id', 'linked_category_id'
+            ];
+
+            const dbData: any = {};
+            validColumns.forEach(col => {
+                if (nodeData[col] !== undefined) {
+                    dbData[col] = nodeData[col];
+                }
+            });
+
+            const finalData: any = {
+                ...dbData,
+                space_id: dbData.space_id || currentSpaceId,
+                parent_node_id: dbData.parent_node_id || (currentRootId ? String(currentRootId) : null)
+            };
+
+            // 신규 노드일 때만 기여자 정보 명시 (기존 정보 보존)
+            if (isNew && userId) {
+                finalData.created_by = userId;
+            }
+
+            let result;
+            const selectQuery = `
+                *,
+                linked_video: learning_resources!linked_video_id(*),
+                linked_document: learning_resources!linked_document_id(*),
+                linked_playlist: learning_resources!linked_playlist_id(*),
+                linked_category: learning_categories!linked_category_id(*)
+            `;
+
+            if (isNew) {
+                result = await supabase.from('history_nodes').insert(finalData).select(selectQuery).single();
+            } else {
+                result = await supabase.from('history_nodes').update(finalData).eq('id', nodeData.id).select(selectQuery).single();
+            }
+
+            if (result.error) {
+                console.error('🚨 [HistoryEngine] DB Save Error:', result.error);
+                throw result.error;
+            }
 
             // 1. Ref 업데이트 (Authoritative 상태 동기화)
             const updatedNode = mapDbNodeToRFNode(result.data, {

@@ -271,7 +271,7 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                 .split(',')
                 .map((t) => t.trim())
                 .filter(Boolean),
-            // image_url, // Column does not exist in history_nodes
+            image_url, // 연동된 원본 리소스가 있는 경우(인물 등) 원본 동기화를 위해 전달
             content: formData.content, // 사용자 상세 메모 포함
             // Pass existing linked IDs to ensure update logic works
             linked_video_id: node?.linked_video_id,
@@ -342,15 +342,13 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                 <form className="node-editor-form" onSubmit={handleSubmit}>
 
                     <div className="form-group">
-                        <label>제목 * {isLinked && <span style={{ color: '#60a5fa', fontSize: '0.8rem', fontWeight: 'normal', marginLeft: '8px' }}>(원본 정보 - 수정 불가)</span>}</label>
+                        <label>제목 * {isLinked && <span style={{ color: '#60a5fa', fontSize: '0.8rem', fontWeight: 'normal', marginLeft: '8px' }}>(원본과 동기화됨)</span>}</label>
                         <input
                             type="text"
                             value={formData.title}
                             onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                             placeholder="예: 린디합의 탄생"
                             required
-                            disabled={isLinked}
-                            style={isLinked ? { opacity: 0.7, cursor: 'not-allowed', background: 'rgba(255,255,255,0.03)' } : {}}
                         />
                     </div>
 
@@ -583,14 +581,13 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                     {/* (영상/재생목록 연동 시에만) 원본 설명 - 항상 읽기 전용 */}
                     {isLinked && ['video', 'playlist'].includes(formData.category) && (
                         <div className="form-group">
-                            <label>원본 설명 <span style={{ color: '#60a5fa', fontSize: '0.8rem', fontWeight: 'normal', marginLeft: '8px' }}>(원본 정보 - 수정 불가)</span></label>
+                            <label>원본 설명 <span style={{ color: '#60a5fa', fontSize: '0.8rem', fontWeight: 'normal', marginLeft: '8px' }}>(원본과 동기화됨)</span></label>
                             <textarea
                                 value={formData.description}
                                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                                 placeholder="원본 설명이 없습니다."
                                 rows={3}
-                                disabled={true}
-                                style={{ opacity: 0.7, cursor: 'not-allowed', background: 'rgba(255,255,255,0.03)' }}
+                                disabled={false}
                             />
                         </div>
                     )}

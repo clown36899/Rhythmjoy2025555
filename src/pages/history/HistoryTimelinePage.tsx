@@ -465,6 +465,7 @@ function HistoryTimelinePage() {
                 <NodeDetailModal
                     nodeData={viewingNode}
                     onClose={() => setIsDetailOpen(false)}
+                    hideEditButton={!isEditMode}
                     onEdit={() => {
                         setIsDetailOpen(false);
                         handleEditNode(viewingNode);
