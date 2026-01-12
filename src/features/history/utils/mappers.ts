@@ -143,8 +143,6 @@ export const mapDbNodeToRFNode = (
             x: node.position_x || 0,
             y: node.position_y || 0
         },
-        draggable: isEditMode,
-        connectable: isEditMode,
         selectable: true,
         data: {
             ...node, // 기존 필드 유지

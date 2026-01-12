@@ -199,8 +199,7 @@ function HistoryTimelinePage() {
     }, [handleViewDetail]);
 
     const handleCategoryChange = useCallback(() => setDrawerRefreshKey(k => k + 1), []);
-    const handleCreatePlaylist = useCallback(() => setShowImportModal(true), []);
-    const handleCreateDocument = useCallback(() => setShowDocumentModal(true), []);
+    // Unused handlers removed
     const handleAddClick = useCallback(() => {
         console.log('➕ [HistoryTimelinePage] onAddClick received');
         setUnifiedModalContext('drawer');
@@ -260,7 +259,7 @@ function HistoryTimelinePage() {
 
         // 1. 캔버스 사용 여부 확인 - Robust Check
         console.log('🔍 [Delete] Checking usage for:', { id, type });
-        const usedNodes = nodes.filter((n, idx) => {
+        const usedNodes = nodes.filter((n) => {
             const d = n.data;
             // Check ANY link to this ID (broad check for safety)
             const nodeIdMatch = (
@@ -644,7 +643,7 @@ function HistoryTimelinePage() {
             node.data.isShiftPressed = isShiftPressed;
 
             // 🔥 Critical: React Flow root properties must be updated explicitly
-            node.draggable = isEditMode;
+            // node.draggable = isEditMode; // Conflicted with Canvas prop, handled by HistoryCanvas now
             node.connectable = isEditMode;
             node.data.onResizeStop = handleResizeStop; // 🔥 Inject Handler
         });
@@ -761,6 +760,7 @@ function HistoryTimelinePage() {
                         if (ids.length > 0) handleDeleteNodes(ids);
                     }}
                     isSelectionMode={isSelectionMode}
+                    nodesDraggable={isEditMode} /* 🔥 Control dragging via Edit Mode */
                 />
 
                 <div className="floating-canvas-controls">

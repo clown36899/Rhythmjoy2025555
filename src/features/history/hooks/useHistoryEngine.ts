@@ -167,7 +167,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                         selected: isSelected,
                         parentNode: hasParentInView ? n.parentNode : undefined,
                         extent: hasParentInView ? 'parent' as const : undefined,
-                        draggable: true,
+                        // draggable: true, // Derived from Canvas prop
                     };
                 });
             });
@@ -301,6 +301,11 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
     useEffect(() => {
         loadTimeline();
     }, [loadTimeline]);
+
+    // 🔥 Force sync when Edit Mode changes to update draggable/ui state
+    useEffect(() => {
+        syncVisualization(currentRootId);
+    }, [isEditMode, syncVisualization, currentRootId]);
 
     /**
      * Edge Highlighting on Node Selection

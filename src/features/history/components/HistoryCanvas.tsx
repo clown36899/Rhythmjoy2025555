@@ -31,6 +31,7 @@ interface HistoryCanvasProps {
     onEdgesDelete?: (edges: any[]) => void;
     onNodesDelete?: (nodes: any[]) => void;
     isSelectionMode: boolean;
+    nodesDraggable?: boolean;
 }
 
 
@@ -52,7 +53,8 @@ export const HistoryCanvas = ({
     onEdgeContextMenu,
     onEdgesDelete,
     onNodesDelete,
-    isSelectionMode
+    isSelectionMode,
+    nodesDraggable
 }: HistoryCanvasProps) => {
     // console.log('🎨 [HistoryCanvas] Rendering. Nodes:', nodes.length, 'Edges:', edges.length);
 
@@ -99,6 +101,7 @@ export const HistoryCanvas = ({
                 selectNodesOnDrag={false}
                 panOnScroll={false} /* 트랙패드 스크롤 시 화면 이동 끄고 줌 우선 */
                 panOnDrag={!isSelectionMode}
+                nodesDraggable={nodesDraggable} /* 🔥 Controlled by parent (Edit Mode) */
                 zoomOnScroll={true} /* 마우스 휠 확대/축소 활성화 */
                 zoomOnPinch={true} /* 트랙패드 핀치 줌 활성화 */
                 selectionOnDrag={isSelectionMode}

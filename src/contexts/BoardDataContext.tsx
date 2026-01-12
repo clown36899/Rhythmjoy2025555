@@ -169,12 +169,18 @@ export const BoardDataProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [interactions, fetchInteractions]);
 
-    const fetchData = async () => {
+    const fetchData = useCallback(async () => {
+        const controller = new AbortController();
+        const signal = controller.signal;
+
         try {
             setLoading(true);
             setError(null);
 
             const { data: rpcData, error: rpcError } = await supabase.rpc('get_board_static_data');
+
+            // Abort check after await
+            if (signal.aborted) return;
 
             if (rpcError) throw rpcError;
 
@@ -186,16 +192,26 @@ export const BoardDataProvider = ({ children }: { children: ReactNode }) => {
 
             setData(processedData);
         } catch (err) {
+            // Ignore abort errors
+            if (signal.aborted) return;
+
             console.error('[BoardDataContext] Error:', err);
             setError((err as Error).message);
         } finally {
-            setLoading(false);
+            if (!signal.aborted) {
+                setLoading(false);
+            }
         }
-    };
+
+        return () => controller.abort();
+    }, []);
 
     useEffect(() => {
-        fetchData();
-    }, []);
+        const cleanup = fetchData();
+        return () => {
+            cleanup.then(abort => abort && abort());
+        };
+    }, [fetchData]);
 
     const refreshData = async () => {
         await fetchData();
