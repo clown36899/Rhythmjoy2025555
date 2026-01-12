@@ -356,14 +356,17 @@
     color: #a78bfa;
 }
 
-.btn-linked-resource {
-    background: rgba(16, 185, 129, 0.1);
-    color: #10b981;
+.btn-highlight {
+    background: rgba(139, 92, 246, 0.1);
+    color: #a78bfa;
 }
 
-.btn-linked-resource:hover {
-    background: rgba(16, 185, 129, 0.2);
-    color: #34d399;
+.btn-highlight:hover,
+.btn-highlight.active {
+    background: rgba(139, 92, 246, 0.25);
+    color: white;
+    border-color: #a78bfa;
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
 }
 
 /* Selected State Override */

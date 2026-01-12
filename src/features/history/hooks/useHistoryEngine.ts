@@ -304,7 +304,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                 const defaultAnimated = !!originalEdge?.animated;
 
                 const targetColor = isConnect ? '#3b82f6' : defaultColor;
-                const targetWidth = isConnect ? 25 : defaultWidth;
+                const targetWidth = isConnect ? 12 : defaultWidth;
                 const targetAnimated = defaultAnimated;
 
                 // Optimization: Skip loop update if identical

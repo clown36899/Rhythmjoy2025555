@@ -284,28 +284,18 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
                             <i className="ri-edit-line"></i>
                         </button>
                     )}
-                    {(data.linked_playlist_id || data.linked_document_id || data.linked_video_id || data.linked_category_id) && (
-                        <button
-                            className="node-action-btn btn-linked-resource"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                if (data.onPreviewLinkedResource) {
-                                    if (data.linked_playlist_id) {
-                                        data.onPreviewLinkedResource(data.linked_playlist_id, 'playlist', data.title);
-                                    } else if (data.linked_category_id) {
-                                        data.onPreviewLinkedResource(data.linked_category_id, 'playlist', data.title); // Treat category as playlist in preview
-                                    } else if (data.linked_document_id) {
-                                        data.onPreviewLinkedResource(data.linked_document_id, 'document', data.title);
-                                    } else if (data.linked_video_id) {
-                                        data.onPreviewLinkedResource(data.linked_video_id, 'video', data.title);
-                                    }
-                                }
-                            }}
-                            title="연결된 원본 자료 보기"
-                        >
-                            <i className="ri-external-link-line"></i>
-                        </button>
-                    )}
+                    <button
+                        className={`node-action-btn btn-highlight ${selected ? 'active' : ''}`}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (data.onSelectionChange) {
+                                data.onSelectionChange(String(data.id), !selected);
+                            }
+                        }}
+                        title="관계된 노드 하이라이트"
+                    >
+                        <i className="ri-focus-3-line"></i>
+                    </button>
                 </div>
             </div>
 
