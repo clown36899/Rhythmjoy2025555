@@ -4,7 +4,8 @@
     border-radius: 12px;
     width: 421px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-    transition: all 0.3s ease;
+    /* 🔥 Optimization: Avoid animating transform/width/height to prevent drag lag */
+    transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
     display: flex;
     flex-direction: column;
     /* overflow: hidden removed to allow NodeResizer handles to be visible outside the border */

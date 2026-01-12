@@ -3,6 +3,7 @@ import ReactFlow, {
     Background,
     Controls,
     MiniMap,
+    ConnectionLineType,
     type ReactFlowInstance
 } from 'reactflow';
 import 'reactflow/dist/style.css';
@@ -102,10 +103,13 @@ export const HistoryCanvas = ({
                 panOnScroll={false} /* 트랙패드 스크롤 시 화면 이동 끄고 줌 우선 */
                 panOnDrag={!isSelectionMode}
                 nodesDraggable={nodesDraggable} /* 🔥 Controlled by parent (Edit Mode) */
+                nodesConnectable={nodesDraggable} /* 🔥 Sync connectable state with Edit Mode */
                 zoomOnScroll={true} /* 마우스 휠 확대/축소 활성화 */
                 zoomOnPinch={true} /* 트랙패드 핀치 줌 활성화 */
                 selectionOnDrag={isSelectionMode}
                 preventScrolling={true} /* 브라우저 스크롤 방지 */
+                connectionLineType={ConnectionLineType.Bezier} /* 🔥 Curved Lines */
+                defaultEdgeOptions={{ type: 'default', animated: true }} /* 🔥 Default to Curved Bezier edges */
                 deleteKeyCode={['Backspace', 'Delete']}
                 fitView
             >
