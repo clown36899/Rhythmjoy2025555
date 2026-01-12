@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useNavigate, useBlocker } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
@@ -8,23 +8,31 @@ import type { CategoryManagerHandle } from './components/CategoryManager';
 import { PlaylistImportModal } from './components/PlaylistImportModal';
 import { DocumentCreateModal } from './components/DocumentCreateModal';
 import { DocumentDetailModal } from './components/DocumentDetailModal';
+import { PersonCreateModal } from './components/PersonCreateModal';
+import { CanvasCreateModal } from './components/CanvasCreateModal';
 import { MovePlaylistModal } from './components/MovePlaylistModal';
 import { PlaylistModal } from './components/PlaylistModal';
+import { UnifiedCreateModal } from './components/UnifiedCreateModal';
 import { fetchPlaylistVideos } from './utils/youtube';
 import './Page.css';
 
-interface Playlist {
+interface LearningPlaylist {
     id: string;
     title: string;
     thumbnail_url: string;
     description: string;
-    category: string;
     category_id: string | null;
     is_public: boolean;
     author_id: string;
     created_at: string;
-    video_count: number;
     youtube_playlist_id?: string;
+    year: number | null;
+    is_on_timeline: boolean;
+}
+
+interface Playlist extends LearningPlaylist {
+    type: 'playlist';
+    video_count: number;
 }
 
 interface Category {
@@ -48,26 +56,20 @@ interface LearningDocument {
     type: 'document';
 }
 
-interface Playlist extends LearningPlaylist {
-    type: 'playlist';
-    video_count: number;
-}
-
-interface LearningPlaylist {
+interface PersonItem {
     id: string;
     title: string;
-    thumbnail_url: string;
     description: string;
+    image_url: string | null;
+    year: number | null;
     category_id: string | null;
     is_public: boolean;
-    author_id: string;
+    user_id: string;
     created_at: string;
-    youtube_playlist_id?: string;
-    year: number | null;
-    is_on_timeline: boolean;
+    type: 'person';
 }
 
-type LearningItem = Playlist | LearningDocument | StandaloneVideo;
+type LearningItem = Playlist | LearningDocument | StandaloneVideo | PersonItem;
 
 interface StandaloneVideo {
     id: string;
@@ -95,7 +97,10 @@ const LearningPage = () => {
     // Admin State
     const [adminMode, setAdminMode] = useState(false);
     const [showImportModal, setShowImportModal] = useState(false);
-    const [showDocumentModal, setShowDocumentModal] = useState(false); // 문서 모달 상태 추가
+    const [showDocumentModal, setShowDocumentModal] = useState(false);
+    const [showPersonModal, setShowPersonModal] = useState(false);
+    const [showCanvasModal, setShowCanvasModal] = useState(false);
+    const [showUnifiedModal, setShowUnifiedModal] = useState(false);
     const [moveModal, setMoveModal] = useState<{ isOpen: boolean; playlistId: string; categoryId: string | null; itemType?: 'playlist' | 'document' | 'standalone_video' }>({
         isOpen: false,
         playlistId: '',
@@ -215,13 +220,8 @@ const LearningPage = () => {
 
             if (categoriesError) throw categoriesError;
 
-            // Map categories to include video_count AND Filter out 'canvas' types (Canvas nodes should not appear in Drawer)
+            // Map categories to include video_count
             const categoriesWithCount = (categoriesData || [])
-                .filter((cat: any) => {
-                    // Safe access to metadata subtype
-                    const meta = typeof cat.metadata === 'string' ? JSON.parse(cat.metadata) : (cat.metadata || {});
-                    return meta.subtype !== 'canvas';
-                })
                 .map((cat: any) => ({
                     ...cat,
                     video_count: cat.videos?.[0]?.count || 0
@@ -243,6 +243,13 @@ const LearningPage = () => {
             const { data: videosData, error: videosError } = await videoQuery;
             if (videosError) throw videosError;
 
+            // 5. Fetch Persons/Resources
+            const { data: resourcesData, error: resourcesError } = await supabase
+                .from('learning_resources')
+                .select('*')
+                .eq('type', 'person');
+            if (resourcesError) throw resourcesError;
+
             // 4. Fetch Categories
             const combinedItems: LearningItem[] = [
                 ...(playlistsData || []).map((item: any) => ({
@@ -257,6 +264,10 @@ const LearningPage = () => {
                 ...(videosData || []).map((item: any) => ({
                     ...item,
                     type: 'standalone_video' as const
+                })),
+                ...(resourcesData || []).map((item: any) => ({
+                    ...item,
+                    type: item.type as any
                 }))
             ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
@@ -264,8 +275,16 @@ const LearningPage = () => {
             setFlatCategories(categoriesWithCount);
             setCategories(buildTree(categoriesWithCount));
 
+            console.log('📊 [Page] fetchData complete:', {
+                playlistCount: playlistsData?.length || 0,
+                docCount: documentsData?.length || 0,
+                categoryCount: categoriesData?.length || 0,
+                personCount: resourcesData?.length || 0,
+                totalItems: combinedItems.length
+            });
+
         } catch (err) {
-            console.error(err);
+            console.error('❌ [Page] fetchData error:', err);
         }
     };
 
@@ -281,22 +300,6 @@ const LearningPage = () => {
             }));
     };
 
-    // Filter items - include subcategories recursively
-    const filteredItems = useMemo(() => {
-        if (!selectedCategoryId) return items;
-
-        const getDescendantIds = (rootId: string): string[] => {
-            const result: string[] = [rootId];
-            const children = flatCategories.filter(c => c.parent_id === rootId);
-            children.forEach(child => {
-                result.push(...getDescendantIds(child.id));
-            });
-            return result;
-        };
-
-        const targetIds = getDescendantIds(selectedCategoryId);
-        return items.filter(p => p.category_id && targetIds.includes(p.category_id));
-    }, [items, selectedCategoryId, flatCategories]);
 
 
 
@@ -471,7 +474,7 @@ const LearningPage = () => {
                     .update({ title: newName }) // Use title instead of name
                     .eq('id', id);
                 if (error) throw error;
-            } else if (type === 'playlist') {
+            } else if (type === 'playlist' || type === 'person') {
                 const { error } = await supabase
                     .from('learning_resources') // Migrated to resources
                     .update({ title: newName })
@@ -499,14 +502,20 @@ const LearningPage = () => {
     };
 
     const handleCreateCategory = async (name: string) => {
+        console.log('📂 [Page] handleCreateCategory called with:', name);
         if (!isAdmin) {
             alert('관리자 권한이 없습니다.');
             return;
         }
         try {
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
+            if (!user) {
+                console.error('❌ [Page] No user found during category creation');
+                alert('로그인이 필요합니다.');
+                return;
+            }
 
+            console.log('🚀 [Page] Inserting category into Supabase...');
             const { error } = await supabase.from('learning_categories').insert({
                 name,
                 parent_id: null,
@@ -515,10 +524,11 @@ const LearningPage = () => {
             });
 
             if (error) throw error;
-            fetchData();
+            console.log('✅ [Page] Category created successfully, refreshing data...');
+            await fetchData();
         } catch (err) {
-            console.error('Failed to create category:', err);
-            alert('폴더 생성 실패');
+            console.error('❌ [Page] Failed to create category:', err);
+            alert('폴더 생성 실패: ' + (err instanceof Error ? err.message : String(err)));
         }
     };
 
@@ -550,7 +560,7 @@ const LearningPage = () => {
                 </div>
             )}
 
-            {/* Content Modals */}
+            {/* Modals - Moved to top for reliability */}
             {viewingPlaylistId && (
                 <PlaylistModal
                     playlistId={viewingPlaylistId}
@@ -566,31 +576,9 @@ const LearningPage = () => {
                 />
             )}
 
-            {/* Content Wrapper */}
-            <div className="contentWrapper">
-                {/* Full Width Tree Navigation */}
-                <div className="leftSidebar">
-                    <CategoryManager
-                        ref={categoryManagerRef}
-                        onCategoryChange={fetchData}
-                        readOnly={!adminMode}
-                        selectedId={selectedCategoryId}
-                        onSelect={setSelectedCategoryId}
-                        resources={[...categories, ...items]} // Combined props
-                        onMoveResource={handleMoveItem} // Updated prop name? Check definition
-                        onItemClick={handlePlaylistClick} // Check definition
-                        onRenameResource={handleRenameItem}
-                        onCreateCategory={handleCreateCategory}
-                        onCreatePlaylist={() => setShowImportModal(true)}
-                        onCreateDocument={() => setShowDocumentModal(true)}
-                        highlightedSourceId={draggedPlaylistSourceId}
-                    // onDirtyChange={setHasUnsavedChanges} // Prop might be missing in CategoryManager definition?
-                    />
-                </div>
-            </div>
-            {/* Modals */}
             {showImportModal && (
                 <PlaylistImportModal
+                    context="drawer"
                     onClose={() => setShowImportModal(false)}
                     onSuccess={fetchData}
                 />
@@ -598,8 +586,40 @@ const LearningPage = () => {
 
             {showDocumentModal && (
                 <DocumentCreateModal
+                    context="drawer"
                     onClose={() => setShowDocumentModal(false)}
                     onSuccess={fetchData}
+                />
+            )}
+
+            {showPersonModal && (
+                <PersonCreateModal
+                    context="drawer"
+                    onClose={() => { console.log('👤 [Page] Person Modal Closing'); setShowPersonModal(false); }}
+                    onSuccess={fetchData}
+                />
+            )}
+
+            {showCanvasModal && (
+                <CanvasCreateModal
+                    context="drawer"
+                    onClose={() => { console.log('🚪 [Page] Canvas Modal Closing'); setShowCanvasModal(false); }}
+                    onSuccess={fetchData}
+                />
+            )}
+
+            {showUnifiedModal && (
+                <UnifiedCreateModal
+                    context="drawer"
+                    onClose={() => setShowUnifiedModal(false)}
+                    onCreateFolder={() => {
+                        console.log('📂 [Page] onCreateFolder called -> trigger ref');
+                        categoryManagerRef.current?.startCreatingFolder();
+                    }}
+                    onCreatePlaylist={() => setShowImportModal(true)}
+                    onCreateDocument={() => setShowDocumentModal(true)}
+                    onCreatePerson={() => setShowPersonModal(true)}
+                    onCreateCanvas={() => setShowCanvasModal(true)}
                 />
             )}
 
@@ -615,6 +635,31 @@ const LearningPage = () => {
                     }}
                 />
             )}
+
+            {/* Content Wrapper */}
+            <div className="contentWrapper">
+                {/* Full Width Tree Navigation */}
+                <div className="leftSidebar">
+                    <CategoryManager
+                        ref={categoryManagerRef}
+                        onCategoryChange={fetchData}
+                        readOnly={!adminMode}
+                        selectedId={selectedCategoryId}
+                        onSelect={setSelectedCategoryId}
+                        resources={[...flatCategories, ...items]} // 🔥 Pass ALL items for full tree
+                        onMoveResource={handleMoveItem} // Updated prop name? Check definition
+                        onItemClick={handlePlaylistClick} // Check definition
+                        onRenameResource={handleRenameItem}
+                        onCreateCategory={handleCreateCategory}
+                        onAddClick={() => {
+                            console.log('➕ [Page] onAddClick received from CategoryManager');
+                            setShowUnifiedModal(true);
+                        }}
+                        highlightedSourceId={draggedPlaylistSourceId}
+                        onDirtyChange={setHasUnsavedChanges}
+                    />
+                </div>
+            </div>
         </div>
     );
 };

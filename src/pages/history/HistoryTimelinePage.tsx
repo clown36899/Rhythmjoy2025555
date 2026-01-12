@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useBlocker } from 'react-router-dom';
 import { type ReactFlowInstance } from 'reactflow';
 import { supabase } from '../../lib/supabase';
@@ -12,19 +12,24 @@ import {
     HistoryCanvas,
     NodeEditorModal,
     NodeDetailModal,
-    // VideoPlayerModal, // Removed
     ResourceDrawer,
     EditExitPromptModal,
     EdgeEditorModal
 } from '../../features/history/components';
+import type { ResourceDrawerHandle } from '../../features/history/components/ResourceDrawer';
 import { DocumentDetailModal } from '../learning/components/DocumentDetailModal';
 import { PlaylistModal } from '../learning/components/PlaylistModal';
 import { PlaylistImportModal } from '../learning/components/PlaylistImportModal';
 import { DocumentCreateModal } from '../learning/components/DocumentCreateModal';
+import { PersonCreateModal } from '../learning/components/PersonCreateModal';
+import { CanvasCreateModal } from '../learning/components/CanvasCreateModal';
+import { UnifiedCreateModal } from '../learning/components/UnifiedCreateModal';
+import { FolderCreateModal } from '../learning/components/FolderCreateModal';
 
 // Styles
 import '../../features/history/styles/HistoryTimeline.css';
 
+import type { HistoryNodeData } from '../../features/history/types';
 import { CATEGORY_COLORS } from '../../features/history/utils/constants';
 import { parseVideoUrl } from '../../utils/videoEmbed';
 
@@ -60,10 +65,15 @@ function HistoryTimelinePage() {
     const [previewResource, setPreviewResource] = useState<{ id: string, type: string, title: string } | null>(null);
     const [exitPromptOpen, setExitPromptOpen] = useState(false);
 
-    // Create/Import Modals
     const [showImportModal, setShowImportModal] = useState(false);
     const [showDocumentModal, setShowDocumentModal] = useState(false);
+    const [showPersonModal, setShowPersonModal] = useState(false);
+    const [showCanvasModal, setShowCanvasModal] = useState(false);
+    const [showFolderModal, setShowFolderModal] = useState(false);
+    const [showUnifiedModal, setShowUnifiedModal] = useState(false);
+    const [unifiedModalContext, setUnifiedModalContext] = useState<'drawer' | 'canvas'>('drawer');
 
+    const resourceDrawerRef = useRef<ResourceDrawerHandle>(null);
     const [resourceData, setResourceData] = useState<any>({ categories: [], folders: [], playlists: [], videos: [], documents: [] });
     const [drawerRefreshKey, setDrawerRefreshKey] = useState(0);
 
@@ -74,25 +84,75 @@ function HistoryTimelinePage() {
     // 3. 리소스 데이터 로딩 (서랍용)
     const fetchResourceData = useCallback(async () => {
         try {
-            const { data, error } = await supabase.from('learning_resources').select('*').order('order_index');
-            if (error) throw error;
+            console.log('🔄 [HistoryTimelinePage] fetchResourceData starting...');
+            // 1. Categories (Folders) - These are still in learning_categories according to migrations
+            const { data: catData, error: catError } = await supabase
+                .from('learning_categories')
+                .select('*')
+                .order('order_index', { ascending: true });
 
-            const normalize = (res: any) => ({
-                ...res,
-                youtube_video_id: res.metadata?.youtube_video_id,
-                content: res.content || '',
+            // If learning_categories fails with 404, we fallback to learning_resources with type='general'
+            let finalCategories = catData || [];
+            if (catError) {
+                console.warn('⚠️ [HistoryTimelinePage] learning_categories failed, trying learning_resources fallback:', catError);
+                const { data: resCatData, error: resCatError } = await supabase
+                    .from('learning_resources')
+                    .select('*')
+                    .eq('type', 'general')
+                    .order('order_index', { ascending: true });
+                if (resCatError) throw resCatError;
+                finalCategories = resCatData || [];
+            }
+
+            // 2. Playlists & Videos & Documents & Persons (All from learning_resources)
+            const { data: allResources, error: resError } = await supabase
+                .from('learning_resources')
+                .select('*')
+                .order('order_index', { ascending: true }) // 🔥 Modified: Use order_index for ordering
+                .order('created_at', { ascending: false }); // Fallback
+
+            if (resError) throw resError;
+
+            const resources = allResources || [];
+
+            // A Folder is: type='general' AND lacks playlist markers
+            const folderResources = resources.filter(r =>
+                r.type === 'general' &&
+                !r.metadata?.playlist_id &&
+                !r.metadata?.youtube_playlist_id &&
+                !r.metadata?.category_name &&
+                !r.metadata?.youtube_video_id
+            );
+
+            // Merge legacy categories and resource-based folders (avoiding duplicates)
+            const categoryMap = new Map();
+            (finalCategories || []).forEach(c => categoryMap.set(c.id, { ...c }));
+            folderResources.forEach(r => {
+                if (!categoryMap.has(r.id)) {
+                    categoryMap.set(r.id, {
+                        ...r,
+                        name: r.title,
+                        parent_id: r.category_id,
+                        source: 'resource'
+                    });
+                }
             });
 
-            const all = (data || []).map(normalize);
+            // A Playlist is: type='playlist' OR (type='general' AND has markers)
+            const playlistResources = resources.filter(r =>
+                r.type === 'playlist' ||
+                (r.type === 'general' && (r.metadata?.playlist_id || r.metadata?.youtube_playlist_id || r.metadata?.category_name))
+            );
+
             setResourceData({
-                categories: all.filter(r => r.type === 'general'),
-                folders: all.filter(r => r.type === 'general'),
-                videos: all.filter(r => r.type === 'video'),
-                documents: all.filter(r => r.type === 'document' || r.type === 'person'),
-                playlists: []
+                categories: Array.from(categoryMap.values()),
+                playlists: playlistResources,
+                documents: resources.filter(r => r.type === 'document' || r.type === 'person'),
+                videos: resources.filter(r => r.type === 'video')
             });
+            console.log('✅ [HistoryTimelinePage] fetchResourceData complete');
         } catch (err) {
-            console.error('Failed to fetch resources:', err);
+            console.error('❌ [HistoryTimelinePage] fetchResourceData failed:', err);
         }
     }, []);
 
@@ -152,6 +212,193 @@ function HistoryTimelinePage() {
         }
     };
 
+    // 🔥 [Resource Management Handlers]
+    const handleDeleteResource = useCallback(async (id: string, type: string) => {
+        if (!isAdmin) return;
+        if (!window.confirm('정말 삭제하시겠습니까?')) return;
+
+        try {
+            // Simplified Logic based on ResourceDrawer items
+            if (type === 'general') {
+                await supabase.from('learning_categories').delete().eq('id', id);
+            } else if (type === 'document') {
+                await supabase.from('learning_documents').delete().eq('id', id);
+            } else {
+                // playlist, video, person, etc.
+                await supabase.from('learning_resources').delete().eq('id', id);
+            }
+            setDrawerRefreshKey(k => k + 1);
+        } catch (err) {
+            console.error('Failed to delete resource:', err);
+            alert('삭제 실패');
+        }
+    }, [isAdmin]);
+
+    const handleRenameResource = useCallback(async (id: string, newName: string, type: string) => {
+        if (!isAdmin) return;
+        try {
+            if (type === 'general') {
+                await supabase.from('learning_categories').update({ name: newName }).eq('id', id);
+            } else if (type === 'document') {
+                await supabase.from('learning_documents').update({ title: newName }).eq('id', id);
+            } else {
+                await supabase.from('learning_resources').update({ title: newName }).eq('id', id);
+            }
+            setDrawerRefreshKey(k => k + 1);
+        } catch (err) {
+            console.error('Failed to rename resource:', err);
+            alert('이름 수정 실패');
+        }
+    }, [isAdmin]);
+
+    const handleMoveResource = useCallback(async (id: string, targetCategoryId: string | null, isUnclassified: boolean) => {
+        if (!isAdmin) return;
+        try {
+            await supabase.from('learning_resources').update({ category_id: targetCategoryId, is_unclassified: isUnclassified }).eq('id', id);
+            await supabase.from('learning_categories').update({ parent_id: targetCategoryId, is_unclassified: isUnclassified }).eq('id', id);
+            await supabase.from('learning_documents').update({ category_id: targetCategoryId, is_unclassified: isUnclassified }).eq('id', id);
+
+            setDrawerRefreshKey(k => k + 1);
+        } catch (err) {
+            console.error('Failed to move resource:', err);
+        }
+    }, [isAdmin]);
+
+    const handleReorderResource = useCallback(async (sourceId: string, targetId: string, position: 'before' | 'after', gridRow?: number, gridColumn?: number) => {
+        if (!isAdmin) return;
+
+        try {
+            console.log('🔄 [Reorder] Starting...', { sourceId, targetId, position, gridRow, gridColumn });
+
+            // 1. Snapshot ALL items from local state (Mixed Types)
+            const allItems = [
+                ...resourceData.categories,
+                ...resourceData.playlists,
+                ...resourceData.videos,
+                ...resourceData.documents
+            ];
+
+            const sourceItem = allItems.find(i => i.id === sourceId);
+            const targetItem = allItems.find(i => i.id === targetId);
+
+            if (!sourceItem) {
+                console.warn('⚠️ [Reorder] Source not found locally');
+                return;
+            }
+
+            // Determine if ROOT context (Grid) or FOLDER context (List)
+            // If gridColumn is provided, it's explicitly a Grid manipulation (Root)
+            // Or if target is Root (no parent) and we are moving there? 
+            // Better to rely on gridColumn presence or checking target's parent.
+
+            // Note: targetId itself might be null if dropped on empty space in Grid? 
+            // CategoryManager usually passes a valid targetId for proximity, OR handles via onMove if targetId is null/container?
+            // "Reorder Action" log showed targetId and grid info.
+
+            const isRootContext = gridColumn !== undefined;
+            // Caution: If dragging INTO a folder, it's a MOVE, not Reorder. 
+            // Reorder is sorting amongst siblings.
+
+            if (isRootContext) {
+                console.log('🏗️ [Reorder] Root Grid Context Detected');
+                // 2-A. Root Grid Logic
+                // Filter all Root items (null parent) in the target Column
+                const targetColIdx = gridColumn!;
+
+                const rootItems = allItems.filter(i => {
+                    const pId = i.category_id !== undefined ? i.category_id : (i.parent_id ?? null);
+                    const col = i.grid_column ?? 0;
+                    return pId === null && col === targetColIdx && i.id !== sourceId; // Exclude source
+                });
+
+                // Sort by current grid_row to establish baseline
+                rootItems.sort((a, b) => (a.grid_row ?? 0) - (b.grid_row ?? 0));
+
+                // Insert Source
+                // If gridRow is provided, use it as insertion index hint
+                let insertIndex = rootItems.length; // Default append
+                if (gridRow !== undefined) {
+                    // gridRow is 0-based row index? 
+                    // If user dropped at row 5, we insert at 5.
+                    // But we must clamp to bounds.
+                    insertIndex = Math.min(Math.max(0, gridRow), rootItems.length);
+                } else if (targetItem) {
+                    // Fallback to relative position
+                    const tIdx = rootItems.findIndex(i => i.id === targetId);
+                    if (tIdx !== -1) {
+                        insertIndex = position === 'after' ? tIdx + 1 : tIdx;
+                    }
+                }
+
+                rootItems.splice(insertIndex, 0, sourceItem);
+
+                // Updates Check
+                const updates: any[] = [];
+
+                // Apply new grid_row and grid_column to ALL items in this column
+                rootItems.forEach((item, idx) => {
+                    const table = (item.type === 'general' && item.source !== 'resource') || !item.type
+                        ? 'learning_categories'
+                        : 'learning_resources';
+
+                    // Update columns directly for BOTH tables (Assuming migration is applied)
+                    updates.push(supabase.from(table).update({
+                        grid_row: idx,
+                        grid_column: targetColIdx
+                    }).eq('id', item.id));
+                });
+
+                await Promise.all(updates);
+
+            } else {
+                console.log('📑 [Reorder] Folder List Context Detected');
+                // 2-B. Folder List Logic
+                if (!targetItem) {
+                    console.warn('⚠️ [Reorder] Target not found for List Reorder');
+                    return;
+                }
+                const parentId = targetItem.category_id !== undefined ? targetItem.category_id : (targetItem.parent_id ?? null);
+
+                // Siblings (Same Parent)
+                const siblings = allItems.filter(i => {
+                    const pId = i.category_id !== undefined ? i.category_id : (i.parent_id ?? null);
+                    return pId === parentId && i.id !== sourceId;
+                });
+
+                // Sort by current order_index
+                siblings.sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+
+                // Insert
+                const tIdx = siblings.findIndex(i => i.id === targetId);
+                let insertIndex = siblings.length;
+                if (tIdx !== -1) {
+                    insertIndex = position === 'after' ? tIdx + 1 : tIdx;
+                }
+                siblings.splice(insertIndex, 0, sourceItem);
+
+                // Updates
+                const updates: any[] = [];
+                siblings.forEach((item, idx) => {
+                    const table = (item.type === 'general' && item.source !== 'resource') || !item.type
+                        ? 'learning_categories'
+                        : 'learning_resources';
+
+                    updates.push(supabase.from(table).update({
+                        order_index: idx
+                    }).eq('id', item.id));
+                });
+
+                await Promise.all(updates);
+            }
+
+            setDrawerRefreshKey(k => k + 1);
+        } catch (err: any) {
+            console.error('❌ [Reorder] Failed:', err);
+            console.error('❌ [Reorder] Error Details:', JSON.stringify(err, null, 2));
+            if (err.message) alert(`재정렬 실패: ${err.message}`);
+        }
+    }, [isAdmin, resourceData]);
+
     // FAB & 메뉴 액션 등록
     const pageAction = useMemo(() => ({
         label: isDrawerOpen ? '서랍 닫기' : '자료 서랍',
@@ -205,8 +452,12 @@ function HistoryTimelinePage() {
         event.preventDefault();
         const rawData = event.dataTransfer.getData('application/reactflow');
         if (!rawData) return;
-        const draggedResource = JSON.parse(rawData);
-        handleDrop(event, draggedResource, rfInstance);
+        try {
+            const draggedResource = JSON.parse(rawData);
+            handleDrop(event, draggedResource, rfInstance);
+        } catch (err) {
+            console.error('Failed to parse drop data:', err);
+        }
     }, [handleDrop, rfInstance]);
 
     // 7. 쉬프트 키 트래킹 (누적 선택 지원)
@@ -384,12 +635,24 @@ function HistoryTimelinePage() {
                                     <i className="ri-save-line"></i> 저장
                                 </button>
                             )}
+                            {isEditMode && (
+                                <button
+                                    className="action-btn add-btn"
+                                    onClick={() => {
+                                        setUnifiedModalContext('canvas');
+                                        setShowUnifiedModal(true);
+                                    }}
+                                    title="항목 추가"
+                                >
+                                    <i className="ri-add-line"></i> 항목 추가
+                                </button>
+                            )}
                         </>
                     )}
                 </div>
             </header>
 
-            <main className="timeline-main">
+            <main className="timeline-main history-timeline-canvas">
                 <HistoryCanvas
                     nodes={nodes}
                     edges={edges}
@@ -454,6 +717,7 @@ function HistoryTimelinePage() {
             )}
 
             <ResourceDrawer
+                ref={resourceDrawerRef}
                 isOpen={isDrawerOpen}
                 onClose={() => setIsDrawerOpen(false)}
                 onDragStart={(e, item) => {
@@ -467,8 +731,17 @@ function HistoryTimelinePage() {
                 isAdmin={!!isAdmin}
                 onCategoryChange={() => setDrawerRefreshKey(k => k + 1)}
                 onCreateCategory={handleCreateCategory}
+                onDeleteResource={handleDeleteResource}
+                onRenameResource={handleRenameResource}
+                onMoveResource={handleMoveResource}
+                onReorderResource={handleReorderResource}
                 onCreatePlaylist={() => setShowImportModal(true)}
                 onCreateDocument={() => setShowDocumentModal(true)}
+                onAddClick={() => {
+                    console.log('➕ [HistoryTimelinePage] onAddClick received from ResourceDrawer');
+                    setUnifiedModalContext('drawer');
+                    setShowUnifiedModal(true);
+                }}
             />
 
             {/* Modals */}
@@ -549,15 +822,162 @@ function HistoryTimelinePage() {
 
             {showImportModal && (
                 <PlaylistImportModal
+                    context={unifiedModalContext}
                     onClose={() => setShowImportModal(false)}
-                    onSuccess={() => setDrawerRefreshKey(k => k + 1)}
+                    onSuccess={async (result: any) => {
+                        setDrawerRefreshKey(k => k + 1);
+                        if (unifiedModalContext === 'canvas') {
+                            const reactFlowBounds = document.querySelector('.history-timeline-canvas')?.getBoundingClientRect();
+                            const position = rfInstance?.project({
+                                x: (reactFlowBounds?.width || 1000) / 2,
+                                y: (reactFlowBounds?.height || 800) / 2,
+                            }) || { x: 0, y: 0 };
+
+                            if (result.type === 'video') {
+                                await handleSaveNode({
+                                    title: null,
+                                    linked_video_id: result.resource.id,
+                                    year: result.resource.year || new Date().getFullYear(),
+                                    position_x: Math.round(position.x),
+                                    position_y: Math.round(position.y),
+                                    node_behavior: 'LEAF'
+                                });
+                            } else if (result.type === 'playlist') {
+                                await handleSaveNode({
+                                    title: null,
+                                    linked_category_id: result.folder.id, // Playlists are folders of videos
+                                    year: result.folder.year || new Date().getFullYear(),
+                                    position_x: Math.round(position.x),
+                                    position_y: Math.round(position.y),
+                                    node_behavior: 'FOLDER'
+                                });
+                            }
+                        }
+                    }}
                 />
             )}
 
             {showDocumentModal && (
                 <DocumentCreateModal
+                    context={unifiedModalContext}
                     onClose={() => setShowDocumentModal(false)}
-                    onSuccess={() => setDrawerRefreshKey(k => k + 1)}
+                    onSuccess={async (resource: any) => {
+                        setDrawerRefreshKey(k => k + 1);
+                        if (unifiedModalContext === 'canvas') {
+                            const reactFlowBounds = document.querySelector('.history-timeline-canvas')?.getBoundingClientRect();
+                            const position = rfInstance?.project({
+                                x: (reactFlowBounds?.width || 1000) / 2,
+                                y: (reactFlowBounds?.height || 800) / 2,
+                            }) || { x: 0, y: 0 };
+
+                            await handleSaveNode({
+                                title: null,
+                                linked_document_id: resource.id,
+                                year: resource.year || new Date().getFullYear(),
+                                position_x: Math.round(position.x),
+                                position_y: Math.round(position.y),
+                                node_behavior: 'LEAF'
+                            });
+                        }
+                    }}
+                />
+            )}
+
+            {showPersonModal && (
+                <PersonCreateModal
+                    context={unifiedModalContext}
+                    onClose={() => { console.log('👤 [HistoryTimelinePage] Person Modal Closing'); setShowPersonModal(false); }}
+                    onSuccess={async (resource: any) => {
+                        setDrawerRefreshKey(k => k + 1);
+                        if (unifiedModalContext === 'canvas') {
+                            const reactFlowBounds = document.querySelector('.history-timeline-canvas')?.getBoundingClientRect();
+                            const position = rfInstance?.project({
+                                x: (reactFlowBounds?.width || 1000) / 2,
+                                y: (reactFlowBounds?.height || 800) / 2,
+                            }) || { x: 0, y: 0 };
+
+                            await handleSaveNode({
+                                title: null,
+                                linked_document_id: resource.id,
+                                category: 'person',
+                                year: resource.year || new Date().getFullYear(),
+                                position_x: Math.round(position.x),
+                                position_y: Math.round(position.y),
+                                node_behavior: 'LEAF'
+                            });
+                        }
+                    }}
+                />
+            )}
+
+            {showCanvasModal && (
+                <CanvasCreateModal
+                    context={unifiedModalContext}
+                    onClose={() => { console.log('🚪 [HistoryTimelinePage] Canvas Modal Closing'); setShowCanvasModal(false); }}
+                    onSuccess={async (resource: any) => {
+                        setDrawerRefreshKey(k => k + 1);
+                        if (unifiedModalContext === 'canvas') {
+                            const reactFlowBounds = document.querySelector('.history-timeline-canvas')?.getBoundingClientRect();
+                            const position = rfInstance?.project({
+                                x: (reactFlowBounds?.width || 1000) / 2,
+                                y: (reactFlowBounds?.height || 800) / 2,
+                            }) || { x: 0, y: 0 };
+
+                            await handleSaveNode({
+                                title: null,
+                                linked_category_id: resource.id,
+                                year: resource.year || new Date().getFullYear(),
+                                position_x: Math.round(position.x),
+                                position_y: Math.round(position.y),
+                                node_behavior: 'FOLDER' // Canvases are containers
+                            });
+                        }
+                    }}
+                />
+            )}
+
+            {showFolderModal && (
+                <FolderCreateModal
+                    context={unifiedModalContext}
+                    onClose={() => setShowFolderModal(false)}
+                    onSuccess={async (resource: any) => {
+                        setDrawerRefreshKey(k => k + 1);
+                        if (unifiedModalContext === 'canvas') {
+                            const reactFlowBounds = document.querySelector('.history-timeline-canvas')?.getBoundingClientRect();
+                            const position = rfInstance?.project({
+                                x: (reactFlowBounds?.width || 1000) / 2,
+                                y: (reactFlowBounds?.height || 800) / 2,
+                            }) || { x: 0, y: 0 };
+
+                            await handleSaveNode({
+                                title: null,
+                                linked_category_id: resource.id,
+                                year: resource.year || new Date().getFullYear(),
+                                position_x: Math.round(position.x),
+                                position_y: Math.round(position.y),
+                                node_behavior: 'FOLDER'
+                            });
+                        }
+                    }}
+                />
+            )}
+
+            {showUnifiedModal && (
+                <UnifiedCreateModal
+                    context={unifiedModalContext}
+                    onClose={() => setShowUnifiedModal(false)}
+                    onCreateFolder={() => {
+                        console.log('📂 [HistoryTimelinePage] onCreateFolder called');
+                        if (unifiedModalContext === 'canvas') {
+                            setShowFolderModal(true);
+                        } else {
+                            resourceDrawerRef.current?.startCreatingFolder();
+                        }
+                    }}
+                    onCreatePlaylist={() => setShowImportModal(true)}
+                    onCreateDocument={() => setShowDocumentModal(true)}
+                    onCreatePerson={() => setShowPersonModal(true)}
+                    onCreateCanvas={() => setShowCanvasModal(true)}
                 />
             )}
         </div>

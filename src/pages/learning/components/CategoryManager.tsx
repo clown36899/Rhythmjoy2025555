@@ -1,4 +1,5 @@
-import { useState, forwardRef, useCallback, useMemo, useRef } from 'react';
+import { useState, forwardRef, useCallback, useMemo, useRef, useImperativeHandle, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import './CategoryManager.css';
 import './CategoryManager_gap.css';
 
@@ -30,6 +31,7 @@ interface Playlist {
 
 export interface CategoryManagerHandle {
     saveChanges: () => Promise<void>;
+    startCreatingFolder: () => void;
 }
 
 interface Props {
@@ -45,13 +47,38 @@ interface Props {
     onDeleteResource?: (id: string, type: string) => void;
     onRenameResource?: (id: string, newName: string, type: string) => void;
     onCreateCategory?: (name: string) => void;
-    onCreatePlaylist?: () => void;
-    onCreateDocument?: () => void;
+    onAddClick?: () => void;
     dragSourceMode?: boolean;
     refreshKey?: number;
     scale?: number;
     highlightedSourceId?: string | null;
+    onDirtyChange?: (isDirty: boolean) => void;
 }
+
+// 🟢 Tooltip Component
+const FloatingTooltip = ({ text, x, y, visible }: { text: string, x: number, y: number, visible: boolean }) => {
+    if (!visible || !text) return null;
+    return createPortal(
+        <div style={{
+            position: 'fixed',
+            top: y + 10,
+            left: x + 10,
+            backgroundColor: 'rgba(0, 0, 0, 0.9)',
+            color: 'white',
+            padding: '4px 8px',
+            borderRadius: '4px',
+            fontSize: '12px',
+            zIndex: 9999,
+            pointerEvents: 'none',
+            whiteSpace: 'nowrap',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.5)',
+            border: '1px solid rgba(255,255,255,0.1)'
+        }}>
+            {text}
+        </div>,
+        document.body
+    );
+};
 
 export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, _ref) => {
     const {
@@ -67,11 +94,11 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
         onDeleteResource,
         onRenameResource,
         onCreateCategory,
-        onCreatePlaylist,
-        onCreateDocument,
+        onAddClick,
         dragSourceMode = false,
         scale = 1,
         // highlightedSourceId
+        onDirtyChange
     } = props;
 
     // Edit State
@@ -82,11 +109,55 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
     const [isCreating, setIsCreating] = useState(false);
     const [newCatName, setNewCatName] = useState('');
 
+    // 🟢 Tooltip State
+    const [tooltip, setTooltip] = useState<{ visible: boolean; x: number; y: number; text: string }>({
+        visible: false,
+        x: 0,
+        y: 0,
+        text: ''
+    });
+
+    const handleTooltipEnter = (e: React.MouseEvent | React.TouchEvent, text: string) => {
+        // e.persist(); // React 17+ not strictly needed
+        let clientX, clientY;
+        if ('touches' in e) {
+            clientX = e.touches[0].clientX;
+            clientY = e.touches[0].clientY;
+        } else {
+            clientX = (e as React.MouseEvent).clientX;
+            clientY = (e as React.MouseEvent).clientY;
+        }
+        setTooltip({ visible: true, x: clientX, y: clientY, text });
+    };
+
+    const handleTooltipMove = (e: React.MouseEvent) => {
+        setTooltip(prev => ({ ...prev, x: e.clientX, y: e.clientY }));
+    };
+
+    const handleTooltipLeave = () => {
+        setTooltip(prev => ({ ...prev, visible: false }));
+    };
+
+    useImperativeHandle(_ref, () => ({
+        saveChanges: async () => {
+            // Placeholder for future implementation if needed
+            console.log('💾 [CategoryManager] saveChanges called');
+        },
+        startCreatingFolder: () => {
+            console.log('📂 [CategoryManager] startCreatingFolder called via Ref');
+            setIsCreating(true);
+        }
+    }));
+
     const handleCreate = () => {
+        console.log('➕ [CategoryManager] handleCreate internal called:', newCatName);
         if (newCatName.trim() && onCreateCategory) {
+            console.log('🚀 [CategoryManager] Triggering onCreateCategory prop...');
             onCreateCategory(newCatName.trim());
             setNewCatName('');
             setIsCreating(false);
+        } else {
+            console.warn('⚠️ [CategoryManager] handleCreate blocked:', { name: newCatName.trim(), hasCallback: !!onCreateCategory });
         }
     };
 
@@ -103,6 +174,7 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
     const saveEditing = (id: string, type: string) => {
         if (!tempName.trim()) return;
         onRenameResource?.(id, tempName, type);
+        onDirtyChange?.(true); // 🔥 Mark as dirty
         setEditingId(null);
     };
 
@@ -138,22 +210,34 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
     // 🔥 AUTO-CLASSIFY by type
     const injectedCategories = useMemo(() => {
         // Include both 'general' (folders) and 'canvas' (sub-canvases)
-        const folders = injectedResources.filter((r: any) => r.type === 'general' || r.type === 'canvas');
+        // Also fallback for items with NO type (standard categories from learning_categories)
+        const folders = injectedResources.filter((r: any) =>
+            r.type === 'general' ||
+            r.type === 'canvas' ||
+            (r.metadata?.subtype === 'canvas') ||
+            !r.type // 🔥 IMPORTANT: Standard categories often don't have a type prop
+        );
         console.log('🔍 [CategoryManager] Auto-classified folders:', {
             totalResources: injectedResources.length,
             folders: folders.length,
-            folderItems: folders.map((f: any) => ({ id: f.id, title: f.title, is_unclassified: f.is_unclassified, type: f.type }))
+            folderItems: folders.map((f: any) => ({ id: f.id, title: f.title || f.name, is_unclassified: f.is_unclassified, type: f.type }))
         });
         return folders;
     }, [injectedResources]);
 
     const injectedPlaylists = useMemo(() => {
         // 🔥 CRITICAL: Folders (type='general') AND Canvases (type='canvas') must NEVER be in playlists
-        const files = injectedResources.filter((r: any) => r.type !== 'general' && r.type !== 'canvas');
+        // We also exclude items without a type here because they are treated as categories above
+        const files = injectedResources.filter((r: any) =>
+            r.type !== undefined &&
+            r.type !== 'general' &&
+            r.type !== 'canvas' &&
+            r.metadata?.subtype !== 'canvas'
+        );
         console.log('🔍 [CategoryManager] Auto-classified files (EXCLUDING folders/canvases):', {
             totalResources: injectedResources.length,
             files: files.length,
-            foldersExcluded: injectedResources.filter((r: any) => r.type === 'general' || r.type === 'canvas').length,
+            foldersExcluded: injectedResources.filter((r: any) => r.type === 'general' || r.type === 'canvas' || !r.type).length,
             types: files.reduce((acc: any, f: any) => {
                 acc[f.type || 'unknown'] = (acc[f.type || 'unknown'] || 0) + 1;
                 return acc;
@@ -304,8 +388,8 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
     }, [normalizedCategories]);
 
     const onDragStart = (e: React.DragEvent, item: any, type: string) => {
-        if (readOnly && !dragSourceMode) return;
-        console.log('🚀 [DRAG_START]', { id: item.id, type });
+        // if (readOnly && !dragSourceMode) return; // 🔥 Modified: Allow drag start for timeline drop even in readOnly
+        console.log('🚀 [DRAG_START]', { id: item.id, type, readOnly, dragSourceMode });
         draggingIdRef.current = item.id;
         e.stopPropagation();
         const payload = {
@@ -316,6 +400,16 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
             is_unclassified: item.is_unclassified
         };
         e.dataTransfer.setData('application/json', JSON.stringify(payload));
+
+        // 🔥 ADD: Support for HistoryTimelinePage (Timeline Drop)
+        // Map CATEGORY -> general/category and PLAYLIST -> playlist for the timeline engine
+        const timelineItem = {
+            ...item,
+            type: type === 'CATEGORY' ? 'category' : (item.type || type.toLowerCase()),
+            title: item.title || item.name // Handle title/name mismatch
+        };
+        e.dataTransfer.setData('application/reactflow', JSON.stringify(timelineItem));
+
         e.dataTransfer.effectAllowed = 'move';
     };
 
@@ -422,10 +516,30 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
         setDropIndicator(null); // Clear UI
         dropIndicatorRef.current = null; // Clear Logic
 
-        try {
-            const data = JSON.parse(e.dataTransfer.getData('application/json'));
-            const draggedId = data.id;
+        let draggedId: string | null = null;
 
+        try {
+            const rawData = e.dataTransfer.getData('application/json');
+            if (rawData) {
+                const data = JSON.parse(rawData);
+                draggedId = data.id;
+            }
+        } catch (jsonErr) {
+            console.error('❌ [CategoryManager] JSON Parse Error:', jsonErr);
+        }
+
+        // 🔥 Fallback: Use Ref if dataTransfer is empty (Internal Move)
+        if (!draggedId && draggingIdRef.current) {
+            console.log('⚠️ [CategoryManager] Using Ref fallback for draggedId:', draggingIdRef.current);
+            draggedId = draggingIdRef.current;
+        }
+
+        if (!draggedId) {
+            console.warn('⚠️ [CategoryManager] No draggedId found via JSON or Ref');
+            return;
+        }
+
+        try {
             // 🔥 FINAL RECURSION SAFETY: Block invalid drops that somehow bypassed onDragOver
             // (Target cannot be the dragged item itself OR any descendant of the dragged item)
             if (currentIndicator?.targetId && (currentIndicator.targetId === draggedId || isDescendantOf(currentIndicator.targetId, draggedId))) {
@@ -466,6 +580,7 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                 // Call Reorder Handler with Grid Coordinates
                 console.log('🔃 Reorder Action:', draggedId, reorderPos, currentIndicator.targetId, { gridRow, gridColumn });
                 onReorderResource?.(draggedId, currentIndicator.targetId, reorderPos, gridRow, gridColumn);
+                onDirtyChange?.(true); // 🔥 Mark as dirty
                 return;
             }
 
@@ -479,6 +594,7 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                 // Move INTO this folder (grid coords not needed for nested items)
                 console.log(`📂 [onDrop] Moving INTO Folder: ${currentIndicator.targetId}`);
                 onMoveResource?.(draggedId, currentIndicator.targetId, isUnclassified);
+                onDirtyChange?.(true); // 🔥 Mark as dirty
                 return;
             }
 
@@ -512,6 +628,7 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
 
                 // 3. Else (Empty root or moving self), just standard move (with grid coords)
                 onMoveResource?.(draggedId, null, isUnclassified, gridRow, gridColumn);
+                onDirtyChange?.(true); // 🔥 Mark as dirty
                 return;
             }
 
@@ -537,6 +654,7 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
             if (playlist.type === 'general') return '📁'; // Folder
             if (playlist.type === 'video') return '📹'; // Video
             if (playlist.type === 'playlist') return '💿'; // Playlist
+            if (playlist.type === 'person') return '👤'; // Person
             return '📄'; // Document or other
         };
 
@@ -604,7 +722,13 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                     ) : (
                         <>
                             <span className="folderIcon">{getIcon()}</span>
-                            <span className="categoryName" title={playlist.title}>{playlist.title}</span>
+                            <span
+                                className="categoryName"
+                                // title={playlist.title} // Native title removed
+                                onMouseEnter={(e) => handleTooltipEnter(e, playlist.title)}
+                                onMouseMove={handleTooltipMove}
+                                onMouseLeave={handleTooltipLeave}
+                            >{playlist.title}</span>
                             {!readOnly && (
                                 <div className="actions">
                                     <button className="actionBtn" onClick={(e) => {
@@ -615,7 +739,11 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                                             startEditing(playlist.id, playlist.title);
                                         }
                                     }}>✏️</button>
-                                    <button className="actionBtn deleteBtn" onClick={(e) => { e.stopPropagation(); onDeleteResource?.(playlist.id, playlist.type || 'playlist'); }}>🗑️</button>
+                                    <button className="actionBtn deleteBtn" onClick={(e) => {
+                                        e.stopPropagation();
+                                        onDeleteResource?.(playlist.id, playlist.type || 'playlist');
+                                        onDirtyChange?.(true);
+                                    }}>🗑️</button>
                                 </div>
                             )}
                         </>
@@ -718,11 +846,17 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                             </span>
                             <span className="folderIcon">
                                 {isSelected
-                                    ? (category.type === 'canvas' || (category as any).metadata?.subtype === 'canvas' ? '🚪' : '📂')
-                                    : (category.type === 'canvas' || (category as any).metadata?.subtype === 'canvas' ? '🚪' : '📁')
+                                    ? (category.type === 'canvas' || (category as any).metadata?.subtype === 'canvas' ? '🚪' : category.type === 'person' ? '👤' : '📂')
+                                    : (category.type === 'canvas' || (category as any).metadata?.subtype === 'canvas' ? '🚪' : category.type === 'person' ? '👤' : '📁')
                                 }
                             </span>
-                            <span className="categoryName" title={category.name}>{category.name}</span>
+                            <span
+                                className="categoryName"
+                                // title={category.name} // Native title removed
+                                onMouseEnter={(e) => handleTooltipEnter(e, category.name)}
+                                onMouseMove={handleTooltipMove}
+                                onMouseLeave={handleTooltipLeave}
+                            >{category.name}</span>
                             {!readOnly && (
                                 <div className="actions">
                                     <button className="actionBtn" onClick={(e) => {
@@ -733,7 +867,11 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                                             startEditing(category.id, category.name);
                                         }
                                     }}>✏️</button>
-                                    <button className="actionBtn deleteBtn" onClick={(e) => { e.stopPropagation(); onDeleteResource?.(category.id, 'general'); }}>🗑️</button>
+                                    <button className="actionBtn deleteBtn" onClick={(e) => {
+                                        e.stopPropagation();
+                                        onDeleteResource?.(category.id, 'general');
+                                        onDirtyChange?.(true);
+                                    }}>🗑️</button>
                                 </div>
                             )}
                         </>
@@ -902,36 +1040,16 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                                             <button className="cancelBtn" style={{ padding: '4px 8px' }} onClick={() => { setIsCreating(false); setNewCatName(''); }}>취소</button>
                                         </div>
                                     ) : (
-                                        <div className="creation-toolbar" style={{ display: 'flex', gap: '8px' }}>
-                                            <button
-                                                className="createBtn"
-                                                onClick={() => setIsCreating(true)}
-                                                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 10px', background: '#374151', color: '#e5e7eb', border: '1px solid #4b5563', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}
-                                                title="새 폴더 만들기"
-                                            >
-                                                <span>📂</span> 폴더
-                                            </button>
-                                            {onCreatePlaylist && (
-                                                <button
-                                                    className="createBtn"
-                                                    onClick={onCreatePlaylist}
-                                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 10px', background: '#374151', color: '#e5e7eb', border: '1px solid #4b5563', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}
-                                                    title="새 재생목록 추가"
-                                                >
-                                                    <span>💿</span> 재생목록
-                                                </button>
-                                            )}
-                                            {onCreateDocument && (
-                                                <button
-                                                    className="createBtn"
-                                                    onClick={onCreateDocument}
-                                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 10px', background: '#374151', color: '#e5e7eb', border: '1px solid #4b5563', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}
-                                                    title="새 문서 추가"
-                                                >
-                                                    <span>📄</span> 문서
-                                                </button>
-                                            )}
-                                        </div>
+                                        <button
+                                            className="createBtn"
+                                            onClick={() => {
+                                                console.log('➕ [CategoryManager] Add button clicked -> onAddClick()');
+                                                onAddClick?.();
+                                            }}
+                                            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: '500' }}
+                                        >
+                                            <span>➕</span> 추가
+                                        </button>
                                     )}
                                 </div>
                             )}
@@ -1008,6 +1126,8 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                     </div>
                 </div>
             </div>
+            {/* 🟢 Render Tooltip Portal */}
+            <FloatingTooltip {...tooltip} />
         </div>
     );
 });

@@ -26,6 +26,9 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
     const [currentSpaceId] = useState<string | number | null>(initialSpaceId);
     const [breadcrumbs, setBreadcrumbs] = useState<{ id: string | null; title: string }[]>([{ id: null, title: 'Home' }]);
 
+    // Selection Tracking for Edge Highlighting
+    const prevSelectedNodeIds = useRef<Set<string>>(new Set());
+
     // 2. Authoritative Refs (단일 진실 공급원)
     const allNodesRef = useRef<Map<string, HistoryRFNode>>(new Map());
     const allEdgesRef = useRef<Map<string, Edge>>(new Map());
@@ -161,6 +164,78 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
     useEffect(() => {
         if (userId) loadTimeline();
     }, [userId, loadTimeline]);
+
+    /**
+     * Edge Highlighting on Node Selection
+     */
+    useEffect(() => {
+        const selectedIds = new Set(nodes.filter(n => n.selected).map(n => n.id));
+
+        // Optimization: Skip if selection hasn't changed
+        let changed = false;
+        if (selectedIds.size !== prevSelectedNodeIds.current.size) changed = true;
+        else {
+            for (const id of selectedIds) {
+                if (!prevSelectedNodeIds.current.has(id)) {
+                    changed = true;
+                    break;
+                }
+            }
+        }
+
+        if (!changed && prevSelectedNodeIds.current.size > 0) {
+            // Even if set same, we might need to verify edges if nodes reloaded? 
+            // Actually, standard check is enough for selection user interaction.
+            // However, if nodes update from DB, selected state might be preserved but edges reset.
+            // But loadTimeline resets edges anyway.
+            // So just return.
+            return;
+        }
+
+        // If changed or first run (if we want explicit default reset, but 'changed' is enough usually)
+        if (!changed) return;
+
+        prevSelectedNodeIds.current = selectedIds;
+
+        setEdges(currentEdges => {
+            return currentEdges.map(edge => {
+                const isConnect = selectedIds.has(edge.source) || selectedIds.has(edge.target);
+
+                // Retrieve original style source of truth
+                const originalEdge = allEdgesRef.current.get(edge.id);
+                // Fallback default
+                const defaultColor = originalEdge?.style?.stroke || '#475569';
+                const defaultWidth = originalEdge?.style?.strokeWidth || 2;
+                const defaultAnimated = !!originalEdge?.animated;
+
+                const targetColor = isConnect ? '#3b82f6' : defaultColor;
+                const targetWidth = isConnect ? 25 : defaultWidth;
+                const targetAnimated = defaultAnimated;
+
+                // Optimization: Skip loop update if identical
+                if (
+                    edge.style?.stroke === targetColor &&
+                    edge.style?.strokeWidth === targetWidth &&
+                    edge.animated === targetAnimated
+                ) {
+                    return edge;
+                }
+
+                return {
+                    ...edge,
+                    style: {
+                        ...edge.style,
+                        stroke: targetColor,
+                        strokeWidth: targetWidth,
+                        strokeDasharray: isConnect ? '20 10' : (originalEdge?.style?.strokeDasharray || undefined)
+                    },
+                    animated: targetAnimated,
+                    zIndex: isConnect ? 999 : 0 // Ensure highlighted edges are on top (if renderer supports via iteration order, usually handled by array order)
+                };
+            });
+        });
+
+    }, [nodes, setEdges]); // Runs on every node change (drag included), but optimized by Set comparison
 
     /**
      * 계층 이동 (Drill-down / Up)
@@ -721,17 +796,16 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
 
         event.preventDefault();
 
-        const reactFlowBounds = document.querySelector('.history-timeline-canvas')?.getBoundingClientRect();
-        if (!reactFlowBounds) return;
-
-        const position = rfInstance.project({
-            x: event.clientX - reactFlowBounds.left,
-            y: event.clientY - reactFlowBounds.top,
+        const position = rfInstance.screenToFlowPosition({
+            x: event.clientX,
+            y: event.clientY,
         });
 
         // V7: 하이브리드 자동 연동 로직
-        const isLinked = !!(draggedResource.type === 'video' || draggedResource.type === 'playlist' ||
-            draggedResource.type === 'document' || draggedResource.type === 'general');
+        const type = String(draggedResource.type || '').toLowerCase();
+        const isLinked = !!(type === 'video' || type === 'playlist' ||
+            type === 'document' || type === 'general' ||
+            type === 'person' || type === 'canvas' || type === 'category');
 
         const newNodeData: any = {
             title: isLinked ? null : draggedResource.title,
@@ -740,17 +814,19 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
             year: draggedResource.year || new Date().getFullYear(),
             position_x: Math.round(position.x),
             position_y: Math.round(position.y),
-            user_id: userId,
+            created_by: userId,
             space_id: currentSpaceId,
             parent_node_id: currentRootId ? Number(currentRootId) : null,
             node_behavior: 'LEAF'
         };
 
         // 타입별 연동 필드 설정
-        if (draggedResource.type === 'video') newNodeData.linked_video_id = draggedResource.id;
-        if (draggedResource.type === 'playlist') newNodeData.linked_playlist_id = draggedResource.id;
-        if (draggedResource.type === 'document') newNodeData.linked_document_id = draggedResource.id;
-        if (draggedResource.type === 'general') newNodeData.linked_category_id = draggedResource.id;
+        if (type === 'video') newNodeData.linked_video_id = draggedResource.id;
+        if (type === 'playlist') newNodeData.linked_playlist_id = draggedResource.id;
+        if (type === 'document') newNodeData.linked_document_id = draggedResource.id;
+        if (type === 'general' || type === 'category') newNodeData.linked_category_id = draggedResource.id;
+        if (type === 'person') newNodeData.linked_document_id = draggedResource.id;
+        if (type === 'canvas') newNodeData.linked_category_id = draggedResource.id;
 
         try {
             const { data, error } = await supabase.from('history_nodes').insert(newNodeData).select().single();

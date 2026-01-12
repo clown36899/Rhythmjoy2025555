@@ -1,6 +1,7 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
 import './ResourceDrawer.css';
 import { CategoryManager } from '../../../pages/learning/components/CategoryManager';
+import type { CategoryManagerHandle } from '../../../pages/learning/components/CategoryManager';
 
 interface ResourceItem {
     id: string;
@@ -37,14 +38,16 @@ interface Props {
     isAdmin?: boolean;
     onToggleEditMode?: () => void;
     onEditResource?: (item: any) => void;
-    onEditResource?: (item: any) => void;
     onAddNode?: () => void;
     onCreateCategory?: (name: string) => void;
-    onCreatePlaylist?: () => void;
-    onCreateDocument?: () => void;
+    onAddClick?: () => void;
 }
 
-export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refreshKey, categories, playlists, videos, documents, onMoveResource, onReorderResource, onDeleteResource, onRenameResource, onCategoryChange, isEditMode = false, isAdmin = false, onToggleEditMode, onEditResource, onAddNode, onCreateCategory, onCreatePlaylist, onCreateDocument }: Props) => {
+export interface ResourceDrawerHandle {
+    startCreatingFolder: () => void;
+}
+
+export const ResourceDrawer = forwardRef<ResourceDrawerHandle, Props>(({ isOpen, onClose, onDragStart, onItemClick, refreshKey, categories, playlists, videos, documents, onMoveResource, onReorderResource, onDeleteResource, onRenameResource, onCategoryChange, isEditMode = false, isAdmin = false, onToggleEditMode, onEditResource, onAddNode, onCreateCategory, onAddClick }, ref) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterMode, setFilterMode] = useState<'all' | 'year'>('all');
     const [width, setWidth] = useState(360);
@@ -52,6 +55,14 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refr
     const [isResizing, setIsResizing] = useState(false);
     const [treeScale, setTreeScale] = useState(1);
     const drawerRef = useRef<HTMLDivElement>(null);
+    const categoryManagerRef = useRef<CategoryManagerHandle>(null);
+
+    useImperativeHandle(ref, () => ({
+        startCreatingFolder: () => {
+            console.log('📂 [ResourceDrawer] startCreatingFolder called -> trigger CategoryManager');
+            categoryManagerRef.current?.startCreatingFolder();
+        }
+    }));
 
     const handleToggleFull = () => {
         const isFull = width >= window.innerWidth - 50; // Use a buffer
@@ -147,7 +158,7 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refr
                 year: c.year || 0,
                 hasYear: !!c.year,
                 // 🔥 FIX: Respect null (Root) if defined. Only fallback if undefined.
-                category_id: c.category_id !== undefined ? c.category_id : (c.parent_id ?? null),
+                category_id: c.parent_id || c.category_id || null,
                 is_unclassified: c.is_unclassified ?? false,
                 type: 'general' as const, // Folders have type='general'
                 created_at: c.created_at,
@@ -425,8 +436,8 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refr
                             scale={treeScale}
                             onEditItem={onEditResource}
                             onCreateCategory={onCreateCategory}
-                            onCreatePlaylist={onCreatePlaylist}
-                            onCreateDocument={onCreateDocument}
+                            onAddClick={onAddClick}
+                            ref={categoryManagerRef}
                         />
                     </div>
                 )}
@@ -437,4 +448,4 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refr
             </div>
         </div>
     );
-};
+});

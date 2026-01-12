@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { extractPlaylistId, fetchPlaylistInfo, fetchPlaylistVideos, extractVideoId, fetchVideoDetails } from '../utils/youtube';
@@ -6,7 +7,8 @@ import styles from './PlaylistImportModal.module.css';
 
 interface Props {
     onClose: () => void;
-    onSuccess: () => void;
+    onSuccess: (result: any) => void;
+    context: 'drawer' | 'canvas';
 }
 
 interface Category {
@@ -17,7 +19,7 @@ interface Category {
     level?: number;
 }
 
-export const PlaylistImportModal = ({ onClose, onSuccess }: Props) => {
+export const PlaylistImportModal = ({ onClose, onSuccess, context }: Props) => {
     const { isAdmin } = useAuth();
     const [url, setUrl] = useState('');
     const [categoryId, setCategoryId] = useState<string | null>(null);
@@ -106,28 +108,33 @@ export const PlaylistImportModal = ({ onClose, onSuccess }: Props) => {
                 setStatus('영상 저장 중...');
 
                 const videoData = videos.map((video, index) => ({
-                    playlist_id: null,
-                    category_id: newCategory.id, // 새로 만든 폴더 ID
-                    youtube_video_id: video.resourceId.videoId,
+                    category_id: newCategory.id, // Newly created folder ID
+                    user_id: user.id,
+                    type: 'video',
                     title: video.title,
-                    order_index: index,
-                    memo: video.description?.slice(0, 100), // 메모
-                    thumbnail_url: video.thumbnail,
-                    author_id: user.id,
-                    is_public: isPublic,
+                    description: video.description,
+                    image_url: video.thumbnail,
                     year: year ? parseInt(year) : null,
-                    is_on_timeline: isOnTimeline,
-                    description: video.description // 원본 설명
+                    metadata: {
+                        is_public: isPublic,
+                        youtube_video_id: video.resourceId.videoId,
+                        order_index: index,
+                        is_on_timeline: context === 'canvas' || isOnTimeline,
+                        created_at: new Date().toISOString()
+                    }
                 }));
 
-                const { error: videoError } = await supabase
-                    .from('learning_videos')
-                    .insert(videoData);
+                const { data: createdVideos, error: videoError } = await supabase
+                    .from('learning_resources')
+                    .insert(videoData)
+                    .select();
 
                 if (videoError) throw videoError;
 
+                onSuccess({ type: 'playlist', folder: newCategory, videos: createdVideos });
+
             } else if (videoId) {
-                // --- 개별 동영상 처리 로직 ---
+                // --- Single Video logic ---
                 setStatus('동영상 정보 가져오는 중...');
                 const videoInfo = await fetchVideoDetails(videoId);
 
@@ -137,29 +144,36 @@ export const PlaylistImportModal = ({ onClose, onSuccess }: Props) => {
 
                 setStatus('DB에 저장하는 중...');
 
-                // 3-1. 개별 동영상 저장 (선택한 폴더에 직접 저장)
-                const { error: videoError } = await supabase
-                    .from('learning_videos')
+                const { data: newVideo, error: videoError } = await supabase
+                    .from('learning_resources')
                     .insert({
-                        playlist_id: null, // 개별 영상
-                        youtube_video_id: videoInfo.id,
+                        category_id: categoryId,
+                        user_id: user.id,
+                        type: 'video',
                         title: videoInfo.title,
-                        description: videoInfo.description, // 원본 설명 저장
-                        memo: videoInfo.description?.slice(0, 100), // 메모용
-                        thumbnail_url: videoInfo.thumbnail,
-                        author_id: user.id,
-                        is_public: isPublic,
-                        category_id: categoryId, // 선택한 폴더에 저장
+                        description: videoInfo.description,
+                        image_url: videoInfo.thumbnail,
                         year: year ? parseInt(year) : null,
-                        is_on_timeline: isOnTimeline,
-                        order_index: 0
-                    });
+                        metadata: {
+                            is_public: isPublic,
+                            youtube_video_id: videoInfo.id,
+                            is_on_timeline: context === 'canvas' || isOnTimeline,
+                            created_at: new Date().toISOString()
+                        }
+                    })
+                    .select()
+                    .single();
 
                 if (videoError) throw videoError;
+
+                onSuccess({ type: 'video', resource: newVideo });
             }
 
             setStatus('완료!');
-            onSuccess();
+            // PlaylistImportModal expected results in onSuccess if type provided, but handles undefined for simple refresh.
+            // Page.tsx (drawer context) uses fetchData which takes no args. 
+            // Correct call according to definition or use callback style.
+            onSuccess(undefined);
             onClose();
 
         } catch (err: any) {
@@ -184,7 +198,7 @@ export const PlaylistImportModal = ({ onClose, onSuccess }: Props) => {
 
     const flatCategoryList = flattenCategories(categories);
 
-    return (
+    const modalContent = (
         <div className={styles.overlay}>
             <div className={styles.modal}>
                 <div className={styles.header}>
@@ -223,8 +237,6 @@ export const PlaylistImportModal = ({ onClose, onSuccess }: Props) => {
                             className={styles.input}
                         />
                     </div>
-
-
 
                     <div className={styles.formGroup}>
                         <label className={styles.checkboxLabel}>
@@ -282,4 +294,6 @@ export const PlaylistImportModal = ({ onClose, onSuccess }: Props) => {
             </div>
         </div>
     );
+
+    return createPortal(modalContent, document.body);
 };

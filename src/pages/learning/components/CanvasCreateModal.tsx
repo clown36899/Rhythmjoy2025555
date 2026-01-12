@@ -2,11 +2,11 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
-import styles from './PlaylistImportModal.module.css'; // Re-using same layout styles
+import styles from './PlaylistImportModal.module.css';
 
 interface Props {
     onClose: () => void;
-    onSuccess: (resource: any) => void;
+    onSuccess: (data: any) => void;
     context: 'drawer' | 'canvas';
 }
 
@@ -18,16 +18,13 @@ interface Category {
     children?: Category[];
 }
 
-export const DocumentCreateModal = ({ onClose, onSuccess, context }: Props) => {
+export const CanvasCreateModal = ({ onClose, onSuccess, context }: Props) => {
     const { isAdmin } = useAuth();
     const [title, setTitle] = useState('');
-    const [content, setContent] = useState('');
-    const [year, setYear] = useState<string>('');
-    const [isOnTimeline, _setIsOnTimeline] = useState(false); // _ prefix to suppress warning or remove if truly unneeded
+    const [description, setDescription] = useState('');
+    const [year, setYear] = useState('');
     const [categoryId, setCategoryId] = useState<string | null>(null);
     const [categories, setCategories] = useState<Category[]>([]);
-    const [isPublic, setIsPublic] = useState(true);
-    const [saveToLibrary, setSaveToLibrary] = useState(true);
 
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -74,26 +71,26 @@ export const DocumentCreateModal = ({ onClose, onSuccess, context }: Props) => {
             setIsLoading(true);
             setError(null);
 
-            if (!title.trim()) throw new Error('제목을 입력해주세요.');
-            if (!categoryId) throw new Error('카테고리를 선택해주세요.');
+            if (!title.trim()) throw new Error('캔버스 제목을 입력해주세요.');
 
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('로그인이 필요합니다.');
 
-            const { data: newResource, error: insertError } = await supabase
-                .from('learning_resources')
+            // Even if "Node only", if it's a sub-canvas it needs a category entry to hold its own nodes
+            // But if the user says "Don't add to drawer", we can perhaps omit parent_id or add a 'hidden' flag.
+            // For now, let's create it as a category with subtype 'canvas' but pass it back for node creation.
+            const { data: newCategory, error: insertError } = await supabase
+                .from('learning_categories')
                 .insert({
-                    title,
-                    description: content, // Map content to description
-                    category_id: categoryId,
-                    user_id: user.id, // Map author_id to user_id
-                    type: 'document', // Explicit type
+                    name: title,
+                    description: description,
+                    parent_id: context === 'drawer' ? (categoryId || null) : null, // If canvas context, usually root-level or orphan in drawer terms
+                    user_id: user.id,
                     year: year ? parseInt(year) : null,
                     metadata: {
-                        is_public: isPublic,
-                        is_on_timeline: context === 'canvas' || isOnTimeline,
+                        subtype: 'canvas',
                         created_at: new Date().toISOString(),
-                        is_hidden_from_drawer: context === 'canvas' && !saveToLibrary
+                        is_hidden_from_drawer: context === 'canvas' // Marker to hide from drawer if desired
                     }
                 })
                 .select()
@@ -101,8 +98,8 @@ export const DocumentCreateModal = ({ onClose, onSuccess, context }: Props) => {
 
             if (insertError) throw insertError;
 
-            console.log('✅ [DocumentCreateModal] Success:', newResource);
-            onSuccess(newResource);
+            console.log('✅ [CanvasCreateModal] Success:', newCategory);
+            onSuccess(newCategory);
             onClose();
         } catch (err: any) {
             console.error(err);
@@ -114,23 +111,32 @@ export const DocumentCreateModal = ({ onClose, onSuccess, context }: Props) => {
 
     const modalContent = (
         <div className={styles.overlay}>
-            <div className={styles.modal} style={{ maxWidth: '600px', width: '90%' }}>
+            <div className={styles.modal} style={{ maxWidth: '500px', width: '90%' }}>
                 <div className={styles.header}>
-                    <h3 className={styles.title}>새 문서(Markdown) 작성</h3>
+                    <h3 className={styles.title}>새 캔버스 생성</h3>
                     <button onClick={onClose} className={styles.closeButton}>✕</button>
                 </div>
 
                 <div className={styles.content}>
                     <div className={styles.formGroup}>
-                        <label className={styles.label}>
-                            저장할 폴더 (카테고리) <span className={styles.required}>*</span>
-                        </label>
+                        <label className={styles.label}>캔버스 제목 <span className={styles.required}>*</span></label>
+                        <input
+                            type="text"
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            placeholder="캔버스의 이름을 입력하세요"
+                            className={styles.input}
+                        />
+                    </div>
+
+                    <div className={styles.formGroup}>
+                        <label className={styles.label}>상위 폴더 (선택사항)</label>
                         <select
                             className={styles.select}
                             value={categoryId || ''}
                             onChange={(e) => setCategoryId(e.target.value)}
                         >
-                            <option value="">폴더 선택...</option>
+                            <option value="">최상위 (Root)</option>
                             {flatCategoryList.map(cat => (
                                 <option key={cat.id} value={cat.id}>
                                     {'\u00A0\u00A0'.repeat(cat.level || 0)} {cat.level && cat.level > 0 ? '└ ' : ''}{cat.name}
@@ -140,61 +146,24 @@ export const DocumentCreateModal = ({ onClose, onSuccess, context }: Props) => {
                     </div>
 
                     <div className={styles.formGroup}>
-                        <label className={styles.label}>제목 <span className={styles.required}>*</span></label>
-                        <input
-                            type="text"
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                            placeholder="문서 제목을 입력하세요"
-                            className={styles.input}
-                        />
-                    </div>
-
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>연도 (역사 타임라인용)</label>
+                        <label className={styles.label}>연도 (타임라인 배치용)</label>
                         <input
                             type="number"
                             value={year}
                             onChange={(e) => setYear(e.target.value)}
-                            placeholder="예: 1980"
+                            placeholder="예: 1940"
                             className={styles.input}
                         />
                     </div>
 
-                    {context === 'canvas' && (
-                        <div className={styles.formGroup}>
-                            <label className={styles.checkboxLabel}>
-                                <input
-                                    type="checkbox"
-                                    checked={saveToLibrary}
-                                    onChange={(e) => setSaveToLibrary(e.target.checked)}
-                                    className={styles.checkbox}
-                                />
-                                <span style={{ color: '#60a5fa', fontWeight: '600' }}>서랍(자료실)에도 저장하기</span>
-                            </label>
-                        </div>
-                    )}
-
                     <div className={styles.formGroup}>
-                        <label className={styles.checkboxLabel}>
-                            <input
-                                type="checkbox"
-                                checked={isPublic}
-                                onChange={(e) => setIsPublic(e.target.checked)}
-                                className={styles.checkbox}
-                            />
-                            <span>공개 문서로 설정 (체크 해제 시 비공개)</span>
-                        </label>
-                    </div>
-
-                    <div className={styles.formGroup}>
-                        <label className={styles.label}>내용 (Markdown 지원 예정)</label>
+                        <label className={styles.label}>설명 / 주제 요약</label>
                         <textarea
-                            value={content}
-                            onChange={(e) => setContent(e.target.value)}
-                            placeholder="문서 내용을 입력하세요..."
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            placeholder="이 캔버스의 목적이나 주제를 설명하세요..."
                             className={styles.input}
-                            style={{ minHeight: '200px', resize: 'vertical' }}
+                            style={{ minHeight: '100px', resize: 'vertical' }}
                         />
                     </div>
 
@@ -209,10 +178,10 @@ export const DocumentCreateModal = ({ onClose, onSuccess, context }: Props) => {
                     <button onClick={onClose} className={styles.cancelButton}>취소</button>
                     <button
                         onClick={handleCreate}
-                        disabled={isLoading || !title || !categoryId}
+                        disabled={isLoading || !title}
                         className={styles.importButton}
                     >
-                        {isLoading ? '저장 중...' : '문서 저장'}
+                        {isLoading ? '생성 중...' : '캔버스 생성'}
                     </button>
                 </div>
             </div>

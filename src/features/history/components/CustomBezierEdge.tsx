@@ -39,7 +39,7 @@ const CustomBezierEdge = ({
                 style={{
                     ...style,
                     stroke: selected ? '#8b5cf6' : style.stroke || '#475569',
-                    strokeWidth: selected ? 4 : 2,
+                    // strokeWidth removed: Controlled by parent (useHistoryEngine) for highlights
                     transition: 'all 0.2s',
                 }}
                 className="react-flow__edge-path"
