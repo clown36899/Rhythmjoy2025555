@@ -563,16 +563,19 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
 
         console.log(`🔍 [FolderDebug] Inferred COLS: ${COLS} (from first row items)`);
 
-        // 🔥 Dynamic Item Width: 가장 넓은 노드 기준으로 그리드 칸 크기 설정
+        // 🔥 Dynamic Item Width & Height: 가장 큰 노드 기준으로 그리드 칸 크기 설정
         let maxNodeWidth = 320;
+        let maxNodeHeight = 160;
         children.forEach(child => {
             const w = child.width || Number(child.style?.width) || 320;
+            const h = child.height || Number(child.style?.height) || 160;
             if (w > maxNodeWidth) maxNodeWidth = w;
+            if (h > maxNodeHeight) maxNodeHeight = h;
         });
         const ITEM_WIDTH = maxNodeWidth;
-        const ITEM_HEIGHT = 160;
+        const ITEM_HEIGHT = maxNodeHeight;
 
-        console.log(`🔍 [FolderDebug] Rearranging Layout. MaxWidth: ${ITEM_WIDTH}, Gap: ${GAP}`);
+        console.log(`🔍 [FolderDebug] Rearranging Layout. MaxWidth: ${ITEM_WIDTH}, MaxHeight: ${ITEM_HEIGHT}, Gap: ${GAP}`);
 
         // 3. Re-assign positions based on sorted index (Snap to Grid)
         const updates = children.map(async (child, idx) => {
@@ -630,7 +633,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
         });
 
         const newWidth = Math.max(maxX + 40, 421);
-        const newHeight = Math.max(maxY + 40, 250);
+        const newHeight = Math.max(maxY + 100, 250); // 하단 여백 확대 (40 -> 100)
 
         console.log(`🔍 [FolderDebug] Calculated Size: ${newWidth}x${newHeight} (MaxX: ${maxX}, MaxY: ${maxY})`);
 
