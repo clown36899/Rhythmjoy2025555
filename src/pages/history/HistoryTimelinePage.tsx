@@ -715,8 +715,8 @@ function HistoryTimelinePage() {
                 />
 
                 <div className="floating-canvas-controls">
-                    {/* 1. Main Toggle: Edit Mode (Always Visible if User) */}
-                    {user && (
+                    {/* 1. Main Toggle: Edit Mode (Admin Only) */}
+                    {isAdmin && (
                         <button
                             className={`action-btn ${isEditMode ? 'active' : ''}`}
                             onClick={() => {
