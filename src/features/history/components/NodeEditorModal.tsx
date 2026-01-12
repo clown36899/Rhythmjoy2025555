@@ -363,14 +363,18 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                             />
                         </div>
 
-                        <div className="form-group">
-                            <label>정확한 날짜</label>
-                            <input
-                                type="date"
-                                value={formData.date}
-                                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                            />
-                        </div>
+
+
+                        {formData.category !== 'person' && (
+                            <div className="form-group">
+                                <label>정확한 날짜</label>
+                                <input
+                                    type="date"
+                                    value={formData.date}
+                                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                                />
+                            </div>
+                        )}
                     </div>
 
                     <div className="form-group">

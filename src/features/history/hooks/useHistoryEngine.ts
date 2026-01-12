@@ -9,6 +9,7 @@ import { supabase } from '../../../lib/supabase';
 import type { HistoryRFNode } from '../types';
 import { mapDbNodeToRFNode } from '../utils/mappers';
 import { projectNodesToView } from '../utils/projection';
+import { isPhoneticMatch } from '../utils/phoneticSearch';
 
 interface UseHistoryEngineProps {
     userId: string | undefined;
@@ -45,24 +46,108 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
         // 1. 검색 및 필터링 적용
         if (filters?.search || filters?.category) {
             console.log('🔍 Filtering nodes with:', filters);
-            const filteredNodes = allNodes.filter(n => {
-                const matchesSearch = !filters.search || n.data.title.toLowerCase().includes(filters.search.toLowerCase());
+
+            // A. Primary Matches (검색어/카테고리 직접 일치 + 발음 유사 검색)
+            // A. Primary Matches (검색어/카테고리 직접 일치 + 발음 유사 검색)
+            // A. Primary Matches (검색어/카테고리 직접 일치 + 발음 유사 검색)
+            const primaryMatches = allNodes.filter(n => {
+                // 0. 부모가 캔버스(Portal)라면 검색 대상에서 제외 (사용자 요청: 내용물 유출 방지)
+                if (n.parentNode) {
+                    const parent = allNodesRef.current.get(n.parentNode);
+                    if (parent && (parent.data.category === 'canvas' || parent.data.node_behavior === 'PORTAL')) {
+                        return false;
+                    }
+                }
+
+                const title = n.data.title || '';
+
+                let matchesSearch = !filters.search;
+                if (filters.search) {
+                    const query = filters.search;
+                    const lowerQuery = query.toLowerCase();
+
+                    // 1. Basic Inclusion (기본 포함 여부)
+                    const titleHas = title.toLowerCase().includes(lowerQuery);
+
+                    // 2. Phonetic Match (알고리즘 기반 발음 검색)
+                    const titlePhonetic = isPhoneticMatch(title, query);
+
+                    // 사용자 요청: 제목에서만 검색
+                    matchesSearch = titleHas || titlePhonetic;
+                }
+
                 const matchesCategory = !filters.category || n.data.category === filters.category;
                 return matchesSearch && matchesCategory;
             });
 
-            console.log('📊 Filtered nodes count:', filteredNodes.length);
+            // [FIX] 검색어가 있는데 결과가 없으면 즉시 빈 화면 처리
+            if (filters.search && primaryMatches.length === 0) {
+                console.log('🚫 No matches found for search query:', filters.search);
+                setNodes([]);
+                setEdges([]);
+                return;
+            }
 
-            // 중요: 검색 결과에서는 계층 구조를 무시하고 평면적으로 표시해야 함 (부모 노드가 필터링되면 크래시 발생)
-            const flattenedResults = filteredNodes.map(n => ({
-                ...n,
-                parentNode: undefined,
-                extent: undefined,
-                draggable: true
-            }));
+            // B. Connected Nodes (Neighbors via Edges)
+            const allEdges = Array.from(allEdgesRef.current.values());
+            const primaryIds = new Set(primaryMatches.map(n => n.id));
+            const neighborIds = new Set<string>();
+            const relevantEdges: Edge[] = [];
 
-            setNodes(flattenedResults);
-            setEdges([]);
+            allEdges.forEach(edge => {
+                const isSourcePrimary = primaryIds.has(edge.source);
+                const isTargetPrimary = primaryIds.has(edge.target);
+
+                if (isSourcePrimary || isTargetPrimary) {
+                    relevantEdges.push(edge);
+                    if (isSourcePrimary) neighborIds.add(edge.target);
+                    if (isTargetPrimary) neighborIds.add(edge.source);
+                }
+            });
+
+            const neighbors = allNodes.filter(n => neighborIds.has(n.id) && !primaryIds.has(n.id));
+
+            // C. Folder Content Expansion (폴더 내부 요소 확장)
+            // 주의: 캔버스(Portal) 내부의 요소는 여기서 확장하지 않는다. (사용자 요청: 캔버스 내용물 노출 금지)
+            const currentResultIds = new Set([...primaryMatches, ...neighbors].map(n => n.id));
+            const folderChildren = allNodes.filter(n => {
+                if (currentResultIds.has(n.id)) return false;
+
+                // 1. 부모가 있는지, 그리고 부모가 현재 결과 집합에 있는지 확인
+                if (!n.parentNode || !currentResultIds.has(n.parentNode)) return false;
+
+                // 2. 부모의 타입 확인 (Folder/Group인 경우만 확장, Canvas/Portal은 제외)
+                const parentNode = allNodesRef.current.get(n.parentNode);
+                if (!parentNode) return false;
+
+                // Canvas(방)나 Portal이면 내부 내용물을 밖으로 꺼내지 않음
+                if (parentNode.data.category === 'canvas' || parentNode.data.node_behavior === 'PORTAL') {
+                    return false;
+                }
+
+                return true;
+            });
+
+            console.log(`📊 Filtered: Primary(${primaryMatches.length}) + Neighbors(${neighbors.length}) + Children(${folderChildren.length})`);
+
+            // D. Final Composition (계층 구조 보존 로직)
+            const finalNodes = [...primaryMatches, ...neighbors, ...folderChildren];
+            const finalNodeIds = new Set(finalNodes.map(n => n.id));
+
+            const displayNodes = finalNodes.map(n => {
+                // 부모가 결과에 포함되어 있으면 계층 유지
+                const hasParentInView = n.parentNode && finalNodeIds.has(n.parentNode);
+
+                return {
+                    ...n,
+                    parentNode: hasParentInView ? n.parentNode : undefined,
+                    extent: hasParentInView ? 'parent' as const : undefined,
+                    draggable: true,
+                };
+            });
+
+            setNodes(displayNodes);
+            setEdges(relevantEdges);
             return;
         }
 
@@ -269,31 +354,28 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                     title: nodeData.title,
                     description: nodeData.description,
                     content: nodeData.content,
-                    image_url: nodeData.image_url
+                    image_url: nodeData.image_url,
+                    year: nodeData.year
+                    // date: nodeData.date // 🔥 Removed: Causes 400 if column missing
                 };
 
                 // 리소스 테이블(영상, 문서, 재생목록 등)
                 if (nodeData.linked_video_id || nodeData.linked_document_id || nodeData.linked_playlist_id) {
                     const resourceId = nodeData.linked_video_id || nodeData.linked_document_id || nodeData.linked_playlist_id;
-                    const resourceSync = {
-                        ...syncData,
-                        year: nodeData.year,
-                        date: nodeData.date
-                    };
-                    await supabase.from('learning_resources').update(resourceSync).eq('id', resourceId);
+                    await supabase.from('learning_resources').update(syncData).eq('id', resourceId);
                 }
 
                 // 카테고리 테이블 (폴더 등)
                 if (nodeData.linked_category_id) {
-                    // [Schema Alignment] Now using native columns (description, content, image_url)
-                    // No need to merge metadata manually anymore!
-                    await supabase.from('learning_categories').update({
-                        name: nodeData.title,
+                    // For categories, map 'title' to 'name'
+                    const categorySync = {
+                        name: nodeData.title, // Map title -> name
                         description: nodeData.description,
                         content: nodeData.content,
                         image_url: nodeData.image_url,
                         year: nodeData.year
-                    }).eq('id', nodeData.linked_category_id);
+                    };
+                    await supabase.from('learning_categories').update(categorySync).eq('id', nodeData.linked_category_id);
                 }
             } catch (syncErr) {
                 console.warn('⚠️ [HistoryEngine] Proxy Sync partly failed:', syncErr);

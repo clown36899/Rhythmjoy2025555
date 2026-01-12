@@ -29,7 +29,7 @@ export interface HistoryNodeData {
     user_id?: string;
     category?: string;
     z_index?: number;
-    tags?: string[];
+    tags?: string[] | string;
 
     // 외래 키 관계
     linked_playlist_id?: string;
@@ -42,6 +42,8 @@ export interface HistoryNodeData {
     thumbnail_url?: string | null;
     image_url?: string | null;
     nodeType?: string;
+    position_x?: number;
+    position_y?: number;
 
     // V7 신규 필드 (독립성 및 확장성)
     node_behavior: NodeBehavior;
