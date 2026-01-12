@@ -44,36 +44,38 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
         let allNodes = Array.from(allNodesRef.current.values());
 
         // 1. 검색 및 필터링 적용
+        // 1. 검색 및 필터링 적용
         if (filters?.search || filters?.category) {
             console.log('🔍 Filtering nodes with:', filters);
 
-            // A. Primary Matches (검색어/카테고리 직접 일치 + 발음 유사 검색)
-            // A. Primary Matches (검색어/카테고리 직접 일치 + 발음 유사 검색)
-            // A. Primary Matches (검색어/카테고리 직접 일치 + 발음 유사 검색)
-            const primaryMatches = allNodes.filter(n => {
-                // 0. 부모가 캔버스(Portal)라면 검색 대상에서 제외 (사용자 요청: 내용물 유출 방지)
-                if (n.parentNode) {
-                    const parent = allNodesRef.current.get(n.parentNode);
-                    if (parent && (parent.data.category === 'canvas' || parent.data.node_behavior === 'PORTAL')) {
-                        return false;
+            // [Helper] 해당 노드가 캔버스(Portal) 내부에 있는지 재귀적으로 확인
+            const isNodeInsideCanvas = (node: any): boolean => {
+                let current = node;
+                while (current.parentNode) {
+                    const parent = allNodesRef.current.get(current.parentNode);
+                    if (!parent) break;
+                    // 부모가 캔버스이거나 포털이면 내부에 있는 것으로 간주
+                    if (parent.data.category === 'canvas' || parent.data.node_behavior === 'PORTAL') {
+                        return true;
                     }
+                    current = parent;
                 }
+                return false;
+            };
+
+            // A. Primary Matches (검색어/카테고리 직접 일치)
+            const primaryMatches = allNodes.filter(n => {
+                // 0. 레벨에 상관없이 캔버스(Portal) 내부에 있다면 검색 대상에서 제외 (사용자 요청: 내용물 유출 방지)
+                if (isNodeInsideCanvas(n)) return false;
 
                 const title = n.data.title || '';
 
                 let matchesSearch = !filters.search;
                 if (filters.search) {
-                    const query = filters.search;
-                    const lowerQuery = query.toLowerCase();
+                    const lowerQuery = filters.search.toLowerCase();
 
-                    // 1. Basic Inclusion (기본 포함 여부)
-                    const titleHas = title.toLowerCase().includes(lowerQuery);
-
-                    // 2. Phonetic Match (알고리즘 기반 발음 검색)
-                    const titlePhonetic = isPhoneticMatch(title, query);
-
-                    // 사용자 요청: 제목에서만 검색
-                    matchesSearch = titleHas || titlePhonetic;
+                    // 사용자 요청: 발음 검색 제거, 제목에 텍스트 포함 여부만 확인
+                    matchesSearch = title.toLowerCase().includes(lowerQuery);
                 }
 
                 const matchesCategory = !filters.category || n.data.category === filters.category;
@@ -89,50 +91,55 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
             }
 
             // B. Connected Nodes (Neighbors via Edges)
+            // B. Identify Neighbors first
             const allEdges = Array.from(allEdgesRef.current.values());
             const primaryIds = new Set(primaryMatches.map(n => n.id));
             const neighborIds = new Set<string>();
-            const relevantEdges: Edge[] = [];
 
             allEdges.forEach(edge => {
                 const isSourcePrimary = primaryIds.has(edge.source);
                 const isTargetPrimary = primaryIds.has(edge.target);
-
-                if (isSourcePrimary || isTargetPrimary) {
-                    relevantEdges.push(edge);
-                    if (isSourcePrimary) neighborIds.add(edge.target);
-                    if (isTargetPrimary) neighborIds.add(edge.source);
-                }
+                if (isSourcePrimary) neighborIds.add(edge.target);
+                if (isTargetPrimary) neighborIds.add(edge.source);
             });
 
-            const neighbors = allNodes.filter(n => neighborIds.has(n.id) && !primaryIds.has(n.id));
-
-            // C. Folder Content Expansion (폴더 내부 요소 확장)
-            // 주의: 캔버스(Portal) 내부의 요소는 여기서 확장하지 않는다. (사용자 요청: 캔버스 내용물 노출 금지)
-            const currentResultIds = new Set([...primaryMatches, ...neighbors].map(n => n.id));
-            const folderChildren = allNodes.filter(n => {
-                if (currentResultIds.has(n.id)) return false;
-
-                // 1. 부모가 있는지, 그리고 부모가 현재 결과 집합에 있는지 확인
-                if (!n.parentNode || !currentResultIds.has(n.parentNode)) return false;
-
-                // 2. 부모의 타입 확인 (Folder/Group인 경우만 확장, Canvas/Portal은 제외)
-                const parentNode = allNodesRef.current.get(n.parentNode);
-                if (!parentNode) return false;
-
-                // Canvas(방)나 Portal이면 내부 내용물을 밖으로 꺼내지 않음
-                if (parentNode.data.category === 'canvas' || parentNode.data.node_behavior === 'PORTAL') {
-                    return false;
-                }
-
-                return true;
+            // [FIX] 이웃 노드도 캔버스 내부에 있다면 제외
+            const neighbors = allNodes.filter(n => {
+                if (isNodeInsideCanvas(n)) return false;
+                return neighborIds.has(n.id) && !primaryIds.has(n.id);
             });
 
-            console.log(`📊 Filtered: Primary(${primaryMatches.length}) + Neighbors(${neighbors.length}) + Children(${folderChildren.length})`);
+            // C. Folder/Group Content Recursive Expansion
+            // [FIX] 결과 노드가 폴더일 경우 그 안의 모든 하위 자식들을 재귀적으로 포함한다.
+            const expandedIds = new Set([...primaryMatches, ...neighbors].map(n => n.id));
+            let hasAdded = true;
+            while (hasAdded) {
+                hasAdded = false;
+                const children = allNodes.filter(n => {
+                    if (expandedIds.has(n.id)) return false;
+                    if (!n.parentNode || !expandedIds.has(n.parentNode)) return false;
 
-            // D. Final Composition (계층 구조 보존 로직)
-            const finalNodes = [...primaryMatches, ...neighbors, ...folderChildren];
-            const finalNodeIds = new Set(finalNodes.map(n => n.id));
+                    const parentNode = allNodesRef.current.get(n.parentNode);
+                    if (!parentNode) return false;
+                    // 캔버스의 내용물은 절대 꺼내지 않음 (방어 로직)
+                    if (parentNode.data.category === 'canvas' || parentNode.data.node_behavior === 'PORTAL') return false;
+
+                    return true;
+                });
+
+                if (children.length > 0) {
+                    children.forEach(c => expandedIds.add(c.id));
+                    hasAdded = true;
+                }
+            }
+
+            const finalNodes = allNodes.filter(n => expandedIds.has(n.id));
+            const finalNodeIds = expandedIds;
+
+            // [FIX] 결과에 포함된 노드들 사이의 모든 연결(이웃 노드끼리의 연결 포함)을 표시
+            const relevantEdges = allEdges.filter(e => finalNodeIds.has(e.source) && finalNodeIds.has(e.target));
+
+            console.log(`📊 Filtered: Primary(${primaryMatches.length}) + Neighbors(${neighbors.length}) + Extracted(${finalNodes.length - primaryMatches.length - neighbors.length})`);
 
             const displayNodes = finalNodes.map(n => {
                 // 부모가 결과에 포함되어 있으면 계층 유지
