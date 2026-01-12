@@ -316,206 +316,175 @@ export default function PracticeRoomList({
     setSearchSuggestions([]);
   };
 
-  // Initial loading only (no previous data)
-  if (loading && rooms.length === 0) {
-    return (
-      <div className="prl-loading-container" style={{ minHeight: '300px' }}>
-        <div className="prl-spinner"></div>
-      </div>
-    );
-  }
-
-  if (!loading && rooms.length === 0) {
-    return (
-      <div className="prl-empty-state" style={{ minHeight: '300px' }}>
-        등록된 연습실이 없습니다
-        {adminType === "super" && (
-          <div className="prl-empty-action">
-            <button
-              onClick={() => window.dispatchEvent(new CustomEvent('practiceRoomRegister'))}
-              className="prl-empty-button"
-            >
-              연습실 등록
-            </button>
-          </div>
-        )}
-      </div>
-    );
-  }
-
   return (
-    <>
-      <div className="prl-main-container" style={{ position: 'relative', minHeight: '300px' }}>
-        {/* Loading Overlay for subsequent fetches */}
-        {loading && rooms.length > 0 && (
-          <div style={{
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0,0,0,0.5)',
-            zIndex: 10,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            borderRadius: '12px'
-          }}>
-            <div className="prl-spinner"></div>
-          </div>
-        )}
-
-        {/* 검색 키워드 배너 (Compact Style) */}
-        {searchQuery && (
-          <div className="prl-search-banner">
-            <i className="ri-search-line prl-search-banner-icon"></i>
-            <span>"{searchQuery}"</span>
-            <button
-              onClick={() => {
-                setSearchQuery("");
-                setInternalSearchQuery("");
-              }}
-              className="prl-search-banner-close"
-              aria-label="검색 취소"
-            >
-              <i className="ri-close-line prl-search-banner-close-icon"></i>
-            </button>
-          </div>
-        )}
-
-        {filteredAndSortedRooms.length === 0 ? (
-          <div className="prl-no-results">
-            검색 결과가 없습니다
-          </div>
-        ) : (
-          <div className="prl-grid">
-            {filteredAndSortedRooms.map((room, index) => (
-              <div
-                key={room.id}
-                onClick={() => handleRoomClick(room)}
-                className="prl-card"
-                data-analytics-id={room.id}
-                data-analytics-type="venue"
-                data-analytics-title={room.name}
-                data-analytics-section="practice_room_list"
-                style={{
-                  animationDelay: `${index * 100}ms`,
-                  position: 'relative'
-                }}
+    <div className="prl-main-container" style={{ position: 'relative', minHeight: '600px' }}>
+      {/* Loading Overlay/Spinner for initial load */}
+      {loading && rooms.length === 0 ? (
+        <div className="prl-loading-container" style={{ minHeight: '300px' }}>
+          <div className="prl-spinner"></div>
+        </div>
+      ) : !loading && rooms.length === 0 ? (
+        <div className="prl-empty-state" style={{ minHeight: '300px' }}>
+          등록된 연습실이 없습니다
+          {adminType === "super" && (
+            <div className="prl-empty-action">
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent('practiceRoomRegister'))}
+                className="prl-empty-button"
               >
-                {/* 즐겨찾기 버튼 */}
-                <button
-                  className="prl-favorite-btn"
-                  onClick={(e) => handleToggleFavorite(room.id, e)}
-                  title={favoritePracticeRoomIds.has(room.id) ? "즐겨찾기 해제" : "즐겨찾기 추가"}
-                  data-analytics-id={room.id}
-                  data-analytics-type="favorite_toggle"
-                  data-analytics-title={`Practice: ${room.name}`}
-                  data-analytics-section="practice_room_list"
-                >
-                  <i className={favoritePracticeRoomIds.has(room.id) ? "ri-star-fill" : "ri-star-line"}></i>
-                </button>
+                연습실 등록
+              </button>
+            </div>
+          )}
+        </div>
+      ) : (
+        <>
+          {/* Loading Overlay for subsequent fetches */}
+          {loading && rooms.length > 0 && (
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0,0,0,0.5)',
+              zIndex: 10,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              borderRadius: '12px'
+            }}>
+              <div className="prl-spinner"></div>
+            </div>
+          )}
 
-                {/* 왼쪽: 정보 */}
-                <div className="prl-card-info">
-                  <h3 className="prl-card-name">
-                    {room.name}
-                  </h3>
-                  {room.location && (
-                    <div style={{
-                      display: 'inline-block',
-                      padding: '2px 8px',
-                      backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                      border: '1px solid rgba(59, 130, 246, 0.3)',
-                      borderRadius: '4px',
-                      fontSize: '0.75rem',
-                      color: '#3b82f6',
-                      marginBottom: '8px',
-                      fontWeight: '500'
-                    }}>
-                      <i className="ri-map-pin-2-fill" style={{ marginRight: '4px', fontSize: '0.875rem' }}></i>
-                      {room.location}
+          {/* 검색 키워드 배너 (Compact Style) */}
+          {searchQuery && (
+            <div className="prl-search-banner" style={{ marginTop: '-20px', marginBottom: '10px' }}>
+              <i className="ri-search-line prl-search-banner-icon"></i>
+              <span>"{searchQuery}"</span>
+              <button
+                onClick={() => {
+                  setSearchQuery("");
+                  setInternalSearchQuery("");
+                }}
+                className="prl-search-banner-close"
+                aria-label="검색 취소"
+              >
+                <i className="ri-close-line prl-search-banner-close-icon"></i>
+              </button>
+            </div>
+          )}
+
+          {filteredAndSortedRooms.length === 0 ? (
+            <div className="prl-no-results">
+              검색 결과가 없습니다
+            </div>
+          ) : (
+            <div className="prl-grid">
+              {filteredAndSortedRooms.map((room, index) => (
+                <div
+                  key={room.id}
+                  onClick={() => handleRoomClick(room)}
+                  className="prl-card"
+                  data-analytics-id={room.id}
+                  data-analytics-type="venue"
+                  data-analytics-title={room.name}
+                  data-analytics-section="practice_room_list"
+                  style={{
+                    animationDelay: `${index * 100}ms`,
+                    position: 'relative'
+                  }}
+                >
+                  {/* 즐겨찾기 버튼 */}
+                  <button
+                    className="prl-favorite-btn"
+                    onClick={(e) => handleToggleFavorite(room.id, e)}
+                    title={favoritePracticeRoomIds.has(room.id) ? "즐겨찾기 해제" : "즐겨찾기 추가"}
+                    data-analytics-id={room.id}
+                    data-analytics-type="favorite_toggle"
+                    data-analytics-title={`Practice: ${room.name}`}
+                    data-analytics-section="practice_room_list"
+                  >
+                    <i className={favoritePracticeRoomIds.has(room.id) ? "ri-star-fill" : "ri-star-line"}></i>
+                  </button>
+
+                  <div className="prl-card-info">
+                    <h3 className="prl-card-name">{room.name}</h3>
+                    {room.location && (
+                      <div className="prl-location-tag" style={{
+                        display: 'inline-block',
+                        padding: '2px 8px',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        border: '1px solid rgba(59, 130, 246, 0.3)',
+                        borderRadius: '4px',
+                        fontSize: '0.75rem',
+                        color: '#3b82f6',
+                        marginBottom: '8px',
+                        fontWeight: '500'
+                      }}>
+                        <i className="ri-map-pin-2-fill" style={{ marginRight: '4px' }}></i>
+                        {room.location}
+                      </div>
+                    )}
+                    {room.address && (
+                      <p className="prl-card-address">
+                        <i className="ri-map-pin-line prl-card-address-icon"></i>
+                        <span className="prl-card-address-text">{room.address}</span>
+                      </p>
+                    )}
+                    {room.description && (
+                      <p className="prl-card-description">{room.description}</p>
+                    )}
+                  </div>
+
+                  {room.images && room.images.length > 0 && (
+                    <div className="prl-card-image-wrapper">
+                      <img
+                        src={getOptimizedImageUrl(room.images[0], 200)}
+                        alt={room.name}
+                        className="prl-card-image"
+                      />
                     </div>
                   )}
-                  {room.address && (
-                    <p className="prl-card-address">
-                      <i className="ri-map-pin-line prl-card-address-icon"></i>
-                      <span className="prl-card-address-text">{room.address}</span>
-                    </p>
-                  )}
-                  {room.description && (
-                    <p className="prl-card-description">
-                      {room.description}
-                    </p>
-                  )}
                 </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
 
-                {/* 오른쪽: 정사각형 이미지 */}
-                {room.images && room.images.length > 0 && (
-                  <div className="prl-card-image-wrapper">
-                    <img
-                      src={getOptimizedImageUrl(room.images[0], 200)}
-                      alt={room.name}
-                      className="prl-card-image"
-                    />
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* 검색 모달 */}
+      {/* 모달들은 항상 여기에 위치하여 트리 안정성 유지 */}
       {showSearchModal && (
         <div className="prl-modal-overlay">
+          {/* ... Modal content (keeping it for structure) ... */}
           <div className="prl-modal-container">
             <div className="prl-modal-content">
               <div className="prl-modal-header">
                 <h3 className="prl-modal-title">연습실 검색</h3>
-                <button
-                  onClick={() => {
-                    setSearchQuery("");
-                    setInternalSearchQuery("");
-                    setSearchSuggestions([]);
-                    setShowSearchModal(false);
-                  }}
-                  className="prl-modal-close-btn"
-                >
+                <button onClick={() => setShowSearchModal(false)} className="prl-modal-close-btn">
                   <i className="ri-close-line prl-modal-close-icon"></i>
                 </button>
               </div>
-
               <div className="prl-search-modal-body">
-                {/* 검색 입력창 */}
                 <div className="prl-search-input-wrapper">
                   <input
                     type="text"
                     value={internalSearchQuery}
                     onChange={(e) => handleSearchQueryChange(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        handleSearchSubmit();
-                      }
-                    }}
+                    onKeyDown={(e) => e.key === "Enter" && handleSearchSubmit()}
                     className="prl-search-input"
                     placeholder="연습실 이름, 주소, 설명으로 검색..."
                     autoFocus
                   />
                   <i className="ri-search-line prl-search-input-icon"></i>
                 </div>
-
-                {/* 자동완성 제안 */}
                 {searchSuggestions.length > 0 && (
                   <div className="prl-suggestions-section">
                     <p className="prl-suggestions-header">추천 검색어</p>
                     <div className="prl-suggestions-list">
                       {searchSuggestions.map((suggestion, index) => (
-                        <button
-                          key={index}
-                          onClick={() => handleSuggestionClick(suggestion)}
-                          className="prl-suggestion-item"
-                        >
+                        <button key={index} onClick={() => handleSuggestionClick(suggestion)} className="prl-suggestion-item">
                           <i className="ri-search-line prl-suggestion-icon"></i>
                           {suggestion}
                         </button>
@@ -523,26 +492,9 @@ export default function PracticeRoomList({
                     </div>
                   </div>
                 )}
-
-                {/* 검색 버튼 */}
                 <div className="prl-modal-buttons">
-                  <button
-                    onClick={() => {
-                      setSearchQuery("");
-                      setInternalSearchQuery("");
-                      setSearchSuggestions([]);
-                      setShowSearchModal(false);
-                    }}
-                    className="prl-modal-button prl-modal-button-secondary"
-                  >
-                    초기화
-                  </button>
-                  <button
-                    onClick={handleSearchSubmit}
-                    className="prl-modal-button prl-modal-button-primary"
-                  >
-                    검색
-                  </button>
+                  <button onClick={() => { setSearchQuery(""); setInternalSearchQuery(""); setShowSearchModal(false); }} className="prl-modal-button prl-modal-button-secondary">초기화</button>
+                  <button onClick={handleSearchSubmit} className="prl-modal-button prl-modal-button-primary">검색</button>
                 </div>
               </div>
             </div>
@@ -550,54 +502,24 @@ export default function PracticeRoomList({
         </div>
       )}
 
-      {/* 정렬 모달 */}
       {showSortModal && (
         <div className="prl-modal-overlay">
           <div className="prl-modal-container">
             <div className="prl-modal-content">
               <div className="prl-modal-header">
                 <h3 className="prl-modal-title">정렬 방식</h3>
-                <button
-                  onClick={() => setShowSortModal(false)}
-                  className="prl-modal-close-btn"
-                >
+                <button onClick={() => setShowSortModal(false)} className="prl-modal-close-btn">
                   <i className="ri-close-line prl-modal-close-icon"></i>
                 </button>
               </div>
-
               <div className="prl-sort-options-container">
-                <button
-                  onClick={() => {
-                    setSortBy("random");
-                    setShowSortModal(false);
-                  }}
-                  className={`prl-sort-option ${sortBy === "random"
-                    ? "prl-sort-option-active"
-                    : ""
-                    }`}
-                >
-                  <i className="ri-shuffle-line"></i>
-                  <span>랜덤</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setSortBy("title");
-                    setShowSortModal(false);
-                  }}
-                  className={`prl-sort-option ${sortBy === "title"
-                    ? "prl-sort-option-active"
-                    : ""
-                    }`}
-                >
-                  <i className="ri-sort-alphabet-asc"></i>
-                  <span>이름순</span>
-                </button>
+                <button onClick={() => { setSortBy("random"); setShowSortModal(false); }} className={`prl-sort-option ${sortBy === "random" ? "prl-sort-option-active" : ""}`}><i className="ri-shuffle-line"></i><span>랜덤</span></button>
+                <button onClick={() => { setSortBy("title"); setShowSortModal(false); }} className={`prl-sort-option ${sortBy === "title" ? "prl-sort-option-active" : ""}`}><i className="ri-sort-alphabet-asc"></i><span>이름순</span></button>
               </div>
             </div>
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

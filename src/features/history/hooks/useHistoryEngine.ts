@@ -9,7 +9,6 @@ import { supabase } from '../../../lib/supabase';
 import type { HistoryRFNode } from '../types';
 import { mapDbNodeToRFNode } from '../utils/mappers';
 import { projectNodesToView } from '../utils/projection';
-import { isPhoneticMatch } from '../utils/phoneticSearch';
 import { useFolderLogic } from './useFolderLogic';
 
 interface UseHistoryEngineProps {
@@ -24,6 +23,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
     const [nodes, setNodes, onNodesChange] = useNodesState<any>([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState<Edge[]>([]);
     const [loading, setLoading] = useState(false);
+    const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
     const [currentRootId, setCurrentRootId] = useState<string | null>(null);
     const [currentSpaceId] = useState<string | number | null>(initialSpaceId);
     const [breadcrumbs, setBreadcrumbs] = useState<{ id: string | null; title: string }[]>([{ id: null, title: 'Home' }]);
@@ -766,10 +766,16 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                 syncVisualization(currentRootId); // 화면 갱신 추가
             });
 
+            // 🚨 중요: Layout 저장이 필요한 상태임을 표시
+            setHasUnsavedChanges(true);
+
             // 🚨 중요: Standard Save(단순 좌표 저장) 방지
             // 정렬 로직이 좌표를 재설정하므로, 여기서 함수를 종료하여 덮어쓰기를 막음.
             return;
         }
+
+        // 6. 좌표가 변경되었음을 표시
+        setHasUnsavedChanges(true);
 
     }, [nodes, currentRootId, handleMoveToParent, rearrangeFolderChildren, updateParentSize, syncVisualization]);
 
@@ -805,6 +811,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
 
             await Promise.all(promises);
             console.log('💾 [HistoryEngine] Layout Saved (Update Mode)');
+            setHasUnsavedChanges(false);
         } catch (err) {
             console.error('🚨 [HistoryEngine] Layout Save Failed:', err);
         }
@@ -1018,6 +1025,9 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
         handleUpdateEdge,
         handleMoveToParent,
         generateDecadeNodes,
-        handleResizeStop
+        handleResizeStop,
+        hasUnsavedChanges,
+        setHasUnsavedChanges,
+        loadTimeline
     };
 };

@@ -44,7 +44,7 @@ function HistoryTimelinePage() {
         currentRootId, handleNavigate, allNodesRef, syncVisualization,
         handleSaveNode, handleDeleteNodes, onNodeDragStop, handleDrop, handleSaveLayout,
         handleUpdateZIndex, handleConnect, handleDeleteEdge, handleUpdateEdge, handleMoveToParent,
-        handleResizeStop
+        handleResizeStop, hasUnsavedChanges, setHasUnsavedChanges, loadTimeline
     } = useHistoryEngine({ userId: user?.id, isAdmin: !!isAdmin, isEditMode });
 
     useEffect(() => {
@@ -735,7 +735,19 @@ function HistoryTimelinePage() {
                     {user && (
                         <button
                             className={`action-btn ${isEditMode ? 'active' : ''}`}
-                            onClick={() => setIsEditMode(!isEditMode)}
+                            onClick={() => {
+                                if (isEditMode) {
+                                    // 편집 모드 종료 시도
+                                    if (hasUnsavedChanges) {
+                                        setExitPromptOpen(true);
+                                    } else {
+                                        setIsEditMode(false);
+                                    }
+                                } else {
+                                    // 편집 모드 시작
+                                    setIsEditMode(true);
+                                }
+                            }}
                             title={isEditMode ? "편집 모드 종료" : "편집 모드 시작"}
                         >
                             <i className="ri-edit-2-line"></i>
@@ -1122,6 +1134,39 @@ function HistoryTimelinePage() {
                     onCreateCanvas={() => setShowCanvasModal(true)}
                 />
             )}
+            {/* 이탈 방지 모달 */}
+            <EditExitPromptModal
+                isOpen={exitPromptOpen}
+                onSave={async () => {
+                    await handleSaveLayout();
+                    setExitPromptOpen(false);
+                    // 브라우저 차원의 blocker가 있으면 해제
+                    if ((window as any).pendingBlocker) {
+                        (window as any).pendingBlocker.proceed();
+                        (window as any).pendingBlocker = null;
+                    }
+                    setIsEditMode(false);
+                }}
+                onDiscard={async () => {
+                    setExitPromptOpen(false);
+                    setHasUnsavedChanges(false);
+                    // 브라우저 차원의 blocker가 있으면 해제
+                    if ((window as any).pendingBlocker) {
+                        (window as any).pendingBlocker.proceed();
+                        (window as any).pendingBlocker = null;
+                    }
+                    setIsEditMode(false);
+                    // 데이터 다시 로드 (변경된 좌표 무시)
+                    await loadTimeline();
+                }}
+                onCancel={() => {
+                    setExitPromptOpen(false);
+                    if ((window as any).pendingBlocker) {
+                        (window as any).pendingBlocker.reset();
+                        (window as any).pendingBlocker = null;
+                    }
+                }}
+            />
         </div>
     );
 }

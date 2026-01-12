@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase';
 import './VideoThumbnailSection.css';
 
@@ -19,6 +20,7 @@ interface Props {
 const VideoThumbnailSection: React.FC<Props> = ({ onVideoClick }) => {
     const [videos, setVideos] = useState<VideoThumbnail[]>([]);
     const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const fetchRecentVideos = async () => {
@@ -74,7 +76,9 @@ const VideoThumbnailSection: React.FC<Props> = ({ onVideoClick }) => {
                     <i className="ri-folder-video-line" style={{ color: '#fff', marginRight: '6px' }}></i>
                     라이브러리
                 </h2>
-                {/* <button className="view-all-btn">전체보기</button> */}
+                <button className="view-all-btn" onClick={() => navigate('/board?category=history')}>
+                    전체보기 <i className="ri-arrow-right-s-line"></i>
+                </button>
             </div>
 
             <div className="video-scroll-container">

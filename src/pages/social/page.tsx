@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSocialGroups } from './hooks/useSocialGroups';
@@ -11,7 +11,6 @@ import { getLocalDateString, getKSTDay } from '../v2/utils/eventListUtils';
 
 // Components
 import WeeklySocial from './components/WeeklySocial';
-import GroupDirectory from './components/GroupDirectory';
 import GroupCalendarModal from './components/GroupCalendarModal';
 import SocialGroupDetailModal from './components/SocialGroupDetailModal';
 import SocialGroupModal from './components/SocialGroupModal';
@@ -19,20 +18,18 @@ import SocialRecruitModal from './components/SocialRecruitModal';
 import SocialScheduleModal from './components/SocialScheduleModal';
 import VenueDetailModal from '../practice/components/VenueDetailModal';
 import PracticeSection from './components/PracticeSection';
-import { useUserInteractions } from '../../hooks/useUserInteractions';
 
 // Styles
 import './social.css';
 import type { SocialGroup, SocialSchedule } from './types';
 
 const SocialPage: React.FC = () => {
-  const navigate = useNavigate();
   const { user, isAdmin } = useAuth();
   const today = getLocalDateString();
 
   // Data Hooks
   const { groups, refresh: refreshGroups } = useSocialGroups();
-  const { schedules, loading: schedulesLoading, refresh: refreshSchedules } = useSocialSchedulesNew();
+  const { schedules, refresh: refreshSchedules } = useSocialSchedulesNew();
   const { favorites, toggleFavorite } = useSocialGroupFavorites();
 
   // Modal States
@@ -55,19 +52,39 @@ const SocialPage: React.FC = () => {
   const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
   const [editSchedule, setEditSchedule] = useState<SocialSchedule | null>(null);
   const [copySchedule, setCopySchedule] = useState<SocialSchedule | null>(null);
+
+  const handleGroupClick = useCallback((group: SocialGroup) => {
+    setSelectedGroup(group);
+    setIsCalendarOpen(true);
+  }, []);
+
+  const handleGroupDetailClick = useCallback((group: SocialGroup) => {
+    setDetailGroup(group);
+    setIsDetailModalOpen(true);
+  }, []);
+
+  const handleOpenRecruit = useCallback((group: SocialGroup) => {
+    setSelectedRecruitGroup(group);
+  }, []);
+
   const [targetGroupId, setTargetGroupId] = useState<number | null>(null);
   const [eventsThisWeek, setEventsThisWeek] = useState<any[]>([]);
   const [scheduleModalTab, setScheduleModalTab] = useState<'schedule' | 'recruit'>('schedule');
   const [hideScheduleTabs, setHideScheduleTabs] = useState(false);
   const [selectedRecruitGroup, setSelectedRecruitGroup] = useState<SocialGroup | null>(null);
 
-  // ... (existing code)
+  // Helpers
+  const verifyGroupPassword = useCallback(async (groupId: number, inputPw: string): Promise<boolean> => {
+    const { data } = await supabase
+      .from('social_groups')
+      .select('id')
+      .eq('id', groupId)
+      .eq('password', inputPw)
+      .maybeSingle();
+    return !!data;
+  }, []);
 
-  // ... (existing code)
-
-  // ... (existing code)
-
-  const handleEditRecruit = async (group: SocialGroup) => {
+  const handleEditRecruit = useCallback(async (group: SocialGroup) => {
     if (!user) {
       alert("로그인이 필요합니다.");
       return;
@@ -92,11 +109,10 @@ const SocialPage: React.FC = () => {
     setScheduleModalTab('recruit');
     setHideScheduleTabs(true);
     setIsScheduleModalOpen(true);
-  };
+  }, [user, isAdmin, verifyGroupPassword]);
 
   // Event Detail Modal States
   const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null);
-  const [allGenres] = useState<{ class: string[]; event: string[] }>({ class: [], event: [] });
 
   // Fetch this week's events (excluding classes)
   useEffect(() => {
@@ -139,146 +155,8 @@ const SocialPage: React.FC = () => {
     fetchThisWeekEvents();
   }, [today]);
 
-  // Register Page Action (FAB)
-  useSetPageAction({
-    icon: 'ri-add-line',
-    label: '소셜 등록',
-    requireAuth: true,
-    onClick: () => {
-      setEditGroup(null);
-      setIsGroupModalOpen(true);
-    }
-  });
 
-  // Helpers
-  const verifyGroupPassword = async (groupId: number, inputPw: string): Promise<boolean> => {
-    const { data } = await supabase
-      .from('social_groups')
-      .select('id')
-      .eq('id', groupId)
-      .eq('password', inputPw)
-      .maybeSingle();
-    return !!data;
-  };
-
-  // Merge this week's events with schedules for WeeklySocial
-  const schedulesWithEvents = useMemo(() => {
-    const convertedEvents = eventsThisWeek.flatMap(e => {
-      const mediumImage = e.image_medium ||
-        (e.image && typeof e.image === 'string' && e.image.includes('/event-posters/full/')
-          ? e.image.replace('/event-posters/full/', '/event-posters/medium/')
-          : e.image);
-
-      const baseEvent = {
-        id: `event-${e.id}`, // Add prefix to avoid collision
-        group_id: -1, // 행사 구분을 위한 플래그
-        title: e.title,
-        description: e.description,
-        image_url: e.image,
-        image_micro: e.image_micro || e.image,
-        image_thumbnail: e.image_thumbnail || e.image,
-        image_medium: mediumImage,
-        image_full: e.image_full || e.image,
-        place_name: e.location,
-        user_id: e.user_id,
-        user_id: e.user_id,
-        created_at: e.created_at,
-        updated_at: e.created_at,
-        scope: e.scope,
-      };
-
-      // 다중 일정이 있는 경우 (각 일정별로 분리해서 생성)
-      if (e.event_dates && Array.isArray(e.event_dates) && e.event_dates.length > 0) {
-        return e.event_dates.map((dateStr: string) => ({
-          ...baseEvent,
-          date: dateStr,
-          start_time: e.time, // 시간은 공통 시간 사용
-        } as unknown as SocialSchedule));
-      }
-
-      // 단일 일정인 경우
-      return [{
-        ...baseEvent,
-        date: e.start_date || e.date,
-        start_time: e.time,
-      } as unknown as SocialSchedule];
-    });
-
-    return [...schedules, ...convertedEvents];
-  }, [schedules, eventsThisWeek]);
-
-  // Handlers
-  const handleScheduleClick = (schedule: SocialSchedule) => {
-    console.log('🔍 [Schedule Clicked]', schedule);
-    socialDetailModal.open({
-      schedule,
-      onCopy: handleCopySchedule,
-      onEdit: handleEditSchedule,
-      isAdmin: isAdmin || (user && schedule.user_id === user.id)
-    });
-  };
-
-  const handleEditGroup = async (group: SocialGroup) => {
-    if (!user) {
-      alert("로그인이 필요합니다.");
-      return;
-    }
-
-    const isCreator = group.user_id === user.id;
-
-    // Admin or Creator can edit directly without password
-    if (isCreator || isAdmin) {
-      setEditGroup(group);
-      setIsGroupModalOpen(true);
-    } else {
-      const inputPw = prompt("관리 비밀번호를 입력해주세요.");
-      if (!inputPw) return;
-
-      const isValid = await verifyGroupPassword(group.id, inputPw);
-      if (!isValid) {
-        alert("비밀번호가 일치하지 않습니다.");
-        return;
-      }
-
-      // 인증 성공: 모달로 비밀번호 전달하여 재입력 방지
-      setEditGroup({ ...group, password: inputPw });
-      setIsGroupModalOpen(true);
-    }
-  };
-
-  const handleAddSchedule = async (groupId: number) => {
-    if (!user) {
-      alert("로그인이 필요합니다.");
-      return;
-    }
-
-    // 그룹 정보 찾기 (권한 체크용)
-    const group = groups.find(g => g.id === groupId);
-    if (!group) return;
-
-    const isCreator = group.user_id === user.id;
-
-    if (!isCreator && !isAdmin) {
-      const inputPw = prompt("일정을 추가하려면 단체 관리 비밀번호가 필요합니다.");
-      if (!inputPw) return;
-
-      const isValid = await verifyGroupPassword(groupId, inputPw);
-      if (!isValid) {
-        alert("비밀번호가 일치하지 않습니다.");
-        return;
-      }
-      // 인증 성공 시 진행
-    }
-
-    setTargetGroupId(groupId);
-    setEditSchedule(null);
-    setCopySchedule(null);
-    setScheduleModalTab('schedule');
-    setHideScheduleTabs(false);
-    setIsScheduleModalOpen(true);
-  };
-
-  const handleEditSchedule = async (schedule: SocialSchedule) => {
+  const handleEditSchedule = useCallback(async (schedule: SocialSchedule) => {
     console.log('📝 [Edit Schedule Clicked]', schedule);
 
     if (!user) {
@@ -310,9 +188,9 @@ const SocialPage: React.FC = () => {
     setScheduleModalTab('schedule');
     setHideScheduleTabs(false);
     setIsScheduleModalOpen(true);
-  };
+  }, [user, isAdmin, verifyGroupPassword, socialDetailModal]);
 
-  const handleCopySchedule = (schedule: SocialSchedule) => {
+  const handleCopySchedule = useCallback((schedule: SocialSchedule) => {
     setCopySchedule(schedule);
     setEditSchedule(null);
     setTargetGroupId(schedule.group_id);
@@ -320,11 +198,138 @@ const SocialPage: React.FC = () => {
     setHideScheduleTabs(false);
     setIsScheduleModalOpen(true);
     socialDetailModal.close();
-  };
+  }, [socialDetailModal]);
 
-  const handleVenueClick = useCallback((venueId: string) => {
-    setSelectedVenueId(venueId);
-  }, []);
+  // Register Page Action (FAB)
+  useSetPageAction({
+    icon: 'ri-add-line',
+    label: '소셜 등록',
+    requireAuth: true,
+    onClick: () => {
+      setEditGroup(null);
+      setIsGroupModalOpen(true);
+    }
+  });
+
+  // Merge this week's events with schedules for WeeklySocial
+  const schedulesWithEvents = useMemo(() => {
+    const convertedEvents = eventsThisWeek.flatMap(e => {
+      const mediumImage = e.image_medium ||
+        (e.image && typeof e.image === 'string' && e.image.includes('/event-posters/full/')
+          ? e.image.replace('/event-posters/full/', '/event-posters/medium/')
+          : e.image);
+
+      const baseEvent = {
+        id: `event-${e.id}`, // Add prefix to avoid collision
+        group_id: -1, // 행사 구분을 위한 플래그
+        title: e.title,
+        description: e.description,
+        image_url: e.image,
+        image_micro: e.image_micro || e.image,
+        image_thumbnail: e.image_thumbnail || e.image,
+        image_medium: mediumImage,
+        image_full: e.image_full || e.image,
+        place_name: e.location,
+        user_id: e.user_id,
+        created_at: e.created_at,
+        updated_at: e.created_at,
+        scope: e.scope,
+      };
+
+      // 다중 일정이 있는 경우 (각 일정별로 분리해서 생성)
+      if (e.event_dates && Array.isArray(e.event_dates) && e.event_dates.length > 0) {
+        return e.event_dates.map((dateStr: string) => ({
+          ...baseEvent,
+          id: `${baseEvent.id}-${dateStr}`, // dateStr을 붙여 유일성 보장
+          date: dateStr,
+          start_time: e.time, // 시간은 공통 시간 사용
+        } as unknown as SocialSchedule));
+      }
+
+      // 단일 일정인 경우
+      const singleDate = e.start_date || e.date;
+      return [{
+        ...baseEvent,
+        id: `${baseEvent.id}-${singleDate}`,
+        date: singleDate,
+        start_time: e.time,
+      } as unknown as SocialSchedule];
+    });
+
+    return [...schedules, ...convertedEvents];
+  }, [schedules, eventsThisWeek]);
+
+  // Handlers
+  const handleScheduleClick = useCallback((schedule: SocialSchedule) => {
+    console.log('🔍 [Schedule Clicked]', schedule);
+    socialDetailModal.open({
+      schedule,
+      onCopy: handleCopySchedule,
+      onEdit: handleEditSchedule,
+      isAdmin: isAdmin || (user && schedule.user_id === user.id)
+    });
+  }, [isAdmin, user, socialDetailModal, handleCopySchedule, handleEditSchedule]);
+
+  const handleEditGroup = useCallback(async (group: SocialGroup) => {
+    if (!user) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
+
+    const isCreator = group.user_id === user.id;
+
+    // Admin or Creator can edit directly without password
+    if (isCreator || isAdmin) {
+      setEditGroup(group);
+      setIsGroupModalOpen(true);
+    } else {
+      const inputPw = prompt("관리 비밀번호를 입력해주세요.");
+      if (!inputPw) return;
+
+      const isValid = await verifyGroupPassword(group.id, inputPw);
+      if (!isValid) {
+        alert("비밀번호가 일치하지 않습니다.");
+        return;
+      }
+
+      // 인증 성공: 모달로 비밀번호 전달하여 재입력 방지
+      setEditGroup({ ...group, password: inputPw });
+      setIsGroupModalOpen(true);
+    }
+  }, [user, isAdmin, verifyGroupPassword]);
+
+  const handleAddSchedule = useCallback(async (groupId: number) => {
+    if (!user) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
+
+    // 그룹 정보 찾기 (권한 체크용)
+    const group = groups.find(g => g.id === groupId);
+    if (!group) return;
+
+    const isCreator = group.user_id === user.id;
+
+    if (!isCreator && !isAdmin) {
+      const inputPw = prompt("일정을 추가하려면 단체 관리 비밀번호가 필요합니다.");
+      if (!inputPw) return;
+
+      const isValid = await verifyGroupPassword(groupId, inputPw);
+      if (!isValid) {
+        alert("비밀번호가 일치하지 않습니다.");
+        return;
+      }
+      // 인증 성공 시 진행
+    }
+
+    setTargetGroupId(groupId);
+    setEditSchedule(null);
+    setCopySchedule(null);
+    setScheduleModalTab('schedule');
+    setHideScheduleTabs(false);
+    setIsScheduleModalOpen(true);
+  }, [user, groups, isAdmin, verifyGroupPassword]);
+
 
   const closeVenueModal = useCallback(() => {
     setSelectedVenueId(null);
@@ -343,25 +348,25 @@ const SocialPage: React.FC = () => {
       <WeeklySocial
         schedules={schedulesWithEvents}
         onScheduleClick={handleScheduleClick}
-        groups={groups}
-        favorites={favorites}
-        onToggleFavorite={toggleFavorite}
-        onGroupClick={(group) => { setSelectedGroup(group); setIsCalendarOpen(true); }}
-        onEditGroup={handleEditGroup}
-        onAddSchedule={handleAddSchedule}
-        isAdmin={!!user}
-        currentUserId={user?.id}
         initialTab={initialTab}
-        initialType={initialType}
-        onGroupDetailClick={(group) => { setDetailGroup(group); setIsDetailModalOpen(true); }}
-        onEditRecruit={handleEditRecruit}
-        onOpenRecruit={(group) => setSelectedRecruitGroup(group)}
       />
 
 
 
       {/* 4단: 연습실 / 바 (통합) */}
-      <PracticeSection />
+      <PracticeSection
+        groups={groups}
+        favorites={favorites}
+        onToggleFavorite={toggleFavorite}
+        onGroupClick={handleGroupClick}
+        onEditGroup={handleEditGroup}
+        onAddSchedule={handleAddSchedule}
+        currentUserId={user?.id}
+        initialType={initialType}
+        onGroupDetailClick={handleGroupDetailClick}
+        onEditRecruit={handleEditRecruit}
+        onOpenRecruit={handleOpenRecruit}
+      />
 
       {/* Modals */}
       {selectedGroup && (

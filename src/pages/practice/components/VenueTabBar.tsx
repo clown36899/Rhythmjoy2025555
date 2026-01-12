@@ -7,6 +7,8 @@ export type VenueCategory = string;
 interface VenueTabBarProps {
     activeCategory: VenueCategory;
     onCategoryChange: (category: VenueCategory) => void;
+    prefixCategories?: VenueCategoryData[];
+    excludeCategories?: string[];
 }
 
 interface VenueCategoryData {
@@ -15,7 +17,7 @@ interface VenueCategoryData {
     icon: string;
 }
 
-export default function VenueTabBar({ activeCategory, onCategoryChange }: VenueTabBarProps) {
+export default function VenueTabBar({ activeCategory, onCategoryChange, prefixCategories = [], excludeCategories = [] }: VenueTabBarProps) {
     const [categories, setCategories] = useState<VenueCategoryData[]>([]);
     const [loading, setLoading] = useState(true);
     const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -52,11 +54,12 @@ export default function VenueTabBar({ activeCategory, onCategoryChange }: VenueT
                     icon: getIconForCategory(category)
                 }));
 
-                setCategories(mapped);
+                setCategories([...prefixCategories, ...mapped]);
             } else {
                 // Fallback: default categories
                 console.warn('No venues found, using default categories');
                 setCategories([
+                    ...prefixCategories,
                     { id: '연습실', label: '연습실', icon: 'ri-music-2-line' },
                     { id: '스윙바', label: '스윙바', icon: 'ri-goblet-line' }
                 ]);
@@ -65,6 +68,7 @@ export default function VenueTabBar({ activeCategory, onCategoryChange }: VenueT
             console.error('Failed to load venue categories:', error);
             // Fallback on error
             setCategories([
+                ...prefixCategories,
                 { id: '연습실', label: '연습실', icon: 'ri-music-2-line' },
                 { id: '스윙바', label: '스윙바', icon: 'ri-goblet-line' }
             ]);
@@ -86,7 +90,6 @@ export default function VenueTabBar({ activeCategory, onCategoryChange }: VenueT
         const activeIndex = categories.findIndex(cat => cat.id === activeCategory);
         if (activeIndex !== -1 && tabRefs.current[activeIndex] && scrollerRef.current) {
             const activeTab = tabRefs.current[activeIndex];
-            const scroller = scrollerRef.current;
             const left = activeTab.offsetLeft;
             const width = activeTab.offsetWidth;
             setIndicatorStyle({ left, width });
@@ -115,10 +118,10 @@ export default function VenueTabBar({ activeCategory, onCategoryChange }: VenueT
     return (
         <div className="venue-tab-bar">
             <div className="venue-tab-scroller" ref={scrollerRef}>
-                {categories.map((cat, index) => (
+                {categories.filter(cat => !excludeCategories.includes(cat.id)).map((cat, index) => (
                     <button
                         key={cat.id}
-                        ref={el => tabRefs.current[index] = el}
+                        ref={el => { tabRefs.current[index] = el; }}
                         className={`venue-tab-item ${activeCategory === cat.id ? 'active' : ''}`}
                         onClick={() => onCategoryChange(cat.id as VenueCategory)}
                     >

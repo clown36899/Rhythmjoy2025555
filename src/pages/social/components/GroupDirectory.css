@@ -4,7 +4,7 @@
 }
 
 .group-directory-container.no-title {
-    padding: 0;
+    padding: 20px 0 0 0;
 }
 
 .section-header-area {
@@ -209,7 +209,7 @@
 /* Tabs Styling */
 .group-tabs-container {
     margin-bottom: 24px;
-    padding: 0 4px;
+    padding: 0 16px;
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
 }

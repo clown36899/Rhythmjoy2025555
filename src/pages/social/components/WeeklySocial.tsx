@@ -1,50 +1,24 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import type { SocialSchedule, SocialGroup } from '../types';
 import { getLocalDateString, getKSTDay } from '../../v2/utils/eventListUtils';
-import GroupDirectory from './GroupDirectory';
 import './WeeklySocial.css';
 
 interface WeeklySocialProps {
     schedules: SocialSchedule[];
     onScheduleClick: (schedule: SocialSchedule) => void;
-    // 등록(집단 디렉토리) 탭용 추가 프롭
-    groups: SocialGroup[];
-    favorites: number[];
-    onToggleFavorite: (groupId: number) => void;
-    onGroupClick: (group: SocialGroup) => void;
-    onEditGroup: (group: SocialGroup) => void;
-    onAddSchedule: (groupId: number) => void;
-    isAdmin: boolean;
-    currentUserId?: string;
     initialTab?: string | null;
-    initialType?: string | null;
-    onGroupDetailClick?: (group: SocialGroup) => void;
-    onEditRecruit?: (group: SocialGroup) => void;
-    onOpenRecruit?: (group: SocialGroup) => void;
 }
 
-type ViewTab = 'weekly' | 'all' | 'regular' | 'register';
+type ViewTab = 'weekly' | 'all' | 'regular';
 
 const WeeklySocial: React.FC<WeeklySocialProps> = ({
     schedules,
     onScheduleClick,
-    groups,
-    favorites,
-    onToggleFavorite,
-    onGroupClick,
-    onEditGroup,
-    onAddSchedule,
-    isAdmin,
-    currentUserId,
-    initialTab,
-    initialType,
-    onGroupDetailClick,
-    onEditRecruit,
-    onOpenRecruit
+    initialTab
 }) => {
     // initialTab이 유효한 ViewTab이면 그것을 사용, 아니면 'weekly'
     const [activeTab, setActiveTab] = useState<ViewTab>(() => {
-        if (initialTab === 'register' || initialTab === 'all' || initialTab === 'regular') {
+        if (initialTab === 'all' || initialTab === 'regular') {
             return initialTab as ViewTab;
         }
         return 'weekly';
@@ -55,7 +29,7 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
 
     // 소셜 페이지 진입 시 초기 탭 설정 (initialTab 변경 시 반영)
     useEffect(() => {
-        if (initialTab === 'register' || initialTab === 'all' || initialTab === 'regular') {
+        if (initialTab === 'all' || initialTab === 'regular') {
             setActiveTab(initialTab as ViewTab);
         } else {
             setActiveTab('weekly');
@@ -313,15 +287,6 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                 >
                     정기소셜
                 </button>
-                <button
-                    className={`tab-btn ${activeTab === 'register' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('register')}
-                    data-analytics-id="tab_register"
-                    data-analytics-type="tab"
-                    data-analytics-section="social_tabs"
-                >
-                    등록단체
-                </button>
                 <div className={`tab-indicator-v4 ${activeTab}`} />
             </div>
 
@@ -436,25 +401,6 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                 </div>
             )}
 
-            {activeTab === 'register' && (
-                <div className="tab-content-fade">
-                    <GroupDirectory
-                        groups={groups}
-                        favorites={favorites}
-                        onToggleFavorite={onToggleFavorite}
-                        onGroupClick={onGroupClick}
-                        onEditGroup={onEditGroup}
-                        onAddSchedule={onAddSchedule}
-                        isAdmin={isAdmin}
-                        hideTitle={true}
-                        currentUserId={currentUserId}
-                        initialTab={initialType}
-                        onGroupDetailClick={onGroupDetailClick}
-                        onEditRecruit={onEditRecruit}
-                        onOpenRecruit={onOpenRecruit}
-                    />
-                </div>
-            )}
         </section>
     );
 };

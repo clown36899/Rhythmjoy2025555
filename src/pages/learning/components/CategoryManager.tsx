@@ -1,4 +1,4 @@
-import { useState, forwardRef, useCallback, useMemo, useRef, useImperativeHandle, useEffect } from 'react';
+import { useState, forwardRef, useCallback, useMemo, useRef, useImperativeHandle } from 'react';
 import { createPortal } from 'react-dom';
 import './CategoryManager.css';
 import './CategoryManager_gap.css';
@@ -83,7 +83,7 @@ const FloatingTooltip = ({ text, x, y, visible }: { text: string, x: number, y: 
 };
 
 export const CategoryManager = forwardRef<CategoryManagerHandle, CategoryManagerProps>(({
-    onCategoryChange,
+    onCategoryChange: _onCategoryChange,
     readOnly = false,
     selectedId,
     onSelect,
@@ -186,8 +186,6 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, CategoryManager
     const [dragDest, setDragDest] = useState<string | null>(null);
     const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
     // Drag State
-    const [draggedId, setDraggedId] = useState<string | null>(null);
-    const [draggedType, setDraggedType] = useState<string | null>(null); // 🔥 Track type
     const [dropIndicator, setDropIndicator] = useState<{
         targetId: string,
         position: 'before' | 'after' | 'inside' | 'top' | 'bottom' | 'left' | 'right',

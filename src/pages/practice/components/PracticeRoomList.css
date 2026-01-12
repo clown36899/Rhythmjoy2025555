@@ -6,8 +6,8 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  padding-top: 5rem;
-  padding-bottom: 5rem;
+  padding-top: 2rem;
+  padding-bottom: 2rem;
 }
 
 .prl-spinner {
@@ -62,8 +62,8 @@
 .prl-main-container {
   padding-left: var(--spacing-4);
   padding-right: var(--spacing-4);
-  padding-top: 60px;
-  /* 탭 메뉴 공간 확보 (게시판과 동일) */
+  padding-top: 40px;
+  /* Increased to match GroupDirectory tabs height */
   padding-bottom: calc(var(--spacing-6) + 180px);
   /* Extra space for mobile bottom nav */
 }

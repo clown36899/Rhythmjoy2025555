@@ -1,16 +1,41 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { supabase } from "../../../lib/supabase";
 import PracticeRoomList from "../../practice/components/PracticeRoomList";
 import VenueTabBar from "../../practice/components/VenueTabBar";
 import { useModal } from "../../../hooks/useModal";
 import { useAuth } from "../../../contexts/AuthContext";
 import '../../practice/practice.css';
+import GroupDirectory from "./GroupDirectory";
+import type { SocialGroup } from "../types";
 
 // Reuse existing styles or create specific ones if needed
 // import './PracticeSection.css'; 
 
-export default function PracticeSection() {
+export default function PracticeSection({
+    groups,
+    favorites,
+    onToggleFavorite,
+    onGroupClick,
+    onEditGroup,
+    onAddSchedule,
+    currentUserId,
+    initialType,
+    onGroupDetailClick,
+    onEditRecruit,
+    onOpenRecruit
+}: {
+    groups: SocialGroup[];
+    favorites: number[];
+    onToggleFavorite: (groupId: number) => void;
+    onGroupClick: (group: SocialGroup) => void;
+    onEditGroup: (group: SocialGroup) => void;
+    onAddSchedule: (groupId: number) => void;
+    currentUserId?: string;
+    initialType?: string | null;
+    onGroupDetailClick?: (group: SocialGroup) => void;
+    onEditRecruit?: (group: SocialGroup) => void;
+    onOpenRecruit?: (group: SocialGroup) => void;
+}) {
     const [searchParams, setSearchParams] = useSearchParams();
     const [showSearchModal, setShowSearchModal] = useState(false);
     const [showSortModal, setShowSortModal] = useState(false);
@@ -18,7 +43,7 @@ export default function PracticeSection() {
     const venueDetailModal = useModal('venueDetail');
     const venueRegistrationModal = useModal('venueRegistration');
     const [showContactModal, setShowContactModal] = useState(false);
-    const [activeCategory, setActiveCategory] = useState<string>("연습실");
+    const [activeCategory, setActiveCategory] = useState<string>("등록단체");
     const [refreshTrigger, setRefreshTrigger] = useState(0);
 
     const { user, isAdmin } = useAuth();
@@ -27,28 +52,6 @@ export default function PracticeSection() {
 
     // Get room ID from URL params (This will now coexist with social page params)
     const roomId = searchParams.get('id');
-
-    // Load categories for swipe logic (if needed, or reuse)
-    const [categories, setCategories] = useState<string[]>([]);
-
-    useEffect(() => {
-        const loadCategories = async () => {
-            try {
-                const { data } = await supabase
-                    .from('venues')
-                    .select('category')
-                    .eq('is_active', true);
-
-                if (data) {
-                    const uniqueCategories = [...new Set(data.map(v => v.category))];
-                    setCategories(uniqueCategories);
-                }
-            } catch (error) {
-                console.error('Failed to load categories:', error);
-            }
-        };
-        loadCategories();
-    }, []);
 
     // Handle URL param for room detail
     useEffect(() => {
@@ -156,21 +159,48 @@ export default function PracticeSection() {
             <VenueTabBar
                 activeCategory={activeCategory}
                 onCategoryChange={setActiveCategory}
+                prefixCategories={[
+                    { id: '등록단체', label: '등록단체', icon: 'ri-team-line' }
+                ]}
+                excludeCategories={['스윙바']}
             />
 
-            {/* Venue List - Reusing PracticeRoomList */}
-            <PracticeRoomList
-                adminType={isEffectiveAdmin ? "super" : null}
-                showSearchModal={showSearchModal}
-                setShowSearchModal={setShowSearchModal}
-                showSortModal={showSortModal}
-                setShowSortModal={setShowSortModal}
-                sortBy={sortBy}
-                setSortBy={setSortBy}
-                activeCategory={activeCategory}
-                onVenueClick={handleVenueClick}
-                refreshTrigger={refreshTrigger}
-            />
+            <div style={{ display: activeCategory === '등록단체' ? 'block' : 'none' }}>
+                <div className="tab-content-fade">
+                    <GroupDirectory
+                        groups={groups}
+                        favorites={favorites}
+                        onToggleFavorite={onToggleFavorite}
+                        onGroupClick={onGroupClick}
+                        onEditGroup={onEditGroup}
+                        onAddSchedule={onAddSchedule}
+                        isAdmin={!!user}
+                        hideTitle={true}
+                        currentUserId={currentUserId}
+                        initialTab={initialType}
+                        onGroupDetailClick={onGroupDetailClick}
+                        onEditRecruit={onEditRecruit}
+                        onOpenRecruit={onOpenRecruit}
+                    />
+                </div>
+            </div>
+
+            <div style={{ display: activeCategory !== '등록단체' ? 'block' : 'none' }}>
+                <div className="tab-content-fade">
+                    <PracticeRoomList
+                        adminType={isEffectiveAdmin ? "super" : null}
+                        showSearchModal={showSearchModal}
+                        setShowSearchModal={setShowSearchModal}
+                        showSortModal={showSortModal}
+                        setShowSortModal={setShowSortModal}
+                        sortBy={sortBy}
+                        setSortBy={setSortBy}
+                        activeCategory={activeCategory}
+                        onVenueClick={handleVenueClick}
+                        refreshTrigger={refreshTrigger}
+                    />
+                </div>
+            </div>
 
             {/* Contact Modal */}
             {showContactModal && (
