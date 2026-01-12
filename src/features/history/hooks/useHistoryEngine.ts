@@ -247,8 +247,8 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
     }, [currentRootId, syncVisualization]);
 
     useEffect(() => {
-        if (userId) loadTimeline();
-    }, [userId, loadTimeline]);
+        loadTimeline();
+    }, [loadTimeline]);
 
     /**
      * Edge Highlighting on Node Selection

@@ -877,6 +877,7 @@ function HistoryTimelinePage() {
                 {...resourceData}
                 isEditMode={isEditMode}
                 isAdmin={!!isAdmin}
+                userId={user?.id}
                 onCategoryChange={() => setDrawerRefreshKey(k => k + 1)}
                 onCreateCategory={handleCreateCategory}
                 onDeleteResource={handleDeleteResource}

@@ -908,7 +908,7 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, CategoryManager
             flexDirection: 'column'
         }}>
             {/* 🔥 Moved Create Folder UI (Outside wrapper) */}
-            {!readOnly && (
+            {!readOnly && isAdmin && (
                 <div style={{ padding: '0px 20px 0 20px' }}>
                     {isCreating ? (
                         <div className="createForm" style={{ display: 'flex', gap: '8px', alignItems: 'center', background: '#374151', padding: '8px', borderRadius: '6px', width: 'fit-content' }}>
