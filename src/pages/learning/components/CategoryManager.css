@@ -52,18 +52,34 @@
 }
 
 .createBtn {
-    background-color: #2563eb;
-    color: white;
-    border: none;
+    background-color: transparent;
+    color: #e5e7eb;
+    border: 1px solid #4b5563;
     padding: 6px 12px;
     border-radius: 4px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+.createBtn:hover {
+    background-color: #374151;
+    color: white;
+    border-color: #6b7280;
+}
+
+.createBtn:active {
+    background-color: #1f2937;
 }
 
 .createBtn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+    background-color: transparent;
 }
 
 /* Horizontal Tree Container - Kanban Style */
@@ -251,7 +267,7 @@
     box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.3);
 }
 
-.folderIcon {
+.itemIcon {
     margin-right: 10px;
     font-size: 18px;
 }

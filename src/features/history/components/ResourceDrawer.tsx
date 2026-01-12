@@ -29,13 +29,14 @@ interface Props {
     playlists: any[];
     videos: any[]; // These are ALL videos (for unpack)
     documents: any[];
-    onMoveResource?: (id: string, targetCategoryId: string | null, isUnclassified: boolean) => void;
-    onReorderResource?: (sourceId: string, targetId: string, position: 'before' | 'after') => void;
-    onDeleteResource?: (id: string, type: string) => void;
+    onMoveResource: (playlistId: string, targetCategoryId: string | null, isUnclassified: boolean, gridRow?: number, gridColumn?: number, type?: string) => void;
+    onReorderResource: (sourceId: string, targetId: string, position: 'before' | 'after', gridRow?: number, gridColumn?: number) => void;
+    onDeleteResource: (id: string, type: string) => void;
     onRenameResource?: (id: string, newName: string, type: string) => void;
     onCategoryChange: () => void;
     isEditMode?: boolean;
     isAdmin?: boolean;
+    userId?: string; // Added for permission checks
     onToggleEditMode?: () => void;
     onEditResource?: (item: any) => void;
     onAddNode?: () => void;
@@ -47,7 +48,7 @@ export interface ResourceDrawerHandle {
     startCreatingFolder: () => void;
 }
 
-export const ResourceDrawer = forwardRef<ResourceDrawerHandle, Props>(({ isOpen, onClose, onDragStart, onItemClick, refreshKey, categories, playlists, videos, documents, onMoveResource, onReorderResource, onDeleteResource, onRenameResource, onCategoryChange, isEditMode = false, isAdmin = false, onToggleEditMode, onEditResource, onAddNode, onCreateCategory, onAddClick }, ref) => {
+export const ResourceDrawer = forwardRef<ResourceDrawerHandle, Props>(({ isOpen, onClose, onDragStart, onItemClick, refreshKey, categories, playlists, videos, documents, onMoveResource, onReorderResource, onDeleteResource, onRenameResource, onCategoryChange, isEditMode = false, isAdmin = false, userId, onToggleEditMode, onEditResource, onAddNode, onCreateCategory, onAddClick }, ref) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterMode, setFilterMode] = useState<'all' | 'year'>('all');
     const [width, setWidth] = useState(360);
@@ -351,6 +352,18 @@ export const ResourceDrawer = forwardRef<ResourceDrawerHandle, Props>(({ isOpen,
                         </div>
                     )}
                 </div>
+
+                {/* 🔥 Search Bar Moved Here */}
+                <div className="drawer-search" style={{ flex: 1, margin: '0 15px', maxWidth: '300px' }}>
+                    <input
+                        type="text"
+                        placeholder="학습 자료 검색..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        style={{ width: '100%', padding: '6px 10px', borderRadius: '4px', border: '1px solid #4b5563', background: '#374151', color: 'white' }}
+                    />
+                </div>
+
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <button
                         className="minimize-btn"
@@ -379,14 +392,6 @@ export const ResourceDrawer = forwardRef<ResourceDrawerHandle, Props>(({ isOpen,
             </div>
 
             <div className="drawer-controls">
-                <div className="drawer-search">
-                    <input
-                        type="text"
-                        placeholder="학습 자료 검색..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                </div>
                 <div className="drawer-filters">
                     <button
                         className={`filter-btn ${filterMode === 'all' ? 'active' : ''}`}
@@ -431,8 +436,10 @@ export const ResourceDrawer = forwardRef<ResourceDrawerHandle, Props>(({ isOpen,
                             onRenameResource={onRenameResource}
                             refreshKey={refreshKey}
                             onCategoryChange={onCategoryChange}
-                            readOnly={!isEditMode}
-                            dragSourceMode={isEditMode}
+                            readOnly={false} // Always interactive
+                            dragSourceMode={true} // Always allow drag operations
+                            currentUserId={userId}
+                            isAdmin={isAdmin}
                             scale={treeScale}
                             onEditItem={onEditResource}
                             onCreateCategory={onCreateCategory}

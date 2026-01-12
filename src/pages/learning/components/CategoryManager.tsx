@@ -34,13 +34,13 @@ export interface CategoryManagerHandle {
     startCreatingFolder: () => void;
 }
 
-interface Props {
-    onCategoryChange: () => void;
+interface CategoryManagerProps {
+    onCategoryChange: () => void; // Unused but kept for interface compatibility
     readOnly?: boolean;
     selectedId?: string | null;
     onSelect?: (id: string | null) => void;
     resources?: any[]; // 🔥 SIMPLIFIED: Single prop for all resources
-    onMoveResource?: (playlistId: string, targetCategoryId: string | null, isUnclassified: boolean, gridRow?: number, gridColumn?: number) => void;
+    onMoveResource?: (playlistId: string, targetCategoryId: string | null, isUnclassified: boolean, gridRow?: number, gridColumn?: number, type?: string) => void;
     onItemClick?: (item: any) => void;
     onEditItem?: (item: any) => void;
     onReorderResource?: (sourceId: string, targetId: string, position: 'before' | 'after', gridRow?: number, gridColumn?: number) => void;
@@ -53,6 +53,8 @@ interface Props {
     scale?: number;
     highlightedSourceId?: string | null;
     onDirtyChange?: (isDirty: boolean) => void;
+    currentUserId?: string;
+    isAdmin?: boolean;
 }
 
 // 🟢 Tooltip Component
@@ -80,26 +82,27 @@ const FloatingTooltip = ({ text, x, y, visible }: { text: string, x: number, y: 
     );
 };
 
-export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, _ref) => {
-    const {
-        // onCategoryChange, // Unused
-        readOnly = false,
-        selectedId,
-        onSelect,
-        resources: injectedResources = [], // 🔥 Single resources prop
-        onMoveResource,
-        onItemClick,
-        onEditItem,
-        onReorderResource,
-        onDeleteResource,
-        onRenameResource,
-        onCreateCategory,
-        onAddClick,
-        dragSourceMode = false,
-        scale = 1,
-        // highlightedSourceId
-        onDirtyChange
-    } = props;
+export const CategoryManager = forwardRef<CategoryManagerHandle, CategoryManagerProps>(({
+    onCategoryChange,
+    readOnly = false,
+    selectedId,
+    onSelect,
+    resources: injectedResources = [], // 🔥 Single resources prop
+    onMoveResource,
+    onItemClick,
+    onEditItem,
+    onReorderResource,
+    onDeleteResource,
+    onRenameResource,
+    onCreateCategory,
+    onAddClick,
+    dragSourceMode = false,
+    scale = 1,
+    // highlightedSourceId
+    onDirtyChange,
+    currentUserId,
+    isAdmin = false
+}, ref) => {
 
     // Edit State
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -138,7 +141,7 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
         setTooltip(prev => ({ ...prev, visible: false }));
     };
 
-    useImperativeHandle(_ref, () => ({
+    useImperativeHandle(ref, () => ({
         saveChanges: async () => {
             // Placeholder for future implementation if needed
             console.log('💾 [CategoryManager] saveChanges called');
@@ -182,6 +185,9 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
     const draggingIdRef = useRef<string | null>(null);
     const [dragDest, setDragDest] = useState<string | null>(null);
     const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
+    // Drag State
+    const [draggedId, setDraggedId] = useState<string | null>(null);
+    const [draggedType, setDraggedType] = useState<string | null>(null); // 🔥 Track type
     const [dropIndicator, setDropIndicator] = useState<{
         targetId: string,
         position: 'before' | 'after' | 'inside' | 'top' | 'bottom' | 'left' | 'right',
@@ -652,7 +658,7 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
         // 🔥 FIX: Display correct icon based on type
         const getIcon = () => {
             if (playlist.type === 'general') return '📁'; // Folder
-            if (playlist.type === 'video') return '📹'; // Video
+            if (playlist.type === 'video') return '▶️'; // Video
             if (playlist.type === 'playlist') return '💿'; // Playlist
             if (playlist.type === 'person') return '👤'; // Person
             return '📄'; // Document or other
@@ -721,7 +727,7 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                         </div>
                     ) : (
                         <>
-                            <span className="folderIcon">{getIcon()}</span>
+                            <span className="itemIcon">{getIcon()}</span>
                             <span
                                 className="categoryName"
                                 // title={playlist.title} // Native title removed
@@ -729,7 +735,8 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                                 onMouseMove={handleTooltipMove}
                                 onMouseLeave={handleTooltipLeave}
                             >{playlist.title}</span>
-                            {!readOnly && (
+                            {/* 🔥 Edit/Delete: Show if Admin OR Creator */}
+                            {(isAdmin || (currentUserId && (playlist.created_by === currentUserId || playlist.user_id === currentUserId))) && (
                                 <div className="actions">
                                     <button className="actionBtn" onClick={(e) => {
                                         e.stopPropagation();
@@ -844,7 +851,7 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                             >
                                 {isCollapsed ? '▶' : '▼'}
                             </span>
-                            <span className="folderIcon">
+                            <span className="itemIcon">
                                 {isSelected
                                     ? (category.type === 'canvas' || (category as any).metadata?.subtype === 'canvas' ? '🚪' : category.type === 'person' ? '👤' : '📂')
                                     : (category.type === 'canvas' || (category as any).metadata?.subtype === 'canvas' ? '🚪' : category.type === 'person' ? '👤' : '📁')
@@ -857,7 +864,8 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                                 onMouseMove={handleTooltipMove}
                                 onMouseLeave={handleTooltipLeave}
                             >{category.name}</span>
-                            {!readOnly && (
+                            {/* 🔥 Edit/Delete: Show if Admin OR Creator (Check any for safety) */}
+                            {(isAdmin || (currentUserId && ((category as any).created_by === currentUserId || (category as any).user_id === currentUserId))) && (
                                 <div className="actions">
                                     <button className="actionBtn" onClick={(e) => {
                                         e.stopPropagation();
@@ -869,7 +877,8 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                                     }}>✏️</button>
                                     <button className="actionBtn deleteBtn" onClick={(e) => {
                                         e.stopPropagation();
-                                        onDeleteResource?.(category.id, 'general');
+                                        // 🔥 Pass exact type if available, fallback to 'category'
+                                        onDeleteResource?.(category.id, (category.type || 'category'));
                                         onDirtyChange?.(true);
                                     }}>🗑️</button>
                                 </div>
@@ -898,6 +907,40 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
             display: 'flex',
             flexDirection: 'column'
         }}>
+            {/* 🔥 Moved Create Folder UI (Outside wrapper) */}
+            {!readOnly && (
+                <div style={{ padding: '0px 20px 0 20px' }}>
+                    {isCreating ? (
+                        <div className="createForm" style={{ display: 'flex', gap: '8px', alignItems: 'center', background: '#374151', padding: '8px', borderRadius: '6px', width: 'fit-content' }}>
+                            <input
+                                className="createInput"
+                                value={newCatName}
+                                onChange={e => setNewCatName(e.target.value)}
+                                placeholder="새 폴더 이름"
+                                autoFocus
+                                style={{ background: '#1f2937', color: 'white', border: '1px solid #4b5563', padding: '4px 8px', borderRadius: '4px' }}
+                                onKeyDown={e => {
+                                    if (e.key === 'Enter') handleCreate();
+                                    if (e.key === 'Escape') { setIsCreating(false); setNewCatName(''); }
+                                }}
+                            />
+                            <button className="saveBtn" style={{ padding: '4px 8px' }} onClick={handleCreate}>확인</button>
+                            <button className="cancelBtn" style={{ padding: '4px 8px' }} onClick={() => { setIsCreating(false); setNewCatName(''); }}>취소</button>
+                        </div>
+                    ) : (
+                        <button
+                            className="createBtn"
+                            onClick={() => {
+                                console.log('➕ [CategoryManager] Add button clicked -> onAddClick()');
+                                onAddClick?.();
+                            }}
+                        >
+                            <span>➕</span> 추가
+                        </button>
+                    )}
+                </div>
+            )}
+
             <div className="treeContainer" style={{ display: 'flex', gap: '20px', padding: '20px' }}>
 
                 {/* [1. 트리/ROOT 구역] */}
@@ -1019,40 +1062,7 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                 >
                     {isLoading ? <div>Loading...</div> : (
                         <>
-                            {/* Create Folder UI */}
-                            {!readOnly && (
-                                <div style={{ marginBottom: '15px' }}>
-                                    {isCreating ? (
-                                        <div className="createForm" style={{ display: 'flex', gap: '8px', alignItems: 'center', background: '#374151', padding: '8px', borderRadius: '6px' }}>
-                                            <input
-                                                className="createInput"
-                                                value={newCatName}
-                                                onChange={e => setNewCatName(e.target.value)}
-                                                placeholder="새 폴더 이름"
-                                                autoFocus
-                                                style={{ background: '#1f2937', color: 'white', border: '1px solid #4b5563', padding: '4px 8px', borderRadius: '4px' }}
-                                                onKeyDown={e => {
-                                                    if (e.key === 'Enter') handleCreate();
-                                                    if (e.key === 'Escape') { setIsCreating(false); setNewCatName(''); }
-                                                }}
-                                            />
-                                            <button className="saveBtn" style={{ padding: '4px 8px' }} onClick={handleCreate}>확인</button>
-                                            <button className="cancelBtn" style={{ padding: '4px 8px' }} onClick={() => { setIsCreating(false); setNewCatName(''); }}>취소</button>
-                                        </div>
-                                    ) : (
-                                        <button
-                                            className="createBtn"
-                                            onClick={() => {
-                                                console.log('➕ [CategoryManager] Add button clicked -> onAddClick()');
-                                                onAddClick?.();
-                                            }}
-                                            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '14px', fontWeight: '500' }}
-                                        >
-                                            <span>➕</span> 추가
-                                        </button>
-                                    )}
-                                </div>
-                            )}
+                            {/* Create Folder UI Moved to Top */}
 
                             {/* NEW: Columnar Flow Layout */}
                             <div style={{ display: 'flex', flexDirection: 'row', gap: '20px', alignItems: 'flex-start', flex: 1, overflowX: 'auto' }}>

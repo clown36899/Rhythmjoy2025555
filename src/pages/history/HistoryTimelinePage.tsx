@@ -201,7 +201,6 @@ function HistoryTimelinePage() {
             const { error } = await supabase.from('learning_categories').insert({
                 name,
                 parent_id: null,
-                is_unclassified: false,
                 user_id: user.id
             });
             if (error) throw error;
@@ -215,24 +214,109 @@ function HistoryTimelinePage() {
     // 🔥 [Resource Management Handlers]
     const handleDeleteResource = useCallback(async (id: string, type: string) => {
         if (!isAdmin) return;
-        if (!window.confirm('정말 삭제하시겠습니까?')) return;
+
+        // 1. 캔버스 사용 여부 확인 - Robust Check
+        console.log('🔍 [Delete] Checking usage for:', { id, type });
+        const usedNodes = nodes.filter((n, idx) => {
+            const d = n.data;
+            // Check ANY link to this ID (broad check for safety)
+            const nodeIdMatch = (
+                d.linked_category_id === id ||
+                d.linked_playlist_id === id ||
+                d.linked_video_id === id ||
+                d.linked_document_id === id ||
+                d.linked_category?.id === id ||
+                d.linked_playlist?.id === id ||
+                d.linked_video?.id === id ||
+                d.linked_document?.id === id
+            );
+            return nodeIdMatch;
+        });
+        console.log('🔍 [Delete] Used in nodes count:', usedNodes.length);
+
+        const isUsed = usedNodes.length > 0;
+        let message = `정말 삭제하시겠습니까?\n\n(ID: ${id})`;
+        if (isUsed) {
+            message = `⚠️ [경고] 이 아이템은 캔버스에서 ${usedNodes.length}개의 노드로 사용 중입니다.\n\n삭제 시 캔버스의 노드도 함께 제거됩니다.\n확인 시 영구 삭제됩니다.`;
+        }
+
+        if (!window.confirm(message)) return;
 
         try {
-            // Simplified Logic based on ResourceDrawer items
-            if (type === 'general') {
-                await supabase.from('learning_categories').delete().eq('id', id);
+            let deletedData: any[] | null = null;
+            let deletedSource = '';
+
+            // 🚀 Helper to try delete
+            const tryDelete = async (table: string) => {
+                const { data, error } = await supabase.from(table).delete().eq('id', id).select();
+                if (error) {
+                    // Critical Foreign Key error
+                    if (error.code === '23503') throw new Error(`하위 요소(파일 등)가 존재하여 삭제할 수 없습니다. 내용을 먼저 비워주세요.\n(Table: ${table})`);
+                    console.warn(`[Delete] Skipped ${table} (Not found or error):`, error.message);
+                    return null;
+                }
+                return data && data.length > 0 ? data : null;
+            };
+
+            // 🚀 Strategy: Priority Check based on Type, then Fallback (Shotgun Approach)
+            // 순서: Categories -> Resources -> Documents (or based on type hint)
+
+            if (type === 'general' || type === 'category' || type === 'folder') {
+                deletedData = await tryDelete('learning_categories');
+                if (deletedData) deletedSource = 'learning_categories';
+
+                if (!deletedData) {
+                    console.log('🔄 [Delete] Fallback: Checking learning_resources for folder...');
+                    deletedData = await tryDelete('learning_resources');
+                    if (deletedData) deletedSource = 'learning_resources';
+                }
             } else if (type === 'document') {
-                await supabase.from('learning_documents').delete().eq('id', id);
+                deletedData = await tryDelete('learning_documents');
+                if (deletedData) deletedSource = 'learning_documents';
+
+                if (!deletedData) {
+                    deletedData = await tryDelete('learning_resources');
+                    if (deletedData) deletedSource = 'learning_resources';
+                }
             } else {
-                // playlist, video, person, etc.
-                await supabase.from('learning_resources').delete().eq('id', id);
+                // Resources
+                deletedData = await tryDelete('learning_resources');
+                if (deletedData) deletedSource = 'learning_resources';
+
+                if (!deletedData) {
+                    console.log('🔄 [Delete] Fallback: Checking learning_categories...');
+                    deletedData = await tryDelete('learning_categories');
+                    if (deletedData) deletedSource = 'learning_categories';
+                }
             }
+
+            // Final attempt: Try ALL tables if still nothing (ignoring type hint)
+            if (!deletedData) {
+                console.log('🔄 [Delete] Desperate Fallback: Checking ALL tables...');
+                if (!deletedData) { deletedData = await tryDelete('learning_categories'); if (deletedData) deletedSource = 'learning_categories'; }
+                if (!deletedData) { deletedData = await tryDelete('learning_resources'); if (deletedData) deletedSource = 'learning_resources'; }
+                if (!deletedData) { deletedData = await tryDelete('learning_documents'); if (deletedData) deletedSource = 'learning_documents'; }
+            }
+
+            if (!deletedData || deletedData.length === 0) {
+                console.error("❌ [Delete] Failed to find item in any table.");
+                throw new Error('데이터베이스에서 해당 아이템을 찾을 수 없거나 삭제할 수 없습니다. (이미 삭제되었을 수 있음)');
+            }
+
+            console.log(`✅ [Delete] Success from [${deletedSource}]:`, deletedData);
+
+            // 3. Node 연쇄 삭제
+            if (isUsed) {
+                console.log('🗑️ [Delete] Cascading delete to nodes:', usedNodes.map(n => n.id));
+                await handleDeleteNodes(usedNodes.map(n => n.id));
+            }
+
             setDrawerRefreshKey(k => k + 1);
-        } catch (err) {
+        } catch (err: any) {
             console.error('Failed to delete resource:', err);
-            alert('삭제 실패');
+            alert(`삭제 실패: ${err.message}`);
         }
-    }, [isAdmin]);
+    }, [isAdmin, nodes, handleDeleteNodes]);
 
     const handleRenameResource = useCallback(async (id: string, newName: string, type: string) => {
         if (!isAdmin) return;
@@ -251,16 +335,27 @@ function HistoryTimelinePage() {
         }
     }, [isAdmin]);
 
-    const handleMoveResource = useCallback(async (id: string, targetCategoryId: string | null, isUnclassified: boolean) => {
+    const handleMoveResource = useCallback(async (id: string, targetCategoryId: string | null, isUnclassified: boolean, _gridRow?: number, _gridColumn?: number, type?: string) => {
         if (!isAdmin) return;
         try {
-            await supabase.from('learning_resources').update({ category_id: targetCategoryId, is_unclassified: isUnclassified }).eq('id', id);
-            await supabase.from('learning_categories').update({ parent_id: targetCategoryId, is_unclassified: isUnclassified }).eq('id', id);
-            await supabase.from('learning_documents').update({ category_id: targetCategoryId, is_unclassified: isUnclassified }).eq('id', id);
+            console.log('🚚 [Move] Resource:', { id, targetCategoryId, type });
+
+            // 🔥 Type-specific update to prevent 400/404 errors
+            if (type === 'CATEGORY' || type === 'folder' || type === 'general') {
+                await supabase.from('learning_categories').update({ parent_id: targetCategoryId, is_unclassified: isUnclassified }).eq('id', id);
+            } else if (type === 'document') {
+                await supabase.from('learning_documents').update({ category_id: targetCategoryId, is_unclassified: isUnclassified }).eq('id', id);
+            } else {
+                // Default to resources (playlist, video, person, etc.)
+                // Note: If type is undefined, we might risk missing, but CategoryManager should provide it now.
+                // Fallback: Try learning_resources as it covers most types.
+                await supabase.from('learning_resources').update({ category_id: targetCategoryId, is_unclassified: isUnclassified }).eq('id', id);
+            }
 
             setDrawerRefreshKey(k => k + 1);
         } catch (err) {
             console.error('Failed to move resource:', err);
+            alert('이동 실패');
         }
     }, [isAdmin]);
 
@@ -614,40 +709,62 @@ function HistoryTimelinePage() {
                     </select>
                 </div>
                 <div className="header-actions">
+                    {/* 선택 모드 토글 (관리자 전용) */}
                     {isAdmin && (
-                        <>
-                            <button
-                                className={`action-btn ${isSelectionMode ? 'active' : ''}`}
-                                onClick={() => setIsSelectionMode(!isSelectionMode)}
-                                title={isSelectionMode ? '화면 이동 모드' : '박스 선택 모드'}
-                            >
-                                <i className={isSelectionMode ? 'ri-cursor-fill' : 'ri-qr-scan-2-line'}></i>
-                                {isSelectionMode ? '선택 모드' : '자유 모드'}
-                            </button>
-                            <button
-                                className={`action-btn ${isEditMode ? 'active' : ''}`}
-                                onClick={() => setIsEditMode(!isEditMode)}
-                            >
-                                <i className="ri-edit-line"></i> {isEditMode ? '편집 종료' : '레이아웃 편집'}
-                            </button>
-                            {isEditMode && (
-                                <button className="action-btn save-btn" onClick={handleSaveLayout}>
-                                    <i className="ri-save-line"></i> 저장
-                                </button>
-                            )}
-                            {isEditMode && (
-                                <button
-                                    className="action-btn add-btn"
-                                    onClick={() => {
-                                        setUnifiedModalContext('canvas');
-                                        setShowUnifiedModal(true);
-                                    }}
-                                    title="항목 추가"
-                                >
-                                    <i className="ri-add-line"></i> 항목 추가
-                                </button>
-                            )}
-                        </>
+                        <button
+                            className={`action-btn ${isSelectionMode ? 'active' : ''}`}
+                            onClick={() => setIsSelectionMode(!isSelectionMode)}
+                            title={isSelectionMode ? '화면 이동 모드' : '박스 선택 모드'}
+                        >
+                            <i className={isSelectionMode ? 'ri-cursor-fill' : 'ri-qr-scan-2-line'}></i>
+                            {isSelectionMode ? '선택 모드' : '자유 모드'}
+                        </button>
+                    )}
+
+                    {/* 편집 모드 토글 (모든 로그인 유저에게 노출, 실제 권한은 내부에서 제어) */}
+                    {user && (
+                        <button
+                            className={`action-btn ${isEditMode ? 'active' : ''}`}
+                            onClick={() => setIsEditMode(!isEditMode)}
+                            title={isEditMode ? "편집 모드 종료" : "편집 모드 시작"}
+                        >
+                            <i className="ri-edit-2-line"></i>
+                            {isEditMode ? '완료' : '편집'}
+                        </button>
+                    )}
+
+                    {/* 항목 추가 버튼 - 편집 모드일 때만 노출 */}
+                    {isEditMode && (
+                        <button
+                            className="action-btn"
+                            onClick={() => {
+                                // 캔버스 중앙에 노드 추가 (기존 로직 유지)
+                                const center = {
+                                    x: -((rfInstance?.getViewport().x || 0) - (window.innerWidth / 2)) / (rfInstance?.getViewport().zoom || 1),
+                                    y: -((rfInstance?.getViewport().y || 0) - (window.innerHeight / 2)) / (rfInstance?.getViewport().zoom || 1)
+                                };
+                                onDrop({
+                                    clientX: window.innerWidth / 2,
+                                    clientY: window.innerHeight / 2,
+                                    dataTransfer: {
+                                        getData: () => JSON.stringify({
+                                            type: 'historyNode',
+                                            title: '새 항목',
+                                            year: new Date().getFullYear(),
+                                            category: 'default'
+                                        })
+                                    } as any
+                                } as React.DragEvent);
+                            }}
+                        >
+                            <i className="ri-add-line"></i>
+                            항목 추가
+                        </button>
+                    )}
+                    {isEditMode && isAdmin && ( // Only show save button if in edit mode AND admin
+                        <button className="action-btn save-btn" onClick={handleSaveLayout}>
+                            <i className="ri-save-line"></i> 저장
+                        </button>
                     )}
                 </div>
             </header>
