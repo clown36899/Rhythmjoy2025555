@@ -37,10 +37,14 @@ interface Props {
     isAdmin?: boolean;
     onToggleEditMode?: () => void;
     onEditResource?: (item: any) => void;
+    onEditResource?: (item: any) => void;
     onAddNode?: () => void;
+    onCreateCategory?: (name: string) => void;
+    onCreatePlaylist?: () => void;
+    onCreateDocument?: () => void;
 }
 
-export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refreshKey, categories, playlists, videos, documents, onMoveResource, onReorderResource, onDeleteResource, onRenameResource, onCategoryChange, isEditMode = false, isAdmin = false, onToggleEditMode, onEditResource, onAddNode }: Props) => {
+export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refreshKey, categories, playlists, videos, documents, onMoveResource, onReorderResource, onDeleteResource, onRenameResource, onCategoryChange, isEditMode = false, isAdmin = false, onToggleEditMode, onEditResource, onAddNode, onCreateCategory, onCreatePlaylist, onCreateDocument }: Props) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterMode, setFilterMode] = useState<'all' | 'year'>('all');
     const [width, setWidth] = useState(360);
@@ -420,6 +424,9 @@ export const ResourceDrawer = ({ isOpen, onClose, onDragStart, onItemClick, refr
                             dragSourceMode={isEditMode}
                             scale={treeScale}
                             onEditItem={onEditResource}
+                            onCreateCategory={onCreateCategory}
+                            onCreatePlaylist={onCreatePlaylist}
+                            onCreateDocument={onCreateDocument}
                         />
                     </div>
                 )}

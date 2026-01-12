@@ -45,8 +45,10 @@ export const mapDbNodeToRFNode = (
         nodeType = 'playlist';
         category = 'playlist';
     } else if (lc) {
-        title = lc.title || title;
-        desc = lc.description || desc;
+        // [Fix] learning_categories table uses 'name', not 'title'
+        title = lc.name || lc.title || title;
+        // [Fix] learning_categories description usually in metadata
+        desc = lc.description || lc.metadata?.description || desc;
         content = lc.content || content;
         year = lc.year || (lc.metadata?.year ? parseInt(lc.metadata.year) : year);
         date = lc.date || date;

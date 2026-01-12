@@ -44,6 +44,9 @@ interface Props {
     onReorderResource?: (sourceId: string, targetId: string, position: 'before' | 'after', gridRow?: number, gridColumn?: number) => void;
     onDeleteResource?: (id: string, type: string) => void;
     onRenameResource?: (id: string, newName: string, type: string) => void;
+    onCreateCategory?: (name: string) => void;
+    onCreatePlaylist?: () => void;
+    onCreateDocument?: () => void;
     dragSourceMode?: boolean;
     refreshKey?: number;
     scale?: number;
@@ -63,6 +66,9 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
         onReorderResource,
         onDeleteResource,
         onRenameResource,
+        onCreateCategory,
+        onCreatePlaylist,
+        onCreateDocument,
         dragSourceMode = false,
         scale = 1,
         // highlightedSourceId
@@ -71,6 +77,18 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
     // Edit State
     const [editingId, setEditingId] = useState<string | null>(null);
     const [tempName, setTempName] = useState('');
+
+    // Create State
+    const [isCreating, setIsCreating] = useState(false);
+    const [newCatName, setNewCatName] = useState('');
+
+    const handleCreate = () => {
+        if (newCatName.trim() && onCreateCategory) {
+            onCreateCategory(newCatName.trim());
+            setNewCatName('');
+            setIsCreating(false);
+        }
+    };
 
     const startEditing = (id: string, currentName: string) => {
         setEditingId(id);
@@ -851,8 +869,8 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                     style={{
                         flex: 3,
                         display: 'flex',
-                        flexDirection: 'row',
-                        gap: '20px',
+                        flexDirection: 'column',
+                        gap: '10px',
                         padding: '15px',
                         borderRadius: '12px',
                         background: dragDest === 'ROOT' ? 'rgba(59, 130, 246, 0.05)' : 'transparent',
@@ -863,31 +881,88 @@ export const CategoryManager = forwardRef<CategoryManagerHandle, Props>((props, 
                 >
                     {isLoading ? <div>Loading...</div> : (
                         <>
+                            {/* Create Folder UI */}
+                            {!readOnly && (
+                                <div style={{ marginBottom: '15px' }}>
+                                    {isCreating ? (
+                                        <div className="createForm" style={{ display: 'flex', gap: '8px', alignItems: 'center', background: '#374151', padding: '8px', borderRadius: '6px' }}>
+                                            <input
+                                                className="createInput"
+                                                value={newCatName}
+                                                onChange={e => setNewCatName(e.target.value)}
+                                                placeholder="새 폴더 이름"
+                                                autoFocus
+                                                style={{ background: '#1f2937', color: 'white', border: '1px solid #4b5563', padding: '4px 8px', borderRadius: '4px' }}
+                                                onKeyDown={e => {
+                                                    if (e.key === 'Enter') handleCreate();
+                                                    if (e.key === 'Escape') { setIsCreating(false); setNewCatName(''); }
+                                                }}
+                                            />
+                                            <button className="saveBtn" style={{ padding: '4px 8px' }} onClick={handleCreate}>확인</button>
+                                            <button className="cancelBtn" style={{ padding: '4px 8px' }} onClick={() => { setIsCreating(false); setNewCatName(''); }}>취소</button>
+                                        </div>
+                                    ) : (
+                                        <div className="creation-toolbar" style={{ display: 'flex', gap: '8px' }}>
+                                            <button
+                                                className="createBtn"
+                                                onClick={() => setIsCreating(true)}
+                                                style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 10px', background: '#374151', color: '#e5e7eb', border: '1px solid #4b5563', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}
+                                                title="새 폴더 만들기"
+                                            >
+                                                <span>📂</span> 폴더
+                                            </button>
+                                            {onCreatePlaylist && (
+                                                <button
+                                                    className="createBtn"
+                                                    onClick={onCreatePlaylist}
+                                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 10px', background: '#374151', color: '#e5e7eb', border: '1px solid #4b5563', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}
+                                                    title="새 재생목록 추가"
+                                                >
+                                                    <span>💿</span> 재생목록
+                                                </button>
+                                            )}
+                                            {onCreateDocument && (
+                                                <button
+                                                    className="createBtn"
+                                                    onClick={onCreateDocument}
+                                                    style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 10px', background: '#374151', color: '#e5e7eb', border: '1px solid #4b5563', borderRadius: '6px', cursor: 'pointer', fontSize: '13px' }}
+                                                    title="새 문서 추가"
+                                                >
+                                                    <span>📄</span> 문서
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+
                             {/* NEW: Columnar Flow Layout */}
-                            {Array.from({ length: Math.max(4, 1 + Math.max(0, ...[...tree, ...playlists.filter(p => !p.category_id && !p.is_unclassified)].map(i => i.grid_column ?? 0))) }).map((_, colIdx) => {
-                                const colItems = [
-                                    ...tree.filter(t => (t.grid_column ?? 0) === colIdx),
-                                    ...playlists.filter(p => p.category_id === null && !p.is_unclassified && p.type !== 'general' && (p.grid_column ?? 0) === colIdx)
-                                ].sort((a, b) => {
-                                    // Primary: grid_row, Secondary: order_index
-                                    if ((a.grid_row ?? 0) !== (b.grid_row ?? 0)) return (a.grid_row ?? 0) - (b.grid_row ?? 0);
-                                    return (a.order_index || 0) - (b.order_index || 0);
-                                });
+                            <div style={{ display: 'flex', flexDirection: 'row', gap: '20px', alignItems: 'flex-start', flex: 1, overflowX: 'auto' }}>
+                                {Array.from({ length: Math.max(4, 1 + Math.max(0, ...[...tree, ...playlists.filter(p => !p.category_id && !p.is_unclassified)].map(i => i.grid_column ?? 0))) }).map((_, colIdx) => {
+                                    const colItems = [
+                                        ...tree.filter(t => (t.grid_column ?? 0) === colIdx),
+                                        ...playlists.filter(p => p.category_id === null && !p.is_unclassified && p.type !== 'general' && (p.grid_column ?? 0) === colIdx)
+                                    ].sort((a, b) => {
+                                        // Primary: grid_row, Secondary: order_index
+                                        if ((a.grid_row ?? 0) !== (b.grid_row ?? 0)) return (a.grid_row ?? 0) - (b.grid_row ?? 0);
+                                        return (a.order_index || 0) - (b.order_index || 0);
+                                    });
 
-                                if (colItems.length === 0) return null;
+                                    if (colItems.length === 0) return null;
 
-                                return (
-                                    <div key={`col-${colIdx}`} className="grid-column" style={{
-                                        width: '215px',
-                                        display: 'flex',
-                                        flexDirection: 'column',
-                                        gap: '10px',
-                                        alignItems: 'flex-start'
-                                    }}>
-                                        {colItems.map(item => (item.type === 'general' || !item.type) ? renderTreeItem(item as Category) : renderPlaylistItem(item as Playlist))}
-                                    </div>
-                                );
-                            })}
+                                    return (
+                                        <div key={`col-${colIdx}`} className="grid-column" style={{
+                                            width: '215px',
+                                            display: 'flex',
+                                            flexDirection: 'column',
+                                            gap: '10px',
+                                            alignItems: 'flex-start'
+                                        }}>
+                                            {colItems.map(item => (item.type === 'general' || !item.type) ? renderTreeItem(item as Category) : renderPlaylistItem(item as Playlist))}
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </>
                     )}
                 </div>

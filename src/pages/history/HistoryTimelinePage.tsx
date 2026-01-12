@@ -17,9 +17,10 @@ import {
     EditExitPromptModal,
     EdgeEditorModal
 } from '../../features/history/components';
-import type { HistoryNodeData } from '../../features/history/types';
 import { DocumentDetailModal } from '../learning/components/DocumentDetailModal';
 import { PlaylistModal } from '../learning/components/PlaylistModal';
+import { PlaylistImportModal } from '../learning/components/PlaylistImportModal';
+import { DocumentCreateModal } from '../learning/components/DocumentCreateModal';
 
 // Styles
 import '../../features/history/styles/HistoryTimeline.css';
@@ -56,9 +57,12 @@ function HistoryTimelinePage() {
     const [editingNode, setEditingNode] = useState<HistoryNodeData | null>(null);
     const [isDetailOpen, setIsDetailOpen] = useState(false);
     const [viewingNode, setViewingNode] = useState<HistoryNodeData | null>(null);
-    // Removed unused video player states
     const [previewResource, setPreviewResource] = useState<{ id: string, type: string, title: string } | null>(null);
     const [exitPromptOpen, setExitPromptOpen] = useState(false);
+
+    // Create/Import Modals
+    const [showImportModal, setShowImportModal] = useState(false);
+    const [showDocumentModal, setShowDocumentModal] = useState(false);
 
     const [resourceData, setResourceData] = useState<any>({ categories: [], folders: [], playlists: [], videos: [], documents: [] });
     const [drawerRefreshKey, setDrawerRefreshKey] = useState(0);
@@ -128,6 +132,25 @@ function HistoryTimelinePage() {
             });
         }
     }, []);
+
+    const handleCreateCategory = async (name: string) => {
+        if (!isAdmin) return;
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+            const { error } = await supabase.from('learning_categories').insert({
+                name,
+                parent_id: null,
+                is_unclassified: false,
+                user_id: user.id
+            });
+            if (error) throw error;
+            setDrawerRefreshKey(k => k + 1);
+        } catch (err) {
+            console.error('Failed to create category:', err);
+            alert('폴더 생성 실패');
+        }
+    };
 
     // FAB & 메뉴 액션 등록
     const pageAction = useMemo(() => ({
@@ -443,6 +466,9 @@ function HistoryTimelinePage() {
                 isEditMode={isEditMode}
                 isAdmin={!!isAdmin}
                 onCategoryChange={() => setDrawerRefreshKey(k => k + 1)}
+                onCreateCategory={handleCreateCategory}
+                onCreatePlaylist={() => setShowImportModal(true)}
+                onCreateDocument={() => setShowDocumentModal(true)}
             />
 
             {/* Modals */}
@@ -519,6 +545,20 @@ function HistoryTimelinePage() {
                     <div className="loader"></div>
                     <p>데이터 처리 중...</p>
                 </div>
+            )}
+
+            {showImportModal && (
+                <PlaylistImportModal
+                    onClose={() => setShowImportModal(false)}
+                    onSuccess={() => setDrawerRefreshKey(k => k + 1)}
+                />
+            )}
+
+            {showDocumentModal && (
+                <DocumentCreateModal
+                    onClose={() => setShowDocumentModal(false)}
+                    onSuccess={() => setDrawerRefreshKey(k => k + 1)}
+                />
             )}
         </div>
     );

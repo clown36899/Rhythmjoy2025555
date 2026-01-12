@@ -210,7 +210,15 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
 
                 // 카테고리 테이블 (폴더 등)
                 if (nodeData.linked_category_id) {
-                    await supabase.from('learning_categories').update(syncData).eq('id', nodeData.linked_category_id);
+                    // [Schema Alignment] Now using native columns (description, content, image_url)
+                    // No need to merge metadata manually anymore!
+                    await supabase.from('learning_categories').update({
+                        name: nodeData.title,
+                        description: nodeData.description,
+                        content: nodeData.content,
+                        image_url: nodeData.image_url,
+                        year: nodeData.year
+                    }).eq('id', nodeData.linked_category_id);
                 }
             } catch (syncErr) {
                 console.warn('⚠️ [HistoryEngine] Proxy Sync partly failed:', syncErr);
@@ -227,10 +235,17 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                 'linked_video_id', 'linked_document_id', 'linked_playlist_id', 'linked_category_id'
             ];
 
+            const isLinked = !!(nodeData.linked_video_id || nodeData.linked_document_id || nodeData.linked_playlist_id || nodeData.linked_category_id);
+
             const dbData: any = {};
             validColumns.forEach(col => {
                 if (nodeData[col] !== undefined) {
-                    dbData[col] = nodeData[col];
+                    // [Source of Truth] 연결된 노드는 제목/설명을 원본에서 가져오므로 DB에는 NULL로 저장
+                    if (isLinked && (col === 'title' || col === 'description')) {
+                        dbData[col] = null;
+                    } else {
+                        dbData[col] = nodeData[col];
+                    }
                 }
             });
 
@@ -715,9 +730,12 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
         });
 
         // V7: 하이브리드 자동 연동 로직
+        const isLinked = !!(draggedResource.type === 'video' || draggedResource.type === 'playlist' ||
+            draggedResource.type === 'document' || draggedResource.type === 'general');
+
         const newNodeData: any = {
-            title: draggedResource.title,
-            description: draggedResource.description || '',
+            title: isLinked ? null : draggedResource.title,
+            description: isLinked ? null : (draggedResource.description || ''),
             category: draggedResource.category || 'general',
             year: draggedResource.year || new Date().getFullYear(),
             position_x: Math.round(position.x),

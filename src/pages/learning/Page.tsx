@@ -215,11 +215,17 @@ const LearningPage = () => {
 
             if (categoriesError) throw categoriesError;
 
-            // Map categories to include video_count
-            const categoriesWithCount = (categoriesData || []).map((cat: any) => ({
-                ...cat,
-                video_count: cat.videos?.[0]?.count || 0
-            }));
+            // Map categories to include video_count AND Filter out 'canvas' types (Canvas nodes should not appear in Drawer)
+            const categoriesWithCount = (categoriesData || [])
+                .filter((cat: any) => {
+                    // Safe access to metadata subtype
+                    const meta = typeof cat.metadata === 'string' ? JSON.parse(cat.metadata) : (cat.metadata || {});
+                    return meta.subtype !== 'canvas';
+                })
+                .map((cat: any) => ({
+                    ...cat,
+                    video_count: cat.videos?.[0]?.count || 0
+                }));
 
             if (documentsError) throw documentsError;
 
@@ -492,6 +498,30 @@ const LearningPage = () => {
         }
     };
 
+    const handleCreateCategory = async (name: string) => {
+        if (!isAdmin) {
+            alert('관리자 권한이 없습니다.');
+            return;
+        }
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            const { error } = await supabase.from('learning_categories').insert({
+                name,
+                parent_id: null,
+                is_unclassified: false,
+                user_id: user.id
+            });
+
+            if (error) throw error;
+            fetchData();
+        } catch (err) {
+            console.error('Failed to create category:', err);
+            alert('폴더 생성 실패');
+        }
+    };
+
     return (
         <div className="container">
             {/* Admin Floating Toolbar */}
@@ -550,6 +580,9 @@ const LearningPage = () => {
                         onMoveResource={handleMoveItem} // Updated prop name? Check definition
                         onItemClick={handlePlaylistClick} // Check definition
                         onRenameResource={handleRenameItem}
+                        onCreateCategory={handleCreateCategory}
+                        onCreatePlaylist={() => setShowImportModal(true)}
+                        onCreateDocument={() => setShowDocumentModal(true)}
                         highlightedSourceId={draggedPlaylistSourceId}
                     // onDirtyChange={setHasUnsavedChanges} // Prop might be missing in CategoryManager definition?
                     />
