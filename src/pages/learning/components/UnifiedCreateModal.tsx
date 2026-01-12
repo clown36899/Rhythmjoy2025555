@@ -8,6 +8,7 @@ interface Props {
     onCreatePerson: () => void;
     onCreatePlaylist: () => void;
     onCreateDocument: () => void;
+    onCreateGeneral?: () => void;
     context: 'drawer' | 'canvas';
 }
 
@@ -18,6 +19,7 @@ export const UnifiedCreateModal = ({
     onCreatePerson,
     onCreatePlaylist,
     onCreateDocument,
+    onCreateGeneral,
     context
 }: Props) => {
     const modalContent = (
@@ -40,6 +42,19 @@ export const UnifiedCreateModal = ({
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '12px' }}>
+                    {context === 'canvas' && (
+                        <button
+                            onClick={() => { console.log('➕ [UnifiedAdd] General Item clicked'); onClose(); setTimeout(() => onCreateGeneral?.(), 0); }}
+                            style={cardStyle}
+                        >
+                            <span style={iconStyle}>✨</span>
+                            <div style={{ textAlign: 'left' }}>
+                                <div style={titleStyle}>일반 항목</div>
+                                <div style={descStyle}>이미지나 텍스트가 포함된 기본 노드를 생성합니다.</div>
+                            </div>
+                        </button>
+                    )}
+
                     <button
                         onClick={() => { console.log('➕ [UnifiedAdd] Folder clicked'); onClose(); setTimeout(onCreateFolder, 0); }}
                         style={cardStyle}

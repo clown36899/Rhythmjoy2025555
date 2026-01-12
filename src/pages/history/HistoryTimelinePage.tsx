@@ -711,6 +711,11 @@ function HistoryTimelinePage() {
                     onEdgeClick={onEdgeClick}
                     onEdgeContextMenu={onEdgeContextMenu}
                     onEdgesDelete={onEdgesDelete}
+                    onNodesDelete={(nodesToDelete) => {
+                        if (!isAdmin || isSelectionMode) return;
+                        const ids = nodesToDelete.map(n => n.id);
+                        if (ids.length > 0) handleDeleteNodes(ids);
+                    }}
                     isSelectionMode={isSelectionMode}
                 />
 
@@ -758,22 +763,8 @@ function HistoryTimelinePage() {
                             <button
                                 className="action-btn"
                                 onClick={() => {
-                                    const center = {
-                                        x: -((rfInstance?.getViewport().x || 0) - (window.innerWidth / 2)) / (rfInstance?.getViewport().zoom || 1),
-                                        y: -((rfInstance?.getViewport().y || 0) - (window.innerHeight / 2)) / (rfInstance?.getViewport().zoom || 1)
-                                    };
-                                    onDrop({
-                                        clientX: window.innerWidth / 2,
-                                        clientY: window.innerHeight / 2,
-                                        dataTransfer: {
-                                            getData: () => JSON.stringify({
-                                                type: 'historyNode',
-                                                title: '새 항목',
-                                                year: new Date().getFullYear(),
-                                                category: 'default'
-                                            })
-                                        } as any
-                                    } as React.DragEvent);
+                                    setUnifiedModalContext('canvas');
+                                    setShowUnifiedModal(true);
                                 }}
                             >
                                 <i className="ri-add-line"></i>
@@ -1116,6 +1107,25 @@ function HistoryTimelinePage() {
                     onCreateDocument={() => setShowDocumentModal(true)}
                     onCreatePerson={() => setShowPersonModal(true)}
                     onCreateCanvas={() => setShowCanvasModal(true)}
+                    onCreateGeneral={async () => {
+                        console.log('✨ [HistoryTimelinePage] onCreateGeneral called');
+                        if (unifiedModalContext === 'canvas' && rfInstance) {
+                            const reactFlowBounds = document.querySelector('.history-timeline-canvas')?.getBoundingClientRect();
+                            const position = rfInstance.project({
+                                x: (reactFlowBounds?.width || 1000) / 2,
+                                y: (reactFlowBounds?.height || 800) / 2,
+                            });
+
+                            await handleSaveNode({
+                                title: '새 항목',
+                                year: new Date().getFullYear(),
+                                position_x: Math.round(position.x),
+                                position_y: Math.round(position.y),
+                                category: 'default',
+                                node_behavior: 'LEAF'
+                            });
+                        }
+                    }}
                 />
             )}
             {/* 이탈 방지 모달 */}

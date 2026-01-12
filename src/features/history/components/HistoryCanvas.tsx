@@ -29,6 +29,7 @@ interface HistoryCanvasProps {
     onEdgeClick?: (event: any, edge: any) => void;
     onEdgeContextMenu?: (event: any, edge: any) => void;
     onEdgesDelete?: (edges: any[]) => void;
+    onNodesDelete?: (nodes: any[]) => void;
     isSelectionMode: boolean;
 }
 
@@ -57,6 +58,7 @@ export const HistoryCanvas = ({
     onEdgeClick,
     onEdgeContextMenu,
     onEdgesDelete,
+    onNodesDelete,
     isSelectionMode
 }: HistoryCanvasProps) => {
     // console.log('🎨 [HistoryCanvas] Rendering. Nodes:', nodes.length, 'Edges:', edges.length);
@@ -83,6 +85,7 @@ export const HistoryCanvas = ({
                 onEdgeClick={onEdgeClick}
                 onEdgeContextMenu={onEdgeContextMenu}
                 onEdgesDelete={onEdgesDelete}
+                onNodesDelete={onNodesDelete}
                 nodeTypes={nodeTypes}
                 edgeTypes={edgeTypes}
                 isValidConnection={isValidConnection}
@@ -97,6 +100,7 @@ export const HistoryCanvas = ({
                 zoomOnPinch={true} /* 트랙패드 핀치 줌 활성화 */
                 selectionOnDrag={isSelectionMode}
                 preventScrolling={true} /* 브라우저 스크롤 방지 */
+                deleteKeyCode={['Backspace', 'Delete']}
                 fitView
             >
                 <Background color="#334155" gap={20} />
