@@ -38,7 +38,7 @@ const CustomBezierEdge = ({
                 id={id}
                 style={{
                     ...style,
-                    stroke: selected ? '#8b5cf6' : style.stroke || '#475569',
+                    stroke: selected ? '#8b5cf6' : style.stroke || '#71717a',
                     // strokeWidth removed: Controlled by parent (useHistoryEngine) for highlights
                     transition: 'all 0.2s',
                 }}

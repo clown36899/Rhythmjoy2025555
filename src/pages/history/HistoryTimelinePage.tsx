@@ -77,9 +77,8 @@ function HistoryTimelinePage() {
     const [resourceData, setResourceData] = useState<any>({ categories: [], folders: [], playlists: [], videos: [], documents: [] });
     const [drawerRefreshKey, setDrawerRefreshKey] = useState(0);
 
-    // 검색 및 필터링 상태
+    // 검색 상태
     const [searchQuery, setSearchQuery] = useState('');
-    const [filterCategory, setFilterCategory] = useState<string>('all');
 
     // 3. 리소스 데이터 로딩 (서랍용)
     const fetchResourceData = useCallback(async () => {
@@ -607,9 +606,7 @@ function HistoryTimelinePage() {
         });
 
         // 필터 조건 구성
-        const filters = (searchQuery || filterCategory !== 'all')
-            ? { search: searchQuery, category: filterCategory === 'all' ? undefined : filterCategory }
-            : undefined;
+        const filters = searchQuery ? { search: searchQuery } : undefined;
 
         // Sync only if handlers were missing OR other meaningful dependencies changed
         // We use a broader trigger here to be safe, but the 'nodes' dep without guard would loop.
@@ -627,7 +624,7 @@ function HistoryTimelinePage() {
 
     }, [
         isEditMode, isSelectionMode, isShiftPressed, currentRootId,
-        searchQuery, filterCategory, loading,
+        searchQuery, loading,
         handleEditNode, handleViewDetail, handlePlayVideo, syncVisualization,
         nodes.length, // Detect when nodes are loaded
         nodes[0]?.data?.onPlayVideo // Detect if handlers are present (Optimization to avoid deep comparison)
@@ -641,7 +638,7 @@ function HistoryTimelinePage() {
                 rfInstance.fitView({ padding: 0.1 });
             });
         }
-    }, [currentRootId, rfInstance, loading, nodes.length, searchQuery, filterCategory]);
+    }, [currentRootId, rfInstance, loading, nodes.length, searchQuery]);
 
     return (
         <div className="history-timeline-container">
@@ -694,19 +691,6 @@ function HistoryTimelinePage() {
                             </button>
                         )}
                     </div>
-                    <select
-                        className="category-filter"
-                        value={filterCategory}
-                        onChange={(e) => setFilterCategory(e.target.value)}
-                    >
-                        <option value="all">모든 카테고리</option>
-                        <option value="folder">폴더</option>
-                        <option value="canvas">캔버스</option>
-                        <option value="video">비디오</option>
-                        <option value="document">문서</option>
-                        <option value="playlist">재생목록</option>
-                        <option value="person">인물</option>
-                    </select>
                 </div>
             </header>
 

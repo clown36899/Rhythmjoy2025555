@@ -43,13 +43,13 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
      */
     const syncVisualization = useCallback((
         rootId: string | null,
-        filters: { search?: string; category?: string } = {}
+        filters: { search?: string } = {}
     ) => {
         let allNodes = Array.from(allNodesRef.current.values());
 
         // 1. 검색 및 필터링 적용
-        // 1. 검색 및 필터링 적용
-        if (filters?.search || filters?.category) {
+        // 1. 검색 적용
+        if (filters?.search) {
             console.log('🔍 Filtering nodes with:', filters);
 
             // [Helper] 해당 노드가 캔버스(Portal) 내부에 있는지 재귀적으로 확인
@@ -82,8 +82,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                     matchesSearch = title.toLowerCase().includes(lowerQuery);
                 }
 
-                const matchesCategory = !filters.category || n.data.category === filters.category;
-                return matchesSearch && matchesCategory;
+                return matchesSearch;
             });
 
             // [FIX] 검색어가 있는데 결과가 없으면 즉시 빈 화면 처리
@@ -237,7 +236,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                     targetHandle,
                     label: edge.label,
                     data: { label: edge.label },
-                    style: { stroke: edge.color || '#475569', strokeWidth: 2 },
+                    style: { stroke: edge.color || '#71717a', strokeWidth: 4 },
                     animated: !!edge.is_animated
                 };
             });
@@ -300,8 +299,8 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                 // Retrieve original style source of truth
                 const originalEdge = allEdgesRef.current.get(edge.id);
                 // Fallback default
-                const defaultColor = originalEdge?.style?.stroke || '#475569';
-                const defaultWidth = originalEdge?.style?.strokeWidth || 2;
+                const defaultColor = originalEdge?.style?.stroke || '#71717a';
+                const defaultWidth = originalEdge?.style?.strokeWidth || 4;
                 const defaultAnimated = !!originalEdge?.animated;
 
                 const targetColor = isConnect ? '#3b82f6' : defaultColor;
@@ -867,7 +866,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                 targetHandle: data.target_handle,
                 label: '',
                 data: { label: '' },
-                style: { stroke: '#475569', strokeWidth: 2 }
+                style: { stroke: '#71717a', strokeWidth: 4 }
             };
 
             allEdgesRef.current.set(flowEdge.id, flowEdge);
