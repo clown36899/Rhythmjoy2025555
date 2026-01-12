@@ -524,9 +524,129 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
     }, [currentRootId, syncVisualization, handleNavigate]);
 
     /**
+     * 특정 폴더 내부의 자식들을 시각적 순서대로 자동 정렬 및 배치 (Grid Sort & Snap)
+     * 사용자의 의도: "그안에서 이동하는 노드들은 자리바꿈도 될것 대신 자동으로 칸은 맞춰질것"
+     */
+    const rearrangeFolderChildren = useCallback(async (parentId: string) => {
+        console.log(`🔍 [FolderDebug] rearrangeFolderChildren called for parentId: ${parentId}`);
+        const children = Array.from(allNodesRef.current.values())
+            .filter(n => String(n.data.parent_node_id) === parentId)
+            // 1. 현재 시각적 위치 기준으로 정렬 (Visual Order)
+            .sort((a, b) => {
+                // Y축 허용 오차 (같은 줄 판정)
+                const dy = a.position.y - b.position.y;
+                if (Math.abs(dy) > 60) return dy;
+                return a.position.x - b.position.x;
+            });
+
+        console.log(`🔍 [FolderDebug] Found ${children.length} children in folder ${parentId}`);
+        if (children.length === 0) return;
+
+        // 2. Dynamic Grid Constants
+        const PADDING_X = 40;
+        const PADDING_Y = 80; // 제목 가림 방지
+        const GAP = 50; // 겹침 방지를 위해 간격 확대
+
+        // 🔥 Intent-Based Columns Inference:
+        let firstRowItemCount = 0;
+        if (children.length > 0) {
+            const firstY = children[0].position.y;
+            for (const child of children) {
+                if (Math.abs(child.position.y - firstY) < 60) {
+                    firstRowItemCount++;
+                } else {
+                    break;
+                }
+            }
+        }
+        const COLS = Math.max(firstRowItemCount, 1);
+
+        console.log(`🔍 [FolderDebug] Inferred COLS: ${COLS} (from first row items)`);
+
+        // 🔥 Dynamic Item Width: 가장 넓은 노드 기준으로 그리드 칸 크기 설정
+        let maxNodeWidth = 320;
+        children.forEach(child => {
+            const w = child.width || Number(child.style?.width) || 320;
+            if (w > maxNodeWidth) maxNodeWidth = w;
+        });
+        const ITEM_WIDTH = maxNodeWidth;
+        const ITEM_HEIGHT = 160;
+
+        console.log(`🔍 [FolderDebug] Rearranging Layout. MaxWidth: ${ITEM_WIDTH}, Gap: ${GAP}`);
+
+        // 3. Re-assign positions based on sorted index (Snap to Grid)
+        const updates = children.map(async (child, idx) => {
+            const col = idx % COLS;
+            const row = Math.floor(idx / COLS);
+
+            // "가까운 데 붙을 것": 순서대로 빈 칸을 채움
+            const newX = PADDING_X + col * (ITEM_WIDTH + GAP);
+            const newY = PADDING_Y + row * (ITEM_HEIGHT + GAP);
+
+            console.log(`🔍 [FolderDebug] Child ${child.data.title} (${child.id}) -> Row: ${row}, Col: ${col} -> (${newX}, ${newY})`);
+
+            // [Proxy Sync] 정렬 순서 업데이트
+            try {
+                if (child.data.linked_video_id || child.data.linked_document_id || child.data.linked_playlist_id) {
+                    const resourceId = child.data.linked_video_id || child.data.linked_document_id || child.data.linked_playlist_id;
+                    await supabase.from('learning_resources').update({ order_index: idx }).eq('id', resourceId);
+                }
+                if (child.data.linked_category_id) {
+                    await supabase.from('learning_categories').update({ order_index: idx }).eq('id', child.data.linked_category_id);
+                }
+            } catch (err) { /* ignore */ }
+
+            if (child.position.x === newX && child.position.y === newY) return null;
+
+            // Update ref immediately for smoothness
+            child.position = { x: newX, y: newY };
+            const refNode = allNodesRef.current.get(child.id);
+            if (refNode) refNode.position = { x: newX, y: newY };
+
+            // Do not invoke setNodes here to avoid render loops, syncVisualization handles it eventually
+            return supabase.from('history_nodes').update({ position_x: newX, position_y: newY }).eq('id', Number(child.id));
+        });
+
+        await Promise.all(updates);
+    }, []);
+
+    /**
+     * 부모 노드의 크기를 자식 노드들을 모두 포함하도록 자동 조정
+     */
+    const updateParentSize = useCallback(async (parentId: string) => {
+        console.log(`🔍 [FolderDebug] updateParentSize called for parentId: ${parentId}`);
+        const children = Array.from(allNodesRef.current.values()).filter(n => String(n.data.parent_node_id) === parentId);
+        const parentNode = allNodesRef.current.get(parentId);
+        if (!parentNode || children.length === 0) return;
+
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        children.forEach(child => {
+            const w = child.width || Number(child.style?.width) || 320;
+            const h = child.height || Number(child.style?.height) || 160;
+            minX = Math.min(minX, child.position.x);
+            minY = Math.min(minY, child.position.y);
+            maxX = Math.max(maxX, child.position.x + w);
+            maxY = Math.max(maxY, child.position.y + h);
+        });
+
+        const newWidth = Math.max(maxX + 40, 421);
+        const newHeight = Math.max(maxY + 40, 250);
+
+        console.log(`🔍 [FolderDebug] Calculated Size: ${newWidth}x${newHeight} (MaxX: ${maxX}, MaxY: ${maxY})`);
+
+        await supabase.from('history_nodes').update({ width: newWidth, height: newHeight }).eq('id', Number(parentId));
+
+        // Ref Update
+        parentNode.width = newWidth;
+        parentNode.height = newHeight;
+        parentNode.style = { ...parentNode.style, width: newWidth, height: newHeight };
+    }, []);
+
+    /**
      * 계층 변경 (Parent Node 변경) & 자동 크기 조절
      */
     const handleMoveToParent = useCallback(async (nodeIds: string[], newParentId: string | null) => {
+        console.log(`🔍 [FolderDebug] handleMoveToParent called. Nodes: ${nodeIds.join(', ')} -> NewParent: ${newParentId}`);
         // 1. Prepare for Auto-Resize
         const parentsToResize = new Set<string>();
         if (newParentId) parentsToResize.add(String(newParentId));
@@ -636,12 +756,24 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
         try {
             await Promise.all(updates);
 
+            // Auto-Sort & Resize for affected folders
+            if (parentsToResize.size > 0) {
+                console.log(`🔍 [FolderDebug] Triggering Sort & Resize for: ${Array.from(parentsToResize).join(', ')}`);
+                for (const pid of Array.from(parentsToResize)) {
+                    // Safe call check (in case functions are defined below)
+                    if (rearrangeFolderChildren) await rearrangeFolderChildren(pid);
+                    if (updateParentSize) await updateParentSize(pid);
+                }
+            }
+
             syncVisualization(currentRootId);
         } catch (err) {
             console.error('🚨 [HistoryEngine] Move Failed:', err);
             loadTimeline();
         }
-    }, [nodes, currentRootId, syncVisualization, handleNavigate, loadTimeline, isEditMode]);
+    }, [nodes, currentRootId, syncVisualization, handleNavigate, loadTimeline, isEditMode, rearrangeFolderChildren, updateParentSize]);
+
+
 
     /**
      * 노드 위치 저장 (Batch Upsert)
@@ -737,7 +869,24 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                 }
             }
         }
-    }, [nodes, currentRootId, handleMoveToParent]);
+
+        // 5. 🔥 Intra-Folder Move: 폴더 내부 이동 시 자동 정렬 및 크기 조절
+        const currentParentId = node.data?.parent_node_id;
+        if (currentParentId && rearrangeFolderChildren && updateParentSize) {
+            const pid = String(currentParentId);
+
+            // 비동기 정렬 및 크기 조절 후 화면 갱신
+            rearrangeFolderChildren(pid).then(async () => {
+                await updateParentSize(pid);
+                syncVisualization(currentRootId); // 화면 갱신 추가
+            });
+
+            // 🚨 중요: Standard Save(단순 좌표 저장) 방지
+            // 정렬 로직이 좌표를 재설정하므로, 여기서 함수를 종료하여 덮어쓰기를 막음.
+            return;
+        }
+
+    }, [nodes, currentRootId, handleMoveToParent, rearrangeFolderChildren, updateParentSize, syncVisualization]);
 
     const handleSaveLayout = useCallback(async () => {
         const updates = Array.from(allNodesRef.current.values()).map(n => {
