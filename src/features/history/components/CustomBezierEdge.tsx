@@ -1,4 +1,4 @@
-import { getBezierPath, EdgeLabelRenderer, type EdgeProps } from 'reactflow';
+import { getStraightPath, EdgeLabelRenderer, type EdgeProps } from 'reactflow';
 
 const CustomBezierEdge = ({
     id,
@@ -13,11 +13,9 @@ const CustomBezierEdge = ({
     data,
     selected
 }: EdgeProps) => {
-    const [edgePath, labelX, labelY] = getBezierPath({
+    const [edgePath, labelX, labelY] = getStraightPath({
         sourceX,
         sourceY,
-        sourcePosition,
-        targetPosition,
         targetX,
         targetY,
     });
