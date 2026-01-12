@@ -40,9 +40,9 @@ export const useFolderLogic = ({ allNodesRef }: UseFolderLogicProps) => {
         if (children.length === 0) return;
 
         // 2. Dynamic Grid Constants
-        const PADDING_X = 40;
-        const PADDING_Y = 80; // 제목 가림 방지
-        const GAP = 50; // 겹침 방지를 위해 간격 확대
+        const PADDING_LEFT = 40;
+        const PADDING_TOP = 80; // 제목 가림 방지
+        const GAP = 50;
 
         // 🔥 Intent-Based Columns Inference:
         let firstRowItemCount = 0;
@@ -60,28 +60,41 @@ export const useFolderLogic = ({ allNodesRef }: UseFolderLogicProps) => {
 
         console.log(`🔍 [FolderDebug] Inferred COLS: ${COLS} (from first row items)`);
 
-        // 🔥 Dynamic Item Width & Height: 가장 큰 노드 기준으로 그리드 칸 크기 설정
-        let maxNodeWidth = 320;
-        let maxNodeHeight = 160;
-        children.forEach(child => {
+        // 🔥 [Improvement] Column-Specific Widths:
+        // 폴더 내 전체 최대 크기가 아닌, 각 '열(Column)'별 최대 크기를 계산합니다.
+        // 이렇게 하면 좁은 노드들이 있는 열은 좁게, 넓은 노드가 있는 열은 넓게 배치되어 
+        // 노드 사이의 시각적 간격(GAP)이 50px로 일정하게 유지됩니다.
+        const columnWidths = new Array(COLS).fill(0);
+        const rowHeights = new Array(Math.ceil(children.length / COLS)).fill(0);
+
+        children.forEach((child, idx) => {
+            const col = idx % COLS;
+            const row = Math.floor(idx / COLS);
             const w = child.width || Number(child.style?.width) || 320;
             const h = child.height || Number(child.style?.height) || 160;
-            if (w > maxNodeWidth) maxNodeWidth = w;
-            if (h > maxNodeHeight) maxNodeHeight = h;
+            if (w > columnWidths[col]) columnWidths[col] = w;
+            if (h > rowHeights[row]) rowHeights[row] = h;
         });
-        const ITEM_WIDTH = maxNodeWidth;
-        const ITEM_HEIGHT = maxNodeHeight;
-
-        console.log(`🔍 [FolderDebug] Rearranging Layout. MaxWidth: ${ITEM_WIDTH}, MaxHeight: ${ITEM_HEIGHT}, Gap: ${GAP}`);
 
         // 3. Re-assign positions based on sorted index (Snap to Grid)
         const updates = children.map(async (child, idx) => {
             const col = idx % COLS;
             const row = Math.floor(idx / COLS);
 
-            // "가까운 데 붙을 것": 순서대로 빈 칸을 채움
-            const newX = PADDING_X + col * (ITEM_WIDTH + GAP);
-            const newY = PADDING_Y + row * (ITEM_HEIGHT + GAP);
+            // 해당 열까지의 너비 합계를 계산하여 X 위치 결정
+            let currentX = PADDING_LEFT;
+            for (let i = 0; i < col; i++) {
+                currentX += columnWidths[i] + GAP;
+            }
+
+            // 해당 행까지의 높이 합계를 계산하여 Y 위치 결정
+            let currentY = PADDING_TOP;
+            for (let i = 0; i < row; i++) {
+                currentY += rowHeights[i] + GAP;
+            }
+
+            const newX = currentX;
+            const newY = currentY;
 
             console.log(`🔍 [FolderDebug] Child ${child.data.title} (${child.id}) -> Row: ${row}, Col: ${col} -> (${newX}, ${newY})`);
 
@@ -136,8 +149,12 @@ export const useFolderLogic = ({ allNodesRef }: UseFolderLogicProps) => {
             maxY = Math.max(maxY, child.position.y + h);
         });
 
-        const newWidth = Math.max(maxX + 40, 421);
-        const newHeight = Math.max(maxY + 100, 250); // 하단 여백 확대 (40 -> 100)
+        const PADDING_LEFT = 40;
+        const PADDING_RIGHT = 40;
+        const PADDING_BOTTOM = 80;
+
+        const newWidth = Math.max(maxX + PADDING_RIGHT, 421);
+        const newHeight = Math.max(maxY + PADDING_BOTTOM, 250);
 
         console.log(`🔍 [FolderDebug] Calculated Size: ${newWidth}x${newHeight} (MaxX: ${maxX}, MaxY: ${maxY})`);
 

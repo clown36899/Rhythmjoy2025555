@@ -35,7 +35,7 @@ export const mapDbNodeToRFNode = (
 
     // 연결된 리소스가 있는 경우 정보 덮어쓰기 (Source of Truth)
     if (lp) {
-        title = lp.title || title;
+        title = lp.title || lp.name || title;
         desc = lp.description || desc;
         content = lp.content || content;
         year = lp.year || year;
@@ -77,7 +77,7 @@ export const mapDbNodeToRFNode = (
             category = 'folder';
         }
     } else if (ld) {
-        title = ld.title || title;
+        title = ld.title || ld.name || title;
         desc = ld.description || desc;
         content = ld.content || content;
         year = ld.year || year;
@@ -87,7 +87,7 @@ export const mapDbNodeToRFNode = (
         nodeType = ld.type === 'person' ? 'person' : 'document';
         category = ld.type === 'person' ? 'person' : 'document';
     } else if (lv) {
-        title = lv.title || title;
+        title = lv.title || lv.name || title;
         desc = lv.description || desc;
         content = lv.content || content;
         year = lv.year || year;

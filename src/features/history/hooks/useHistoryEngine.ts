@@ -11,6 +11,18 @@ import { mapDbNodeToRFNode } from '../utils/mappers';
 import { projectNodesToView } from '../utils/projection';
 import { useFolderLogic } from './useFolderLogic';
 
+/**
+ * [Structure] History Node용 표준 SELECT 쿼리 (Join 포함)
+ * 데이터 유실 방지를 위해 모든 INSERT/UPDATE/SELECT 시 이 쿼리를 사용합니다.
+ */
+export const HISTORY_NODE_SELECT = `
+    *,
+    linked_video: learning_resources!linked_video_id(*),
+    linked_document: learning_resources!linked_document_id(*),
+    linked_playlist: learning_resources!linked_playlist_id(*),
+    linked_category: learning_categories!linked_category_id(*)
+`;
+
 interface UseHistoryEngineProps {
     userId: string | undefined;
     isAdmin: boolean;
@@ -46,6 +58,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
         filters: { search?: string } = {}
     ) => {
         let allNodes = Array.from(allNodesRef.current.values());
+        const allEdges = Array.from(allEdgesRef.current.values());
 
         // 1. 검색 및 필터링 적용
         // 1. 검색 적용
@@ -95,7 +108,6 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
 
             // B. Connected Nodes (Neighbors via Edges)
             // B. Identify Neighbors first
-            const allEdges = Array.from(allEdgesRef.current.values());
             const primaryIds = new Set(primaryMatches.map(n => n.id));
             const neighborIds = new Set<string>();
 
@@ -138,42 +150,55 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
 
             const finalNodes = allNodes.filter(n => expandedIds.has(n.id));
             const finalNodeIds = expandedIds;
-
-            // [FIX] 결과에 포함된 노드들 사이의 모든 연결(이웃 노드끼리의 연결 포함)을 표시
             const relevantEdges = allEdges.filter(e => finalNodeIds.has(e.source) && finalNodeIds.has(e.target));
 
             console.log(`📊 Filtered: Primary(${primaryMatches.length}) + Neighbors(${neighbors.length}) + Extracted(${finalNodes.length - primaryMatches.length - neighbors.length})`);
 
-            const displayNodes = finalNodes.map(n => {
-                // 부모가 결과에 포함되어 있으면 계층 유지
-                const hasParentInView = n.parentNode && finalNodeIds.has(n.parentNode);
+            setNodes(prevNodes => {
+                return finalNodes.map(n => {
+                    // 부모가 결과에 포함되어 있으면 계층 유지
+                    const hasParentInView = n.parentNode && finalNodeIds.has(n.parentNode);
 
-                return {
-                    ...n,
-                    parentNode: hasParentInView ? n.parentNode : undefined,
-                    extent: hasParentInView ? 'parent' as const : undefined,
-                    draggable: true,
-                };
+                    // 🔥 [UX Fix] 기존 선택 상태 유지 (함수형 업데이트 사용으로 의존성 제거)
+                    const isSelected = prevNodes.find(prev => prev.id === n.id)?.selected || false;
+
+                    return {
+                        ...n,
+                        selected: isSelected,
+                        parentNode: hasParentInView ? n.parentNode : undefined,
+                        extent: hasParentInView ? 'parent' as const : undefined,
+                        draggable: true,
+                    };
+                });
             });
 
-            setNodes(displayNodes);
             setEdges(relevantEdges);
             return;
         }
 
         // 2. 계층 구조 투영 (V7 Projection Engine)
         console.log('🔄 Syncing visualization. rootId:', rootId, 'Total nodes:', allNodes.length);
-        const projectedNodes = projectNodesToView(allNodes, rootId);
+        const rawProjectedNodes = projectNodesToView(allNodes, rootId);
 
         // 3. 엣지 필터링 (가시 노드 간의 연결만 표시)
-        const visibleNodeIds = new Set(projectedNodes.map(n => n.id));
-        const allEdges = Array.from(allEdgesRef.current.values());
+        const visibleNodeIds = new Set(rawProjectedNodes.map(n => n.id));
         const visibleEdges = allEdges.filter(e => visibleNodeIds.has(e.source) && visibleNodeIds.has(e.target));
 
-        console.log('✨ Projection complete. Visible Nodes:', projectedNodes.length, 'Visible Edges:', visibleEdges.length);
-        setNodes(projectedNodes);
+        console.log('✨ Projection complete. Visible Nodes:', rawProjectedNodes.length, 'Visible Edges:', visibleEdges.length);
+
+        setNodes(prevNodes => {
+            return rawProjectedNodes.map(n => {
+                // 🔥 [UX Fix] 기존 선택 상태 유지 (함수형 업데이트 사용으로 의존성 제거)
+                const isSelected = prevNodes.find(prev => prev.id === n.id)?.selected || false;
+                return {
+                    ...n,
+                    selected: isSelected
+                };
+            });
+        });
+
         setEdges(visibleEdges);
-    }, [setNodes, setEdges]);
+    }, [allNodesRef, allEdgesRef, setNodes, setEdges]);
 
     /**
      * 타임라인 초기 데이터 로드
@@ -186,13 +211,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
             // 1. 노드 페칭
             const { data: nodesData, error: nodesErr } = await supabase
                 .from('history_nodes')
-                .select(`
-                    *,
-                    linked_video: learning_resources!linked_video_id(*),
-                    linked_document: learning_resources!linked_document_id(*),
-                    linked_playlist: learning_resources!linked_playlist_id(*),
-                    linked_category: learning_categories!linked_category_id(*)
-                `);
+                .select(HISTORY_NODE_SELECT);
             if (nodesErr) {
                 console.error('🚨 [HistoryEngine] Nodes Fetch Error:', nodesErr.message, nodesErr.details, nodesErr.hint);
                 throw nodesErr;
@@ -402,44 +421,35 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                 'linked_video_id', 'linked_document_id', 'linked_playlist_id', 'linked_category_id'
             ];
 
-            const isLinked = !!(nodeData.linked_video_id || nodeData.linked_document_id || nodeData.linked_playlist_id || nodeData.linked_category_id);
 
             const dbData: any = {};
             validColumns.forEach(col => {
-                if (nodeData[col] !== undefined) {
-                    // [Source of Truth] 연결된 노드는 제목/설명을 원본에서 가져오므로 DB에는 NULL로 저장
-                    if (isLinked && (col === 'title' || col === 'description')) {
-                        dbData[col] = null;
-                    } else {
-                        dbData[col] = nodeData[col];
-                    }
+                const value = (nodeData as any)[col];
+                if (value !== undefined) {
+                    // [Source of Truth] 연결된 노드는 제목/설명을 원본에서 가져오지만, 
+                    // 네트워크 지연이나 조인 오류 시 제목이 사라지는 것을 방지하기 위해 
+                    // DB에도 백업본으로 제목/설명을 저장합니다. (Null 처리를 제거함)
+                    dbData[col] = value;
                 }
             });
 
-            const finalData: any = {
-                ...dbData,
-                space_id: dbData.space_id || currentSpaceId,
-                parent_node_id: dbData.parent_node_id || (currentRootId ? String(currentRootId) : null)
-            };
+            const finalData: any = { ...dbData };
 
-            // 신규 노드일 때만 기여자 정보 명시 (기존 정보 보존)
-            if (isNew && userId) {
-                finalData.created_by = userId;
+            // space_id와 parent_node_id는 신규 생성 시에만 자동 할당 (수정 시에는 기존값 보존)
+            if (isNew) {
+                if (finalData.space_id === undefined) finalData.space_id = currentSpaceId;
+                if (finalData.parent_node_id === undefined) {
+                    finalData.parent_node_id = currentRootId ? String(currentRootId) : null;
+                }
+                if (userId) finalData.created_by = userId;
             }
 
             let result;
-            const selectQuery = `
-                *,
-                linked_video: learning_resources!linked_video_id(*),
-                linked_document: learning_resources!linked_document_id(*),
-                linked_playlist: learning_resources!linked_playlist_id(*),
-                linked_category: learning_categories!linked_category_id(*)
-            `;
 
             if (isNew) {
-                result = await supabase.from('history_nodes').insert(finalData).select(selectQuery).single();
+                result = await supabase.from('history_nodes').insert(finalData).select(HISTORY_NODE_SELECT).single();
             } else {
-                result = await supabase.from('history_nodes').update(finalData).eq('id', nodeData.id).select(selectQuery).single();
+                result = await supabase.from('history_nodes').update(finalData).eq('id', nodeData.id).select(HISTORY_NODE_SELECT).single();
             }
 
             if (result.error) {
@@ -504,7 +514,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
 
             const updates = nodeIds.map(async (id) => {
                 const newZ = action === 'front' ? maxZ + 1 : minZ - 1;
-                const { data, error } = await supabase.from('history_nodes').update({ z_index: newZ }).eq('id', id).select().single();
+                const { data, error } = await supabase.from('history_nodes').update({ z_index: newZ }).eq('id', id).select(HISTORY_NODE_SELECT).single();
                 if (error) throw error;
                 const updated = mapDbNodeToRFNode(data, {
                     onNavigate: handleNavigate,
@@ -556,6 +566,9 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
             const oldParentId = node.data.parent_node_id ? String(node.data.parent_node_id) : null;
             const targetParentIdStr = newParentId ? String(newParentId) : null;
 
+            let newWidth = node.width || Number(node.style?.width);
+            let newHeight = node.height || Number(node.style?.height);
+
             if (oldParentId !== targetParentIdStr) {
                 const getAbs = (n: any) => {
                     if (n.positionAbsolute) return n.positionAbsolute;
@@ -582,7 +595,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                 newX = nodeAbs.x - parentAbs.x;
                 newY = nodeAbs.y - parentAbs.y;
 
-                // 🔥 Special Case: Moving UP (out of a portal)
+                // 🔥 [Safety] Portal Exit Placement (Keep this logic as it handles higher level logic)
                 // When moving to a parent level higher than the current view
                 if (currentRootId) {
                     let traceNode = allNodesRef.current.get(String(currentRootId));
@@ -619,10 +632,12 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                 id: node.data.id,
                 position_x: newX,
                 position_y: newY,
+                width: newWidth,
+                height: newHeight,
                 parent_node_id: newParentId ? Number(newParentId) : null
             };
 
-            const { data, error } = await supabase.from('history_nodes').update(dbData).eq('id', node.data.id).select().single();
+            const { data, error } = await supabase.from('history_nodes').update(dbData).eq('id', node.data.id).select(HISTORY_NODE_SELECT).single();
             if (error) throw error;
 
             const updated = mapDbNodeToRFNode(data, {
@@ -633,6 +648,8 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                 onResizeStop: handleResizeStop
             }, isEditMode);
 
+            // Ref & Position Update
+            updated.position = { x: newX, y: newY };
             allNodesRef.current.set(updated.id, updated);
             return updated;
         });
@@ -831,12 +848,33 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
         // 2. Update DB (Ensure ID is numeric for Supabase)
         try {
             const numericId = Number(id);
-            await supabase.from('history_nodes').update({ width, height }).eq('id', numericId);
+            const { data, error } = await supabase.from('history_nodes').update({ width, height }).eq('id', numericId).select(HISTORY_NODE_SELECT).single();
+
+            if (!error && data) {
+                const updated = mapDbNodeToRFNode(data, {
+                    onNavigate: handleNavigate,
+                    onSelectionChange: (sid: string, selected: boolean) => {
+                        setNodes(nds => nds.map(node => node.id === sid ? { ...node, selected } : node));
+                    },
+                    onResizeStop: handleResizeStop
+                }, isEditMode);
+                allNodesRef.current.set(updated.id, updated);
+
+                // 🔥 [New Fix] 자식 노드 크기가 바뀌면 부모 폴더 크기도 같이 맞춰줘야 함.
+                if (data.parent_node_id) {
+                    console.log('📐 [FolderSync] Resizing parent due to child resize:', data.parent_node_id);
+                    await rearrangeFolderChildren(String(data.parent_node_id));
+                    await updateParentSize(String(data.parent_node_id));
+                }
+
+                // 🔥 [UX Fix] 부모 크기 변경사항을 즉시 화면에 반영 (Sync)
+                syncVisualization(currentRootId);
+            }
             console.log('💾 [HistoryEngine] Resize Saved:', { id: numericId, width, height });
         } catch (err) {
             console.error('🚨 [HistoryEngine] Resize Save Failed:', err);
         }
-    }, []);
+    }, [currentRootId, syncVisualization, handleNavigate, isEditMode, rearrangeFolderChildren, updateParentSize, setNodes]);
 
     /**
      * 엣지 생성 (Connect)
