@@ -189,13 +189,20 @@ function RootApp() {
 }
 
 // Polyfill 초기화 (아이폰 등 모바일에서 드래그 동작 지원)
-polyfill({
-  dragImageCenterOnTouch: true,
-  // 탭해서 스크롤시 드래그로 오인되지 않게 하는 옵션
-  iterationInterval: 50,
-  // 드래그 중 스크롤 처리
-  dragImageTranslateOverride: scrollBehaviourDragImageTranslateOverride
-});
+// TouchEvent가 없는 환경(데스크톱 Safari with iOS UA)에서는 스킵
+if (typeof TouchEvent !== 'undefined' || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+  try {
+    polyfill({
+      dragImageCenterOnTouch: true,
+      // 탭해서 스크롤시 드래그로 오인되지 않게 하는 옵션
+      iterationInterval: 50,
+      // 드래그 중 스크롤 처리
+      dragImageTranslateOverride: scrollBehaviourDragImageTranslateOverride
+    });
+  } catch (error) {
+    console.warn('[mobile-drag-drop] Polyfill initialization failed:', error);
+  }
+}
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
