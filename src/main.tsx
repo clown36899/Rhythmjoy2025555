@@ -7,6 +7,17 @@ import './index.css'
 // Mobile Drag & Drop Polyfill
 import { polyfill } from 'mobile-drag-drop';
 import { scrollBehaviourDragImageTranslateOverride } from 'mobile-drag-drop/scroll-behaviour';
+
+// [Critical Fix] Desktop Safari (iOS User Agent) Compat
+// 데스크톱 Safari에서 iOS User Agent 사용 시 TouchEvent가 정의되지 않아 발생하는 ReferenceError 방지
+if (typeof window !== 'undefined' && typeof window.TouchEvent === 'undefined') {
+  try {
+    // @ts-ignore
+    window.TouchEvent = class TouchEvent { };
+  } catch (e) {
+    console.warn('[Shim] Failed to shim TouchEvent:', e);
+  }
+}
 import 'mobile-drag-drop/default.css';
 
 import { PageActionProvider } from './contexts/PageActionContext';

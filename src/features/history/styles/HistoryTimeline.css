@@ -298,7 +298,11 @@
 
 /* Interaction States */
 .history-node {
-    transition: all 0.3s ease;
+    /* transition: all 제거 (Safari 깜빡임 원인) */
+    transition: background-color 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+    /* Safari 최적화: 3D 가속 유도 */
+    transform: translateZ(0);
+    will-change: transform, box-shadow;
 }
 
 .dimmed-node {
@@ -313,15 +317,19 @@
 
 /* 🔥 Selection State (Multi-selection) */
 .react-flow__node.selected .history-node {
-    box-shadow: 0 0 0 2px #fff, 0 0 20px rgba(139, 92, 246, 0.8) !important;
+    /* Safari Flicker Fix: outline 대신 box-shadow 사용 */
+    /* box-shadow: [inner-white-border], [outer-glow], [simulated-outline-cyan], [simulated-outline-glow] */
+    box-shadow:
+        0 0 0 2px #fff,
+        0 0 20px rgba(139, 92, 246, 0.8),
+        0 0 0 5px #06b6d4,
+        /* Replaces outline: 3px solid #06b6d4 (2px + 3px = 5px) */
+        0 0 40px rgba(6, 182, 212, 0.6) !important;
+
     border-color: #8b5cf6 !important;
     z-index: 1000 !important;
-    transform: scale(1.02);
-    /* Much stronger highlight */
-    outline: 3px solid #06b6d4 !important;
-    /* Cyan-500 */
-    outline-offset: 2px;
-    box-shadow: 0 0 30px rgba(6, 182, 212, 0.6) !important;
+    transform: scale(1.02) translateZ(0);
+    /* Ensure GPU */
 }
 
 /* Selection Box Style */
