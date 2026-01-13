@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useLocation, useNavigate, Outlet } from 'react-router-dom';
+import { useLocation, useNavigate, Outlet, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useModal } from '../hooks/useModal';
 import { useOnlineUsers } from '../hooks/useOnlineUsers';
@@ -34,7 +34,8 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
   const [calendarView, setCalendarView] = useState({ year: new Date().getFullYear(), month: new Date().getMonth() });
   // unused state removed
   const [totalUserCount, setTotalUserCount] = useState<number | null>(null);
-  const [category] = useState<string>('all'); // Added for Outlet context support
+  const [searchParams] = useSearchParams();
+  const category = searchParams.get('category') || 'all'; // Derived from URL query
 
   const currentPath = location.pathname;
   const isEventsPage = currentPath === '/v2' || currentPath === '/';
@@ -45,7 +46,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
   const isGuidePage = currentPath.startsWith('/guide');
   const isCalendarPage = currentPath === '/calendar';
   const isMyActivitiesPage = currentPath === '/my-activities';
-  const isArchivePage = currentPath.startsWith('/learning') || currentPath.startsWith('/history');
+  const isArchivePage = currentPath.startsWith('/learning') || currentPath.startsWith('/history') || (currentPath === '/board' && category === 'history');
   const isLearningDetailPage = currentPath.startsWith('/learning/') && currentPath !== '/learning';
 
   const isAdmin = isAdminProp || authIsAdmin;
@@ -265,11 +266,8 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                 {isEventsPage || isMyActivitiesPage ? (
                   /* 홈(이벤트) 페이지 및 내 활동 페이지 콘텐츠 */
                   <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: '1', minWidth: 0, overflow: 'hidden', width: 'fit-content' }}>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 'min(0.8vw, 6px)', flexWrap: 'nowrap', minWidth: 0 }}>
-                      <h1 className="header-title" style={{ margin: 0, fontSize: 'min(4vw, 1.45rem)', minWidth: 0, flexShrink: 1, overflow: 'hidden' }}>
-                        댄스빌보드
-                      </h1>
-                      <span style={{ fontSize: 'min(2.2vw, 0.8rem)', color: '#9ca3af', fontWeight: 400, whiteSpace: 'nowrap' }}>korea</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 'min(0.5vw, 4px)' }}>
+                      <img src="/logo.png" alt="RhythmJoy Logo" className="header-logo" style={{ height: 'min(6vw, 24px)', width: 'auto' }} />
                       {adminStats}
                     </div>
                     <span style={{ fontSize: 'min(2.5vw, 11px)', width: '100%', display: 'flex', justifyContent: 'space-between', color: '#ffffffcc', marginTop: 'min(0.3vw, 2px)', fontWeight: 500 }}>
@@ -293,9 +291,15 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                       </span>
                     )}
                     {isArchivePage && (
-                      <span className="header-breadcrumb-current" style={{ position: 'relative' }}>
+                      <span
+                        className="header-breadcrumb-current"
+                        style={{ position: 'relative', cursor: 'pointer' }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate('/board?category=history');
+                        }}
+                      >
                         라이브러리
-
                       </span>
                     )}
                     {isSocialPage && <span>소셜 이벤트</span>}
@@ -415,7 +419,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
             </button>
           </div>
         </div>
-      </header>
+      </header >
 
       <Outlet context={{ category, calendarMode }} />
 
@@ -427,17 +431,19 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
       </div>
 
       {/* Organic FAB */}
-      {pageAction && (
-        <button
-          className="shell-fab-btn"
-          onClick={handlePageAction}
-          aria-label={pageAction.label || "Action"}
-          data-analytics-id="fab_action"
-        >
-          <i className={pageAction.icon}></i>
-          {pageAction.label && <span className="fab-label">{pageAction.label}</span>}
-        </button>
-      )}
+      {
+        pageAction && (
+          <button
+            className="shell-fab-btn"
+            onClick={handlePageAction}
+            aria-label={pageAction.label || "Action"}
+            data-analytics-id="fab_action"
+          >
+            <i className={pageAction.icon}></i>
+            {pageAction.label && <span className="fab-label">{pageAction.label}</span>}
+          </button>
+        )
+      }
 
       <SideDrawer
         isOpen={isDrawerOpen}
@@ -455,6 +461,6 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
         message="카카오 로그인 중..."
         onCancel={cancelAuth}
       />
-    </div>
+    </div >
   );
 };

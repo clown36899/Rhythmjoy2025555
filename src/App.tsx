@@ -3,7 +3,8 @@ import { MobileShell } from "./layouts/MobileShell";
 import { Suspense, useEffect } from "react";
 import { logPageView } from "./lib/analytics";
 import { useOnlinePresence } from "./hooks/useOnlinePresence";
-import { useAuth } from "./contexts/AuthContext";
+import { PageActionProvider } from './contexts/PageActionContext';
+import { useAuth } from './contexts/AuthContext';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { CustomDevtools } from './components/CustomDevtools';
 import { queryClient } from './lib/queryClient';
@@ -45,14 +46,16 @@ function App() {
   const { isAdmin } = useAuth();
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <SiteAnalyticsProvider>
-        <InAppBrowserGuard />
-        <AppContent />
-      </SiteAnalyticsProvider>
-      {/* DevTools는 관리자만 볼 수 있음 */}
-      {isAdmin && <CustomDevtools />}
-    </QueryClientProvider>
+    <PageActionProvider>
+      <QueryClientProvider client={queryClient}>
+        <SiteAnalyticsProvider>
+          <InAppBrowserGuard />
+          <AppContent />
+        </SiteAnalyticsProvider>
+        {/* DevTools는 관리자만 볼 수 있음 */}
+        {isAdmin && <CustomDevtools />}
+      </QueryClientProvider>
+    </PageActionProvider>
   );
 }
 

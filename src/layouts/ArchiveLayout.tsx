@@ -25,13 +25,7 @@ const ArchiveLayout = () => {
                             <i className="ri-arrow-left-line"></i>
                             <span>돌아가기</span>
                         </button>
-                        <button
-                            className={`mode-tab ${currentPath === '/learning' ? 'active' : ''}`}
-                            onClick={() => navigate('/learning')}
-                        >
-                            <i className="ri-list-check"></i>
-                            <span>자료</span>
-                        </button>
+
                         <button
                             className={`mode-tab ${currentPath === '/history' ? 'active' : ''}`}
                             onClick={() => navigate('/history')}

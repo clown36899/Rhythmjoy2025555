@@ -57,11 +57,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAdmin, setIsAdmin] = useState(false);
 
   // 🔥 [개선] 모든 저장소 키에 환경별 접두사 부여 (완전 격리)
-  const isStandalone = typeof window !== 'undefined' &&
-    (window.matchMedia('(display-mode: standalone)').matches ||
-      window.matchMedia('(display-mode: fullscreen)').matches ||
-      window.matchMedia('(display-mode: minimal-ui)').matches ||
-      (window.navigator as any).standalone);
+  const isStandalone = typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches;
   const storagePrefix = isStandalone ? 'pwa-' : 'browser-';
 
   if (typeof window !== 'undefined') {

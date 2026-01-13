@@ -45,19 +45,25 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
 
     const handleThumbnailClick = (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (!data.onPreviewLinkedResource) return;
+        if (!data.onPreviewLinkedResource && !data.onPlayVideo) return;
 
-        if (data.nodeType === 'playlist' && data.linked_playlist_id) {
+        // V7 Refined Link Logic: Prioritize IDs over nodeType for robustness
+        if (data.linked_playlist_id && data.onPreviewLinkedResource) {
             data.onPreviewLinkedResource(data.linked_playlist_id, 'playlist', data.title);
-        } else if (data.nodeType === 'video' && data.linked_video_id) {
+        } else if (data.linked_video_id && data.onPreviewLinkedResource) {
             data.onPreviewLinkedResource(data.linked_video_id, 'video', data.title);
-        } else if (data.nodeType === 'document' && data.linked_document_id) {
+        } else if (data.linked_document_id && data.onPreviewLinkedResource) {
             data.onPreviewLinkedResource(data.linked_document_id, 'document', data.title);
-        } else if (data.linked_category_id) {
+        } else if (data.linked_category_id && data.onPreviewLinkedResource) {
             data.onPreviewLinkedResource(data.linked_category_id, 'folder', data.title);
         } else if (data.youtube_url && data.onPlayVideo) {
             data.onPlayVideo(data.youtube_url, data.linked_playlist_id, data.linked_video_id);
         }
+    };
+
+    const handleLinkClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        handleThumbnailClick(e);
     };
 
     const getCategoryIcon = (category: string) => {
@@ -245,7 +251,11 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
                         </span>
                     )}
                     {(data.linked_playlist_id || data.linked_document_id || data.linked_video_id || data.linked_category_id) && (
-                        <span className={`history-node-link-badge ${linkedType}`} title="학습 자료와 연동됨">
+                        <span
+                            className={`history-node-link-badge ${linkedType}`}
+                            title="학습 자료 열기"
+                            onClick={handleLinkClick}
+                        >
                             <i className="ri-link"></i>
                         </span>
                     )}

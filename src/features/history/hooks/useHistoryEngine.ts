@@ -46,6 +46,8 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
     // 2. Authoritative Refs (단일 진실 공급원)
     const allNodesRef = useRef<Map<string, HistoryRFNode>>(new Map());
     const allEdgesRef = useRef<Map<string, Edge>>(new Map());
+    // 🔥 Saved State Reference for Change Detection
+    const lastSavedStateRef = useRef<Map<string, { x: number, y: number, w: number, h: number }>>(new Map());
 
     // 🆕 Folder Logic Hook Integration
     const { rearrangeFolderChildren, updateParentSize } = useFolderLogic({ allNodesRef });
@@ -262,7 +264,16 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
             const flowNodes = (nodesData || []).map(node => mapDbNodeToRFNode(node, handlers));
 
             allNodesRef.current.clear();
-            flowNodes.forEach(node => allNodesRef.current.set(node.id, node));
+            flowNodes.forEach(node => {
+                allNodesRef.current.set(node.id, node);
+                // Initialize Last Saved State
+                lastSavedStateRef.current.set(node.id, {
+                    x: Math.round(node.position.x),
+                    y: Math.round(node.position.y),
+                    w: node.width || Number(node.style?.width) || 320,
+                    h: node.height || Number(node.style?.height) || 160
+                });
+            });
 
             const flowEdges: Edge[] = (edgesData || []).map(edge => {
                 // DB에 핸들 정보가 있으면 그것을 사용, 없으면 기본값 (right -> left)
@@ -494,6 +505,15 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                 onResizeStop: handleResizeStop
             });
             allNodesRef.current.set(updatedNode.id, updatedNode);
+
+            // 🔥 Update Saved State
+            lastSavedStateRef.current.set(updatedNode.id, {
+                x: Math.round(updatedNode.position.x),
+                y: Math.round(updatedNode.position.y),
+                w: updatedNode.width || Number(updatedNode.style?.width) || 320,
+                h: updatedNode.height || Number(updatedNode.style?.height) || 160
+            });
+            setHasUnsavedChanges(false);
 
             // 2. 시각화 투영 (엔진이 가시성 판단 후 setNodes 수행)
             syncVisualization(currentRootId);
@@ -818,8 +838,28 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
             return;
         }
 
-        // 6. 좌표가 변경되었음을 표시
-        setHasUnsavedChanges(true);
+        // 6. 좌표가 변경되었는지 확인 (Smart Change Detection)
+        const savedState = lastSavedStateRef.current.get(node.id);
+        if (savedState) {
+            const currentX = Math.round(node.position.x);
+            const currentY = Math.round(node.position.y);
+            // const currentW = node.width || Number(node.style?.width) || 320;
+            // const currentH = node.height || Number(node.style?.height) || 160;
+
+            const isChanged =
+                Math.abs(currentX - savedState.x) > 1 ||
+                Math.abs(currentY - savedState.y) > 1;
+            // Size usually changes via resize handler, not drag, but can add if needed.
+            // || Math.abs(currentW - savedState.w) > 1 || Math.abs(currentH - savedState.h) > 1;
+
+            if (isChanged) {
+                // console.log(`📝 [HistoryEngine] Node Moved: ${node.data.title} (${savedState.x},${savedState.y}) -> (${currentX},${currentY})`);
+                setHasUnsavedChanges(true);
+            }
+        } else {
+            // New node or unknown state
+            setHasUnsavedChanges(true);
+        }
 
     }, [nodes, currentRootId, handleMoveToParent, rearrangeFolderChildren, updateParentSize, syncVisualization]);
 
@@ -854,8 +894,18 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
             );
 
             await Promise.all(promises);
-            // console.log('💾 [HistoryEngine] Layout Saved (Update Mode)');
+            // 2. Save Complete - Update Last Saved State
             setHasUnsavedChanges(false);
+            updates.forEach(u => {
+                lastSavedStateRef.current.set(String(u.id), {
+                    x: u.position_x,
+                    y: u.position_y,
+                    w: u.width,
+                    h: u.height
+                });
+            });
+
+            // console.log('✅ [HistoryEngine] Layout Saved Successfully');
         } catch (err) {
             console.error('🚨 [HistoryEngine] Layout Save Failed:', err);
         }
@@ -888,10 +938,8 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                 }, isEditMode);
                 allNodesRef.current.set(updated.id, updated);
 
-                // 🔥 [New Fix] 자식 노드 크기가 바뀌면 부모 폴더 크기도 같이 맞춰줘야 함.
+                // 🔥 [New Fix] 자식 노드 크기가 바뀌면 부모 폴더 크기만 업데이트 (위치 점프 방지를 위해 정렬은 제외)
                 if (data.parent_node_id) {
-                    // console.log('📐 [FolderSync] Resizing parent due to child resize:', data.parent_node_id);
-                    await rearrangeFolderChildren(String(data.parent_node_id));
                     await updateParentSize(String(data.parent_node_id));
                 }
 

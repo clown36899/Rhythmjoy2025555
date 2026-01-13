@@ -224,6 +224,14 @@
     justify-content: center;
     font-size: 12px;
     animation: node-link-pulse 2s infinite;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.history-node-link-badge:hover {
+    filter: brightness(1.2);
+    transform: scale(1.1);
+    background: rgba(16, 185, 129, 0.4);
 }
 
 /* Linked Type Styles */

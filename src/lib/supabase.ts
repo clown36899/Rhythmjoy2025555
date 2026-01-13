@@ -18,12 +18,15 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     // 🔥 PWA와 브라우저 세션 분리: 스토리지를 공유하면서 발생하는 좀비 세션 문제 해결
     storageKey: typeof window !== 'undefined' ?
       (() => {
+        // Ensure window.matchMedia is available before using it
         const isStandalone = (
-          window.matchMedia('(display-mode: standalone)').matches ||
-          window.matchMedia('(display-mode: fullscreen)').matches ||
-          window.matchMedia('(display-mode: minimal-ui)').matches ||
-          (window.navigator as any).standalone
-        );
+          typeof window.matchMedia === 'function' && (
+            window.matchMedia('(display-mode: standalone)').matches ||
+            window.matchMedia('(display-mode: fullscreen)').matches ||
+            window.matchMedia('(display-mode: minimal-ui)').matches
+          )
+        ) || (window.navigator as any).standalone; // Fallback for older iOS PWA detection
+
         const key = isStandalone ? 'sb-pwa-auth-token' : 'sb-browser-auth-token';
         console.log(`[Supabase Init] Mode: ${isStandalone ? 'PWA' : 'Browser'}, Key: ${key}`);
         // Cannot use authLogger here because it might not be safe in all contexts, sticking to console

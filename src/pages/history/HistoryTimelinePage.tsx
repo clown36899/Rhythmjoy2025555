@@ -557,22 +557,23 @@ function HistoryTimelinePage() {
     const [editingEdge, setEditingEdge] = useState<any>(null);
 
     const onEdgeDoubleClick = useCallback((_event: any, edge: any) => {
+        if (!isAdmin || !isEditMode) return;
         setEditingEdge(edge);
         setIsEdgeModalOpen(true);
-    }, []);
+    }, [isAdmin, isEditMode]);
 
     const onEdgeClick = useCallback((_event: any, edge: any) => {
-        if (!isAdmin || isSelectionMode) return;
+        if (!isAdmin || !isEditMode || isSelectionMode) return;
         setEditingEdge(edge);
         setIsEdgeModalOpen(true);
-    }, [isAdmin, isSelectionMode]);
+    }, [isAdmin, isEditMode, isSelectionMode]);
 
     const onEdgeContextMenu = useCallback((event: any, edge: any) => {
         event.preventDefault();
-        if (!isAdmin) return;
+        if (!isAdmin || !isEditMode) return;
         setEditingEdge(edge);
         setIsEdgeModalOpen(true);
-    }, [isAdmin]);
+    }, [isAdmin, isEditMode]);
 
     const onEdgesDelete = useCallback((edgesToDelete: any[]) => {
         if (!isAdmin) return;
