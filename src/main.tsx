@@ -4,6 +4,11 @@ import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import './i18n'
 import './index.css'
 
+// Mobile Drag & Drop Polyfill
+import { polyfill } from 'mobile-drag-drop';
+import { scrollBehaviourDragImageTranslateOverride } from 'mobile-drag-drop/scroll-behaviour';
+import 'mobile-drag-drop/default.css';
+
 import { PageActionProvider } from './contexts/PageActionContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { BoardDataProvider } from './contexts/BoardDataContext';

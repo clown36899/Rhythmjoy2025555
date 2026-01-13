@@ -262,55 +262,29 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                   <img src="/logo.png" alt="RhythmJoy Logo" className="header-logo" />
                 )}
 
-                {/* 콘텐츠 분기 처리 */}
-                {isEventsPage || isMyActivitiesPage ? (
-                  /* 홈(이벤트) 페이지 및 내 활동 페이지 콘텐츠 */
-                  <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: '1', minWidth: 0, overflow: 'hidden', width: 'fit-content' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 'min(0.5vw, 4px)' }}>
-                      <img src="/logo.png" alt="RhythmJoy Logo" className="header-logo" style={{ height: 'min(6vw, 24px)', width: 'auto' }} />
-                      {adminStats}
-                    </div>
-                    <span style={{ fontSize: 'min(2.5vw, 11px)', width: '100%', display: 'flex', justifyContent: 'space-between', color: '#ffffffcc', marginTop: 'min(0.3vw, 2px)', fontWeight: 500 }}>
-                      {'swingenjoy.com'.split('').map((char, i) => (
-                        <span key={`char-${i}-${char}`}>{char}</span>
-                      ))}
+                {/* 공통 헤더 텍스트 */}
+                <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: '1', minWidth: 0, overflow: 'hidden', width: 'fit-content' }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 'min(0.8vw, 6px)', flexWrap: 'nowrap', minWidth: 0 }}>
+                    <h1 className="header-title" style={{ margin: 0, fontSize: 'min(4vw, 1.45rem)', minWidth: 0, flexShrink: 1, overflow: 'hidden' }}>
+                      댄스빌보드
+                    </h1>
+                    <span style={{ fontSize: 'min(2.2vw, 0.8rem)', color: 'rgb(156, 163, 175)', fontWeight: 400, whiteSpace: 'nowrap' }}>
+                      korea
                     </span>
                   </div>
-                ) : (
-                  /* 그 외 페이지 타이틀 (브레드크럼 적용) */
-                  <h1 className="header-title" style={{ fontSize: 'min(3.8vw, 1.35rem)', margin: 0, minWidth: 0, overflow: 'hidden', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    {isBoardPage && (
-                      <span
-                        className="header-breadcrumb-current"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate('/board');
-                        }}
-                      >
-                        포럼
-                      </span>
-                    )}
-                    {isArchivePage && (
-                      <span
-                        className="header-breadcrumb-current"
-                        style={{ position: 'relative', cursor: 'pointer' }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate('/board?category=history');
-                        }}
-                      >
-                        라이브러리
-                      </span>
-                    )}
-                    {isSocialPage && <span>소셜 이벤트</span>}
-                    {isPracticePage && <span>연습실</span>}
-                    {isShoppingPage && <span>쇼핑</span>}
-                    {isGuidePage && <span>이용가이드</span>}
-                  </h1>
+                  <span style={{ fontSize: 'min(2.5vw, 11px)', width: '100%', display: 'flex', justifyContent: 'space-between', color: 'rgba(255,255,255,0.8)', marginTop: 'min(0.3vw, 2px)', fontWeight: 500 }}>
+                    {'swingenjoy.com'.split('').map((char, i) => (
+                      <span key={`char-${i}-${char}`}>{char}</span>
+                    ))}
+                  </span>
+                </div>
+
+                {/* 이벤트·활동 페이지에 adminStats 표시 */}
+                {(isEventsPage || isMyActivitiesPage) && (
+                  <div style={{ marginLeft: '8px' }}>{adminStats}</div>
                 )}
               </div>
             )}
-
             {/* 2. Calendar Page (Full Screen) */}
             {isCalendarPage && (
               <div className="calendar-header-nav">
