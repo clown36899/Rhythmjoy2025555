@@ -183,9 +183,17 @@ function RootApp() {
   );
 }
 
+// Polyfill 초기화 (아이폰 등 모바일에서 드래그 동작 지원)
+polyfill({
+  dragImageCenterOnTouch: true,
+  // 탭해서 스크롤시 드래그로 오인되지 않게 하는 옵션
+  iterationInterval: 50,
+  // 드래그 중 스크롤 처리
+  dragImageTranslateOverride: scrollBehaviourDragImageTranslateOverride
+});
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <RootApp />
   </StrictMode>,
 )
-
