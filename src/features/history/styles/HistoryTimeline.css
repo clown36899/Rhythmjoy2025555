@@ -298,11 +298,13 @@
 
 /* Interaction States */
 .history-node {
-    /* transition: all 제거 (Safari 깜빡임 원인) */
-    transition: background-color 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.2s;
-    /* Safari 최적화: 3D 가속 유도 */
-    transform: translateZ(0);
-    will-change: transform, box-shadow;
+    /* Stability Fix: Remove transform from transition and heavy GPU hints */
+    /* Only animate colors and shadows. Transforms should be instant for performance. */
+    transition: background-color 0.2s, border-color 0.2s, box-shadow 0.2s;
+
+    /* Lighter anti-flicker fix */
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
 }
 
 .dimmed-node {
@@ -316,27 +318,8 @@
 }
 
 /* 🔥 Selection State (Multi-selection) */
-.react-flow__node.selected .history-node {
-    /* Safari Flicker Fix: outline 대신 box-shadow 사용 */
-    /* box-shadow: [inner-white-border], [outer-glow], [simulated-outline-cyan], [simulated-outline-glow] */
-    box-shadow:
-        0 0 0 2px #fff,
-        0 0 20px rgba(139, 92, 246, 0.8),
-        0 0 0 5px #06b6d4,
-        /* Replaces outline: 3px solid #06b6d4 (2px + 3px = 5px) */
-        0 0 40px rgba(6, 182, 212, 0.6) !important;
-
-    border-color: #8b5cf6 !important;
-    z-index: 1000 !important;
-    transform: scale(1.02) translateZ(0);
-    /* Ensure GPU */
-}
-
-/* Selection Box Style */
-.react-flow__selection {
-    background: rgba(139, 92, 246, 0.2) !important;
-    border: 1px solid #8b5cf6 !important;
-}
+/* 🔥 Selection State (Multi-selection) - Deprecated block removed, now handled by ::after above */
+/* This block is intentionally left empty to override previous styles if cached */
 
 .history-timeline-loading {
     display: flex;
@@ -446,6 +429,7 @@
 }
 
 /* Prevent nodes from becoming too transparent when panning the canvas */
+/* Prevent nodes from becoming too transparent when panning the canvas */
 .react-flow__pane.dragging~.react-flow__nodes .react-flow__node,
 .react-flow.dragging .react-flow__node,
 .react-flow__renderer.dragging .react-flow__node,
@@ -453,6 +437,16 @@
     opacity: 0.1 !important;
     filter: none !important;
     transform: none !important;
+}
+
+/* 🔥 Selection State (Refactored for Safari) */
+/* 🔥 Selection State (Simplified for React Flow Compatibility) */
+/* Retain simple styling that doesn't conflict with LOD scaling */
+.react-flow__node.selected .history-node {
+    border-color: #8b5cf6 !important;
+    z-index: 1000 !important;
+    /* Basic, standard box-shadow that browsers optimize well */
+    box-shadow: 0 0 0 2px #fff, 0 0 15px rgba(139, 92, 246, 0.6) !important;
 }
 
 
