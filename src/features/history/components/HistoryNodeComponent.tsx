@@ -51,24 +51,22 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
         const updateMinSize = () => {
             if (!nodeRef.current || !contentEl) return;
 
-            const thumbnailEl = nodeRef.current.querySelector('.history-node-thumbnail');
-            const avatarEl = nodeRef.current.querySelector('.person-avatar');
+            const titleEl = nodeRef.current.querySelector('.history-node-title');
             const footerEl = nodeRef.current.querySelector('.history-node-footer');
 
-            // [V8] Core-Only Minimum: Only protect Header + Footer + Title line
-            // Everything else (Images, Descriptions) will be adaptive via CSS/Overflow
-            const headerHeight = 44;
-            const footerHeight = 40;
-            const titleLineHeight = 32; // Baseline for at least one line of title
+            // [V11] Shell-Based Minimum: Protect Header + Title + Footer
+            // This ensures the node's functional 'shell' is always visible.
+            const headerHeight = 44; // node-year area
+            const titleHeight = titleEl ? titleEl.getBoundingClientRect().height : 32;
+            const footerHeight = footerEl ? footerEl.getBoundingClientRect().height : 60;
 
-            const totalRequiredHeight = headerHeight + footerHeight + titleLineHeight + 10;
+            // Safety buffer
+            const totalRequiredHeight = headerHeight + titleHeight + footerHeight + 20;
 
-            // Hard floor is now much lower to allow "slim bar" mode
-            const finalMinHeight = Math.max(isCanvas ? 250 : 80, totalRequiredHeight);
-            const finalMinWidth = isCanvas ? 420 : 200;
+            const finalMinHeight = Math.max(isCanvas ? 250 : 120, totalRequiredHeight);
+            const finalMinWidth = isCanvas ? 420 : 250;
 
             setMinSize(prev => {
-                // Prevent micro-updates to avoid re-render loops
                 if (Math.abs(prev.height - finalMinHeight) < 5) return prev;
                 return { width: finalMinWidth, height: finalMinHeight };
             });
@@ -211,7 +209,7 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
     return (
         <div
             ref={nodeRef}
-            className={`history-node linked-type-${linkedType} ${data.nodeType === 'canvas' ? 'is-canvas-portal' : ''}`}
+            className={`history-node linked-type-${linkedType} ${data.nodeType === 'canvas' ? 'is-canvas-portal' : ''} ${!hasThumbnail && data.category !== 'person' ? 'no-content-image' : ''}`}
             style={{
                 borderColor: categoryColor,
                 height: '100%',
@@ -294,19 +292,8 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
                 </div>
             )}
 
-            {/* Content */}
             <div
                 className="history-node-content"
-                onClick={(e) => {
-                    // In selection mode OR edit mode, don't trigger detail view - just allow selection
-                    if (data.isSelectionMode || data.isEditMode) return;
-
-                    // 버튼 클릭이 아닌 경우에만 처리
-                    if (!(e.target as HTMLElement).closest('button')) {
-                        // 🔥 Use centralized handler to respect isContainer logic
-                        handleNodeClick(e);
-                    }
-                }}
                 style={{ cursor: (data.isSelectionMode || data.isEditMode) ? 'default' : 'pointer' }}
             >
                 <div className="node-header">
@@ -343,34 +330,44 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
                         {data.description}
                     </p>
                 )}
+            </div>
 
-                <div className="history-node-footer">
-                    {data.youtube_url && (
-                        <button className="node-action-btn btn-play" onClick={handlePlayVideo} title="영상 재생">
-                            <i className="ri-youtube-fill"></i>
-                        </button>
-                    )}
-                    <button className="node-action-btn btn-detail" onClick={handleViewDetail} title="상세보기">
-                        <i className="ri-fullscreen-line"></i>
+            {/* Footer: Moved outside content for absolute visibility */}
+            <div
+                className="history-node-footer"
+                onClick={(e) => {
+                    // Prevent detail view when clicking the footer background
+                    // but allow button clicks to work normally via bubbling if not stopped
+                    if (!(e.target as HTMLElement).closest('button')) {
+                        e.stopPropagation();
+                    }
+                }}
+            >
+                {data.youtube_url && (
+                    <button className="node-action-btn btn-play" onClick={handlePlayVideo} title="영상 재생">
+                        <i className="ri-youtube-fill"></i>
                     </button>
-                    {data.isEditMode && (
-                        <button className="node-action-btn btn-edit" onClick={handleEdit} title="수정">
-                            <i className="ri-edit-line"></i>
-                        </button>
-                    )}
-                    <button
-                        className={`node-action-btn btn-highlight ${selected ? 'active' : ''}`}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            if (data.onSelectionChange) {
-                                data.onSelectionChange(String(data.id), !selected);
-                            }
-                        }}
-                        title="관계된 노드 하이라이트"
-                    >
-                        <i className="ri-focus-3-line"></i>
+                )}
+                <button className="node-action-btn btn-detail" onClick={handleViewDetail} title="상세보기">
+                    <i className="ri-fullscreen-line"></i>
+                </button>
+                {data.isEditMode && (
+                    <button className="node-action-btn btn-edit" onClick={handleEdit} title="수정">
+                        <i className="ri-edit-line"></i>
                     </button>
-                </div>
+                )}
+                <button
+                    className={`node-action-btn btn-highlight ${selected ? 'active' : ''}`}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        if (data.onSelectionChange) {
+                            data.onSelectionChange(String(data.id), !selected);
+                        }
+                    }}
+                    title="관계된 노드 하이라이트"
+                >
+                    <i className="ri-focus-3-line"></i>
+                </button>
             </div>
 
         </div>

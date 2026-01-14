@@ -12,6 +12,8 @@
     flex-direction: column;
     container-type: size;
     container-name: nodeContainer;
+    justify-content: flex-start;
+    align-items: stretch;
     /* overflow: hidden removed to allow NodeResizer handles to be visible outside the border */
 }
 
@@ -142,7 +144,8 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 4px;
+    margin-bottom: clamp(2px, 1cqmin, 8px);
+    flex-shrink: 0;
 }
 
 .node-year {
@@ -323,20 +326,26 @@
     -webkit-line-clamp: 3;
     /* Default, but will show more if space allows */
     -webkit-box-orient: vertical;
+    flex-shrink: 0;
 }
 
-/* Adaptive Density Layout via Container Queries */
-@container nodeContainer (height < 220px) {
+/* Specific Scaling for Text-Only Nodes (no-content-image) */
+.no-content-image .history-node-title {
+    font-size: clamp(14px, 15cqmin, 12rem);
+    /* More aggressive for title-driven nodes */
+}
+
+/* Adaptive Density Tiers (Refined for Structural Split) */
+
+/* Stage 1: Hide Description in slim nodes */
+@container nodeContainer (height < 180px) {
     .history-node-description {
         display: none !important;
     }
-
-    .history-node-content {
-        gap: 2px;
-    }
 }
 
-@container nodeContainer (height < 150px) {
+/* Stage 2: Hide Thumbnail/Avatar (The "Bar" state) */
+@container nodeContainer (height < 140px) {
 
     .history-node-thumbnail,
     .person-avatar {
@@ -350,25 +359,18 @@
     }
 }
 
-/* Footer Actions */
+/* Footer Actions - Anchored and Shielded */
 .history-node-footer {
     display: flex;
     justify-content: flex-end;
     gap: clamp(2px, 2cqmin, 24px);
-    margin-top: auto;
-    padding: clamp(4px, 2cqh, 40px) clamp(12px, 4cqmin, 48px);
-    /* 좌우 패딩 추가 및 상하 패딩 조정 */
+    padding: clamp(6px, 2.5cqmin, 40px) clamp(16px, 4cqmin, 48px);
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     flex-shrink: 0;
-    /* 공간이 부족해도 줄어들지 않음 */
-    flex-wrap: wrap;
-    /* 버튼이 많으면 줄바꿈 */
-    background: inherit;
-    /* 노드 배경과 동일하게 */
+    background: rgba(17, 24, 39, 0.98);
+    /* Slightly more opaque to ensure visibility */
     position: relative;
-    /* z-index 적용을 위해 포지션 지정 */
     z-index: 10;
-    /* 컨텐츠보다 위에 표시 */
 }
 
 .node-action-btn {
