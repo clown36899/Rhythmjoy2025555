@@ -24,8 +24,8 @@ export const NODE_BASE_DIMENSIONS = {
 
 // 캔버스 인터랙션 설정
 export const CANVAS_CONFIG = {
-    minZoom: 0.1,
-    maxZoom: 2,
+    minZoom: 0.02,
+    maxZoom: 4,
     defaultEdgeType: 'default',
     snapGrid: [20, 20] as [number, number]
 };
