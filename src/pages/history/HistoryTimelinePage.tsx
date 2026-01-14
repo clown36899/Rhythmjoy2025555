@@ -629,6 +629,7 @@ function HistoryTimelinePage() {
     const handlersInitializedRef = useRef(false);
     const prevEditModeRef = useRef(isEditMode);
     const prevSelectionModeRef = useRef(isSelectionMode);
+    const prevShiftPressedRef = useRef(isShiftPressed);
 
     console.log('🎬 [HistoryTimelinePage] Component Render', {
         nodesCount: nodes.length,
@@ -679,10 +680,12 @@ function HistoryTimelinePage() {
         // B. Edit Mode or Selection Mode changed (State Change)
         // C. Search Query changed (Filter Change)
         // D. Root ID changed (Navigation) - handled by dependency
+        // E. isShiftPressed changed (for selection behavior)
 
         const shouldSync = !handlersInitializedRef.current ||
             prevEditModeRef.current !== isEditMode ||
-            prevSelectionModeRef.current !== isSelectionMode;
+            prevSelectionModeRef.current !== isSelectionMode ||
+            prevShiftPressedRef.current !== isShiftPressed;
 
         console.log('🔍 [HistoryTimelinePage] Sync Decision', {
             shouldSync,
@@ -690,7 +693,8 @@ function HistoryTimelinePage() {
             willSync: shouldSync || !!searchQuery,
             reason: !handlersInitializedRef.current ? 'First Init' :
                 prevEditModeRef.current !== isEditMode ? 'Edit Mode Changed' :
-                    prevSelectionModeRef.current !== isSelectionMode ? 'Selection Mode Changed' : 'None'
+                    prevSelectionModeRef.current !== isSelectionMode ? 'Selection Mode Changed' :
+                        prevShiftPressedRef.current !== isShiftPressed ? 'Shift Changed' : 'None'
         });
 
         if (shouldSync || searchQuery) {
@@ -699,16 +703,12 @@ function HistoryTimelinePage() {
             syncVisualization(currentRootId, filters);
             handlersInitializedRef.current = true;
             console.log('✅ [HistoryTimelinePage] syncVisualization Complete');
-        } else {
-            console.log('⏭️ [HistoryTimelinePage] Sync Skipped (Already Initialized) - BUT forcing node update');
-            // 🔥 CRITICAL FIX: Force React Flow to re-render nodes with updated handlers
-            // by creating new node array (breaks reference equality)
-            setNodes(currentNodes => [...currentNodes]);
         }
 
         // Track previous states to detect changes
         prevEditModeRef.current = isEditMode;
         prevSelectionModeRef.current = isSelectionMode;
+        prevShiftPressedRef.current = isShiftPressed;
 
     }, [
         // Dependencies that SHOULD trigger a potential update

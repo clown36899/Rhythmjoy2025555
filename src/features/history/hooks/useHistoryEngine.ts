@@ -48,6 +48,8 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
     const allEdgesRef = useRef<Map<string, Edge>>(new Map());
     // 🔥 Saved State Reference for Change Detection
     const lastSavedStateRef = useRef<Map<string, { x: number, y: number, w: number, h: number }>>(new Map());
+    // 🔥 Load Tracking to prevent duplicate loadTimeline calls
+    const loadedRef = useRef(false);
 
     // 🆕 Folder Logic Hook Integration
     const { rearrangeFolderChildren, updateParentSize } = useFolderLogic({ allNodesRef });
@@ -327,19 +329,19 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
     }, [currentRootId, syncVisualization]);
 
     // 🔥 CRITICAL FIX: loadTimeline should only run ONCE on mount
-    // Adding it to dependency array causes infinite loop because it recreates on every render
-    const loadedRef = useRef(false);
     useEffect(() => {
         if (!loadedRef.current) {
             loadedRef.current = true;
             loadTimeline();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); // Empty dependency - only run once on mount
 
     // 🔥 Force sync when Edit Mode changes to update draggable/ui state
     useEffect(() => {
         syncVisualization(currentRootId);
-    }, [isEditMode, syncVisualization, currentRootId]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isEditMode, currentRootId]); // Removed syncVisualization from deps to prevent unnecessary re-renders
 
     /**
      * Edge Highlighting on Node Selection
