@@ -8,6 +8,17 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '3.5.3',
+        date: '2026-01-15',
+        changes: [
+            '[🎨 Library] Nuclear Freedom: 폴더 자동 높이 제한 완전 제거 (60px까지 축소 가능)',
+            '[🎨 Library] Symmetrical UI Expansion: 자식 있는 폴더의 제목(위) & 버튼(아래) 돌출 레이아웃 적용',
+            '[🎨 Library] Layer Lockdown: 폴더(0)와 콘텐츠(1+) 간의 전역 Z-Index 위계 고정',
+            '[🔧 Stability] 타임라인 로딩 시 자식 카운트 사전 계산으로 새로고침 레이아웃 유지',
+            '[🐛 Fix] TypeScript 타입 오류 및 nodeRef 누락 전면 수정'
+        ]
+    },
+    {
         version: '3.5.2',
         date: '2026-01-10',
         changes: [
