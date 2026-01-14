@@ -631,7 +631,9 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
         if (newParentId) parentsToResize.add(String(newParentId));
 
         const updates = nodeIds.map(async (id) => {
-            const node = nodes.find(n => n.id === id);
+            // 🔥 Fix: Use Authoritative Ref to get the LATEST drag position (positionAbsolute is synced in onNodeDragStop)
+            let node = allNodesRef.current.get(id);
+            if (!node) node = nodes.find(n => n.id === id); // Fallback to state if not in Ref
             if (!node) return null;
 
             if (newParentId === node.id) {
@@ -677,8 +679,14 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                     }
                 }
 
+                // 🔥 Fix: When moving into a folder, ensure we don't overlap the header (140px)
+                // If the calculations put us at < 160, force it to 160.
+                let calculatedY = nodeAbs.y - parentAbs.y;
+                if (newParentId) {
+                    calculatedY = Math.max(calculatedY, 160);
+                }
                 newX = nodeAbs.x - parentAbs.x;
-                newY = nodeAbs.y - parentAbs.y;
+                newY = calculatedY;
 
                 // 🔥 [Safety] Portal Exit Placement (Keep this logic as it handles higher level logic)
                 // When moving to a parent level higher than the current view
@@ -769,6 +777,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
         const refNode = allNodesRef.current.get(node.id);
         if (refNode) {
             refNode.position = node.position;
+            if (node.positionAbsolute) refNode.positionAbsolute = node.positionAbsolute; // 🔥 Fix: Sync Absolute Position for Calculations
             // Sync dimensions if updated by resizer before drag stop
             if (node.width) refNode.width = node.width;
             if (node.height) refNode.height = node.height;
@@ -793,9 +802,22 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
             h: node.height || Number(node.style?.height) || 160
         };
 
+        // 🔥 Fix: Manual Drag Safety - If we are inside a folder, enforce Header Safe Zone
+        const parentId = node.data?.parent_node_id;
+        if (parentId) {
+            // Apply constraint to internal Ref and Node object
+            if (node.position.y < 160) {
+                // console.log('🛡️ Header Safe Zone Protection Triggered');
+                node.position.y = 160;
+                if (refNode) refNode.position.y = 160;
+
+                // Also update immediate database state if we proceed to save
+                // This will be picked up by the 'isChanged' check later
+            }
+        }
+
         // 2. Logic: Move Out (Escape Parent)
         // If the node has a parent visible on the canvas, check if we dragged it out.
-        const parentId = node.data?.parent_node_id;
         if (parentId) {
             // Find parent in CURRENT VISIBLE nodes (not just ref)
             const parentNode = nodes.find(n => n.id === String(parentId));

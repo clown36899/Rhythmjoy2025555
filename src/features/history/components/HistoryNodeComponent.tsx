@@ -58,7 +58,7 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
 
             // [V18] Master Measurement: Dynamic Shell Detection
             // Use scrollHeight for content to account for the full text, but zero it if minimal
-            const hh = (headerEl && headerEl.innerText.trim() !== '') ? headerEl.getBoundingClientRect().height : 0;
+            const hh = (headerEl && (headerEl as HTMLElement).innerText.trim() !== '') ? headerEl.getBoundingClientRect().height : 0;
             const th = titleEl ? titleEl.getBoundingClientRect().height : 32;
             const fh = footerEl ? footerEl.getBoundingClientRect().height : 60;
             const ch = isMinimalNode ? 0 : contentEl.scrollHeight;
@@ -156,7 +156,29 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
      */
     const isContainer = data.node_behavior === 'PORTAL' || data.node_behavior === 'GROUP' ||
         data.containerMode === 'portal' || data.containerMode === 'group' ||
-        data.node_behavior === 'FOLDER' || isCanvas;
+        (data.node_behavior as string) === 'FOLDER' || isCanvas;
+
+    // [Feature] Dynamic Header Height Measurement
+    const [headerHeight, setHeaderHeight] = useState(140); // Default safely high
+    useLayoutEffect(() => {
+        if (!nodeRef.current) return;
+        const headerEl = nodeRef.current.querySelector('.node-header');
+        if (!headerEl) return;
+
+        const updateHeaderHeight = () => {
+            if (headerEl) {
+                const h = headerEl.getBoundingClientRect().height;
+                // console.log('📏 Header Height:', h);
+                setHeaderHeight(h);
+            }
+        };
+
+        const observer = new ResizeObserver(updateHeaderHeight);
+        observer.observe(headerEl);
+        updateHeaderHeight(); // Initial Measure
+
+        return () => observer.disconnect();
+    }, []);
 
     const handleNodeClick = (e: React.MouseEvent) => {
         // console.log('🖱️ [HistoryNode] Click:', { id: data.id, title: data.title, type: data.nodeType });
@@ -222,8 +244,9 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
             style={{
                 borderColor: categoryColor,
                 height: '100%',
-                width: '100%'
-            }}
+                width: '100%',
+                '--dynamic-header-height': `${headerHeight}px` // Pass to CSS if needed, or use inline styles below
+            } as React.CSSProperties}
             onClick={handleNodeClick} // 🔥 Use dedicated handler that manages propagation
             onContextMenu={() => {
                 // Allow context menu to bubble up to ReactFlow's onNodeContextMenu
@@ -306,34 +329,39 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
                 style={{ cursor: (data.isSelectionMode || data.isEditMode) ? 'default' : 'pointer' }}
             >
                 <div className="node-header">
-                    <span className="node-year">{data.year || data.date}</span>
-                    {data.category && (
-                        <span className={`history-node-badge badge-${data.category || 'general'}`}>
-                            {getCategoryIcon(data.category || 'general')}
-                        </span>
-                    )}
-                    {(data.linked_playlist_id || data.linked_document_id || data.linked_video_id || data.linked_category_id) && (
-                        <span
-                            className={`history-node-link-badge ${linkedType}`}
-                            title="학습 자료 열기"
-                            onClick={handleLinkClick}
-                        >
-                            <i className="ri-link"></i>
-                        </span>
-                    )}
+                    <div style={{ width: '100%' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                            <span className="node-year">{data.year || data.date}</span>
+                            <div style={{ display: 'flex', gap: '4px' }}>
+                                {data.category && (
+                                    <span className={`history-node-badge badge-${data.category || 'general'}`}>
+                                        {getCategoryIcon(data.category || 'general')}
+                                    </span>
+                                )}
+                                {(data.linked_playlist_id || data.linked_document_id || data.linked_video_id || data.linked_category_id) && (
+                                    <span
+                                        className={`history-node-link-badge ${linkedType}`}
+                                        title="학습 자료 열기"
+                                        onClick={handleLinkClick}
+                                    >
+                                        <i className="ri-link"></i>
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                        <h3 className="history-node-title">
+                            <span className="node-type-icon">
+                                {data.nodeType === 'playlist' ? '💿' :
+                                    data.nodeType === 'document' ? '📄' :
+                                        data.nodeType === 'video' ? '📹' :
+                                            data.nodeType === 'canvas' ? '🎨' :
+                                                (data.nodeType === 'category' || data.nodeType === 'folder') ? '📁' :
+                                                    '📅'}
+                            </span>
+                            {data.title}
+                        </h3>
+                    </div>
                 </div>
-
-                <h3 className="history-node-title">
-                    <span className="node-type-icon">
-                        {data.nodeType === 'playlist' ? '💿' :
-                            data.nodeType === 'document' ? '📄' :
-                                data.nodeType === 'video' ? '📹' :
-                                    data.nodeType === 'canvas' ? '🎨' :
-                                        (data.nodeType === 'category' || data.nodeType === 'folder') ? '📁' :
-                                            '📅'}
-                    </span>
-                    {data.title}
-                </h3>
 
                 {(data.description || data.content) && (
                     <p className="history-node-description">

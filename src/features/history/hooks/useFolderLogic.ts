@@ -29,7 +29,7 @@ export const useFolderLogic = ({ allNodesRef }: UseFolderLogicProps) => {
 
         // 2. Dynamic Grid Constants
         const PADDING_LEFT = 40;
-        const PADDING_TOP = 80; // 제목 가림 방지
+        const PADDING_TOP = 160; // Expanded Safe Zone for huge header
         const GAP = 50;
 
         // 🔥 Intent-Based Columns Inference:
@@ -39,29 +39,31 @@ export const useFolderLogic = ({ allNodesRef }: UseFolderLogicProps) => {
             for (const child of children) {
                 if (Math.abs(child.position.y - firstY) < 60) {
                     firstRowItemCount++;
-                } else {
-                    break;
                 }
             }
         }
-        const COLS = Math.max(firstRowItemCount, 1);
-
-        // console.log(`🔍 [FolderDebug] Inferred COLS: ${COLS} (from first row items)`);
-
-        // 🔥 [Improvement] Column-Specific Widths:
-        const columnWidths = new Array(COLS).fill(0);
-        const rowHeights = new Array(Math.ceil(children.length / COLS)).fill(0);
-
-        children.forEach((child, idx) => {
-            const col = idx % COLS;
-            const row = Math.floor(idx / COLS);
+        const COLS = Math.max(2, Math.min(firstRowItemCount || 2, 4));
+        // 3. Dynamic Column Widths (Fix Overlap)
+        // Find maximum width among all children to determine column sizing
+        let maxChildWidth = 320;
+        children.forEach(child => {
             const w = child.width || Number(child.style?.width) || 320;
-            const h = child.height || Number(child.style?.height) || 160;
-            if (w > columnWidths[col]) columnWidths[col] = w;
-            if (h > rowHeights[row]) rowHeights[row] = h;
+            maxChildWidth = Math.max(maxChildWidth, w);
         });
 
-        // 3. Re-assign positions based on sorted index (Snap to Grid)
+        // 🔥 Force wider columns for safe spacing
+        const COLUMN_WIDTH = maxChildWidth;
+        const columnWidths = new Array(COLS).fill(COLUMN_WIDTH);
+        const rowHeights: number[] = [];
+
+        // Pre-calculate row heights
+        children.forEach((child, idx) => {
+            const row = Math.floor(idx / COLS);
+            const h = child.height || Number(child.style?.height) || 160;
+            rowHeights[row] = Math.max(rowHeights[row] || 0, h);
+        });
+
+        // 3. Calculate New Positions (Simulation)
         const updates = children.map(async (child, idx) => {
             const col = idx % COLS;
             const row = Math.floor(idx / COLS);
@@ -89,33 +91,52 @@ export const useFolderLogic = ({ allNodesRef }: UseFolderLogicProps) => {
                     const resourceId = child.data.linked_video_id || child.data.linked_document_id || child.data.linked_playlist_id;
                     await supabase.from('learning_resources').update({ order_index: idx }).eq('id', resourceId);
                 }
-                if (child.data.linked_category_id) {
-                    await supabase.from('learning_categories').update({ order_index: idx }).eq('id', child.data.linked_category_id);
-                }
-            } catch (err) { /* ignore */ }
+            } catch (e) {
+                console.error('Failed to update order_index', e);
+            }
 
-            // [Optimization] Threshold check to prevent infinite loops (floating point diffs)
-            if (Math.abs(child.position.x - newX) < 1 && Math.abs(child.position.y - newY) < 1) return null;
-
-            // Update ref immediately for smoothness
+            // Update ReactFlow + DB
             child.position = { x: newX, y: newY };
-            const refNode = allNodesRef.current.get(child.id);
-            if (refNode) refNode.position = { x: newX, y: newY };
+            const { error } = await supabase.from('history_nodes')
+                .update({ position_x: newX, position_y: newY })
+                .eq('id', Number(child.id));
 
-            // Do not invoke setNodes here to avoid render loops, syncVisualization handles it eventually
-            return supabase.from('history_nodes').update({ position_x: newX, position_y: newY }).eq('id', Number(child.id));
+            if (error) console.error('Failed to update position', error);
         });
 
         await Promise.all(updates);
+
+        // 4. Calculate Final Container Size
+        // Re-measure after simulated move
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        children.forEach(child => {
+            const w = child.width || Number(child.style?.width) || 320;
+            const h = child.height || Number(child.style?.height) || 160;
+            minX = Math.min(minX, child.position.x);
+            minY = Math.min(minY, child.position.y);
+            maxX = Math.max(maxX, child.position.x + w);
+            maxY = Math.max(maxY, child.position.y + h);
+        });
+
+        // Account for header (title + badges) and footer (buttons) space
+        const FOOTER_HEIGHT = 100; // Space for buttons at bottom (Matching CSS 100px)
+        const PADDING_RIGHT = 40;
+        const PADDING_BOTTOM = 20; // Reduced buffer (Asymmetric Bottom)
+
+        const newWidth = Math.max(maxX + PADDING_RIGHT, 421);
+        const newHeight = Math.max(maxY + FOOTER_HEIGHT + PADDING_BOTTOM, 250);
+
+        console.log(`🔍 [FolderDebug] Calculated Size: ${newWidth}x${newHeight} (MaxX: ${maxX}, MaxY: ${maxY})`);
     }, [allNodesRef]);
 
     /**
      * [Folder Resizing Improvements - 2026.01.13]
      */
     const updateParentSize = useCallback(async (parentId: string) => {
-        // console.log(`🔍 [FolderDebug] updateParentSize called for parentId: ${parentId}`);
+        console.log(`🔍 [FolderDebug] updateParentSize called for parentId: ${parentId}`);
         const children = Array.from(allNodesRef.current.values()).filter(n => String(n.data.parent_node_id) === parentId);
         const parentNode = allNodesRef.current.get(parentId);
+        console.log(`🔍 [FolderDebug] Found ${children.length} children, parentNode exists: ${!!parentNode}`);
         if (!parentNode || children.length === 0) return;
 
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
@@ -129,15 +150,14 @@ export const useFolderLogic = ({ allNodesRef }: UseFolderLogicProps) => {
         });
 
         // Account for header (title + badges) and footer (buttons) space
-        const HEADER_HEIGHT = 80; // Space for title and badges at top
-        const FOOTER_HEIGHT = 80; // Space for buttons at bottom
+        const FOOTER_HEIGHT = 100; // Space for buttons at bottom (Matching CSS 100px)
         const PADDING_RIGHT = 40;
-        const PADDING_BOTTOM = 20; // Additional padding beyond footer
+        const PADDING_BOTTOM = 20; // Reduced buffer (Asymmetric Bottom)
 
         const newWidth = Math.max(maxX + PADDING_RIGHT, 421);
         const newHeight = Math.max(maxY + FOOTER_HEIGHT + PADDING_BOTTOM, 250);
 
-        // console.log(`🔍 [FolderDebug] Calculated Size: ${newWidth}x${newHeight} (MaxX: ${maxX}, MaxY: ${maxY})`);
+        console.log(`🔍 [FolderDebug] Calculated Size: ${newWidth}x${newHeight} (MaxX: ${maxX}, MaxY: ${maxY})`);
 
         await supabase.from('history_nodes').update({ width: newWidth, height: newHeight }).eq('id', Number(parentId));
 

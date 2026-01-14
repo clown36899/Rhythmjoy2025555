@@ -128,6 +128,15 @@ export const mapDbNodeToRFNode = (
 
     const isContainer = containerMode !== 'none';
 
+    // React Flow Position
+    // 🔥 Fix: Enforce Folder Header Safe Zone (160px) at the View Layer
+    // This ensures existing data at y=0 doesn't overlap the header (140px).
+    let positionY = node.position_y || 0;
+    if (node.parent_node_id) {
+        // Force minimum 160px Y-offset for children to clear the absolute header
+        positionY = Math.max(positionY, 160);
+    }
+
     return {
         id: String(node.id),
         type: 'historyNode',
@@ -135,15 +144,13 @@ export const mapDbNodeToRFNode = (
         style: {
             width: node.width || (isContainer ? 640 : 320),
             height: node.height || (isContainer ? 480 : 160),
-            // Fix: Children (with parent_node_id) get z-index 1 to appear above folder parents (z-index -1)
-            zIndex: (node.z_index && node.z_index !== 0) ? node.z_index :
-                (node.parent_node_id ? 1 : (isContainer ? -1 : 0))
+            zIndex: (node.z_index && node.z_index !== 0) ? node.z_index : (isContainer ? -1 : 0)
         },
         width: node.width || (isContainer ? 640 : 320),
         height: node.height || (isContainer ? 480 : 160),
         position: {
             x: node.position_x || 0,
-            y: node.position_y || 0
+            y: positionY
         },
         selectable: true,
         data: {

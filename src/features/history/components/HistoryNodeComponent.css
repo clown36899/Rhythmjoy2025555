@@ -470,22 +470,55 @@
     border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
 }
 
-/* 🔥 Folder Child Node Visibility - Children appear above parent background */
-/* When React Flow renders children inside parent DOM, increase child z-index */
-.react-flow__node.parent>.react-flow__node {
-    z-index: 10 !important;
-    position: relative;
+/* 🔥 Folder Node UI Protection - Header and footer always on top */
+/* Apply only to parent nodes (folders with children) */
+
+/* Adjust content area to leave space for absolute header/footer */
+.react-flow__node.parent .history-node-content {
+    padding-top: 80px !important;
+    /* Space for header */
+    padding-bottom: 80px !important;
+    /* Space for footer */
 }
 
-/* But folder header and footer stay on top of everything */
-.history-node .node-header {
-    position: relative;
-    z-index: 100;
+.react-flow__node.parent .node-header {
+    position: absolute !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 200 !important;
+    /* Much higher than child nodes */
+    pointer-events: none;
+    /* Allow clicks to pass through to children behind */
+    background: rgba(17, 24, 39, 0.95);
+    padding: 8px 12px;
+    margin: 0 !important;
 }
 
-.history-node .history-node-footer {
-    position: relative;
-    z-index: 100;
+.react-flow__node.parent .node-header>* {
+    pointer-events: auto;
+    /* Re-enable clicks on header content */
+}
+
+.react-flow__node.parent .history-node-title {
+    pointer-events: auto !important;
+}
+
+.react-flow__node.parent .history-node-footer {
+    position: absolute !important;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 200 !important;
+    /* Much higher than child nodes */
+    pointer-events: none;
+    /* Allow clicks to pass through to children behind */
+    background: rgba(17, 24, 39, 0.98);
+}
+
+.react-flow__node.parent .history-node-footer .node-action-btn {
+    pointer-events: auto;
+    /* Re-enable clicks on buttons */
 }
 
 /* ReactFlow Handles */
@@ -583,4 +616,184 @@
 /* Ensure the viewport (cutout) is clear */
 .react-flow__minimap {
     background-color: rgba(15, 23, 42, 0.8) !important;
+}
+
+/* 
+   🔥 FOLDER NODE ISOLATION 
+   Overrides for .linked-type-folder / .linked-type-category
+   to prevent UI explosion when folder resize grows the container.
+   And to ensure header/footer stay above child nodes.
+*/
+
+/* 1. Ensure Stacking Context */
+.history-node.linked-type-folder,
+.history-node.linked-type-category {
+    /* No special z-index here, handled by parent logic */
+    display: flex;
+    /* Ensure flex layout works */
+
+    /* 🔥 CRITICAL FIX: Remove container-type to break the stacking context trap.
+       Result: Header (z=50) > Child Node (z=0) */
+    container-type: normal !important;
+}
+
+/* 2. Fixed Title Size (Stop scaling with container) */
+.history-node.linked-type-folder .history-node-title,
+.history-node.linked-type-category .history-node-title {
+    font-size: 24px !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.history-node.linked-type-folder .node-type-icon,
+.history-node.linked-type-category .node-type-icon {
+    font-size: 24px !important;
+    margin-right: 8px !important;
+}
+
+/* 3. Fixed Button Size & Icon Size */
+.history-node.linked-type-folder .node-action-btn,
+.history-node.linked-type-category .node-action-btn {
+    width: 36px !important;
+    height: 36px !important;
+    font-size: 18px !important;
+    flex-shrink: 0;
+}
+
+/* 4. Fixed Badge Size */
+.history-node.linked-type-folder .history-node-badge,
+.history-node.linked-type-category .history-node-badge {
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 14px !important;
+}
+
+/* 5. Fixed Year Size */
+.history-node.linked-type-folder .node-year,
+.history-node.linked-type-category .node-year {
+    font-size: 14px !important;
+}
+
+/* 6. Absolute Positioning for Header (Top) */
+/* 6. Absolute Positioning for Header (Top) */
+.history-node.linked-type-folder .node-header,
+.history-node.linked-type-category .node-header {
+    position: absolute !important;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: auto !important;
+    /* 🔥 Dynamic Height */
+    min-height: 100px;
+    /* Minimal Touch Area */
+    padding: 24px 24px 10px 24px !important;
+    margin: 0 !important;
+    /* background: #111827 !important; */
+    /* 🔥 Solid Opaque Background */
+    z-index: 50;
+    display: flex;
+    align-items: flex-start;
+    /* Title stays at top */
+    border-radius: 12px 12px 0 0;
+    pointer-events: none;
+}
+
+/* 🔥 Folder Title Scaling */
+.history-node.linked-type-folder .history-node-title,
+.history-node.linked-type-category .history-node-title {
+    /* 🔥 Aggressive Scaling: Bases on Container Width (cqi) */
+    font-size: clamp(2rem, 8cqi, 8rem) !important;
+    line-height: 1.1;
+    margin-bottom: 10px;
+    width: 100%;
+    color: #ffffff !important;
+    /* 🔥 Solid White Text */
+    opacity: 1 !important;
+}
+
+.history-node.linked-type-folder .node-header>*,
+.history-node.linked-type-category .node-header>* {
+    pointer-events: auto;
+}
+
+.history-node.linked-type-folder .node-header>*,
+.history-node.linked-type-category .node-header>* {
+    pointer-events: auto;
+}
+
+/* 7. Absolute Positioning for Footer (Bottom) */
+/* 7. Absolute Positioning for Footer (Bottom) */
+/* 7. Absolute Positioning for Footer (Bottom) */
+/* 7. Absolute Positioning for Footer (Bottom) */
+.history-node.linked-type-folder .history-node-footer,
+.history-node.linked-type-category .history-node-footer {
+    position: absolute !important;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    /* 🔥 Dynamic Scaling Footer */
+    height: clamp(80px, 15cqh, 200px) !important;
+    padding: 0 24px !important;
+    background: #111827 !important;
+    /* 🔥 Solid Opaque Background */
+    z-index: 50;
+    border-top: 1px solid #374151;
+    /* 🔥 Solid Border */
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    border-radius: 0 0 12px 12px;
+    pointer-events: none;
+}
+
+.history-node.linked-type-folder .history-node-footer>*,
+.history-node.linked-type-category .history-node-footer>* {
+    pointer-events: auto;
+}
+
+.history-node.linked-type-folder .node-action-btn,
+.history-node.linked-type-category .node-action-btn {
+    /* 🔥 Dynamic Scaling Buttons */
+    width: clamp(24px, 5cqh, 60px) !important;
+    height: clamp(24px, 5cqh, 60px) !important;
+    font-size: clamp(14px, 3cqh, 30px) !important;
+}
+
+/* 8. Content Area Padding to clear Header/Footer */
+.history-node.linked-type-folder .history-node-content,
+.history-node.linked-type-category .history-node-content {
+    /* 🔥 Dynamic Padding from JS */
+    padding-top: calc(var(--dynamic-header-height, 140px) + 20px) !important;
+    /* 🔥 Dynamic Bottom Padding to match Footer */
+    padding-bottom: calc(clamp(80px, 15cqh, 200px) + 20px) !important;
+
+    overflow: hidden !important;
+
+    /* 🔥 Fix: Force Top Alignment (Disable Centering) */
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    align-items: flex-start !important;
+    height: 100% !important;
+}
+
+/* 8. Content Area Padding to clear Header/Footer */
+.history-node.linked-type-folder .history-node-content,
+.history-node.linked-type-category .history-node-content {
+    /* 🔥 Dynamic Padding from JS */
+    padding-top: calc(var(--dynamic-header-height, 140px) + 20px) !important;
+    padding-bottom: 110px !important;
+    /* Footer 100px + buffer */
+    overflow: hidden !important;
+
+    /* 🔥 Fix: Force Top Alignment (Disable Centering) */
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    align-items: flex-start !important;
+    height: 100% !important;
+    align-items: flex-start !important;
+    height: 100% !important;
 }
