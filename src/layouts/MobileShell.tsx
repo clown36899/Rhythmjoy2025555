@@ -70,6 +70,8 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
     fetchTotalUserCount();
   }, []);
 
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
   useEffect(() => {
     const handleToggleDrawer = () => setIsDrawerOpen(prev => !prev);
     const handleUpdateCalendarView = (e: any) => {
@@ -77,16 +79,16 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
         setCalendarView({ year: e.detail.year, month: e.detail.month });
       }
     };
-    // handler removed
+    const handleToggleFullscreen = () => setIsFullscreen(prev => !prev);
 
     window.addEventListener('toggleDrawer', handleToggleDrawer);
     window.addEventListener('updateCalendarView', handleUpdateCalendarView);
-    // listener removed
+    window.addEventListener('toggleFullscreen', handleToggleFullscreen);
 
     return () => {
       window.removeEventListener('toggleDrawer', handleToggleDrawer);
       window.removeEventListener('updateCalendarView', handleUpdateCalendarView);
-      // listener removed
+      window.removeEventListener('toggleFullscreen', handleToggleFullscreen);
     };
   }, []);
 
@@ -230,183 +232,187 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
   };
 
   return (
-    <div className={`shell-container ${isWideLayout ? 'layout-wide' : 'layout-compact'}`}>
+    <div className={`shell-container ${isWideLayout ? 'layout-wide' : 'layout-compact'} ${isFullscreen ? 'fullscreen-mode' : ''}`}>
       {/* Global Fixed Header */}
-      <header className="shell-header global-header-fixed">
-        <div className="header-content-inner">
-          {/* Left/Center Content based on Route */}
-          <div className="header-left-content">
+      {!isFullscreen && (
+        <header className="shell-header global-header-fixed">
+          <div className="header-content-inner">
+            {/* Left/Center Content based on Route */}
+            <div className="header-left-content">
 
-            {/* 1. Events Page, Archive, Board, Social, etc - 통합 렌더링 */}
-            {!isCalendarPage && (
-              <div
-                className={`header-events-content ${isLearningDetailPage ? 'with-back' : ''}`}
-                onClick={isEventsPage ? () => window.location.reload() : undefined}
-                style={{ cursor: isEventsPage ? 'pointer' : 'default' }}
-                data-analytics-id="logo_home"
-                data-analytics-type="nav_item"
-                data-analytics-title="댄스빌보드 로고"
-                data-analytics-section="header"
-              >
-                {isLearningDetailPage ? (
+              {/* 1. Events Page, Archive, Board, Social, etc - 통합 렌더링 */}
+              {!isCalendarPage && (
+                <div
+                  className={`header-events-content ${isLearningDetailPage ? 'with-back' : ''}`}
+                  onClick={isEventsPage ? () => window.location.reload() : undefined}
+                  style={{ cursor: isEventsPage ? 'pointer' : 'default' }}
+                  data-analytics-id="logo_home"
+                  data-analytics-type="nav_item"
+                  data-analytics-title="댄스빌보드 로고"
+                  data-analytics-section="header"
+                >
+                  {isLearningDetailPage ? (
+                    <button
+                      className="header-back-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate('/learning');
+                      }}
+                    >
+                      <i className="ri-arrow-left-line"></i>
+                    </button>
+                  ) : (
+                    <img src="/logo.png" alt="RhythmJoy Logo" className="header-logo" />
+                  )}
+
+                  {/* 공통 헤더 텍스트 */}
+                  <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: '1', minWidth: 0, overflow: 'hidden', width: 'fit-content' }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 'min(0.8vw, 6px)', flexWrap: 'nowrap', minWidth: 0 }}>
+                      <h1 className="header-title" style={{ margin: 0, fontSize: 'min(4vw, 1.45rem)', minWidth: 0, flexShrink: 1, overflow: 'hidden' }}>
+                        댄스빌보드
+                      </h1>
+                      <span style={{ fontSize: 'min(2.2vw, 0.8rem)', color: 'rgb(156, 163, 175)', fontWeight: 400, whiteSpace: 'nowrap' }}>
+                        korea
+                      </span>
+                    </div>
+                    <span style={{ fontSize: 'min(2.5vw, 11px)', width: '100%', display: 'flex', justifyContent: 'space-between', color: 'rgba(255,255,255,0.8)', marginTop: 'min(0.3vw, 2px)', fontWeight: 500 }}>
+                      {'swingenjoy.com'.split('').map((char, i) => (
+                        <span key={`char-${i}-${char}`}>{char}</span>
+                      ))}
+                    </span>
+                  </div>
+
+                  {/* 이벤트·활동 페이지에 adminStats 표시 */}
+                  {(isEventsPage || isMyActivitiesPage) && (
+                    <div style={{ marginLeft: '8px' }}>{adminStats}</div>
+                  )}
+                </div>
+              )}
+              {/* 2. Calendar Page (Full Screen) */}
+              {isCalendarPage && (
+                <div className="calendar-header-nav">
                   <button
-                    className="header-back-btn"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate('/learning');
+                    onClick={() => {
+                      setCalendarMode('collapsed');
+                      navigate('/');
                     }}
+                    className="calendar-back-btn"
                   >
                     <i className="ri-arrow-left-line"></i>
                   </button>
-                ) : (
-                  <img src="/logo.png" alt="RhythmJoy Logo" className="header-logo" />
-                )}
-
-                {/* 공통 헤더 텍스트 */}
-                <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: '1', minWidth: 0, overflow: 'hidden', width: 'fit-content' }}>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 'min(0.8vw, 6px)', flexWrap: 'nowrap', minWidth: 0 }}>
-                    <h1 className="header-title" style={{ margin: 0, fontSize: 'min(4vw, 1.45rem)', minWidth: 0, flexShrink: 1, overflow: 'hidden' }}>
-                      댄스빌보드
-                    </h1>
-                    <span style={{ fontSize: 'min(2.2vw, 0.8rem)', color: 'rgb(156, 163, 175)', fontWeight: 400, whiteSpace: 'nowrap' }}>
-                      korea
+                  {/* Month Navigation Buttons */}
+                  <div className="calendar-month-nav">
+                    <button
+                      onClick={() => window.dispatchEvent(new CustomEvent('prevMonth'))}
+                      className="calendar-month-btn"
+                    >
+                      <i className="ri-arrow-left-s-line"></i>
+                    </button>
+                    <span
+                      className="calendar-month-label"
+                      onClick={() => window.dispatchEvent(new CustomEvent('goToToday'))}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      {calendarView.year}.{String(calendarView.month + 1).padStart(2, '0')}
                     </span>
+                    <button
+                      onClick={() => window.dispatchEvent(new CustomEvent('nextMonth'))}
+                      className="calendar-month-btn"
+                    >
+                      <i className="ri-arrow-right-s-line"></i>
+                    </button>
                   </div>
-                  <span style={{ fontSize: 'min(2.5vw, 11px)', width: '100%', display: 'flex', justifyContent: 'space-between', color: 'rgba(255,255,255,0.8)', marginTop: 'min(0.3vw, 2px)', fontWeight: 500 }}>
-                    {'swingenjoy.com'.split('').map((char, i) => (
-                      <span key={`char-${i}-${char}`}>{char}</span>
-                    ))}
-                  </span>
                 </div>
-
-                {/* 이벤트·활동 페이지에 adminStats 표시 */}
-                {(isEventsPage || isMyActivitiesPage) && (
-                  <div style={{ marginLeft: '8px' }}>{adminStats}</div>
-                )}
-              </div>
-            )}
-            {/* 2. Calendar Page (Full Screen) */}
-            {isCalendarPage && (
-              <div className="calendar-header-nav">
-                <button
-                  onClick={() => {
-                    setCalendarMode('collapsed');
-                    navigate('/');
-                  }}
-                  className="calendar-back-btn"
-                >
-                  <i className="ri-arrow-left-line"></i>
-                </button>
-                {/* Month Navigation Buttons */}
-                <div className="calendar-month-nav">
-                  <button
-                    onClick={() => window.dispatchEvent(new CustomEvent('prevMonth'))}
-                    className="calendar-month-btn"
-                  >
-                    <i className="ri-arrow-left-s-line"></i>
-                  </button>
-                  <span
-                    className="calendar-month-label"
-                    onClick={() => window.dispatchEvent(new CustomEvent('goToToday'))}
-                    style={{ cursor: 'pointer' }}
-                  >
-                    {calendarView.year}.{String(calendarView.month + 1).padStart(2, '0')}
-                  </span>
-                  <button
-                    onClick={() => window.dispatchEvent(new CustomEvent('nextMonth'))}
-                    className="calendar-month-btn"
-                  >
-                    <i className="ri-arrow-right-s-line"></i>
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="header-right-buttons">
-            <button
-              onClick={() => {
-                const nextLang = i18n.language === 'ko' ? 'en' : 'ko';
-                changeLanguage(nextLang);
-              }}
-              className="header-translate-btn"
-              title={i18n.language === 'ko' ? 'Switch to English' : '한국어로 전환'}
-              data-analytics-id="header_translate"
-              data-analytics-type="action"
-              data-analytics-title="번역 토글"
-              data-analytics-section="header"
-            >
-              <div className="translate-icon-custom" translate="no">
-                <span className="ko-char">가</span>
-                <span className="divider">/</span>
-                <span className="en-char">A</span>
-              </div>
-              <span style={{ fontSize: 'min(2.5vw, 12px)', fontWeight: 600 }}>{i18n.language.toUpperCase()}</span>
-            </button>
-
-            <button
-              className="header-search-btn"
-              onClick={() => {
-                if (isCalendarPage) {
-                  window.dispatchEvent(new CustomEvent('openCalendarSearch'));
-                } else {
-                  window.dispatchEvent(new CustomEvent('openGlobalSearch'));
-                }
-              }}
-              data-analytics-id="header_search"
-              data-analytics-type="action"
-              data-analytics-title="검색"
-              data-analytics-section="header"
-            >
-              <i className="ri-search-line"></i>
-            </button>
-
-            <button
-              className="header-user-btn"
-              onClick={() => setIsDrawerOpen(true)}
-              title={user ? "프로필" : "로그인"}
-              data-analytics-id="header_user"
-              data-analytics-type="action"
-              data-analytics-title={user ? "프로필" : "로그인"}
-              data-analytics-section="header"
-            >
-              {user ? (
-                userProfile?.profile_image ? (
-                  <img src={userProfile.profile_image} alt="프로필" title={userProfile?.nickname} className="header-user-avatar" />
-                ) : (
-                  <i className="ri-user-3-fill"></i>
-                )
-              ) : (
-                <i className="ri-login-box-line"></i>
               )}
-            </button>
+            </div>
 
-            <button
-              className="header-hamburger-btn"
-              onClick={() => setIsDrawerOpen(true)}
-              data-analytics-id="header_hamburger"
-              data-analytics-type="action"
-              data-analytics-title="사이드 메뉴"
-              data-analytics-section="header"
-            >
-              <i className="ri-menu-line"></i>
-            </button>
+            <div className="header-right-buttons">
+              <button
+                onClick={() => {
+                  const nextLang = i18n.language === 'ko' ? 'en' : 'ko';
+                  changeLanguage(nextLang);
+                }}
+                className="header-translate-btn"
+                title={i18n.language === 'ko' ? 'Switch to English' : '한국어로 전환'}
+                data-analytics-id="header_translate"
+                data-analytics-type="action"
+                data-analytics-title="번역 토글"
+                data-analytics-section="header"
+              >
+                <div className="translate-icon-custom" translate="no">
+                  <span className="ko-char">가</span>
+                  <span className="divider">/</span>
+                  <span className="en-char">A</span>
+                </div>
+                <span style={{ fontSize: 'min(2.5vw, 12px)', fontWeight: 600 }}>{i18n.language.toUpperCase()}</span>
+              </button>
+
+              <button
+                className="header-search-btn"
+                onClick={() => {
+                  if (isCalendarPage) {
+                    window.dispatchEvent(new CustomEvent('openCalendarSearch'));
+                  } else {
+                    window.dispatchEvent(new CustomEvent('openGlobalSearch'));
+                  }
+                }}
+                data-analytics-id="header_search"
+                data-analytics-type="action"
+                data-analytics-title="검색"
+                data-analytics-section="header"
+              >
+                <i className="ri-search-line"></i>
+              </button>
+
+              <button
+                className="header-user-btn"
+                onClick={() => setIsDrawerOpen(true)}
+                title={user ? "프로필" : "로그인"}
+                data-analytics-id="header_user"
+                data-analytics-type="action"
+                data-analytics-title={user ? "프로필" : "로그인"}
+                data-analytics-section="header"
+              >
+                {user ? (
+                  userProfile?.profile_image ? (
+                    <img src={userProfile.profile_image} alt="프로필" title={userProfile?.nickname} className="header-user-avatar" />
+                  ) : (
+                    <i className="ri-user-3-fill"></i>
+                  )
+                ) : (
+                  <i className="ri-login-box-line"></i>
+                )}
+              </button>
+
+              <button
+                className="header-hamburger-btn"
+                onClick={() => setIsDrawerOpen(true)}
+                data-analytics-id="header_hamburger"
+                data-analytics-type="action"
+                data-analytics-title="사이드 메뉴"
+                data-analytics-section="header"
+              >
+                <i className="ri-menu-line"></i>
+              </button>
+            </div>
           </div>
-        </div>
-      </header >
+        </header >
+      )}
 
-      <Outlet context={{ category, calendarMode }} />
+      <Outlet context={{ category, calendarMode, isFullscreen }} />
 
       {/* Bottom Navigation */}
-      <div data-id="bottom-nav" className="shell-bottom-nav">
-        {/* Top Bar Removed - Replaced by FAB Logic */}
+      {!isFullscreen && (
+        <div data-id="bottom-nav" className="shell-bottom-nav">
+          {/* Top Bar Removed - Replaced by FAB Logic */}
 
-        <BottomNavigation />
-      </div>
+          <BottomNavigation />
+        </div>
+      )}
 
       {/* Organic FAB */}
       {
-        pageAction && (
+        pageAction && !isFullscreen && (
           <button
             className="shell-fab-btn"
             onClick={handlePageAction}

@@ -66,6 +66,18 @@
   width: 100%;
 }
 
+/* Fullscreen mode (전체영역) */
+.shell-container.fullscreen-mode {
+  padding-top: 0 !important;
+  height: 100svh !important;
+}
+
+.shell-container.fullscreen-mode .shell-header,
+.shell-container.fullscreen-mode .shell-bottom-nav,
+.shell-container.fullscreen-mode .shell-fab-btn {
+  display: none !important;
+}
+
 /* ===== 상단 바 클래스 ===== */
 
 

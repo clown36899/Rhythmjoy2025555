@@ -9,6 +9,27 @@
     overflow: hidden;
 }
 
+/* 🔥 Aggressive Full Area (전체영역) Expansion */
+.history-timeline-container.is-fullscreen {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100svh !important;
+    background: #000000 !important;
+    z-index: 10000 !important;
+    /* Overlay everything including shell headers */
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+.history-timeline-container.is-fullscreen .timeline-main {
+    height: 100svh !important;
+    border: none !important;
+}
+
 .timeline-header {
     height: 64px;
     background: rgba(17, 24, 39, 0.9);

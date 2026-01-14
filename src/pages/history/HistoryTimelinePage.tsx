@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-import { useBlocker } from 'react-router-dom';
+import { useBlocker, useOutletContext } from 'react-router-dom';
 import { type ReactFlowInstance } from 'reactflow';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -35,6 +35,7 @@ import { parseVideoUrl } from '../../utils/videoEmbed';
 
 function HistoryTimelinePage() {
     const { user, isAdmin } = useAuth();
+    const { isFullscreen } = useOutletContext<{ isFullscreen: boolean }>();
 
     const [isEditMode, setIsEditMode] = useState(false);
 
@@ -858,61 +859,63 @@ function HistoryTimelinePage() {
                 rfInstance.fitView({ padding: 0.1 });
             });
         }
-    }, [currentRootId, rfInstance, loading, nodes.length, searchQuery]);
+    }, [currentRootId, rfInstance, loading, nodes.length, searchQuery, isFullscreen]);
 
     return (
-        <div className="history-timeline-container">
-            <header className="timeline-header">
-                <div className="header-left">
-                    <button className="back-btn" onClick={() => handleNavigate(null, 'Home')}>
-                        <i className="ri-home-4-line"></i>
-                    </button>
-                    <div className="breadcrumb-area">
-                        {breadcrumbs.map((b, i) => (
-                            <span
-                                key={b.id || 'root'}
-                                onClick={() => handleNavigate(b.id, b.title)}
-                                onDragOver={(e) => {
-                                    e.preventDefault();
-                                    e.currentTarget.style.fontWeight = 'bold';
-                                    e.currentTarget.style.color = '#60a5fa';
-                                }}
-                                onDragLeave={(e) => {
-                                    e.currentTarget.style.fontWeight = 'normal';
-                                    e.currentTarget.style.color = '';
-                                }}
-                                onDrop={(e) => {
-                                    e.preventDefault();
-                                    e.currentTarget.style.fontWeight = 'normal';
-                                    e.currentTarget.style.color = '';
-                                    // Handle HTML5 drop if implemented, but primarily this is a target for onNodeDragStop detection
-                                }}
-                                data-breadcrumb-id={b.id || 'null'} // Marker for detection
-                                className="breadcrumb-item"
-                            >
-                                {i > 0 && <i className="ri-arrow-right-s-line"></i>}
-                                {b.title}
-                            </span>
-                        ))}
+        <div className={`history-timeline-container ${isFullscreen ? 'is-fullscreen' : ''}`}>
+            {!isFullscreen && (
+                <header className="timeline-header">
+                    <div className="header-left">
+                        <button className="back-btn" onClick={() => handleNavigate(null, 'Home')}>
+                            <i className="ri-home-4-line"></i>
+                        </button>
+                        <div className="breadcrumb-area">
+                            {breadcrumbs.map((b, i) => (
+                                <span
+                                    key={b.id || 'root'}
+                                    onClick={() => handleNavigate(b.id, b.title)}
+                                    onDragOver={(e) => {
+                                        e.preventDefault();
+                                        e.currentTarget.style.fontWeight = 'bold';
+                                        e.currentTarget.style.color = '#60a5fa';
+                                    }}
+                                    onDragLeave={(e) => {
+                                        e.currentTarget.style.fontWeight = 'normal';
+                                        e.currentTarget.style.color = '';
+                                    }}
+                                    onDrop={(e) => {
+                                        e.preventDefault();
+                                        e.currentTarget.style.fontWeight = 'normal';
+                                        e.currentTarget.style.color = '';
+                                        // Handle HTML5 drop if implemented, but primarily this is a target for onNodeDragStop detection
+                                    }}
+                                    data-breadcrumb-id={b.id || 'null'} // Marker for detection
+                                    className="breadcrumb-item"
+                                >
+                                    {i > 0 && <i className="ri-arrow-right-s-line"></i>}
+                                    {b.title}
+                                </span>
+                            ))}
+                        </div>
                     </div>
-                </div>
-                <div className="header-center">
-                    <div className="search-box">
-                        <i className="ri-search-line"></i>
-                        <input
-                            type="text"
-                            placeholder="사건 검색..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                        {searchQuery && (
-                            <button className="clear-search" onClick={() => setSearchQuery('')}>
-                                <i className="ri-close-line"></i>
-                            </button>
-                        )}
+                    <div className="header-center">
+                        <div className="search-box">
+                            <i className="ri-search-line"></i>
+                            <input
+                                type="text"
+                                placeholder="사건 검색..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                            {searchQuery && (
+                                <button className="clear-search" onClick={() => setSearchQuery('')}>
+                                    <i className="ri-close-line"></i>
+                                </button>
+                            )}
+                        </div>
                     </div>
-                </div>
-            </header>
+                </header>
+            )}
 
             <main className="timeline-main history-timeline-canvas">
                 <HistoryCanvas
@@ -941,6 +944,16 @@ function HistoryTimelinePage() {
                 />
 
                 <div className="floating-canvas-controls">
+                    {/* 🔥 [UX] 전체영역 토글 버튼 (모든 사용자/일반인 노출 - 편집버튼보다 위에 위치) */}
+                    <button
+                        className={`action-btn ${isFullscreen ? 'active' : ''}`}
+                        onClick={() => window.dispatchEvent(new CustomEvent('toggleFullscreen'))}
+                        title="전체영역"
+                    >
+                        <i className={isFullscreen ? 'ri-fullscreen-exit-line' : 'ri-fullscreen-line'}></i>
+                        전체영역
+                    </button>
+
                     {/* 1. Main Toggle: Edit Mode (Admin Only) */}
                     {isAdmin && (
                         <button
