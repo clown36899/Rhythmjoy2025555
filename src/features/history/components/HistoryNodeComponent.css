@@ -649,20 +649,42 @@
     /* Minimal Touch Area */
     padding: 24px 24px 10px 24px !important;
     margin: 0 !important;
-    background: #111827 !important;
-    /* 🔥 Solid Opaque Background */
-    z-index: 50;
+    background: transparent !important;
+    /* Let glass effect take over */
+    z-index: 500 !important;
+    /* Extremely high to stay above children */
     display: flex;
     align-items: flex-start;
     /* Title stays at top */
     border-radius: 12px 12px 0 0;
     pointer-events: none;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* 🔥 Populated Folder Title Elevation (Nuclear Freedom Phase 2) */
+/* When it has children, lift the title ABOVE the folder border */
+.history-node.use-folder-system.has-children .node-header {
+    top: -10px !important;
+    /* Start of the lift */
+    transform: translateY(-100%);
+    /* Full lift above the border */
+    background: rgba(17, 24, 39, 0.8) !important;
+    /* Glass effect for floating */
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(139, 92, 246, 0.3);
+    border-bottom: none;
+    border-radius: 20px 20px 0 0;
+    padding-bottom: 20px !important;
+    width: auto !important;
+    min-width: 200px;
+    max-width: 90%;
+    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
 }
 
 /* 🔥 Aggressive Folder Title Scaling - UNIFIED FOR ALL FOLDERS */
 .history-node.use-folder-system .history-node-title {
     /* 🔥 Aggressive Scaling: Bases on Container Width (cqi) */
-    font-size: clamp(2rem, 11cqi, 20rem) !important;
+    font-size: clamp(2rem, 7cqi, 15rem) !important;
     line-height: 1.1;
     margin-bottom: 10px;
     width: 100%;
@@ -676,6 +698,11 @@
 }
 
 /* 7. Absolute Positioning for Footer (Bottom) - UNIFIED FOR ALL FOLDERS */
+.history-node.use-folder-system {
+    position: relative;
+    /* Ensure children can absolute position outside */
+}
+
 .history-node.use-folder-system .history-node-footer {
     position: absolute !important;
     bottom: 0;
@@ -685,16 +712,40 @@
     height: clamp(20px, 15cqi, 350px) !important;
     min-height: 20px;
     padding: 0 24px !important;
-    background: #111827 !important;
-    /* 🔥 Solid Opaque Background */
-    z-index: 50;
-    border-top: 1px solid #374151;
+    background: transparent !important;
+    /* Let glass effect take over */
+    z-index: 500 !important;
+    /* Stay above children */
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
     /* 🔥 Solid Border */
     display: flex;
     align-items: center;
     justify-content: flex-end;
     border-radius: 0 0 12px 12px;
     pointer-events: none;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* 🔥 Populated Folder Footer Expansion (Nuclear Freedom Phase 3) */
+/* When it has children, move the buttons BELOW the folder border */
+.history-node.use-folder-system.has-children .history-node-footer {
+    bottom: -10px !important;
+    /* Start of the drop */
+    transform: translateY(100%);
+    /* Full drop below the border */
+    background: rgba(17, 24, 39, 0.8) !important;
+    /* Glass effect for floating */
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(139, 92, 246, 0.3);
+    border-top: none;
+    border-radius: 0 0 20px 20px;
+    padding-top: 20px !important;
+    width: auto !important;
+    min-width: 200px;
+    max-width: 90%;
+    margin-left: auto;
+    /* Aligned right like default footer */
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 .history-node.use-folder-system .history-node-footer>* {
@@ -722,14 +773,20 @@
     /* Fixed default for safety */
 }
 
-/* Apply massive buffers only when node is NOT minimal (Populated/Description) */
-.history-node.use-folder-system:not(.is-minimal-node) .history-node-content {
+/* Apply massive buffers ONLY for standard internal folders (not floating) */
+.history-node.use-folder-system:not(.is-minimal-node):not(.has-children) .history-node-content {
     padding-top: calc(var(--dynamic-header-height, 120px) + 5px) !important;
     padding-bottom: calc(clamp(80px, 15cqi, 350px) + 5px) !important;
 }
 
+/* 🔥 Floating Mode (has-children): UI is OUTSIDE, so internal padding is minimal */
+.history-node.use-folder-system.has-children .history-node-content {
+    padding: 10px !important;
+    min-height: 0 !important;
+}
+
 /* Empty Folders: ZERO Mandatory buffer to allow 60px shrinkage */
-.history-node.use-folder-system.is-minimal-node .history-node-content {
+.history-node.use-folder-system.is-minimal-node:not(.has-children) .history-node-content {
     padding: 0 !important;
     min-height: 0 !important;
     height: 0 !important;

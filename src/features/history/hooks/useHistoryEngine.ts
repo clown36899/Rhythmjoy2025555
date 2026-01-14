@@ -280,8 +280,21 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
 
             const flowNodes = (nodesData || []).map(node => mapDbNodeToRFNode(node, handlers));
 
+            // [V21] PERSISTENCE FIX: Calculate child counts immediately on load
+            // This ensures has-children (floating UI) is active on refresh.
+            const childCounts = new Map<any, number>();
+            flowNodes.forEach(node => {
+                const pid = node.data.parent_node_id;
+                if (pid) {
+                    childCounts.set(String(pid), (childCounts.get(String(pid)) || 0) + 1);
+                }
+            });
+
             allNodesRef.current.clear();
             flowNodes.forEach(node => {
+                const nodeHasChildren = (childCounts.get(String(node.id)) || 0) > 0;
+                node.data = { ...node.data, hasChildren: nodeHasChildren };
+
                 allNodesRef.current.set(node.id, node);
                 // Initialize Last Saved State
                 lastSavedStateRef.current.set(node.id, {
@@ -408,7 +421,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                         strokeDasharray: isConnect ? '20 10' : (originalEdge?.style?.strokeDasharray || undefined)
                     },
                     animated: targetAnimated,
-                    zIndex: isConnect ? 999 : 0 // Ensure highlighted edges are on top (if renderer supports via iteration order, usually handled by array order)
+                    zIndex: isConnect ? 999 : 1 // Ensure highlighted edges are on top, default to 1 (above folders)
                 };
             });
         });
@@ -598,7 +611,9 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
             const minZ = Math.min(...currentZIndices, 0);
 
             const updates = nodeIds.map(async (id) => {
-                const newZ = action === 'front' ? maxZ + 1 : minZ - 1;
+                const isLeaf = allNodesRef.current.get(id)?.data.node_behavior === 'LEAF';
+                const calculatedZ = action === 'front' ? maxZ + 1 : minZ - 1;
+                const newZ = isLeaf ? Math.max(1, calculatedZ) : 0;
                 const { data, error } = await supabase.from('history_nodes').update({ z_index: newZ }).eq('id', id).select(HISTORY_NODE_SELECT).single();
                 if (error) throw error;
                 const updated = mapDbNodeToRFNode(data, {
@@ -933,7 +948,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                 position_y: Math.round(n.position.y),
                 width: w,
                 height: h,
-                z_index: Number(n.style?.zIndex) || (n.zIndex && n.zIndex !== 0 ? n.zIndex : 0)
+                z_index: (n.data.node_behavior === 'LEAF') ? Math.max(1, Number(n.style?.zIndex) || n.zIndex || 1) : 0
             };
         });
 

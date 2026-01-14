@@ -145,15 +145,15 @@ export const useFolderLogic = ({ allNodesRef }: UseFolderLogicProps) => {
             parentNode.data = { ...parentNode.data, hasChildren };
         }
 
-        // Force Folder Z-Index and Style even if empty
-        parentNode.zIndex = -10;
-        parentNode.style = { ...parentNode.style, zIndex: -10 };
+        // Force Folder Z-Index and Style even if empty (Folders: 0, Nodes: 1+)
+        parentNode.zIndex = 0;
+        parentNode.style = { ...parentNode.style, zIndex: 0 };
 
         if (!hasChildren) {
             // 🔥 Just sync basic state for empty folder
             // Do not force width/height here anymore, allow user manual resize to persist.
-            parentNode.zIndex = -10;
-            parentNode.style = { ...parentNode.style, zIndex: -10 };
+            parentNode.zIndex = 0;
+            parentNode.style = { ...parentNode.style, zIndex: 0 };
             return;
         }
 
@@ -187,8 +187,8 @@ export const useFolderLogic = ({ allNodesRef }: UseFolderLogicProps) => {
         // Ref Update
         parentNode.width = newWidth;
         parentNode.height = newHeight;
-        parentNode.zIndex = -10; // 🔥 Enforce Lower Z-Index for Folder Parents
-        parentNode.style = { ...parentNode.style, width: newWidth, height: newHeight, zIndex: -10 };
+        parentNode.zIndex = 0; // 🔥 Folders: 0
+        parentNode.style = { ...parentNode.style, width: newWidth, height: newHeight, zIndex: 0 };
     }, [allNodesRef]);
 
     return {

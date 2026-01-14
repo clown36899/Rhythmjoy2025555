@@ -144,7 +144,7 @@ export const mapDbNodeToRFNode = (
         style: {
             width: node.width || (isContainer ? 421 : 320),
             height: node.height || 160,
-            zIndex: (node.z_index && node.z_index !== 0) ? node.z_index : (isContainer ? -1 : 0)
+            zIndex: isContainer ? 0 : Math.max(1, node.z_index || 1)
         },
         width: node.width || (isContainer ? 421 : 320),
         height: node.height || 160,

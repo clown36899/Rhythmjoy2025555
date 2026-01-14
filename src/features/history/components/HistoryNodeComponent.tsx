@@ -29,13 +29,19 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
     if (!thumbnailUrl && videoInfo?.thumbnailUrl) {
         thumbnailUrl = validateYouTubeThumbnailUrl(videoInfo.thumbnailUrl);
     }
-
     const nodeRef = useRef<HTMLDivElement>(null);
 
-    // [V7] Stable Resize Constraints: baseline minimums to prevent content cutoff
+    // [V21] Folder Logic: All folders follow the unified layout
+    const isFolderType = data.category === 'folder' || (data.node_behavior as string) === 'FOLDER';
+    const useUnifiedFolderLayout = isFolderType;
+    const hasChildren = !!data.hasChildren;
+
     const isCanvas = data.nodeType === 'canvas' || data.category === 'canvas';
     const hasThumbnail = (!!thumbnailUrl || !!data.image_url) && data.category !== 'person';
-    const isMinimalNode = !data.description && !hasThumbnail && (data.category !== 'person' && !isCanvas);
+
+    // [V21] Nuclear Correction: Folders with children are NEVER minimal nodes.
+    // They must act as containers with elevated/floating UI.
+    const isMinimalNode = !data.description && !hasThumbnail && (data.category !== 'person' && !isCanvas) && !hasChildren;
 
     const [minSize, setMinSize] = useState({
         width: isCanvas ? 420 : 200,
@@ -245,22 +251,17 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
         // 4. Default -> View Detail Modal
         handleViewDetail(e);
     };
-    // [Folder Logic]
-    // All folders (empty or populated) now follow the same unified "Aggressive" styling system
-    const isFolderType = data.category === 'folder' || (data.node_behavior as string) === 'FOLDER';
-    const useUnifiedFolderLayout = isFolderType;
-
     return (
         <div
             ref={nodeRef}
-            className={`history-node ${selected ? 'selected' : ''} ${isContainer ? 'is-container' : ''} linked-type-${linkedType} ${isCanvas ? 'is-canvas-portal' : ''} ${!hasThumbnail && data.category !== 'person' ? 'no-content-image' : ''} ${isMinimalNode ? 'is-minimal-node' : ''} ${useUnifiedFolderLayout ? 'use-folder-system' : ''}`}
+            className={`history-node ${selected ? 'selected' : ''} ${isContainer ? 'is-container' : ''} linked-type-${linkedType} ${isCanvas ? 'is-canvas-portal' : ''} ${!hasThumbnail && data.category !== 'person' ? 'no-content-image' : ''} ${isMinimalNode ? 'is-minimal-node' : ''} ${useUnifiedFolderLayout ? 'use-folder-system' : ''} ${hasChildren ? 'has-children' : ''}`}
             style={{
                 borderColor: categoryColor,
                 height: '100%',
                 width: '100%',
                 '--dynamic-header-height': `${headerHeight}px`,
-                // 🔥 Folder index must always be lower than other nodes
-                zIndex: isFolderType ? -10 : undefined
+                // 🔥 Folder index is 0, non-folders must be at least 1
+                zIndex: isFolderType ? 0 : 1
             } as React.CSSProperties}
             onClick={handleNodeClick} // 🔥 Use dedicated handler that manages propagation
             onContextMenu={() => {
