@@ -59,6 +59,13 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
         rootId: string | null,
         filters: { search?: string } = {}
     ) => {
+        console.log('🔧 [useHistoryEngine] syncVisualization Called', {
+            rootId,
+            filters,
+            totalNodes: allNodesRef.current.size,
+            totalEdges: allEdgesRef.current.size
+        });
+
         let allNodes = Array.from(allNodesRef.current.values());
         const allEdges = Array.from(allEdgesRef.current.values());
 
@@ -102,7 +109,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
 
             // [FIX] 검색어가 있는데 결과가 없으면 즉시 빈 화면 처리
             if (filters.search && primaryMatches.length === 0) {
-                // console.log('🚫 No matches found for search query:', filters.search);
+                console.log('🚫 [useHistoryEngine] No matches found for search:', filters.search);
                 setNodes([]);
                 setEdges([]);
                 return;
@@ -130,11 +137,15 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
             // [FIX] 결과 노드가 폴더일 경우 그 안의 모든 하위 자식들을 재귀적으로 포함한다.
             const expandedIds = new Set([...primaryMatches, ...neighbors].map(n => n.id));
             let hasAdded = true;
-            while (hasAdded) {
+            let loopSafety = 0; // 🔥 Safety Break
+
+            while (hasAdded && loopSafety < 100) { // Limit recursion depth
                 hasAdded = false;
+                loopSafety++;
+
                 const children = allNodes.filter(n => {
-                    if (expandedIds.has(n.id)) return false;
-                    if (!n.parentNode || !expandedIds.has(n.parentNode)) return false;
+                    if (expandedIds.has(n.id)) return false; // Already include
+                    if (!n.parentNode || !expandedIds.has(n.parentNode)) return false; // Parent not in set
 
                     const parentNode = allNodesRef.current.get(n.parentNode);
                     if (!parentNode) return false;
@@ -148,6 +159,10 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                     children.forEach(c => expandedIds.add(c.id));
                     hasAdded = true;
                 }
+            }
+
+            if (loopSafety >= 100) {
+                console.warn('⚠️ [HistoryEngine] Search expansion hit safety limit. Possible cyclic folder structure?');
             }
 
             const finalNodes = allNodes.filter(n => expandedIds.has(n.id));
@@ -230,8 +245,8 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
      */
     const loadTimeline = useCallback(async () => {
         try {
+            console.log('📡 [useHistoryEngine] loadTimeline Started');
             setLoading(true);
-            // console.log('📡 [HistoryEngine] Loading Timeline Data...');
 
             // 1. 노드 페칭
             const { data: nodesData, error: nodesErr } = await supabase
@@ -300,10 +315,12 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
             flowEdges.forEach(edge => allEdgesRef.current.set(edge.id, edge));
 
             // 4. 초기 가시성 투영
+            console.log('🎨 [useHistoryEngine] Initial syncVisualization from loadTimeline');
             syncVisualization(currentRootId);
+            console.log('✅ [useHistoryEngine] loadTimeline Complete', { nodesLoaded: flowNodes.length, edgesLoaded: flowEdges.length });
 
         } catch (error) {
-            console.error('🚨 [HistoryEngine] Load Failed:', error);
+            console.error('🚨 [useHistoryEngine] Load Failed:', error);
         } finally {
             setLoading(false);
         }

@@ -7,6 +7,17 @@ import type { HistoryNodeData } from '../types';
 import { CATEGORY_COLORS } from '../utils/constants';
 
 function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
+    // 🔍 Debug: Log first render only (avoid spam)
+    if (!data._loggedRender) {
+        console.log('🎨 [HistoryNodeComponent] Rendering Node', {
+            id: data.id,
+            title: data.title,
+            category: data.category,
+            hasHandlers: !!(data.onEdit && data.onViewDetail && data.onPlayVideo)
+        });
+        data._loggedRender = true;
+    }
+
     const videoInfo = data.youtube_url ? parseVideoUrl(data.youtube_url) : null;
     let thumbnailUrl: string | null = null;
 

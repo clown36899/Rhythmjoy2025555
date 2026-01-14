@@ -625,20 +625,47 @@ function HistoryTimelinePage() {
     }, [blocker]);
 
     // 6. 캔버스 투영 업데이트 (핸들러 주입 및 필터링)
-    // 6. 캔버스 투영 업데이트 (핸들러 주입 및 필터링)
-    // 🔥 Fix: Use Ref to track initialization and prevent infinite loops
+    // 🔥 Fix: Declare refs BEFORE useEffect that uses them
     const handlersInitializedRef = useRef(false);
+    const prevEditModeRef = useRef(isEditMode);
+    const prevSelectionModeRef = useRef(isSelectionMode);
+
+    console.log('🎬 [HistoryTimelinePage] Component Render', {
+        nodesCount: nodes.length,
+        loading,
+        isEditMode,
+        currentRootId,
+        handlersInitialized: handlersInitializedRef.current
+    });
+
+    // 🔥 Memoize Preview Handler
+    const handlePreviewLinkedResource = useCallback((id: string, type: string, title: string) => {
+        setPreviewResource({ id, type, title });
+    }, []);
 
     useEffect(() => {
+        console.log('🔄 [HistoryTimelinePage] useEffect Triggered', {
+            loading,
+            nodesLength: nodes.length,
+            handlersInitialized: handlersInitializedRef.current,
+            isEditMode,
+            searchQuery
+        });
+
         // Guard: Wait for loading to finish and nodes to exist
-        if (loading || nodes.length === 0) return;
+        if (loading || nodes.length === 0) {
+            console.log('⏸️ [HistoryTimelinePage] Effect Skipped (Guard)', { loading, nodesLength: nodes.length });
+            return;
+        }
+
+        console.log('💉 [HistoryTimelinePage] Injecting Handlers into', allNodesRef.current.size, 'nodes');
 
         // 1. Always inject handlers into Master Refs (This operation is cheap)
         allNodesRef.current.forEach(node => {
             node.data.onEdit = handleEditNode;
             node.data.onViewDetail = handleViewDetail;
             node.data.onPlayVideo = handlePlayVideo;
-            node.data.onPreviewLinkedResource = (id, type, title) => setPreviewResource({ id, type, title });
+            node.data.onPreviewLinkedResource = handlePreviewLinkedResource;
             node.data.isEditMode = isEditMode;
             node.data.isSelectionMode = isSelectionMode;
             node.data.isShiftPressed = isShiftPressed;
@@ -657,10 +684,23 @@ function HistoryTimelinePage() {
             prevEditModeRef.current !== isEditMode ||
             prevSelectionModeRef.current !== isSelectionMode;
 
+        console.log('🔍 [HistoryTimelinePage] Sync Decision', {
+            shouldSync,
+            searchQuery,
+            willSync: shouldSync || !!searchQuery,
+            reason: !handlersInitializedRef.current ? 'First Init' :
+                prevEditModeRef.current !== isEditMode ? 'Edit Mode Changed' :
+                    prevSelectionModeRef.current !== isSelectionMode ? 'Selection Mode Changed' : 'None'
+        });
+
         if (shouldSync || searchQuery) {
+            console.log('🎨 [HistoryTimelinePage] Calling syncVisualization', { currentRootId, searchQuery });
             const filters = searchQuery ? { search: searchQuery } : undefined;
             syncVisualization(currentRootId, filters);
             handlersInitializedRef.current = true;
+            console.log('✅ [HistoryTimelinePage] syncVisualization Complete');
+        } else {
+            console.log('⏭️ [HistoryTimelinePage] Sync Skipped (Already Initialized)');
         }
 
         // Track previous states to detect changes
@@ -671,13 +711,9 @@ function HistoryTimelinePage() {
         // Dependencies that SHOULD trigger a potential update
         isEditMode, isSelectionMode, isShiftPressed, currentRootId, searchQuery, loading,
         // Stable References
-        handleEditNode, handleViewDetail, handlePlayVideo, syncVisualization, handleResizeStop,
+        handleEditNode, handleViewDetail, handlePlayVideo, syncVisualization, handleResizeStop, handlePreviewLinkedResource,
         nodes.length // Only react to count changes, not data mutations
     ]);
-
-    // Track previous mode states to avoid effect loops
-    const prevEditModeRef = useRef(isEditMode);
-    const prevSelectionModeRef = useRef(isSelectionMode);
 
     // 🔥 New: Auto fitView when navigating levels or filters change
     useEffect(() => {
