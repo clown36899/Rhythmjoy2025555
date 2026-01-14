@@ -64,6 +64,7 @@ export interface HistoryNodeData {
     onSelectionChange?: (id: string, selected: boolean) => void;
     containerMode?: 'portal' | 'group' | 'none'; // 하위 호환성 유지
     onResizeStop?: (id: string | number, width: number, height: number, x: number, y: number) => void;
+    hasChildren?: boolean;
 }
 
 /**

@@ -142,12 +142,12 @@ export const mapDbNodeToRFNode = (
         type: 'historyNode',
         parentNode: node.parent_node_id ? String(node.parent_node_id) : undefined,
         style: {
-            width: node.width || (isContainer ? 640 : 320),
-            height: node.height || (isContainer ? 480 : 160),
+            width: node.width || (isContainer ? 421 : 320),
+            height: node.height || 160,
             zIndex: (node.z_index && node.z_index !== 0) ? node.z_index : (isContainer ? -1 : 0)
         },
-        width: node.width || (isContainer ? 640 : 320),
-        height: node.height || (isContainer ? 480 : 160),
+        width: node.width || (isContainer ? 421 : 320),
+        height: node.height || 160,
         position: {
             x: node.position_x || 0,
             y: positionY

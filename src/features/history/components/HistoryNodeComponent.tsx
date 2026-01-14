@@ -56,26 +56,34 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
             const footerEl = nodeRef.current.querySelector('.history-node-footer');
             const headerEl = nodeRef.current.querySelector('.node-header');
 
-            // [V18] Master Measurement: Dynamic Shell Detection
-            // Use scrollHeight for content to account for the full text, but zero it if minimal
-            const hh = (headerEl && (headerEl as HTMLElement).innerText.trim() !== '') ? headerEl.getBoundingClientRect().height : 0;
-            const th = titleEl ? titleEl.getBoundingClientRect().height : 32;
-            const fh = footerEl ? footerEl.getBoundingClientRect().height : 60;
-            const ch = isMinimalNode ? 0 : contentEl.scrollHeight;
+            // [V20] NUCLEAR REFACTOR: Isolated Calculation Formula
+            // Separated to remove all limits/ceilings for '맘대로' resizing.
+            const getMinDimensions = () => {
+                // 1. Folders or Minimal nodes - Absolute Freedom (60px Bar)
+                // [Folder Logic] All folders (empty or populated) now allow 60px floor
+                const isFolderType = data.category === 'folder' || (data.node_behavior as string) === 'FOLDER';
+                if (isFolderType || isMinimalNode) {
+                    return { width: 421, height: 60 };
+                }
 
-            // Minimal nodes have ZERO mandatory air/padding buffer
-            const buffer = isMinimalNode ? 0 : 20;
-            const totalRequiredHeight = hh + th + fh + ch + buffer;
+                // 2. Standard Nodes - Content-Driven
+                const hh_val = (headerEl && (headerEl as HTMLElement).innerText.trim() !== '') ? headerEl.getBoundingClientRect().height : 0;
+                const measuredTh = titleEl ? titleEl.getBoundingClientRect().height : 32;
+                const fh = footerEl ? footerEl.getBoundingClientRect().height : 60;
+                const ch = contentEl.scrollHeight;
+                const buffer = 20;
 
-            // Adaptive Floor: Text-only nodes can shrink to a 60px 'bar'. 
-            // Canvas or nodes with images keep a 120px+ floor for layout balance.
-            const floor = (isCanvas && !isMinimalNode) ? 250 : (isMinimalNode ? 60 : 120);
+                const totalH = hh_val + measuredTh + fh + ch + buffer;
+                const minH = isCanvas ? 250 : 120;
+                const finalH = Math.max(minH, totalH);
 
-            const finalMinHeight = Math.max(floor, totalRequiredHeight);
-            const finalMinWidth = isCanvas ? 420 : 250;
+                return { width: isCanvas ? 421 : 250, height: finalH };
+            };
+
+            const { width: finalMinWidth, height: finalMinHeight } = getMinDimensions();
 
             setMinSize(prev => {
-                if (Math.abs(prev.height - finalMinHeight) < 2) return prev;
+                if (Math.abs(prev.height - finalMinHeight) < 2 && Math.abs(prev.width - finalMinWidth) < 2) return prev;
                 return { width: finalMinWidth, height: finalMinHeight };
             });
         };
@@ -85,7 +93,7 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
         updateMinSize();
 
         return () => observer.disconnect();
-    }, [isCanvas, hasThumbnail, isMinimalNode]);
+    }, [isCanvas, hasThumbnail, isMinimalNode, data.category, data.node_behavior]);
 
     const handlePlayVideo = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -237,15 +245,22 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
         // 4. Default -> View Detail Modal
         handleViewDetail(e);
     };
+    // [Folder Logic]
+    // All folders (empty or populated) now follow the same unified "Aggressive" styling system
+    const isFolderType = data.category === 'folder' || (data.node_behavior as string) === 'FOLDER';
+    const useUnifiedFolderLayout = isFolderType;
+
     return (
         <div
             ref={nodeRef}
-            className={`history-node linked-type-${linkedType} ${isCanvas ? 'is-canvas-portal' : ''} ${!hasThumbnail && data.category !== 'person' ? 'no-content-image' : ''} ${isMinimalNode ? 'is-minimal-node' : ''}`}
+            className={`history-node ${selected ? 'selected' : ''} ${isContainer ? 'is-container' : ''} linked-type-${linkedType} ${isCanvas ? 'is-canvas-portal' : ''} ${!hasThumbnail && data.category !== 'person' ? 'no-content-image' : ''} ${isMinimalNode ? 'is-minimal-node' : ''} ${useUnifiedFolderLayout ? 'use-folder-system' : ''}`}
             style={{
                 borderColor: categoryColor,
                 height: '100%',
                 width: '100%',
-                '--dynamic-header-height': `${headerHeight}px` // Pass to CSS if needed, or use inline styles below
+                '--dynamic-header-height': `${headerHeight}px`,
+                // 🔥 Folder index must always be lower than other nodes
+                zIndex: isFolderType ? -10 : undefined
             } as React.CSSProperties}
             onClick={handleNodeClick} // 🔥 Use dedicated handler that manages propagation
             onContextMenu={() => {
@@ -333,7 +348,7 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                             <span className="node-year">{data.year || data.date}</span>
                             <div style={{ display: 'flex', gap: '4px' }}>
-                                {data.category && (
+                                {getCategoryIcon(data.category || 'general') && (
                                     <span className={`history-node-badge badge-${data.category || 'general'}`}>
                                         {getCategoryIcon(data.category || 'general')}
                                     </span>

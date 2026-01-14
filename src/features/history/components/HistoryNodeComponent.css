@@ -3,8 +3,10 @@
     border: 2px solid #8b5cf6;
     border-radius: 12px;
     width: 421px;
-    min-width: 320px;
-    min-height: 140px;
+    min-width: 200px;
+    /* Reduced from 320px */
+    min-height: 60px;
+    /* Reduced from 140px to allow bar-mode */
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     /* 🔥 Optimization: Avoid animating transform/width/height to prevent drag lag */
     transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
@@ -324,6 +326,7 @@
     line-height: 1.5;
     display: -webkit-box;
     -webkit-line-clamp: 3;
+    line-clamp: 3;
     /* Default, but will show more if space allows */
     -webkit-box-orient: vertical;
     flex-shrink: 0;
@@ -442,7 +445,7 @@
 }
 
 .is-minimal-node .history-node-content {
-    padding: 4px 16px !important;
+    padding: 0 !important;
     gap: 0 !important;
     min-height: 0 !important;
     flex: 0 1 auto !important;
@@ -470,16 +473,7 @@
     border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
 }
 
-/* 🔥 Folder Node UI Protection - Header and footer always on top */
-/* Apply only to parent nodes (folders with children) */
-
-/* Adjust content area to leave space for absolute header/footer */
-.react-flow__node.parent .history-node-content {
-    padding-top: 80px !important;
-    /* Space for header */
-    padding-bottom: 80px !important;
-    /* Space for footer */
-}
+/* [REMOVED] Legacy Parent Padding - Blocked 60px shrinkage */
 
 .react-flow__node.parent .node-header {
     position: absolute !important;
@@ -632,65 +626,30 @@
     display: flex;
     /* Ensure flex layout works */
 
-    /* 🔥 CRITICAL FIX: Remove container-type to break the stacking context trap.
-       Result: Header (z=50) > Child Node (z=0) */
-    container-type: normal !important;
+    /* 🔥 Restore container-type to allow cqmin scaling within the node */
+    container-type: size !important;
 }
 
-/* 2. Fixed Title Size (Stop scaling with container) */
-.history-node.linked-type-folder .history-node-title,
-.history-node.linked-type-category .history-node-title {
-    font-size: 24px !important;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 100%;
+/* [INTEGRATED] Populated Folder rules are now part of .use-folder-system */
+
+.history-node.linked-type-folder .node-header>*,
+.history-node.linked-type-category .node-header>* {
+    pointer-events: auto;
 }
 
-.history-node.linked-type-folder .node-type-icon,
-.history-node.linked-type-category .node-type-icon {
-    font-size: 24px !important;
-    margin-right: 8px !important;
-}
-
-/* 3. Fixed Button Size & Icon Size */
-.history-node.linked-type-folder .node-action-btn,
-.history-node.linked-type-category .node-action-btn {
-    width: 36px !important;
-    height: 36px !important;
-    font-size: 18px !important;
-    flex-shrink: 0;
-}
-
-/* 4. Fixed Badge Size */
-.history-node.linked-type-folder .history-node-badge,
-.history-node.linked-type-category .history-node-badge {
-    width: 24px !important;
-    height: 24px !important;
-    font-size: 14px !important;
-}
-
-/* 5. Fixed Year Size */
-.history-node.linked-type-folder .node-year,
-.history-node.linked-type-category .node-year {
-    font-size: 14px !important;
-}
-
-/* 6. Absolute Positioning for Header (Top) */
-/* 6. Absolute Positioning for Header (Top) */
-.history-node.linked-type-folder .node-header,
-.history-node.linked-type-category .node-header {
+/* 6. Absolute Positioning for Header (Top) - UNIFIED FOR ALL FOLDERS */
+.history-node.use-folder-system .node-header {
     position: absolute !important;
     top: 0;
     left: 0;
     right: 0;
     height: auto !important;
     /* 🔥 Dynamic Height */
-    min-height: 100px;
+    min-height: 20px;
     /* Minimal Touch Area */
     padding: 24px 24px 10px 24px !important;
     margin: 0 !important;
-    /* background: #111827 !important; */
+    background: #111827 !important;
     /* 🔥 Solid Opaque Background */
     z-index: 50;
     display: flex;
@@ -700,11 +659,10 @@
     pointer-events: none;
 }
 
-/* 🔥 Folder Title Scaling */
-.history-node.linked-type-folder .history-node-title,
-.history-node.linked-type-category .history-node-title {
+/* 🔥 Aggressive Folder Title Scaling - UNIFIED FOR ALL FOLDERS */
+.history-node.use-folder-system .history-node-title {
     /* 🔥 Aggressive Scaling: Bases on Container Width (cqi) */
-    font-size: clamp(2rem, 8cqi, 8rem) !important;
+    font-size: clamp(2rem, 11cqi, 20rem) !important;
     line-height: 1.1;
     margin-bottom: 10px;
     width: 100%;
@@ -713,28 +671,19 @@
     opacity: 1 !important;
 }
 
-.history-node.linked-type-folder .node-header>*,
-.history-node.linked-type-category .node-header>* {
+.history-node.use-folder-system .node-header>* {
     pointer-events: auto;
 }
 
-.history-node.linked-type-folder .node-header>*,
-.history-node.linked-type-category .node-header>* {
-    pointer-events: auto;
-}
-
-/* 7. Absolute Positioning for Footer (Bottom) */
-/* 7. Absolute Positioning for Footer (Bottom) */
-/* 7. Absolute Positioning for Footer (Bottom) */
-/* 7. Absolute Positioning for Footer (Bottom) */
-.history-node.linked-type-folder .history-node-footer,
-.history-node.linked-type-category .history-node-footer {
+/* 7. Absolute Positioning for Footer (Bottom) - UNIFIED FOR ALL FOLDERS */
+.history-node.use-folder-system .history-node-footer {
     position: absolute !important;
     bottom: 0;
     left: 0;
     right: 0;
-    /* 🔥 Dynamic Scaling Footer */
-    height: clamp(80px, 15cqh, 200px) !important;
+    /* 🔥 Dynamic Scaling Footer (Aggressive) - Conditional min-height */
+    height: clamp(20px, 15cqi, 350px) !important;
+    min-height: 20px;
     padding: 0 24px !important;
     background: #111827 !important;
     /* 🔥 Solid Opaque Background */
@@ -748,52 +697,40 @@
     pointer-events: none;
 }
 
-.history-node.linked-type-folder .history-node-footer>*,
-.history-node.linked-type-category .history-node-footer>* {
+.history-node.use-folder-system .history-node-footer>* {
     pointer-events: auto;
 }
 
-.history-node.linked-type-folder .node-action-btn,
-.history-node.linked-type-category .node-action-btn {
-    /* 🔥 Dynamic Scaling Buttons */
-    width: clamp(24px, 5cqh, 60px) !important;
-    height: clamp(24px, 5cqh, 60px) !important;
-    font-size: clamp(14px, 3cqh, 30px) !important;
+/* Aggressive Button Scaling - UNIFIED FOR ALL FOLDERS */
+.history-node.use-folder-system .node-action-btn {
+    /* 🔥 Aggressive Dynamic Scaling Buttons (Match Title Logic) */
+    width: clamp(40px, 10cqi, 250px) !important;
+    height: clamp(40px, 10cqi, 250px) !important;
+    font-size: clamp(20px, 6cqi, 150px) !important;
+    border-radius: clamp(8px, 2cqi, 40px) !important;
 }
 
-/* 8. Content Area Padding to clear Header/Footer */
-.history-node.linked-type-folder .history-node-content,
-.history-node.linked-type-category .history-node-content {
-    /* 🔥 Dynamic Padding from JS */
-    padding-top: calc(var(--dynamic-header-height, 140px) + 20px) !important;
-    /* 🔥 Dynamic Bottom Padding to match Footer */
-    padding-bottom: calc(clamp(80px, 15cqh, 200px) + 20px) !important;
-
+/* 8. Content Area Padding to clear Header/Footer - UNIFIED FOR ALL FOLDERS */
+.history-node.use-folder-system .history-node-content {
     overflow: hidden !important;
-
-    /* 🔥 Fix: Force Top Alignment (Disable Centering) */
     display: flex !important;
     flex-direction: column !important;
     justify-content: flex-start !important;
     align-items: flex-start !important;
     height: 100% !important;
+    padding: 0 !important;
+    /* Fixed default for safety */
 }
 
-/* 8. Content Area Padding to clear Header/Footer */
-.history-node.linked-type-folder .history-node-content,
-.history-node.linked-type-category .history-node-content {
-    /* 🔥 Dynamic Padding from JS */
-    padding-top: calc(var(--dynamic-header-height, 140px) + 20px) !important;
-    padding-bottom: 110px !important;
-    /* Footer 100px + buffer */
-    overflow: hidden !important;
+/* Apply massive buffers only when node is NOT minimal (Populated/Description) */
+.history-node.use-folder-system:not(.is-minimal-node) .history-node-content {
+    padding-top: calc(var(--dynamic-header-height, 120px) + 5px) !important;
+    padding-bottom: calc(clamp(80px, 15cqi, 350px) + 5px) !important;
+}
 
-    /* 🔥 Fix: Force Top Alignment (Disable Centering) */
-    display: flex !important;
-    flex-direction: column !important;
-    justify-content: flex-start !important;
-    align-items: flex-start !important;
-    height: 100% !important;
-    align-items: flex-start !important;
-    height: 100% !important;
+/* Empty Folders: ZERO Mandatory buffer to allow 60px shrinkage */
+.history-node.use-folder-system.is-minimal-node .history-node-content {
+    padding: 0 !important;
+    min-height: 0 !important;
+    height: 0 !important;
 }

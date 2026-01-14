@@ -29,7 +29,7 @@ export const useFolderLogic = ({ allNodesRef }: UseFolderLogicProps) => {
 
         // 2. Dynamic Grid Constants
         const PADDING_LEFT = 40;
-        const PADDING_TOP = 160; // Expanded Safe Zone for huge header
+        const PADDING_TOP = 120; // Reduced to allow shrinking
         const GAP = 50;
 
         // 🔥 Intent-Based Columns Inference:
@@ -119,12 +119,12 @@ export const useFolderLogic = ({ allNodesRef }: UseFolderLogicProps) => {
         });
 
         // Account for header (title + badges) and footer (buttons) space
-        const FOOTER_HEIGHT = 100; // Space for buttons at bottom (Matching CSS 100px)
+        const FOOTER_HEIGHT = (children.length === 0) ? 0 : 100; // Nuclear: Footer space is 0 for empty
         const PADDING_RIGHT = 40;
-        const PADDING_BOTTOM = 20; // Reduced buffer (Asymmetric Bottom)
+        const PADDING_BOTTOM = (children.length === 0) ? 0 : 20;
 
         const newWidth = Math.max(maxX + PADDING_RIGHT, 421);
-        const newHeight = Math.max(maxY + FOOTER_HEIGHT + PADDING_BOTTOM, 250);
+        const newHeight = Math.max(maxY + FOOTER_HEIGHT + PADDING_BOTTOM, 60);
 
         console.log(`🔍 [FolderDebug] Calculated Size: ${newWidth}x${newHeight} (MaxX: ${maxX}, MaxY: ${maxY})`);
     }, [allNodesRef]);
@@ -137,7 +137,25 @@ export const useFolderLogic = ({ allNodesRef }: UseFolderLogicProps) => {
         const children = Array.from(allNodesRef.current.values()).filter(n => String(n.data.parent_node_id) === parentId);
         const parentNode = allNodesRef.current.get(parentId);
         console.log(`🔍 [FolderDebug] Found ${children.length} children, parentNode exists: ${!!parentNode}`);
-        if (!parentNode || children.length === 0) return;
+        if (!parentNode) return;
+
+        // 🔥 Dynamic State: Update Parent "hasChildren" status
+        const hasChildren = children.length > 0;
+        if (parentNode.data.hasChildren !== hasChildren) {
+            parentNode.data = { ...parentNode.data, hasChildren };
+        }
+
+        // Force Folder Z-Index and Style even if empty
+        parentNode.zIndex = -10;
+        parentNode.style = { ...parentNode.style, zIndex: -10 };
+
+        if (!hasChildren) {
+            // 🔥 Just sync basic state for empty folder
+            // Do not force width/height here anymore, allow user manual resize to persist.
+            parentNode.zIndex = -10;
+            parentNode.style = { ...parentNode.style, zIndex: -10 };
+            return;
+        }
 
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
         children.forEach(child => {
@@ -150,21 +168,27 @@ export const useFolderLogic = ({ allNodesRef }: UseFolderLogicProps) => {
         });
 
         // Account for header (title + badges) and footer (buttons) space
-        const FOOTER_HEIGHT = 100; // Space for buttons at bottom (Matching CSS 100px)
+        const FOOTER_HEIGHT = hasChildren ? 100 : 0; // Nuclear: Footer space is 0 for empty
         const PADDING_RIGHT = 40;
-        const PADDING_BOTTOM = 20; // Reduced buffer (Asymmetric Bottom)
+        const PADDING_BOTTOM = hasChildren ? 20 : 0;
 
         const newWidth = Math.max(maxX + PADDING_RIGHT, 421);
-        const newHeight = Math.max(maxY + FOOTER_HEIGHT + PADDING_BOTTOM, 250);
+        const newHeight = Math.max(maxY + FOOTER_HEIGHT + PADDING_BOTTOM, 60);
 
         console.log(`🔍 [FolderDebug] Calculated Size: ${newWidth}x${newHeight} (MaxX: ${maxX}, MaxY: ${maxY})`);
 
-        await supabase.from('history_nodes').update({ width: newWidth, height: newHeight }).eq('id', Number(parentId));
+        // 🔥 Update DB with new Size AND Z-Index (Enforce low z-index for folders)
+        await supabase.from('history_nodes').update({
+            width: newWidth,
+            height: newHeight,
+            // position_z: -10 // Optional: if DB supports it, otherwise rely on local sorting
+        }).eq('id', Number(parentId));
 
         // Ref Update
         parentNode.width = newWidth;
         parentNode.height = newHeight;
-        parentNode.style = { ...parentNode.style, width: newWidth, height: newHeight };
+        parentNode.zIndex = -10; // 🔥 Enforce Lower Z-Index for Folder Parents
+        parentNode.style = { ...parentNode.style, width: newWidth, height: newHeight, zIndex: -10 };
     }, [allNodesRef]);
 
     return {
