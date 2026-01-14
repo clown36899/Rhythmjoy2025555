@@ -60,8 +60,11 @@ function HistoryTimelinePage() {
     // 모달 상태
     const [isEditorOpen, setIsEditorOpen] = useState(false);
     const [editingNode, setEditingNode] = useState<HistoryNodeData | null>(null);
-    const [isDetailOpen, setIsDetailOpen] = useState(false);
-    const [viewingNode, setViewingNode] = useState<HistoryNodeData | null>(null);
+
+    // Stack-based Detail View for Navigation (Back support)
+    const [viewingNodeStack, setViewingNodeStack] = useState<HistoryNodeData[]>([]);
+    const activeViewingNode = viewingNodeStack.length > 0 ? viewingNodeStack[viewingNodeStack.length - 1] : null;
+
     const [previewResource, setPreviewResource] = useState<{ id: string, type: string, title: string } | null>(null);
     const [exitPromptOpen, setExitPromptOpen] = useState(false);
 
@@ -166,8 +169,19 @@ function HistoryTimelinePage() {
     }, []);
 
     const handleViewDetail = useCallback((node: HistoryNodeData) => {
-        setViewingNode(node);
-        setIsDetailOpen(true);
+        setViewingNodeStack(prev => {
+            // Strategy: Maintain Root (1st) + Current (2nd)
+            // If we are already at depth 2 (or more), replace the top (2nd) with the new node.
+            // This ensures we always go back to the Root node, skipping intermediate steps.
+            if (prev.length >= 2) {
+                return [prev[0], node];
+            }
+            return [...prev, node];
+        });
+    }, []);
+
+    const handleCloseDetail = useCallback(() => {
+        setViewingNodeStack(prev => prev.slice(0, -1));
     }, []);
 
     // 🔥 Memoized Handlers for ResourceDrawer Optimization
@@ -644,6 +658,124 @@ function HistoryTimelinePage() {
         setPreviewResource({ id, type, title });
     }, []);
 
+    // Resource Link Click Handler (from Node Content)
+    const handleResourceClick = useCallback(async (rawKeyword: string) => {
+        // Revert underscores to spaces for search
+        const keyword = rawKeyword.replace(/_/g, ' ');
+
+        console.group('🔗 [HistoryTimelinePage] Resource Click Handler Debug');
+        console.log('Target Keyword (Raw):', rawKeyword);
+        console.log('Target Keyword (Normalized):', keyword);
+
+        // 1. Try to find in current nodes first (Fastest)
+        console.log('🔍 Searching in visible nodes...', nodes.length);
+        const lowerKeyword = keyword.toLowerCase();
+
+        // Priority: Exact match -> Case-insensitive match
+        let targetNode = nodes.find(n => n.data.title === keyword);
+        if (!targetNode) {
+            targetNode = nodes.find(n => n.data.title?.toLowerCase() === lowerKeyword);
+        }
+
+        if (targetNode) {
+            console.log('✅ Found in visible nodes:', targetNode);
+            console.groupEnd();
+            handleViewDetail(targetNode.data);
+            return;
+        } else {
+            console.log('❌ Not found in visible nodes');
+        }
+
+        // 2. Try to find in Database (Global Search)
+        try {
+            console.log('SEARCHING DB (history_nodes)...');
+            // Check History Nodes
+            // Try exact first
+            let { data: nodeData, error: nodeError } = await supabase
+                .from('history_nodes')
+                .select('*')
+                .eq('title', keyword)
+                .maybeSingle();
+
+            if (!nodeData) {
+                // Try ilike if exact failed
+                const { data: fuzzyData } = await supabase
+                    .from('history_nodes')
+                    .select('*')
+                    .ilike('title', keyword)
+                    .maybeSingle();
+                nodeData = fuzzyData;
+            }
+
+            if (nodeData) {
+                console.log('✅ Found in history_nodes (DB):', nodeData);
+                const compatibleNodeData: HistoryNodeData = {
+                    ...nodeData,
+                    category: nodeData.category || 'default',
+                    year: nodeData.year || new Date().getFullYear(),
+                    position_x: nodeData.position_x || 0,
+                    position_y: nodeData.position_y || 0,
+                    node_behavior: nodeData.node_behavior || 'LEAF'
+                };
+                console.groupEnd();
+                handleViewDetail(compatibleNodeData);
+                return;
+            } else {
+                console.log('❌ Not found in history_nodes');
+            }
+
+            console.log('SEARCHING DB (learning_resources)...');
+            // Check Learning Resources
+            let { data: resourceData, error: resError } = await supabase
+                .from('learning_resources')
+                .select('*')
+                .eq('title', keyword)
+                .maybeSingle();
+
+            if (!resourceData) {
+                const { data: fuzzyRes } = await supabase
+                    .from('learning_resources')
+                    .select('*')
+                    .ilike('title', keyword)
+                    .maybeSingle();
+                resourceData = fuzzyRes;
+            }
+
+            if (resourceData) {
+                console.log('✅ Found in learning_resources (DB):', resourceData);
+                console.groupEnd();
+                if (resourceData.type === 'video') {
+                    handlePreviewLinkedResource(resourceData.id, 'video', resourceData.title);
+                } else if (resourceData.type === 'playlist') {
+                    handlePreviewLinkedResource(resourceData.id, 'playlist', resourceData.title);
+                } else {
+                    handleViewDetail({
+                        id: resourceData.id,
+                        title: resourceData.title,
+                        category: resourceData.type as any,
+                        year: new Date().getFullYear(),
+                        content: resourceData.description,
+                        youtube_url: resourceData.metadata?.youtube_url,
+                        image_url: resourceData.metadata?.thumbnail_url,
+                        position_x: 0,
+                        position_y: 0,
+                        node_behavior: 'LEAF'
+                    });
+                }
+                return;
+            } else {
+                console.log('❌ Not found in learning_resources');
+            }
+
+        } catch (err) {
+            console.error('❌ Error searching for resource:', err);
+        }
+
+        // 3. Fallback: NOT FOUND
+        console.warn('⚠️ Resource not found:', keyword);
+        // User requested no alert.
+    }, [nodes, handleViewDetail, handlePreviewLinkedResource]);
+
     useEffect(() => {
         console.log('🔄 [HistoryTimelinePage] useEffect Triggered', {
             loading,
@@ -953,17 +1085,25 @@ function HistoryTimelinePage() {
                 />
             )}
 
-            {isDetailOpen && viewingNode && (
-                <NodeDetailModal
-                    nodeData={viewingNode}
-                    onClose={() => setIsDetailOpen(false)}
-                    hideEditButton={!isEditMode}
-                    onEdit={() => {
-                        setIsDetailOpen(false);
-                        handleEditNode(viewingNode);
-                    }}
-                />
-            )}
+            {viewingNodeStack.map((node, index) => {
+                const isTop = index === viewingNodeStack.length - 1;
+                return (
+                    <div key={`${node.id}-${index}`} style={{ display: isTop ? 'block' : 'none' }}>
+                        <NodeDetailModal
+                            nodeData={node}
+                            onClose={handleCloseDetail}
+                            hideEditButton={!isEditMode && !isAdmin}
+                            isAdmin={!!isAdmin}
+                            onEdit={() => {
+                                // Close the current detail view and open editor
+                                handleCloseDetail();
+                                handleEditNode(node);
+                            }}
+                            onResourceClick={handleResourceClick}
+                        />
+                    </div>
+                );
+            })}
 
             {isEdgeModalOpen && editingEdge && (
                 <EdgeEditorModal

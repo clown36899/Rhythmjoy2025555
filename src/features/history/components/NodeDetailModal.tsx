@@ -9,9 +9,11 @@ interface NodeDetailModalProps {
     onClose: () => void;
     onEdit: () => void;
     hideEditButton?: boolean;
+    isAdmin?: boolean;
+    onResourceClick?: (keyword: string) => void;
 }
 
-export const NodeDetailModal: React.FC<NodeDetailModalProps> = ({ nodeData, onClose, onEdit, hideEditButton }) => {
+export const NodeDetailModal: React.FC<NodeDetailModalProps> = ({ nodeData, onClose, onEdit, hideEditButton, isAdmin, onResourceClick }) => {
 
     // Extract YouTube ID for embedding if available
     const getYoutubeId = (url: string | undefined) => {
@@ -23,6 +25,20 @@ export const NodeDetailModal: React.FC<NodeDetailModalProps> = ({ nodeData, onCl
 
     const videoId = getYoutubeId(nodeData.youtube_url);
     const isLinked = !!(nodeData.linked_playlist_id || nodeData.linked_document_id || nodeData.linked_video_id || nodeData.linked_category_id);
+
+    // Helper to safely handle resource click
+    const handleResourceClick = (keyword: string) => {
+        if (onResourceClick) {
+            onResourceClick(keyword);
+        } else {
+            console.warn('No resource click handler provided');
+        }
+    };
+
+    // Logic: Show if isAdmin is true OR if hideEditButton is false/undefined.
+    // If Admin: Always Show.
+    // If Not Admin: Show only if hideEditButton is NOT true.
+    const showEditButton = isAdmin || !hideEditButton;
 
     return (
         <div className="node-detail-overlay" onClick={onClose}>
@@ -133,7 +149,7 @@ export const NodeDetailModal: React.FC<NodeDetailModalProps> = ({ nodeData, onCl
                                 <i className="ri-information-line"></i> 원본 정보
                             </div>
                             <div style={{ fontSize: '0.95rem', color: 'rgba(255,255,255,0.7)', lineHeight: '1.6' }}>
-                                {renderTextWithLinksAndResources(nodeData.description, () => { })}
+                                {renderTextWithLinksAndResources(nodeData.description, handleResourceClick)}
                             </div>
                         </div>
                     )}
@@ -141,28 +157,28 @@ export const NodeDetailModal: React.FC<NodeDetailModalProps> = ({ nodeData, onCl
                     {/* 사용자 상세 메모 (핵심 내용) */}
                     <div className="detail-description user-content">
                         {nodeData.content ? (
-                            renderTextWithLinksAndResources(nodeData.content, () => { })
+                            renderTextWithLinksAndResources(nodeData.content, handleResourceClick)
                         ) : (
                             // 영상/재생목록이 아니고 설명이 있는 경우(과거 데이터 호환성) 설명이라도 보여줌
                             !['video', 'playlist'].includes(nodeData.category || '') && nodeData.description ? (
-                                renderTextWithLinksAndResources(nodeData.description, () => { })
+                                renderTextWithLinksAndResources(nodeData.description, handleResourceClick)
                             ) : (
                                 <p className="no-desc">내용이 없습니다.</p>
                             )
                         )}
                     </div>
 
-                    {nodeData.tags && nodeData.tags.length > 0 && (
+                    {nodeData.tags && (Array.isArray(nodeData.tags) ? nodeData.tags : (typeof nodeData.tags === 'string' ? (nodeData.tags as string).split(',') : [])).length > 0 && (
                         <div className="detail-tags">
-                            {nodeData.tags.map((tag: string) => (
-                                <span key={tag} className="tag">#{tag}</span>
+                            {(Array.isArray(nodeData.tags) ? nodeData.tags : (typeof nodeData.tags === 'string' ? (nodeData.tags as string).split(',') : [])).map((tag: string) => (
+                                <span key={tag.trim()} className="tag">#{tag.trim()}</span>
                             ))}
                         </div>
                     )}
                 </div>
 
                 <div className="detail-footer">
-                    {!hideEditButton && (
+                    {showEditButton && (
                         <button className="btn-edit-node" onClick={() => { onClose(); onEdit(); }}>
                             <i className="ri-edit-line"></i> 수정하기
                         </button>

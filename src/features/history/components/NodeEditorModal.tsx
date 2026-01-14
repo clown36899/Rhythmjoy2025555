@@ -8,9 +8,11 @@
 // - This ensures the user can edit the "Source of Truth" without leaving the Timeline.
 //
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { parseVideoUrl } from '../../../utils/videoEmbed';
 import { supabase } from '../../../lib/supabase';
+import { renderTextWithLinksAndResources } from '../../../pages/learning/utils/linkRenderer';
+import { AutocompleteMenu } from './AutocompleteMenu';
 import './NodeEditorModal.css';
 
 interface NodeEditorModalProps {
@@ -40,6 +42,190 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
     const [playlists, setPlaylists] = useState<any[]>([]);
     const [videos, setVideos] = useState<any[]>([]);
     const [loadingResources, setLoadingResources] = useState(false);
+
+    // --- Autocomplete State ---
+    const [showAutocomplete, setShowAutocomplete] = useState(false);
+    const [autocompleteQuery, setAutocompleteQuery] = useState('');
+    const [cursorPosition, setCursorPosition] = useState({ top: 0, left: 0 });
+    const [allResources, setAllResources] = useState<any[]>([]);
+    const [filteredResources, setFilteredResources] = useState<any[]>([]);
+    const [selectedIndex, setSelectedIndex] = useState(0);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+    // Fetch all resources and nodes for autocomplete
+    useEffect(() => {
+        const fetchAllItems = async () => {
+            const [resourcesResponse, nodesResponse] = await Promise.all([
+                supabase.from('learning_resources').select('id, title, type').order('title'),
+                supabase.from('history_nodes').select('id, title, category').order('title')
+            ]);
+
+            let combined: any[] = [];
+
+            if (resourcesResponse.data) {
+                combined = [...combined, ...resourcesResponse.data];
+            }
+
+            if (nodesResponse.data) {
+                const nodes = nodesResponse.data.map((n: any) => ({
+                    id: n.id,
+                    title: n.title,
+                    type: n.category === 'canvas' ? 'canvas' : 'node'
+                }));
+                combined = [...combined, ...nodes];
+            }
+
+            // Remove duplicates by title (optional, but good if resource and node share name)
+            // For now keep all.
+            setAllResources(combined);
+        };
+        fetchAllItems();
+    }, []);
+
+    // Filter resources based on query
+    useEffect(() => {
+        if (autocompleteQuery) {
+            const lowerQuery = autocompleteQuery.toLowerCase();
+            const filtered = allResources.filter(r =>
+                r.title && r.title.toLowerCase().includes(lowerQuery)
+            ).slice(0, 10); // Limit to 10 suggestions
+            setFilteredResources(filtered);
+            setSelectedIndex(0);
+        } else {
+            setFilteredResources([]);
+        }
+    }, [autocompleteQuery, allResources]);
+
+    // Handle key navigation for autocomplete
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (!showAutocomplete) return;
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setSelectedIndex(prev => (prev + 1) % filteredResources.length);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setSelectedIndex(prev => (prev - 1 + filteredResources.length) % filteredResources.length);
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (filteredResources[selectedIndex]) {
+                handleSelectResource(filteredResources[selectedIndex]);
+            }
+        } else if (e.key === 'Escape') {
+            setShowAutocomplete(false);
+        }
+    };
+
+    const handleSelectResource = (item: any) => {
+        if (!textareaRef.current) return;
+
+        const textarea = textareaRef.current;
+        const value = textarea.value;
+        const selectionEnd = textarea.selectionEnd;
+        const currentScrollTop = textarea.scrollTop; // 🔥 Capture scroll position
+
+        // Find the start of the hashtag trigger
+        const lastHash = value.lastIndexOf('#', selectionEnd - 1);
+        if (lastHash === -1) return;
+
+        const safeTitle = item.title.replace(/\s+/g, '_');
+        // Replace ONLY the typed part with the full tag
+        // We need to properly replace 'search term' with 'tag'
+        // Actually, we replace from 'lastHash' to 'selectionEnd'.
+        const newValue = value.substring(0, lastHash) +
+            `#${safeTitle} ` + // Insert title with space
+            value.substring(selectionEnd);
+
+        setFormData(prev => ({ ...prev, content: newValue }));
+        setShowAutocomplete(false);
+
+        // Restore focus (timeout needed for React re-render)
+        setTimeout(() => {
+            if (textareaRef.current) {
+                textareaRef.current.focus();
+                const newCursorPos = lastHash + safeTitle.length + 2; // +1 for #, +1 for space, uses safeTitle length
+                textareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
+                textareaRef.current.scrollTop = currentScrollTop; // 🔥 Restore scroll position
+            }
+        }, 0);
+    };
+
+    // Calculate caret coordinates for absolute positioning
+    const getCaretCoordinates = () => {
+        if (!textareaRef.current) return { top: 0, left: 0 };
+        const textarea = textareaRef.current;
+        const { selectionEnd } = textarea;
+
+        // Create a mirror div to calculate position
+        const div = document.createElement('div');
+        const computedStyle = window.getComputedStyle(textarea);
+
+        // Copy styles
+        Array.from(computedStyle).forEach(prop => {
+            div.style.setProperty(prop, computedStyle.getPropertyValue(prop), computedStyle.getPropertyPriority(prop));
+        });
+
+        div.style.position = 'absolute';
+        div.style.visibility = 'hidden';
+        div.style.whiteSpace = 'pre-wrap';
+        div.style.top = '0';
+        div.style.left = '0';
+
+        // Content up to selection
+        div.textContent = textarea.value.substring(0, selectionEnd);
+
+        // Add a span for the caret
+        const span = document.createElement('span');
+        span.textContent = '.';
+        div.appendChild(span);
+
+        document.body.appendChild(div);
+
+        const { offsetLeft, offsetTop } = span;
+        const { top, left } = textarea.getBoundingClientRect();
+
+        document.body.removeChild(div);
+
+        return {
+            top: top + offsetTop + window.scrollY - textarea.scrollTop + 24, // +24 for line height approx
+            left: left + offsetLeft + window.scrollX
+        };
+    };
+
+    const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const val = e.target.value;
+        setFormData({ ...formData, content: val });
+
+        // Check for trigger '#'
+        const selectionEnd = e.target.selectionEnd;
+        const lastHash = val.lastIndexOf('#', selectionEnd - 1);
+
+        if (lastHash !== -1) {
+            // Check if there's a space between hash and cursor (meaning we might be done typing tag)
+            // But we want to allow multi-word titles for resources, so we stop at newline or some other delimiter?
+            // Actually, usually tags stop at space. BUT resource titles contain spaces.
+            // Let's assume we search ALL text after # until cursor.
+
+            // Check if there is a newline between hash and cursor -> Invalid
+            const textAfterHash = val.substring(lastHash + 1, selectionEnd);
+            if (textAfterHash.includes('\n')) {
+                setShowAutocomplete(false);
+                return;
+            }
+
+            // Valid trigger!
+            setAutocompleteQuery(textAfterHash);
+
+            if (!showAutocomplete) {
+                const pos = getCaretCoordinates();
+                setCursorPosition(pos);
+                setShowAutocomplete(true);
+            }
+        } else {
+            setShowAutocomplete(false);
+        }
+    };
+
 
     useEffect(() => {
         if (node) {
@@ -339,7 +525,7 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                     </button>
                 </div>
 
-                <form className="node-editor-form" onSubmit={handleSubmit}>
+                <form id="node-editor-form" className="node-editor-form" onSubmit={handleSubmit}>
 
                     <div className="form-group">
                         <label>제목 * {isLinked && <span style={{ color: '#60a5fa', fontSize: '0.8rem', fontWeight: 'normal', marginLeft: '8px' }}>(원본과 동기화됨)</span>}</label>
@@ -598,14 +784,47 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
 
                     {/* 상세 메모 - 모든 노드의 "기본" 편집 필드 */}
                     <div className="form-group" style={{ marginTop: '16px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '16px' }}>
-                        <label style={{ color: '#60a5fa', fontWeight: 'bold' }}>상세 메모 (직접 편집)</label>
+                        <label style={{ color: '#60a5fa', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span>상세 메모 (직접 편집)</span>
+                            <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: '#9ca3af', background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px' }}>
+                                💡 Tip: <span style={{ color: '#8b5cf6' }}>[[위키백과]]</span> <span style={{ color: '#3b82f6' }}>#자료연동</span>
+                            </span>
+                        </label>
                         <textarea
+                            ref={textareaRef}
                             value={formData.content}
-                            onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                            placeholder="이 노드에 대한 설명이나 나만의 노트를 자유롭게 입력하세요. (자료 서랍과 동기화됩니다)"
+                            onChange={handleInput}
+                            onKeyDown={handleKeyDown}
+                            placeholder="이 노드에 대한 설명이나 나만의 노트를 자유롭게 입력하세요. 내용이 길어지면 자동으로 스크롤됩니다."
                             rows={8}
-                            style={{ border: '1px solid rgba(96, 165, 250, 0.3)', background: 'rgba(96, 165, 250, 0.02)' }}
+                            style={{ border: '1px solid rgba(96, 165, 250, 0.3)', background: 'rgba(96, 165, 250, 0.02)', lineHeight: '1.6' }}
                         />
+                        {showAutocomplete && filteredResources.length > 0 && (
+                            <AutocompleteMenu
+                                items={filteredResources}
+                                position={cursorPosition}
+                                selectedIndex={selectedIndex}
+                                onSelect={handleSelectResource}
+                                onClose={() => setShowAutocomplete(false)}
+                            />
+                        )}
+                        {/* Live Preview */}
+                        {formData.content && (
+                            <div style={{
+                                marginTop: '12px',
+                                padding: '12px',
+                                background: 'rgba(17, 24, 39, 0.5)',
+                                borderRadius: '8px',
+                                fontSize: '0.9rem',
+                                color: '#e5e7eb',
+                                border: '1px border rgba(255, 255, 255, 0.05)'
+                            }}>
+                                <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Preview</div>
+                                <div className="content-preview" style={{ lineHeight: '1.6' }}>
+                                    {renderTextWithLinksAndResources(formData.content, () => { })}
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <div className="form-group">
@@ -617,6 +836,7 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                             placeholder="스윙, 린디합, 사보이볼룸"
                         />
                     </div>
+
 
                     {(!node || !isLinked) && (
                         <div className="form-group checkbox-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '8px' }}>
@@ -640,23 +860,23 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                             </label>
                         </div>
                     )}
-
-                    <div className="form-actions">
-                        {node && onDelete && (
-                            <button type="button" className="btn-delete" onClick={handleDelete}>
-                                삭제
-                            </button>
-                        )}
-                        <div className="form-actions-right">
-                            <button type="button" className="btn-cancel" onClick={onClose}>
-                                취소
-                            </button>
-                            <button type="submit" className="btn-save">
-                                {node ? '수정' : '생성'}
-                            </button>
-                        </div>
-                    </div>
                 </form>
+
+                <div className="form-actions">
+                    {node && onDelete && (
+                        <button type="button" className="btn-delete" onClick={handleDelete}>
+                            삭제
+                        </button>
+                    )}
+                    <div className="form-actions-right">
+                        <button type="button" className="btn-cancel" onClick={onClose}>
+                            취소
+                        </button>
+                        <button type="submit" form="node-editor-form" className="btn-save">
+                            {node ? '수정' : '생성'}
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     );
