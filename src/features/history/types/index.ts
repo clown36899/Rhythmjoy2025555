@@ -63,7 +63,7 @@ export interface HistoryNodeData {
     isShiftPressed?: boolean; // 쉬프트 키 눌림 상태 (누적 선택 지원)
     onSelectionChange?: (id: string, selected: boolean) => void;
     containerMode?: 'portal' | 'group' | 'none'; // 하위 호환성 유지
-    onResizeStop?: (id: string | number, width: number, height: number) => void;
+    onResizeStop?: (id: string | number, width: number, height: number, x: number, y: number) => void;
 }
 
 /**

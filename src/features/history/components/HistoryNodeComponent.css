@@ -3,11 +3,15 @@
     border: 2px solid #8b5cf6;
     border-radius: 12px;
     width: 421px;
+    min-width: 320px;
+    min-height: 140px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
     /* 🔥 Optimization: Avoid animating transform/width/height to prevent drag lag */
     transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
     display: flex;
     flex-direction: column;
+    container-type: size;
+    container-name: nodeContainer;
     /* overflow: hidden removed to allow NodeResizer handles to be visible outside the border */
 }
 
@@ -25,10 +29,10 @@
     right: 16px;
     background: #22d3ee;
     color: #0f172a;
-    font-size: 40px;
+    font-size: clamp(12px, 10cqmin, 40px);
     /* Increased 4x from 10px */
     font-weight: 900;
-    padding: 8px 20px;
+    padding: 1cqmin 3cqmin;
     /* Adjusted padding for larger text */
     border-radius: 8px;
     /* Slightly more rounded */
@@ -46,12 +50,12 @@
 
 /* Person Avatar */
 .person-avatar {
-    width: 150px;
-    height: 150px;
+    width: clamp(40px, 40cqmin, 800px);
+    height: clamp(40px, 40cqmin, 800px);
     border-radius: 50%;
     overflow: hidden;
-    margin: 16px auto 12px;
-    border: 3px solid rgba(255, 255, 255, 0.2);
+    margin: 1.5cqh auto;
+    border: clamp(2px, 1cqmin, 10px) solid rgba(255, 255, 255, 0.2);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
@@ -65,10 +69,11 @@
 .history-node-thumbnail {
     position: relative;
     width: 100%;
-    height: 160px;
+    height: clamp(80px, 40cqh, 1200px);
     overflow: hidden;
     cursor: pointer;
     background: #1f2937;
+    flex-shrink: 0;
 }
 
 .history-node-thumbnail img {
@@ -103,17 +108,17 @@
 }
 
 .history-node-play-overlay i {
-    font-size: 48px;
+    font-size: clamp(24px, 15cqmin, 200px);
     color: white;
     filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
 }
 
 /* Content */
 .history-node-content {
-    padding: 16px;
+    padding: clamp(8px, 4cqmin, 40px);
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: clamp(4px, 2cqmin, 20px);
     flex: 1;
     overflow-y: auto;
 }
@@ -140,7 +145,7 @@
 }
 
 .node-year {
-    font-size: 2rem;
+    font-size: clamp(12px, 6cqmin, 4rem);
     font-weight: 700;
     color: #a78bfa;
     background: rgba(167, 139, 250, 0.1);
@@ -152,11 +157,15 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 24px;
-    height: 24px;
+    width: clamp(20px, 8cqmin, 80px);
+    height: clamp(20px, 8cqmin, 80px);
     border-radius: 50%;
     color: white;
-    font-size: 14px;
+    font-size: clamp(10px, 4cqmin, 40px);
+}
+
+.history-node-badge i {
+    font-size: inherit;
 }
 
 .badge-genre {
@@ -198,18 +207,24 @@
 
 .history-node-title {
     margin: 0;
-    font-size: 2.7rem;
+    font-size: clamp(14px, 10cqmin, 12rem);
     font-weight: 600;
     color: #fff;
-    line-height: 1.3;
+    line-height: 1.1;
     word-break: keep-all;
-    /* 단어 단위로 줄바꿈 */
     overflow-wrap: break-word;
-    /* 긴 단어는 줄바꿈 */
+    display: flex;
+    align-items: center;
 }
 
+.node-type-icon {
+    margin-right: clamp(8px, 6cqmin, 100px);
+    display: inline-flex;
+}
+
+
 .history-node-badge i {
-    font-size: 14px;
+    font-size: inherit;
 }
 
 .history-node-link-badge {
@@ -298,21 +313,25 @@
 }
 
 .history-node-description {
-    font-size: 13px;
+    font-size: clamp(12px, 4cqmin, 3rem);
     color: #9ca3af;
     margin: 0;
     overflow: hidden;
     line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    /* Default, but will show more if space allows */
+    -webkit-box-orient: vertical;
 }
 
 /* Footer Actions */
 .history-node-footer {
     display: flex;
     justify-content: flex-end;
-    gap: 8px;
+    gap: clamp(4px, 2cqmin, 24px);
     margin-top: auto;
     /* 상단 컨텐츠와 거리를 벌리며 하단 고정 */
-    padding: 12px 16px;
+    padding: clamp(8px, 3cqh, 40px) clamp(16px, 4cqmin, 48px);
     /* 좌우 패딩 추가 및 상하 패딩 조정 */
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     flex-shrink: 0;
@@ -328,15 +347,15 @@
 }
 
 .node-action-btn {
-    width: 100px;
-    height: 100px;
+    width: clamp(24px, 15cqmin, 250px);
+    height: clamp(24px, 15cqmin, 250px);
     border-radius: 6px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 60px;
+    font-size: clamp(14px, 10cqmin, 150px);
     transition: all 0.2s;
     background: rgba(255, 255, 255, 0.08);
     color: #e5e7eb;

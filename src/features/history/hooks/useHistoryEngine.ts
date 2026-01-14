@@ -506,6 +506,18 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                     finalData.parent_node_id = currentRootId ? String(currentRootId) : null;
                 }
                 if (userId) finalData.created_by = userId;
+
+                // 🔥 [UX Fix] 초기 생성 크기 명시 (작게 생성되는 문제 해결)
+                const isCanvas = finalData.category === 'canvas' || finalData.nodeType === 'canvas';
+                if (!finalData.width) finalData.width = isCanvas ? 420 : 320;
+                if (!finalData.height) finalData.height = isCanvas ? 250 : 140;
+
+                console.log('🆕 [HistoryEngine] Creating New Node:', {
+                    title: finalData.title,
+                    category: finalData.category,
+                    width: finalData.width,
+                    height: finalData.height
+                });
             }
 
             let result;
@@ -939,19 +951,43 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
     /**
      * 노드 리사이즈 종료 시 DB 저장
      */
-    const handleResizeStop = useCallback(async (id: string | number, width: number, height: number) => {
-        // 1. Update Ref
+    const handleResizeStop = useCallback(async (id: string | number, width: number, height: number, x: number, y: number) => {
+        // 1. Update Ref (Authoritative State)
         const refNode = allNodesRef.current.get(String(id));
         if (refNode) {
             refNode.width = width;
             refNode.height = height;
+            refNode.position = { x, y };
             refNode.style = { ...refNode.style, width, height };
         }
 
-        // 2. Update DB (Ensure ID is numeric for Supabase)
+        // 2. Local State Update (Prevent Jump)
+        setNodes(nds => nds.map(node => {
+            if (node.id === String(id)) {
+                return {
+                    ...node,
+                    width,
+                    height,
+                    position: { x, y },
+                    style: { ...node.style, width, height }
+                };
+            }
+            return node;
+        }));
+
+        // 3. Update DB
         try {
             const numericId = Number(id);
-            const { data, error } = await supabase.from('history_nodes').update({ width, height }).eq('id', numericId).select(HISTORY_NODE_SELECT).single();
+            const { data, error } = await supabase.from('history_nodes')
+                .update({
+                    width,
+                    height,
+                    position_x: x,
+                    position_y: y
+                })
+                .eq('id', numericId)
+                .select(HISTORY_NODE_SELECT)
+                .single();
 
             if (!error && data) {
                 const updated = mapDbNodeToRFNode(data, {
@@ -963,19 +999,12 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                 }, isEditMode);
                 allNodesRef.current.set(updated.id, updated);
 
-                // 🔥 [New Fix] 자식 노드 크기가 바뀌면 부모 폴더 크기만 업데이트 (위치 점프 방지를 위해 정렬은 제외)
-                if (data.parent_node_id) {
-                    await updateParentSize(String(data.parent_node_id));
-                }
-
-                // 🔥 [UX Fix] 부모 크기 변경사항을 즉시 화면에 반영 (Sync)
-                syncVisualization(currentRootId);
+                // 🔥 NO syncVisualization, NO updateParentSize to prevent jumps
             }
-            // console.log('💾 [HistoryEngine] Resize Saved:', { id: numericId, width, height });
         } catch (err) {
             console.error('🚨 [HistoryEngine] Resize Save Failed:', err);
         }
-    }, [currentRootId, syncVisualization, handleNavigate, isEditMode, rearrangeFolderChildren, updateParentSize, setNodes]);
+    }, [handleNavigate, isEditMode, setNodes]);
 
     /**
      * 엣지 생성 (Connect)
@@ -1085,8 +1114,18 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
             created_by: userId,
             space_id: currentSpaceId,
             parent_node_id: currentRootId ? Number(currentRootId) : null,
-            node_behavior: 'LEAF'
+            node_behavior: 'LEAF',
+            // 🔥 [UX Fix] 초기 생성 크기 명시 (작게 생성되는 문제 해결)
+            width: type === 'canvas' ? 420 : 320,
+            height: type === 'canvas' ? 250 : 140
         };
+
+        console.log('🖱️ [HistoryEngine] Node Drop Detected:', {
+            type,
+            title: draggedResource.title,
+            initialWidth: newNodeData.width,
+            initialHeight: newNodeData.height
+        });
 
         // 타입별 연동 필드 설정
         if (type === 'video') newNodeData.linked_video_id = draggedResource.id;
@@ -1097,7 +1136,8 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
         if (type === 'canvas') newNodeData.linked_category_id = draggedResource.id;
 
         try {
-            const { data, error } = await supabase.from('history_nodes').insert(newNodeData).select().single();
+            console.log('📡 [HistoryEngine] Requesting Node Insertion:', newNodeData);
+            const { data, error } = await supabase.from('history_nodes').insert(newNodeData).select(HISTORY_NODE_SELECT).single();
             if (error) throw error;
 
             const updated = mapDbNodeToRFNode(data, {

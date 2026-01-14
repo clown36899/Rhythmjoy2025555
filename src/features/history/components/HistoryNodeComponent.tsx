@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import { memo, useRef, useState, useLayoutEffect } from 'react';
 import { Handle, Position, NodeResizer } from 'reactflow';
 import type { NodeProps } from 'reactflow';
 import { parseVideoUrl, validateYouTubeThumbnailUrl } from '../../../utils/videoEmbed';
@@ -7,15 +7,17 @@ import type { HistoryNodeData } from '../types';
 import { CATEGORY_COLORS } from '../utils/constants';
 
 function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
+    const isLoggedRef = useRef(false);
+
     // 🔍 Debug: Log first render only (avoid spam)
-    if (!data._loggedRender) {
+    if (!isLoggedRef.current) {
         console.log('🎨 [HistoryNodeComponent] Rendering Node', {
             id: data.id,
             title: data.title,
             category: data.category,
             hasHandlers: !!(data.onEdit && data.onViewDetail && data.onPlayVideo)
         });
-        data._loggedRender = true;
+        isLoggedRef.current = true;
     }
 
     const videoInfo = data.youtube_url ? parseVideoUrl(data.youtube_url) : null;
@@ -28,14 +30,60 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
         thumbnailUrl = validateYouTubeThumbnailUrl(videoInfo.thumbnailUrl);
     }
 
-    // [V7] Dynamic Resize Constraints: Prevent node from being too small for its content
+    const nodeRef = useRef<HTMLDivElement>(null);
+
+    // [V7] Stable Resize Constraints: baseline minimums to prevent content cutoff
     const isCanvas = data.nodeType === 'canvas' || data.category === 'canvas';
     const hasThumbnail = (!!thumbnailUrl || !!data.image_url) && data.category !== 'person';
 
-    // Canvas: Higher minimums for the large "ENTER" label and internal space
-    // Thumbnail: Higher minHeight to fit the image + header
-    const dynamicMinWidth = isCanvas ? 420 : 320;
-    const dynamicMinHeight = isCanvas ? 250 : (hasThumbnail ? 320 : 140);
+    const [minSize, setMinSize] = useState({
+        width: isCanvas ? 420 : 200,
+        height: isCanvas ? 250 : 100
+    });
+
+    // Measure content to determine dynamic minimums
+    useLayoutEffect(() => {
+        if (!nodeRef.current) return;
+
+        const contentEl = nodeRef.current.querySelector('.history-node-content');
+        if (!contentEl) return;
+
+        const updateMinSize = () => {
+            if (!nodeRef.current || !contentEl) return;
+
+            const thumbnailEl = nodeRef.current.querySelector('.history-node-thumbnail');
+            const avatarEl = nodeRef.current.querySelector('.person-avatar');
+            const footerEl = nodeRef.current.querySelector('.history-node-footer');
+
+            // [FIX] Use intrinsic minimums instead of current scaled heights to break circular dependency
+            const headerHeight = 44;
+            const footerHeight = 40; // Reduced base footer height
+            const thumbHeight = thumbnailEl ? 80 : 0; // CSS clamp minimum (updated)
+            const avatarHeight = avatarEl ? 40 : 0;   // CSS clamp minimum (updated)
+
+            // scrollHeight represents the minimum required height to show all content without vertical scroll
+            const requiredContentHeight = contentEl.scrollHeight;
+
+            // Holistic measurement: Header (44) + Content (Measured) + Thumb/Avatar (if exists) + Footer (Measured)
+            // Note: Thumb and Avatar are absolute or relative siblings.
+            const totalRequiredHeight = thumbHeight + avatarHeight + requiredContentHeight + headerHeight + footerHeight + 10; // Tight but safe margin
+
+            const finalMinHeight = Math.max(isCanvas ? 250 : 100, totalRequiredHeight);
+            const finalMinWidth = isCanvas ? 420 : 200;
+
+            setMinSize(prev => {
+                // Prevent micro-updates to avoid re-render loops
+                if (Math.abs(prev.height - finalMinHeight) < 5) return prev;
+                return { width: finalMinWidth, height: finalMinHeight };
+            });
+        };
+
+        const observer = new ResizeObserver(updateMinSize);
+        observer.observe(contentEl);
+        updateMinSize();
+
+        return () => observer.disconnect();
+    }, [isCanvas, hasThumbnail]);
 
     const handlePlayVideo = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -166,6 +214,7 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
     };
     return (
         <div
+            ref={nodeRef}
             className={`history-node linked-type-${linkedType} ${data.nodeType === 'canvas' ? 'is-canvas-portal' : ''}`}
             style={{
                 borderColor: categoryColor,
@@ -185,13 +234,13 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
             {/* Allow resizing for all nodes in Edit Mode */}
             {data.isEditMode && (
                 <NodeResizer
-                    minWidth={dynamicMinWidth}
-                    minHeight={dynamicMinHeight}
+                    minWidth={minSize.width}
+                    minHeight={minSize.height}
                     isVisible={!!selected}
                     lineStyle={{ border: '2px solid #a78bfa' }}
                     onResizeEnd={(_e: any, params: any) => {
-                        // console.log('📐 Resize End:', data.title, params.width, params.height);
-                        data.onResizeStop?.(data.id, params.width, params.height);
+                        // console.log('📐 Resize End:', data.title, params.width, params.height, params.x, params.y);
+                        data.onResizeStop?.(data.id, params.width, params.height, params.x, params.y);
                     }}
                 />
             )}
@@ -283,7 +332,7 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
                 </div>
 
                 <h3 className="history-node-title">
-                    <span style={{ marginRight: '32px' }}>
+                    <span className="node-type-icon">
                         {data.nodeType === 'playlist' ? '💿' :
                             data.nodeType === 'document' ? '📄' :
                                 data.nodeType === 'video' ? '📹' :
@@ -295,9 +344,7 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
 
                 {data.description && (
                     <p className="history-node-description">
-                        {data.description.length > 60
-                            ? data.description.substring(0, 60) + '...'
-                            : data.description}
+                        {data.description}
                     </p>
                 )}
 
