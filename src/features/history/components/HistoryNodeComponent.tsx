@@ -170,7 +170,7 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
      */
     const isContainer = data.node_behavior === 'PORTAL' || data.node_behavior === 'GROUP' ||
         data.containerMode === 'portal' || data.containerMode === 'group' ||
-        (data.node_behavior as string) === 'FOLDER' || isCanvas;
+        (data.node_behavior as string) === 'FOLDER' || data.category === 'folder' || isCanvas;
 
     // [Feature] Dynamic Header Height Measurement
     const [headerHeight, setHeaderHeight] = useState(140); // Default safely high
@@ -260,8 +260,8 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
                 height: '100%',
                 width: '100%',
                 '--dynamic-header-height': `${headerHeight}px`,
-                // 🔥 Folder index is 0, non-folders must be at least 1
-                zIndex: isFolderType ? 0 : 1
+                // 🔥 Folder/Container index is 0, non-folders must be at least 1
+                zIndex: isContainer ? 0 : 1
             } as React.CSSProperties}
             onClick={handleNodeClick} // 🔥 Use dedicated handler that manages propagation
             onContextMenu={() => {

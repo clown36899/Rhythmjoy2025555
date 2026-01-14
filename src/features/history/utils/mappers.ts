@@ -126,7 +126,12 @@ export const mapDbNodeToRFNode = (
     if (node_behavior === 'PORTAL') containerMode = 'portal';
     else if (node_behavior === 'GROUP') containerMode = 'group';
 
-    const isContainer = containerMode !== 'none';
+    const isContainer = containerMode !== 'none' ||
+        nodeType === 'folder' ||
+        category === 'folder' ||
+        (node_behavior as string) === 'FOLDER' ||
+        nodeType === 'canvas' ||
+        category === 'canvas';
 
     // React Flow Position
     // 🔥 Fix: Enforce Folder Header Safe Zone (160px) at the View Layer
@@ -148,6 +153,7 @@ export const mapDbNodeToRFNode = (
         },
         width: node.width || (isContainer ? 421 : 320),
         height: node.height || 160,
+        zIndex: isContainer ? 0 : Math.max(1, node.z_index || 1),
         position: {
             x: node.position_x || 0,
             y: positionY

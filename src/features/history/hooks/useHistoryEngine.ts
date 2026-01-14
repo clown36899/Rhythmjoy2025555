@@ -1120,6 +1120,11 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
             type === 'document' || type === 'general' ||
             type === 'person' || type === 'canvas' || type === 'category');
 
+        // Determine Node Behavior based on type
+        let node_behavior: NodeBehavior = 'LEAF';
+        if (type === 'canvas') node_behavior = 'PORTAL';
+        else if (type === 'category' || type === 'general' || type === 'folder') node_behavior = 'GROUP';
+
         const newNodeData: any = {
             title: isLinked ? null : draggedResource.title,
             description: isLinked ? null : (draggedResource.description || ''),
@@ -1130,7 +1135,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
             created_by: userId,
             space_id: currentSpaceId,
             parent_node_id: currentRootId ? Number(currentRootId) : null,
-            node_behavior: 'LEAF',
+            node_behavior,
             // 🔥 [UX Fix] 초기 생성 크기 명시 (작게 생성되는 문제 해결)
             width: type === 'canvas' ? 420 : 320,
             height: type === 'canvas' ? 250 : 140
