@@ -37,6 +37,15 @@ interface HistoryCanvasProps {
 
 
 
+const NODE_TYPES = {
+    historyNode: HistoryNodeComponent,
+    decadeNode: DecadeNodeComponent,
+};
+
+const EDGE_TYPES = {
+    default: CustomBezierEdge,
+};
+
 export const HistoryCanvas = ({
     nodes,
     edges,
@@ -58,16 +67,6 @@ export const HistoryCanvas = ({
     nodesDraggable
 }: HistoryCanvasProps) => {
     // console.log('🎨 [HistoryCanvas] Rendering. Nodes:', nodes.length, 'Edges:', edges.length);
-
-    // 🔥 Fix: Memoize nodeTypes and edgeTypes to prevent React Flow warning/re-renders
-    const nodeTypes = useMemo(() => ({
-        historyNode: HistoryNodeComponent,
-        decadeNode: DecadeNodeComponent,
-    }), []);
-
-    const edgeTypes = useMemo(() => ({
-        default: CustomBezierEdge,
-    }), []);
 
     const getNodeColor = useCallback((node: any) => {
         return CATEGORY_COLORS[node.data?.category || 'default'] || CATEGORY_COLORS.default;
@@ -92,8 +91,8 @@ export const HistoryCanvas = ({
                 onEdgeContextMenu={onEdgeContextMenu}
                 onEdgesDelete={onEdgesDelete}
                 onNodesDelete={onNodesDelete}
-                nodeTypes={nodeTypes}
-                edgeTypes={edgeTypes}
+                nodeTypes={NODE_TYPES}
+                edgeTypes={EDGE_TYPES}
                 isValidConnection={isValidConnection}
                 snapToGrid={true}
                 snapGrid={CANVAS_CONFIG.snapGrid}

@@ -626,14 +626,14 @@ function HistoryTimelinePage() {
 
     // 6. 캔버스 투영 업데이트 (핸들러 주입 및 필터링)
     // 6. 캔버스 투영 업데이트 (핸들러 주입 및 필터링)
+    // 🔥 Fix: Use Ref to track initialization and prevent infinite loops
+    const handlersInitializedRef = useRef(false);
+
     useEffect(() => {
-        // Guard: If nodes exist but handlers are missing, or if loading just finished
-        const firstNode = nodes.length > 0 ? nodes[0] : null;
-        const missingHandlers = firstNode && !firstNode.data.onPlayVideo;
+        // Guard: Wait for loading to finish and nodes to exist
+        if (loading || nodes.length === 0) return;
 
-        if (loading) return; // Wait for loading to finish
-
-        // Always inject into Master Refs
+        // 1. Always inject handlers into Master Refs (This operation is cheap)
         allNodesRef.current.forEach(node => {
             node.data.onEdit = handleEditNode;
             node.data.onViewDetail = handleViewDetail;
@@ -642,37 +642,42 @@ function HistoryTimelinePage() {
             node.data.isEditMode = isEditMode;
             node.data.isSelectionMode = isSelectionMode;
             node.data.isShiftPressed = isShiftPressed;
-
-            // 🔥 Critical: React Flow root properties must be updated explicitly
-            // node.draggable = isEditMode; // Conflicted with Canvas prop, handled by HistoryCanvas now
             node.connectable = isEditMode;
-            node.data.onResizeStop = handleResizeStop; // 🔥 Inject Handler
+            node.data.onResizeStop = handleResizeStop;
         });
 
-        // 필터 조건 구성
-        const filters = searchQuery ? { search: searchQuery } : undefined;
+        // 2. Decide if we need to sync visualization
+        // We sync if:
+        // A. Handlers haven't been initialized yet (First Load)
+        // B. Edit Mode or Selection Mode changed (State Change)
+        // C. Search Query changed (Filter Change)
+        // D. Root ID changed (Navigation) - handled by dependency
 
-        // Sync only if handlers were missing OR other meaningful dependencies changed
-        // We use a broader trigger here to be safe, but the 'nodes' dep without guard would loop.
-        // We rely on 'currentRootId', 'filter', etc. for normal updates.
-        // For the 'initial load' case where nodes exist but lack handlers, 'missingHandlers' is key.
-        // Also sync if Edit Mode state mismatches (to apply draggable updates)
-        const editModeChanged = firstNode ? firstNode.data.isEditMode !== isEditMode : true;
+        const shouldSync = !handlersInitializedRef.current ||
+            prevEditModeRef.current !== isEditMode ||
+            prevSelectionModeRef.current !== isSelectionMode;
 
-        if (missingHandlers || !firstNode || editModeChanged) {
+        if (shouldSync || searchQuery) {
+            const filters = searchQuery ? { search: searchQuery } : undefined;
             syncVisualization(currentRootId, filters);
-        } else {
-            // Normal update (filters, only if explicit dependencies changed)
-            syncVisualization(currentRootId, filters);
+            handlersInitializedRef.current = true;
         }
 
+        // Track previous states to detect changes
+        prevEditModeRef.current = isEditMode;
+        prevSelectionModeRef.current = isSelectionMode;
+
     }, [
-        isEditMode, isSelectionMode, isShiftPressed, currentRootId,
-        searchQuery, loading,
-        handleEditNode, handleViewDetail, handlePlayVideo, syncVisualization,
-        nodes.length, // Detect when nodes are loaded
-        nodes[0]?.data?.onPlayVideo // Detect if handlers are present (Optimization to avoid deep comparison)
+        // Dependencies that SHOULD trigger a potential update
+        isEditMode, isSelectionMode, isShiftPressed, currentRootId, searchQuery, loading,
+        // Stable References
+        handleEditNode, handleViewDetail, handlePlayVideo, syncVisualization, handleResizeStop,
+        nodes.length // Only react to count changes, not data mutations
     ]);
+
+    // Track previous mode states to avoid effect loops
+    const prevEditModeRef = useRef(isEditMode);
+    const prevSelectionModeRef = useRef(isSelectionMode);
 
     // 🔥 New: Auto fitView when navigating levels or filters change
     useEffect(() => {

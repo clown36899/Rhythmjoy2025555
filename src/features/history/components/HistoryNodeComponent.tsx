@@ -210,7 +210,12 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
                     onClick={handleNodeClick} // 🔥 Use centralized handler
                     style={{ cursor: 'pointer' }}
                 >
-                    <img src={data.image_url} alt={data.title} />
+                    <img
+                        src={data.image_url}
+                        alt={data.title}
+                        loading="lazy"
+                        decoding="async"
+                    />
                 </div>
             )}
 
@@ -221,7 +226,12 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
                     onClick={data.isSelectionMode ? undefined : handleThumbnailClick}
                     style={{ cursor: data.isSelectionMode ? 'default' : 'pointer' }}
                 >
-                    <img src={thumbnailUrl} alt={data.title} />
+                    <img
+                        src={thumbnailUrl}
+                        alt={data.title}
+                        loading="lazy"
+                        decoding="async"
+                    />
                     <div className="history-node-play-overlay">
                         <i className="ri-play-circle-fill"></i>
                     </div>
