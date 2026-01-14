@@ -6,7 +6,7 @@ import {
     useEdgesState
 } from 'reactflow';
 import { supabase } from '../../../lib/supabase';
-import type { HistoryRFNode } from '../types';
+import type { HistoryRFNode, NodeBehavior } from '../types';
 import { mapDbNodeToRFNode } from '../utils/mappers';
 import { projectNodesToView } from '../utils/projection';
 import { useFolderLogic } from './useFolderLogic';
