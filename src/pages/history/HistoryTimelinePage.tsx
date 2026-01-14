@@ -700,7 +700,10 @@ function HistoryTimelinePage() {
             handlersInitializedRef.current = true;
             console.log('✅ [HistoryTimelinePage] syncVisualization Complete');
         } else {
-            console.log('⏭️ [HistoryTimelinePage] Sync Skipped (Already Initialized)');
+            console.log('⏭️ [HistoryTimelinePage] Sync Skipped (Already Initialized) - BUT forcing node update');
+            // 🔥 CRITICAL FIX: Force React Flow to re-render nodes with updated handlers
+            // by creating new node array (breaks reference equality)
+            setNodes(currentNodes => [...currentNodes]);
         }
 
         // Track previous states to detect changes

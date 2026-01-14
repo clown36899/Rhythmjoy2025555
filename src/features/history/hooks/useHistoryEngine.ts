@@ -326,9 +326,15 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
         }
     }, [currentRootId, syncVisualization]);
 
+    // 🔥 CRITICAL FIX: loadTimeline should only run ONCE on mount
+    // Adding it to dependency array causes infinite loop because it recreates on every render
+    const loadedRef = useRef(false);
     useEffect(() => {
-        loadTimeline();
-    }, [loadTimeline]);
+        if (!loadedRef.current) {
+            loadedRef.current = true;
+            loadTimeline();
+        }
+    }, []); // Empty dependency - only run once on mount
 
     // 🔥 Force sync when Edit Mode changes to update draggable/ui state
     useEffect(() => {
