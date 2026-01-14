@@ -128,11 +128,14 @@ export const useFolderLogic = ({ allNodesRef }: UseFolderLogicProps) => {
             maxY = Math.max(maxY, child.position.y + h);
         });
 
+        // Account for header (title + badges) and footer (buttons) space
+        const HEADER_HEIGHT = 80; // Space for title and badges at top
+        const FOOTER_HEIGHT = 80; // Space for buttons at bottom
         const PADDING_RIGHT = 40;
-        const PADDING_BOTTOM = 80;
+        const PADDING_BOTTOM = 20; // Additional padding beyond footer
 
         const newWidth = Math.max(maxX + PADDING_RIGHT, 421);
-        const newHeight = Math.max(maxY + PADDING_BOTTOM, 250);
+        const newHeight = Math.max(maxY + FOOTER_HEIGHT + PADDING_BOTTOM, 250);
 
         // console.log(`🔍 [FolderDebug] Calculated Size: ${newWidth}x${newHeight} (MaxX: ${maxX}, MaxY: ${maxY})`);
 

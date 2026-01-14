@@ -470,6 +470,24 @@
     border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
 }
 
+/* 🔥 Folder Child Node Visibility - Children appear above parent background */
+/* When React Flow renders children inside parent DOM, increase child z-index */
+.react-flow__node.parent>.react-flow__node {
+    z-index: 10 !important;
+    position: relative;
+}
+
+/* But folder header and footer stay on top of everything */
+.history-node .node-header {
+    position: relative;
+    z-index: 100;
+}
+
+.history-node .history-node-footer {
+    position: relative;
+    z-index: 100;
+}
+
 /* ReactFlow Handles */
 .react-flow__handle {
     width: 24px;
