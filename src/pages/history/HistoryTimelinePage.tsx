@@ -1120,15 +1120,6 @@ function HistoryTimelinePage() {
                 />
             )}
 
-            <EditExitPromptModal
-                isOpen={exitPromptOpen}
-                onSave={handleSaveLayout}
-                onCancel={() => setExitPromptOpen(false)}
-                onDiscard={() => {
-                    setExitPromptOpen(false);
-                    if ((window as any).pendingBlocker) (window as any).pendingBlocker.proceed();
-                }}
-            />
 
             {/* Combined into NodeDetailModal - Unused legacy modals removed */}
             {/* 🔥 Video/Playlist Modal (Separate from NodeDetail as requested) */}

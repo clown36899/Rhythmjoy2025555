@@ -430,6 +430,46 @@
     box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.2);
 }
 
+/* 🔥 Nuclear Tighten for Minimal Nodes (No image, No description) */
+.is-minimal-node {
+    min-height: 60px !important;
+}
+
+.is-minimal-node .history-node-thumbnail,
+.is-minimal-node .person-avatar,
+.is-minimal-node .history-node-description {
+    display: none !important;
+}
+
+.is-minimal-node .history-node-content {
+    padding: 4px 16px !important;
+    gap: 0 !important;
+    min-height: 0 !important;
+    flex: 0 1 auto !important;
+    justify-content: center !important;
+}
+
+.is-minimal-node .node-header {
+    margin: 0 !important;
+    padding: 0 !important;
+}
+
+/* Hide empty header to eliminate 1px ghost space */
+.is-minimal-node .node-header:empty,
+.is-minimal-node .node-header:not(:has(*)) {
+    display: none !important;
+}
+
+.is-minimal-node .history-node-title {
+    padding: 2px 0 !important;
+    margin: 0 !important;
+}
+
+.is-minimal-node .history-node-footer {
+    padding: 2px 16px 6px 16px !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+}
+
 /* ReactFlow Handles */
 .react-flow__handle {
     width: 24px;

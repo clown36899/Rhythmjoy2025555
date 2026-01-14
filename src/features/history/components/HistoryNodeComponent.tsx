@@ -35,10 +35,11 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
     // [V7] Stable Resize Constraints: baseline minimums to prevent content cutoff
     const isCanvas = data.nodeType === 'canvas' || data.category === 'canvas';
     const hasThumbnail = (!!thumbnailUrl || !!data.image_url) && data.category !== 'person';
+    const isMinimalNode = !data.description && !hasThumbnail && (data.category !== 'person' && !isCanvas);
 
     const [minSize, setMinSize] = useState({
         width: isCanvas ? 420 : 200,
-        height: isCanvas ? 250 : 80
+        height: isCanvas ? 250 : 120
     });
 
     // Measure content to determine dynamic minimums
@@ -53,21 +54,28 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
 
             const titleEl = nodeRef.current.querySelector('.history-node-title');
             const footerEl = nodeRef.current.querySelector('.history-node-footer');
+            const headerEl = nodeRef.current.querySelector('.node-header');
 
-            // [V11] Shell-Based Minimum: Protect Header + Title + Footer
-            // This ensures the node's functional 'shell' is always visible.
-            const headerHeight = 44; // node-year area
-            const titleHeight = titleEl ? titleEl.getBoundingClientRect().height : 32;
-            const footerHeight = footerEl ? footerEl.getBoundingClientRect().height : 60;
+            // [V18] Master Measurement: Dynamic Shell Detection
+            // Use scrollHeight for content to account for the full text, but zero it if minimal
+            const hh = (headerEl && headerEl.innerText.trim() !== '') ? headerEl.getBoundingClientRect().height : 0;
+            const th = titleEl ? titleEl.getBoundingClientRect().height : 32;
+            const fh = footerEl ? footerEl.getBoundingClientRect().height : 60;
+            const ch = isMinimalNode ? 0 : contentEl.scrollHeight;
 
-            // Safety buffer
-            const totalRequiredHeight = headerHeight + titleHeight + footerHeight + 20;
+            // Minimal nodes have ZERO mandatory air/padding buffer
+            const buffer = isMinimalNode ? 0 : 20;
+            const totalRequiredHeight = hh + th + fh + ch + buffer;
 
-            const finalMinHeight = Math.max(isCanvas ? 250 : 120, totalRequiredHeight);
+            // Adaptive Floor: Text-only nodes can shrink to a 60px 'bar'. 
+            // Canvas or nodes with images keep a 120px+ floor for layout balance.
+            const floor = (isCanvas && !isMinimalNode) ? 250 : (isMinimalNode ? 60 : 120);
+
+            const finalMinHeight = Math.max(floor, totalRequiredHeight);
             const finalMinWidth = isCanvas ? 420 : 250;
 
             setMinSize(prev => {
-                if (Math.abs(prev.height - finalMinHeight) < 5) return prev;
+                if (Math.abs(prev.height - finalMinHeight) < 2) return prev;
                 return { width: finalMinWidth, height: finalMinHeight };
             });
         };
@@ -77,7 +85,7 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
         updateMinSize();
 
         return () => observer.disconnect();
-    }, [isCanvas, hasThumbnail]);
+    }, [isCanvas, hasThumbnail, isMinimalNode]);
 
     const handlePlayVideo = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -147,7 +155,8 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
      * V7 컨테이너 로직: behavior 필드를 우선 신뢰
      */
     const isContainer = data.node_behavior === 'PORTAL' || data.node_behavior === 'GROUP' ||
-        data.containerMode === 'portal' || data.containerMode === 'group';
+        data.containerMode === 'portal' || data.containerMode === 'group' ||
+        data.node_behavior === 'FOLDER' || isCanvas;
 
     const handleNodeClick = (e: React.MouseEvent) => {
         // console.log('🖱️ [HistoryNode] Click:', { id: data.id, title: data.title, type: data.nodeType });
@@ -209,7 +218,7 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
     return (
         <div
             ref={nodeRef}
-            className={`history-node linked-type-${linkedType} ${data.nodeType === 'canvas' ? 'is-canvas-portal' : ''} ${!hasThumbnail && data.category !== 'person' ? 'no-content-image' : ''}`}
+            className={`history-node linked-type-${linkedType} ${isCanvas ? 'is-canvas-portal' : ''} ${!hasThumbnail && data.category !== 'person' ? 'no-content-image' : ''} ${isMinimalNode ? 'is-minimal-node' : ''}`}
             style={{
                 borderColor: categoryColor,
                 height: '100%',
@@ -222,7 +231,7 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
             }}
             title={isContainer ? "클릭하여 열기" : undefined}
         >
-            {data.nodeType === 'canvas' && (
+            {isCanvas && (
                 <div className="canvas-portal-label">ENTER</div>
             )}
             {/* Allow resizing for all nodes in Edit Mode */}
@@ -319,15 +328,16 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
                         {data.nodeType === 'playlist' ? '💿' :
                             data.nodeType === 'document' ? '📄' :
                                 data.nodeType === 'video' ? '📹' :
-                                    (data.nodeType === 'category' || data.nodeType === 'folder') ? '📁' :
-                                        '📅'}
+                                    data.nodeType === 'canvas' ? '🎨' :
+                                        (data.nodeType === 'category' || data.nodeType === 'folder') ? '📁' :
+                                            '📅'}
                     </span>
                     {data.title}
                 </h3>
 
-                {data.description && (
+                {(data.description || data.content) && (
                     <p className="history-node-description">
-                        {data.description}
+                        {data.description || data.content}
                     </p>
                 )}
             </div>

@@ -952,59 +952,38 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
      * 노드 리사이즈 종료 시 DB 저장
      */
     const handleResizeStop = useCallback(async (id: string | number, width: number, height: number, x: number, y: number) => {
+        // console.log('📐 [HistoryEngine] onResizeStop:', id, width, height, x, y);
+
         // 1. Update Ref (Authoritative State)
-        const refNode = allNodesRef.current.get(String(id));
+        const rfId = String(id);
+        const refNode = allNodesRef.current.get(rfId);
         if (refNode) {
             refNode.width = width;
             refNode.height = height;
             refNode.position = { x, y };
+            // Ensure style is also updated for immediate feedback if used by React Flow
             refNode.style = { ...refNode.style, width, height };
         }
 
-        // 2. Local State Update (Prevent Jump)
-        setNodes(nds => nds.map(node => {
-            if (node.id === String(id)) {
+        // 2. ReactFlow state sync (Functional update to maintain selection)
+        setNodes(nds => nds.map(n => {
+            if (n.id === rfId) {
                 return {
-                    ...node,
+                    ...n,
                     width,
                     height,
                     position: { x, y },
-                    style: { ...node.style, width, height }
+                    style: { ...n.style, width, height }
                 };
             }
-            return node;
+            return n;
         }));
 
-        // 3. Update DB
-        try {
-            const numericId = Number(id);
-            const { data, error } = await supabase.from('history_nodes')
-                .update({
-                    width,
-                    height,
-                    position_x: x,
-                    position_y: y
-                })
-                .eq('id', numericId)
-                .select(HISTORY_NODE_SELECT)
-                .single();
+        // 🚨 CRITICAL: Mark as dirty to trigger Save/Cancel modal
+        setHasUnsavedChanges(true);
 
-            if (!error && data) {
-                const updated = mapDbNodeToRFNode(data, {
-                    onNavigate: handleNavigate,
-                    onSelectionChange: (sid: string, selected: boolean) => {
-                        setNodes(nds => nds.map(node => node.id === sid ? { ...node, selected } : node));
-                    },
-                    onResizeStop: handleResizeStop
-                }, isEditMode);
-                allNodesRef.current.set(updated.id, updated);
-
-                // 🔥 NO syncVisualization, NO updateParentSize to prevent jumps
-            }
-        } catch (err) {
-            console.error('🚨 [HistoryEngine] Resize Save Failed:', err);
-        }
-    }, [handleNavigate, isEditMode, setNodes]);
+        // [V11] Removed immediate DB update. Resizes are now batched into handleSaveLayout.
+    }, [setNodes]);
 
     /**
      * 엣지 생성 (Connect)
