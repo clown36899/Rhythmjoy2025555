@@ -115,12 +115,13 @@
 
 /* Content */
 .history-node-content {
-    padding: clamp(8px, 4cqmin, 40px);
+    padding: clamp(6px, 3cqmin, 40px);
     display: flex;
     flex-direction: column;
-    gap: clamp(4px, 2cqmin, 20px);
+    gap: clamp(2px, 1.5cqmin, 20px);
     flex: 1;
     overflow-y: auto;
+    overflow-x: hidden;
 }
 
 /* 스크롤바 커스텀 */
@@ -324,14 +325,38 @@
     -webkit-box-orient: vertical;
 }
 
+/* Adaptive Density Layout via Container Queries */
+@container nodeContainer (height < 220px) {
+    .history-node-description {
+        display: none !important;
+    }
+
+    .history-node-content {
+        gap: 2px;
+    }
+}
+
+@container nodeContainer (height < 150px) {
+
+    .history-node-thumbnail,
+    .person-avatar {
+        display: none !important;
+    }
+
+    .history-node-content {
+        justify-content: center;
+        padding-top: 4px;
+        padding-bottom: 4px;
+    }
+}
+
 /* Footer Actions */
 .history-node-footer {
     display: flex;
     justify-content: flex-end;
-    gap: clamp(4px, 2cqmin, 24px);
+    gap: clamp(2px, 2cqmin, 24px);
     margin-top: auto;
-    /* 상단 컨텐츠와 거리를 벌리며 하단 고정 */
-    padding: clamp(8px, 3cqh, 40px) clamp(16px, 4cqmin, 48px);
+    padding: clamp(4px, 2cqh, 40px) clamp(12px, 4cqmin, 48px);
     /* 좌우 패딩 추가 및 상하 패딩 조정 */
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     flex-shrink: 0;

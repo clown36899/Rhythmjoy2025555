@@ -38,7 +38,7 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
 
     const [minSize, setMinSize] = useState({
         width: isCanvas ? 420 : 200,
-        height: isCanvas ? 250 : 100
+        height: isCanvas ? 250 : 80
     });
 
     // Measure content to determine dynamic minimums
@@ -55,20 +55,16 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
             const avatarEl = nodeRef.current.querySelector('.person-avatar');
             const footerEl = nodeRef.current.querySelector('.history-node-footer');
 
-            // [FIX] Use intrinsic minimums instead of current scaled heights to break circular dependency
+            // [V8] Core-Only Minimum: Only protect Header + Footer + Title line
+            // Everything else (Images, Descriptions) will be adaptive via CSS/Overflow
             const headerHeight = 44;
-            const footerHeight = 40; // Reduced base footer height
-            const thumbHeight = thumbnailEl ? 80 : 0; // CSS clamp minimum (updated)
-            const avatarHeight = avatarEl ? 40 : 0;   // CSS clamp minimum (updated)
+            const footerHeight = 40;
+            const titleLineHeight = 32; // Baseline for at least one line of title
 
-            // scrollHeight represents the minimum required height to show all content without vertical scroll
-            const requiredContentHeight = contentEl.scrollHeight;
+            const totalRequiredHeight = headerHeight + footerHeight + titleLineHeight + 10;
 
-            // Holistic measurement: Header (44) + Content (Measured) + Thumb/Avatar (if exists) + Footer (Measured)
-            // Note: Thumb and Avatar are absolute or relative siblings.
-            const totalRequiredHeight = thumbHeight + avatarHeight + requiredContentHeight + headerHeight + footerHeight + 10; // Tight but safe margin
-
-            const finalMinHeight = Math.max(isCanvas ? 250 : 100, totalRequiredHeight);
+            // Hard floor is now much lower to allow "slim bar" mode
+            const finalMinHeight = Math.max(isCanvas ? 250 : 80, totalRequiredHeight);
             const finalMinWidth = isCanvas ? 420 : 200;
 
             setMinSize(prev => {
