@@ -32,7 +32,7 @@ interface UseHistoryEngineProps {
 
 export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: UseHistoryEngineProps) => {
     // 1. 핵심 상태 관리
-    const [nodes, setNodes, onNodesChange] = useNodesState<any>([]);
+    const [nodes, setNodes, onNodesChangeRaw] = useNodesState<any>([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState<Edge[]>([]);
     const [loading, setLoading] = useState(false);
     const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -46,13 +46,47 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
     // 2. Authoritative Refs (단일 진실 공급원)
     const allNodesRef = useRef<Map<string, HistoryRFNode>>(new Map());
     const allEdgesRef = useRef<Map<string, Edge>>(new Map());
-    // 🔥 Saved State Reference for Change Detection
+    // � Saved State Reference for Change Detection
     const lastSavedStateRef = useRef<Map<string, { x: number, y: number, w: number, h: number }>>(new Map());
     // 🔥 Load Tracking to prevent duplicate loadTimeline calls
     const loadedRef = useRef(false);
 
+    // 🔥 Track dragged nodes for position sync
+    const draggedNodesRef = useRef<Set<string>>(new Set());
+
     // 🆕 Folder Logic Hook Integration
     const { rearrangeFolderChildren, updateParentSize } = useFolderLogic({ allNodesRef });
+
+    // �🔍 DEBUG: Wrap onNodesChange to log all node changes AND handle drag end
+    const onNodesChange = useCallback((changes: any[]) => {
+        const dragChanges = changes.filter(c => c.type === 'position' && c.dragging !== undefined);
+
+        if (dragChanges.length > 0) {
+            console.log('🎯🎯🎯 [DEBUG] DRAG DETECTED in onNodesChange', {
+                totalChanges: changes.length,
+                dragChanges: dragChanges.length,
+                changes: dragChanges
+            });
+
+            // 🔥 CRITICAL FIX: Detect drag END (dragging: false)
+            const dragEndChanges = dragChanges.filter(c => c.dragging === false);
+            if (dragEndChanges.length > 0) {
+                console.log('🏁🏁🏁 [DEBUG] DRAG END DETECTED', {
+                    nodesCount: dragEndChanges.length,
+                    nodeIds: dragEndChanges.map(c => c.id)
+                });
+
+                // 🔥 CRITICAL FIX: Track dragged nodes and sync positions in useEffect
+                console.log('🏁 [DEBUG] Drag ended, tracking node IDs for position sync');
+                dragEndChanges.forEach(change => {
+                    draggedNodesRef.current.add(change.id);
+                    console.log(`� [DEBUG] Added ${change.id} to draggedNodesRef`);
+                });
+            }
+        }
+
+        onNodesChangeRaw(changes);
+    }, [onNodesChangeRaw, allNodesRef, lastSavedStateRef]);
 
     /**
      * 데이터를 화면에 동기화하는 함수 (Projection Engine + Filtering)
@@ -349,6 +383,57 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []); // Empty dependency - only run once on mount
+
+    // 🔥 Sync dragged node positions after nodes state updates
+    useEffect(() => {
+        if (draggedNodesRef.current.size > 0) {
+            console.log('🔄 [DEBUG] Syncing dragged node positions from nodes state', {
+                draggedCount: draggedNodesRef.current.size,
+                draggedIds: Array.from(draggedNodesRef.current)
+            });
+
+            let hasAnyChange = false;
+            draggedNodesRef.current.forEach(nodeId => {
+                const stateNode = nodes.find(n => n.id === nodeId);
+                const refNode = allNodesRef.current.get(nodeId);
+
+                if (stateNode && refNode) {
+                    console.log(`📝 [DEBUG] Syncing position for ${nodeId}:`, stateNode.position);
+                    refNode.position = stateNode.position;
+                    if (stateNode.positionAbsolute) refNode.positionAbsolute = stateNode.positionAbsolute;
+
+                    // Check if position changed
+                    const savedState = lastSavedStateRef.current.get(nodeId);
+                    if (savedState) {
+                        const currentX = Math.round(stateNode.position.x);
+                        const currentY = Math.round(stateNode.position.y);
+                        const isChanged = Math.abs(currentX - savedState.x) > 1 || Math.abs(currentY - savedState.y) > 1;
+
+                        if (isChanged) {
+                            console.log(`✅ [DEBUG] Position changed for ${nodeId}`);
+                            hasAnyChange = true;
+                        }
+                    } else {
+                        hasAnyChange = true;
+                    }
+                } else {
+                    console.warn(`⚠️ [DEBUG] Could not sync ${nodeId}:`, {
+                        hasStateNode: !!stateNode,
+                        hasRefNode: !!refNode
+                    });
+                }
+            });
+
+            if (hasAnyChange) {
+                console.log('💾 [DEBUG] Setting hasUnsavedChanges = true from useEffect');
+                setHasUnsavedChanges(true);
+            }
+
+            // Clear the set
+            draggedNodesRef.current.clear();
+            console.log('🧹 [DEBUG] Cleared draggedNodesRef');
+        }
+    }, [nodes]); // Run whenever nodes change
 
     // 🔥 Force sync when Edit Mode changes to update draggable/ui state
     useEffect(() => {
@@ -788,14 +873,35 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
      * 노드 위치 저장 (Batch Upsert)
      */
     const onNodeDragStop = useCallback((event: any, node: any) => {
+        // 🔍 DEBUG: Multi-Select Tracking
+        const selectedNodes = nodes.filter(n => n.selected);
+        const debugMsg = `🎯 onNodeDragStop: ${node.data?.title || node.id} | Selected: ${selectedNodes.length}`;
+        console.log('='.repeat(80));
+        console.log(debugMsg);
+        console.log('='.repeat(80));
+        console.log('🎯 [DEBUG] onNodeDragStop Called', {
+            draggedNode: node.data?.title || node.id,
+            totalSelected: selectedNodes.length,
+            selectedNodeTitles: selectedNodes.map(n => n.data?.title || n.id),
+            draggedNodePosition: node.position
+        });
+
+        // Visual alert for debugging
+        if (selectedNodes.length > 1) {
+            console.warn(`⚠️⚠️⚠️ MULTI-SELECT DRAG: ${selectedNodes.length} nodes selected`);
+        }
+
         // 1. Update internal Ref
         const refNode = allNodesRef.current.get(node.id);
         if (refNode) {
+            console.log('📝 [DEBUG] Updating allNodesRef for dragged node:', node.data?.title || node.id);
             refNode.position = node.position;
             if (node.positionAbsolute) refNode.positionAbsolute = node.positionAbsolute; // 🔥 Fix: Sync Absolute Position for Calculations
             // Sync dimensions if updated by resizer before drag stop
             if (node.width) refNode.width = node.width;
             if (node.height) refNode.height = node.height;
+        } else {
+            console.warn('⚠️ [DEBUG] refNode not found in allNodesRef for:', node.id);
         }
 
         // Helper: Calculate Intersection Ratio
@@ -848,6 +954,11 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                 // If less than 20% overlap, move out (Magnetic Snap)
                 if (ratio < 0.2) {
                     const grandParentId = parentNode.data?.parent_node_id || null;
+                    console.log('🧲 [DEBUG] Magnetic Out Triggered - EARLY RETURN', {
+                        node: node.data?.title || node.id,
+                        ratio,
+                        movingTo: grandParentId
+                    });
                     // console.log('🧲 Magnetic Out: Moving to', grandParentId);
                     handleMoveToParent([node.id], grandParentId);
                     return;
@@ -872,6 +983,11 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
 
             const ratio = getIntersectionRatio(nodeRect, targetRect);
             if (ratio > 0.2) {
+                console.log('🧲 [DEBUG] Magnetic In Triggered - EARLY RETURN', {
+                    node: node.data?.title || node.id,
+                    folder: target.data?.title || target.id,
+                    ratio
+                });
                 // console.log('🧲 Magnetic In: Moving into', target.data.title);
                 handleMoveToParent([node.id], target.id);
                 return;
@@ -888,7 +1004,12 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                 const targetIdStr = breadcrumbEl.getAttribute('data-breadcrumb-id');
                 const targetId = targetIdStr === 'null' ? null : targetIdStr;
                 if (String(targetId) !== String(currentRootId)) {
+                    console.log('📍 [DEBUG] Breadcrumb Drop Triggered - EARLY RETURN', {
+                        node: node.data?.title || node.id,
+                        targetId
+                    });
                     handleMoveToParent([node.id], targetId);
+                    return;
                 }
             }
         }
@@ -897,6 +1018,11 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
         const currentParentId = node.data?.parent_node_id;
         if (currentParentId && rearrangeFolderChildren && updateParentSize) {
             const pid = String(currentParentId);
+
+            console.log('📁 [DEBUG] Folder Rearrange Triggered - EARLY RETURN', {
+                node: node.data?.title || node.id,
+                parentId: pid
+            });
 
             // 비동기 정렬 및 크기 조절 후 화면 갱신
             rearrangeFolderChildren(pid).then(async () => {
@@ -927,13 +1053,29 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
             // || Math.abs(currentW - savedState.w) > 1 || Math.abs(currentH - savedState.h) > 1;
 
             if (isChanged) {
+                console.log(`📝 [DEBUG] Position Changed - Setting hasUnsavedChanges`, {
+                    node: node.data?.title || node.id,
+                    oldPos: `(${savedState.x}, ${savedState.y})`,
+                    newPos: `(${currentX}, ${currentY})`
+                });
                 // console.log(`📝 [HistoryEngine] Node Moved: ${node.data.title} (${savedState.x},${savedState.y}) -> (${currentX},${currentY})`);
                 setHasUnsavedChanges(true);
+            } else {
+                console.log(`⏭️ [DEBUG] Position NOT Changed - No save needed`, {
+                    node: node.data?.title || node.id,
+                    pos: `(${currentX}, ${currentY})`
+                });
             }
         } else {
             // New node or unknown state
+            console.log(`🆕 [DEBUG] No saved state found - Setting hasUnsavedChanges`, {
+                node: node.data?.title || node.id
+            });
             setHasUnsavedChanges(true);
         }
+
+        console.log('✅ [DEBUG] onNodeDragStop Completed - No early returns triggered');
+
 
     }, [nodes, currentRootId, handleMoveToParent, rearrangeFolderChildren, updateParentSize, syncVisualization]);
 
