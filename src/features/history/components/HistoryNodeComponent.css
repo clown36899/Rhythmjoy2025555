@@ -162,9 +162,9 @@
 }
 
 .node-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    display: block;
+    /* justify-content: space-between; REMOVED: Wrapper removal requires block flow */
+    /* align-items: center; REMOVED */
     margin-bottom: clamp(2px, 1cqmin, 8px);
     flex-shrink: 0;
 }
@@ -267,7 +267,7 @@
     align-items: center;
     justify-content: center;
     font-size: 12px;
-    animation: node-link-pulse 2s infinite;
+    /* animation: node-link-pulse 2s infinite; REMOVED for performance */
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -715,9 +715,9 @@
     /* Start of the lift */
     transform: translateY(-100%);
     /* Full lift above the border */
-    background: rgba(17, 24, 39, 0.8) !important;
-    /* Glass effect for floating */
-    backdrop-filter: blur(10px);
+    background: rgba(17, 24, 39, 0.9) !important;
+    /* Glass effect removed for performance */
+    /* backdrop-filter: blur(10px); */
     border: 2px solid rgba(139, 92, 246, 0.3);
     border-bottom: none;
     border-radius: 20px 20px 0 0;
@@ -782,7 +782,7 @@
     /* Full drop below the border */
     background: rgba(17, 24, 39, 0.8) !important;
     /* Glass effect for floating */
-    backdrop-filter: blur(10px);
+    /* backdrop-filter: blur(10px); REMOVED for performance */
     border: 2px solid rgba(139, 92, 246, 0.3);
     border-top: none;
     border-radius: 0 0 20px 20px;

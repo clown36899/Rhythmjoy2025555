@@ -307,22 +307,27 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
             )}
 
             {/* Simple Handles: Defined as both source and target for flexibility */}
-            {/* Reliable Handles: Source and Target for all directions with standard IDs */}
-            {/* Top: Target (primary) & Source */}
-            <Handle type="target" position={Position.Top} id="top" />
-            <Handle type="source" position={Position.Top} id="top" style={{ top: 0, opacity: 0 }} />
+            {/* 🔥 Optimization: Do not render handles for nodes inside folders to reduce DOM (8 per node!) */}
+            {!data.parent_node_id && (
+                <>
+                    {/* Reliable Handles: Source and Target for all directions with standard IDs */}
+                    {/* Top: Target (primary) & Source */}
+                    <Handle type="target" position={Position.Top} id="top" />
+                    <Handle type="source" position={Position.Top} id="top" style={{ top: 0, opacity: 0 }} />
 
-            {/* Bottom: Source (primary) & Target */}
-            <Handle type="source" position={Position.Bottom} id="bottom" />
-            <Handle type="target" position={Position.Bottom} id="bottom" style={{ bottom: 0, opacity: 0 }} />
+                    {/* Bottom: Source (primary) & Target */}
+                    <Handle type="source" position={Position.Bottom} id="bottom" />
+                    <Handle type="target" position={Position.Bottom} id="bottom" style={{ bottom: 0, opacity: 0 }} />
 
-            {/* Left: Target (primary) & Source */}
-            <Handle type="target" position={Position.Left} id="left" style={{ top: '50%' }} />
-            <Handle type="source" position={Position.Left} id="left" style={{ top: '50%', opacity: 0 }} />
+                    {/* Left: Target (primary) & Source */}
+                    <Handle type="target" position={Position.Left} id="left" style={{ top: '50%' }} />
+                    <Handle type="source" position={Position.Left} id="left" style={{ top: '50%', opacity: 0 }} />
 
-            {/* Right: Source (primary) & Target */}
-            <Handle type="source" position={Position.Right} id="right" style={{ top: '50%' }} />
-            <Handle type="target" position={Position.Right} id="right" style={{ top: '50%', opacity: 0 }} />
+                    {/* Right: Source (primary) & Target */}
+                    <Handle type="source" position={Position.Right} id="right" style={{ top: '50%' }} />
+                    <Handle type="target" position={Position.Right} id="right" style={{ top: '50%', opacity: 0 }} />
+                </>
+            )}
 
             {/* Person Avatar for person category */}
             {data.category === 'person' && data.image_url && (
@@ -409,38 +414,36 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
                 style={{ cursor: (data.isSelectionMode || data.isEditMode) ? 'default' : 'pointer' }}
             >
                 <div className="node-header">
-                    <div style={{ width: '100%' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                            <span className="node-year">{data.year || data.date}</span>
-                            <div style={{ display: 'flex', gap: '4px' }}>
-                                {showDetail && categoryIcon && (
-                                    <span className={`history-node-badge badge-${data.category || 'general'}`}>
-                                        {categoryIcon}
-                                    </span>
-                                )}
-                                {showDetail && (data.linked_playlist_id || data.linked_document_id || data.linked_video_id || data.linked_category_id) && (
-                                    <span
-                                        className={`history-node-link-badge ${linkedType}`}
-                                        title="학습 자료 열기"
-                                        onClick={handleLinkClick}
-                                    >
-                                        <i className="ri-link"></i>
-                                    </span>
-                                )}
-                            </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <span className="node-year">{data.year || data.date}</span>
+                        <div style={{ display: 'flex', gap: '4px' }}>
+                            {showDetail && categoryIcon && (
+                                <span className={`history-node-badge badge-${data.category || 'general'}`}>
+                                    {categoryIcon}
+                                </span>
+                            )}
+                            {showDetail && (data.linked_playlist_id || data.linked_document_id || data.linked_video_id || data.linked_category_id) && (
+                                <span
+                                    className={`history-node-link-badge ${linkedType}`}
+                                    title="학습 자료 열기"
+                                    onClick={handleLinkClick}
+                                >
+                                    <i className="ri-link"></i>
+                                </span>
+                            )}
                         </div>
-                        <h3 className="history-node-title">
-                            <span className="node-type-icon">
-                                {data.nodeType === 'playlist' ? '💿' :
-                                    data.nodeType === 'document' ? '📄' :
-                                        data.nodeType === 'video' ? '📹' :
-                                            data.nodeType === 'canvas' ? '🎨' :
-                                                (data.nodeType === 'category' || data.nodeType === 'folder') ? '📁' :
-                                                    '📅'}
-                            </span>
-                            {data.title}
-                        </h3>
                     </div>
+                    <h3 className="history-node-title">
+                        <span className="node-type-icon">
+                            {data.nodeType === 'playlist' ? '💿' :
+                                data.nodeType === 'document' ? '📄' :
+                                    data.nodeType === 'video' ? '📹' :
+                                        data.nodeType === 'canvas' ? '🎨' :
+                                            (data.nodeType === 'category' || data.nodeType === 'folder') ? '📁' :
+                                                '📅'}
+                        </span>
+                        {data.title}
+                    </h3>
                 </div>
 
                 {/* Hide Description in Low LOD */}

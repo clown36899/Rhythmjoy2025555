@@ -1090,28 +1090,30 @@ function HistoryTimelinePage() {
                 </button>
             )}
 
-            <ResourceDrawer
-                ref={resourceDrawerRef}
-                isOpen={isDrawerOpen}
-                onClose={() => setIsDrawerOpen(false)}
-                onDragStart={(e, item) => {
-                    e.dataTransfer.setData('application/reactflow', JSON.stringify(item));
-                    e.dataTransfer.effectAllowed = 'move';
-                }}
-                onItemClick={handleDrawerItemClick}
-                refreshKey={drawerRefreshKey}
-                {...memoizedResourceData}
-                isEditMode={isEditMode}
-                isAdmin={!!isAdmin}
-                userId={user?.id}
-                onCategoryChange={handleCategoryChange}
-                onCreateCategory={handleCreateCategory}
-                onDeleteResource={handleDeleteResource}
-                onRenameResource={handleRenameResource}
-                onMoveResource={handleMoveResource}
-                onReorderResource={handleReorderResource}
-                onAddClick={handleAddClick}
-            />
+            {isDrawerOpen && (
+                <ResourceDrawer
+                    ref={resourceDrawerRef}
+                    isOpen={isDrawerOpen}
+                    onClose={() => setIsDrawerOpen(false)}
+                    onDragStart={(e, item) => {
+                        e.dataTransfer.setData('application/reactflow', JSON.stringify(item));
+                        e.dataTransfer.effectAllowed = 'move';
+                    }}
+                    onItemClick={handleDrawerItemClick}
+                    refreshKey={drawerRefreshKey}
+                    {...memoizedResourceData}
+                    isEditMode={isEditMode}
+                    isAdmin={!!isAdmin}
+                    userId={user?.id}
+                    onCategoryChange={handleCategoryChange}
+                    onCreateCategory={handleCreateCategory}
+                    onDeleteResource={handleDeleteResource}
+                    onRenameResource={handleRenameResource}
+                    onMoveResource={handleMoveResource}
+                    onReorderResource={handleReorderResource}
+                    onAddClick={handleAddClick}
+                />
+            )}
 
             {/* Modals */}
             {isEditorOpen && editingNode && (
