@@ -1,4 +1,4 @@
-import { memo, useRef, useState, useLayoutEffect, useMemo } from 'react';
+import { memo, useRef, useState, useLayoutEffect, useMemo, useCallback } from 'react';
 import { Handle, Position, NodeResizer, useStore } from 'reactflow';
 import type { NodeProps } from 'reactflow';
 import { parseVideoUrl, validateYouTubeThumbnailUrl } from '../../../utils/videoEmbed';
@@ -10,7 +10,6 @@ import { CATEGORY_COLORS } from '../utils/constants';
 const zoomSelector = (s: { transform: number[] }) => s.transform[2] > 0.45;
 
 function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
-    const isLoggedRef = useRef(false);
     const showDetail = useStore(zoomSelector);
 
     // 🔍 Debug: Log first render only (avoid spam)
@@ -114,26 +113,25 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
         return () => observer?.disconnect();
     }, [isCanvas, hasThumbnail, isMinimalNode, data.category, data.node_behavior, selected, data.isEditMode]);
 
-    const handlePlayVideo = (e: React.MouseEvent) => {
+    const handlePlayVideo = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
         if (data.youtube_url && data.onPlayVideo) {
             data.onPlayVideo(data.youtube_url, data.linked_playlist_id, data.linked_video_id);
         }
-    };
+    }, [data.youtube_url, data.onPlayVideo, data.linked_playlist_id, data.linked_video_id]);
 
-    const handleEdit = (e: React.MouseEvent) => {
+    const handleEdit = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
         if (data.onEdit) data.onEdit(data);
-    };
+    }, [data.onEdit, data]);
 
-    const handleViewDetail = (e: React.MouseEvent) => {
+    const handleViewDetail = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
         if (data.onViewDetail) data.onViewDetail(data);
-    };
+    }, [data.onViewDetail, data]);
 
-    const handleThumbnailClick = (e: React.MouseEvent) => {
+    const handleThumbnailClick = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
-
         // V7 Refined Link Logic: Prioritize IDs over nodeType for robustness
         if (data.linked_playlist_id && data.onPreviewLinkedResource) {
             data.onPreviewLinkedResource(data.linked_playlist_id, 'playlist', data.title);
@@ -146,15 +144,14 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
         } else if (data.youtube_url && data.onPlayVideo) {
             data.onPlayVideo(data.youtube_url, data.linked_playlist_id, data.linked_video_id);
         } else if (data.onViewDetail) {
-            // Fallback: View Detail (e.g. for image-only nodes)
             data.onViewDetail(data);
         }
-    };
+    }, [data]);
 
-    const handleLinkClick = (e: React.MouseEvent) => {
+    const handleLinkClick = useCallback((e: React.MouseEvent) => {
         e.stopPropagation();
         handleThumbnailClick(e);
-    };
+    }, [handleThumbnailClick]);
 
     const categoryIcon = useMemo(() => {
         const cat = data.category || 'general';
@@ -213,7 +210,7 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
         return () => observer.disconnect();
     }, []);
 
-    const handleNodeClick = (e: React.MouseEvent) => {
+    const handleNodeClick = useCallback((e: React.MouseEvent) => {
         // console.log('🖱️ [HistoryNode] Click:', { id: data.id, title: data.title, type: data.nodeType });
 
         if (data.isSelectionMode) {
@@ -269,7 +266,7 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
 
         // 4. Default -> View Detail Modal
         handleViewDetail(e);
-    };
+    }, [data, isContainer, handleViewDetail]);
     return (
         <div
             ref={nodeRef}
@@ -313,19 +310,19 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
                     {/* Reliable Handles: Source and Target for all directions with standard IDs */}
                     {/* Top: Target (primary) & Source */}
                     <Handle type="target" position={Position.Top} id="top" />
-                    <Handle type="source" position={Position.Top} id="top" style={{ top: 0, opacity: 0 }} />
+                    <Handle type="source" position={Position.Top} id="top" className="handle-pos-top" />
 
                     {/* Bottom: Source (primary) & Target */}
                     <Handle type="source" position={Position.Bottom} id="bottom" />
-                    <Handle type="target" position={Position.Bottom} id="bottom" style={{ bottom: 0, opacity: 0 }} />
+                    <Handle type="target" position={Position.Bottom} id="bottom" className="handle-pos-bottom" />
 
                     {/* Left: Target (primary) & Source */}
-                    <Handle type="target" position={Position.Left} id="left" style={{ top: '50%' }} />
-                    <Handle type="source" position={Position.Left} id="left" style={{ top: '50%', opacity: 0 }} />
+                    <Handle type="target" position={Position.Left} id="left" className="handle-pos-left" />
+                    <Handle type="source" position={Position.Left} id="left" className="handle-pos-left-hidden" />
 
                     {/* Right: Source (primary) & Target */}
-                    <Handle type="source" position={Position.Right} id="right" style={{ top: '50%' }} />
-                    <Handle type="target" position={Position.Right} id="right" style={{ top: '50%', opacity: 0 }} />
+                    <Handle type="source" position={Position.Right} id="right" className="handle-pos-right" />
+                    <Handle type="target" position={Position.Right} id="right" className="handle-pos-right-hidden" />
                 </>
             )}
 

@@ -113,7 +113,7 @@ export const HistoryCanvas = ({
                 selectionOnDrag={isSelectionMode}
                 preventScrolling={true} /* 브라우저 스크롤 방지 */
                 connectionLineType={ConnectionLineType.Bezier} /* 🔥 Curved Lines */
-                defaultEdgeOptions={{ type: 'default', animated: true }} /* 🔥 Default to Curved Bezier edges */
+                defaultEdgeOptions={useMemo(() => ({ type: 'default', animated: true }), [])} /* 🔥 Default to Curved Bezier edges */
                 deleteKeyCode={['Backspace', 'Delete']}
                 onlyRenderVisibleElements={true} /* 🔥 Performance Optimization */
                 fitView
