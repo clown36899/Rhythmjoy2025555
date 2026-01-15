@@ -74,7 +74,8 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
                 // [Folder Logic] All folders (empty or populated) now allow 60px floor
                 const isFolderType = data.category === 'folder' || (data.node_behavior as string) === 'FOLDER';
                 if (isFolderType || isMinimalNode) {
-                    return { width: 421, height: 60 };
+                    // 🔥 [Fix] Allow shrinking down to 200px (was 421px)
+                    return { width: 200, height: 60 };
                 }
 
                 // 2. Standard Nodes - Content-Driven

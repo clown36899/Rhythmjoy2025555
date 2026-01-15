@@ -1131,10 +1131,10 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
      * 노드 리사이즈 종료 시 DB 저장
      */
     const handleResizeStop = useCallback(async (id: string | number, width: number, height: number, x: number, y: number) => {
-        // console.log('📐 [HistoryEngine] onResizeStop:', id, width, height, x, y);
-
         const rfId = String(id);
         const refNode = allNodesRef.current.get(rfId);
+
+        console.log(`📐 [ResizeStart] ID: ${rfId} | Input: ${width}x${height} | Ref: ${refNode?.width}x${refNode?.height}`);
 
         // 🔥 [Scaling Logic] Calculate Scale Factor BEFORE updating ref
         let scaleX = 1;
@@ -1142,9 +1142,13 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
         let shouldScaleChildren = false;
 
         if (refNode) {
-            // Retrieve old dimensions from Last Saved State (primary) or current Ref (fallback)
-            const oldW = lastSavedStateRef.current.get(rfId)?.w || refNode.width || Number(refNode.style?.width) || 320;
-            const oldH = lastSavedStateRef.current.get(rfId)?.h || refNode.height || Number(refNode.style?.height) || 160;
+            // 🔥 [Fix] Use Current Ref State (just before this update) as 'old' dimension
+            // This ensures we calculate scale relative to the *immediate previous* size, not the DB saved size.
+            // This prevents exponential scaling when resizing multiple times.
+            const oldW = refNode.width || Number(refNode.style?.width) || 320;
+            const oldH = refNode.height || Number(refNode.style?.height) || 160;
+
+            console.log(`📐 [ResizeCalc] ID: ${rfId} | Old: ${oldW}x${oldH} | New: ${width}x${height}`);
 
             // Protect against zero division
             if (oldW > 0 && oldH > 0) {
@@ -1152,12 +1156,14 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                 scaleY = height / oldH;
             }
 
+            console.log(`📐 [ResizeScale] Scale: ${scaleX.toFixed(4)}x${scaleY.toFixed(4)}`);
+
             // Only scale if it's a GROUP node and scale is significant/valid
             shouldScaleChildren = (refNode.data.node_behavior === 'GROUP') &&
                 (Math.abs(scaleX - 1) > 0.01 || Math.abs(scaleY - 1) > 0.01);
 
             if (shouldScaleChildren) {
-                console.log(`📐 [Scaling] Folder ${rfId} resized. Scale: ${scaleX.toFixed(2)}x${scaleY.toFixed(2)}`);
+                console.log(`📐 [ScalingChildren] Folder ${rfId} resizing children...`);
             }
 
             // 1. Update Ref (Authoritative State) - Parent
