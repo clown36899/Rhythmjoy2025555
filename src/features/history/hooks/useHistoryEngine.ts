@@ -991,30 +991,92 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
     const handleResizeStop = useCallback(async (id: string | number, width: number, height: number, x: number, y: number) => {
         // console.log('📐 [HistoryEngine] onResizeStop:', id, width, height, x, y);
 
-        // 1. Update Ref (Authoritative State)
         const rfId = String(id);
         const refNode = allNodesRef.current.get(rfId);
+
+        // 🔥 [Scaling Logic] Calculate Scale Factor BEFORE updating ref
+        let scaleX = 1;
+        let scaleY = 1;
+        let shouldScaleChildren = false;
+
         if (refNode) {
+            // Retrieve old dimensions from Last Saved State (primary) or current Ref (fallback)
+            const oldW = lastSavedStateRef.current.get(rfId)?.w || refNode.width || Number(refNode.style?.width) || 320;
+            const oldH = lastSavedStateRef.current.get(rfId)?.h || refNode.height || Number(refNode.style?.height) || 160;
+
+            // Protect against zero division
+            if (oldW > 0 && oldH > 0) {
+                scaleX = width / oldW;
+                scaleY = height / oldH;
+            }
+
+            // Only scale if it's a GROUP node and scale is significant/valid
+            shouldScaleChildren = (refNode.data.node_behavior === 'GROUP') &&
+                (Math.abs(scaleX - 1) > 0.01 || Math.abs(scaleY - 1) > 0.01);
+
+            if (shouldScaleChildren) {
+                console.log(`📐 [Scaling] Folder ${rfId} resized. Scale: ${scaleX.toFixed(2)}x${scaleY.toFixed(2)}`);
+            }
+
+            // 1. Update Ref (Authoritative State) - Parent
             refNode.width = width;
             refNode.height = height;
             refNode.position = { x, y };
-            // Ensure style is also updated for immediate feedback if used by React Flow
             refNode.style = { ...refNode.style, width, height };
         }
 
-        // 2. ReactFlow state sync (Functional update to maintain selection)
-        setNodes(nds => nds.map(n => {
-            if (n.id === rfId) {
-                return {
-                    ...n,
-                    width,
-                    height,
-                    position: { x, y },
-                    style: { ...n.style, width, height }
-                };
+        // 2. ReactFlow state sync (Functional update) + Child Scaling
+        setNodes(nds => {
+            let nextNodes = nds.map(n => {
+                if (n.id === rfId) {
+                    return {
+                        ...n,
+                        width,
+                        height,
+                        position: { x, y },
+                        style: { ...n.style, width, height }
+                    };
+                }
+                return n;
+            });
+
+            // 🔥 Apply Scaling to Children
+            if (shouldScaleChildren) {
+                nextNodes = nextNodes.map(child => {
+                    // Check if this node is a child of the resized folder
+                    if (String(child.data.parent_node_id) === rfId) {
+                        const oldCW = child.width || Number(child.style?.width) || 320;
+                        const oldCH = child.height || Number(child.style?.height) || 160;
+
+                        const newCW = oldCW * scaleX;
+                        const newCH = oldCH * scaleY;
+                        const newCX = child.position.x * scaleX;
+                        const newCY = child.position.y * scaleY;
+
+                        // Update Ref for Child as well
+                        const childRef = allNodesRef.current.get(child.id);
+                        if (childRef) {
+                            childRef.width = newCW;
+                            childRef.height = newCH;
+                            childRef.position = { x: newCX, y: newCY };
+                            childRef.style = { ...childRef.style, width: newCW, height: newCH };
+                        }
+
+                        // Return updated child props
+                        return {
+                            ...child,
+                            width: newCW,
+                            height: newCH,
+                            position: { x: newCX, y: newCY },
+                            style: { ...child.style, width: newCW, height: newCH }
+                        };
+                    }
+                    return child;
+                });
             }
-            return n;
-        }));
+
+            return nextNodes;
+        });
 
         // 🚨 CRITICAL: Mark as dirty to trigger Save/Cancel modal
         setHasUnsavedChanges(true);

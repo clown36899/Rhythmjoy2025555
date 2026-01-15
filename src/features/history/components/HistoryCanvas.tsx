@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import ReactFlow, {
     Background,
     Controls,
@@ -72,6 +72,8 @@ export const HistoryCanvas = ({
         return CATEGORY_COLORS[node.data?.category || 'default'] || CATEGORY_COLORS.default;
     }, []);
 
+    const [isMinimapVisible, setIsMinimapVisible] = useState(true);
+
     return (
         <div style={{ width: '100%', height: '100%', position: 'relative' }}>
             <ReactFlow
@@ -114,12 +116,39 @@ export const HistoryCanvas = ({
             >
                 <Background color="#334155" gap={20} />
                 <Controls />
-                <MiniMap
-                    nodeColor={getNodeColor}
-                    maskColor="rgba(0, 0, 0, 0.5)"
-                    pannable
-                    zoomable
-                />
+                {isMinimapVisible && (
+                    <MiniMap
+                        nodeColor={getNodeColor}
+                        maskColor="rgba(0, 0, 0, 0.5)"
+                        pannable
+                        zoomable
+                    />
+                )}
+                <button
+                    onClick={() => setIsMinimapVisible(prev => !prev)}
+                    style={{
+                        position: 'absolute',
+                        bottom: isMinimapVisible ? 170 : 15,
+                        right: 15,
+                        zIndex: 5,
+                        width: 40,
+                        height: 40,
+                        borderRadius: '50%',
+                        backgroundColor: '#1f2937',
+                        color: '#e5e7eb',
+                        border: '1px solid #374151',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                        transition: 'all 0.2s ease'
+                    }}
+                    title={isMinimapVisible ? "미니맵 숨기기" : "미니맵 보기"}
+                    className="minimap-toggle-btn"
+                >
+                    <i className={isMinimapVisible ? "ri-eye-off-line" : "ri-map-2-line"} style={{ fontSize: '20px' }}></i>
+                </button>
             </ReactFlow>
         </div>
     );

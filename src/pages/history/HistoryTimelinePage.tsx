@@ -1059,6 +1059,37 @@ function HistoryTimelinePage() {
                 </>
             )}
 
+            {/* 🔥 Full Screen Drawer Toggle Trigger */}
+            {isFullscreen && !isDrawerOpen && (
+                <button
+                    onClick={() => setIsDrawerOpen(true)}
+                    style={{
+                        position: 'fixed',
+                        top: 20,
+                        right: 20,
+                        zIndex: 2500, // Below Drawer (3000) but above Canvas
+                        padding: '8px 16px',
+                        borderRadius: '20px',
+                        backgroundColor: 'rgba(17, 24, 39, 0.8)',
+                        color: '#e5e7eb',
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        backdropFilter: 'blur(4px)',
+                        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                        transition: 'all 0.2s'
+                    }}
+                    className="fullscreen-drawer-btn"
+                    onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(31, 41, 55, 0.9)'}
+                    onMouseLeave={e => e.currentTarget.style.backgroundColor = 'rgba(17, 24, 39, 0.8)'}
+                >
+                    <i className="ri-folder-open-line"></i>
+                    <span>자료 서랍</span>
+                </button>
+            )}
+
             <ResourceDrawer
                 ref={resourceDrawerRef}
                 isOpen={isDrawerOpen}
