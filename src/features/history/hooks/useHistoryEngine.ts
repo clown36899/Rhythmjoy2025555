@@ -1158,17 +1158,114 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
 
         try {
             console.log('📡 [HistoryEngine] Requesting Node Insertion:', newNodeData);
-            const { data, error } = await supabase.from('history_nodes').insert(newNodeData).select(HISTORY_NODE_SELECT).single();
+
+            // 1. Insert Parent Node
+            const { data: parentData, error } = await supabase.from('history_nodes').insert(newNodeData).select(HISTORY_NODE_SELECT).single();
             if (error) throw error;
 
-            const updated = mapDbNodeToRFNode(data, {
+            let updatedParent = mapDbNodeToRFNode(parentData, {
                 onNavigate: handleNavigate,
                 onSelectionChange: (sid: string, selected: boolean) => {
                     setNodes(nds => nds.map(node => node.id === sid ? { ...node, selected } : node));
                 },
                 onResizeStop: handleResizeStop
             });
-            allNodesRef.current.set(updated.id, updated);
+            allNodesRef.current.set(updatedParent.id, updatedParent);
+
+            // 🔥 [Folder Expansion] If it's a folder, populate children
+            if (node_behavior === 'GROUP' && draggedResource.id) {
+                console.log('📂 [HistoryEngine] Folder Drop Detected. Expanding children for:', draggedResource.id);
+
+                // Fetch Resources (Videos, Docs, Playlists)
+                const { data: resources, error: resError } = await supabase
+                    .from('learning_resources')
+                    .select('*')
+                    .eq('category_id', draggedResource.id)
+                    .order('order_index', { ascending: true });
+
+                // Fetch Sub-categories (Folders)
+                const { data: categories, error: catError } = await supabase
+                    .from('learning_categories')
+                    .select('*')
+                    .eq('parent_id', draggedResource.id)
+                    .order('order_index', { ascending: true });
+
+                const allChildren = [
+                    ...(categories || []).map(c => ({ ...c, itemType: 'general', linkedId: c.id })),
+                    ...(resources || []).map(r => ({ ...r, itemType: r.type, linkedId: r.id }))
+                ].sort((a, b) => (a.order_index ?? 0) - (b.order_index ?? 0));
+
+                if (allChildren.length > 0) {
+                    console.log(`📂 Found ${allChildren.length} items to expand.`);
+
+                    // Layout Constants
+                    const COLS = 2; // Fixed 2 columns for neatness inside folder
+                    const GAP = 50;
+                    const ITEM_W = 320;
+                    const ITEM_H = 160;
+                    const PADDING_X = 40;
+                    const PADDING_Y = 120; // Header Buffer
+
+                    const insertPromises = allChildren.map(async (child, idx) => {
+                        const col = idx % COLS;
+                        const row = Math.floor(idx / COLS);
+                        const relX = PADDING_X + col * (ITEM_W + GAP);
+                        const relY = PADDING_Y + row * (ITEM_H + GAP);
+
+                        const childData: any = {
+                            title: null, // Linked content
+                            description: null,
+                            category: child.itemType || 'general',
+                            year: child.year || new Date().getFullYear(),
+                            position_x: relX,
+                            position_y: relY,
+                            width: ITEM_W,
+                            height: ITEM_H,
+                            created_by: userId,
+                            space_id: currentSpaceId,
+                            parent_node_id: parentData.id, // Link to new parent
+                            node_behavior: (child.itemType === 'general' || child.itemType === 'folder') ? 'GROUP' : 'LEAF',
+                            // Link Fields
+                            linked_video_id: child.itemType === 'video' ? child.linkedId : null,
+                            linked_playlist_id: child.itemType === 'playlist' ? child.linkedId : null,
+                            linked_document_id: (child.itemType === 'document' || child.itemType === 'person') ? child.linkedId : null,
+                            linked_category_id: (child.itemType === 'general' || child.itemType === 'folder') ? child.linkedId : null
+                        };
+
+                        return supabase.from('history_nodes').insert(childData).select(HISTORY_NODE_SELECT).single();
+                    });
+
+                    // Wait for all inserts
+                    const results = await Promise.all(insertPromises);
+                    const validEncodedNodes = results
+                        .filter(r => !r.error && r.data)
+                        .map(r => mapDbNodeToRFNode(r.data, {
+                            onNavigate: handleNavigate,
+                            onSelectionChange: (sid: string, selected: boolean) => {
+                                setNodes(nds => nds.map(node => node.id === sid ? { ...node, selected } : node));
+                            },
+                            onResizeStop: handleResizeStop
+                        }));
+
+                    // Add children to Ref
+                    validEncodedNodes.forEach(n => allNodesRef.current.set(n.id, n));
+
+                    // 🔥 Resize Parent to fit
+                    const rows = Math.ceil(allChildren.length / COLS);
+                    const newWidth = Math.max(421, PADDING_X * 2 + (ITEM_W * COLS) + (GAP * (COLS - 1)));
+                    const newHeight = Math.max(200, PADDING_Y + (rows * (ITEM_H + GAP)) + 50);
+
+                    // Update local ref
+                    updatedParent.width = newWidth;
+                    updatedParent.height = newHeight;
+                    updatedParent.style = { ...updatedParent.style, width: newWidth, height: newHeight };
+                    allNodesRef.current.set(updatedParent.id, updatedParent);
+
+                    // Update DB for parent size
+                    await supabase.from('history_nodes').update({ width: newWidth, height: newHeight }).eq('id', parentData.id);
+                }
+            }
+
             syncVisualization(currentRootId);
         } catch (err) {
             console.error('🚨 [HistoryEngine] Drop Processing Failed:', err);
