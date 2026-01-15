@@ -61,12 +61,12 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
         rootId: string | null,
         filters: { search?: string } = {}
     ) => {
-        console.log('🔧 [useHistoryEngine] syncVisualization Called', {
-            rootId,
-            filters,
-            totalNodes: allNodesRef.current.size,
-            totalEdges: allEdgesRef.current.size
-        });
+        // console.log('🔧 [useHistoryEngine] syncVisualization Called', {
+        //     rootId,
+        //     filters,
+        //     totalNodes: allNodesRef.current.size,
+        //     totalEdges: allEdgesRef.current.size
+        // });
 
         let allNodes = Array.from(allNodesRef.current.values());
         const allEdges = Array.from(allEdgesRef.current.values());
@@ -330,9 +330,9 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
             flowEdges.forEach(edge => allEdgesRef.current.set(edge.id, edge));
 
             // 4. 초기 가시성 투영
-            console.log('🎨 [useHistoryEngine] Initial syncVisualization from loadTimeline');
+            // console.log('🎨 [useHistoryEngine] Initial syncVisualization from loadTimeline');
             syncVisualization(currentRootId);
-            console.log('✅ [useHistoryEngine] loadTimeline Complete', { nodesLoaded: flowNodes.length, edgesLoaded: flowEdges.length });
+            // console.log('✅ [useHistoryEngine] loadTimeline Complete', { nodesLoaded: flowNodes.length, edgesLoaded: flowEdges.length });
 
         } catch (error) {
             console.error('🚨 [useHistoryEngine] Load Failed:', error);
@@ -1239,14 +1239,14 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                 console.log('📂 [HistoryEngine] Folder Drop Detected. Expanding children for:', draggedResource.id);
 
                 // Fetch Resources (Videos, Docs, Playlists)
-                const { data: resources, error: resError } = await supabase
+                const { data: resources } = await supabase
                     .from('learning_resources')
                     .select('*')
                     .eq('category_id', draggedResource.id)
                     .order('order_index', { ascending: true });
 
                 // Fetch Sub-categories (Folders)
-                const { data: categories, error: catError } = await supabase
+                const { data: categories } = await supabase
                     .from('learning_categories')
                     .select('*')
                     .eq('parent_id', draggedResource.id)

@@ -1,4 +1,9 @@
-import { getBezierPath, EdgeLabelRenderer, type EdgeProps } from 'reactflow';
+import { memo } from 'react';
+import { getBezierPath, getStraightPath, EdgeLabelRenderer, type EdgeProps, useStore } from 'reactflow';
+
+// 🔥 LOD Selector: Reuse same threshold as nodes (0.45)
+// When zoom is low (< 0.45), edges become straight lines for performance
+const zoomSelector = (s: { transform: number[] }) => s.transform[2] < 0.45;
 
 const CustomBezierEdge = ({
     id,
@@ -13,14 +18,32 @@ const CustomBezierEdge = ({
     data,
     selected
 }: EdgeProps) => {
-    const [edgePath, labelX, labelY] = getBezierPath({
-        sourceX,
-        sourceY,
-        sourcePosition,
-        targetX,
-        targetY,
-        targetPosition,
-    });
+    // 🔥 Check Zoom Level
+    const isLowDetail = useStore(zoomSelector);
+
+    let edgePath = '';
+    let labelX = 0;
+    let labelY = 0;
+
+    if (isLowDetail) {
+        // ⚡ Performance: Straight Line Calculation
+        [edgePath, labelX, labelY] = getStraightPath({
+            sourceX,
+            sourceY,
+            targetX,
+            targetY,
+        });
+    } else {
+        // ✨ Quality: Bezier Curve Calculation
+        [edgePath, labelX, labelY] = getBezierPath({
+            sourceX,
+            sourceY,
+            sourcePosition,
+            targetX,
+            targetY,
+            targetPosition,
+        });
+    }
 
     return (
         <>
@@ -29,7 +52,7 @@ const CustomBezierEdge = ({
                 d={edgePath}
                 fill="none"
                 stroke="transparent"
-                strokeWidth={100} // Increased to 100px for foolproof selection
+                strokeWidth={isLowDetail ? 40 : 100} // Reduce hit area in LOD mode
                 className="react-flow__edge-interaction"
                 style={{ cursor: 'pointer' }}
             />
@@ -40,13 +63,14 @@ const CustomBezierEdge = ({
                     ...style,
                     stroke: selected ? '#8b5cf6' : style.stroke || '#71717a',
                     // strokeWidth removed: Controlled by parent (useHistoryEngine) for highlights
-                    transition: 'all 0.2s',
+                    transition: isLowDetail ? 'none' : 'all 0.2s', // Disable transition in LOD
                 }}
                 className="react-flow__edge-path"
                 d={edgePath}
                 markerEnd={markerEnd}
             />
-            {data?.label && (
+            {/* Label - Hide in LOD mode for extra performance? kept for now */}
+            {data?.label && !isLowDetail && (
                 <EdgeLabelRenderer>
                     <div
                         style={{
@@ -73,4 +97,4 @@ const CustomBezierEdge = ({
     );
 };
 
-export default CustomBezierEdge;
+export default memo(CustomBezierEdge);

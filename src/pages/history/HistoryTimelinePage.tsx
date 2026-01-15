@@ -64,7 +64,7 @@ function HistoryTimelinePage() {
 
     // Stack-based Detail View for Navigation (Back support)
     const [viewingNodeStack, setViewingNodeStack] = useState<HistoryNodeData[]>([]);
-    const activeViewingNode = viewingNodeStack.length > 0 ? viewingNodeStack[viewingNodeStack.length - 1] : null;
+    // const activeViewingNode = viewingNodeStack.length > 0 ? viewingNodeStack[viewingNodeStack.length - 1] : null;
 
     const [previewResource, setPreviewResource] = useState<{ id: string, type: string, title: string } | null>(null);
     const [exitPromptOpen, setExitPromptOpen] = useState(false);
@@ -646,13 +646,13 @@ function HistoryTimelinePage() {
     const prevSelectionModeRef = useRef(isSelectionMode);
     const prevShiftPressedRef = useRef(isShiftPressed);
 
-    console.log('🎬 [HistoryTimelinePage] Component Render', {
-        nodesCount: nodes.length,
-        loading,
-        isEditMode,
-        currentRootId,
-        handlersInitialized: handlersInitializedRef.current
-    });
+    // console.log('🎬 [HistoryTimelinePage] Component Render', {
+    //     nodesCount: nodes.length,
+    //     loading,
+    //     isEditMode,
+    //     currentRootId,
+    //     handlersInitialized: handlersInitializedRef.current
+    // });
 
     // 🔥 Memoize Preview Handler
     const handlePreviewLinkedResource = useCallback((id: string, type: string, title: string) => {
@@ -692,7 +692,7 @@ function HistoryTimelinePage() {
             console.log('SEARCHING DB (history_nodes)...');
             // Check History Nodes
             // Try exact first
-            let { data: nodeData, error: nodeError } = await supabase
+            let { data: nodeData } = await supabase
                 .from('history_nodes')
                 .select('*')
                 .eq('title', keyword)
@@ -727,7 +727,7 @@ function HistoryTimelinePage() {
 
             console.log('SEARCHING DB (learning_resources)...');
             // Check Learning Resources
-            let { data: resourceData, error: resError } = await supabase
+            let { data: resourceData } = await supabase
                 .from('learning_resources')
                 .select('*')
                 .eq('title', keyword)
@@ -778,13 +778,13 @@ function HistoryTimelinePage() {
     }, [nodes, handleViewDetail, handlePreviewLinkedResource]);
 
     useEffect(() => {
-        console.log('🔄 [HistoryTimelinePage] useEffect Triggered', {
-            loading,
-            nodesLength: nodes.length,
-            handlersInitialized: handlersInitializedRef.current,
-            isEditMode,
-            searchQuery
-        });
+        // console.log('🔄 [HistoryTimelinePage] useEffect Triggered', {
+        //     loading,
+        //     nodesLength: nodes.length,
+        //     handlersInitialized: handlersInitializedRef.current,
+        //     isEditMode,
+        //     searchQuery
+        // });
 
         // Guard: Wait for loading to finish and nodes to exist
         if (loading || nodes.length === 0) {
@@ -792,7 +792,7 @@ function HistoryTimelinePage() {
             return;
         }
 
-        console.log('💉 [HistoryTimelinePage] Injecting Handlers into', allNodesRef.current.size, 'nodes');
+        // console.log('💉 [HistoryTimelinePage] Injecting Handlers into', allNodesRef.current.size, 'nodes');
 
         // 1. Always inject handlers into Master Refs (This operation is cheap)
         allNodesRef.current.forEach(node => {
@@ -820,22 +820,22 @@ function HistoryTimelinePage() {
             prevSelectionModeRef.current !== isSelectionMode ||
             prevShiftPressedRef.current !== isShiftPressed;
 
-        console.log('🔍 [HistoryTimelinePage] Sync Decision', {
-            shouldSync,
-            searchQuery,
-            willSync: shouldSync || !!searchQuery,
-            reason: !handlersInitializedRef.current ? 'First Init' :
-                prevEditModeRef.current !== isEditMode ? 'Edit Mode Changed' :
-                    prevSelectionModeRef.current !== isSelectionMode ? 'Selection Mode Changed' :
-                        prevShiftPressedRef.current !== isShiftPressed ? 'Shift Changed' : 'None'
-        });
+        // console.log('🔍 [HistoryTimelinePage] Sync Decision', {
+        //     shouldSync,
+        //     searchQuery,
+        //     willSync: shouldSync || !!searchQuery,
+        //     reason: !handlersInitializedRef.current ? 'First Init' :
+        //         prevEditModeRef.current !== isEditMode ? 'Edit Mode Changed' :
+        //             prevSelectionModeRef.current !== isSelectionMode ? 'Selection Mode Changed' :
+        //                 prevShiftPressedRef.current !== isShiftPressed ? 'Shift Changed' : 'None'
+        // });
 
         if (shouldSync || searchQuery) {
-            console.log('🎨 [HistoryTimelinePage] Calling syncVisualization', { currentRootId, searchQuery });
+            // console.log('🎨 [HistoryTimelinePage] Calling syncVisualization', { currentRootId, searchQuery });
             const filters = searchQuery ? { search: searchQuery } : undefined;
             syncVisualization(currentRootId, filters);
             handlersInitializedRef.current = true;
-            console.log('✅ [HistoryTimelinePage] syncVisualization Complete');
+            // console.log('✅ [HistoryTimelinePage] syncVisualization Complete');
         }
 
         // Track previous states to detect changes

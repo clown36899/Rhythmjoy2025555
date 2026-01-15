@@ -1,4 +1,4 @@
-import { memo, useRef, useState, useLayoutEffect } from 'react';
+import { memo, useRef, useState, useLayoutEffect, useMemo } from 'react';
 import { Handle, Position, NodeResizer, useStore } from 'reactflow';
 import type { NodeProps } from 'reactflow';
 import { parseVideoUrl, validateYouTubeThumbnailUrl } from '../../../utils/videoEmbed';
@@ -14,15 +14,15 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
     const showDetail = useStore(zoomSelector);
 
     // 🔍 Debug: Log first render only (avoid spam)
-    if (!isLoggedRef.current) {
-        console.log('🎨 [HistoryNodeComponent] Rendering Node', {
-            id: data.id,
-            title: data.title,
-            category: data.category,
-            hasHandlers: !!(data.onEdit && data.onViewDetail && data.onPlayVideo)
-        });
-        isLoggedRef.current = true;
-    }
+    // if (!isLoggedRef.current) {
+    //     console.log('🎨 [HistoryNodeComponent] Rendering Node', {
+    //         id: data.id,
+    //         title: data.title,
+    //         category: data.category,
+    //         hasHandlers: !!(data.onEdit && data.onViewDetail && data.onPlayVideo)
+    //     });
+    //     isLoggedRef.current = true;
+    // }
 
     const videoInfo = data.youtube_url ? parseVideoUrl(data.youtube_url) : null;
     let thumbnailUrl: string | null = null;
@@ -156,8 +156,9 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
         handleThumbnailClick(e);
     };
 
-    const getCategoryIcon = (category: string) => {
-        switch (category) {
+    const categoryIcon = useMemo(() => {
+        const cat = data.category || 'general';
+        switch (cat) {
             case 'genre': return <i className="ri-dancers-line"></i>;
             case 'person': return <i className="ri-user-star-line"></i>;
             case 'event': return <i className="ri-calendar-event-line"></i>;
@@ -172,9 +173,11 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
             case 'arrow': return <i className="ri-arrow-right-line"></i>;
             default: return <i className="ri-bookmark-line"></i>;
         }
-    };
+    }, [data.category]);
 
-    const categoryColor = CATEGORY_COLORS[data.category || 'default'] || CATEGORY_COLORS.default;
+    const categoryColor = useMemo(() => {
+        return CATEGORY_COLORS[data.category || 'default'] || CATEGORY_COLORS.default;
+    }, [data.category]);
 
     const linkedType = data.linked_playlist_id ? 'playlist' :
         data.linked_category_id ? (data.category === 'canvas' ? 'canvas' : 'folder') :
@@ -410,9 +413,9 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                             <span className="node-year">{data.year || data.date}</span>
                             <div style={{ display: 'flex', gap: '4px' }}>
-                                {getCategoryIcon(data.category || 'general') && (
+                                {categoryIcon && (
                                     <span className={`history-node-badge badge-${data.category || 'general'}`}>
-                                        {getCategoryIcon(data.category || 'general')}
+                                        {categoryIcon}
                                     </span>
                                 )}
                                 {(data.linked_playlist_id || data.linked_document_id || data.linked_video_id || data.linked_category_id) && (

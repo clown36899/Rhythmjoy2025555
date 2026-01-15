@@ -608,12 +608,7 @@
     display: none !important;
 } */
 
-.lod-low .history-node-description,
-.lod-low .history-node-footer,
-.lod-low .node-header>div>div:first-child {
-    /* Hide year and badges row in header if needed, but keeping title */
-    /* display: none !important; */
-}
+
 
 /* Force hide badges in low LOD */
 .lod-low .history-node-badge,

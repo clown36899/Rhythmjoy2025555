@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
 import ReactFlow, {
     Background,
     Controls,
@@ -72,7 +72,7 @@ export const HistoryCanvas = ({
         return CATEGORY_COLORS[node.data?.category || 'default'] || CATEGORY_COLORS.default;
     }, []);
 
-    const [isMinimapVisible, setIsMinimapVisible] = useState(true);
+    const [isMinimapVisible, setIsMinimapVisible] = useState(false);
 
     return (
         <div style={{ width: '100%', height: '100%', position: 'relative' }}>
