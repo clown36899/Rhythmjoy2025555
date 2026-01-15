@@ -36,6 +36,9 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
         addToDrawer: false,
         image_url: '',
         content: '', // 사용자 상세 메모
+        arrow_rotation: 0,
+        arrow_length: 200,
+        arrow_text: '',
     });
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
@@ -241,6 +244,9 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                 addToDrawer: false,
                 image_url: node.image_url || '',
                 content: node.content || '',
+                arrow_rotation: node.arrow_rotation || 0,
+                arrow_length: node.arrow_length || 200,
+                arrow_text: node.arrow_text || '',
             });
             if (node.image_url) {
                 setImagePreview(node.image_url);
@@ -464,6 +470,10 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
             linked_document_id: node?.linked_document_id,
             linked_playlist_id: node?.linked_playlist_id,
             linked_category_id: node?.linked_category_id,
+            // Arrow fields
+            arrow_rotation: formData.category === 'arrow' ? formData.arrow_rotation : null,
+            arrow_length: formData.category === 'arrow' ? formData.arrow_length : null,
+            arrow_text: formData.category === 'arrow' ? formData.arrow_text : null,
         };
 
         // Pass addToDrawer separately if the parent needs it, or handle it here?
@@ -581,10 +591,16 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                             <option value="playlist">재생목록</option>
                             <option value="video">영상</option>
                             <option value="document">문서</option>
+                            <option value="arrow">화살표</option>
                         </select>
                         {formData.category === 'canvas' && (
                             <small style={{ color: '#a78bfa', display: 'block', marginTop: '6px', fontSize: '0.85rem' }}>
                                 🚪 더블 클릭하여 들어갈 수 있는 새로운 캔버스 공간을 만듭니다.
+                            </small>
+                        )}
+                        {formData.category === 'arrow' && (
+                            <small style={{ color: '#ff6b6b', display: 'block', marginTop: '6px', fontSize: '0.85rem' }}>
+                                ➡️ 회전 가능하고 길이 조정이 가능한 화살표를 만듭니다.
                             </small>
                         )}
                         {!!node && (
@@ -634,6 +650,67 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                                         />
                                     </div>
                                 )}
+                            </div>
+                        </>
+                    )}
+
+                    {formData.category === 'arrow' && (
+                        <>
+                            <div className="info-message" style={{
+                                padding: '12px',
+                                backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                                border: '1px solid rgba(255, 107, 107, 0.3)',
+                                borderRadius: '8px',
+                                marginBottom: '16px',
+                                color: '#ff6b6b'
+                            }}>
+                                ➡️ 화살표 노드는 회전과 길이 조정이 가능합니다
+                            </div>
+
+                            <div className="form-group">
+                                <label>화살표 텍스트</label>
+                                <input
+                                    type="text"
+                                    value={formData.arrow_text}
+                                    onChange={(e) => setFormData({ ...formData, arrow_text: e.target.value })}
+                                    placeholder="화살표에 표시할 텍스트 (선택사항)"
+                                />
+                            </div>
+
+                            <div className="form-group">
+                                <label>회전 각도: {formData.arrow_rotation}°</label>
+                                <input
+                                    type="range"
+                                    min="0"
+                                    max="360"
+                                    value={formData.arrow_rotation}
+                                    onChange={(e) => setFormData({ ...formData, arrow_rotation: parseInt(e.target.value) })}
+                                    style={{ width: '100%' }}
+                                />
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#888', marginTop: '4px' }}>
+                                    <span>0°</span>
+                                    <span>90°</span>
+                                    <span>180°</span>
+                                    <span>270°</span>
+                                    <span>360°</span>
+                                </div>
+                            </div>
+
+                            <div className="form-group">
+                                <label>화살표 길이: {formData.arrow_length}px</label>
+                                <input
+                                    type="range"
+                                    min="100"
+                                    max="500"
+                                    value={formData.arrow_length}
+                                    onChange={(e) => setFormData({ ...formData, arrow_length: parseInt(e.target.value) })}
+                                    style={{ width: '100%' }}
+                                />
+                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#888', marginTop: '4px' }}>
+                                    <span>100px</span>
+                                    <span>300px</span>
+                                    <span>500px</span>
+                                </div>
                             </div>
                         </>
                     )}

@@ -12,6 +12,7 @@ export const CATEGORY_COLORS: Record<string, string> = {
     canvas: '#8b5cf6', // Violet
     folder: '#64748b', // Slate
     playlist: '#f43f5e', // Rose
+    arrow: '#ff6b6b',  // Red
     default: '#8b5cf6'
 };
 

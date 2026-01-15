@@ -211,6 +211,10 @@
     background: #10b981;
 }
 
+.badge-arrow {
+    background: #ff6b6b;
+}
+
 .history-node-title {
     margin: 0;
     font-size: clamp(14px, 10cqmin, 12rem);
@@ -790,4 +794,59 @@
     padding: 0 !important;
     min-height: 0 !important;
     height: 0 !important;
+}
+
+/* 🎯 Arrow Node Styles */
+.arrow-node-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: clamp(8px, 2cqmin, 20px);
+    overflow: visible;
+}
+
+.arrow-svg {
+    display: block;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+    transition: transform 0.3s ease;
+}
+
+.arrow-line {
+    stroke: #ff6b6b;
+    stroke-width: 4;
+    stroke-linecap: round;
+}
+
+.arrow-head {
+    fill: #ff6b6b;
+}
+
+.arrow-text {
+    fill: #ffffff;
+    font-size: clamp(12px, 4cqmin, 18px);
+    font-weight: 600;
+    text-anchor: middle;
+    dominant-baseline: middle;
+    pointer-events: none;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* Arrow node specific overrides */
+.history-node.arrow-type {
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    min-width: 150px;
+    min-height: 80px;
+}
+
+.history-node.arrow-type:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+.history-node.arrow-type .history-node-content {
+    padding: 0;
 }

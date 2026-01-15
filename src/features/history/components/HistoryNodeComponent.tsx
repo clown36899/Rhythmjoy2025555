@@ -154,6 +154,7 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
             case 'playlist': return <i className="ri-disc-line"></i>;
             case 'video': return <i className="ri-movie-line"></i>;
             case 'document': return <i className="ri-file-text-line"></i>;
+            case 'arrow': return <i className="ri-arrow-right-line"></i>;
             default: return <i className="ri-bookmark-line"></i>;
         }
     };
@@ -321,6 +322,47 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
                 </div>
             )}
 
+            {/* Arrow Node Rendering */}
+            {data.category === 'arrow' && (
+                <div className="arrow-node-container">
+                    <svg
+                        className="arrow-svg"
+                        width={data.arrow_length || 200}
+                        height="80"
+                        style={{
+                            transform: `rotate(${data.arrow_rotation || 0}deg)`,
+                            transformOrigin: 'center'
+                        }}
+                    >
+                        {/* Arrow Line */}
+                        <line
+                            className="arrow-line"
+                            x1="0"
+                            y1="40"
+                            x2={(data.arrow_length || 200) - 20}
+                            y2="40"
+                        />
+
+                        {/* Arrow Head */}
+                        <polygon
+                            className="arrow-head"
+                            points={`${data.arrow_length || 200},40 ${(data.arrow_length || 200) - 20},30 ${(data.arrow_length || 200) - 20},50`}
+                        />
+
+                        {/* Arrow Text */}
+                        {data.arrow_text && (
+                            <text
+                                className="arrow-text"
+                                x={(data.arrow_length || 200) / 2}
+                                y="25"
+                            >
+                                {data.arrow_text}
+                            </text>
+                        )}
+                    </svg>
+                </div>
+            )}
+
             {/* Thumbnail */}
             {thumbnailUrl && data.category !== 'person' && (
                 <div
@@ -334,9 +376,11 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
                         loading="lazy"
                         decoding="async"
                     />
-                    <div className="history-node-play-overlay">
-                        <i className="ri-play-circle-fill"></i>
-                    </div>
+                    {(data.youtube_url || data.nodeType === 'video') && (
+                        <div className="history-node-play-overlay">
+                            <i className="ri-play-circle-fill"></i>
+                        </div>
+                    )}
                 </div>
             )}
 

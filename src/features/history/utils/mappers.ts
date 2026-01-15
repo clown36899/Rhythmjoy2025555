@@ -82,8 +82,22 @@ export const mapDbNodeToRFNode = (
         content = ld.content || content;
         year = ld.year || year;
         date = ld.date || date;
-        image_url = ld.image_url;
-        thumbnail_url = ld.image_url;
+        let meta: any = ld.metadata || {};
+        if (typeof meta === 'string') {
+            try { meta = JSON.parse(meta); } catch (e) { /* ignore */ }
+        }
+
+
+        // Multi-image support with backward compatibility
+        if (meta.images && Array.isArray(meta.images) && meta.images.length > 0) {
+            // Use first image as primary
+            image_url = meta.images[0].medium || meta.images[0].full || meta.images[0].thumbnail || ld.image_url;
+            thumbnail_url = meta.images[0].thumbnail || meta.images[0].micro || meta.images[0].medium || ld.image_url;
+        } else {
+            // Fallback to single image structure
+            image_url = meta.image_medium || meta.image_full || meta.image_thumbnail || ld.image_url;
+            thumbnail_url = meta.image_thumbnail || meta.image_micro || meta.image_medium || ld.image_url;
+        }
         nodeType = ld.type === 'person' ? 'person' : 'document';
         category = ld.type === 'person' ? 'person' : 'document';
     } else if (lv) {
@@ -112,6 +126,7 @@ export const mapDbNodeToRFNode = (
         else if (category === 'folder') nodeType = 'folder';
         else if (category === 'playlist') nodeType = 'playlist';
         else if (category === 'video') nodeType = 'video';
+        else if (category === 'arrow') nodeType = 'arrow';
     }
 
     // V7: node_behavior 결정
@@ -177,6 +192,10 @@ export const mapDbNodeToRFNode = (
             containerMode,
             isCanvas: nodeType === 'canvas',
             isEditMode,
+            // 화살표 전용 필드
+            arrow_rotation: node.arrow_rotation || 0,
+            arrow_length: node.arrow_length || 200,
+            arrow_text: node.arrow_text || '',
             ...handlers
         },
     };

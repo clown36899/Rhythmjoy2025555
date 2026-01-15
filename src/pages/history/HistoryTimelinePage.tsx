@@ -1327,6 +1327,28 @@ function HistoryTimelinePage() {
                             });
                         }
                     }}
+                    onCreateArrow={async () => {
+                        console.log('➡️ [HistoryTimelinePage] onCreateArrow called');
+                        if (unifiedModalContext === 'canvas' && rfInstance) {
+                            const reactFlowBounds = document.querySelector('.history-timeline-canvas')?.getBoundingClientRect();
+                            const position = rfInstance.project({
+                                x: (reactFlowBounds?.width || 1000) / 2,
+                                y: (reactFlowBounds?.height || 800) / 2,
+                            });
+
+                            await handleSaveNode({
+                                title: '새 화살표',
+                                year: new Date().getFullYear(),
+                                position_x: Math.round(position.x),
+                                position_y: Math.round(position.y),
+                                category: 'arrow',
+                                node_behavior: 'LEAF',
+                                arrow_rotation: 0,
+                                arrow_length: 200,
+                                arrow_text: ''
+                            });
+                        }
+                    }}
                 />
             )}
             {/* 이탈 방지 모달 */}

@@ -45,6 +45,11 @@ export interface HistoryNodeData {
     position_x?: number;
     position_y?: number;
 
+    // 화살표 전용 필드
+    arrow_rotation?: number; // 회전 각도 (0-360도)
+    arrow_length?: number; // 화살표 길이 (픽셀)
+    arrow_text?: string; // 화살표에 표시할 텍스트
+
     // V7 신규 필드 (독립성 및 확장성)
     node_behavior: NodeBehavior;
     space_id?: number | string;
