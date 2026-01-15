@@ -413,12 +413,12 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                             <span className="node-year">{data.year || data.date}</span>
                             <div style={{ display: 'flex', gap: '4px' }}>
-                                {categoryIcon && (
+                                {showDetail && categoryIcon && (
                                     <span className={`history-node-badge badge-${data.category || 'general'}`}>
                                         {categoryIcon}
                                     </span>
                                 )}
-                                {(data.linked_playlist_id || data.linked_document_id || data.linked_video_id || data.linked_category_id) && (
+                                {showDetail && (data.linked_playlist_id || data.linked_document_id || data.linked_video_id || data.linked_category_id) && (
                                     <span
                                         className={`history-node-link-badge ${linkedType}`}
                                         title="학습 자료 열기"
@@ -475,18 +475,21 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
                         <i className="ri-edit-line"></i>
                     </button>
                 )}
-                <button
-                    className={`node-action-btn btn-highlight ${selected ? 'active' : ''}`}
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        if (data.onSelectionChange) {
-                            data.onSelectionChange(String(data.id), !selected);
-                        }
-                    }}
-                    title="관계된 노드 하이라이트"
-                >
-                    <i className="ri-focus-3-line"></i>
-                </button>
+                {/* 🔥 Optimization: Do not render relation highlight button for nodes inside folders/containers */}
+                {!data.parent_node_id && (
+                    <button
+                        className={`node-action-btn btn-highlight ${selected ? 'active' : ''}`}
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            if (data.onSelectionChange) {
+                                data.onSelectionChange(String(data.id), !selected);
+                            }
+                        }}
+                        title="관계된 노드 하이라이트"
+                    >
+                        <i className="ri-focus-3-line"></i>
+                    </button>
+                )}
             </div>
 
         </div>

@@ -18,7 +18,7 @@ const CustomBezierEdge = ({
     data,
     selected
 }: EdgeProps) => {
-    // 🔥 Check Zoom Level
+    // 🔥 Check Zoom Level & Pruning
     const isLowDetail = useStore(zoomSelector);
 
     let edgePath = '';
