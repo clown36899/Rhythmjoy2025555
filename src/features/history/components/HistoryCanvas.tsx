@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useState, useMemo } from 'react';
 import ReactFlow, {
     Background,
     Controls,
@@ -37,14 +37,7 @@ interface HistoryCanvasProps {
 
 
 
-const NODE_TYPES = {
-    historyNode: HistoryNodeComponent,
-    decadeNode: DecadeNodeComponent,
-};
 
-const EDGE_TYPES = {
-    default: CustomBezierEdge,
-};
 
 export const HistoryCanvas = ({
     nodes,
@@ -67,6 +60,16 @@ export const HistoryCanvas = ({
     nodesDraggable
 }: HistoryCanvasProps) => {
     // console.log('🎨 [HistoryCanvas] Rendering. Nodes:', nodes.length, 'Edges:', edges.length);
+
+    // 🔥 Memoize nodeTypes & edgeTypes to prevent re-creation warning & re-renders
+    const nodeTypes = useMemo(() => ({
+        historyNode: HistoryNodeComponent,
+        decadeNode: DecadeNodeComponent,
+    }), []);
+
+    const edgeTypes = useMemo(() => ({
+        default: CustomBezierEdge,
+    }), []);
 
     const getNodeColor = useCallback((node: any) => {
         return CATEGORY_COLORS[node.data?.category || 'default'] || CATEGORY_COLORS.default;
@@ -93,8 +96,8 @@ export const HistoryCanvas = ({
                 onEdgeContextMenu={onEdgeContextMenu}
                 onEdgesDelete={onEdgesDelete}
                 onNodesDelete={onNodesDelete}
-                nodeTypes={NODE_TYPES}
-                edgeTypes={EDGE_TYPES}
+                nodeTypes={nodeTypes}
+                edgeTypes={edgeTypes}
                 isValidConnection={isValidConnection}
                 snapToGrid={true}
                 snapGrid={CANVAS_CONFIG.snapGrid}
