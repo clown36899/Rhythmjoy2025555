@@ -58,13 +58,14 @@ interface CategoryManagerProps {
 }
 
 // 🟢 Tooltip Component
-const FloatingTooltip = ({ text, x, y, visible }: { text: string, x: number, y: number, visible: boolean }) => {
-    if (!visible || !text) return null;
+// 🟢 Tooltip Component (Optimized)
+const FloatingTooltip = forwardRef<HTMLDivElement, { text: string | null }>(({ text }, ref) => {
+    if (!text) return null;
     return createPortal(
-        <div style={{
+        <div ref={ref} style={{
             position: 'fixed',
-            top: y + 10,
-            left: x + 10,
+            top: 0,
+            left: 0,
             backgroundColor: 'rgba(0, 0, 0, 0.9)',
             color: 'white',
             padding: '4px 8px',
@@ -80,7 +81,7 @@ const FloatingTooltip = ({ text, x, y, visible }: { text: string, x: number, y: 
         </div>,
         document.body
     );
-};
+});
 
 export const CategoryManager = memo(forwardRef<CategoryManagerHandle, CategoryManagerProps>(({
     onCategoryChange: _onCategoryChange,
@@ -113,15 +114,18 @@ export const CategoryManager = memo(forwardRef<CategoryManagerHandle, CategoryMa
     const [newCatName, setNewCatName] = useState('');
 
     // 🟢 Tooltip State
-    const [tooltip, setTooltip] = useState<{ visible: boolean; x: number; y: number; text: string }>({
-        visible: false,
-        x: 0,
-        y: 0,
-        text: ''
-    });
+    // 🟢 Tooltip State (Optimized)
+    const [tooltipText, setTooltipText] = useState<string | null>(null);
+    const tooltipRef = useRef<HTMLDivElement>(null);
+
+    const updateTooltipPosition = (clientX: number, clientY: number) => {
+        if (tooltipRef.current) {
+            tooltipRef.current.style.top = `${clientY + 10}px`;
+            tooltipRef.current.style.left = `${clientX + 10}px`;
+        }
+    };
 
     const handleTooltipEnter = (e: React.MouseEvent | React.TouchEvent, text: string) => {
-        // e.persist(); // React 17+ not strictly needed
         let clientX, clientY;
         if ('touches' in e) {
             clientX = e.touches[0].clientX;
@@ -130,15 +134,19 @@ export const CategoryManager = memo(forwardRef<CategoryManagerHandle, CategoryMa
             clientX = (e as React.MouseEvent).clientX;
             clientY = (e as React.MouseEvent).clientY;
         }
-        setTooltip({ visible: true, x: clientX, y: clientY, text });
+
+        setTooltipText(text);
+        // Use setTimeout to ensure DOM is rendered before positioning (if needed) or immediate
+        requestAnimationFrame(() => updateTooltipPosition(clientX, clientY));
     };
 
     const handleTooltipMove = (e: React.MouseEvent) => {
-        setTooltip(prev => ({ ...prev, x: e.clientX, y: e.clientY }));
+        if (!tooltipText) return;
+        updateTooltipPosition(e.clientX, e.clientY);
     };
 
     const handleTooltipLeave = () => {
-        setTooltip(prev => ({ ...prev, visible: false }));
+        setTooltipText(null);
     };
 
     useImperativeHandle(ref, () => ({
@@ -1135,7 +1143,7 @@ export const CategoryManager = memo(forwardRef<CategoryManagerHandle, CategoryMa
                 </div>
             </div>
             {/* 🟢 Render Tooltip Portal */}
-            <FloatingTooltip {...tooltip} />
+            <FloatingTooltip ref={tooltipRef} text={tooltipText} />
         </div>
     );
 }));

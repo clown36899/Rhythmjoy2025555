@@ -385,16 +385,21 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
 
                 let playlistVideos = [mappedVideo];
                 let contextTitle = targetResource.title;
+                let contextDescription = '';
 
                 // Attempt to fetch siblings logic (Same category, or playlist context)
                 if (targetResource.category_id) {
                     // Fetch Category Name
                     const { data: catData } = await supabase
                         .from('learning_categories') // 🔥 [Fix] Correct table for folders
-                        .select('name') // 🔥 [Fix] Categories use 'name', not 'title'
+                        .select('name, content, description, metadata') // 🔥 [Fix] Fetch 'content' as requested
                         .eq('id', targetResource.category_id)
                         .maybeSingle();
-                    if (catData) contextTitle = catData.name;
+                    if (catData) {
+                        contextTitle = catData.name;
+                        // 🔥 [Fix] User specifically asked for 'content' column from learning_categories
+                        contextDescription = catData.content || catData.description || catData.metadata?.description || '';
+                    }
 
                     // Fetch Siblings
                     const { data: siblings } = await supabase
@@ -438,7 +443,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                 setPlaylist({
                     id: targetResource.category_id ? `category:${targetResource.category_id}` : targetResource.id,
                     title: contextTitle,
-                    description: '',
+                    description: contextDescription, // 🔥 [Fix] Use fetched description
                     author_id: targetResource.user_id,
                     year: targetResource.metadata?.year,
                     is_on_timeline: targetResource.metadata?.is_on_timeline,
@@ -578,7 +583,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
             playerRef.current = new window.YT.Player(playerId, {
                 videoId,
                 playerVars: {
-                    autoplay: 0,
+                    autoplay: 1,
                     modestbranding: 1,
                     rel: 0,
                     iv_load_policy: 3,
@@ -1497,18 +1502,25 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                                     </div>
                                 </div>
                             ) : (
-                                <h2 className="ld-sidebar-playlist-title">
-                                    {playlist.title}
-                                    {canEdit && (
-                                        <button
-                                            onClick={startEditingTitle}
-                                            className="ld-edit-button-small"
-                                            style={{ marginLeft: '8px', fontSize: '12px', padding: '2px 6px' }}
-                                        >
-                                            ✎
-                                        </button>
+                                <>
+                                    <h2 className="ld-sidebar-playlist-title">
+                                        {playlist.title}
+                                        {canEdit && (
+                                            <button
+                                                onClick={startEditingTitle}
+                                                className="ld-edit-button-small"
+                                                style={{ marginLeft: '8px', fontSize: '12px', padding: '2px 6px' }}
+                                            >
+                                                ✎
+                                            </button>
+                                        )}
+                                    </h2>
+                                    {playlist.description && (
+                                        <p className="ld-sidebar-description">
+                                            {playlist.description}
+                                        </p>
                                     )}
-                                </h2>
+                                </>
                             )}
                         </div>
                         <button

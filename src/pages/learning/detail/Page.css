@@ -5,7 +5,7 @@
     /* Mobile: Allow natural growth */
     height: auto;
     min-height: 100%;
-    /* background-color: #111827; */
+    background-color: #000000;
     /* gray-900 */
     overflow: visible;
     /* Enable Page Scroll on Mobile */
@@ -38,7 +38,7 @@
     /* Mobile: Natural expansion */
     height: auto;
     position: relative;
-    /* background-color: #111827; */
+    background-color: #000000;
     overflow: visible;
     /* Mobile: Let page scroll */
     padding-bottom: 200px;
@@ -256,14 +256,16 @@
     flex-direction: column;
     gap: 12px;
     margin-bottom: 16px;
-    background-color: #1f2937;
+    background-color: #111111;
+    border: 1px solid #2b2b2b;
     padding: 16px;
     border-radius: 8px;
 }
 
 .ld-edit-textarea {
     background-color: #374151;
-    border: 1px solid #4b5563;
+    background-color: #1a1a1a;
+    border: 1px solid #333333;
     border-radius: 8px;
     /* 더 부드러운 라운드 */
     padding: 12px 16px;
@@ -290,8 +292,8 @@
 /* Description Section (at bottom of main area) */
 .ld-description-section {
     padding: clamp(16px, 4vw, 24px);
-    background-color: #111827;
-    border-top: 1px solid #1f2937;
+    background-color: #000000;
+    border-top: 1px solid #2b2b2b;
     padding-bottom: 40px;
     /* Reduced from 160px as we now have padding on player-area */
 }
@@ -491,8 +493,8 @@
 /* Video Metadata (Title & Memo) - Visible on all devices */
 .ld-video-metadata {
     padding: 0px 20px 0 20px;
-    /* background-color: #111827; */
-    border-bottom: 1px solid #1f2937;
+    background-color: #000000;
+    border-bottom: 1px solid #2b2b2b;
 }
 
 .ld-video-title-display {
@@ -516,8 +518,8 @@
     display: flex;
     gap: 12px;
     padding: 12px 20px;
-    background-color: #111827;
-    border-bottom: 1px solid #1f2937;
+    background-color: #000000;
+    border-bottom: 1px solid #2b2b2b;
     align-items: center;
 }
 
@@ -552,7 +554,7 @@
 /* Collapsible Video Memo Wrapper */
 .ld-video-memo-wrapper {
     padding: 12px 20px;
-    /* background-color: #111827; */
+    background-color: #000000;
 }
 
 /* Collapsible Video Memo */
@@ -697,8 +699,8 @@
 /* Right: Sidebar */
 .ld-sidebar {
     width: 100%;
-    /* background-color: #111827; */
-    border-left: 1px solid #1f2937;
+    background-color: #000000;
+    border-left: 1px solid #2b2b2b;
     display: flex;
     flex-direction: column;
     /* Height handled by media queries */
@@ -718,8 +720,8 @@
 .ld-sidebar-header {
     padding: 7px 24px;
     /* Increased padding */
-    border-bottom: 1px solid #1f2937;
-    /* background-color: #111827; */
+    border-bottom: 1px solid #2b2b2b;
+    background-color: #000000;
     z-index: 10;
 }
 
@@ -736,10 +738,10 @@
 }
 
 .ld-sidebar-description {
-    font-size: 14px;
+    font-size: 13px;
     color: #9ca3af;
     line-height: 1.5;
-    margin-bottom: 20px;
+    margin-bottom: 12px;
     white-space: pre-wrap;
     max-height: 120px;
     overflow-y: auto;
@@ -798,7 +800,7 @@
 }
 
 .ld-video-item-inactive:hover {
-    background-color: #1f2937;
+    background-color: rgba(255, 255, 255, 0.08);
     /* gray-800 */
 }
 
@@ -917,7 +919,7 @@
 
 .ld-progress-bar-track {
     width: 100%;
-    background-color: #1f2937;
+    background-color: #2b2b2b;
     height: 6px;
     border-radius: 9999px;
     overflow: hidden;
@@ -1535,7 +1537,7 @@
 /* Tab Interface Styles */
 .ld-tab-navigation {
     display: flex;
-    border-bottom: 1px solid #374151;
+    border-bottom: 1px solid #2b2b2b;
     margin-bottom: 16px;
     margin-top: 16px;
 }
