@@ -7,7 +7,7 @@
     /* Reduced from 320px */
     min-height: 60px;
     /* Reduced from 140px to allow bar-mode */
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    /* box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); */
     /* 🔥 Optimization: Avoid animating transform/width/height to prevent drag lag */
     transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
     display: flex;
@@ -24,7 +24,7 @@
     border-color: #22d3ee !important;
     /* Cyan border */
     border-width: 3px;
-    box-shadow: 0 0 20px rgba(34, 211, 238, 0.3);
+    /* box-shadow: 0 0 20px rgba(34, 211, 238, 0.3); */
 }
 
 .canvas-portal-label {
@@ -43,13 +43,13 @@
     letter-spacing: 2px;
     z-index: 50;
     pointer-events: none;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    /* box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); */
 }
 
 
 .history-node:hover {
     transform: translateY(-4px);
-    box-shadow: 0 15px 40px rgba(139, 92, 246, 0.4);
+    /* box-shadow: 0 15px 40px rgba(139, 92, 246, 0.4); */
 }
 
 /* Person Avatar */
@@ -60,7 +60,7 @@
     overflow: hidden;
     margin: 1.5cqh auto;
     border: clamp(2px, 1cqmin, 10px) solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    /* box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); */
 }
 
 .person-avatar img {
@@ -114,7 +114,7 @@
 .history-node-play-overlay i {
     font-size: clamp(24px, 15cqmin, 200px);
     color: white;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+    /* filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5)); */
 }
 
 /* Document Thumbnail - Separate styling for vertical images */
@@ -281,7 +281,7 @@
 /* Linked Type Styles */
 .linked-type-playlist {
     border-color: #f59e0b !important;
-    box-shadow: 0 0 20px rgba(245, 158, 11, 0.2);
+    /* box-shadow: 0 0 20px rgba(245, 158, 11, 0.2); */
 }
 
 .linked-type-playlist::after {
@@ -296,13 +296,13 @@
     padding: 3px 8px;
     border-radius: 6px;
     letter-spacing: 0.5px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    /* box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); */
     z-index: 10;
 }
 
 .linked-type-document {
     border-color: #10b981 !important;
-    box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+    /* box-shadow: 0 0 20px rgba(16, 185, 129, 0.2); */
 }
 
 .linked-type-document::after {
@@ -317,7 +317,7 @@
     padding: 3px 8px;
     border-radius: 6px;
     letter-spacing: 0.5px;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    /* box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3); */
     z-index: 10;
 }
 
@@ -447,13 +447,13 @@
     background: rgba(139, 92, 246, 0.25);
     color: white;
     border-color: #a78bfa;
-    box-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
+    /* box-shadow: 0 0 15px rgba(139, 92, 246, 0.3); */
 }
 
 /* Selected State Override */
 .history-node.selected {
     border-color: #fff;
-    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.2);
+    /* box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.2); */
 }
 
 /* 🔥 Nuclear Tighten for Minimal Nodes (No image, No description) */
@@ -576,7 +576,7 @@
 .react-flow__handle:hover {
     transform: scale(1.25);
     background: #a78bfa;
-    box-shadow: 0 0 15px rgba(167, 139, 250, 0.8);
+    /* box-shadow: 0 0 15px rgba(167, 139, 250, 0.8); */
     z-index: 100;
 }
 
@@ -598,6 +598,35 @@
     }
 }
 
+/* 🔥 LOD: Low Detail Mode (Zoom < 0.45) */
+/* .lod-low .history-node-title {
+    font-size: clamp(24px, 15cqi, 200px) !important;
+    text-shadow: none !important;
+} */
+
+/* .lod-low .node-year {
+    display: none !important;
+} */
+
+.lod-low .history-node-description,
+.lod-low .history-node-footer,
+.lod-low .node-header>div>div:first-child {
+    /* Hide year and badges row in header if needed, but keeping title */
+    /* display: none !important; */
+}
+
+/* Force hide badges in low LOD */
+.lod-low .history-node-badge,
+.lod-low .history-node-link-badge {
+    display: none !important;
+}
+
+.lod-low .history-node-content {
+    overflow: hidden !important;
+    padding: 10px !important;
+    justify-content: center !important;
+}
+
 
 /* Resize Handle Override - Using correct React Flow class names */
 .react-flow__resize-control.line {
@@ -611,7 +640,7 @@
     background: #8b5cf6 !important;
     border: 3px solid #fff !important;
     border-radius: 4px !important;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5) !important;
+    /* box-shadow: 0 0 10px rgba(0, 0, 0, 0.5) !important; */
     transition: transform 0.2s ease !important;
     z-index: 200 !important;
 }
@@ -701,7 +730,7 @@
     width: auto !important;
     min-width: 200px;
     max-width: 90%;
-    box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
+    /* box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5); */
 }
 
 /* 🔥 Aggressive Folder Title Scaling - UNIFIED FOR ALL FOLDERS */
@@ -768,7 +797,7 @@
     max-width: 90%;
     margin-left: auto;
     /* Aligned right like default footer */
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    /* box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5); */
 }
 
 .history-node.use-folder-system .history-node-footer>* {

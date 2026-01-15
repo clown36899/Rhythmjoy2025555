@@ -1,13 +1,17 @@
 import { memo, useRef, useState, useLayoutEffect } from 'react';
-import { Handle, Position, NodeResizer } from 'reactflow';
+import { Handle, Position, NodeResizer, useStore } from 'reactflow';
 import type { NodeProps } from 'reactflow';
 import { parseVideoUrl, validateYouTubeThumbnailUrl } from '../../../utils/videoEmbed';
 import './HistoryNodeComponent.css';
 import type { HistoryNodeData } from '../types';
 import { CATEGORY_COLORS } from '../utils/constants';
 
+// 🔥 LOD Selector: Only re-render when crossing the zoom threshold (0.45)
+const zoomSelector = (s: { transform: number[] }) => s.transform[2] > 0.45;
+
 function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
     const isLoggedRef = useRef(false);
+    const showDetail = useStore(zoomSelector);
 
     // 🔍 Debug: Log first render only (avoid spam)
     if (!isLoggedRef.current) {
@@ -96,12 +100,19 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
             });
         };
 
-        const observer = new ResizeObserver(updateMinSize);
-        observer.observe(contentEl);
+        // Run once initially to ensure correct size
         updateMinSize();
 
-        return () => observer.disconnect();
-    }, [isCanvas, hasThumbnail, isMinimalNode, data.category, data.node_behavior]);
+        let observer: ResizeObserver | null = null;
+
+        // 🔥 Optimization: Only observe when selected or editing
+        if (selected || data.isEditMode) {
+            observer = new ResizeObserver(updateMinSize);
+            observer.observe(contentEl);
+        }
+
+        return () => observer?.disconnect();
+    }, [isCanvas, hasThumbnail, isMinimalNode, data.category, data.node_behavior, selected, data.isEditMode]);
 
     const handlePlayVideo = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -259,7 +270,7 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
     return (
         <div
             ref={nodeRef}
-            className={`history-node ${selected ? 'selected' : ''} ${isContainer ? 'is-container' : ''} linked-type-${linkedType} ${isCanvas ? 'is-canvas-portal' : ''} ${!hasThumbnail && data.category !== 'person' ? 'no-content-image' : ''} ${isMinimalNode ? 'is-minimal-node' : ''} ${useUnifiedFolderLayout ? 'use-folder-system' : ''} ${hasChildren ? 'has-children' : ''}`}
+            className={`history-node ${selected ? 'selected' : ''} ${isContainer ? 'is-container' : ''} linked-type-${linkedType} ${isCanvas ? 'is-canvas-portal' : ''} ${!hasThumbnail && data.category !== 'person' ? 'no-content-image' : ''} ${isMinimalNode ? 'is-minimal-node' : ''} ${useUnifiedFolderLayout ? 'use-folder-system' : ''} ${hasChildren ? 'has-children' : ''} ${!showDetail ? 'lod-low' : ''}`}
             style={{
                 borderColor: categoryColor,
                 height: '100%',
@@ -367,7 +378,8 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
                 </div>
             )}
 
-            {/* Thumbnail */}
+            {/* Thumbnail - Show Simplified or Hide in Low LOD? User said "Simplify" or "Keep after test" */}
+            {/* But since performance is goal, hiding complex overlays/hover effects is good */}
             {thumbnailUrl && data.category !== 'person' && (
                 <div
                     className={`history-node-thumbnail ${data.nodeType === 'document' ? 'document-thumbnail' : ''}`}
@@ -380,7 +392,8 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
                         loading="lazy"
                         decoding="async"
                     />
-                    {(data.youtube_url || data.nodeType === 'video') && (
+                    {/* Hide overlay in Low LOD */}
+                    {showDetail && (data.youtube_url || data.nodeType === 'video') && (
                         <div className="history-node-play-overlay">
                             <i className="ri-play-circle-fill"></i>
                         </div>
@@ -427,14 +440,15 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
                     </div>
                 </div>
 
-                {(data.description || data.content) && (
+                {/* Hide Description in Low LOD */}
+                {showDetail && (data.description || data.content) && (
                     <p className="history-node-description">
                         {data.description || data.content}
                     </p>
                 )}
             </div>
 
-            {/* Footer: Moved outside content for absolute visibility */}
+            {/* Footer: Always visible as requested */}
             <div
                 className="history-node-footer"
                 onClick={(e) => {

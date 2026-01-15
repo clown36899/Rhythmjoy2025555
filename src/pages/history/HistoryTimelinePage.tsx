@@ -1065,7 +1065,7 @@ function HistoryTimelinePage() {
                     onClick={() => setIsDrawerOpen(true)}
                     style={{
                         position: 'fixed',
-                        top: 20,
+                        top: 70, // Moved down to avoid overlapping with fullscreen exit button
                         right: 20,
                         zIndex: 2500, // Below Drawer (3000) but above Canvas
                         padding: '8px 16px',
