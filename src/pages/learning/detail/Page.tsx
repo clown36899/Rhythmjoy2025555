@@ -390,11 +390,11 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                 if (targetResource.category_id) {
                     // Fetch Category Name
                     const { data: catData } = await supabase
-                        .from('learning_resources')
-                        .select('title')
+                        .from('learning_categories') // 🔥 [Fix] Correct table for folders
+                        .select('name') // 🔥 [Fix] Categories use 'name', not 'title'
                         .eq('id', targetResource.category_id)
                         .maybeSingle();
-                    if (catData) contextTitle = catData.title;
+                    if (catData) contextTitle = catData.name;
 
                     // Fetch Siblings
                     const { data: siblings } = await supabase
@@ -1160,25 +1160,27 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                     <div className="ld-tab-content">
                         {/* Bookmarks Tab Content */}
                         <div className={`ld-tab-pane ld-tab-pane-bookmarks ${activeTab === 'bookmarks' ? 'active' : ''}`}>
-                            <div className="ld-bookmark-section">
-                                <div className="ld-bookmark-toolbar-wrapper">
-                                    <h3 className="ld-section-title-small">타임스탬프</h3>
-                                    {canEdit && (
-                                        <div className="ld-bookmark-toolbar">
-                                            <button onClick={handleAddBookmark} className="ld-bookmark-tool-btn primary">
-                                                <span className="ld-tool-icon">+</span> 추가
-                                            </button>
-                                        </div>
-                                    )}
+                            {(bookmarks.length > 0 || canEdit) && (
+                                <div className="ld-bookmark-section">
+                                    <div className="ld-bookmark-toolbar-wrapper">
+                                        <h3 className="ld-section-title-small">타임스탬프</h3>
+                                        {canEdit && (
+                                            <div className="ld-bookmark-toolbar">
+                                                <button onClick={handleAddBookmark} className="ld-bookmark-tool-btn primary">
+                                                    <span className="ld-tool-icon">+</span> 추가
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <BookmarkList
+                                        bookmarks={bookmarks}
+                                        onSeek={seekTo}
+                                        onDelete={handleDeleteBookmark}
+                                        onEdit={(id) => handleEditBookmark(id)}
+                                        isAdmin={canEdit}
+                                    />
                                 </div>
-                                <BookmarkList
-                                    bookmarks={bookmarks}
-                                    onSeek={seekTo}
-                                    onDelete={handleDeleteBookmark}
-                                    onEdit={(id) => handleEditBookmark(id)}
-                                    isAdmin={canEdit}
-                                />
-                            </div>
+                            )}
                         </div>
 
                         {/* Playlist Tab Content */}
@@ -1290,7 +1292,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                         {/* Description (Memo) */}
                         <div className="ld-video-memo-wrapper">
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                                <span style={{ fontSize: '0.85em', color: '#9ca3af' }}>영상 원본 정보 (메모/설명)</span>
+                                <span style={{ fontSize: '0.85em', color: '#9ca3af' }}>영상 원본 정보</span>
                                 {/* 기본 정보 수정 버튼 제거: 사용자는 전용 섹션에서만 수정하도록 차단 */}
                             </div>
 

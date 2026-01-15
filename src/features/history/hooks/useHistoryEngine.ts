@@ -1131,10 +1131,10 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
      * 노드 리사이즈 종료 시 DB 저장
      */
     const handleResizeStop = useCallback(async (id: string | number, width: number, height: number, x: number, y: number) => {
+        // console.log('📐 [HistoryEngine] onResizeStop:', id, width, height, x, y);
+
         const rfId = String(id);
         const refNode = allNodesRef.current.get(rfId);
-
-        console.log(`📐 [ResizeStart] ID: ${rfId} | Input: ${width}x${height} | Ref: ${refNode?.width}x${refNode?.height}`);
 
         // 🔥 [Scaling Logic] Calculate Scale Factor BEFORE updating ref
         let scaleX = 1;
@@ -1148,22 +1148,18 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
             const oldW = refNode.width || Number(refNode.style?.width) || 320;
             const oldH = refNode.height || Number(refNode.style?.height) || 160;
 
-            console.log(`📐 [ResizeCalc] ID: ${rfId} | Old: ${oldW}x${oldH} | New: ${width}x${height}`);
-
             // Protect against zero division
             if (oldW > 0 && oldH > 0) {
                 scaleX = width / oldW;
                 scaleY = height / oldH;
             }
 
-            console.log(`📐 [ResizeScale] Scale: ${scaleX.toFixed(4)}x${scaleY.toFixed(4)}`);
-
             // Only scale if it's a GROUP node and scale is significant/valid
             shouldScaleChildren = (refNode.data.node_behavior === 'GROUP') &&
                 (Math.abs(scaleX - 1) > 0.01 || Math.abs(scaleY - 1) > 0.01);
 
             if (shouldScaleChildren) {
-                console.log(`📐 [ScalingChildren] Folder ${rfId} resizing children...`);
+                console.log(`📐 [Scaling] Folder ${rfId} resized. Scale: ${scaleX.toFixed(2)}x${scaleY.toFixed(2)}`);
             }
 
             // 1. Update Ref (Authoritative State) - Parent
