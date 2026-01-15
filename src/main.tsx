@@ -39,6 +39,7 @@ import BoardPage from './pages/board/page';
 import ShoppingPage from './pages/shopping/page';
 import GuidePage from './pages/guide/page';
 import PrivacyPage from './pages/privacy/page';
+import BillboardPage from './pages/billboard/page';
 // import EventDetailPage from './pages/v2/EventDetailPage'; // File not found
 import CalendarPage from './pages/calendar/page';
 import MyActivitiesPage from './pages/user/MyActivitiesPage';
@@ -63,6 +64,10 @@ import KakaoCallbackPage from './pages/auth/kakao-callback/page';
 import SiteMapPage from './pages/sitemap/SiteMapPage';
 
 const router = createBrowserRouter([
+  {
+    path: "/billboard/:userId",
+    element: <BillboardPage />,
+  },
   {
     path: "/",
     element: (
