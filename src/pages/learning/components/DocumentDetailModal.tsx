@@ -344,6 +344,51 @@ export const DocumentDetailModal = ({ documentId, onClose, onUpdate, isEditMode,
                                 {!doc.is_public && <span className="adminBadge private">🔒 비공개</span>}
                                 {doc.is_on_timeline && <span className="adminBadge ytLinked">🏛 타임라인</span>}
                             </div>
+
+                            {/* Image Gallery */}
+                            {(() => {
+                                const images = (doc.metadata?.images as any[])?.map(img => img.full || img.medium || img.thumbnail)
+                                    || (doc.image_url ? [doc.image_url] : [])
+                                    || (doc.metadata?.image_medium ? [doc.metadata.image_medium] : []);
+
+                                if (images.length === 0) return null;
+
+                                return (
+                                    <div className="doc-image-gallery" style={{
+                                        display: 'flex',
+                                        gap: '12px',
+                                        marginBottom: '24px',
+                                        overflowX: 'auto',
+                                        paddingBottom: '12px',
+                                        scrollSnapType: 'x mandatory',
+                                        WebkitOverflowScrolling: 'touch'
+                                    }}>
+                                        {images.map((imgSrc: string, idx: number) => (
+                                            <div key={idx} style={{
+                                                flex: '0 0 auto',
+                                                width: images.length > 1 ? 'min(80%, 400px)' : '100%',
+                                                aspectRatio: 'auto',
+                                                scrollSnapAlign: 'center',
+                                                borderRadius: '12px',
+                                                overflow: 'hidden',
+                                                border: '1px solid rgba(255, 255, 255, 0.1)',
+                                                background: 'rgba(0,0,0,0.2)'
+                                            }}>
+                                                <img
+                                                    src={imgSrc}
+                                                    alt={`Document Image ${idx + 1}`}
+                                                    style={{
+                                                        width: '100%',
+                                                        height: '100%',
+                                                        objectFit: 'contain',
+                                                        display: 'block'
+                                                    }}
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                );
+                            })()}
                             <div
                                 className="markdown-content"
                                 style={{

@@ -13,6 +13,8 @@ import { parseVideoUrl } from '../../../utils/videoEmbed';
 import { supabase } from '../../../lib/supabase';
 import { renderTextWithLinksAndResources } from '../../../pages/learning/utils/linkRenderer';
 import { AutocompleteMenu } from './AutocompleteMenu';
+import { createResizedImages } from '../../../utils/imageResize';
+import ImageCropModal from '../../../components/ImageCropModal';
 import './NodeEditorModal.css';
 
 interface NodeEditorModalProps {
@@ -40,8 +42,15 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
         arrow_length: 200,
         arrow_text: '',
     });
-    const [imageFile, setImageFile] = useState<File | null>(null);
-    const [imagePreview, setImagePreview] = useState<string | null>(null);
+    // Multi-image states
+    const [imageFiles, setImageFiles] = useState<File[]>([]);
+    const [originalImageFiles, setOriginalImageFiles] = useState<File[]>([]);
+    const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+    const [tempImageSrc, setTempImageSrc] = useState<string | null>(null);
+    const [currentEditIndex, setCurrentEditIndex] = useState<number | null>(null);
+    const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
     const [playlists, setPlaylists] = useState<any[]>([]);
     const [videos, setVideos] = useState<any[]>([]);
     const [loadingResources, setLoadingResources] = useState(false);
@@ -248,9 +257,25 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                 arrow_length: node.arrow_length || 200,
                 arrow_text: node.arrow_text || '',
             });
-            if (node.image_url) {
-                setImagePreview(node.image_url);
+
+            // Handle Multi-Image Preview Loading
+            const meta = node.metadata || {};
+            let previews: string[] = [];
+
+            if (meta.images && Array.isArray(meta.images) && meta.images.length > 0) {
+                // Use medium size for previews by default, fallback to other sizes
+                previews = meta.images.map((img: any) => img.medium || img.full || img.thumbnail || img.micro);
+            } else if (node.image_url) {
+                previews = [node.image_url];
+            } else if (meta.image_medium || meta.image_full) { // Backward compatibility
+                previews = [meta.image_medium || meta.image_full];
             }
+
+            setImagePreviews(previews);
+
+            // Reset files (since we're editing existing node, we don't have File objects yet unless we add new ones)
+            setImageFiles([]);
+            setOriginalImageFiles([]); // We don't have original files for existing images
         }
     }, [node]);
 
@@ -265,7 +290,9 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                     const parsed = JSON.parse(draft);
                     if (parsed && (parsed.title || parsed.description || parsed.youtube_url) && window.confirm('작성 중인 임시 내용이 있습니다. 복구하시겠습니까?')) {
                         setFormData(prev => ({ ...prev, ...parsed }));
-                        if (parsed.image_url) setImagePreview(parsed.image_url);
+                        if (parsed.image_url) {
+                            setImagePreviews([parsed.image_url]); // Use plural and array
+                        }
                     } else {
                         // If user declines, or draft is empty/invalid, clear it? 
                         // Maybe keep it if they just want to start fresh but keep draft for later? 
@@ -356,102 +383,195 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
         }
     };
 
-    const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-
-        setImageFile(file);
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            setImagePreview(reader.result as string);
-        };
-        reader.readAsDataURL(file);
-    };
-
-    const resizeImageToWebP = (file: File, maxSize: number = 300): Promise<Blob> => {
+    // Helper to read file as Data URL with compression
+    const fileToDataURL = (file: File): Promise<string> => {
         return new Promise((resolve, reject) => {
+            const img = new Image();
             const reader = new FileReader();
+
             reader.onload = (e) => {
-                const img = new Image();
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
-                    let width = img.width;
-                    let height = img.height;
-
-                    // Calculate new dimensions (square crop)
-                    const size = Math.min(width, height);
-                    const x = (width - size) / 2;
-                    const y = (height - size) / 2;
-
-                    canvas.width = maxSize;
-                    canvas.height = maxSize;
                     const ctx = canvas.getContext('2d');
-
                     if (!ctx) {
                         reject(new Error('Canvas context not available'));
                         return;
                     }
 
-                    // Draw cropped and resized image
-                    ctx.drawImage(img, x, y, size, size, 0, 0, maxSize, maxSize);
+                    const maxSize = 1920;
+                    let width = img.width;
+                    let height = img.height;
 
-                    // Convert to WebP
-                    canvas.toBlob(
-                        (blob) => {
-                            if (blob) {
-                                resolve(blob);
-                            } else {
-                                reject(new Error('Failed to create blob'));
-                            }
-                        },
-                        'image/webp',
-                        0.85 // Quality
-                    );
+                    if (width > height && width > maxSize) {
+                        height = (height * maxSize) / width;
+                        width = maxSize;
+                    } else if (height > maxSize) {
+                        width = (width * maxSize) / height;
+                        height = maxSize;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+                    resolve(dataUrl);
                 };
-                img.onerror = () => reject(new Error('Failed to load image'));
+                img.onerror = reject;
                 img.src = e.target?.result as string;
             };
-            reader.onerror = () => reject(new Error('Failed to read file'));
+            reader.onerror = reject;
             reader.readAsDataURL(file);
         });
     };
 
+    // Multi-Image Handlers
+    const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+
+            try {
+                const dataUrl = await fileToDataURL(file);
+                setTempImageSrc(dataUrl);
+                setCurrentEditIndex(imageFiles.length); // Adding new image
+                setOriginalImageFiles([...originalImageFiles, file]);
+                setIsCropModalOpen(true);
+            } catch (error) {
+                console.error('Failed to load image:', error);
+                alert('이미지를 불러오는데 실패했습니다.');
+            }
+        }
+        e.target.value = '';
+    };
+
+    const handleImageUpdate = async (file: File) => {
+        if (currentEditIndex === null) return;
+
+        try {
+            const dataUrl = await fileToDataURL(file);
+            setTempImageSrc(dataUrl);
+
+            const newOriginals = [...originalImageFiles];
+            newOriginals[currentEditIndex] = file;
+            setOriginalImageFiles(newOriginals);
+        } catch (error) {
+            console.error('Failed to update image preview:', error);
+        }
+    };
+
+    const handleCropComplete = (croppedFile: File, previewUrl: string, _isModified: boolean) => {
+        if (currentEditIndex === null) return;
+
+        const newFiles = [...imageFiles];
+        const newPreviews = [...imagePreviews];
+
+        newFiles[currentEditIndex] = croppedFile;
+        newPreviews[currentEditIndex] = previewUrl;
+
+        setImageFiles(newFiles);
+        setImagePreviews(newPreviews);
+        setTempImageSrc(null);
+        setIsCropModalOpen(false);
+        setCurrentEditIndex(null);
+    };
+
+    const handleRemoveImage = (index: number) => {
+        setImageFiles(imageFiles.filter((_, i) => i !== index));
+        setImagePreviews(imagePreviews.filter((_, i) => i !== index));
+        setOriginalImageFiles(originalImageFiles.filter((_, i) => i !== index));
+    };
+
+    const handleEditImage = async (index: number) => {
+        setCurrentEditIndex(index);
+        setTempImageSrc(imagePreviews[index]);
+        setIsCropModalOpen(true);
+    };
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
-        let image_url = formData.image_url;
+        // Prepare Images Metadata
+        let imagesMetadata: any[] = [];
 
-        // Upload image if person category and file selected
-        if (formData.category === 'person' && imageFile) {
-            try {
-                // Resize to 300x300 WebP
-                const resizedBlob = await resizeImageToWebP(imageFile, 300);
+        // If there are previews, we need to handle them
+        if (imagePreviews.length > 0) {
+            const timestamp = Date.now();
+            const randomStr = Math.random().toString(36).substring(2, 9);
+            // Use consistent folder path for Documents and Persons
+            const folderName = `${timestamp}-${randomStr}`;
+            const basePath = `documents/${folderName}`;
 
-                const fileName = `${Date.now()}.webp`;
-                const filePath = `documents/temp/${fileName}`;
+            for (let i = 0; i < imagePreviews.length; i++) {
+                const file = imageFiles[i];
 
-                const { error: uploadError } = await supabase.storage
-                    .from('learning-images')
-                    .upload(filePath, resizedBlob, {
-                        contentType: 'image/webp',
-                    });
+                if (file) {
+                    // 1. Upload new file (4 sizes)
+                    try {
+                        const { micro, thumbnail, medium, full } = await createResizedImages(file);
 
-                if (uploadError) throw uploadError;
+                        const uploadPromises = [
+                            supabase.storage.from('learning-images').upload(`${basePath}/image-${i}-micro.webp`, micro, { contentType: 'image/webp', upsert: true }),
+                            supabase.storage.from('learning-images').upload(`${basePath}/image-${i}-thumbnail.webp`, thumbnail, { contentType: 'image/webp', upsert: true }),
+                            supabase.storage.from('learning-images').upload(`${basePath}/image-${i}-medium.webp`, medium, { contentType: 'image/webp', upsert: true }),
+                            supabase.storage.from('learning-images').upload(`${basePath}/image-${i}-full.webp`, full, { contentType: 'image/webp', upsert: true })
+                        ];
 
-                const { data: { publicUrl } } = supabase.storage
-                    .from('learning-images')
-                    .getPublicUrl(filePath);
+                        const results = await Promise.all(uploadPromises);
+                        // Check for errors
+                        results.forEach((result, _idx) => { // Use underscore
+                            if (result.error) throw new Error(`Image upload failed: ${result.error.message}`);
+                        });
 
-                image_url = publicUrl;
-            } catch (error) {
-                console.error('Image upload error:', error);
-                alert('이미지 업로드 실패');
-                return;
+                        imagesMetadata.push({
+                            micro: supabase.storage.from('learning-images').getPublicUrl(`${basePath}/image-${i}-micro.webp`).data.publicUrl,
+                            thumbnail: supabase.storage.from('learning-images').getPublicUrl(`${basePath}/image-${i}-thumbnail.webp`).data.publicUrl,
+                            medium: supabase.storage.from('learning-images').getPublicUrl(`${basePath}/image-${i}-medium.webp`).data.publicUrl,
+                            full: supabase.storage.from('learning-images').getPublicUrl(`${basePath}/image-${i}-full.webp`).data.publicUrl
+                        });
+                    } catch (err) {
+                        console.error(`Failed to upload image ${i}`, err);
+                        alert('이미지 업로드 중 오류가 발생했습니다.');
+                        return;
+                    }
+                } else {
+                    // 2. Existing image - find stored metadata
+                    const previewUrl = imagePreviews[i];
+                    const existing = node?.metadata?.images?.find((img: any) =>
+                        img.medium === previewUrl || img.full === previewUrl || img.thumbnail === previewUrl || img.micro === previewUrl
+                    );
+
+                    if (existing) {
+                        imagesMetadata.push(existing);
+                    } else {
+                        // Fallback for legacy or unmatched URLs
+                        imagesMetadata.push({
+                            micro: previewUrl, thumbnail: previewUrl, medium: previewUrl, full: previewUrl
+                        });
+                    }
+                }
             }
         }
 
+        // Determine primary image URL (backward compatibility)
+        let primaryImageUrl: string | null = formData.image_url;
+        if (imagesMetadata.length > 0) {
+            primaryImageUrl = imagesMetadata[0].medium || imagesMetadata[0].full || imagesMetadata[0].thumbnail;
+        } else if (imagePreviews.length === 0) {
+            primaryImageUrl = null; // All images removed
+        }
+
+        // Construct Metadata
+        const metadata = {
+            ...(node?.metadata || {}), // Keep existing metadata (like youtube info if any)
+            images: imagesMetadata,
+            // Backward compatibility fields
+            image_micro: imagesMetadata[0]?.micro || null,
+            image_thumbnail: imagesMetadata[0]?.thumbnail || null,
+            image_medium: imagesMetadata[0]?.medium || null,
+            image_full: imagesMetadata[0]?.full || null,
+        };
+
         const data = {
-            id: node?.id, // Critical for update logic
+            id: node?.id,
             title: formData.title,
             year: formData.year ? parseInt(formData.year) : null,
             date: formData.date || null,
@@ -463,9 +583,10 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                 .split(',')
                 .map((t) => t.trim())
                 .filter(Boolean),
-            image_url, // 연동된 원본 리소스가 있는 경우(인물 등) 원본 동기화를 위해 전달
-            content: formData.content, // 사용자 상세 메모 포함
-            // Pass existing linked IDs to ensure update logic works
+            image_url: primaryImageUrl,
+            metadata: metadata, // Save metadata with images array
+            content: formData.content,
+            // Pass existing linked IDs
             linked_video_id: node?.linked_video_id,
             linked_document_id: node?.linked_document_id,
             linked_playlist_id: node?.linked_playlist_id,
@@ -475,22 +596,6 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
             arrow_length: formData.category === 'arrow' ? formData.arrow_length : null,
             arrow_text: formData.category === 'arrow' ? formData.arrow_text : null,
         };
-
-        // Pass addToDrawer separately if the parent needs it, or handle it here?
-        // Current architecture: onSave handles everything. 
-        // If addToDrawer is needed, we should probably pass it as a second argument or handle logic here.
-        // But for now, fixing the crash is priority.
-        // We will pass it as a separate property if existing signature allows, 
-        // BUT 'onSave' takes 'data: any'.
-        // So we can just add a non-DB property and have the parent filter it?
-        // NO, the parent likely spreads it directly into supabase.update.
-        // So we MUST return a clean object for the DB, and maybe a separate one for logic.
-
-        // Let's modify the onSave call signature in the parent to handle extra flags,
-        // OR simply rely on the fact that existing logic might care about drawer elsewhere.
-        // For now, removing it fixes the crash. The 'addToDrawer' checkbox seems to just enforce category Logic in UI?
-        // Actually, if 'addToDrawer' is checked, we might need to CREATE a resource.
-        // But let's first stop the crash.
 
         onSave(data);
         localStorage.removeItem(DRAFT_KEY);
@@ -526,435 +631,505 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
     };
 
     return (
-        <div className="node-editor-modal-overlay" onMouseDown={handleOverlayClick}>
-            <div className="node-editor-modal" onMouseDown={(e) => e.stopPropagation()}>
-                <div className="node-editor-header">
-                    <h2>{node ? (isLinked ? '연동된 노드 수정' : '노드 수정') : '새 노드 추가'}</h2>
-                    <button className="node-editor-close" onClick={onClose}>
-                        <i className="ri-close-line"></i>
-                    </button>
-                </div>
+        <>
+            <div className="node-editor-modal-overlay" onMouseDown={handleOverlayClick}>
+                <div className="node-editor-modal" onMouseDown={(e) => e.stopPropagation()}>
+                    <div className="node-editor-header">
+                        <h2>{node ? (isLinked ? '연동된 노드 수정' : '노드 수정') : '새 노드 추가'}</h2>
+                        <button className="node-editor-close" onClick={onClose}>
+                            <i className="ri-close-line"></i>
+                        </button>
+                    </div >
 
-                <form id="node-editor-form" className="node-editor-form" onSubmit={handleSubmit}>
+                    <form id="node-editor-form" className="node-editor-form" onSubmit={handleSubmit}>
 
-                    <div className="form-group">
-                        <label>제목 * {isLinked && <span style={{ color: '#60a5fa', fontSize: '0.8rem', fontWeight: 'normal', marginLeft: '8px' }}>(원본과 동기화됨)</span>}</label>
-                        <input
-                            type="text"
-                            value={formData.title}
-                            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                            placeholder="예: 린디합의 탄생"
-                            required
-                        />
-                    </div>
-
-                    <div className="form-row">
                         <div className="form-group">
-                            <label>연도</label>
+                            <label>제목 * {isLinked && <span style={{ color: '#60a5fa', fontSize: '0.8rem', fontWeight: 'normal', marginLeft: '8px' }}>(원본과 동기화됨)</span>}</label>
                             <input
-                                type="number"
-                                value={formData.year}
-                                onChange={(e) => setFormData({ ...formData, year: e.target.value })}
-                                placeholder="1920"
+                                type="text"
+                                value={formData.title}
+                                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                                placeholder="예: 린디합의 탄생"
+                                required
                             />
                         </div>
 
-
-
-                        {formData.category !== 'person' && (
+                        <div className="form-row">
                             <div className="form-group">
-                                <label>정확한 날짜</label>
+                                <label>연도</label>
                                 <input
-                                    type="date"
-                                    value={formData.date}
-                                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                                    type="number"
+                                    value={formData.year}
+                                    onChange={(e) => setFormData({ ...formData, year: e.target.value })}
+                                    placeholder="1920"
                                 />
                             </div>
-                        )}
-                    </div>
 
-                    <div className="form-group">
-                        <label>카테고리</label>
-                        <select
-                            value={formData.category}
-                            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                            disabled={!!node}
-                            style={{
-                                cursor: !!node ? 'not-allowed' : 'pointer',
-                                opacity: !!node ? 0.7 : 1,
-                                backgroundColor: !!node ? 'rgba(255, 255, 255, 0.05)' : undefined
-                            }}
-                        >
-                            <option value="general">일반 (폴더)</option>
-                            <option value="canvas">서브 캔버스 (방)</option>
-                            <option value="person">인물</option>
-                            <option value="playlist">재생목록</option>
-                            <option value="video">영상</option>
-                            <option value="document">문서</option>
-                            <option value="arrow">화살표</option>
-                        </select>
-                        {formData.category === 'canvas' && (
-                            <small style={{ color: '#a78bfa', display: 'block', marginTop: '6px', fontSize: '0.85rem' }}>
-                                🚪 더블 클릭하여 들어갈 수 있는 새로운 캔버스 공간을 만듭니다.
-                            </small>
+
+
+                            {formData.category !== 'person' && (
+                                <div className="form-group">
+                                    <label>정확한 날짜</label>
+                                    <input
+                                        type="date"
+                                        value={formData.date}
+                                        onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                                    />
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="form-group">
+                            <label>카테고리</label>
+                            <select
+                                value={formData.category}
+                                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                                disabled={!!node}
+                                style={{
+                                    cursor: !!node ? 'not-allowed' : 'pointer',
+                                    opacity: !!node ? 0.7 : 1,
+                                    backgroundColor: !!node ? 'rgba(255, 255, 255, 0.05)' : undefined
+                                }}
+                            >
+                                <option value="general">일반 (폴더)</option>
+                                <option value="canvas">서브 캔버스 (방)</option>
+                                <option value="person">인물</option>
+                                <option value="playlist">재생목록</option>
+                                <option value="video">영상</option>
+                                <option value="document">문서</option>
+                                <option value="arrow">화살표</option>
+                            </select>
+                            {formData.category === 'canvas' && (
+                                <small style={{ color: '#a78bfa', display: 'block', marginTop: '6px', fontSize: '0.85rem' }}>
+                                    🚪 더블 클릭하여 들어갈 수 있는 새로운 캔버스 공간을 만듭니다.
+                                </small>
+                            )}
+                            {formData.category === 'arrow' && (
+                                <small style={{ color: '#ff6b6b', display: 'block', marginTop: '6px', fontSize: '0.85rem' }}>
+                                    ➡️ 회전 가능하고 길이 조정이 가능한 화살표를 만듭니다.
+                                </small>
+                            )}
+                            {!!node && (
+                                <small style={{ color: '#888', display: 'block', marginTop: '6px', fontSize: '0.85rem' }}>
+                                    ℹ️ 기존 노드의 카테고리는 수정할 수 없습니다. 변경이 필요하면 새 노드를 생성해 주세요.
+                                </small>
+                            )}
+                        </div>
+
+                        {(formData.category === 'person' || formData.category === 'document') && (
+                            <>
+                                <div className="info-message" style={{
+                                    padding: '12px',
+                                    backgroundColor: formData.category === 'person' ? 'rgba(59, 130, 246, 0.1)' : 'rgba(255, 255, 255, 0.05)',
+                                    border: `1px solid ${formData.category === 'person' ? 'rgba(59, 130, 246, 0.3)' : '#555'}`,
+                                    borderRadius: '8px',
+                                    marginBottom: '16px',
+                                    color: formData.category === 'person' ? '#60a5fa' : '#ccc'
+                                }}>
+                                    {formData.category === 'person'
+                                        ? 'ℹ️ 인물 노드는 자동으로 자료 서랍에 추가됩니다'
+                                        : 'ℹ️ 문서는 여러 장의 이미지를 업로드할 수 있습니다'}
+                                </div>
+                                <div className="form-group">
+                                    <label>{formData.category === 'person' ? '인물 사진' : `이미지 (${imagePreviews.length}장)`}</label>
+
+                                    {/* Image Assets Gallery */}
+                                    <div style={{
+                                        display: 'grid',
+                                        gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))',
+                                        gap: '10px',
+                                        padding: '10px',
+                                        border: '1px solid #374151',
+                                        borderRadius: '8px',
+                                        background: 'rgba(0, 0, 0, 0.2)',
+                                        marginBottom: '12px'
+                                    }}>
+                                        {imagePreviews.map((preview, index) => (
+                                            <div key={index} style={{ position: 'relative', aspectRatio: '1', borderRadius: '8px', overflow: 'hidden', border: '1px solid #555' }}>
+                                                <img
+                                                    src={preview}
+                                                    alt={`Image ${index + 1}`}
+                                                    style={{ width: '100%', height: '100%', objectFit: 'cover', cursor: 'pointer' }}
+                                                    onClick={() => handleEditImage(index)}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleRemoveImage(index);
+                                                    }}
+                                                    style={{
+                                                        position: 'absolute',
+                                                        top: '4px',
+                                                        right: '4px',
+                                                        background: 'rgba(0, 0, 0, 0.7)',
+                                                        border: 'none',
+                                                        borderRadius: '50%',
+                                                        width: '20px',
+                                                        height: '20px',
+                                                        color: 'white',
+                                                        cursor: 'pointer',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'center',
+                                                        fontSize: '12px'
+                                                    }}
+                                                >
+                                                    ✕
+                                                </button>
+                                            </div>
+                                        ))}
+
+                                        {/* Add Button */}
+                                        <div
+                                            onClick={() => fileInputRef.current?.click()}
+                                            style={{
+                                                aspectRatio: '1',
+                                                border: '2px dashed #555',
+                                                borderRadius: '8px',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                cursor: 'pointer',
+                                                background: 'rgba(255, 255, 255, 0.05)',
+                                                transition: 'all 0.2s'
+                                            }}
+                                        >
+                                            <i className="ri-image-add-line" style={{ fontSize: '1.5rem', color: '#888' }}></i>
+                                            <span style={{ fontSize: '0.7rem', color: '#888', marginTop: '4px' }}>추가</span>
+                                        </div>
+                                    </div>
+
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleImageSelect}
+                                        style={{ display: 'none' }}
+                                        multiple={formData.category === 'document'} // Document allows multiple
+                                    />
+                                </div>
+                            </>
                         )}
+
                         {formData.category === 'arrow' && (
-                            <small style={{ color: '#ff6b6b', display: 'block', marginTop: '6px', fontSize: '0.85rem' }}>
-                                ➡️ 회전 가능하고 길이 조정이 가능한 화살표를 만듭니다.
-                            </small>
-                        )}
-                        {!!node && (
-                            <small style={{ color: '#888', display: 'block', marginTop: '6px', fontSize: '0.85rem' }}>
-                                ℹ️ 기존 노드의 카테고리는 수정할 수 없습니다. 변경이 필요하면 새 노드를 생성해 주세요.
-                            </small>
-                        )}
-                    </div>
+                            <>
+                                <div className="info-message" style={{
+                                    padding: '12px',
+                                    backgroundColor: 'rgba(255, 107, 107, 0.1)',
+                                    border: '1px solid rgba(255, 107, 107, 0.3)',
+                                    borderRadius: '8px',
+                                    marginBottom: '16px',
+                                    color: '#ff6b6b'
+                                }}>
+                                    ➡️ 화살표 노드는 회전과 길이 조정이 가능합니다
+                                </div>
 
-                    {formData.category === 'person' && (
-                        <>
+                                <div className="form-group">
+                                    <label>화살표 텍스트</label>
+                                    <input
+                                        type="text"
+                                        value={formData.arrow_text}
+                                        onChange={(e) => setFormData({ ...formData, arrow_text: e.target.value })}
+                                        placeholder="화살표에 표시할 텍스트 (선택사항)"
+                                    />
+                                </div>
+
+                                <div className="form-group">
+                                    <label>회전 각도: {formData.arrow_rotation}°</label>
+                                    <input
+                                        type="range"
+                                        min="0"
+                                        max="360"
+                                        value={formData.arrow_rotation}
+                                        onChange={(e) => setFormData({ ...formData, arrow_rotation: parseInt(e.target.value) })}
+                                        style={{ width: '100%' }}
+                                    />
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#888', marginTop: '4px' }}>
+                                        <span>0°</span>
+                                        <span>90°</span>
+                                        <span>180°</span>
+                                        <span>270°</span>
+                                        <span>360°</span>
+                                    </div>
+                                </div>
+
+                                <div className="form-group">
+                                    <label>화살표 길이: {formData.arrow_length}px</label>
+                                    <input
+                                        type="range"
+                                        min="100"
+                                        max="500"
+                                        value={formData.arrow_length}
+                                        onChange={(e) => setFormData({ ...formData, arrow_length: parseInt(e.target.value) })}
+                                        style={{ width: '100%' }}
+                                    />
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#888', marginTop: '4px' }}>
+                                        <span>100px</span>
+                                        <span>300px</span>
+                                        <span>500px</span>
+                                    </div>
+                                </div>
+                            </>
+                        )}
+
+                        {formData.category === 'video' && !isLinked && (
                             <div className="info-message" style={{
                                 padding: '12px',
-                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                                border: '1px solid rgba(59, 130, 246, 0.3)',
+                                backgroundColor: 'rgba(139, 92, 246, 0.1)',
+                                border: '1px solid rgba(139, 92, 246, 0.3)',
                                 borderRadius: '8px',
                                 marginBottom: '16px',
-                                color: '#60a5fa'
+                                color: '#a78bfa'
                             }}>
-                                ℹ️ 인물 노드는 자동으로 자료 서랍에 추가됩니다
+                                📹 영상 노드는 자동으로 자료 서랍에 추가됩니다
                             </div>
+                        )}
+
+                        {formData.category === 'video' && !isLinked && (
                             <div className="form-group">
-                                <label>인물 사진</label>
-                                <input
-                                    type="file"
-                                    accept="image/*"
-                                    onChange={handleImageSelect}
-                                    style={{ marginBottom: '12px' }}
-                                />
-                                {imagePreview && (
-                                    <div style={{
-                                        width: '120px',
-                                        height: '120px',
-                                        borderRadius: '50%',
-                                        overflow: 'hidden',
-                                        margin: '0 auto',
-                                        border: '2px solid rgba(255, 255, 255, 0.2)'
-                                    }}>
-                                        <img
-                                            src={imagePreview}
-                                            alt="Preview"
-                                            style={{
-                                                width: '100%',
-                                                height: '100%',
-                                                objectFit: 'cover'
-                                            }}
-                                        />
+                                <label>영상 선택</label>
+                                {loadingResources ? (
+                                    <div style={{ padding: '20px', textAlign: 'center', color: '#888' }}>
+                                        로딩 중...
+                                    </div>
+                                ) : (
+                                    <div style={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid #333', borderRadius: '8px', padding: '8px', marginBottom: '16px' }}>
+                                        {playlists.length > 0 && (
+                                            <>
+                                                <div style={{ padding: '8px', fontWeight: 'bold', color: '#a78bfa', fontSize: '0.9rem' }}>
+                                                    📹 재생목록
+                                                </div>
+                                                {playlists.map(playlist => (
+                                                    <div
+                                                        key={`playlist-${playlist.id}`}
+                                                        onClick={() => handleResourceSelect(playlist, 'playlist')}
+                                                        style={{
+                                                            padding: '12px',
+                                                            margin: '4px 0',
+                                                            background: formData.title === playlist.title ? 'rgba(139, 92, 246, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                                                            borderRadius: '6px',
+                                                            cursor: 'pointer',
+                                                            transition: 'background 0.2s',
+                                                            border: formData.title === playlist.title ? '1px solid rgba(139, 92, 246, 0.5)' : '1px solid transparent'
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            if (formData.title !== playlist.title) {
+                                                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                                                            }
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            if (formData.title !== playlist.title) {
+                                                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                                                            }
+                                                        }}
+                                                    >
+                                                        <div style={{ fontSize: '0.95rem', color: '#fff' }}>{playlist.title}</div>
+                                                    </div>
+                                                ))}
+                                            </>
+                                        )}
+                                        {videos.length > 0 && (
+                                            <>
+                                                <div style={{ padding: '8px', fontWeight: 'bold', color: '#60a5fa', fontSize: '0.9rem', marginTop: playlists.length > 0 ? '12px' : '0' }}>
+                                                    🎬 개별 영상
+                                                </div>
+                                                {videos.map(video => (
+                                                    <div
+                                                        key={`video-${video.id}`}
+                                                        onClick={() => handleResourceSelect(video, 'video')}
+                                                        style={{
+                                                            padding: '12px',
+                                                            margin: '4px 0',
+                                                            background: formData.title === video.title ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                                                            borderRadius: '6px',
+                                                            cursor: 'pointer',
+                                                            transition: 'background 0.2s',
+                                                            border: formData.title === video.title ? '1px solid rgba(59, 130, 246, 0.5)' : '1px solid transparent'
+                                                        }}
+                                                        onMouseEnter={(e) => {
+                                                            if (formData.title !== video.title) {
+                                                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                                                            }
+                                                        }}
+                                                        onMouseLeave={(e) => {
+                                                            if (formData.title !== video.title) {
+                                                                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                                                            }
+                                                        }}
+                                                    >
+                                                        <div style={{ fontSize: '0.95rem', color: '#fff' }}>{video.title}</div>
+                                                    </div>
+                                                ))}
+                                            </>
+                                        )}
+                                        {playlists.length === 0 && videos.length === 0 && (
+                                            <div style={{ padding: '20px', textAlign: 'center', color: '#888' }}>
+                                                영상이 없습니다
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
-                        </>
-                    )}
+                        )}
 
-                    {formData.category === 'arrow' && (
-                        <>
-                            <div className="info-message" style={{
-                                padding: '12px',
-                                backgroundColor: 'rgba(255, 107, 107, 0.1)',
-                                border: '1px solid rgba(255, 107, 107, 0.3)',
-                                borderRadius: '8px',
-                                marginBottom: '16px',
-                                color: '#ff6b6b'
-                            }}>
-                                ➡️ 화살표 노드는 회전과 길이 조정이 가능합니다
-                            </div>
-
+                        {['playlist', 'video'].includes(formData.category) && (
                             <div className="form-group">
-                                <label>화살표 텍스트</label>
+                                <label>유튜브 URL</label>
                                 <input
-                                    type="text"
-                                    value={formData.arrow_text}
-                                    onChange={(e) => setFormData({ ...formData, arrow_text: e.target.value })}
-                                    placeholder="화살표에 표시할 텍스트 (선택사항)"
+                                    type="url"
+                                    value={formData.youtube_url}
+                                    onChange={(e) => setFormData({ ...formData, youtube_url: e.target.value })}
+                                    placeholder="https://www.youtube.com/watch?v=..."
                                 />
+                                {videoInfo?.thumbnailUrl && (
+                                    <div className="video-preview">
+                                        <img src={videoInfo.thumbnailUrl} alt="Preview" />
+                                    </div>
+                                )}
                             </div>
+                        )}
 
-                            <div className="form-group">
-                                <label>회전 각도: {formData.arrow_rotation}°</label>
-                                <input
-                                    type="range"
-                                    min="0"
-                                    max="360"
-                                    value={formData.arrow_rotation}
-                                    onChange={(e) => setFormData({ ...formData, arrow_rotation: parseInt(e.target.value) })}
-                                    style={{ width: '100%' }}
-                                />
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#888', marginTop: '4px' }}>
-                                    <span>0°</span>
-                                    <span>90°</span>
-                                    <span>180°</span>
-                                    <span>270°</span>
-                                    <span>360°</span>
-                                </div>
-                            </div>
-
-                            <div className="form-group">
-                                <label>화살표 길이: {formData.arrow_length}px</label>
-                                <input
-                                    type="range"
-                                    min="100"
-                                    max="500"
-                                    value={formData.arrow_length}
-                                    onChange={(e) => setFormData({ ...formData, arrow_length: parseInt(e.target.value) })}
-                                    style={{ width: '100%' }}
-                                />
-                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#888', marginTop: '4px' }}>
-                                    <span>100px</span>
-                                    <span>300px</span>
-                                    <span>500px</span>
-                                </div>
-                            </div>
-                        </>
-                    )}
-
-                    {formData.category === 'video' && !isLinked && (
-                        <div className="info-message" style={{
-                            padding: '12px',
-                            backgroundColor: 'rgba(139, 92, 246, 0.1)',
-                            border: '1px solid rgba(139, 92, 246, 0.3)',
-                            borderRadius: '8px',
-                            marginBottom: '16px',
-                            color: '#a78bfa'
-                        }}>
-                            📹 영상 노드는 자동으로 자료 서랍에 추가됩니다
-                        </div>
-                    )}
-
-                    {formData.category === 'video' && !isLinked && (
                         <div className="form-group">
-                            <label>영상 선택</label>
-                            {loadingResources ? (
-                                <div style={{ padding: '20px', textAlign: 'center', color: '#888' }}>
-                                    로딩 중...
-                                </div>
-                            ) : (
-                                <div style={{ maxHeight: '300px', overflowY: 'auto', border: '1px solid #333', borderRadius: '8px', padding: '8px', marginBottom: '16px' }}>
-                                    {playlists.length > 0 && (
-                                        <>
-                                            <div style={{ padding: '8px', fontWeight: 'bold', color: '#a78bfa', fontSize: '0.9rem' }}>
-                                                📹 재생목록
-                                            </div>
-                                            {playlists.map(playlist => (
-                                                <div
-                                                    key={`playlist-${playlist.id}`}
-                                                    onClick={() => handleResourceSelect(playlist, 'playlist')}
-                                                    style={{
-                                                        padding: '12px',
-                                                        margin: '4px 0',
-                                                        background: formData.title === playlist.title ? 'rgba(139, 92, 246, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                                                        borderRadius: '6px',
-                                                        cursor: 'pointer',
-                                                        transition: 'background 0.2s',
-                                                        border: formData.title === playlist.title ? '1px solid rgba(139, 92, 246, 0.5)' : '1px solid transparent'
-                                                    }}
-                                                    onMouseEnter={(e) => {
-                                                        if (formData.title !== playlist.title) {
-                                                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-                                                        }
-                                                    }}
-                                                    onMouseLeave={(e) => {
-                                                        if (formData.title !== playlist.title) {
-                                                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                                                        }
-                                                    }}
-                                                >
-                                                    <div style={{ fontSize: '0.95rem', color: '#fff' }}>{playlist.title}</div>
-                                                </div>
-                                            ))}
-                                        </>
-                                    )}
-                                    {videos.length > 0 && (
-                                        <>
-                                            <div style={{ padding: '8px', fontWeight: 'bold', color: '#60a5fa', fontSize: '0.9rem', marginTop: playlists.length > 0 ? '12px' : '0' }}>
-                                                🎬 개별 영상
-                                            </div>
-                                            {videos.map(video => (
-                                                <div
-                                                    key={`video-${video.id}`}
-                                                    onClick={() => handleResourceSelect(video, 'video')}
-                                                    style={{
-                                                        padding: '12px',
-                                                        margin: '4px 0',
-                                                        background: formData.title === video.title ? 'rgba(59, 130, 246, 0.2)' : 'rgba(255, 255, 255, 0.05)',
-                                                        borderRadius: '6px',
-                                                        cursor: 'pointer',
-                                                        transition: 'background 0.2s',
-                                                        border: formData.title === video.title ? '1px solid rgba(59, 130, 246, 0.5)' : '1px solid transparent'
-                                                    }}
-                                                    onMouseEnter={(e) => {
-                                                        if (formData.title !== video.title) {
-                                                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-                                                        }
-                                                    }}
-                                                    onMouseLeave={(e) => {
-                                                        if (formData.title !== video.title) {
-                                                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                                                        }
-                                                    }}
-                                                >
-                                                    <div style={{ fontSize: '0.95rem', color: '#fff' }}>{video.title}</div>
-                                                </div>
-                                            ))}
-                                        </>
-                                    )}
-                                    {playlists.length === 0 && videos.length === 0 && (
-                                        <div style={{ padding: '20px', textAlign: 'center', color: '#888' }}>
-                                            영상이 없습니다
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {['playlist', 'video'].includes(formData.category) && (
-                        <div className="form-group">
-                            <label>유튜브 URL</label>
+                            <label>첨부 링크 (선택)</label>
                             <input
                                 type="url"
-                                value={formData.youtube_url}
-                                onChange={(e) => setFormData({ ...formData, youtube_url: e.target.value })}
-                                placeholder="https://www.youtube.com/watch?v=..."
+                                value={formData.attachment_url}
+                                onChange={(e) => setFormData({ ...formData, attachment_url: e.target.value })}
+                                placeholder="https://ko.wikipedia.org/wiki/..."
                             />
-                            {videoInfo?.thumbnailUrl && (
-                                <div className="video-preview">
-                                    <img src={videoInfo.thumbnailUrl} alt="Preview" />
+                            <small style={{ color: '#888', fontSize: '0.85rem', marginTop: '4px', display: 'block' }}>
+                                위키피디아, 참고 자료 등의 링크를 입력하세요
+                            </small>
+                        </div>
+
+                        {/* (영상/재생목록 연동 시에만) 원본 설명 - 항상 읽기 전용 */}
+                        {isLinked && ['video', 'playlist'].includes(formData.category) && (
+                            <div className="form-group">
+                                <label>원본 설명 <span style={{ color: '#60a5fa', fontSize: '0.8rem', fontWeight: 'normal', marginLeft: '8px' }}>(원본과 동기화됨)</span></label>
+                                <textarea
+                                    value={formData.description}
+                                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                    placeholder="원본 설명이 없습니다."
+                                    rows={3}
+                                    disabled={false}
+                                />
+                            </div>
+                        )}
+
+                        {/* 상세 메모 - 모든 노드의 "기본" 편집 필드 */}
+                        <div className="form-group" style={{ marginTop: '16px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '16px' }}>
+                            <label style={{ color: '#60a5fa', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <span>상세 메모 (직접 편집)</span>
+                                <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: '#9ca3af', background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px' }}>
+                                    💡 Tip: <span style={{ color: '#8b5cf6' }}>[[위키백과]]</span> <span style={{ color: '#3b82f6' }}>#자료연동</span>
+                                </span>
+                            </label>
+                            <textarea
+                                ref={textareaRef}
+                                value={formData.content}
+                                onChange={handleInput}
+                                onKeyDown={handleKeyDown}
+                                placeholder="이 노드에 대한 설명이나 나만의 노트를 자유롭게 입력하세요. 내용이 길어지면 자동으로 스크롤됩니다."
+                                rows={8}
+                                style={{ border: '1px solid rgba(96, 165, 250, 0.3)', background: 'rgba(96, 165, 250, 0.02)', lineHeight: '1.6' }}
+                            />
+                            {showAutocomplete && filteredResources.length > 0 && (
+                                <AutocompleteMenu
+                                    items={filteredResources}
+                                    position={cursorPosition}
+                                    selectedIndex={selectedIndex}
+                                    onSelect={handleSelectResource}
+                                    onClose={() => setShowAutocomplete(false)}
+                                />
+                            )}
+                            {/* Live Preview */}
+                            {formData.content && (
+                                <div style={{
+                                    marginTop: '12px',
+                                    padding: '12px',
+                                    background: 'rgba(17, 24, 39, 0.5)',
+                                    borderRadius: '8px',
+                                    fontSize: '0.9rem',
+                                    color: '#e5e7eb',
+                                    border: '1px border rgba(255, 255, 255, 0.05)'
+                                }}>
+                                    <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Preview</div>
+                                    <div className="content-preview" style={{ lineHeight: '1.6' }}>
+                                        {renderTextWithLinksAndResources(formData.content, () => { })}
+                                    </div>
                                 </div>
                             )}
                         </div>
-                    )}
 
-                    <div className="form-group">
-                        <label>첨부 링크 (선택)</label>
-                        <input
-                            type="url"
-                            value={formData.attachment_url}
-                            onChange={(e) => setFormData({ ...formData, attachment_url: e.target.value })}
-                            placeholder="https://ko.wikipedia.org/wiki/..."
-                        />
-                        <small style={{ color: '#888', fontSize: '0.85rem', marginTop: '4px', display: 'block' }}>
-                            위키피디아, 참고 자료 등의 링크를 입력하세요
-                        </small>
-                    </div>
-
-                    {/* (영상/재생목록 연동 시에만) 원본 설명 - 항상 읽기 전용 */}
-                    {isLinked && ['video', 'playlist'].includes(formData.category) && (
                         <div className="form-group">
-                            <label>원본 설명 <span style={{ color: '#60a5fa', fontSize: '0.8rem', fontWeight: 'normal', marginLeft: '8px' }}>(원본과 동기화됨)</span></label>
-                            <textarea
-                                value={formData.description}
-                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                placeholder="원본 설명이 없습니다."
-                                rows={3}
-                                disabled={false}
+                            <label>태그 (쉼표로 구분)</label>
+                            <input
+                                type="text"
+                                value={formData.tags}
+                                onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+                                placeholder="스윙, 린디합, 사보이볼룸"
                             />
                         </div>
-                    )}
 
-                    {/* 상세 메모 - 모든 노드의 "기본" 편집 필드 */}
-                    <div className="form-group" style={{ marginTop: '16px', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '16px' }}>
-                        <label style={{ color: '#60a5fa', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span>상세 메모 (직접 편집)</span>
-                            <span style={{ fontSize: '0.8rem', fontWeight: 'normal', color: '#9ca3af', background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px' }}>
-                                💡 Tip: <span style={{ color: '#8b5cf6' }}>[[위키백과]]</span> <span style={{ color: '#3b82f6' }}>#자료연동</span>
-                            </span>
-                        </label>
-                        <textarea
-                            ref={textareaRef}
-                            value={formData.content}
-                            onChange={handleInput}
-                            onKeyDown={handleKeyDown}
-                            placeholder="이 노드에 대한 설명이나 나만의 노트를 자유롭게 입력하세요. 내용이 길어지면 자동으로 스크롤됩니다."
-                            rows={8}
-                            style={{ border: '1px solid rgba(96, 165, 250, 0.3)', background: 'rgba(96, 165, 250, 0.02)', lineHeight: '1.6' }}
-                        />
-                        {showAutocomplete && filteredResources.length > 0 && (
-                            <AutocompleteMenu
-                                items={filteredResources}
-                                position={cursorPosition}
-                                selectedIndex={selectedIndex}
-                                onSelect={handleSelectResource}
-                                onClose={() => setShowAutocomplete(false)}
-                            />
-                        )}
-                        {/* Live Preview */}
-                        {formData.content && (
-                            <div style={{
-                                marginTop: '12px',
-                                padding: '12px',
-                                background: 'rgba(17, 24, 39, 0.5)',
-                                borderRadius: '8px',
-                                fontSize: '0.9rem',
-                                color: '#e5e7eb',
-                                border: '1px border rgba(255, 255, 255, 0.05)'
-                            }}>
-                                <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Preview</div>
-                                <div className="content-preview" style={{ lineHeight: '1.6' }}>
-                                    {renderTextWithLinksAndResources(formData.content, () => { })}
-                                </div>
+
+                        {(!node || !isLinked) && (
+                            <div className="form-group checkbox-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '8px' }}>
+                                <input
+                                    type="checkbox"
+                                    id="addToDrawer"
+                                    checked={formData.addToDrawer}
+                                    onChange={(e) => setFormData({ ...formData, addToDrawer: e.target.checked })}
+                                    disabled={formData.category !== 'general'}
+                                    style={{ width: 'auto', margin: 0, opacity: formData.category !== 'general' ? 0.5 : 1, cursor: formData.category !== 'general' ? 'not-allowed' : 'pointer' }}
+                                />
+                                <label
+                                    htmlFor="addToDrawer"
+                                    style={{
+                                        margin: 0,
+                                        cursor: formData.category !== 'general' ? 'not-allowed' : 'pointer',
+                                        color: formData.category !== 'general' ? '#888' : '#60a5fa'
+                                    }}
+                                >
+                                    {formData.category !== 'general' ? '자료 서랍에 자동 저장됩니다' : '자료 서랍에 원본 추가하기'}
+                                </label>
                             </div>
                         )}
-                    </div>
+                    </form>
 
-                    <div className="form-group">
-                        <label>태그 (쉼표로 구분)</label>
-                        <input
-                            type="text"
-                            value={formData.tags}
-                            onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                            placeholder="스윙, 린디합, 사보이볼룸"
-                        />
-                    </div>
-
-
-                    {(!node || !isLinked) && (
-                        <div className="form-group checkbox-group" style={{ flexDirection: 'row', alignItems: 'center', gap: '8px' }}>
-                            <input
-                                type="checkbox"
-                                id="addToDrawer"
-                                checked={formData.addToDrawer}
-                                onChange={(e) => setFormData({ ...formData, addToDrawer: e.target.checked })}
-                                disabled={formData.category !== 'general'}
-                                style={{ width: 'auto', margin: 0, opacity: formData.category !== 'general' ? 0.5 : 1, cursor: formData.category !== 'general' ? 'not-allowed' : 'pointer' }}
-                            />
-                            <label
-                                htmlFor="addToDrawer"
-                                style={{
-                                    margin: 0,
-                                    cursor: formData.category !== 'general' ? 'not-allowed' : 'pointer',
-                                    color: formData.category !== 'general' ? '#888' : '#60a5fa'
-                                }}
-                            >
-                                {formData.category !== 'general' ? '자료 서랍에 자동 저장됩니다' : '자료 서랍에 원본 추가하기'}
-                            </label>
+                    <div className="form-actions">
+                        {node && onDelete && (
+                            <button type="button" className="btn-delete" onClick={handleDelete}>
+                                삭제
+                            </button>
+                        )}
+                        <div className="form-actions-right">
+                            <button type="button" className="btn-cancel" onClick={onClose}>
+                                취소
+                            </button>
+                            <button type="submit" form="node-editor-form" className="btn-save">
+                                {node ? '수정' : '생성'}
+                            </button>
                         </div>
-                    )}
-                </form>
-
-                <div className="form-actions">
-                    {node && onDelete && (
-                        <button type="button" className="btn-delete" onClick={handleDelete}>
-                            삭제
-                        </button>
-                    )}
-                    <div className="form-actions-right">
-                        <button type="button" className="btn-cancel" onClick={onClose}>
-                            취소
-                        </button>
-                        <button type="submit" form="node-editor-form" className="btn-save">
-                            {node ? '수정' : '생성'}
-                        </button>
                     </div>
                 </div>
             </div>
-        </div>
+
+            <ImageCropModal
+                isOpen={isCropModalOpen}
+                imageUrl={tempImageSrc}
+                onClose={() => {
+                    setIsCropModalOpen(false);
+                    setCurrentEditIndex(null);
+                }}
+                onCropComplete={handleCropComplete}
+                onChangeImage={() => fileInputRef.current?.click()}
+                onImageUpdate={handleImageUpdate}
+                fileName={`document-image-${currentEditIndex !== null ? currentEditIndex : 'new'}.jpg`}
+                originalImageUrl={currentEditIndex !== null && originalImageFiles[currentEditIndex] ? URL.createObjectURL(originalImageFiles[currentEditIndex]) : null}
+                hasOriginal={currentEditIndex !== null && !!originalImageFiles[currentEditIndex]}
+            />
+        </>
     );
 }

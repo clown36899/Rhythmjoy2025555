@@ -23,7 +23,9 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
     const videoInfo = data.youtube_url ? parseVideoUrl(data.youtube_url) : null;
     let thumbnailUrl: string | null = null;
 
-    if (data.thumbnail_url) {
+    if (data.image_url) {
+        thumbnailUrl = data.image_url;
+    } else if (data.thumbnail_url) {
         thumbnailUrl = validateYouTubeThumbnailUrl(data.thumbnail_url);
     }
     if (!thumbnailUrl && videoInfo?.thumbnailUrl) {
@@ -120,7 +122,6 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
 
     const handleThumbnailClick = (e: React.MouseEvent) => {
         e.stopPropagation();
-        if (!data.onPreviewLinkedResource && !data.onPlayVideo) return;
 
         // V7 Refined Link Logic: Prioritize IDs over nodeType for robustness
         if (data.linked_playlist_id && data.onPreviewLinkedResource) {
@@ -133,6 +134,9 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
             data.onPreviewLinkedResource(data.linked_category_id, 'folder', data.title);
         } else if (data.youtube_url && data.onPlayVideo) {
             data.onPlayVideo(data.youtube_url, data.linked_playlist_id, data.linked_video_id);
+        } else if (data.onViewDetail) {
+            // Fallback: View Detail (e.g. for image-only nodes)
+            data.onViewDetail(data);
         }
     };
 
@@ -366,7 +370,7 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
             {/* Thumbnail */}
             {thumbnailUrl && data.category !== 'person' && (
                 <div
-                    className="history-node-thumbnail"
+                    className={`history-node-thumbnail ${data.nodeType === 'document' ? 'document-thumbnail' : ''}`}
                     onClick={data.isSelectionMode ? undefined : handleThumbnailClick}
                     style={{ cursor: data.isSelectionMode ? 'default' : 'pointer' }}
                 >

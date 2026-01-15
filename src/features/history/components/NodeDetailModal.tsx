@@ -62,6 +62,59 @@ export const NodeDetailModal: React.FC<NodeDetailModalProps> = ({ nodeData, onCl
                         <div className="detail-date">{nodeData.date}</div>
                     </div>
 
+                    {/* Image Gallery */}
+                    {(() => {
+                        const images = (nodeData.metadata?.images as any[])?.map(img => img.full || img.medium || img.thumbnail)
+                            || (nodeData.image_url ? [nodeData.image_url] : [])
+                            || (nodeData.metadata?.image_medium ? [nodeData.metadata.image_medium] : []); // Fallback
+
+                        if (images.length === 0) return null;
+
+                        // Avoid duplication for Person category if only 1 image exists (already shown in header)
+                        if (nodeData.category === 'person' && images.length === 1 && images[0] === nodeData.image_url) return null;
+
+                        return (
+                            <div className="node-detail-gallery" style={{
+                                display: 'flex',
+                                gap: '12px',
+                                marginBottom: '20px',
+                                overflowX: 'auto',
+                                paddingBottom: '12px',
+                                scrollSnapType: 'x mandatory',
+                                WebkitOverflowScrolling: 'touch',
+                                marginTop: '10px'
+                            }}>
+                                {images.map((imgSrc: string, idx: number) => (
+                                    <div key={idx} style={{
+                                        flex: '0 0 auto',
+                                        width: images.length > 1 ? 'min(80%, 400px)' : '100%',
+                                        maxHeight: '400px',
+                                        aspectRatio: 'auto',
+                                        scrollSnapAlign: 'center',
+                                        borderRadius: '12px',
+                                        overflow: 'hidden',
+                                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                                        background: 'rgba(0,0,0,0.2)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center'
+                                    }}>
+                                        <img
+                                            src={imgSrc}
+                                            alt={`Image ${idx + 1}`}
+                                            style={{
+                                                width: '100%',
+                                                height: '100%',
+                                                objectFit: 'contain',
+                                                display: 'block'
+                                            }}
+                                        />
+                                    </div>
+                                ))}
+                            </div>
+                        );
+                    })()}
+
                     {videoId && (
                         <div className="detail-video">
                             <iframe
