@@ -113,6 +113,47 @@ export const CategoryManager = memo(forwardRef<CategoryManagerHandle, CategoryMa
     const [isCreating, setIsCreating] = useState(false);
     const [newCatName, setNewCatName] = useState('');
 
+    // State for View Mode (Grid / List)
+    const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
+        return (localStorage.getItem('drawer_view_mode') as 'grid' | 'list') || 'grid';
+    });
+
+    const handleViewModeChange = (mode: 'grid' | 'list') => {
+        setViewMode(mode);
+        localStorage.setItem('drawer_view_mode', mode);
+    };
+
+    // List Mode Navigation State
+    const [listNavId, setListNavId] = useState<string | null>(null);
+
+
+
+    // Style Injection for List Mode
+    const listViewStyles = viewMode === 'list' ? (
+        <style>{`
+            .categoryManager .treeItem {
+                width: 100% !important;
+                max-width: none !important;
+                display: flex !important;
+                flex-direction: row !important;
+                align-items: center !important;
+            }
+            .categoryManager .itemContent {
+                width: 100% !important;
+                justify-content: flex-start !important;
+            }
+            .categoryManager .categoryName {
+                white-space: normal !important;
+                overflow: visible !important;
+                text-overflow: clip !important;
+            }
+            /* Hide toggle in List Mode */
+            .categoryManager .collapseToggle {
+                display: none !important;
+            }
+        `}</style>
+    ) : null;
+
     // 🟢 Tooltip State
     // 🟢 Tooltip State (Optimized)
     const [tooltipText, setTooltipText] = useState<string | null>(null);
@@ -128,6 +169,10 @@ export const CategoryManager = memo(forwardRef<CategoryManagerHandle, CategoryMa
     const handleTooltipEnter = (e: React.MouseEvent | React.TouchEvent, text: string) => {
         // 🔥 FIX: Disable tooltip while dragging to prevent portal interference with Drag Events
         if (draggingIdRef.current) return;
+
+        // Disable tooltip in List Mode if text is fully visible (Optional, but usually preferred)
+        // For now transparency logic handles it if we don't truncate.
+
 
         let clientX, clientY;
         if ('touches' in e) {
@@ -316,6 +361,20 @@ export const CategoryManager = memo(forwardRef<CategoryManagerHandle, CategoryMa
 
         return items;
     }, [injectedCategories]);
+
+    // Helper: Find resource by ID for breadcrumb/title (Moved here to access normalizedCategories)
+    const currentFolder = useMemo(() => {
+        if (!listNavId) return null;
+        return normalizedCategories.find((c: Category) => c.id === listNavId);
+    }, [listNavId, normalizedCategories]);
+
+    const handleListNavBack = () => {
+        if (!currentFolder) {
+            setListNavId(null);
+            return;
+        }
+        setListNavId(currentFolder.parent_id || null);
+    };
 
     // 2. Normalize Playlists
     const playlists = useMemo(() => {
@@ -853,6 +912,13 @@ export const CategoryManager = memo(forwardRef<CategoryManagerHandle, CategoryMa
                     onDrop={(e) => onDrop(e, category.id, category.is_unclassified)}
                     onClick={(e) => {
                         e.stopPropagation(); // 매우 중요: 트리 전파 방지
+
+                        // List Mode: Drill down if folder
+                        if (viewMode === 'list') {
+                            setListNavId(category.id);
+                            return;
+                        }
+
                         if (editingId !== category.id) {
                             onSelect?.(category.id);
                             onItemClick?.(category);
@@ -948,6 +1014,7 @@ export const CategoryManager = memo(forwardRef<CategoryManagerHandle, CategoryMa
             display: 'flex',
             flexDirection: 'column'
         }}>
+            {listViewStyles}
             {/* 🔥 Moved Create Folder UI (Outside wrapper) */}
             {!readOnly && isAdmin && (
                 <div style={{ padding: '0px 20px 0 20px' }}>
@@ -1015,9 +1082,18 @@ export const CategoryManager = memo(forwardRef<CategoryManagerHandle, CategoryMa
                         e.preventDefault();
                         if (dragDest !== 'ROOT') setDragDest('ROOT');
 
-                        // 🔥 FIX: Only consider root-level items in columns AND ignore the dragging item itself
-                        const children = Array.from(containerEl.querySelectorAll('.grid-column > .treeItem[data-id]'))
-                            .filter(child => child.getAttribute('data-id') !== dragId);
+                        // 🔥 FIX: Dynamic selector based on View Mode
+                        let children;
+                        if (viewMode === 'list') {
+                            // In List Mode, items are direct children of separate divs inside list-view-container
+                            // The structure is list-view-container > div > treeItem
+                            children = Array.from(containerEl.querySelectorAll('.list-view-container > div > .treeItem[data-id]'))
+                                .filter(child => child.getAttribute('data-id') !== dragId);
+                        } else {
+                            // Grid Mode
+                            children = Array.from(containerEl.querySelectorAll('.grid-column > .treeItem[data-id]'))
+                                .filter(child => child.getAttribute('data-id') !== dragId);
+                        }
 
                         if (children.length === 0) {
                             if (dropIndicator) setDropIndicator(null);
@@ -1103,35 +1179,123 @@ export const CategoryManager = memo(forwardRef<CategoryManagerHandle, CategoryMa
                 >
                     {isLoading ? <div>Loading...</div> : (
                         <>
-                            {/* Create Folder UI Moved to Top */}
-
-                            {/* NEW: Columnar Flow Layout */}
-                            <div style={{ display: 'flex', flexDirection: 'row', gap: '20px', alignItems: 'flex-start', flex: 1, overflowX: 'auto' }}>
-                                {Array.from({ length: Math.max(4, 1 + Math.max(0, ...[...tree, ...playlists.filter(p => !p.category_id && !p.is_unclassified)].map(i => i.grid_column ?? 0))) }).map((_, colIdx) => {
-                                    const colItems = [
-                                        ...tree.filter(t => (t.grid_column ?? 0) === colIdx),
-                                        ...playlists.filter(p => p.category_id === null && !p.is_unclassified && p.type !== 'general' && (p.grid_column ?? 0) === colIdx)
-                                    ].sort((a, b) => {
-                                        // Primary: grid_row, Secondary: order_index
-                                        if ((a.grid_row ?? 0) !== (b.grid_row ?? 0)) return (a.grid_row ?? 0) - (b.grid_row ?? 0);
-                                        return (a.order_index || 0) - (b.order_index || 0);
-                                    });
-
-                                    if (colItems.length === 0) return null;
-
-                                    return (
-                                        <div key={`col-${colIdx}`} className="grid-column" style={{
-                                            width: '215px',
-                                            display: 'flex',
-                                            flexDirection: 'column',
-                                            gap: '10px',
-                                            alignItems: 'flex-start'
-                                        }}>
-                                            {colItems.map(item => (item.type === 'general' || !item.type) ? renderTreeItem(item as Category) : renderPlaylistItem(item as Playlist))}
-                                        </div>
-                                    );
-                                })}
+                            {/* Header: View Mode Toggle */}
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '10px', gap: '5px' }}>
+                                <button
+                                    onClick={() => handleViewModeChange('grid')}
+                                    style={{
+                                        background: viewMode === 'grid' ? '#3b82f6' : '#333',
+                                        color: 'white',
+                                        border: 'none',
+                                        padding: '4px 8px',
+                                        borderRadius: '4px',
+                                        cursor: 'pointer',
+                                        fontSize: '0.8rem'
+                                    }}
+                                    title="Grid View"
+                                >
+                                    ▦
+                                </button>
+                                <button
+                                    onClick={() => handleViewModeChange('list')}
+                                    style={{
+                                        background: viewMode === 'list' ? '#3b82f6' : '#333',
+                                        color: 'white',
+                                        border: 'none',
+                                        padding: '4px 8px',
+                                        borderRadius: '4px',
+                                        cursor: 'pointer',
+                                        fontSize: '0.8rem'
+                                    }}
+                                    title="List View"
+                                >
+                                    ☰
+                                </button>
                             </div>
+
+                            {/* Content Rendering based on View Mode */}
+                            {viewMode === 'list' ? (
+                                /* List View: Vertical Stack with Drill-Down */
+                                <div className="list-view-container" style={{ display: 'flex', flexDirection: 'column', gap: '4px', width: '100%' }}>
+
+                                    {/* Navigation Header */}
+                                    {listNavId && (
+                                        <div
+                                            onClick={handleListNavBack}
+                                            style={{
+                                                padding: '8px 12px',
+                                                marginBottom: '8px',
+                                                backgroundColor: '#374151',
+                                                borderRadius: '6px',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                color: '#e5e7eb',
+                                                fontWeight: 600
+                                            }}
+                                        >
+                                            <span style={{ marginRight: '8px' }}>⬅</span>
+                                            <span>{currentFolder ? currentFolder.name : 'Root'}</span>
+                                        </div>
+                                    )}
+
+                                    {[
+                                        // 🔥 FIX: Use normalizedCategories instead of tree to find children at any depth
+                                        ...normalizedCategories.filter(t => t.parent_id === listNavId && !t.is_unclassified),
+                                        // Filter playlists: 
+                                        // If Root (listNavId null): category_id is null AND not unclassified
+                                        // If Folder (listNavId set): category_id matches listNavId
+                                        ...playlists.filter(p => {
+                                            if (listNavId) return p.category_id === listNavId;
+                                            return !p.category_id && !p.is_unclassified && p.type !== 'general';
+                                        })
+                                    ]
+                                        .sort((a, b) => {
+                                            // Sort by order_index primarily, fallback to name
+                                            if ((a.order_index || 0) !== (b.order_index || 0)) return (a.order_index || 0) - (b.order_index || 0);
+                                            // Fallback: Grid Row/Col logic if available to maintain rough equivalence
+                                            if ((a.grid_row ?? 0) !== (b.grid_row ?? 0)) return (a.grid_row ?? 0) - (b.grid_row ?? 0);
+                                            return 0; // Stable sort
+                                        })
+                                        .map(item => (
+                                            <div key={item.id} style={{ width: '100%' }}>
+                                                {(item.type === 'general' || !item.type)
+                                                    ? renderTreeItem(item as Category)
+                                                    : renderPlaylistItem(item as Playlist)
+                                                }
+                                            </div>
+                                        ))
+                                    }
+                                </div>
+                            ) : (
+                                /* Grid View: Columnar Layout */
+                                <div style={{ display: 'flex', flexDirection: 'row', gap: '20px', alignItems: 'flex-start', flex: 1, overflowX: 'auto' }}>
+                                    {Array.from({ length: Math.max(4, 1 + Math.max(0, ...[...tree, ...playlists.filter(p => !p.category_id && !p.is_unclassified)].map(i => i.grid_column ?? 0))) }).map((_, colIdx) => {
+                                        const colItems = [
+                                            ...tree.filter(t => (t.grid_column ?? 0) === colIdx),
+                                            ...playlists.filter(p => p.category_id === null && !p.is_unclassified && p.type !== 'general' && (p.grid_column ?? 0) === colIdx)
+                                        ].sort((a, b) => {
+                                            // Primary: grid_row, Secondary: order_index
+                                            if ((a.grid_row ?? 0) !== (b.grid_row ?? 0)) return (a.grid_row ?? 0) - (b.grid_row ?? 0);
+                                            return (a.order_index || 0) - (b.order_index || 0);
+                                        });
+
+                                        if (colItems.length === 0) return null;
+
+                                        return (
+                                            <div key={`col-${colIdx}`} className="grid-column" style={{
+                                                width: '215px',
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                gap: '10px',
+                                                alignItems: 'flex-start'
+                                            }}>
+                                                {colItems.map(item => (item.type === 'general' || !item.type) ? renderTreeItem(item as Category) : renderPlaylistItem(item as Playlist))}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </>
                     )}
                 </div>
@@ -1150,7 +1314,7 @@ export const CategoryManager = memo(forwardRef<CategoryManagerHandle, CategoryMa
                     }}
                     onDrop={(e) => onDrop(e, null, true)}
                     style={{
-                        flex: 1, minWidth: '320px', padding: '20px', borderRadius: '12px',
+                        flex: 1, minWidth: '0px', padding: '20px', borderRadius: '12px',
                         background: '#111', border: dragDest === 'UNCLASSIFIED' ? '2px solid #10b981' : '1px solid #333'
                     }}
                 >
