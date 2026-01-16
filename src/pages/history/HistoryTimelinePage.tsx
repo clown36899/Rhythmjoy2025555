@@ -671,6 +671,7 @@ function HistoryTimelinePage() {
     const prevEditModeRef = useRef(isEditMode);
     const prevSelectionModeRef = useRef(isSelectionMode);
     const prevShiftPressedRef = useRef(isShiftPressed);
+    const prevSearchQueryRef = useRef(searchQuery); // 🔥 Added Ref
 
     // console.log('🎬 [HistoryTimelinePage] Component Render', {
     //     nodesCount: nodes.length,
@@ -813,8 +814,8 @@ function HistoryTimelinePage() {
         // });
 
         // Guard: Wait for loading to finish and nodes to exist
-        if (loading || nodes.length === 0) {
-            console.log('⏸️ [HistoryTimelinePage] Effect Skipped (Guard)', { loading, nodesLength: nodes.length });
+        if (loading || allNodesRef.current.size === 0) { // 🔥 Fix: Use allNodesRef instead of nodes
+            // console.log('⏸️ [HistoryTimelinePage] Effect Skipped (Guard)', { loading, nodesLength: nodes.length });
             return;
         }
 
@@ -844,30 +845,28 @@ function HistoryTimelinePage() {
         const shouldSync = !handlersInitializedRef.current ||
             prevEditModeRef.current !== isEditMode ||
             prevSelectionModeRef.current !== isSelectionMode ||
-            prevShiftPressedRef.current !== isShiftPressed;
+            prevShiftPressedRef.current !== isShiftPressed ||
+            prevSearchQueryRef.current !== searchQuery; // 🔥 Fix: Detect Search Change
 
-        // console.log('🔍 [HistoryTimelinePage] Sync Decision', {
-        //     shouldSync,
+        // console.log('🔍 [HistoryTimelinePage Debug]', {
         //     searchQuery,
-        //     willSync: shouldSync || !!searchQuery,
-        //     reason: !handlersInitializedRef.current ? 'First Init' :
-        //         prevEditModeRef.current !== isEditMode ? 'Edit Mode Changed' :
-        //             prevSelectionModeRef.current !== isSelectionMode ? 'Selection Mode Changed' :
-        //                 prevShiftPressedRef.current !== isShiftPressed ? 'Shift Changed' : 'None'
+        //     prevQuery: prevSearchQueryRef.current,
+        //     shouldSync,
+        //     currentRootId
         // });
 
-        if (shouldSync || searchQuery) {
-            // console.log('🎨 [HistoryTimelinePage] Calling syncVisualization', { currentRootId, searchQuery });
+        if (shouldSync) {
+            // console.log('🎨 [HistoryTimelinePage Debug] Calling syncVisualization');
             const filters = searchQuery ? { search: searchQuery } : undefined;
             syncVisualization(currentRootId, filters);
             handlersInitializedRef.current = true;
-            // console.log('✅ [HistoryTimelinePage] syncVisualization Complete');
         }
 
         // Track previous states to detect changes
         prevEditModeRef.current = isEditMode;
         prevSelectionModeRef.current = isSelectionMode;
         prevShiftPressedRef.current = isShiftPressed;
+        prevSearchQueryRef.current = searchQuery; // 🔥 Update Ref
 
     }, [
         // Dependencies that SHOULD trigger a potential update

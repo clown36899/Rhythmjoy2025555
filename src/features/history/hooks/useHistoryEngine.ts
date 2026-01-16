@@ -110,33 +110,38 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
         if (filters?.search) {
             // console.log('🔍 Filtering nodes with:', filters);
 
-            // [Helper] 해당 노드가 캔버스(Portal) 내부에 있는지 재귀적으로 확인
-            const isNodeInsideCanvas = (node: any): boolean => {
+            // [Helper] Check if node is visible in current scope (Standard Canvas Logic)
+            const isSearchableInScope = (node: any): boolean => {
                 let current = node;
                 while (current.parentNode) {
                     const parent = allNodesRef.current.get(current.parentNode);
                     if (!parent) break;
-                    // 부모가 캔버스이거나 포털이면 내부에 있는 것으로 간주
+
+                    // If we hit a canvas boundary
                     if (parent.data.category === 'canvas' || parent.data.node_behavior === 'PORTAL') {
-                        return true;
+                        // If this canvas IS the current view, then the node is inside it (Visible)
+                        if (parent.id === rootId) return true;
+                        // If this canvas is NOT the current view, it's a nested/sibling canvas (Hidden)
+                        return false;
                     }
                     current = parent;
                 }
-                return false;
+                // Reached Root (no parent)
+                // If we are at Global Root (rootId === null), this is visible.
+                // If we are inside a specific canvas (rootId !== null), this Global node is NOT visible.
+                return rootId === null;
             };
 
-            // A. Primary Matches (검색어/카테고리 직접 일치)
+            // A. Primary Matches
             const primaryMatches = allNodes.filter(n => {
-                // 0. 레벨에 상관없이 캔버스(Portal) 내부에 있다면 검색 대상에서 제외 (사용자 요청: 내용물 유출 방지)
-                if (isNodeInsideCanvas(n)) return false;
+                // 🔥 User Request: "Search only nodes in THAT canvas"
+                if (!isSearchableInScope(n)) return false;
 
                 const title = n.data.title || '';
 
                 let matchesSearch = !filters.search;
                 if (filters.search) {
                     const lowerQuery = filters.search.toLowerCase();
-
-                    // 사용자 요청: 발음 검색 제거, 제목에 텍스트 포함 여부만 확인
                     matchesSearch = title.toLowerCase().includes(lowerQuery);
                 }
 
@@ -163,9 +168,9 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
                 if (isTargetPrimary) neighborIds.add(edge.source);
             });
 
-            // [FIX] 이웃 노드도 캔버스 내부에 있다면 제외
+            // [FIX] 이웃 노드도 캔버스 내부에 있다면 제외 -> User Request: Allow
             const neighbors = allNodes.filter(n => {
-                if (isNodeInsideCanvas(n)) return false;
+                // if (isNodeInsideCanvas(n)) return false;
                 return neighborIds.has(n.id) && !primaryIds.has(n.id);
             });
 
@@ -185,8 +190,12 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
 
                     const parentNode = allNodesRef.current.get(n.parentNode);
                     if (!parentNode) return false;
-                    // 캔버스의 내용물은 절대 꺼내지 않음 (방어 로직)
-                    if (parentNode.data.category === 'canvas' || parentNode.data.node_behavior === 'PORTAL') return false;
+
+                    // 🔥 Scope Check (Recycled logic)
+                    if (parentNode.data.category === 'canvas' || parentNode.data.node_behavior === 'PORTAL') {
+                        if (parentNode.id !== rootId) return false;
+                    }
+                    // if (parentNode.data.category === 'canvas' || parentNode.data.node_behavior === 'PORTAL') return false;
 
                     return true;
                 });
