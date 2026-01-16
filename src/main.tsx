@@ -62,6 +62,7 @@ import LearningDetailPage from './pages/learning/detail/Page';
 import HistoryTimelinePage from './pages/history/HistoryTimelinePage';
 import KakaoCallbackPage from './pages/auth/kakao-callback/page';
 import SiteMapPage from './pages/sitemap/SiteMapPage';
+import MainV2TestPage from './pages/test/MainV2TestPage';
 
 const router = createBrowserRouter([
   {
@@ -100,6 +101,14 @@ const router = createBrowserRouter([
       { path: "/map", element: <SiteMapPage /> },
 
       // 댄스 라이브러리 (Archive) Routes - MobileShell 내부에 중첩
+      {
+        path: "test/main-v2",
+        element: <MainV2TestPage />,
+      },
+      {
+        path: "main-v2-test",
+        element: <MainV2TestPage />,
+      },
       {
         element: <ArchiveLayout />,
         children: [

@@ -246,16 +246,15 @@ const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules,
                                             <span className="all-social-time">{item.start_time.substring(0, 5)}</span>
                                         </div>
                                     )} */}
-                                    {(() => {
-                                        const dDay = calculateDDay(item.date || null);
-                                        return dDay ? (
-                                            <div className={`all-social-dday-badge ${dDay === 'D-Day' ? 'all-social-dday-today' : ''}`}>
-                                                {dDay}
-                                            </div>
-                                        ) : null;
-                                    })()}
                                 </div>
-
+                                {(() => {
+                                    const dDay = calculateDDay(item.date || null);
+                                    return dDay ? (
+                                        <div className={`all-social-dday-badge ${dDay === 'D-Day' ? 'all-social-dday-today' : ''}`}>
+                                            {dDay}
+                                        </div>
+                                    ) : null;
+                                })()}
                             </div>
                         ))
                     ) : (

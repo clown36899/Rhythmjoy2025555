@@ -36,7 +36,8 @@ export default function CalendarPage() {
         const category = urlParams.get('category');
         if (category === 'social') return 'social-events';
         if (category === 'classes') return 'classes';
-        return 'all';
+        if (category === 'all') return 'all';
+        return 'classes';
     }, []);
 
     const [tabFilter, setTabFilter] = useState<'all' | 'social-events' | 'classes' | 'overseas'>(initialTabFilter as any);

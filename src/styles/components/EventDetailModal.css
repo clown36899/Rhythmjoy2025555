@@ -512,11 +512,8 @@
 
 .info-item {
   display: flex;
-  align-items: center;
   gap: 0.5rem;
-  /* space-x-3 */
   color: #e5e7eb;
-  /* text-gray-200 */
 }
 
 .info-icon {
@@ -540,6 +537,7 @@
 .info-item-content p {
   white-space: pre-wrap;
   line-height: 1.5;
+  margin-top: 0;
   /* leading-relaxed */
   word-break: break-word;
   overflow-wrap: anywhere;

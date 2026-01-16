@@ -1,0 +1,512 @@
+/* Scoped styles for MainV2TestPage to ensure independence */
+
+.main-v2-test-container {
+    padding: 80px 16px 16px 16px;
+    background-color: #121212;
+    min-height: 100vh;
+    color: #ffffff;
+    padding-bottom: 80px;
+    /* Bottom Nav space */
+}
+
+/* Menu Section */
+.main-v2-test-container .main-v2-menu-scroll {
+    display: flex;
+    justify-content: center;
+    /* Center alignment */
+    gap: 8px;
+    /* Reduced gap for better fit */
+    padding-bottom: 16px;
+    margin-bottom: 24px;
+    /* overflow-x: auto; Remove scroll since we want shrinking */
+}
+
+.main-v2-test-container .menu-item-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    flex: 1;
+    /* Distribute space equally */
+    min-width: 0;
+    /* Allow infinite shrinking */
+    max-width: 70px;
+    /* Prevent excessive width */
+    padding: 0;
+    /* Remove padding if any */
+}
+
+.main-v2-test-container .menu-thumb-box {
+    width: 100%;
+    /* Fill the flexible button width */
+    height: auto;
+    aspect-ratio: 1/1;
+    /* Keep square ratio */
+    border-radius: 16px;
+    /* Keep radius but maybe resize if very small? 16px is fine */
+    background: #2a2a2a;
+    /* Fallback */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border: 2px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.main-v2-test-container .menu-item-btn.active .menu-thumb-box {
+    border-color: #00d4ff;
+    /* Active Color */
+    box-shadow: 0 0 12px rgba(0, 212, 255, 0.4);
+}
+
+.main-v2-test-container .menu-thumb-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.main-v2-test-container .menu-label {
+    font-size: 12px;
+    color: #aaaaaa;
+    font-weight: 500;
+}
+
+.main-v2-test-container .menu-item-btn.active .menu-label {
+    color: #ffffff;
+    font-weight: 700;
+}
+
+/* Today Bar Icon Specifics (iOS Style) */
+.main-v2-test-container .today-bar-box {
+    background-color: #ffffff;
+    border-radius: 12px;
+    overflow: hidden;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    /* Subtle depth like an app icon */
+    position: relative;
+    padding: 0;
+}
+
+/* Maintain icon look even when active - just add a ring */
+.main-v2-test-container .menu-item-btn.active .today-bar-box {
+    background-color: #ffffff !important;
+    color: inherit !important;
+    border: 2px solid #00d4ff !important;
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.3) !important;
+}
+
+.main-v2-test-container .today-icon-content {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+}
+
+.main-v2-test-container .today-weekday {
+    background-color: #ff3b30;
+    /* iOS Calendar Red */
+    color: white;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    height: 18px;
+    /* Fixed header height */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    letter-spacing: 0.5px;
+}
+
+.main-v2-test-container .today-date {
+    background-color: #ffffff;
+    color: #000000;
+    font-size: 22px;
+    font-weight: 600;
+    /* iOS uses slightly lighter bold */
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-bottom: 2px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Title & Toggle Row */
+.main-v2-test-container .title-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.main-v2-test-container .section-title {
+    font-size: 18px;
+    font-weight: bold;
+    margin: 0;
+}
+
+/* View Control Container */
+.main-v2-test-container .view-toggle-container {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+/* Week Navigation Group */
+.main-v2-test-container .week-nav-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: #222;
+    padding: 2px;
+    border-radius: 8px;
+}
+
+.main-v2-test-container .nav-btn {
+    background: transparent;
+    border: none;
+    color: #ccc;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 6px;
+    transition: all 0.2s;
+    font-weight: 600;
+}
+
+.main-v2-test-container .nav-btn:hover {
+    background: #333;
+    color: #fff;
+}
+
+.main-v2-test-container .nav-btn.today {
+    font-size: 12px;
+    padding: 6px 12px;
+    background: #333;
+    border: 1px solid #444;
+}
+
+.main-v2-test-container .nav-btn.today:hover {
+    background: #444;
+    border-color: #555;
+}
+
+
+/* View Type Toggle Group (Segmented Control) */
+.main-v2-test-container .view-type-toggles {
+    display: flex;
+    background: #2a2a2a;
+    border-radius: 8px;
+    padding: 2px;
+    border: 1px solid #333;
+}
+
+.main-v2-test-container .toggle-btn {
+    background: transparent;
+    border: none;
+    color: #888;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.main-v2-test-container .toggle-btn.active {
+    background: #00d4ff;
+    color: #000;
+    font-weight: 700;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+
+/* Content Grid Section */
+.main-v2-test-container .content-grid-section {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.main-v2-test-container .grid-item-card {
+    background: #1e1e1e;
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    aspect-ratio: 3/4;
+    /* Example Aspect Ratio */
+}
+
+.main-v2-test-container .grid-item-thumb {
+    width: 100%;
+    height: 70%;
+    background: #333;
+    object-fit: cover;
+}
+
+.main-v2-test-container .grid-item-info {
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 30%;
+}
+
+.main-v2-test-container .grid-item-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.main-v2-test-container .grid-item-sub {
+    font-size: 10px;
+    color: #888;
+    margin-top: 4px;
+}
+
+/* Daily List Layout */
+.main-v2-test-container .daily-list-section {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding-bottom: 40px;
+}
+
+.main-v2-test-container .daily-header {
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 12px;
+    padding-left: 4px;
+    border-left: 4px solid #00d4ff;
+    line-height: 1.2;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-direction: row;
+    justify-content: flex-start;
+}
+
+.main-v2-test-container .daily-header span {
+    color: #aaa;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.main-v2-test-container .daily-items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.main-v2-test-container .daily-item-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #1e1e1e;
+    padding: 10px;
+    border-radius: 12px;
+}
+
+.main-v2-test-container .daily-item-thumb {
+    width: 60px;
+    height: 60px;
+    border-radius: 8px;
+    object-fit: cover;
+    background: #333;
+    flex-shrink: 0;
+}
+
+.main-v2-test-container .daily-item-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex: 1;
+    min-width: 0;
+    /* Text truncation fix */
+}
+
+.main-v2-test-container .daily-item-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.main-v2-test-container .daily-item-sub {
+    font-size: 12px;
+    color: #888;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Horizontal Date Strip */
+.main-v2-test-container .horizontal-date-strip {
+    display: flex;
+    overflow-x: auto;
+    gap: 8px;
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+    scrollbar-width: none;
+}
+
+.main-v2-test-container .horizontal-date-strip::-webkit-scrollbar {
+    display: none;
+}
+
+.main-v2-test-container .date-chip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 50px;
+    height: 64px;
+    background: #1e1e1e;
+    border-radius: 12px;
+    border: 1px solid #333;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s;
+}
+
+.main-v2-test-container .date-chip.selected {
+    background: #00d4ff;
+    border-color: #00d4ff;
+}
+
+.main-v2-test-container .date-chip-day {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 2px;
+}
+
+.main-v2-test-container .date-chip.selected .date-chip-day {
+    color: #000;
+    opacity: 0.7;
+}
+
+.main-v2-test-container .date-chip-date {
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.main-v2-test-container .date-chip.selected .date-chip-date {
+    color: #000;
+}
+
+/* Weekly View Styles ( mimicking Full Calendar ) */
+.main-v2-test-container .daily-group-week {
+    background-color: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    padding: 8px 8px 12px 8px;
+    min-height: 80px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.main-v2-test-container .daily-header-week {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #2a2a2a;
+}
+
+/* Copied/Adapted from FullEventCalendar */
+.main-v2-test-container .week-date-number {
+    font-size: 14px;
+    font-weight: 700;
+    color: #d1d5db;
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+}
+
+.main-v2-test-container .week-date-number.today {
+    background-color: #ef4444;
+    /* Red badge for today */
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+}
+
+.main-v2-test-container .week-date-number.sunday {
+    color: #ef4444;
+    /* Red text */
+}
+
+.main-v2-test-container .week-date-number.saturday {
+    color: #3b82f6;
+    /* Blue text */
+}
+
+.main-v2-test-container .week-weekday {
+    font-size: 12px;
+    font-weight: 400;
+    opacity: 0.8;
+}
+
+/* App Icon Box Style (iOS Flat/Gradient) */
+.main-v2-test-container .app-icon-box {
+    border-radius: 13px;
+    /* Slightly softer for icons */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+    border: none;
+    position: relative;
+    width: 60px;
+    /* Force size to override the flex stretch if needed, or let flex handle it? 
+                  Previous step made buttons flex. 
+                  Inner box width was 100%. 
+                  Let's stick to 100% and aspect ratio from previous rule. */
+    width: 100%;
+    height: 100%;
+}
+
+/* Gradients */
+.main-v2-test-container .ios-blue {
+    background: linear-gradient(135deg, #007aff, #0055b3);
+}
+
+.main-v2-test-container .ios-green {
+    background: linear-gradient(135deg, #34c759, #248a3d);
+}
+
+.main-v2-test-container .ios-purple {
+    background: linear-gradient(135deg, #af52de, #7e36a1);
+}
+
+.main-v2-test-container .ios-orange {
+    background: linear-gradient(135deg, #ff9500, #c47200);
+}
+
+/* Maintain icon look even when active - just add a ring */
+.main-v2-test-container .menu-item-btn.active .app-icon-box {
+    color: inherit !important;
+    border: 2px solid #00d4ff !important;
+    box-shadow: 0 0 10px rgba(0, 212, 255, 0.3) !important;
+}

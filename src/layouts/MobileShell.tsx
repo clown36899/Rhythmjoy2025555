@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../lib/supabase';
 import { logUserInteraction } from '../lib/analytics';
 import GlobalLoadingOverlay from '../components/GlobalLoadingOverlay';
+import GlobalNoticePopup from '../components/GlobalNoticePopup';
 import '../styles/components/MobileShell.css';
 
 interface MobileShellProps {
@@ -453,6 +454,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
         message="카카오 로그인 중..."
         onCancel={cancelAuth}
       />
+      <GlobalNoticePopup />
     </div >
   );
 };

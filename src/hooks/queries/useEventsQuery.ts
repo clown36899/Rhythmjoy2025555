@@ -53,7 +53,8 @@ export const useEventsQuery = () => {
                 link1: s.link_url,
                 link_name1: s.link_name,
                 board_users: Array.isArray(s.board_users) ? s.board_users[0] : s.board_users,
-                is_social_integrated: true
+                is_social_integrated: true,
+                day_of_week: s.day_of_week
             } as any));
 
             const combined = [...(eventsResult.data || []), ...mappedSocialEvents] as Event[];

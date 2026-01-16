@@ -79,6 +79,7 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   max-width: 100%;
   min-width: 0;
+  position: relative;
 }
 
 /* .card-container:hover {
@@ -116,6 +117,7 @@
   overflow: hidden;
   aspect-ratio: 13 / 16;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 12px;
 }
 
 /* .card-container:hover .card-image-wrapper {
@@ -150,7 +152,7 @@
 .card-image {
   height: 100%;
   width: 100%;
-  border-radius: 6px;
+  /* border-radius: 6px; */
   object-fit: cover;
   transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -245,8 +247,8 @@
 /* ===== D-Day 배지 ===== */
 .card-dday-badge {
   position: absolute;
-  top: 4px;
-  left: 4px;
+  top: -6px;
+  left: -6px;
   padding: 3px 8px;
   border-radius: 6px;
   font-size: 11px;

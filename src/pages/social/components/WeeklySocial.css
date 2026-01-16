@@ -13,12 +13,11 @@
 .view-tab-menu-v3 {
     display: flex;
     position: relative;
-    background: #1a1a1a;
+    /* background: #1a1a1a; */
     /* padding: 4px; */
     /* border-radius: 14px; */
     margin-bottom: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+
 }
 
 
@@ -245,15 +244,15 @@
     display: flex;
     justify-content: space-between;
     margin-bottom: 24px;
-    gap: 8px;
+    /* gap: 8px; */
 }
 
 .day-btn-v5 {
     flex: 1;
     background: #1a1a1a;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 0px solid rgba(255, 255, 255, 0.05);
     padding: 10px 0;
-    border-radius: 16px;
+    /* border-radius: 16px; */
     display: flex;
     flex-direction: column;
     align-items: center;

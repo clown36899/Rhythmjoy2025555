@@ -4,7 +4,6 @@ import { supabase } from '../lib/supabase';
 import '../styles/components/GlobalNoticePopup.css';
 
 export default function GlobalNoticePopup() {
-    const FIXED_NOTICE_ID = 1; // singleton notice ID
     const [notice, setNotice] = useState<any>(null);
     const [isVisible, setIsVisible] = useState(false);
     const [dontShowToday, setDontShowToday] = useState(false);
@@ -14,30 +13,31 @@ export default function GlobalNoticePopup() {
     }, []);
 
     const checkNotice = async () => {
-        // 1. Check local storage
-        const hideUntil = localStorage.getItem('hideNoticeUntil');
-        if (hideUntil) {
-            if (new Date() < new Date(hideUntil)) {
-                return; // Don't show
-            } else {
-                localStorage.removeItem('hideNoticeUntil');
-            }
-        }
-
-        // 2. Fetch the singleton notice (ID 1)
         try {
+            // 1. Fetch the LATEST ACTIVE notice
             const { data, error } = await supabase
                 .from('global_notices')
                 .select('*')
-                .eq('id', FIXED_NOTICE_ID) // Always target ID 1
+                .eq('is_active', true)
+                .order('created_at', { ascending: false })
+                .limit(1)
                 .maybeSingle();
 
             if (error) throw error;
-
             console.log('[NoticePopup] Notice status from DB:', data);
 
-            // Show only if it exists AND is active
-            if (data && data.is_active) {
+            // 2. Check visibility conditions
+            if (data) {
+                // Check local storage for THIS notice ID
+                const hideUntil = localStorage.getItem(`hideNoticeUntil_${data.id}`);
+                if (hideUntil) {
+                    if (new Date() < new Date(hideUntil)) {
+                        return; // Don't show
+                    } else {
+                        localStorage.removeItem(`hideNoticeUntil_${data.id}`);
+                    }
+                }
+
                 setNotice(data);
                 setIsVisible(true);
             } else {
@@ -56,10 +56,11 @@ export default function GlobalNoticePopup() {
     };
 
     const handleSaveDontShow = () => {
+        if (!notice) return;
         // Hide for 24 hours
         const tomorrow = new Date();
         tomorrow.setHours(tomorrow.getHours() + 24);
-        localStorage.setItem('hideNoticeUntil', tomorrow.toISOString());
+        localStorage.setItem(`hideNoticeUntil_${notice.id}`, tomorrow.toISOString());
     };
 
     const toggleDontShow = () => {

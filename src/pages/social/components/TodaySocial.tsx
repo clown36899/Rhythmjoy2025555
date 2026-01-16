@@ -159,20 +159,20 @@ const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll, on
                                         <i className="ri-calendar-event-line"></i>
                                     </div>
                                 )}
-                                {(() => {
-                                    const dDay = calculateDDay();
-                                    return dDay ? (
-                                        <div className="all-social-dday-badge all-social-dday-today">
-                                            {dDay}
-                                        </div>
-                                    ) : null;
-                                })()}
                                 {item.start_time && (
                                     <div className="today-card-overlay">
                                         <span className="today-time">{item.start_time.substring(0, 5)}</span>
                                     </div>
                                 )}
                             </div>
+                            {(() => {
+                                const dDay = calculateDDay();
+                                return dDay ? (
+                                    <div className="all-social-dday-badge all-social-dday-today">
+                                        {dDay}
+                                    </div>
+                                ) : null;
+                            })()}
                             <div className="today-card-info">
                                 <p className="today-card-place">
                                     <i className="ri-map-pin-line"></i>

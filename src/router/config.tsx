@@ -10,6 +10,7 @@ import PracticeRoomsPage from "../pages/practice/page";
 import GuidePage from "../pages/guide/page";
 import SocialCalendarPage from "../pages/social/calendar/page";
 import BoardPage from "../pages/board/page";
+import MainV2TestPage from "../pages/test/MainV2TestPage";
 
 const routes: RouteObject[] = [
   {
@@ -51,6 +52,14 @@ const routes: RouteObject[] = [
       {
         path: "guide",
         element: <GuidePage />,
+      },
+      {
+        path: "main-v2-test",
+        element: <MainV2TestPage />,
+      },
+      {
+        path: "test/main-v2",
+        element: <MainV2TestPage />,
       },
     ],
   },

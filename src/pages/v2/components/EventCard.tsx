@@ -273,12 +273,6 @@ export const EventCard = memo(({
           ) : "행사"}
         </div>
 
-        {dDay && (
-          <div className={`card-dday-badge ${dDay === 'D-Day' ? 'card-dday-today' : ''}`}>
-            {dDay}
-          </div>
-        )}
-
         {onToggleFavorite && (
           <button
             className={`card-favorite-btn ${isFavorite ? 'is-active' : ''}`}
@@ -296,6 +290,12 @@ export const EventCard = memo(({
         )}
 
       </div>
+
+      {dDay && (
+        <div className={`card-dday-badge ${dDay === 'D-Day' ? 'card-dday-today' : ''}`}>
+          {dDay}
+        </div>
+      )}
 
       <div className={`card-text-container ${event.category === 'class' ? 'card-text-container-class' : 'card-text-container-event'
         }`}>

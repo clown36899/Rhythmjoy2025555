@@ -120,7 +120,7 @@
     gap: 12px;
     overflow-x: auto;
     overflow-y: hidden;
-    padding: 0 16px 12px 35px;
+    padding: 10px 16px 12px 35px;
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
@@ -139,13 +139,15 @@
     max-width: 150px;
     background: rgba(255, 255, 255, 0.05);
     border-radius: 12px;
-    overflow: hidden;
+    /* overflow: hidden; Removed to allow badge overflow */
     cursor: pointer;
     border: 0.5px solid #a599892e;
     transition: transform 0.2s, background-color 0.2s;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
     display: flex;
     flex-direction: column;
+    position: relative;
+    /* Ensure it's a positioning context */
 }
 
 .all-social-card:hover {
@@ -164,6 +166,9 @@
     /* Fill the card */
     background: transparent;
     overflow: hidden;
+    /* Clip the image content */
+    border-radius: 12px;
+    /* Match the card radius */
     flex: 1;
     display: flex;
     align-items: flex-start;
@@ -293,8 +298,8 @@
 /* D-day 배지 스타일 */
 .all-social-dday-badge {
     position: absolute;
-    top: 4px;
-    left: 4px;
+    top: -6px;
+    left: -6px;
     padding: 3px 8px;
     border-radius: 6px;
     font-size: 11px;
