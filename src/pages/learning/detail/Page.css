@@ -1574,6 +1574,29 @@
     flex-shrink: 0;
 }
 
+/* 🔥 Mobile Tab Logic: Toggle panes based on active class */
+@media (max-width: 768px) {
+    .ld-tab-pane {
+        display: none;
+        margin-bottom: 25px;
+    }
+
+    .ld-tab-pane.active {
+        display: block;
+        animation: fadeIn 0.2s ease-in-out;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
 /* Hide Tab Navigation on Desktop */
 @media (min-width: 768px) {
 
