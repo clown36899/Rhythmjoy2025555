@@ -536,84 +536,123 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
 
-    // YouTube Player 초기화 (메인 플레이어)
+    // Refs to hold fresh handlers for avoiding stale closures in YouTube events
+    const handlersRef = useRef({ playNext: () => { }, playPrevious: () => { } });
+
+    const handleVideoClick = (index: number) => {
+        setCurrentVideoIndex(index);
+    };
+
+    const playPrevious = () => {
+        if (currentVideoIndex > 0) {
+            handleVideoClick(currentVideoIndex - 1);
+        } else if (videos.length > 0) {
+            handleVideoClick(videos.length - 1); // Loop to end
+        }
+    };
+
+    const playNext = () => {
+        if (currentVideoIndex < videos.length - 1) {
+            setCurrentVideoIndex(prev => prev + 1);
+        }
+    };
+
+    // Keep handlers ref updated
     useEffect(() => {
-        if (!youtubeApiReady || !videos.length || !videos[currentVideoIndex]) return;
+        handlersRef.current = { playNext, playPrevious };
+    }, [playNext, playPrevious]);
 
-        const videoId = videos[currentVideoIndex].youtube_video_id;
-        const playerId = 'main-youtube-player';
+    // 1. Initial Player Setup (Once)
+    useEffect(() => {
+        if (!youtubeApiReady || !videos.length) return;
 
-        // 기존 플레이어 정리
-        if (playerRef.current) {
-            try {
-                playerRef.current.destroy();
-            } catch (e) {
-                console.warn('Player destroy failed', e);
-            }
-            playerRef.current = null;
+        // If player already exists, don't recreate
+        if (playerRef.current) return;
+
+        const videoId = videos[currentVideoIndex]?.youtube_video_id;
+        if (!videoId || videoId.length !== 11) {
+            return;
         }
 
-        // 새 플레이어 생성
-        setTimeout(() => {
-            const container = document.querySelector('.ld-player-wrapper');
-            if (!container) return;
-
-            // 기존 요소 제거하고 새 div 생성
-            const oldElement = document.getElementById(playerId);
-            if (oldElement) {
-                oldElement.remove();
-            }
-
-            const newDiv = document.createElement('div');
-            newDiv.id = playerId;
-            newDiv.className = 'ld-youtube-player';
-            container.appendChild(newDiv);
-
-            // Validate video ID (must be 11 chars)
-            if (!videoId || videoId.length !== 11) {
-                console.error('Invalid video ID:', videoId);
-                newDiv.innerHTML = `<div style="display:flex;justify-content:center;align-items:center;height:100%;background:#000;color:#fff;flex-direction:column;gap:10px;">
-                    <i class="ri-error-warning-line" style="font-size:2rem;color:#ef4444"></i>
-                    <p>유효하지 않은 동영상 ID입니다.</p>
-                    <p style="font-size:0.8rem;opacity:0.7">ID: ${videoId}</p>
-                </div>`;
-                return;
-            }
-
-            playerRef.current = new window.YT.Player(playerId, {
-                videoId,
-                playerVars: {
-                    autoplay: 1,
-                    modestbranding: 1,
-                    rel: 0,
-                    iv_load_policy: 3,
-                    autohide: 1,
-                    enablejsapi: 1,
-                    origin: window.location.origin, // Fix postMessage origin mismatch
+        // Create player
+        playerRef.current = new window.YT.Player('main-youtube-player', {
+            videoId,
+            playerVars: {
+                autoplay: 1, // Auto-play on load
+                modestbranding: 1,
+                rel: 0,
+                iv_load_policy: 3,
+                autohide: 1,
+                enablejsapi: 1,
+                origin: window.location.origin,
+            },
+            events: {
+                onReady: (event: any) => {
+                    event.target.playVideo();
                 },
-                events: {
-                    onReady: () => {
-                        // Player ready
-                    },
-                    onStateChange: (event: any) => {
-                        setIsPlaying(event.data === 1); // 1 = Playing
-                        if (event.data === 0) playNext(); // 0 = Ended
-                    },
+                onStateChange: (event: any) => {
+                    setIsPlaying(event.data === 1); // 1 = Playing
+
+                    if (event.data === 0) {
+                        // Ended -> Play Next (Use ref to avoid stale closure)
+                        handlersRef.current.playNext();
+                    }
+
+                    // 🔥 Update MediaSession status
+                    if ('mediaSession' in navigator) {
+                        if (event.data === 1) navigator.mediaSession.playbackState = 'playing';
+                        else if (event.data === 2) navigator.mediaSession.playbackState = 'paused';
+                    }
                 },
-            });
-        }, 100);
+                onError: (e: any) => {
+                    console.error("YouTube Player Error:", e.data);
+                }
+            },
+        });
 
         return () => {
             if (playerRef.current) {
                 try {
                     playerRef.current.destroy();
-                } catch (e) {
-                    // Ignore
-                }
+                } catch (e) { /* ignore */ }
                 playerRef.current = null;
             }
         };
-    }, [youtubeApiReady, currentVideoIndex, videos]);
+    }, [youtubeApiReady, videos.length]); // Wait for API AND Videos
+
+    // 2. Handle Video Change (Load new video without destroying player)
+    useEffect(() => {
+        const video = videos[currentVideoIndex];
+        if (!video || !playerRef.current || !playerRef.current.loadVideoById) return;
+
+        const currentId = video.youtube_video_id;
+
+        // Load new video (Use argument syntax instead of object syntax for better compatibility)
+        if (currentId && currentId.length === 11) {
+            try {
+                playerRef.current.loadVideoById(currentId);
+            } catch (err) {
+                console.error("Failed to load video:", err);
+            }
+        }
+
+        // 🔥 Update MediaSession Metadata when video changes
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: video.title || 'RhythmJoy Video',
+                artist: 'RhythmJoy Learning',
+                artwork: [
+                    { src: `https://img.youtube.com/vi/${currentId}/mqdefault.jpg`, sizes: '320x180', type: 'image/jpeg' }
+                ]
+            });
+
+            navigator.mediaSession.setActionHandler('play', () => playerRef.current?.playVideo());
+            navigator.mediaSession.setActionHandler('pause', () => playerRef.current?.pauseVideo());
+            navigator.mediaSession.setActionHandler('previoustrack', () => handlersRef.current.playPrevious());
+            navigator.mediaSession.setActionHandler('nexttrack', () => handlersRef.current.playNext());
+        }
+
+    }, [currentVideoIndex, videos]); // Run when index or video list changes
 
     // Track current playback time
     useEffect(() => {
@@ -640,15 +679,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
     }, [currentTime, bookmarks]);
 
 
-    const playNext = () => {
-        if (currentVideoIndex < videos.length - 1) {
-            setCurrentVideoIndex(prev => prev + 1);
-        }
-    };
 
-    const handleVideoClick = (index: number) => {
-        setCurrentVideoIndex(index);
-    };
 
     const seekTo = (seconds: number) => {
         if (playerRef.current && typeof playerRef.current.seekTo === 'function') {

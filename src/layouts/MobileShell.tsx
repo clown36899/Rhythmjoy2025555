@@ -70,6 +70,18 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
     fetchTotalUserCount();
   }, []);
 
+  // 🔄 Global Scroll Reset on Route Change
+  useEffect(() => {
+    // 1. Reset Window Scroll (Standard Mode)
+    window.scrollTo(0, 0);
+
+    // 2. Reset Container Scroll (Wide Mode / Custom Layouts)
+    const shellContainer = document.querySelector('.shell-container');
+    if (shellContainer) {
+      shellContainer.scrollTop = 0;
+    }
+  }, [location.pathname]);
+
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
