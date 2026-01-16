@@ -54,9 +54,14 @@ function HistoryTimelinePage() {
 
     // 2. UI 상태 관리
     const [rfInstance, setRfInstance] = useState<ReactFlowInstance | null>(null);
+    const hasAppliedDefaultViewRef = useRef(false); // 🔥 Track if default view applied
     // isEditMode moved up
     const [isSelectionMode, setIsSelectionMode] = useState(false);
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+    const [isViewportReady, setIsViewportReady] = useState(false); // 🔥 Prevent flash of wrong viewport
+    // 🔥 Viewport History for Navigation Persistence
+    const viewportHistoryRef = useRef<Map<string, { x: number, y: number, zoom: number }>>(new Map());
+    const prevRootIdRef = useRef<string | null>(null);
 
     // 모달 상태
     const [isEditorOpen, setIsEditorOpen] = useState(false);
@@ -876,15 +881,112 @@ function HistoryTimelinePage() {
         nodes.length // Only react to count changes, not data mutations
     ]);
 
-    // 🔥 New: Auto fitView when navigating levels or filters change
+    // 🔥 Logic 1: Auto fitView when navigating levels (Folders) or Filtering (Search)
+    // 🔥 Logic 1: Viewport Persistence & Management (Unified)
+    // Dependencies: currentRootId changing means we navigated.
     useEffect(() => {
-        if (rfInstance && !loading && nodes.length > 0) {
-            // Give React Flow a frame to calculate internal layouts
-            requestAnimationFrame(() => {
-                rfInstance.fitView({ padding: 0.1 });
-            });
+        if (!rfInstance || loading || nodes.length === 0) return;
+
+        const currentIdKey = currentRootId || 'ROOT';
+        const prevIdKey = prevRootIdRef.current || 'ROOT';
+
+        // 1. Save Previous Viewport (if we actually moved)
+        if (prevIdKey !== currentIdKey) {
+            const currentView = rfInstance.getViewport();
+            // Only save if it looks valid (not 0,0,0 usually)
+            if (currentView.zoom > 0) {
+                viewportHistoryRef.current.set(prevIdKey, currentView);
+                console.log(`💾 [Viewport] Saved history for [${prevIdKey}]:`, currentView);
+            }
         }
-    }, [currentRootId, rfInstance, loading, nodes.length, searchQuery, isFullscreen]);
+
+        // Update tracker
+        prevRootIdRef.current = currentRootId;
+
+        // 2. Restore Viewport (Priority 1)
+        const savedView = viewportHistoryRef.current.get(currentIdKey);
+        if (savedView) {
+            console.log(`♻️ [Viewport] Restoring history for [${currentIdKey}]:`, savedView);
+            rfInstance.setViewport(savedView, { duration: 0 });
+            hasAppliedDefaultViewRef.current = true;
+            setIsViewportReady(true);
+            return;
+        }
+
+        // 3. Root Default Viewport (Priority 2)
+        if (!currentRootId && !searchQuery) {
+            // If already applied ONCE for Root this session (and not restoring), maybe we shouldn't reset?
+            // Actually `hasAppliedDefaultViewRef` tracks global "init". 
+            // If we navigated to Folder and back to Root, `savedView` handles it.
+            // If we hard-refreshed at Root, this logic handles it.
+            if (hasAppliedDefaultViewRef.current) return;
+
+            // Standard Load Logic
+            const loadDefault = async () => {
+                try {
+                    const isMobile = window.innerWidth < 768;
+                    const key = isMobile ? 'timeline_view_mobile' : 'timeline_view_desktop';
+                    const { data } = await supabase.from('app_settings').select('value').eq('key', key).maybeSingle();
+
+                    if (data?.value) {
+                        rfInstance.setViewport(data.value, { duration: 0 });
+                    } else {
+                        rfInstance.fitView({ padding: 0.1 });
+                    }
+                    hasAppliedDefaultViewRef.current = true;
+                    setIsViewportReady(true);
+                } catch {
+                    rfInstance.fitView({ padding: 0.1 });
+                    setIsViewportReady(true);
+                }
+            };
+            loadDefault();
+            return;
+        }
+
+        // 4. Fallback Auto-Fit (Priority 3 - Folders / Search)
+        // If we fall through here, simply fit view
+        requestAnimationFrame(() => {
+            console.log('🖼️ [Viewport] Auto-Fit (Fallback/Nav)');
+            rfInstance.fitView({ padding: 0.1 });
+            setIsViewportReady(true);
+        });
+
+    }, [currentRootId, rfInstance, loading, nodes.length, searchQuery]);
+
+    const handleSaveDefaultViewport = useCallback(async (type: 'desktop' | 'mobile') => {
+        if (!rfInstance || !isAdmin) {
+            console.error('❌ [Viewport] Save prevented: rfInstance missing or not admin', { rfInstance: !!rfInstance, isAdmin });
+            return;
+        }
+        const viewport = rfInstance.getViewport();
+        const key = `timeline_view_${type}`;
+
+        const message = `${type === 'desktop' ? '데스크탑' : '모바일'} 기본 화면을 현재 뷰로 설정하시겠습니까?\n(x: ${Math.round(viewport.x)}, y: ${Math.round(viewport.y)}, zoom: ${viewport.zoom.toFixed(2)})`;
+        if (!window.confirm(message)) return;
+
+        try {
+            console.log(`🎬 [Viewport] Saving to ${key}...`, viewport);
+            const { data, error } = await supabase
+                .from('app_settings')
+                .upsert({
+                    key,
+                    value: viewport,
+                    description: `Default timeline viewport for ${type}`
+                }, { onConflict: 'key' })
+                .select();
+
+            if (error) {
+                console.error('❌ [Viewport] Save failed (Supabase):', error);
+                throw error;
+            }
+            console.log('✅ [Viewport] Save success:', data);
+            alert('저장되었습니다.');
+        } catch (err: any) {
+            console.error('❌ [Viewport] Save failed (Catch):', err);
+            alert(`저장 실패: ${err.message}`);
+        }
+    }, [rfInstance, isAdmin]);
 
     return (
         <div className={`history-timeline-container ${isFullscreen ? 'is-fullscreen' : ''}`}>
@@ -942,7 +1044,10 @@ function HistoryTimelinePage() {
                 </header>
             )}
 
-            <main className="timeline-main history-timeline-canvas">
+            <main
+                className="timeline-main history-timeline-canvas"
+                style={{ opacity: isViewportReady ? 1 : 0, transition: 'opacity 0.2s ease-in' }}
+            >
                 <HistoryCanvas
                     nodes={nodes}
                     edges={edges}
@@ -1035,6 +1140,26 @@ function HistoryTimelinePage() {
                                 <button className="action-btn save-btn" onClick={handleSaveLayout}>
                                     <i className="ri-save-line"></i> 저장
                                 </button>
+                            )}
+
+                            {/* Save Default View (Admin Only) */}
+                            {isAdmin && (
+                                <>
+                                    <button
+                                        className="action-btn"
+                                        onClick={() => handleSaveDefaultViewport('desktop')}
+                                        title="현재 화면을 PC 기본값으로 저장"
+                                    >
+                                        <i className="ri-computer-line"></i> PC 고정
+                                    </button>
+                                    <button
+                                        className="action-btn"
+                                        onClick={() => handleSaveDefaultViewport('mobile')}
+                                        title="현재 화면을 모바일 기본값으로 저장"
+                                    >
+                                        <i className="ri-smartphone-line"></i> 모바일 고정
+                                    </button>
+                                </>
                             )}
                         </div>
                     )}
@@ -1201,10 +1326,10 @@ function HistoryTimelinePage() {
                 />
             )}
 
-            {loading && (
+            {(loading || !isViewportReady) && (
                 <div className="timeline-loading-overlay">
                     <div className="loader"></div>
-                    <p>데이터 처리 중...</p>
+                    <p>데이터 불러오는 중...</p>
                 </div>
             )}
 

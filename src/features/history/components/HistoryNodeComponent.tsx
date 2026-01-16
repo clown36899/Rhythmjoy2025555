@@ -235,6 +235,13 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
         // 1. Container Type (Portal/Group) -> Navigate
         if (isContainer) {
             e.stopPropagation();
+
+            // 🔥 [Canvas Interaction Change]
+            // Canvas Node body click does NOT navigate. Must use the Enter button.
+            if (isCanvas) {
+                return;
+            }
+
             if (data.onNavigate) {
                 // Double check it's not a folder to be safe
                 if (data.nodeType !== 'folder') {
@@ -267,7 +274,16 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
 
         // 4. Default -> View Detail Modal
         handleViewDetail(e);
-    }, [data, isContainer, handleViewDetail]);
+    }, [data, isContainer, handleViewDetail, isCanvas]);
+
+    // 🔥 Explicit Enter Logic for Canvas
+    const handleEnterCanvas = useCallback((e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (data.onNavigate) {
+            data.onNavigate(String(data.id), data.title);
+        }
+    }, [data]);
+
     return (
         <div
             ref={nodeRef}
@@ -468,6 +484,14 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
                         <i className="ri-youtube-fill"></i>
                     </button>
                 )}
+
+                {/* 🔥 Canvas Enter Button */}
+                {isCanvas && (
+                    <button className="node-action-btn btn-enter" onClick={handleEnterCanvas} title="캔버스 진입">
+                        <i className="ri-login-box-line"></i>
+                    </button>
+                )}
+
                 <button className="node-action-btn btn-detail" onClick={handleViewDetail} title="상세보기">
                     <i className="ri-fullscreen-line"></i>
                 </button>

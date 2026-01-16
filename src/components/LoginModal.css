@@ -126,3 +126,18 @@
         opacity: 1;
     }
 }
+
+.login-footer-notice {
+    margin-top: 24px;
+    font-size: 0.75rem;
+    color: #666;
+    text-align: center;
+    line-height: 1.4;
+}
+
+.login-footer-notice .highlight {
+    color: #888;
+    font-weight: 500;
+    text-decoration: underline;
+    cursor: pointer;
+}

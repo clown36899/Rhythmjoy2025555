@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useInstallPrompt } from '../contexts/InstallPromptContext';
+import { useAuth } from '../contexts/AuthContext';
 import './PWAInstallButton.css';
 
 export const PWAInstallButton = () => {
     const { promptEvent, setPromptEvent, isInstalled } = useInstallPrompt();
+    const { user } = useAuth();
     const [showInstructions, setShowInstructions] = useState(false);
     const [isInstalling, setIsInstalling] = useState(false);
     const [installProgress, setInstallProgress] = useState(0);
@@ -76,6 +78,15 @@ export const PWAInstallButton = () => {
         // PWA가 이미 설치되어 있으면 앱 열기
         if (isInstalled) {
             handleOpenApp();
+            return;
+        }
+
+        // ✅ [Auth Check] 설치 전 로그인 필수 확인
+        if (!user) {
+            // 로그인 모달 트리거 (MobileShell에서 수신)
+            window.dispatchEvent(new CustomEvent('openLoginModal', {
+                detail: { message: '앱을 설치하려면 먼저 로그인이 필요합니다.\n로그인 후 설치를 진행해주세요.' }
+            }));
             return;
         }
 
@@ -309,4 +320,3 @@ export const PWAInstallButton = () => {
         </>
     );
 };
-

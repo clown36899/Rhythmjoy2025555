@@ -36,9 +36,6 @@ export default function LoginModal({ isOpen, onClose, message }: LoginModalProps
                         className="login-btn login-btn-kakao"
                         onClick={() => {
                             signInWithKakao();
-                            // Note: Kakao login redirects, so we don't necessarily need to close modal immediately,
-                            // but usually it's good UX to leave it open until redirect happens or close it if we want.
-                            // Since it redirects, the state will be lost anyway.
                         }}
                         disabled={isAuthProcessing}
                     >
@@ -61,6 +58,10 @@ export default function LoginModal({ isOpen, onClose, message }: LoginModalProps
                         </svg>
                         Google로 시작하기
                     </button>
+                </div>
+
+                <div className="login-footer-notice">
+                    로그인 시 <span className="highlight" onClick={() => window.open('/guide', '_blank')}>이용약관</span> 및 <span className="highlight" onClick={() => window.open('/privacy', '_blank')}>개인정보처리방침</span>에 동의하는 것으로 간주합니다.
                 </div>
             </div>
         </div>

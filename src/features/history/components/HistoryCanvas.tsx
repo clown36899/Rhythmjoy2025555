@@ -116,7 +116,6 @@ export const HistoryCanvas = ({
                 defaultEdgeOptions={useMemo(() => ({ type: 'default', animated: true }), [])} /* 🔥 Default to Curved Bezier edges */
                 deleteKeyCode={['Backspace', 'Delete']}
                 onlyRenderVisibleElements={true} /* 🔥 Performance Optimization */
-                fitView
             >
                 <Background color="#334155" gap={20} />
                 <Controls />
