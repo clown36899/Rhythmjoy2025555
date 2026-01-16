@@ -6,36 +6,101 @@ import { getLocalDateString, getKSTDay, getDayName } from '../v2/utils/eventList
 import { useAuth } from '../../contexts/AuthContext';
 import { useEventModal } from '../../hooks/useEventModal';
 import EventDetailModal from '../v2/components/EventDetailModal';
+import LoginModal from '../../components/LoginModal';
 
-// Custom Icons
-const DanceShoeIcon = () => (
-    <svg viewBox="0 0 512 512" width="28" height="28" fill="currentColor" style={{ filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' }}>
-        {/* Artistic Latin Dance Shoe */}
-        <path d="M464.4,236.65c-6.6-4.4-14.9-5-22.1-1.6l-67.4,32.1c-15.3-26.4-33-51.2-53.1-73.4c2.8-5.3,4.7-11.2,5.2-17.5
-          c1.8-19.8-12.8-37.5-32.6-39.3c-19.8-1.8-37.5,12.8-39.3,32.6c-1.3,14.6,6.3,27.7,18.5,34.5c-15.6,34.1-24.9,71.2-26.6,109.9h-85
-          c-8.8,0-16,7.2-16,16v32c0,8.8,7.2,16,16,16h27.9c16.3,86.9,90.4,153.6,181.1,162.8V504c0,4.4,3.6,8,8,8h32c4.4,0,8-3.6,8-8v-32
-          c29.4,0,57.1-8.1,81-22.1c5.9-3.5,7.9-11.1,4.5-17.1c-3.5-5.9-11.1-7.9-17.1-4.5c-20.6,12.1-44.4,19.2-69.8,19.6v-54.8
-          c56.8-9.4,103.4-48.4,124.7-100.8C491.5,274.9,484.2,249.9,464.4,236.65z M352.5,417c-65.4-5.3-119.3-51.4-135.2-111.4l55.9-26.6
-          C296.6,334.3,338.5,380.5,352.5,417z" transform="translate(-40, 20) scale(0.85)" />
+// Custom SVG Icons for Menu Items - Improved Design (No Gradients)
+const TodayBarIcon = () => (
+    <svg viewBox="0 0 100 100" width="100%" height="100%">
+        <rect width="100" height="100" fill="#FF3B30" rx="18" />
+        <rect y="22" width="100" height="78" fill="#FFFFFF" rx="0" />
+        <text x="50" y="16" fontSize="11" fill="white" textAnchor="middle" fontWeight="700" letterSpacing="0.5">
+            {getDayName(getLocalDateString())}
+        </text>
+        <text x="50" y="68" fontSize="40" fill="#000000" textAnchor="middle" fontWeight="600" fontFamily="-apple-system, BlinkMacSystemFont, sans-serif">
+            {parseInt(getLocalDateString().split('-')[2])}
+        </text>
+    </svg>
+);
 
-        {/* Graduation Cap (Lesson Symbol) - Positioned Top Left */}
-        <path d="M232,80l-128,64l128,64l96-48v76c0,22,35.8,40,80,40s80-18,80-40v-76l16-8L232,80z M456,236c0,8.8-35.8,16-80,16
-          s-80-7.2-80-16v4c0,8.8,35.8,16,80,16s80-7.2,80-16V236z M232,189.3L126.6,136.6L232,84l115.4,57.7L232,189.3z"
-            fill="#FFD700" transform="translate(-80, -20) scale(0.9)" />
+const WorkshopIcon = () => (
+    <svg viewBox="0 0 100 100" width="100%" height="100%">
+        <rect width="100" height="100" fill="#007AFF" rx="18" />
+        {/* Person silhouette */}
+        <circle cx="50" cy="32" r="14" fill="white" />
+        <ellipse cx="50" cy="65" rx="22" ry="18" fill="white" />
+        {/* Book/Teaching element */}
+        <rect x="38" y="70" width="24" height="3" fill="#007AFF" rx="1.5" />
+        <rect x="42" y="75" width="16" height="2" fill="#007AFF" rx="1" />
+    </svg>
+);
 
-        {/* Shine on Cap */}
-        <path d="M384,112l10,20l20,10l-20,10l-10,20l-10-20l-20-10l20-10L384,112z"
-            fill="#FFFFFF" style={{ opacity: 0.8 }} transform="translate(-50, -50)" />
+const EventIcon = () => (
+    <svg viewBox="0 0 100 100" width="100%" height="100%">
+        <rect width="100" height="100" fill="#FF2D55" rx="18" />
+        {/* Confetti/celebration elements */}
+        <circle cx="30" cy="25" r="4" fill="#FFD60A" />
+        <circle cx="70" cy="30" r="5" fill="#FFD60A" />
+        <rect x="25" y="45" width="6" height="12" fill="#FFD60A" rx="3" transform="rotate(20 28 51)" />
+        <rect x="68" y="50" width="6" height="12" fill="#FFD60A" rx="3" transform="rotate(-15 71 56)" />
+        {/* Star */}
+        <polygon points="50,35 54,45 65,46 57,53 59,64 50,58 41,64 43,53 35,46 46,45" fill="white" />
+        {/* Streamers */}
+        <path d="M 20 70 Q 25 75 30 70 Q 35 65 40 70" stroke="#FFD60A" strokeWidth="3" fill="none" strokeLinecap="round" />
+        <path d="M 60 70 Q 65 75 70 70 Q 75 65 80 70" stroke="#FFD60A" strokeWidth="3" fill="none" strokeLinecap="round" />
+    </svg>
+);
+
+const CalendarIcon = () => (
+    <svg viewBox="0 0 100 100" width="100%" height="100%">
+        <rect width="100" height="100" fill="#34C759" rx="18" />
+        {/* Calendar body */}
+        <rect x="18" y="28" width="64" height="56" fill="white" rx="6" />
+        {/* Calendar header */}
+        <rect x="18" y="28" width="64" height="16" fill="#2A9D3F" rx="6" />
+        <rect x="18" y="36" width="64" height="8" fill="#2A9D3F" />
+        {/* Binding rings */}
+        <circle cx="32" cy="28" r="3" fill="white" />
+        <circle cx="50" cy="28" r="3" fill="white" />
+        <circle cx="68" cy="28" r="3" fill="white" />
+        {/* Date grid */}
+        <rect x="24" y="50" width="8" height="7" fill="#34C759" rx="2" />
+        <rect x="36" y="50" width="8" height="7" fill="#34C759" rx="2" />
+        <rect x="48" y="50" width="8" height="7" fill="#34C759" rx="2" />
+        <rect x="60" y="50" width="8" height="7" fill="#34C759" rx="2" />
+        <rect x="24" y="60" width="8" height="7" fill="#34C759" rx="2" />
+        <rect x="36" y="60" width="8" height="7" fill="#34C759" rx="2" />
+        {/* Highlighted date */}
+        <rect x="48" y="60" width="8" height="7" fill="#FF3B30" rx="2" />
+        <rect x="60" y="60" width="8" height="7" fill="#34C759" rx="2" />
+        <rect x="24" y="70" width="8" height="7" fill="#34C759" rx="2" />
+    </svg>
+);
+
+const ClubIcon = () => (
+    <svg viewBox="0 0 100 100" width="100%" height="100%">
+        <rect width="100" height="100" fill="#AF52DE" rx="18" />
+        {/* Three people silhouettes */}
+        {/* Left person */}
+        <circle cx="32" cy="38" r="9" fill="white" opacity="0.9" />
+        <ellipse cx="32" cy="58" rx="13" ry="11" fill="white" opacity="0.9" />
+        {/* Right person */}
+        <circle cx="68" cy="38" r="9" fill="white" opacity="0.9" />
+        <ellipse cx="68" cy="58" rx="13" ry="11" fill="white" opacity="0.9" />
+        {/* Center person (front) */}
+        <circle cx="50" cy="42" r="11" fill="white" />
+        <ellipse cx="50" cy="66" rx="16" ry="13" fill="white" />
+        {/* Connection line */}
+        <path d="M 25 75 Q 50 82 75 75" stroke="white" strokeWidth="4" fill="none" strokeLinecap="round" opacity="0.8" />
     </svg>
 );
 
 // Menu Items
 const MENU_ITEMS = [
-    { id: 'today_bar', label: '오늘연bar', type: 'today' },
-    { id: 'guest_workshop', label: '외강', type: 'text_icon', text: '외강', color: 'ios-blue' },
-    { id: 'events', label: '행사', type: 'text_icon', text: '행사', color: 'ios-purple', transparent: true },
-    { id: 'calendar', label: '전체달력', thumb: 'https://images.unsplash.com/photo-1506784983877-45594efa4cbe?auto=format&fit=crop&q=80&w=200&h=200' },
-    { id: 'club_schedule', label: '동호회일정', thumb: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&q=80&w=200&h=200' },
+    { id: 'today_bar', label: '오늘연bar', type: 'icon', component: TodayBarIcon },
+    { id: 'guest_workshop', label: '외강', type: 'icon', component: WorkshopIcon },
+    { id: 'events', label: '행사', type: 'icon', component: EventIcon },
+    { id: 'calendar', label: '전체달력', type: 'icon', component: CalendarIcon },
+    { id: 'club_schedule', label: '동호회일정', type: 'icon', component: ClubIcon },
 ];
 
 interface DisplayItem {
@@ -52,11 +117,19 @@ interface DisplayItem {
 
 
 const MainV2TestPage: React.FC = () => {
-    const { user, isAdmin } = useAuth();
+    const { user, isAdmin, loading } = useAuth();
     const eventModal = useEventModal();
     const [activeTab, setActiveTab] = useState<string>(MENU_ITEMS[0].id);
     const [viewType, setViewType] = useState<'list' | 'week' | 'calendar'>('week');
     const [selectedDateForView, setSelectedDateForView] = useState<string>(getLocalDateString());
+    const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+
+    // Auto Login Prompt
+    useEffect(() => {
+        if (!loading && !user) {
+            setIsLoginModalOpen(true);
+        }
+    }, [loading, user]);
 
     // State for Week View Navigation
     const [weekViewDate, setWeekViewDate] = useState<Date>(new Date());
@@ -344,45 +417,9 @@ const MainV2TestPage: React.FC = () => {
                                 }
                             }}
                         >
-                            {/* Today Bar Special Rendering */}
-                            {isTodayBar ? (
-                                <div className={`menu-thumb-box today-bar-box`}>
-                                    <div className="today-icon-content">
-                                        <span className="today-weekday">{getDayName(getLocalDateString())}</span>
-                                        <span className="today-date">{parseInt(getLocalDateString().split('-')[2])}</span>
-                                    </div>
-                                </div>
-                            ) : item.type === 'custom' ? (
-                                /* Custom Icon Component (Guest Workshop) */
-                                <div className={`menu-thumb-box app-icon-box ${item.color || ''}`} style={{ color: '#fff' }}>
-                                    {item.component && <item.component />}
-                                </div>
-                            ) : item.type === 'image_icon' ? (
-                                /* Custom Image Icon (Guest Workshop from User Upload - PNG) */
-                                <div className={`menu-thumb-box app-icon-box ${item.color || ''}`} style={{ padding: '8px' }}>
-                                    <img src={item.image} alt={item.label} style={{ width: '100%', height: '100%', objectFit: 'contain', filter: 'drop-shadow(0 2px 2px rgba(0,0,0,0.1))' }} />
-                                </div>
-                            ) : item.type === 'text_icon' ? (
-                                /* Text-based Icon */
-                                <div
-                                    className={`menu-thumb-box ${!item.transparent ? 'app-icon-box' : ''} ${!item.transparent ? (item.color || '') : ''}`}
-                                    style={item.transparent ? { background: 'transparent', border: 'none', boxShadow: 'none' } : {}}
-                                >
-                                    <span style={{ color: '#fff', fontSize: '18px', fontWeight: '800', letterSpacing: '-1px', lineHeight: '1', filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.15))' }}>
-                                        {item.text}
-                                    </span>
-                                </div>
-                            ) : item.type === 'icon' ? (
-                                /* iOS App Icon Style Rendering */
-                                <div className={`menu-thumb-box app-icon-box ${item.color || ''}`}>
-                                    <i className={item.icon} style={{ fontSize: '28px', color: '#fff', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))' }}></i>
-                                </div>
-                            ) : (
-                                /* Image Rendering (For others) */
-                                <div className="menu-thumb-box">
-                                    <img src={item.thumb} alt={item.label} className="menu-thumb-img" />
-                                </div>
-                            )}
+                            <div className="menu-thumb-box">
+                                {item.component && <item.component />}
+                            </div>
                             <span className="menu-label">{item.label}</span>
                         </button>
                     );
@@ -610,7 +647,6 @@ const MainV2TestPage: React.FC = () => {
                 </div>
             )}
 
-            {/* Event Detail Modal */}
             {eventModal.selectedEvent && (
                 <EventDetailModal
                     event={eventModal.selectedEvent}
@@ -626,6 +662,13 @@ const MainV2TestPage: React.FC = () => {
                     }}
                 />
             )}
+
+            {/* Login Modal */}
+            <LoginModal
+                isOpen={isLoginModalOpen}
+                onClose={() => setIsLoginModalOpen(false)}
+                message={`리듬조이에 오신 것을 환영합니다!\n로그인 후 더 많은 기능을 이용해보세요.`}
+            />
         </div>
     );
 };

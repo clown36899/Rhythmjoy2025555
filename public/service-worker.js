@@ -1,13 +1,13 @@
-// 빌보드 PWA 서비스 워커 (Version: 20260110-0520 - PWA Install & Splash Update)
-const CACHE_NAME = 'rhythmjoy-cache-v18';
+// 빌보드 PWA 서비스 워커 (Version: 20260117-0655 - Main V2 Menu Redesign)
+const CACHE_NAME = 'rhythmjoy-cache-v19';
 
 self.addEventListener('install', (event) => {
-  console.log('[SW] v17 - YouTube IFrame API Direct Implementation! 🎥');
+  console.log('[SW] v19 - Main V2 Menu Redesign! 🎨');
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  console.log('[SW] v17 - Activated immediately! (Cache clear in background)');
+  console.log('[SW] v19 - Activated immediately! (Cache clear in background)');
 
   // 🔥 중요: event.waitUntil을 제거하여 캐시 삭제가 완료될 때까지 기다리지 않음
   // PWA가 캐시 락을 잡고 있어도 브라우저는 즉시 활성화되어 데이터를 불러올 수 있음
