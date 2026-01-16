@@ -395,10 +395,11 @@ function HistoryTimelinePage() {
     const handleMoveResource = useCallback(async (id: string, targetCategoryId: string | null, isUnclassified: boolean, _gridRow?: number, _gridColumn?: number, type?: string) => {
         if (!isAdmin) return;
         try {
-            console.log('🚚 [Move] Resource:', { id, targetCategoryId, type });
+            console.log('🚚 [handleMoveResource] Called with:', { id, targetCategoryId, isUnclassified, type });
 
-            // 🔥 Type-specific update to prevent 400/404 errors
             if (type === 'CATEGORY' || type === 'folder' || type === 'general') {
+                console.log('🗂️ [handleMoveResource] Processing as FOLDER update');
+                // 🔥 FIX: Added is_unclassified column to learning_categories via migration
                 await supabase.from('learning_categories').update({ parent_id: targetCategoryId, is_unclassified: isUnclassified }).eq('id', id);
             } else if (type === 'document') {
                 await supabase.from('learning_documents').update({ category_id: targetCategoryId, is_unclassified: isUnclassified }).eq('id', id);
@@ -460,7 +461,9 @@ function HistoryTimelinePage() {
                 const rootItems = allItems.filter(i => {
                     const pId = i.category_id !== undefined ? i.category_id : (i.parent_id ?? null);
                     const col = i.grid_column ?? 0;
-                    return pId === null && col === targetColIdx && i.id !== sourceId; // Exclude source
+                    // 🔥 FIX: Exclude Unclassified items from Root Grid Reorder
+                    // They share parent_id=null but are conceptually separate!
+                    return pId === null && col === targetColIdx && i.id !== sourceId && !i.is_unclassified;
                 });
 
                 // Sort by current grid_row to establish baseline
@@ -488,16 +491,26 @@ function HistoryTimelinePage() {
                 const updates: any[] = [];
 
                 // Apply new grid_row and grid_column to ALL items in this column
+                // Apply new grid_row and grid_column to ALL items in this column
                 rootItems.forEach((item, idx) => {
-                    const table = (item.type === 'general' && item.source !== 'resource') || !item.type
-                        ? 'learning_categories'
-                        : 'learning_resources';
+                    const isCategory = (item.type === 'general' && item.source !== 'resource') || !item.type;
+                    const table = isCategory ? 'learning_categories' : 'learning_resources';
 
-                    // Update columns directly for BOTH tables (Assuming migration is applied)
-                    updates.push(supabase.from(table).update({
+                    // Update columns directly for BOTH tables
+                    const payload: any = {
                         grid_row: idx,
-                        grid_column: targetColIdx
-                    }).eq('id', item.id));
+                        grid_column: targetColIdx,
+                        is_unclassified: false // Root items are not unclassified
+                    };
+
+                    if (isCategory) {
+                        // delete payload.is_unclassified; // 🔥 Now supported via migration
+                        payload.parent_id = null; // Ensure it's Root
+                    } else {
+                        payload.category_id = null; // Ensure it's Root
+                    }
+
+                    updates.push(supabase.from(table).update(payload).eq('id', item.id));
                 });
 
                 await Promise.all(updates);
@@ -510,11 +523,15 @@ function HistoryTimelinePage() {
                     return;
                 }
                 const parentId = targetItem.category_id !== undefined ? targetItem.category_id : (targetItem.parent_id ?? null);
+                // 🔥 FIX: Identify if we are in the "Unclassified List" context
+                const isTargetUnclassified = !!targetItem.is_unclassified;
 
-                // Siblings (Same Parent)
+                // Siblings (Same Parent AND Same Unclassified State)
                 const siblings = allItems.filter(i => {
                     const pId = i.category_id !== undefined ? i.category_id : (i.parent_id ?? null);
-                    return pId === parentId && i.id !== sourceId;
+                    // Include sourceItem if it's moving INTO this list
+                    // 🔥 FIX: Ensure we only grab items matching the unclassified state
+                    return (pId === parentId && i.id !== sourceId && !!i.is_unclassified === isTargetUnclassified);
                 });
 
                 // Sort by current order_index
@@ -531,13 +548,22 @@ function HistoryTimelinePage() {
                 // Updates
                 const updates: any[] = [];
                 siblings.forEach((item, idx) => {
-                    const table = (item.type === 'general' && item.source !== 'resource') || !item.type
-                        ? 'learning_categories'
-                        : 'learning_resources';
+                    const isCategory = (item.type === 'general' && item.source !== 'resource') || !item.type;
+                    const table = isCategory ? 'learning_categories' : 'learning_resources';
 
-                    updates.push(supabase.from(table).update({
-                        order_index: idx
-                    }).eq('id', item.id));
+                    const payload: any = {
+                        order_index: idx,
+                        is_unclassified: isTargetUnclassified // 🔥 FIX: Preserve/Set correct state
+                    };
+
+                    if (isCategory) {
+                        // delete payload.is_unclassified;
+                        payload.parent_id = parentId; // Ensure correct parent
+                    } else {
+                        payload.category_id = parentId; // Ensure correct parent
+                    }
+
+                    updates.push(supabase.from(table).update(payload).eq('id', item.id));
                 });
 
                 await Promise.all(updates);

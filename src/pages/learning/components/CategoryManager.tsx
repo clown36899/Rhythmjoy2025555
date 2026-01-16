@@ -126,6 +126,9 @@ export const CategoryManager = memo(forwardRef<CategoryManagerHandle, CategoryMa
     };
 
     const handleTooltipEnter = (e: React.MouseEvent | React.TouchEvent, text: string) => {
+        // 🔥 FIX: Disable tooltip while dragging to prevent portal interference with Drag Events
+        if (draggingIdRef.current) return;
+
         let clientX, clientY;
         if ('touches' in e) {
             clientX = e.touches[0].clientX;
@@ -191,8 +194,17 @@ export const CategoryManager = memo(forwardRef<CategoryManagerHandle, CategoryMa
 
     // State for UI only (not data)
     const draggingIdRef = useRef<string | null>(null);
+    const draggingTypeRef = useRef<string | null>(null); // 🔥 Added for robust type tracking
     const [dragDest, setDragDest] = useState<string | null>(null);
-    const [collapsedIds, setCollapsedIds] = useState<Set<string>>(new Set());
+    // 🔥 Refactor: Use expandedIds (Default Closed) + LocalStorage Persistence
+    const [expandedIds, setExpandedIds] = useState<Set<string>>(() => {
+        try {
+            const saved = localStorage.getItem('category_expanded_ids');
+            return saved ? new Set(JSON.parse(saved)) : new Set();
+        } catch {
+            return new Set(); // Default closed
+        }
+    });
     // Drag State
     const [dropIndicator, setDropIndicator] = useState<{
         targetId: string,
@@ -263,7 +275,7 @@ export const CategoryManager = memo(forwardRef<CategoryManagerHandle, CategoryMa
     // --- 📊 Data Derivation (Memoized) ---
     // 1. Normalize Categories
     const normalizedCategories = useMemo(() => {
-        const injectedItems = injectedCategories.map(c => ({ id: c.id, name: c.name || c.title, category_id: c.category_id, parent_id: c.parent_id }));
+        // const injectedItems = injectedCategories.map(c => ({ id: c.id, name: c.name || c.title, category_id: c.category_id, parent_id: c.parent_id }));
 
         // console.log('🔍 [CategoryManager] Normalizing categories:', {
         //     injectedCategoriesCount: injectedItems.length,
@@ -401,8 +413,10 @@ export const CategoryManager = memo(forwardRef<CategoryManagerHandle, CategoryMa
 
     const onDragStart = (e: React.DragEvent, item: any, type: string) => {
         // if (readOnly && !dragSourceMode) return; // 🔥 Modified: Allow drag start for timeline drop even in readOnly
-        console.log('🚀 [DRAG_START]', { id: item.id, type, readOnly, dragSourceMode });
+        console.log('🚀 [DRAG_START] Item:', { id: item.id, type, name: item.name || item.title });
         draggingIdRef.current = item.id;
+        draggingTypeRef.current = type; // 🔥 Store type for Drop
+        console.log('📦 [DRAG_START] Saved Type Ref:', draggingTypeRef.current);
         e.stopPropagation();
         const payload = {
             type: 'INTERNAL_MOVE', // Standardize type for internal moves
@@ -428,6 +442,7 @@ export const CategoryManager = memo(forwardRef<CategoryManagerHandle, CategoryMa
     const onDragEnd = () => {
         console.log('🏁 [DRAG_END]', { lastId: draggingIdRef.current });
         draggingIdRef.current = null;
+        draggingTypeRef.current = null; // 🔥 Clear type
         setDragDest(null);
         setDropIndicator(null);
         dropIndicatorRef.current = null;
@@ -529,12 +544,14 @@ export const CategoryManager = memo(forwardRef<CategoryManagerHandle, CategoryMa
         dropIndicatorRef.current = null; // Clear Logic
 
         let draggedId: string | null = null;
+        let draggedType: string | null = null;
 
         try {
             const rawData = e.dataTransfer.getData('application/json');
             if (rawData) {
                 const data = JSON.parse(rawData);
                 draggedId = data.id;
+                draggedType = data.internalType; // 🔥 Get type from payload if available
             }
         } catch (jsonErr) {
             console.error('❌ [CategoryManager] JSON Parse Error:', jsonErr);
@@ -605,18 +622,32 @@ export const CategoryManager = memo(forwardRef<CategoryManagerHandle, CategoryMa
                 }
                 // Move INTO this folder (grid coords not needed for nested items)
                 console.log(`📂 [onDrop] Moving INTO Folder: ${currentIndicator.targetId}`);
-                onMoveResource?.(draggedId, currentIndicator.targetId, isUnclassified);
+
+                // 🔥 FIX: Use reliable type from Ref or Payload
+                const typeToPass = draggedType || draggingTypeRef.current || 'playlist';
+                console.log('📂 [onDrop] Resolved Type:', {
+                    draggedType,
+                    refType: draggingTypeRef.current,
+                    final: typeToPass
+                });
+
+                onMoveResource?.(draggedId, currentIndicator.targetId, isUnclassified, undefined, undefined, typeToPass);
                 onDirtyChange?.(true); // 🔥 Mark as dirty
                 return;
             }
 
             // Fallback (e.g. dropped on Root Zone background or Unclassified Zone background)
+            console.log('📉 [onDrop] Fallback Drop Logic', { targetCategoryId, isUnclassified, currentIndicator });
+
             if (targetCategoryId === null && !currentIndicator) {
                 // If dropped in Unclassified Zone (isUnclassified=true)
                 if (isUnclassified) {
-                    onMoveResource?.(draggedId, null, true);
+                    console.log('📥 [onDrop] Moving to UNCLASSIFIED Zone');
+                    const typeToPass = draggedType || draggingTypeRef.current || 'playlist';
+                    onMoveResource?.(draggedId, null, true, undefined, undefined, typeToPass);
                     return;
                 }
+
 
                 // Root Zone Drop
                 // Intent: "Move to End" of Root list
@@ -639,7 +670,8 @@ export const CategoryManager = memo(forwardRef<CategoryManagerHandle, CategoryMa
                 }
 
                 // 3. Else (Empty root or moving self), just standard move (with grid coords)
-                onMoveResource?.(draggedId, null, isUnclassified, gridRow, gridColumn);
+                const typeToRef = draggedType || draggingTypeRef.current || 'playlist';
+                onMoveResource?.(draggedId, null, isUnclassified, gridRow, gridColumn, typeToRef);
                 onDirtyChange?.(true); // 🔥 Mark as dirty
                 return;
             }
@@ -767,7 +799,9 @@ export const CategoryManager = memo(forwardRef<CategoryManagerHandle, CategoryMa
     };
 
     const renderTreeItem = (category: Category) => {
-        const isCollapsed = collapsedIds.has(category.id);
+        // Default Closed: Expanded only if in set
+        const isExpanded = expandedIds.has(category.id);
+        const isCollapsed = !isExpanded;
         const playlistsInFolder = playlists
             .filter(p => p.category_id === category.id)
             .sort((a: any, b: any) => (a.order_index || 0) - (b.order_index || 0));
@@ -793,9 +827,9 @@ export const CategoryManager = memo(forwardRef<CategoryManagerHandle, CategoryMa
                     // Root-level folders no longer use absolute positioning
                     position: 'relative',
                     width: '100%',
-                    minHeight: '40px',
+                    // minHeight: '40px',
                     ...(category.parent_id === null && !category.is_unclassified ? {
-                        marginBottom: '10px'
+
                     } : {}),
                     backgroundColor: 'transparent',
                     transition: 'all 0.1s ease',
@@ -848,9 +882,10 @@ export const CategoryManager = memo(forwardRef<CategoryManagerHandle, CategoryMa
                                 style={{ visibility: hasChildren ? 'visible' : 'hidden', cursor: 'pointer' }}
                                 onClick={(e) => {
                                     e.stopPropagation(); // 토글 클릭 시 선택되지 않게 방지
-                                    setCollapsedIds(prev => {
+                                    setExpandedIds(prev => {
                                         const next = new Set(prev);
                                         next.has(category.id) ? next.delete(category.id) : next.add(category.id);
+                                        localStorage.setItem('category_expanded_ids', JSON.stringify(Array.from(next)));
                                         return next;
                                     });
                                 }}
@@ -1122,7 +1157,7 @@ export const CategoryManager = memo(forwardRef<CategoryManagerHandle, CategoryMa
                     <div className="unclassified-title" style={{ color: '#10b981', fontWeight: 'bold', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span>📥</span> 미분류 보관함
                     </div>
-                    <div className="unclassified-list" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div className="unclassified-list" style={{ display: 'flex', flexDirection: 'column', gap: '0px' }}>
                         {/* 미분류 폴더 - 🔥 FIX: Use renderTreeItem for proper folder rendering with children */}
                         {normalizedCategories
                             .filter((c: Category) => c.is_unclassified && !c.parent_id)
