@@ -140,6 +140,17 @@ export const ResourceDrawer = memo(forwardRef<ResourceDrawerHandle, Props>(({ is
 
     const isExpanded = width > 600;
 
+    // 🔥 Added: Force full width on mobile when opened
+    useEffect(() => {
+        if (isOpen) {
+            const isMobile = window.innerWidth <= 768;
+            if (isMobile) {
+                setPrevWidth(360); // Default fallback
+                setWidth(window.innerWidth);
+            }
+        }
+    }, [isOpen]);
+
     // Combine resources for the list view
     const items = useMemo(() => {
         // Include all videos for the tree view; CategoryManager will place them correctly

@@ -97,7 +97,6 @@ export const CategoryManager = memo(forwardRef<CategoryManagerHandle, CategoryMa
     onRenameResource,
     onCreateCategory,
     onAddClick,
-    dragSourceMode = false,
     scale = 1,
     // highlightedSourceId
     onDirtyChange,
@@ -112,6 +111,11 @@ export const CategoryManager = memo(forwardRef<CategoryManagerHandle, CategoryMa
     // Create State
     const [isCreating, setIsCreating] = useState(false);
     const [newCatName, setNewCatName] = useState('');
+
+    // UI State
+    const [isDragging, setIsDragging] = useState(false);
+
+    // State for View Mode (Grid / List)
 
     // State for View Mode (Grid / List)
     const [viewMode, setViewMode] = useState<'grid' | 'list'>(() => {
@@ -147,9 +151,11 @@ export const CategoryManager = memo(forwardRef<CategoryManagerHandle, CategoryMa
                 overflow: visible !important;
                 text-overflow: clip !important;
             }
-            /* Hide toggle in List Mode */
             .categoryManager .collapseToggle {
                 display: none !important;
+            }
+            .categoryManager.dragging-active .categoryName {
+                pointer-events: none !important;
             }
         `}</style>
     ) : null;
@@ -496,6 +502,7 @@ export const CategoryManager = memo(forwardRef<CategoryManagerHandle, CategoryMa
         e.dataTransfer.setData('application/reactflow', JSON.stringify(timelineItem));
 
         e.dataTransfer.effectAllowed = 'move';
+        setIsDragging(true); // Trigger UI updates
     };
 
     const onDragEnd = () => {
@@ -505,6 +512,7 @@ export const CategoryManager = memo(forwardRef<CategoryManagerHandle, CategoryMa
         setDragDest(null);
         setDropIndicator(null);
         dropIndicatorRef.current = null;
+        setIsDragging(false); // Reset UI
     };
 
 
@@ -557,11 +565,19 @@ export const CategoryManager = memo(forwardRef<CategoryManagerHandle, CategoryMa
         if (isFolder) {
             // Folders: Very generous Inside zone (70% center area)
             // Reordering only happens at the very edges (15% margins)
-            if (y < 0.15) position = 'top';
-            else if (y > 0.85) position = 'bottom';
-            else if (x < 0.15) position = 'left';
-            else if (x > 0.85) position = 'right';
-            else position = 'inside';
+            if (viewMode === 'list') {
+                // List Mode: No Left/Right reorder, just Top/Bottom and generous Inside
+                if (y < 0.25) position = 'top';
+                else if (y > 0.75) position = 'bottom';
+                else position = 'inside';
+            } else {
+                // Grid Mode: Existing Logic
+                if (y < 0.15) position = 'top';
+                else if (y > 0.85) position = 'bottom';
+                else if (x < 0.15) position = 'left';
+                else if (x > 0.85) position = 'right';
+                else position = 'inside';
+            }
         } else {
             // Files/Playlists: 25% top/bottom thresholds for precise reordering
             if (y < 0.25) position = 'top';
@@ -666,8 +682,14 @@ export const CategoryManager = memo(forwardRef<CategoryManagerHandle, CategoryMa
                 }
 
                 // Call Reorder Handler with Grid Coordinates
-                console.log('🔃 Reorder Action:', draggedId, reorderPos, currentIndicator.targetId, { gridRow, gridColumn });
-                onReorderResource?.(draggedId, currentIndicator.targetId, reorderPos, gridRow, gridColumn);
+                // 🔥 FIX: In List Mode, DO NOT pass grid coords. This forces the handler to use 'List Logic' (respecting parents)
+                // instead of 'Root Grid Logic' (which forces parent=null).
+                const isGridMode = viewMode === 'grid';
+                const finalGridRow = isGridMode ? gridRow : undefined;
+                const finalGridCol = isGridMode ? gridColumn : undefined;
+
+                console.log('🔃 Reorder Action:', { draggedId, target: currentIndicator.targetId, reorderPos, viewMode, finalGridRow, finalGridCol });
+                onReorderResource?.(draggedId, currentIndicator.targetId, reorderPos, finalGridRow, finalGridCol);
                 onDirtyChange?.(true); // 🔥 Mark as dirty
                 return;
             }
@@ -1006,14 +1028,17 @@ export const CategoryManager = memo(forwardRef<CategoryManagerHandle, CategoryMa
     };
 
     return (
-        <div className="categoryManager" style={{
-            transform: `scale(${scale})`,
-            transformOrigin: 'top left',
-            width: `${100 / scale}%`,
-            minHeight: '100%',
-            display: 'flex',
-            flexDirection: 'column'
-        }}>
+        <div
+            className={`categoryManager ${isDragging ? 'dragging-active' : ''}`}
+            style={{
+                transform: `scale(${scale})`,
+                transformOrigin: 'top left',
+                width: `${100 / scale}%`,
+                minHeight: '100%',
+                display: 'flex',
+                flexDirection: 'column'
+            }}
+        >
             {listViewStyles}
             {/* 🔥 Moved Create Folder UI (Outside wrapper) */}
             {!readOnly && isAdmin && (
