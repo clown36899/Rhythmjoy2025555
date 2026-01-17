@@ -16,6 +16,7 @@ import SocialGroupDetailModal from './components/SocialGroupDetailModal';
 import SocialGroupModal from './components/SocialGroupModal';
 import SocialRecruitModal from './components/SocialRecruitModal';
 import SocialScheduleModal from './components/SocialScheduleModal';
+import SocialRegistrationModal from './components/SocialRegistrationModal';
 import VenueDetailModal from '../practice/components/VenueDetailModal';
 import PracticeSection from './components/PracticeSection';
 
@@ -72,6 +73,10 @@ const SocialPage: React.FC = () => {
   const [scheduleModalTab, setScheduleModalTab] = useState<'schedule' | 'recruit'>('schedule');
   const [hideScheduleTabs, setHideScheduleTabs] = useState(false);
   const [selectedRecruitGroup, setSelectedRecruitGroup] = useState<SocialGroup | null>(null);
+
+  // Registration Modal State
+  const [isRegistrationModalOpen, setIsRegistrationModalOpen] = useState(false);
+  const [selectedDateForAdd, setSelectedDateForAdd] = useState<string | null>(null);
 
   // Helpers
   const verifyGroupPassword = useCallback(async (groupId: number, inputPw: string): Promise<boolean> => {
@@ -335,20 +340,52 @@ const SocialPage: React.FC = () => {
     setSelectedVenueId(null);
   }, []);
 
+  // Tab State (Lifted from WeeklySocial)
+  const [activeTab, setActiveTab] = useState<'weekly' | 'regular'>(() => {
+    if (initialTab === 'regular') {
+      return 'regular';
+    }
+    return 'weekly';
+  });
+
+  useEffect(() => {
+    if (initialTab === 'regular') {
+      setActiveTab('regular');
+    }
+  }, [initialTab]);
+
   return (
-    <div className="social-page-new-v5" style={{ paddingTop: '80px', paddingBottom: '120px' }}>
-      {/* Header Area */}
-      <header className="social-main-header">
-        <div className="header-titles">
-          {/* 타이틀 및 안내 문구 제거됨 (모달로 이동) */}
-        </div>
-      </header>
+    <div className="social-page-new-v5" style={{ paddingTop: '110px', paddingBottom: '120px' }}>
+
+      {/* Sticky Tab Menu (Lifted) */}
+      <div className="view-tab-menu-v3">
+        <button
+          className={`tab-btn ${activeTab === 'weekly' ? 'active' : ''}`}
+          onClick={() => setActiveTab('weekly')}
+        >
+          <span>금주의 일정</span>
+        </button>
+        <button
+          className={`tab-btn ${activeTab === 'regular' ? 'active' : ''}`}
+          onClick={() => setActiveTab('regular')}
+        >
+          <span>정기소셜</span>
+        </button>
+      </div>
 
       {/* 2단: 금주의 일정 (등록 탭 포함) */}
       <WeeklySocial
         schedules={schedulesWithEvents}
         onScheduleClick={handleScheduleClick}
-        initialTab={initialTab}
+        activeTab={activeTab} // Pass activeTab prop
+        onAddSchedule={(date) => {
+          if (!user) {
+            alert("로그인이 필요합니다.");
+            return;
+          }
+          setSelectedDateForAdd(date);
+          setIsRegistrationModalOpen(true);
+        }}
       />
 
 
@@ -457,6 +494,29 @@ const SocialPage: React.FC = () => {
           onClose={closeVenueModal}
         />
       )}
+
+      {/* Social Registration Selection Modal */}
+      <SocialRegistrationModal
+        isOpen={isRegistrationModalOpen}
+        onClose={() => setIsRegistrationModalOpen(false)}
+        userGroups={groups.filter(g => g.user_id === user?.id)}
+        onSelectGroup={(group) => {
+          setIsRegistrationModalOpen(false);
+          setTargetGroupId(group.id);
+          setEditSchedule(null);
+          // Pre-fill date if selected
+          setCopySchedule(selectedDateForAdd ? { date: selectedDateForAdd } as any : null);
+
+          setScheduleModalTab('schedule');
+          setHideScheduleTabs(false);
+          setIsScheduleModalOpen(true);
+        }}
+        onCreateGroup={() => {
+          setIsRegistrationModalOpen(false);
+          setEditGroup(null);
+          setIsGroupModalOpen(true);
+        }}
+      />
     </div>
   );
 };

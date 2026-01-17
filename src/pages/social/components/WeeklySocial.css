@@ -1,161 +1,555 @@
-/* WeeklySocial.css (Kanban-Style Regular Tab) */
+@charset "UTF-8";
+
 .weekly-social-container {
-    margin-bottom: 40px;
-    padding: 5px 20px;
-    /* background: #0a0a0a; */
+    padding: 16px;
+    padding-bottom: 80px;
+    background-color: #121212;
+    min-height: 100vh;
+    color: #fff;
+    /* Prevent horizontal scroll */
+    max-width: 100vw;
+    overflow-x: hidden;
+    box-sizing: border-box;
 }
 
+/* ==========================================================================
+   Existing Styles (Preserved for other tabs if needed, but mostly replacing)
+   ========================================================================== */
 
-
-
-
-/* 탭 메뉴 */
+/* View Tab Menu (Keep this as it controls the top tabs) */
+/* View Tab Menu (Sub-header Style) - Fixed Positioning */
 .view-tab-menu-v3 {
     display: flex;
-    position: relative;
-    /* background: #1a1a1a; */
-    /* padding: 4px; */
-    /* border-radius: 14px; */
-    margin-bottom: 8px;
+    align-items: center;
+    justify-content: space-between;
+    background-color: rgb(23 23 23 / 95%);
+    /* Higher opacity for fixed header */
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 0;
+    border-bottom: 0px solid rgba(255, 255, 255, 0.1);
 
+    padding: 0;
+    height: 48px;
+    /* Fixed height */
+
+    /* Fixed Positioning Logic */
+    position: fixed;
+    top: 60px;
+    /* Header Height */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 800px;
+    /* Match Page Max Width */
+
+    z-index: 45;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
 }
 
-
-
-
-.tab-btn {
-    flex: 1 1 25%;
-    min-width: 0;
-    max-width: 25%;
-    background: none;
+.view-tab-menu-v3 .tab-btn {
+    flex: 1;
+    padding: 0;
+    font-size: 15px;
+    /* Slightly larger for readability */
+    font-weight: 500;
+    color: #888;
+    background: #101010;
     border: none;
-    padding: 10px 0;
-    color: #bfc2c6;
-    font-weight: 400;
-    font-size: clamp(0.1rem, 3.2vw, 1rem);
     cursor: pointer;
     z-index: 2;
+    transition: color 0.2s ease;
     text-align: center;
+    position: relative;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.tab-btn.active {
-    color: #1a1a1a;
+.view-tab-menu-v3 .tab-btn span {
+    position: relative;
+    padding: 8px 0;
+    /* Vertical padding to space out the underline */
+    border-bottom: 2px solid transparent;
+    /* Reserve space or transition */
+    transition: all 0.2s;
 }
 
-.tab-indicator-v4 {
-    position: absolute;
-    top: 4px;
-    left: 4px;
-    width: calc(25% - 2px);
-    height: calc(100% - 8px);
-    z-index: 1;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    pointer-events: none;
+.view-tab-menu-v3 .tab-btn.active {
+    color: #fff;
+    font-weight: 700;
 }
 
-.tab-indicator-v4::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: #fbbf24;
-    border-radius: 10px;
+.view-tab-menu-v3 .tab-btn.active span {
+    border-bottom-color: #fff;
+    /* Active line color */
 }
 
-.tab-indicator-v4.weekly {
-    transform: translateX(0);
+/* Old Indicator styles removed */
+
+
+/* ==========================================================================
+   New V2 Styles (Ported from MainV2TestPage.css)
+   ========================================================================== */
+
+/* Title & Toggle Row */
+.weekly-social-container .title-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 12px;
 }
 
-.tab-indicator-v4.all {
-    transform: translateX(calc(100% + 2px));
+.weekly-social-container .section-title {
+    font-size: 18px;
+    font-weight: bold;
+    margin: 0;
 }
 
-.tab-indicator-v4.regular {
-    transform: translateX(calc(200% + 4px));
+/* View Control Container */
+.weekly-social-container .view-toggle-container {
+    display: flex;
+    gap: 16px;
+    margin-left: auto;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+    justify-content: center;
+    flex-direction: row;
+    align-items: center;
 }
 
-.tab-indicator-v4.register {
-    transform: translateX(calc(300% + 6px));
+.weekly-social-container .view-toggle-container::-webkit-scrollbar {
+    display: none;
 }
 
-.tab-indicator-v4.regular {
-    transform: translateX(200%);
+/* Week Navigation Group */
+.weekly-social-container .week-nav-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: #222;
+    padding: 1px;
+    border-radius: 8px;
+    flex-shrink: 0;
 }
 
-.tab-indicator-v4.register {
-    transform: translateX(300%);
+.weekly-social-container .nav-btn {
+    background: transparent;
+    border: none;
+    color: #ccc;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 6px 10px;
+    border-radius: 6px;
+    transition: all 0.2s;
+    font-weight: 600;
 }
 
-.tab-content-fade {
-    animation: fadeIn 0.3s ease-out;
+.weekly-social-container .nav-btn:hover {
+    background: #333;
+    color: #fff;
 }
 
+.weekly-social-container .nav-btn.today {
+    font-size: 12px;
+    padding: 6px 12px;
+    background: #333;
+    /* border: 1px solid #444; */
+}
+
+.weekly-social-container .nav-btn.today:hover {
+    background: #444;
+    border-color: #555;
+}
+
+/* View Type Toggle Group */
+.weekly-social-container .view-type-toggles {
+    display: flex;
+    background: #2a2a2a;
+    border-radius: 8px;
+    padding: 2px;
+    /* border: 1px solid #333; */
+    flex-shrink: 0;
+}
+
+.weekly-social-container .toggle-btn {
+    background: transparent;
+    border: none;
+    color: #888;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.weekly-social-container .toggle-btn.active {
+    background: #00d4ff;
+    color: #000;
+    font-weight: 700;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Daily List Layout */
+.weekly-social-container .daily-list-section {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding-bottom: 40px;
+    animation: fadeIn 0.3s ease-in-out;
+    width: 100%;
+    /* Ensure full width */
+}
+
+.weekly-social-container .daily-group {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.weekly-social-container .daily-header {
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 12px;
+    padding-left: 4px;
+    border-left: 4px solid #00d4ff;
+    line-height: 1.2;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-direction: row;
+    justify-content: flex-start;
+}
+
+.weekly-social-container .daily-header span {
+    color: #aaa;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+.weekly-social-container .daily-items-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.weekly-social-container .daily-item-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: #1e1e1e;
+    padding: 10px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.weekly-social-container .daily-item-row:active {
+    background: #2a2a2a;
+}
+
+.weekly-social-container .daily-item-thumb {
+    width: 60px;
+    height: 60px;
+    border-radius: 8px;
+    object-fit: cover;
+    background: #333;
+    flex-shrink: 0;
+}
+
+.weekly-social-container .daily-item-info {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex: 1;
+    min-width: 0;
+}
+
+.weekly-social-container .daily-item-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
+    margin-bottom: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.weekly-social-container .daily-item-sub {
+    font-size: 12px;
+    color: #888;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Calendar / Week Grid Styles */
+.weekly-social-container .calendar-date-number-fullscreen {
+    font-size: 14px;
+    font-weight: 700;
+    color: #d1d5db;
+}
+
+.weekly-social-container .calendar-date-number-today {
+    background-color: #ef4444;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+}
+
+.weekly-social-container .calendar-date-sunday {
+    color: #ef4444;
+}
+
+.weekly-social-container .calendar-date-saturday {
+    color: #3b82f6;
+}
+
+.weekly-social-container .calendar-fullscreen-event-card {
+    display: flex;
+    background: transparent;
+    border-radius: 4px;
+    overflow: hidden;
+    transition: transform 0.1s;
+}
+
+.weekly-social-container .calendar-fullscreen-event-card:active {
+    transform: scale(0.95);
+}
+
+.weekly-social-container .calendar-fullscreen-placeholder {
+    background-color: #555;
+    /* fallback */
+}
+
+
+/* Horizontal Date Strip (for Calendar View) */
+.weekly-social-container .horizontal-date-strip {
+    display: flex;
+    overflow-x: auto;
+    gap: 8px;
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+    scrollbar-width: none;
+    max-width: 100%;
+}
+
+.weekly-social-container .horizontal-date-strip::-webkit-scrollbar {
+    display: none;
+}
+
+.weekly-social-container .date-chip {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-width: 50px;
+    height: 64px;
+    background: #1e1e1e;
+    border-radius: 12px;
+    border: 1px solid #333;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s;
+}
+
+.weekly-social-container .date-chip.selected {
+    background: #00d4ff;
+    border-color: #00d4ff;
+}
+
+.weekly-social-container .date-chip-day {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 2px;
+}
+
+.weekly-social-container .date-chip.selected .date-chip-day {
+    color: #000;
+    opacity: 0.7;
+}
+
+.weekly-social-container .date-chip-date {
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+}
+
+.weekly-social-container .date-chip.selected .date-chip-date {
+    color: #000;
+}
+
+/* Event Colors for placeholders */
+.cal-bg-red-500 {
+    background-color: #ef4444;
+}
+
+.cal-bg-orange-500 {
+    background-color: #f97316;
+}
+
+.cal-bg-amber-500 {
+    background-color: #f59e0b;
+}
+
+.cal-bg-yellow-500 {
+    background-color: #eab308;
+}
+
+.cal-bg-lime-500 {
+    background-color: #84cc16;
+}
+
+.cal-bg-green-500 {
+    background-color: #22c55e;
+}
+
+.cal-bg-emerald-500 {
+    background-color: #10b981;
+}
+
+.cal-bg-teal-500 {
+    background-color: #14b8a6;
+}
+
+.cal-bg-cyan-500 {
+    background-color: #06b6d4;
+}
+
+.cal-bg-sky-500 {
+    background-color: #0ea5e9;
+}
+
+.cal-bg-blue-500 {
+    background-color: #3b82f6;
+}
+
+.cal-bg-indigo-500 {
+    background-color: #6366f1;
+}
+
+.cal-bg-violet-500 {
+    background-color: #8b5cf6;
+}
+
+.cal-bg-purple-500 {
+    background-color: #a855f7;
+}
+
+.cal-bg-fuchsia-500 {
+    background-color: #d946ef;
+}
+
+.cal-bg-pink-500 {
+    background-color: #ec4899;
+}
+
+/* Animation */
 @keyframes fadeIn {
     from {
         opacity: 0;
+        transform: translateY(10px);
     }
 
     to {
         opacity: 1;
+        transform: translateY(0);
     }
 }
 
+/* Empty State */
+.empty-weekly {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 60px 0;
+    color: #666;
+    gap: 12px;
+}
 
+.empty-weekly i {
+    font-size: 48px;
+    opacity: 0.5;
+}
 
+.empty-weekly p {
+    font-size: 14px;
+}
 
-/* 칸반보드 (정규 일정용 - 화면에 맞게 줄어드는 7컬럼 그리드) */
+/* Regular Kanban Styles (Restored & Fixed for Mobile) */
 .regular-kanban-container {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 4px;
+    gap: 2px;
+    padding-bottom: 20px;
     width: 100%;
-    margin-bottom: 20px;
 }
 
 .kanban-column {
     min-width: 0;
-    /* 강제 축소 허용 */
-    background: rgba(255, 255, 255, 0.02);
-    border-radius: 8px;
-    overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.03);
+    width: auto;
+    background: #1e1e1e;
+    border-radius: 4px;
+    /* Tighter radius for small columns */
+    padding: 4px;
+    /* Reduced padding */
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
+    align-items: center;
 }
 
 .kanban-header {
-    padding: 6px 2px;
+    font-size: 11px;
+    /* Smaller font */
+    font-weight: 700;
+    margin-bottom: 6px;
     text-align: center;
-    font-size: 0.7rem;
-    font-weight: 800;
-    background: #262626;
-    color: #9ca3af;
-}
-
-.kanban-header.day-0 {
-    color: #f87171;
-}
-
-.kanban-header.day-6 {
-    color: #60a5fa;
+    color: #888;
 }
 
 .kanban-items {
-    padding: 4px;
     display: flex;
     flex-direction: column;
     gap: 4px;
-    flex: 1;
+    width: 100%;
+}
+
+.regular-compact-card {
+    background: #2a2a2a;
+    border-radius: 4px;
+    padding: 0;
+    /* Remove padding, fill width */
+    cursor: pointer;
+    transition: transform 0.1s;
+    width: 100%;
+    overflow: hidden;
+}
+
+.regular-compact-card:active {
+    transform: scale(0.98);
 }
 
 .compact-image-area {
     position: relative;
     width: 100%;
-    aspect-ratio: 1;
-    background: #262626;
-    margin-bottom: 6px;
+    aspect-ratio: 1/1;
+    /* Keep square */
+    border-radius: 4px;
+    overflow: hidden;
+    background: #333;
+    margin-bottom: 0;
 }
 
 .compact-image-area img {
@@ -164,260 +558,72 @@
     object-fit: cover;
 }
 
-.compact-placeholder {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #4b5563;
-    font-size: 1.2rem;
-}
-
-.compact-time-badge {
-    position: absolute;
-    top: 4px;
-    right: 4px;
-    background: rgba(0, 0, 0, 0.65);
-    backdrop-filter: blur(2px);
-    color: #fbbf24;
-    font-size: 0.55rem;
-    font-weight: 800;
-    padding: 1px 4px;
-    border-radius: 4px;
-}
-
-.regular-compact-card {
-    background: #1e1e1e;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    cursor: pointer;
+/* Hide other details in this super-compact view? 
+   User said "Make it narrow to fill screen", so 7 cols. 
+   Text will break. Let's hide title/place or overlay them? 
+   Or just let them be tiny? 
+   Let's keep them but make them tiny. 
+*/
+.compact-title {
+    font-size: 9px;
+    font-weight: 500;
+    color: #ddd;
+    margin-top: 2px;
+    line-height: 1.1;
     text-align: center;
     overflow: hidden;
-    padding-bottom: 6px;
-}
-
-.compact-time {
-    display: none;
-    /* 제거됨 */
-}
-
-.compact-title {
-    font-size: 0.7rem;
-    font-weight: 700;
-    color: white;
-    margin-bottom: 2px;
-    line-height: 1.1;
+    text-overflow: ellipsis;
+    /* white-space: nowrap; -> Allow wrap or ellipsis? */
     display: -webkit-box;
     -webkit-line-clamp: 2;
-    line-clamp: 2;
     -webkit-box-orient: vertical;
-    overflow: hidden;
-    word-break: break-all;
+    padding: 0 1px;
 }
 
 .compact-place {
-    font-size: 0.6rem;
-    color: #6b7280;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    display: none;
+    /* Hide place in tiny view to save space */
 }
 
-.kanban-empty {
-    font-size: 0.7rem;
-    color: #4b5563;
-    text-align: center;
-    padding: 20px 0;
-}
-
-.kanban-hint {
-    font-size: 0.7rem;
-    color: #4b5563;
-    text-align: center;
-    margin-top: -8px;
-    margin-bottom: 20px;
-}
-
-/* 금주의 일정 요일 버튼 */
-.day-selector-v5 {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 24px;
-    /* gap: 8px; */
-}
-
-.day-btn-v5 {
-    flex: 1;
-    background: #1a1a1a;
-    border: 0px solid rgba(255, 255, 255, 0.05);
-    padding: 10px 0;
-    /* border-radius: 16px; */
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-    cursor: pointer;
-    position: relative;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-}
-
-.day-btn-v5.active {
-    background: rgba(251, 191, 36, 0.1);
-    border-color: rgba(251, 191, 36, 0.4);
-}
-
-.day-name {
-    font-size: 1rem;
-    color: #c8c8c8;
-}
-
-.day-btn-v5.active .day-name {
-    color: #fbbf24;
-}
-
-.day-date {
-    font-size: 1rem;
-    font-weight: 800;
-    color: #e5e7eb;
-}
-
-.active-dot {
-    width: 4px;
-    height: 4px;
-    background: #fbbf24;
-    border-radius: 50%;
-}
-
-/* 일정 개수 뱃지 */
-.schedule-count-badge {
+/* Time badge inside image */
+.compact-time-badge {
     position: absolute;
-    bottom: 4px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: rgba(96, 165, 250, 0.9);
-    color: white;
-    font-size: 0.6rem;
-    font-weight: 700;
-    padding: 1px 4px;
-    border-radius: 6px;
-    min-width: 16px;
+    bottom: 0px;
+    right: 0px;
+    left: 0px;
+    background: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    font-size: 8px;
+    padding: 2px 0;
     text-align: center;
-    line-height: 1.2;
+    border-radius: 0;
 }
 
-
-/* 리스트 아이템 (기존 스타일 유지) */
-.weekly-list,
-.all-schedules-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.weekly-item {
-    display: flex;
-    align-items: center;
-    background: #1e1e1e;
-    padding: 16px;
-    border-radius: 20px;
+/* Week Grid Add Button - Card Style */
+.week-grid-add-btn {
+    width: 100%;
+    margin-top: 4px;
+    /* Space from last item */
+    aspect-ratio: 1/1;
+    /* Square card look */
+    min-height: 48px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px dashed rgb(255 255 255 / 11%);
+    border-radius: 6px;
+    color: #666;
     cursor: pointer;
-    border: 1px solid transparent;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
-}
-
-.weekly-item:hover {
-    background: #262626;
-    border-color: rgba(251, 191, 36, 0.2);
-}
-
-.weekly-image-box {
-    position: relative;
-    width: 65px;
-    height: 65px;
-    min-width: 65px;
-    border-radius: 12px;
-    overflow: hidden;
-    margin-right: 16px;
-    border: 1px solid #464646;
-    background: #262626;
-}
-
-.weekly-image-box img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.weekly-image-placeholder {
-    width: 100%;
-    height: 100%;
+    transition: all 0.2s;
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #4b5563;
-    font-size: 1.5rem;
 }
 
-.item-time-overlay {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: rgba(0, 0, 0, 0.6);
-    color: #fbbf24;
-    font-size: 0.65rem;
-    font-weight: 800;
-    text-align: center;
-    padding: 2px 0;
+.week-grid-add-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.5);
+    color: #fff;
 }
 
-.weekly-details {
-    flex: 1;
-    overflow: hidden;
-}
-
-.weekly-item-title {
-    font-size: 1rem;
-    font-weight: 700;
-    color: white;
-    margin: 0 0 4px 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.weekly-meta {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.weekly-date-tag {
-    font-size: 0.7rem;
-    color: #fbbf24;
-    background: rgba(251, 191, 36, 0.1);
-    padding: 1px 5px;
-    border-radius: 4px;
-}
-
-.weekly-place {
-    font-size: 0.8rem;
-    color: #9ca3af;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-}
-
-.empty-weekly {
-    padding: 60px 0;
-    text-align: center;
-    color: #4b5563;
-}
-
-.empty-weekly i {
-    font-size: 2.5rem;
-    margin-bottom: 12px;
-    display: block;
-    opacity: 0.5;
+.week-grid-add-btn i {
+    font-size: 20px;
 }

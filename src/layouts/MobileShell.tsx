@@ -276,9 +276,9 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                   className={`header-events-content ${isLearningDetailPage ? 'with-back' : ''}`}
                   onClick={isEventsPage ? () => window.location.reload() : undefined}
                   style={{ cursor: isEventsPage ? 'pointer' : 'default' }}
-                  data-analytics-id="logo_home"
+                  data-analytics-id={isEventsPage ? "logo_home" : "header_title"}
                   data-analytics-type="nav_item"
-                  data-analytics-title="댄스빌보드 로고"
+                  data-analytics-title={isEventsPage ? "댄스빌보드 로고" : "페이지 타이틀"}
                   data-analytics-section="header"
                 >
                   {isLearningDetailPage ? (
@@ -292,42 +292,65 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                       <i className="ri-arrow-left-line"></i>
                     </button>
                   ) : (
-                    <>
-                      <button
-                        className="header-hamburger-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setIsDrawerOpen(true);
-                        }}
-                        data-analytics-id="header_hamburger"
-                        data-analytics-type="action"
-                        data-analytics-title="사이드 메뉴"
-                        data-analytics-section="header"
-                      >
-                        <i className="ri-menu-line"></i>
-                      </button>
-                      <img src="/logo.png" alt="RhythmJoy Logo" className="header-logo" />
-                    </>
+                    <button
+                      className="header-hamburger-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setIsDrawerOpen(true);
+                      }}
+                      data-analytics-id="header_hamburger"
+                      data-analytics-type="action"
+                      data-analytics-title="사이드 메뉴"
+                      data-analytics-section="header"
+                    >
+                      <i className="ri-menu-line"></i>
+                    </button>
                   )}
 
-                  {/* 공통 헤더 텍스트 */}
-                  <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: '1', minWidth: 0, overflow: 'hidden', width: 'fit-content' }}>
-                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 'min(0.8vw, 6px)', flexWrap: 'nowrap', minWidth: 0 }}>
-                      <h1 className="header-title" style={{ margin: 0, fontSize: 'min(4vw, 1.45rem)', minWidth: 0, flexShrink: 1, overflow: 'hidden' }}>
-                        댄스빌보드
-                      </h1>
-                      <span style={{ fontSize: 'min(2.2vw, 0.8rem)', color: 'rgb(156, 163, 175)', fontWeight: 400, whiteSpace: 'nowrap' }}>
-                        korea
-                      </span>
-                    </div>
-                    <span style={{ fontSize: 'min(2.5vw, 11px)', width: '100%', display: 'flex', justifyContent: 'space-between', color: 'rgba(255,255,255,0.8)', marginTop: 'min(0.3vw, 2px)', fontWeight: 500 }}>
-                      {'swingenjoy.com'.split('').map((char, i) => (
-                        <span key={`char-${i}-${char}`}>{char}</span>
-                      ))}
-                    </span>
-                  </div>
+                  {isEventsPage ? (
+                    /* Main Page: Logo + Detailed Title */
+                    <>
+                      <img src="/logo.png" alt="RhythmJoy Logo" className="header-logo" />
+                      <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: '1', minWidth: 0, overflow: 'hidden', width: 'fit-content' }}>
+                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 'min(0.8vw, 6px)', flexWrap: 'nowrap', minWidth: 0 }}>
+                          <h1 className="header-title" style={{ margin: 0, fontSize: 'min(4vw, 1.45rem)', minWidth: 0, flexShrink: 1, overflow: 'hidden' }}>
+                            댄스빌보드
+                          </h1>
+                          <span style={{ fontSize: 'min(2.2vw, 0.8rem)', color: 'rgb(156, 163, 175)', fontWeight: 400, whiteSpace: 'nowrap' }}>
+                            korea
+                          </span>
+                        </div>
+                        <span style={{ fontSize: 'min(2.5vw, 11px)', width: '100%', display: 'flex', justifyContent: 'space-between', color: 'rgba(255,255,255,0.8)', marginTop: 'min(0.3vw, 2px)', fontWeight: 500 }}>
+                          {'swingenjoy.com'.split('').map((char, i) => (
+                            <span key={`char-${i}-${char}`}>{char}</span>
+                          ))}
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    /* Other Pages: Simple Title Text */
+                    <h1 className="header-title-simple" style={{
+                      margin: 0,
+                      fontSize: '18px',
+                      fontWeight: 'bold',
+                      marginLeft: '8px',
+                      color: '#fff'
+                    }}>
+                      {(() => {
+                        if (isSocialPage) return '소셜 /동호회';
+                        if (isBoardPage) return '포럼';
+                        if (isPracticePage) return '연습실';
+                        if (isShoppingPage) return '쇼핑';
+                        if (isGuidePage) return '안내';
+                        if (isArchivePage) return '자료실';
+                        if (isMyActivitiesPage) return '내 활동';
+                        return '댄스빌보드';
+                      })()}
+                    </h1>
+                  )}
 
-                  {/* 이벤트·활동 페이지에 adminStats 표시 */}
+                  {/* 이벤트·활동 페이지에 adminStats 표시 (Optional: Keep specifically for events page or strictly follow logic) */}
+                  {/* User said "Header Title changes". Doesn't explicitely say remove stats. Keeping stats if relevant. */}
                   {(isEventsPage || isMyActivitiesPage) && (
                     <div style={{ marginLeft: '8px' }}>{adminStats}</div>
                   )}
@@ -460,7 +483,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
 
       {/* Organic FAB */}
       {
-        pageAction && !isFullscreen && (
+        pageAction && !isFullscreen && !isSocialPage && (
           <button
             className="shell-fab-btn"
             onClick={handlePageAction}

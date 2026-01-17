@@ -1,143 +1,188 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import type { SocialSchedule, SocialGroup } from '../types';
-import { getLocalDateString, getKSTDay } from '../../v2/utils/eventListUtils';
+import React, { useState, useMemo } from 'react';
+import type { SocialSchedule } from '../types';
+import { getLocalDateString, getKSTDay, getDayName } from '../../v2/utils/eventListUtils';
+import { useEventModal } from '../../../hooks/useEventModal';
+import EventDetailModal from '../../v2/components/EventDetailModal';
 import './WeeklySocial.css';
 
 interface WeeklySocialProps {
     schedules: SocialSchedule[];
     onScheduleClick: (schedule: SocialSchedule) => void;
-    initialTab?: string | null;
+    activeTab: 'weekly' | 'regular'; // Updated Prop
+    onAddSchedule?: (date: string) => void;
 }
 
-type ViewTab = 'weekly' | 'all' | 'regular';
+type SubViewType = 'list' | 'week' | 'calendar';
+
+interface DisplayItem {
+    id: string;
+    title: string;
+    image?: string;
+    date?: string;
+    time?: string;
+    sub: string;
+    category?: string;
+    image_micro?: string;
+    originalEvent: any;
+}
 
 const WeeklySocial: React.FC<WeeklySocialProps> = ({
     schedules,
     onScheduleClick,
-    initialTab
+    activeTab, // Receive activeTab
+    onAddSchedule
 }) => {
-    // initialTab이 유효한 ViewTab이면 그것을 사용, 아니면 'weekly'
-    const [activeTab, setActiveTab] = useState<ViewTab>(() => {
-        if (initialTab === 'all' || initialTab === 'regular') {
-            return initialTab as ViewTab;
-        }
-        return 'weekly';
-    });
+    // Internal activeTab state Removed.
 
+    // =========================================================================
+    // V2 Logic for 'weekly' tab
+    // =========================================================================
+
+    const [viewType, setViewType] = useState<SubViewType>('week');
+    const [weekViewDate, setWeekViewDate] = useState<Date>(new Date());
+    const [selectedDateForView, setSelectedDateForView] = useState<string>(getLocalDateString());
+    const [randomSeed, setRandomSeed] = useState<number>(Math.random()); // Seed for randomization
+
+    // Auth/Admin state mocking or retrieving - context not passed, but EventDetailModal takes isAdminMode. 
+    // We assume mostly read-only here or inherit from parent if needed. 
+    // The previous WeeklySocial didn't use useAuth. We'll pass false or check if we need to add useAuth.
+    // For now, let's keep it simple.
+
+    const eventModal = useEventModal(); // Use the global modal hook
+
+    // Mapping schedules to DisplayFormat
+    const displayItems = useMemo<DisplayItem[]>(() => {
+        const mapped = schedules.map(s => {
+            const dateStr = s.date || '';
+            return {
+                id: String(s.id),
+                title: s.title,
+                image: s.image_thumbnail || s.image_url, // Prefer thumbnail 
+                date: dateStr,
+                time: s.start_time,
+                sub: `${s.start_time ? s.start_time.substring(0, 5) : ''} ${s.place_name || ''}`,
+                category: 'social', // Mostly social here
+                image_micro: s.image_micro,
+                originalEvent: s
+            };
+        });
+
+        // Split into Domestic and Overseas
+        const overseas = mapped.filter(item => item.originalEvent.scope === 'overseas');
+        const domestic = mapped.filter(item => item.originalEvent.scope !== 'overseas');
+
+        // Shuffle Domestic items using Fisher-Yates
+        // Note: usage of randomSeed dependency guarantees re-shuffle only when seed changes
+        for (let i = domestic.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [domestic[i], domestic[j]] = [domestic[j], domestic[i]];
+        }
+
+        // Return Domestic (shuffled) + Overseas (fixed at end)
+        // Note: For grid view, the filtering by date is subsequent, so this relative order is preserved within each day.
+        return [...domestic, ...overseas];
+    }, [schedules, randomSeed]);
+
+    // Filter Items based on SubView
+    const filteredItemsForView = useMemo(() => {
+        // Common filter: Must be a dated schedule (not regular)
+        // AND for 'weekly' tab we generally want to exclude things that are irrelevant?
+        // Actually the previous 'weekly' tab showed only THIS week.
+        // The V2 'weekly' tab (which is really a full calendar/list view now) should probably show everything relevant to the view window.
+
+        // 1. Filter out regular schedules (no date)
+        const datedItems = displayItems.filter(item => item.date && item.date.length > 0);
+
+        if (viewType === 'list') {
+            // "List" view: Show future items from Today onwards (like main-v2)
+            const today = getLocalDateString();
+            return datedItems.filter(item => (item.date || '') >= today);
+        }
+
+        if (viewType === 'week') {
+            // "Week" view: Filter by the weekGridDates logic is done in the RENDER loop usually, 
+            // but here we just pass all valid dated items and let the grid map them?
+            // Or we can optimize. Let's return all dated items for the week grid to pick from.
+            return datedItems;
+        }
+
+        if (viewType === 'calendar') {
+            // "Calendar" view: currently selected date
+            return datedItems.filter(item => item.date === selectedDateForView);
+        }
+
+        return [];
+    }, [displayItems, viewType, selectedDateForView]);
+
+    // Navigation Handlers
+    const handlePrevWeek = () => {
+        const newDate = new Date(weekViewDate);
+        newDate.setDate(weekViewDate.getDate() - 7);
+        setWeekViewDate(newDate);
+    };
+
+    const handleNextWeek = () => {
+        const newDate = new Date(weekViewDate);
+        newDate.setDate(weekViewDate.getDate() + 7);
+        setWeekViewDate(newDate);
+    };
+
+    const handleToday = () => {
+        setWeekViewDate(new Date());
+        setRandomSeed(Math.random());
+    };
+
+    // Week Grid Dates Calculation
+    const weekGridDates = useMemo(() => {
+        const viewDateStr = getLocalDateString(weekViewDate);
+        const viewDate = new Date(viewDateStr);
+        const kstDay = getKSTDay(weekViewDate);
+
+        // Calculate Sunday of this week
+        const start = new Date(viewDate);
+        start.setDate(viewDate.getDate() - kstDay); // Subtract current day index (0=Sun)
+
+        const dates = [];
+        for (let i = 0; i < 7; i++) {
+            const d = new Date(start);
+            d.setDate(start.getDate() + i);
+            dates.push(getLocalDateString(d));
+        }
+        return dates;
+    }, [weekViewDate]);
+
+    // Calendar Strip Dates (Standard 14 days from Today for now, or match view?)
+    const calendarStripDates = useMemo(() => {
+        const dates = [];
+        const start = new Date(getLocalDateString());
+        for (let i = 0; i < 14; i++) {
+            const d = new Date(start);
+            d.setDate(start.getDate() + i);
+            dates.push(getLocalDateString(d));
+        }
+        return dates;
+    }, []);
+
+    const getEventColor = (id: string) => {
+        const colors = [
+            'cal-bg-red-500', 'cal-bg-orange-500', 'cal-bg-amber-500', 'cal-bg-yellow-500',
+            'cal-bg-lime-500', 'cal-bg-green-500', 'cal-bg-emerald-500', 'cal-bg-teal-500',
+            'cal-bg-cyan-500', 'cal-bg-sky-500', 'cal-bg-blue-500', 'cal-bg-indigo-500'
+        ];
+        let hash = 0;
+        for (let i = 0; i < id.length; i++) {
+            hash = id.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        return colors[Math.abs(hash) % colors.length];
+    };
 
     const weekNames = ['일', '월', '화', '수', '목', '금', '토'];
 
-    // 소셜 페이지 진입 시 초기 탭 설정 (initialTab 변경 시 반영)
-    useEffect(() => {
-        if (initialTab === 'all' || initialTab === 'regular') {
-            setActiveTab(initialTab as ViewTab);
-        } else {
-            setActiveTab('weekly');
-        }
-    }, [initialTab]);
+    // =========================================================================
+    // Legacy / Other Tabs Logic
+    // =========================================================================
 
-    // 이번 주(월~일) 날짜 계산
-    const weekDates = useMemo(() => {
-        const now = new Date();
-        const kstDay = getKSTDay(now);
-
-        // KST 기준 이번 주 월요일 구하기
-        const kstTodayStr = getLocalDateString(now);
-        const kstToday = new Date(kstTodayStr + 'T12:00:00');
-        const monday = new Date(kstToday);
-        // 월요일 = 1, 일요일 = 0이므로 일요일인 경우 -6, 그 외는 -(kstDay - 1)
-        const daysFromMonday = kstDay === 0 ? 6 : kstDay - 1;
-        monday.setDate(kstToday.getDate() - daysFromMonday);
-
-        return Array.from({ length: 7 }, (_, i) => {
-            const d = new Date(monday);
-            d.setDate(monday.getDate() + i);
-
-            // 로컬 날짜 문자열 생성
-            const year = d.getFullYear();
-            const month = String(d.getMonth() + 1).padStart(2, '0');
-            const dateNum = String(d.getDate()).padStart(2, '0');
-            const localIsoDate = `${year}-${month}-${dateNum}`;
-
-            // 월요일부터 시작하므로 weekNames 인덱스 조정: (i+1) % 7
-            const weekDayIndex = (i + 1) % 7;
-
-            return {
-                day: i,
-                dateNum: d.getDate(),
-                isoDate: localIsoDate,
-                name: weekNames[weekDayIndex]
-            };
-        });
-    }, []);
-
-    const [selectedDay, setSelectedDay] = useState<number | null>(null);
-
-    // 페이지 진입 시 항상 자동 선택 (오늘 → 가장 가까운 미래 일정)
-    React.useEffect(() => {
-        if (schedules.length === 0) return; // 데이터 대기
-
-        const kstDay = getKSTDay();
-        const todayIndex = kstDay === 0 ? 6 : kstDay - 1;
-        const todayDate = weekDates[todayIndex];
-
-        if (!todayDate) {
-            setSelectedDay(todayIndex);
-            return;
-        }
-
-        // 1. 오늘 일정 있으면 오늘 선택
-        const hasTodaySchedule = schedules.some(s =>
-            s.date && s.date.trim() === todayDate.isoDate
-        );
-
-        if (hasTodaySchedule) {
-            setSelectedDay(todayIndex);
-            return;
-        }
-
-        // 2. 가장 가까운 일정 찾기
-        const schedulesPerDay = weekDates.map(date => ({
-            day: date.day,
-            count: schedules.filter(s => s.date === date.isoDate).length,
-            distance: Math.abs(date.day - todayIndex)
-        }));
-
-        const daysWithSchedules = schedulesPerDay.filter(d => d.count > 0);
-
-        if (daysWithSchedules.length > 0) {
-            daysWithSchedules.sort((a, b) => a.distance - b.distance);
-            setSelectedDay(daysWithSchedules[0].day);
-        } else {
-            setSelectedDay(todayIndex); // 일정 없으면 오늘
-        }
-    }, [schedules, weekDates]);
-
-    // [1] 금주의 일정 (날짜 지정 일정만 표시 - 정규 일정 제외)
-    const displaySchedules = useMemo(() => {
-        if (selectedDay === null) return [];
-        const target = weekDates[selectedDay];
-        if (!target) return [];
-
-        return schedules.filter(s => {
-            // 날짜가 지정된 일정만 표시 (정규 일정 제외)
-            if (s.date && s.date.trim() !== '') {
-                return s.date === target.isoDate;
-            }
-            // 정규 일정(날짜 없이 요일만 있는 일정)은 제외
-            return false;
-        }).sort((a, b) => {
-            // 1. Overseas check
-            const isOverA = a.scope === 'overseas' ? 1 : 0;
-            const isOverB = b.scope === 'overseas' ? 1 : 0;
-            if (isOverA !== isOverB) return isOverA - isOverB;
-
-            // 2. Time
-            return (a.start_time || '').localeCompare(b.start_time || '');
-        });
-    }, [schedules, selectedDay, weekDates]);
-
-    // [2] 정규 일정 전용 (요일별 그룹화)
+    // Regular Schedules (unchanged logic)
     const regularSchedulesByDay = useMemo(() => {
         const grouped: { [key: number]: SocialSchedule[] } = {};
         for (let i = 0; i < 7; i++) grouped[i] = [];
@@ -155,101 +200,36 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
         return grouped;
     }, [schedules]);
 
-    // [3] 날짜 일정 (전체일정) - 오늘 포함 미래 일정만 표시
-    const datedSchedulesSorted = useMemo(() => {
-        const today = getLocalDateString();
-        return schedules.filter(s => s.date && s.date >= today)
-            .sort((a, b) => {
-                const dateA = a.date || '';
-                const dateB = b.date || '';
-                if (dateA !== dateB) return dateA.localeCompare(dateB);
+    const renderRegularCompactCard = (item: SocialSchedule) => {
+        const getSmallImage = (item: SocialSchedule) => {
+            if (item.image_micro) return item.image_micro;
+            if (item.image_thumbnail) return item.image_thumbnail;
+            return item.image_url || '';
+        };
 
-                // Secondary: Overseas last
-                const isOverA = a.scope === 'overseas' ? 1 : 0;
-                const isOverB = b.scope === 'overseas' ? 1 : 0;
-                if (isOverA !== isOverB) return isOverA - isOverB;
-
-                return (a.start_time || '').localeCompare(b.start_time || '');
-            });
-    }, [schedules]);
-
-    const getSmallImage = (item: SocialSchedule) => {
-        if (item.image_micro) return item.image_micro;
-        if (item.image_thumbnail) return item.image_thumbnail;
-        const fallback = item.image_url || '';
-        if (fallback.includes('/social/full/')) {
-            return fallback.replace('/social/full/', '/social/micro/');
-        }
-        if (fallback.includes('/social-schedules/full/')) {
-            return fallback.replace('/social-schedules/full/', '/social-schedules/micro/');
-        }
-        if (fallback.includes('/event-posters/full/')) {
-            return fallback.replace('/event-posters/full/', '/event-posters/micro/');
-        }
-        return fallback;
+        return (
+            <div
+                key={item.id}
+                className="regular-compact-card"
+                onClick={() => onScheduleClick(item)}
+            >
+                <div className="compact-image-area">
+                    {getSmallImage(item) ? (
+                        <img src={getSmallImage(item)} alt={item.title} loading="lazy" />
+                    ) : (
+                        <div className="compact-placeholder">
+                            <i className="ri-image-line"></i>
+                        </div>
+                    )}
+                    <div className="compact-time-badge">{item.start_time?.substring(0, 5)}</div>
+                </div>
+                <div className="compact-title">{item.title}</div>
+                <div className="compact-place">{item.place_name}</div>
+            </div>
+        );
     };
 
-    const renderScheduleItem = (item: SocialSchedule) => (
-        <div
-            key={item.id}
-            className="weekly-item"
-            data-analytics-id={typeof item.id === 'number' && item.id > 1000000 ? Math.floor(item.id / 10000) : item.id}
-            data-analytics-type={item.group_id === -1 ? 'event' : 'social'}
-            data-analytics-title={item.title}
-            data-analytics-section="weekly_list"
-            onClick={() => onScheduleClick(item)}
-        >
-            <div className="weekly-image-box">
-                {getSmallImage(item) ? (
-                    <img src={getSmallImage(item)} alt={item.title} loading="lazy" />
-                ) : (
-                    <div className="weekly-image-placeholder">
-                        <i className="ri-calendar-event-line"></i>
-                    </div>
-                )}
-                <div className="item-time-overlay">{item.start_time?.substring(0, 5)}</div>
-            </div>
-            <div className="weekly-details">
-                <h3 className="weekly-item-title">{item.title}</h3>
-                <div className="weekly-meta">
-                    <span className="weekly-place">
-                        <i className="ri-map-pin-line"></i> {item.place_name}
-                    </span>
-                    {item.date && <span className="weekly-date-tag">{item.date.substring(5).replace('-', '/')}</span>}
-                </div>
-            </div>
-            <div className="weekly-arrow">
-                <i className="ri-arrow-right-s-line"></i>
-            </div>
-        </div>
-    );
-
-    // 정규 일정용 컴팩트 카드 (이미지 위주)
-    const renderRegularCompactCard = (item: SocialSchedule) => (
-        <div
-            key={item.id}
-            className="regular-compact-card"
-            data-analytics-id={typeof item.id === 'number' && item.id > 1000000 ? Math.floor(item.id / 10000) : item.id}
-            data-analytics-type="social_regular"
-            data-analytics-title={item.title}
-            data-analytics-section="regular_kanban"
-            onClick={() => onScheduleClick(item)}
-        >
-            <div className="compact-image-area">
-                {getSmallImage(item) ? (
-                    <img src={getSmallImage(item)} alt={item.title} loading="lazy" />
-                ) : (
-                    <div className="compact-placeholder">
-                        <i className="ri-image-line"></i>
-                    </div>
-                )}
-                <div className="compact-time-badge">{item.start_time?.substring(0, 5)}</div>
-            </div>
-            <div className="compact-title">{item.title}</div>
-            <div className="compact-place">{item.place_name}</div>
-        </div>
-    );
-
+    // All Schedules List (Legacy Render Function)
 
 
 
@@ -257,115 +237,253 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
         <section className="weekly-social-container">
 
 
-
-
-            <div className="view-tab-menu-v3">
-                <button
-                    className={`tab-btn ${activeTab === 'weekly' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('weekly')}
-                    data-analytics-id="tab_weekly"
-                    data-analytics-type="tab"
-                    data-analytics-section="social_tabs"
-                >
-                    금주의 일정
-                </button>
-                <button
-                    className={`tab-btn ${activeTab === 'all' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('all')}
-                    data-analytics-id="tab_all"
-                    data-analytics-type="tab"
-                    data-analytics-section="social_tabs"
-                >
-                    전체일정
-                </button>
-                <button
-                    className={`tab-btn ${activeTab === 'regular' ? 'active' : ''}`}
-                    onClick={() => setActiveTab('regular')}
-                    data-analytics-id="tab_regular"
-                    data-analytics-type="tab"
-                    data-analytics-section="social_tabs"
-                >
-                    정기소셜
-                </button>
-                <div className={`tab-indicator-v4 ${activeTab}`} />
-            </div>
-
+            {/* TAB CONTENT: WEEKLY (New V2 Design) */}
             {activeTab === 'weekly' && (
-                <div className="tab-content-fade">
-                    <div className="day-selector-v5">
-                        {weekDates.map((item) => {
-                            const kstDay = getKSTDay();
-                            const todayIndex = kstDay === 0 ? 6 : kstDay - 1;
-                            const isToday = item.day === todayIndex;
-                            const isSelected = selectedDay === item.day;
+                <>
+                    {/* Title & View Toggles */}
+                    <div className="title-toggle-row">
 
-                            const scheduleCount = schedules.filter(s =>
-                                s.date && s.date.trim() !== '' && s.date === item.isoDate
-                            ).length;
 
-                            return (
+                        <div className="view-toggle-container">
+                            {/* Week Navigation - Only Visible in Week View */}
+                            {viewType === 'week' && (
+                                <div className="week-nav-group">
+                                    <button className="nav-btn" onClick={handlePrevWeek}>&lt;</button>
+                                    <button className="nav-btn today" onClick={handleToday}>이번주</button>
+                                    <button className="nav-btn" onClick={handleNextWeek}>&gt;</button>
+                                </div>
+                            )}
+
+                            {/* View Type Toggles */}
+                            <div className="view-type-toggles">
                                 <button
-                                    key={item.day}
-                                    className={`day-btn-v5 ${isSelected ? 'active' : ''}`}
-                                    onClick={() => setSelectedDay(item.day)}
-                                    data-analytics-id={`day_${item.isoDate}`}
-                                    data-analytics-type="day_select"
-                                    data-analytics-title={item.name}
-                                    data-analytics-section="weekly_calendar"
+                                    className={`toggle-btn ${viewType === 'week' ? 'active' : ''}`}
+                                    onClick={() => {
+                                        setViewType('week');
+                                        setRandomSeed(Math.random());
+                                    }}
                                 >
-                                    <span className="day-name manual-label-wrapper" style={isToday ? { color: '#FFD700', fontWeight: 'bold' } : undefined}>
-                                        {isToday ? (
-                                            <>
-                                                <span className="translated-part">Today</span>
-                                                <span className="fixed-part ko" translate="no">오늘</span>
-                                                <span className="fixed-part en" translate="no">Today</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <span className="translated-part">{
-                                                    item.name === '일' ? 'Sun' :
-                                                        item.name === '월' ? 'Mon' :
-                                                            item.name === '화' ? 'Tue' :
-                                                                item.name === '수' ? 'Wed' :
-                                                                    item.name === '목' ? 'Thu' :
-                                                                        item.name === '금' ? 'Fri' :
-                                                                            item.name === '토' ? 'Sat' : item.name
-                                                }</span>
-                                                <span className="fixed-part ko" translate="no">{item.name}</span>
-                                                <span className="fixed-part en" translate="no">{
-                                                    item.name === '일' ? 'Sun' :
-                                                        item.name === '월' ? 'Mon' :
-                                                            item.name === '화' ? 'Tue' :
-                                                                item.name === '수' ? 'Wed' :
-                                                                    item.name === '목' ? 'Thu' :
-                                                                        item.name === '금' ? 'Fri' :
-                                                                            item.name === '토' ? 'Sat' : item.name
-                                                }</span>
-                                            </>
-                                        )}
-                                    </span>
-                                    <span className="day-date">{item.dateNum}</span>
-                                    {isSelected && <div className="active-dot" />}
-                                    {!isSelected && scheduleCount > 0 && (
-                                        <div className="schedule-count-badge">+{scheduleCount}</div>
-                                    )}
+                                    주간
                                 </button>
-                            );
-                        })}
+                                <button
+                                    className={`toggle-btn ${viewType === 'list' ? 'active' : ''}`}
+                                    onClick={() => {
+                                        setViewType('list');
+                                        setWeekViewDate(new Date());
+                                    }}
+                                >
+                                    리스트
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                    <div className="weekly-list">
-                        {displaySchedules.length > 0 ? displaySchedules.map(renderScheduleItem) : (
-                            <div className="empty-weekly">
-                                <i className="ri-calendar-todo-line"></i>
-                                <p>이번 주 해당 요일에 예정된 소셜이 없습니다.</p>
+
+                    {/* Horizontal Date Strip (Calendar View Only) */}
+                    {viewType === 'calendar' && (
+                        <div className="horizontal-date-strip">
+                            {calendarStripDates.map(date => {
+                                const dayName = getDayName(date);
+                                const dayNum = date.split('-')[2];
+                                return (
+                                    <button
+                                        key={date}
+                                        className={`date-chip ${selectedDateForView === date ? 'selected' : ''}`}
+                                        onClick={() => setSelectedDateForView(date)}
+                                    >
+                                        <span className="date-chip-day">{dayName}</span>
+                                        <span className="date-chip-date">{dayNum}</span>
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
+
+                    {/* Main Content Area */}
+                    <div className="daily-list-section">
+
+                        {/* LIST VIEW */}
+                        {viewType === 'list' && (
+                            filteredItemsForView.length > 0 ? (
+                                (() => {
+                                    // Group by Date
+                                    const grouped = filteredItemsForView.reduce((acc, item) => {
+                                        const date = item.date || '날짜 미정';
+                                        if (!acc[date]) acc[date] = [];
+                                        acc[date].push(item);
+                                        return acc;
+                                    }, {} as Record<string, DisplayItem[]>);
+                                    const sortedDates = Object.keys(grouped).sort();
+
+                                    return sortedDates.map(date => (
+                                        <div key={date} className="daily-group">
+                                            <div className="daily-header">
+                                                {date} <span>({getDayName(date)})</span>
+                                            </div>
+                                            <div className="daily-items-list">
+                                                {grouped[date].map(item => (
+                                                    <div key={item.id} className="daily-item-row" onClick={() => eventModal.setSelectedEvent(item.originalEvent)}>
+                                                        <img src={item.image || '/logo.png'} alt={item.title} className="daily-item-thumb" onError={e => e.currentTarget.src = '/logo.png'} />
+                                                        <div className="daily-item-info">
+                                                            <div className="daily-item-title">{item.title}</div>
+                                                            <div className="daily-item-sub">{item.sub}</div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ));
+                                })()
+                            ) : (
+                                <div className="empty-weekly">
+                                    <i className="ri-calendar-check-line"></i>
+                                    <p>예정된 일정이 없습니다.</p>
+                                </div>
+                            )
+                        )}
+
+                        {/* WEEK VIEW - Grid */}
+                        {viewType === 'week' && (
+                            <div style={{
+                                display: 'grid',
+                                gridTemplateColumns: 'repeat(7, 1fr)',
+                                gap: '2px',
+                                background: '#333',
+                                border: '1px solid #333',
+                                borderRadius: '8px',
+                                overflow: 'hidden'
+                            }}>
+                                {weekGridDates.map(date => {
+                                    const dayObj = new Date(date);
+                                    const dayNum = date.split('-')[2];
+                                    const dayOfWeek = dayObj.getDay();
+                                    const isToday = date === getLocalDateString();
+                                    // Filter items for this specific date
+                                    const dayItems = filteredItemsForView.filter(item => item.date === date);
+
+                                    const dateNumberClass = `calendar-date-number-fullscreen ${isToday ? "calendar-date-number-today" : dayOfWeek === 0 ? "calendar-date-sunday" : dayOfWeek === 6 ? "calendar-date-saturday" : ""}`;
+
+                                    return (
+                                        <div key={date} className="calendar-cell-fullscreen" style={{
+                                            minHeight: '20vh',
+                                            height: 'auto',
+                                            border: 'none',
+                                            background: '#1e1e1e',
+                                            display: 'flex',
+                                            flexDirection: 'column'
+                                        }}>
+                                            {/* Header */}
+                                            <div className="calendar-cell-fullscreen-header" style={{ position: 'relative', height: '24px', marginBottom: '4px', marginTop: '4px' }}>
+                                                <span className={dateNumberClass} style={{ left: '50%', transform: 'translateX(-50%)', top: '0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                                    <span className="weekday-wrapper" style={{ fontSize: '10px', color: '#ffffffff', marginBottom: '2px' }}>
+                                                        {weekNames[dayOfWeek]}
+                                                    </span>
+                                                    <span style={{ fontSize: '14px' }}>{parseInt(dayNum)}</span>
+                                                </span>
+                                            </div>
+
+                                            {/* Body */}
+                                            <div className="calendar-cell-fullscreen-body" style={{ padding: '0 2px 8px 2px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                                {dayItems.map(item => {
+                                                    const categoryColor = getEventColor(item.id);
+                                                    return (
+                                                        <div key={item.id} className="calendar-fullscreen-event-card"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                eventModal.setSelectedEvent(item.originalEvent);
+                                                            }}
+                                                            style={{
+                                                                marginBottom: '4px',
+                                                                flexDirection: 'column',
+                                                                alignItems: 'center',
+                                                                padding: '4px 2px',
+                                                                height: 'auto',
+                                                                textAlign: 'center',
+                                                                cursor: 'pointer'
+                                                            }}>
+                                                            {(item.image || item.image_micro) ? (
+                                                                <div style={{ width: '100%', aspectRatio: '1', borderRadius: '4px', overflow: 'hidden', marginBottom: '2px' }}>
+                                                                    <img src={item.image || item.image_micro} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                                                                </div>
+                                                            ) : (
+                                                                <div className={`calendar-fullscreen-placeholder ${categoryColor}`} style={{ width: '100%', aspectRatio: '1', borderRadius: '4px', marginBottom: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                                    <span style={{ fontSize: '10px', color: 'white', fontWeight: 'bold' }}>
+                                                                        {item.title.charAt(0)}
+                                                                    </span>
+                                                                </div>
+                                                            )}
+                                                            <div style={{ fontSize: '10px', lineHeight: '1.1', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', color: '#ddd' }}>
+                                                                {item.title}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                                {/* Add Button */}
+                                                <button
+                                                    className="week-grid-add-btn"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        onAddSchedule && onAddSchedule(date);
+                                                    }}
+                                                >
+                                                    <i className="ri-add-line"></i>
+                                                </button>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
                         )}
+
+                        {/* CALENDAR VIEW - Daily List for Selected Date */}
+                        {viewType === 'calendar' && (
+                            filteredItemsForView.length > 0 ? (
+                                <div className="daily-items-list">
+                                    {filteredItemsForView.map(item => (
+                                        <div key={item.id} className="daily-item-row" onClick={() => eventModal.setSelectedEvent(item.originalEvent)}>
+                                            <img src={item.image || '/logo.png'} alt={item.title} className="daily-item-thumb" onError={e => e.currentTarget.src = '/logo.png'} />
+                                            <div className="daily-item-info">
+                                                <div className="daily-item-title">{item.title}</div>
+                                                <div className="daily-item-sub">{item.sub}</div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div style={{ color: '#666', textAlign: 'center', padding: '40px 0' }}>
+                                    해당 날짜의 일정이 없습니다.
+                                </div>
+                            )
+                        )}
+
                     </div>
-                </div>
+                </>
             )}
 
+            {/* TAB CONTENT: REGULAR */}
             {activeTab === 'regular' && (
-                <div className="tab-content-fade">
+                <>
+                    <div style={{
+
+                        marginBottom: '16px',
+                        padding: '12px',
+                        background: 'rgba(59, 130, 246, 0.1)',
+                        border: '1px solid rgba(59, 130, 246, 0.3)',
+                        borderRadius: '8px',
+                        fontSize: '0.85rem',
+                        color: '#93c5fd',
+                        lineHeight: '1.4',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px'
+                    }}>
+                        <i className="ri-information-line" style={{ fontSize: '1.2rem' }}></i>
+                        <span>
+                            정기소셜일정은 언제든 취소될 수 있습니다.
+                            <br />
+                            <strong>금주의 일정</strong>은 확정된 일정입니다.
+                        </span>
+                    </div>
+
                     <div className="regular-kanban-container">
                         {([1, 2, 3, 4, 5, 6, 0] as const).map(dayIdx => {
                             const dayItems = regularSchedulesByDay[dayIdx];
@@ -378,29 +496,29 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                                         {dayItems.length > 0 ? (
                                             dayItems.map(renderRegularCompactCard)
                                         ) : (
-                                            <div className="kanban-empty">없음</div>
+                                            <div className="kanban-empty" style={{ textAlign: 'center', color: '#444', fontSize: '12px' }}>없음</div>
                                         )}
                                     </div>
                                 </div>
                             );
                         })}
                     </div>
-                </div>
+                </>
             )}
 
-            {activeTab === 'all' && (
-                <div className="tab-content-fade">
-                    <div className="all-schedules-list">
-                        {datedSchedulesSorted.length > 0 ? datedSchedulesSorted.map(renderScheduleItem) : (
-                            <div className="empty-weekly">
-                                <i className="ri-calendar-line"></i>
-                                <p>등록된 날짜별 일정이 없습니다.</p>
-                            </div>
-                        )}
-                    </div>
-                </div>
+            {/* Event Detail Modal integration */}
+            {eventModal.selectedEvent && (
+                <EventDetailModal
+                    event={eventModal.selectedEvent}
+                    isOpen={!!eventModal.selectedEvent}
+                    onClose={eventModal.closeAllModals}
+                    isAdminMode={false} // Defaulting to false as we don't have context here
+                    onEdit={() => { }} // Read-only mostly? or parent handles reload? 
+                    onDelete={() => {
+                        eventModal.closeAllModals();
+                    }}
+                />
             )}
-
         </section>
     );
 };

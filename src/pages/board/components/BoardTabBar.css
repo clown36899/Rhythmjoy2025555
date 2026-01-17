@@ -46,7 +46,7 @@
     height: 100%;
     background: none;
     border: none;
-    color: #d8dce4;
+    color: #6d6d6d;
     /* font-size: clamp(0.7rem, 2.5vw, 1rem); */
     font-weight: 400;
     white-space: nowrap;
@@ -57,8 +57,8 @@
 }
 
 .board-tab-item.active {
-    color: var(--primary-color, #3b82f6);
-    font-weight: 600;
+    color: #ffffff;
+    font-weight: 800;
 }
 
 .board-tab-icon {
