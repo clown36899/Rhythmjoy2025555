@@ -176,11 +176,10 @@
     justify-content: space-between;
     align-items: center;
     padding: 1rem 1.5rem;
-    /* Adjusted padding */
     border-top: 1px solid var(--modal-border);
     background: var(--modal-bg);
-    /* Ensure solid background */
     margin-top: 0;
+    flex-direction: row;
 }
 
 .form-actions-right {

@@ -41,6 +41,42 @@ const SocialPage: React.FC = () => {
   const initialTab = searchParams.get('tab');
   const initialType = searchParams.get('type');
 
+  // Auto-scroll logic with aggressive retry
+  useEffect(() => {
+    const scrollTo = searchParams.get('scrollTo');
+    if (scrollTo === 'practice-section') {
+      let attempts = 0;
+      const maxAttempts = 50; // Try for 2.5 seconds (50 * 50ms)
+
+      const checkAndScroll = () => {
+        const section = document.querySelector('.practice-section');
+        if (section) {
+          // 110px accounts for Header (approx 60px) + TabBar (approx 50px)
+          const headerOffset = 110;
+          const elementTop = section.getBoundingClientRect().top;
+          const currentScroll = window.pageYOffset;
+          const targetScroll = currentScroll + elementTop - headerOffset;
+
+          // Force scroll to target position
+          if (Math.abs(currentScroll - targetScroll) > 1) {
+            window.scrollTo({
+              top: targetScroll,
+              behavior: 'auto'
+            });
+          }
+        }
+
+        attempts++;
+        if (attempts < maxAttempts) {
+          setTimeout(checkAndScroll, 50); // Check more frequently (50ms)
+        }
+      };
+
+      // Start checking immediately
+      checkAndScroll();
+    }
+  }, [location.search]);
+
   const [selectedGroup, setSelectedGroup] = useState<SocialGroup | null>(null);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
 
@@ -386,6 +422,7 @@ const SocialPage: React.FC = () => {
           setSelectedDateForAdd(date);
           setIsRegistrationModalOpen(true);
         }}
+        onRefresh={refreshSchedules}
       />
 
 

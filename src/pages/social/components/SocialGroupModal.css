@@ -262,10 +262,10 @@
     .form-actions .submit-btn,
     .form-actions .cancel-btn,
     .form-actions .delete-btn {
-        width: 100%;
-        flex: none;
+        /* width: 100%;
+        flex: none; */
         margin-right: 0;
         padding: 14px;
-        font-size: 1rem;
+        /* font-size: 1rem; */
     }
 }

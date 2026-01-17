@@ -30,7 +30,10 @@ const SocialRegistrationModal: React.FC<SocialRegistrationModalProps> = ({
                 <div className="srm-body">
                     <p className="srm-desc">
                         <i className="ri-information-fill" style={{ marginRight: '6px', color: '#60a5fa' }}></i>
-                        소셜일정을 등록하려면 단체(주최자)를 선택해야 합니다.
+                        소셜일정을 등록하려면 단체(주최자)를 선택해야 합니다.<br />
+                        <span style={{ fontSize: '0.85rem', color: '#9ca3af', display: 'block', marginTop: '6px', paddingLeft: '22px' }}>
+                            비밀번호로 추가하시려면 하단에 등록단체 리스트에서 일정등록 버튼으로 등록해주세요.
+                        </span>
                     </p>
 
                     <div className="srm-list">

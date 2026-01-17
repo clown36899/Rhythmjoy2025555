@@ -734,15 +734,63 @@ export default function EventDetailModal({
       });
 
       // 🎯 [DB UPDATE] Reverted to Standard REST API (.update) for simplicity and reliability with retry
+      let updatedEvent = null;
+      let error = null;
 
-      const { data: updatedEvent, error } = await retryOperation(async () =>
-        await supabase
-          .from('events')
-          .update(updates)
-          .eq('id', draftEvent.id)
-          .select()
-          .maybeSingle()
-      ) as any;
+      const isSocialIntegrated = (draftEvent as any).is_social_integrated || String(draftEvent.id).startsWith('social-');
+
+      if (isSocialIntegrated) {
+        const originalId = String(draftEvent.id).replace('social-', '');
+        const socialUpdates: any = {
+          title: updates.title,
+          description: updates.description,
+          place_name: updates.location,
+          address: updates.location_link, // 'address' acts as the map link or address in social_schedules 
+          // Wait, I need to verify column names for social_schedules properly. 
+          // Fetch logic says: '*, board_users(nickname), social_groups(name)'
+          // Let's assume standard names or quick check? 
+          // Fetch mapped: link1: data.link_url, link_name1: data.link_name
+          link_url: updates.link1,
+          link_name: updates.link_name1,
+          v2_category: updates.category,
+          v2_genre: updates.genre,
+          // Date fields? social_schedules usually has date, start_time, end_time. 
+          // draftEvent was mapped from social, so likely has date string. 
+          // If date mode changed, we need to handle it. Social usually single date.
+          date: updates.date, // social_schedules has 'date' column usually
+          // image?
+          image_url: updates.image_full || updates.image, // Prefer full or whatever
+          image_thumbnail: updates.image_thumbnail,
+          image_micro: updates.image_micro
+        };
+
+        // Clean undefined
+        Object.keys(socialUpdates).forEach(key => socialUpdates[key] === undefined && delete socialUpdates[key]);
+
+        const result = await retryOperation(async () =>
+          await supabase
+            .from('social_schedules')
+            .update(socialUpdates)
+            .eq('id', originalId)
+            .select()
+            .maybeSingle()
+        ) as any;
+        updatedEvent = result.data;
+        error = result.error;
+
+      } else {
+        // Standard Event
+        const result = await retryOperation(async () =>
+          await supabase
+            .from('events')
+            .update(updates)
+            .eq('id', draftEvent.id)
+            .select()
+            .maybeSingle()
+        ) as any;
+        updatedEvent = result.data;
+        error = result.error;
+      }
 
 
       if (error) {
@@ -1748,6 +1796,13 @@ export default function EventDetailModal({
                       e.stopPropagation();
                       if (!user) {
                         setShowLoginPrompt(true);
+                        return;
+                      }
+
+                      // Special handling for social events: Delegate edit to parent (external modal)
+                      const isSocial = String(selectedEvent.id).startsWith('social-') || (selectedEvent as any).is_social_integrated;
+                      if (isSocial && _onEdit) {
+                        _onEdit(selectedEvent);
                         return;
                       }
 

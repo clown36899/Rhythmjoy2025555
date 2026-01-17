@@ -3,6 +3,7 @@ import type { SocialSchedule } from '../types';
 import { getLocalDateString, getKSTDay, getDayName } from '../../v2/utils/eventListUtils';
 import { useEventModal } from '../../../hooks/useEventModal';
 import EventDetailModal from '../../v2/components/EventDetailModal';
+import SocialScheduleModal from './SocialScheduleModal';
 import './WeeklySocial.css';
 
 interface WeeklySocialProps {
@@ -10,6 +11,7 @@ interface WeeklySocialProps {
     onScheduleClick: (schedule: SocialSchedule) => void;
     activeTab: 'weekly' | 'regular'; // Updated Prop
     onAddSchedule?: (date: string) => void;
+    onRefresh?: () => void;
 }
 
 type SubViewType = 'list' | 'week' | 'calendar';
@@ -30,7 +32,8 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
     schedules,
     onScheduleClick,
     activeTab, // Receive activeTab
-    onAddSchedule
+    onAddSchedule,
+    onRefresh
 }) => {
     // Internal activeTab state Removed.
 
@@ -42,6 +45,8 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
     const [weekViewDate, setWeekViewDate] = useState<Date>(new Date());
     const [selectedDateForView, setSelectedDateForView] = useState<string>(getLocalDateString());
     const [randomSeed, setRandomSeed] = useState<number>(Math.random()); // Seed for randomization
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editingSchedule, setEditingSchedule] = useState<SocialSchedule | null>(null);
 
     // Auth/Admin state mocking or retrieving - context not passed, but EventDetailModal takes isAdminMode. 
     // We assume mostly read-only here or inherit from parent if needed. 
@@ -63,7 +68,7 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                 sub: `${s.start_time ? s.start_time.substring(0, 5) : ''} ${s.place_name || ''}`,
                 category: 'social', // Mostly social here
                 image_micro: s.image_micro,
-                originalEvent: s
+                originalEvent: { ...s, id: `social-${s.id}` }
             };
         });
 
@@ -488,13 +493,42 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                     event={eventModal.selectedEvent}
                     isOpen={!!eventModal.selectedEvent}
                     onClose={eventModal.closeAllModals}
-                    isAdminMode={false} // Defaulting to false as we don't have context here
-                    onEdit={() => { }} // Read-only mostly? or parent handles reload? 
+                    isAdminMode={false}
+                    onEdit={(event) => {
+                        const idStr = String(event.id);
+                        if (idStr.startsWith('social-')) {
+                            const socialId = parseInt(idStr.replace('social-', ''), 10);
+                            const original = schedules.find(s => s.id === socialId);
+                            if (original) {
+                                setEditingSchedule(original);
+                                setIsEditModalOpen(true);
+                                eventModal.closeAllModals();
+                            }
+                        }
+                    }}
                     onDelete={() => {
                         eventModal.closeAllModals();
+                        // Refetch or update list? handled by callback usually
+                        onRefresh?.();
                     }}
                 />
             )}
+
+            {/* Social Schedule Edit Modal */}
+            <SocialScheduleModal
+                isOpen={isEditModalOpen}
+                onClose={() => {
+                    setIsEditModalOpen(false);
+                    setEditingSchedule(null);
+                }}
+                groupId={editingSchedule?.group_id || null}
+                editSchedule={editingSchedule}
+                onSuccess={() => {
+                    setIsEditModalOpen(false);
+                    setEditingSchedule(null);
+                    onRefresh?.(); // Refresh the list
+                }}
+            />
         </section>
     );
 };

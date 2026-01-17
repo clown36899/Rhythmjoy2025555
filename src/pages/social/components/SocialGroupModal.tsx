@@ -32,6 +32,7 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
     const [password, setPassword] = useState(''); // 관리 비밀번호
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [loadingMessage, setLoadingMessage] = useState('');
+    const [uploadProgress, setUploadProgress] = useState(0);
     const [showVenueModal, setShowVenueModal] = useState(false);
 
     // Image Crop State
@@ -558,6 +559,7 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
             <GlobalLoadingOverlay
                 isLoading={isSubmitting}
                 message={loadingMessage}
+                progress={uploadProgress}
             />
         </div>,
         document.body

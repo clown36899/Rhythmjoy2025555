@@ -150,7 +150,7 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
             {/* 3.5. Beginner Section - Starting Swing Dance */}
             <div className="evt-v2-section evt-v2-section-beginner" style={{ margin: '20px 16px' }}>
                 <div
-                    onClick={() => window.location.href = '/social?tab=register&type=club'}
+                    onClick={() => window.location.href = '/social?scrollTo=practice-section'}
                     style={{
                         background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
                         borderRadius: '16px',

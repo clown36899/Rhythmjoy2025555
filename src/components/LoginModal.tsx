@@ -1,11 +1,7 @@
 // Import useEffect
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import './LoginModal.css';
-
-// Import SVG icons if available, or use public assets
-const KAKAO_ICON = "https://developers.kakao.com/assets/img/about/logos/kakaolink/kakaolink_btn_small.png";
-const GOOGLE_ICON = "https://lh3.googleusercontent.com/COxitq8kL_ls1kTVWwvN9A4FpXj_7D5o_h-J3qB8rYqX8r7k8o5f5b5c5d5e5f5g5h5i5j5k5l5m5n5o5p"; // Placeholder, using inline SVG is better usually but for now simple
 
 interface LoginModalProps {
     isOpen: boolean;

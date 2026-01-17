@@ -246,11 +246,14 @@
 }
 
 .ssm-delete-btn {
-    padding: 6px 12px;
+    flex: 1;
+    min-width: 0;
+    /* Allow infinite shrinking */
+    padding: 12px clamp(4px, 2vw, 16px);
     background-color: transparent;
     color: #ef4444;
-    border: 1px solid rgba(239, 68, 68, 0.2);
-    border-radius: 8px;
+    border: 1px solid rgba(239, 68, 68, 0.5);
+    border-radius: 12px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
@@ -258,7 +261,10 @@
     align-items: center;
     justify-content: center;
     gap: 4px;
-    font-size: 0.85rem;
+    font-size: clamp(10px, 3.5vw, 15px);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .ssm-delete-btn:hover:not(:disabled) {
@@ -384,12 +390,19 @@
 
 .form-actions {
     display: flex;
-    gap: 12px;
+    gap: 8px;
+    /* Reduced gap for better fit */
     margin-top: 10px;
+    flex-wrap: nowrap;
+    /* Force single line */
+    width: 100%;
 }
 
 .ssm-cancel-btn {
-    padding: 12px 24px;
+    flex: 1;
+    min-width: 0;
+    /* Allow infinite shrinking */
+    padding: 12px clamp(4px, 2vw, 16px);
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     background: #333;
@@ -397,6 +410,10 @@
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: clamp(10px, 3.5vw, 15px);
 }
 
 .ssm-cancel-btn:hover {
@@ -405,7 +422,9 @@
 
 .ssm-submit-btn {
     flex: 1;
-    padding: 12px 24px;
+    min-width: 0;
+    /* Allow infinite shrinking */
+    padding: 12px clamp(4px, 2vw, 16px);
     border-radius: 12px;
     border: none;
     background: #fbbf24;
@@ -413,6 +432,10 @@
     font-weight: 700;
     cursor: pointer;
     transition: all 0.2s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-size: clamp(10px, 3.5vw, 15px);
 }
 
 .ssm-submit-btn:hover {

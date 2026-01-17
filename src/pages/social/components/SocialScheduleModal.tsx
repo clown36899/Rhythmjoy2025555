@@ -38,6 +38,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
 
     // Schedule State
     const [title, setTitle] = useState(editSchedule?.title || copyFrom?.title || '');
+    const [uploadProgress, setUploadProgress] = useState(0);
     const [scheduleType, setScheduleType] = useState<'once' | 'regular'>(
         (editSchedule?.date || copyFrom?.date) ? 'once' : 'regular'
     );
@@ -178,19 +179,35 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
             let imageUrl = recruitImagePreview;
 
             if (recruitImageFile) {
-                setLoadingMessage('이미지 업로드 중...');
+                setLoadingMessage('이미지 최적화 중...');
+                setUploadProgress(10);
                 const resized = await createResizedImages(recruitImageFile);
+                setUploadProgress(20);
+
+                setLoadingMessage('이미지 업로드 중...');
                 const timestamp = Date.now();
                 const rand = Math.random().toString(36).substring(2, 7);
                 const path = `social-groups/${groupId}/recruit/${timestamp}_${rand}.webp`;
 
-                // User requested Medium size WebP for recruitment
-                const { error } = await supabase.storage.from('images').upload(path, resized.medium, {
-                    contentType: 'image/webp',
-                    upsert: true
-                });
-                if (error) throw error;
-                imageUrl = supabase.storage.from('images').getPublicUrl(path).data.publicUrl;
+                const progressInterval = setInterval(() => {
+                    setUploadProgress(prev => {
+                        if (prev >= 95) return prev;
+                        return prev + 5;
+                    });
+                }, 200);
+
+                try {
+                    // User requested Medium size WebP for recruitment
+                    const { error } = await supabase.storage.from('images').upload(path, resized.medium, {
+                        contentType: 'image/webp',
+                        upsert: true
+                    });
+                    if (error) throw error;
+                    imageUrl = supabase.storage.from('images').getPublicUrl(path).data.publicUrl;
+                } finally {
+                    clearInterval(progressInterval);
+                    setUploadProgress(100);
+                }
             }
 
             const { error } = await supabase
@@ -309,62 +326,68 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
             };
 
             if (imageFile) {
-                setLoadingMessage('이미지 최적화 및 업로드 중...');
+                setLoadingMessage('이미지 최적화 중...');
+                setUploadProgress(10);
                 const resized = await createResizedImages(imageFile);
+                setUploadProgress(20);
+
+                setLoadingMessage('이미지 업로드 중...');
                 const timestamp = Date.now();
                 const rand = Math.random().toString(36).substring(2, 7);
-
                 let basePath = '';
 
                 // Determine storage path
-                // 1. Try to get parent group's storage_path
                 const targetGroupId = (groupId && groupId !== 0) ? groupId : (editSchedule?.group_id || null);
-
                 if (targetGroupId) {
                     const { data: groupData } = await supabase
                         .from('social_groups')
                         .select('storage_path')
                         .eq('id', targetGroupId)
                         .maybeSingle();
-
                     if (groupData && groupData.storage_path) {
-                        // New Structure: social-groups/{folder}/schedules/{scheduleFolder}
-                        // We create a subfolder for this specific schedule upload to keep versions organized 
-                        // or just put files directly? v2 puts them in timestamp folder.
-                        // Let's make a schedule-specific folder to be safe.
                         basePath = `${groupData.storage_path}/schedules/${timestamp}_${rand}`;
                     }
                 }
-
-                // 2. Fallback to Legacy path
                 if (!basePath) {
                     basePath = `social-schedules/${targetGroupId || 'personal'}/${user.id}/${timestamp}_${rand}`;
                 }
 
-                const upload = async (name: string, blob: Blob) => {
-                    const path = `${basePath}/${name}.webp`;
-                    const { error } = await supabase.storage.from('images').upload(path, blob, {
-                        contentType: 'image/webp',
-                        upsert: true
+                const progressInterval = setInterval(() => {
+                    setUploadProgress(prev => {
+                        if (prev >= 95) return prev;
+                        return prev + 5;
                     });
-                    if (error) throw error;
-                    return supabase.storage.from('images').getPublicUrl(path).data.publicUrl;
-                };
+                }, 200);
 
-                const [micro, thumb, med, full] = await Promise.all([
-                    upload('micro', resized.micro),
-                    upload('thumbnails', resized.thumbnail),
-                    upload('medium', resized.medium),
-                    upload('full', resized.full)
-                ]);
+                try {
+                    const upload = async (name: string, blob: Blob) => {
+                        const path = `${basePath}/${name}.webp`;
+                        const { error } = await supabase.storage.from('images').upload(path, blob, {
+                            contentType: 'image/webp',
+                            upsert: true
+                        });
+                        if (error) throw error;
+                        return supabase.storage.from('images').getPublicUrl(path).data.publicUrl;
+                    };
 
-                imageObj = {
-                    image_url: full,
-                    image_micro: micro,
-                    image_thumbnail: thumb,
-                    image_medium: med,
-                    image_full: full
-                };
+                    const [micro, thumb, med, full] = await Promise.all([
+                        upload('micro', resized.micro),
+                        upload('thumbnails', resized.thumbnail),
+                        upload('medium', resized.medium),
+                        upload('full', resized.full)
+                    ]);
+
+                    imageObj = {
+                        image_url: full,
+                        image_micro: micro,
+                        image_thumbnail: thumb,
+                        image_medium: med,
+                        image_full: full
+                    };
+                } finally {
+                    clearInterval(progressInterval);
+                    setUploadProgress(100);
+                }
             }
 
             const scheduleData = {
@@ -791,6 +814,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
             <GlobalLoadingOverlay
                 isLoading={isSubmitting}
                 message={loadingMessage}
+                progress={uploadProgress}
             />
         </div>,
         document.body

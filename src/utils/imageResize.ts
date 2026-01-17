@@ -160,6 +160,82 @@ export async function resizeImage(
   });
 }
 
+// Helper to load image once
+function loadImage(src: string): Promise<HTMLImageElement> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = (e) => reject(new Error('Image load failed'));
+    img.src = src;
+  });
+}
+
+// Optimized resize function taking pre-loaded image
+async function resizeLoadedImage(
+  img: HTMLImageElement,
+  targetSize: number,
+  quality: number,
+  fileName: string,
+  mode: 'width' | 'min' | 'height' = 'width'
+): Promise<File> {
+  return new Promise((resolve, reject) => {
+    // ... (Similar canvas logic but using existing img)
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      reject(new Error('Canvas context failure'));
+      return;
+    }
+
+    let width = img.width;
+    let height = img.height;
+
+    if (mode === 'width') {
+      if (width > targetSize) {
+        height = (height * targetSize) / width;
+        width = targetSize;
+      }
+    } else if (mode === 'min') {
+      const ratio = Math.max(targetSize / width, targetSize / height);
+      width = width * ratio;
+      height = height * ratio;
+    } else if (mode === 'height') {
+      if (height > targetSize) {
+        width = (width * targetSize) / height;
+        height = targetSize;
+      }
+    }
+
+    canvas.width = Math.round(width);
+    canvas.height = Math.round(height);
+
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+    const useWebP = supportsWebP();
+    const mimeType = useWebP ? 'image/webp' : 'image/jpeg';
+    const extension = useWebP ? 'webp' : 'jpg';
+    const finalFileName = `${fileName.replace(/\.[^.]+$/, '')}.${extension}`;
+
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          reject(new Error('Blob creation failed'));
+          return;
+        }
+        const resizedFile = new File([blob], finalFileName, {
+          type: mimeType,
+          lastModified: Date.now(),
+        });
+        resolve(resizedFile);
+      },
+      mimeType,
+      quality
+    );
+  });
+}
+
 export async function createResizedImages(
   fileOrDataUrl: File | string,
   _onProgress?: (progress: number, step: string) => void,
@@ -167,43 +243,31 @@ export async function createResizedImages(
 ): Promise<ResizedImages> {
   const startTime = performance.now();
   const isDataUrl = typeof fileOrDataUrl === 'string';
-
-  console.log('[🎨 이미지 리사이즈] 시작', {
-    source: isDataUrl ? 'base64' : 'File',
-    fileName: isDataUrl ? fileName : (fileOrDataUrl as File).name,
-    dataSize: isDataUrl ? `${(fileOrDataUrl.length / 1024).toFixed(0)}KB` : `${((fileOrDataUrl as File).size / 1024).toFixed(0)}KB`,
-    type: isDataUrl ? 'base64' : (fileOrDataUrl as File).type
-  });
+  let objectUrl: string | null = null;
 
   try {
-    let sourceUrl = fileOrDataUrl;
-    let objectUrl: string | null = null;
-
+    let src = fileOrDataUrl as string;
     if (!isDataUrl && fileOrDataUrl instanceof File) {
       objectUrl = URL.createObjectURL(fileOrDataUrl);
-      sourceUrl = objectUrl;
+      src = objectUrl;
     }
 
-    const [micro, thumbnail, medium, full] = await Promise.all([
-      resizeImage(sourceUrl, 100, 0.7, fileName),
-      resizeImage(sourceUrl, 300, 0.75, fileName),
-      resizeImage(sourceUrl, 650, 0.9, fileName),
-      resizeImage(sourceUrl, 1300, 0.85, fileName),
-    ]);
+    const img = await loadImage(src);
+
+    // Run sequentially to reduce memory pressure
+    const micro = await resizeLoadedImage(img, 100, 0.7, fileName);
+    const thumbnail = await resizeLoadedImage(img, 300, 0.75, fileName);
+    const medium = await resizeLoadedImage(img, 650, 0.9, fileName);
+    const full = await resizeLoadedImage(img, 1300, 0.85, fileName);
 
     if (objectUrl) URL.revokeObjectURL(objectUrl);
 
-    const elapsed = performance.now() - startTime;
-    console.log(`[🎨 이미지 리사이즈] ✅ 완료 (총 ${elapsed.toFixed(0)}ms)`, {
-      micro: `${(micro.size / 1024).toFixed(0)}KB`,
-      thumbnail: `${(thumbnail.size / 1024).toFixed(0)}KB`,
-      medium: `${(medium.size / 1024).toFixed(0)}KB`,
-      full: `${(full.size / 1024).toFixed(0)}KB`,
-    });
+    console.log(`[🎨 이미지 리사이즈] 완료 (총 ${(performance.now() - startTime).toFixed(0)}ms)`);
 
     return { micro, thumbnail, medium, full };
   } catch (error) {
-    console.error('[🎨 이미지 리사이즈] ❌ 실패', error);
+    console.error('Resize failed:', error);
+    if (objectUrl) URL.revokeObjectURL(objectUrl);
     throw error;
   }
 }
