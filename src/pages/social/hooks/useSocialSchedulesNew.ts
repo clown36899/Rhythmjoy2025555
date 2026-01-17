@@ -3,25 +3,42 @@ import { supabase } from '../../../lib/supabase';
 import type { SocialSchedule } from '../types';
 import { useAuth } from '../../../contexts/AuthContext';
 
-// Global cache for social schedules to avoid redundant fetches across components
+// Global cache update to handle variable start dates
 let globalSchedulesCache: {
     data: SocialSchedule[];
     timestamp: number;
     groupId: number | undefined;
+    minDate: string | undefined;
 } | null = null;
 
 const CACHE_DURATION = 60 * 1000; // 1 minute
 
-export function useSocialSchedulesNew(groupId?: number) {
+export function useSocialSchedulesNew(groupId?: number, minDate?: string) {
     const { isAdmin } = useAuth();
     const [schedules, setSchedules] = useState<SocialSchedule[]>(globalSchedulesCache?.data || []);
-    const [loading, setLoading] = useState(!globalSchedulesCache || globalSchedulesCache.groupId !== groupId);
+    // Determine if we need to load: invalid cache, diff group, or diff date range (if specific minDate requested)
+    // Note: If minDate provided is NEWER than cached minDate, we might seemingly use cached data, 
+    // but usually we move backwards (older minDate) -> invalidates.
+    // Simplifying: if minDate differs, refetch.
+    const [loading, setLoading] = useState(
+        !globalSchedulesCache ||
+        globalSchedulesCache.groupId !== groupId ||
+        (minDate && globalSchedulesCache.minDate !== minDate)
+    );
 
     const fetchSchedules = useCallback(async (force = false) => {
-        // Use cache if available and not expired (unless force refresh)
-        if (!force && globalSchedulesCache &&
+        // Use cache logic:
+        // 1. Not forced
+        // 2. Cache exists
+        // 3. Group match
+        // 4. Time valid
+        // 5. MinDate matches (or we are asking for default/today and cache is default/today)
+        const isCacheValid = globalSchedulesCache &&
             globalSchedulesCache.groupId === groupId &&
-            Date.now() - globalSchedulesCache.timestamp < CACHE_DURATION) {
+            globalSchedulesCache.minDate === minDate &&
+            (Date.now() - globalSchedulesCache.timestamp < CACHE_DURATION);
+
+        if (!force && isCacheValid && globalSchedulesCache) {
             setSchedules(globalSchedulesCache.data);
             setLoading(false);
             return;
@@ -45,13 +62,12 @@ export function useSocialSchedulesNew(groupId?: number) {
             if (groupId) {
                 query = query.eq('group_id', groupId);
             } else {
-                // Global fetch (Home Page): Optimize by fetching only future/today events or recurring schedules
-                const today = new Date();
-                const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+                // Global fetch: allow custom minDate or default to today
+                const baseDate = minDate ? new Date(minDate) : new Date();
+                const baseDateStr = `${baseDate.getFullYear()}-${String(baseDate.getMonth() + 1).padStart(2, '0')}-${String(baseDate.getDate()).padStart(2, '0')}`;
 
-                // Fetch if: (date >= today) OR (day_of_week is not null/recurring)
-                // Note: .or() filter string syntax using Supabase PostgREST format
-                query = query.or(`date.gte.${todayStr},day_of_week.not.is.null`);
+                // Fetch if: (date >= baseDate) OR (day_of_week is not null/recurring)
+                query = query.or(`date.gte.${baseDateStr},day_of_week.not.is.null`);
             }
 
             const { data, error } = await query
@@ -67,14 +83,15 @@ export function useSocialSchedulesNew(groupId?: number) {
             globalSchedulesCache = {
                 data: fetchedData,
                 timestamp: Date.now(),
-                groupId: groupId
+                groupId: groupId,
+                minDate: minDate
             };
         } catch (err) {
             console.error('Error fetching social schedules:', err);
         } finally {
             setLoading(false);
         }
-    }, [groupId, isAdmin]);
+    }, [groupId, isAdmin, minDate]);
 
     useEffect(() => {
         fetchSchedules();

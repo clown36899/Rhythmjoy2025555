@@ -26,11 +26,28 @@ import type { SocialGroup, SocialSchedule } from './types';
 
 const SocialPage: React.FC = () => {
   const { user, isAdmin } = useAuth();
-  const today = getLocalDateString();
+
 
   // Data Hooks
   const { groups, refresh: refreshGroups } = useSocialGroups();
-  const { schedules, refresh: refreshSchedules } = useSocialSchedulesNew();
+  // View Date State for Weekly Fetching (Declared early for use in hooks)
+  const [currentViewDate, setCurrentViewDate] = useState<Date>(new Date());
+
+  // Calculate start of the week for social schedules fetching
+  const weekStartForSchedules = useMemo(() => {
+    const now = new Date(currentViewDate);
+    const kstDay = getKSTDay(now);
+    // Align with WeeklySocial: Sunday Start
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - kstDay);
+    return getLocalDateString(weekStart);
+  }, [currentViewDate]);
+
+  const { schedules, refresh: refreshSchedules, loading: loadingSchedules } = useSocialSchedulesNew(undefined, weekStartForSchedules);
+
+  // Local loading state for events
+  const [loadingEvents, setLoadingEvents] = useState(false);
+  const [eventsThisWeek, setEventsThisWeek] = useState<any[]>([]);
   const { favorites, toggleFavorite } = useSocialGroupFavorites();
 
   // Modal States
@@ -51,24 +68,26 @@ const SocialPage: React.FC = () => {
       const checkAndScroll = () => {
         const section = document.querySelector('.practice-section');
         if (section) {
-          // 110px accounts for Header (approx 60px) + TabBar (approx 50px)
           const headerOffset = 110;
           const elementTop = section.getBoundingClientRect().top;
           const currentScroll = window.pageYOffset;
           const targetScroll = currentScroll + elementTop - headerOffset;
 
-          // Force scroll to target position
-          if (Math.abs(currentScroll - targetScroll) > 1) {
-            window.scrollTo({
-              top: targetScroll,
-              behavior: 'auto'
-            });
+          // If we are already close enough, STOP retrying.
+          if (Math.abs(currentScroll - targetScroll) <= 2) {
+            return; // Success! Stop the loop.
           }
+
+          // Force scroll to target position
+          window.scrollTo({
+            top: targetScroll,
+            behavior: 'auto'
+          });
         }
 
         attempts++;
         if (attempts < maxAttempts) {
-          setTimeout(checkAndScroll, 50); // Check more frequently (50ms)
+          setTimeout(checkAndScroll, 50);
         }
       };
 
@@ -105,7 +124,7 @@ const SocialPage: React.FC = () => {
   }, []);
 
   const [targetGroupId, setTargetGroupId] = useState<number | null>(null);
-  const [eventsThisWeek, setEventsThisWeek] = useState<any[]>([]);
+
   const [scheduleModalTab, setScheduleModalTab] = useState<'schedule' | 'recruit'>('schedule');
   const [hideScheduleTabs, setHideScheduleTabs] = useState(false);
   const [selectedRecruitGroup, setSelectedRecruitGroup] = useState<SocialGroup | null>(null);
@@ -155,46 +174,60 @@ const SocialPage: React.FC = () => {
   // Event Detail Modal States
   const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null);
 
-  // Fetch this week's events (excluding classes)
-  useEffect(() => {
-    const fetchThisWeekEvents = async () => {
-      // Calculate this week's date range (Monday to Sunday)
-      const now = new Date();
-      const kstDay = getKSTDay(now);
-      const daysFromMonday = kstDay === 0 ? 6 : kstDay - 1;
 
+
+  // Fetch events for the current view week
+  useEffect(() => {
+    const fetchWeekEvents = async () => {
+      setLoadingEvents(true);
+      // Calculate the week's date range based on currentViewDate
+      const now = new Date(currentViewDate);
+      const kstDay = getKSTDay(now);
+      // Align with WeeklySocial: Sunday Start
+      // Previous logic was Monday start: const daysFromMonday = kstDay === 0 ? 6 : kstDay - 1;
       const weekStart = new Date(now);
-      weekStart.setDate(now.getDate() - daysFromMonday);
-      weekStart.setHours(0, 0, 0, 0);
+      weekStart.setDate(now.getDate() - kstDay); // 0 = Sunday
 
       const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekStart.getDate() + 6);
-      weekEnd.setHours(23, 59, 59, 999);
+      weekEnd.setDate(weekStart.getDate() + 6); // Saturday
 
       const weekStartStr = getLocalDateString(weekStart);
       const weekEndStr = getLocalDateString(weekEnd);
 
-      // 해당 주간에 걸쳐 있는 모든 행사 페칭
-      const { data } = await supabase
+      console.log(`[SocialPage] Fetching events from ${weekStartStr} to ${weekEndStr}`);
+      console.log(`[SocialPage] Current View Date: ${currentViewDate.toISOString()}`);
+
+      // Fetch events overlapping with this week
+      const { data, error } = await supabase
         .from('events')
         .select('*, board_users(nickname)')
-        .neq('category', 'class')
-        .neq('category', 'club')
+        .neq('category', 'class') // 강습 제외
+        .neq('category', 'club') // 동호회 모임 제외 (유저 피드백: Club Class는 행사가 아니다)
         .or(`date.gte.${weekStartStr},end_date.gte.${weekStartStr}`);
 
+      if (error) {
+        console.error('[SocialPage] Error fetching events:', error);
+        setLoadingEvents(false);
+        return;
+      }
+
       if (data) {
-        // 해당 주간 범위 내에 시작하거나 끝나는 행사 필터링
+        console.log(`[SocialPage] Raw events fetched: ${data.length}`);
+        // Filter events that actually overlap with the week range
         const filtered = data.filter(e => {
           const effectiveStart = e.start_date || e.date || "";
           const effectiveEnd = e.end_date || e.date || "";
-          // 주간 범위와 겹치는지 확인
-          return effectiveEnd >= weekStartStr && effectiveStart <= weekEndStr;
+          // Check overlap: Event End >= Week Start AND Event Start <= Week End
+          const overlaps = effectiveEnd >= weekStartStr && effectiveStart <= weekEndStr;
+          return overlaps;
         });
+        console.log(`[SocialPage] Filtered events (overlap): ${filtered.length}`, filtered);
         setEventsThisWeek(filtered);
       }
+      setLoadingEvents(false);
     };
-    fetchThisWeekEvents();
-  }, [today]);
+    fetchWeekEvents();
+  }, [currentViewDate]);
 
 
   const handleEditSchedule = useCallback(async (schedule: SocialSchedule) => {
@@ -397,13 +430,19 @@ const SocialPage: React.FC = () => {
       <div className="view-tab-menu-v3">
         <button
           className={`tab-btn ${activeTab === 'weekly' ? 'active' : ''}`}
-          onClick={() => setActiveTab('weekly')}
+          onClick={() => {
+            setActiveTab('weekly');
+            window.scrollTo({ top: 0, behavior: 'auto' });
+          }}
         >
-          <span>금주의 일정</span>
+          <span>금주의 소셜</span>
         </button>
         <button
           className={`tab-btn ${activeTab === 'regular' ? 'active' : ''}`}
-          onClick={() => setActiveTab('regular')}
+          onClick={() => {
+            setActiveTab('regular');
+            window.scrollTo({ top: 0, behavior: 'auto' });
+          }}
         >
           <span>정기소셜</span>
         </button>
@@ -423,6 +462,8 @@ const SocialPage: React.FC = () => {
           setIsRegistrationModalOpen(true);
         }}
         onRefresh={refreshSchedules}
+        onWeekChange={(date) => setCurrentViewDate(date)}
+        isLoading={loadingSchedules || loadingEvents}
       />
 
 

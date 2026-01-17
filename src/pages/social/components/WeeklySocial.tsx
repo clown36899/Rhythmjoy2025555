@@ -12,6 +12,8 @@ interface WeeklySocialProps {
     activeTab: 'weekly' | 'regular'; // Updated Prop
     onAddSchedule?: (date: string) => void;
     onRefresh?: () => void;
+    onWeekChange?: (date: Date) => void;
+    isLoading?: boolean;
 }
 
 type SubViewType = 'list' | 'week' | 'calendar';
@@ -33,7 +35,9 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
     onScheduleClick,
     activeTab, // Receive activeTab
     onAddSchedule,
-    onRefresh
+    onRefresh,
+    onWeekChange,
+    isLoading
 }) => {
     // Internal activeTab state Removed.
 
@@ -124,17 +128,21 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
         const newDate = new Date(weekViewDate);
         newDate.setDate(weekViewDate.getDate() - 7);
         setWeekViewDate(newDate);
+        onWeekChange?.(newDate);
     };
 
     const handleNextWeek = () => {
         const newDate = new Date(weekViewDate);
         newDate.setDate(weekViewDate.getDate() + 7);
         setWeekViewDate(newDate);
+        onWeekChange?.(newDate);
     };
 
     const handleToday = () => {
-        setWeekViewDate(new Date());
+        const today = new Date();
+        setWeekViewDate(today);
         setRandomSeed(Math.random());
+        onWeekChange?.(today);
     };
 
     // Week Grid Dates Calculation
@@ -308,41 +316,48 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
 
                         {/* LIST VIEW */}
                         {viewType === 'list' && (
-                            filteredItemsForView.length > 0 ? (
-                                (() => {
-                                    // Group by Date
-                                    const grouped = filteredItemsForView.reduce((acc, item) => {
-                                        const date = item.date || '날짜 미정';
-                                        if (!acc[date]) acc[date] = [];
-                                        acc[date].push(item);
-                                        return acc;
-                                    }, {} as Record<string, DisplayItem[]>);
-                                    const sortedDates = Object.keys(grouped).sort();
-
-                                    return sortedDates.map(date => (
-                                        <div key={date} className="daily-group">
-                                            <div className="daily-header">
-                                                {date} <span>({getDayName(date)})</span>
-                                            </div>
-                                            <div className="daily-items-list">
-                                                {grouped[date].map(item => (
-                                                    <div key={item.id} className="daily-item-row" onClick={() => eventModal.setSelectedEvent(item.originalEvent)}>
-                                                        <img src={item.image || '/logo.png'} alt={item.title} className="daily-item-thumb" onError={e => e.currentTarget.src = '/logo.png'} />
-                                                        <div className="daily-item-info">
-                                                            <div className="daily-item-title">{item.title}</div>
-                                                            <div className="daily-item-sub">{item.sub}</div>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    ));
-                                })()
-                            ) : (
-                                <div className="empty-weekly">
-                                    <i className="ri-calendar-check-line"></i>
-                                    <p>예정된 일정이 없습니다.</p>
+                            isLoading ? (
+                                <div style={{ padding: '40px 0', textAlign: 'center', color: '#888' }}>
+                                    <i className="ri-loader-4-line ri-spin" style={{ fontSize: '2rem', marginBottom: '8px', display: 'block' }}></i>
+                                    <div>일정을 불러오는 중...</div>
                                 </div>
+                            ) : (
+                                filteredItemsForView.length > 0 ? (
+                                    (() => {
+                                        // Group by Date
+                                        const grouped = filteredItemsForView.reduce((acc, item) => {
+                                            const date = item.date || '날짜 미정';
+                                            if (!acc[date]) acc[date] = [];
+                                            acc[date].push(item);
+                                            return acc;
+                                        }, {} as Record<string, DisplayItem[]>);
+                                        const sortedDates = Object.keys(grouped).sort();
+
+                                        return sortedDates.map(date => (
+                                            <div key={date} className="daily-group">
+                                                <div className="daily-header">
+                                                    {date} <span>({getDayName(date)})</span>
+                                                </div>
+                                                <div className="daily-items-list">
+                                                    {grouped[date].map(item => (
+                                                        <div key={item.id} className="daily-item-row" onClick={() => eventModal.setSelectedEvent(item.originalEvent)}>
+                                                            <img src={item.image || '/logo.png'} alt={item.title} className="daily-item-thumb" onError={e => e.currentTarget.src = '/logo.png'} />
+                                                            <div className="daily-item-info">
+                                                                <div className="daily-item-title">{item.title}</div>
+                                                                <div className="daily-item-sub">{item.sub}</div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ));
+                                    })()
+                                ) : (
+                                    <div className="empty-weekly">
+                                        <i className="ri-calendar-check-line"></i>
+                                        <p>예정된 일정이 없습니다.</p>
+                                    </div>
+                                )
                             )
                         )}
 
@@ -461,7 +476,7 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                         <span>
                             정기소셜일정은 언제든 취소될 수 있습니다.
                             <br />
-                            <strong>금주의 일정</strong>은 확정된 일정입니다.
+                            <strong>금주의 소셜</strong>은 확정된 일정입니다.
                         </span>
                     </div>
 
