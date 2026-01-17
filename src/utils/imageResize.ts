@@ -254,10 +254,18 @@ export async function createResizedImages(
 
     const img = await loadImage(src);
 
-    // Run sequentially to reduce memory pressure
+    // Run sequentially to reduce memory pressure, yielding to main thread between steps to prevent UI freeze
+    const yieldToMain = () => new Promise(resolve => setTimeout(resolve, 0));
+
     const micro = await resizeLoadedImage(img, 100, 0.7, fileName);
+    await yieldToMain();
+
     const thumbnail = await resizeLoadedImage(img, 300, 0.75, fileName);
+    await yieldToMain();
+
     const medium = await resizeLoadedImage(img, 650, 0.9, fileName);
+    await yieldToMain();
+
     const full = await resizeLoadedImage(img, 1300, 0.85, fileName);
 
     if (objectUrl) URL.revokeObjectURL(objectUrl);
