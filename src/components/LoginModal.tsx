@@ -1,4 +1,5 @@
-import React from 'react';
+// Import useEffect
+import React, { useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import './LoginModal.css';
 
@@ -13,7 +14,14 @@ interface LoginModalProps {
 }
 
 export default function LoginModal({ isOpen, onClose, message }: LoginModalProps) {
-    const { signInWithKakao, signInWithGoogle, isAuthProcessing } = useAuth();
+    const { signInWithKakao, signInWithGoogle, isAuthProcessing, user } = useAuth();
+
+    // Auto-close if user is logged in
+    useEffect(() => {
+        if (user && isOpen) {
+            onClose();
+        }
+    }, [user, isOpen, onClose]);
 
     if (!isOpen) return null;
 

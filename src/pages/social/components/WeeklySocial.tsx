@@ -343,15 +343,7 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
 
                         {/* WEEK VIEW - Grid */}
                         {viewType === 'week' && (
-                            <div style={{
-                                display: 'grid',
-                                gridTemplateColumns: 'repeat(7, 1fr)',
-                                gap: '2px',
-                                background: '#333',
-                                border: '1px solid #333',
-                                borderRadius: '8px',
-                                overflow: 'hidden'
-                            }}>
+                            <div className="week-view-grid">
                                 {weekGridDates.map(date => {
                                     const dayObj = new Date(date);
                                     const dayNum = date.split('-')[2];
@@ -363,26 +355,19 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                                     const dateNumberClass = `calendar-date-number-fullscreen ${isToday ? "calendar-date-number-today" : dayOfWeek === 0 ? "calendar-date-sunday" : dayOfWeek === 6 ? "calendar-date-saturday" : ""}`;
 
                                     return (
-                                        <div key={date} className="calendar-cell-fullscreen" style={{
-                                            minHeight: '20vh',
-                                            height: 'auto',
-                                            border: 'none',
-                                            background: '#1e1e1e',
-                                            display: 'flex',
-                                            flexDirection: 'column'
-                                        }}>
+                                        <div key={date} className="week-view-cell">
                                             {/* Header */}
-                                            <div className="calendar-cell-fullscreen-header" style={{ position: 'relative', height: '24px', marginBottom: '4px', marginTop: '4px' }}>
-                                                <span className={dateNumberClass} style={{ left: '50%', transform: 'translateX(-50%)', top: '0', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                                    <span className="weekday-wrapper" style={{ fontSize: '10px', color: '#ffffffff', marginBottom: '2px' }}>
+                                            <div className="week-view-cell-header">
+                                                <span className={dateNumberClass}>
+                                                    <span className="weekday-wrapper">
                                                         {weekNames[dayOfWeek]}
                                                     </span>
-                                                    <span style={{ fontSize: '14px' }}>{parseInt(dayNum)}</span>
+                                                    <span className="day-number">{parseInt(dayNum)}</span>
                                                 </span>
                                             </div>
 
                                             {/* Body */}
-                                            <div className="calendar-cell-fullscreen-body" style={{ padding: '0 2px 8px 2px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                            <div className="week-view-cell-body">
                                                 {dayItems.map(item => {
                                                     const categoryColor = getEventColor(item.id);
                                                     return (
@@ -390,28 +375,19 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
                                                                 eventModal.setSelectedEvent(item.originalEvent);
-                                                            }}
-                                                            style={{
-                                                                marginBottom: '4px',
-                                                                flexDirection: 'column',
-                                                                alignItems: 'center',
-                                                                padding: '4px 2px',
-                                                                height: 'auto',
-                                                                textAlign: 'center',
-                                                                cursor: 'pointer'
                                                             }}>
                                                             {(item.image || item.image_micro) ? (
-                                                                <div style={{ width: '100%', aspectRatio: '1', borderRadius: '4px', overflow: 'hidden', marginBottom: '2px' }}>
-                                                                    <img src={item.image || item.image_micro} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                                                                <div className="event-card-img-wrapper">
+                                                                    <img src={item.image || item.image_micro} alt="" />
                                                                 </div>
                                                             ) : (
-                                                                <div className={`calendar-fullscreen-placeholder ${categoryColor}`} style={{ width: '100%', aspectRatio: '1', borderRadius: '4px', marginBottom: '2px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                                                    <span style={{ fontSize: '10px', color: 'white', fontWeight: 'bold' }}>
+                                                                <div className={`calendar-fullscreen-placeholder ${categoryColor} event-card-placeholder`}>
+                                                                    <span>
                                                                         {item.title.charAt(0)}
                                                                     </span>
                                                                 </div>
                                                             )}
-                                                            <div style={{ fontSize: '10px', lineHeight: '1.1', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', color: '#ddd' }}>
+                                                            <div className="event-card-title">
                                                                 {item.title}
                                                             </div>
                                                         </div>

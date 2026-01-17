@@ -152,7 +152,7 @@ export default function PracticeSection({
     };
 
     return (
-        <div className="practice-section" style={{ position: 'relative', marginTop: '20px' }}>
+        <div className="practice-section" style={{ position: 'relative' }}>
             {/* Section Header or Divider can go here if needed */}
 
             {/* Tab Menu - Reusing VenueTabBar */}
