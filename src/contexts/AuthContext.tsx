@@ -15,6 +15,7 @@ interface AuthContextType {
   isAdmin: boolean;
   loading: boolean;
   isAuthProcessing: boolean;
+  isLoggingOut: boolean;
   billboardUserId: string | null;
   billboardUserName: string | null;
   setBillboardUser: (userId: string | null, userName: string | null) => void;
@@ -55,6 +56,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return inProgress;
   });
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // 🔥 [개선] 모든 저장소 키에 환경별 접두사 부여 (완전 격리)
   const isStandalone = typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches;
@@ -534,6 +536,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // 이전 로그 초기화
     localStorage.removeItem('logout_debug_logs');
 
+    setIsLoggingOut(true); // Mark as logging out
     setIsAuthProcessing(true); // Start blocking UI
     logToStorage('[AuthContext.signOut] ========== 로그아웃 시작 ==========');
     logToStorage('[AuthContext.signOut] User Agent: ' + navigator.userAgent);
@@ -683,7 +686,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         options: {
           queryParams: {
             access_type: 'offline',
-            prompt: 'consent',
+            prompt: 'select_account',
           },
           redirectTo: window.location.origin,
         },
@@ -735,6 +738,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     isAdmin,
     loading,
     isAuthProcessing,
+    isLoggingOut,
     billboardUserId,
     billboardUserName,
     userProfile,
@@ -748,7 +752,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     storagePrefix,
     ...(import.meta.env.DEV && { signInAsDevAdmin }),
   }), [
-    user, session, isAdmin, loading, isAuthProcessing,
+    user, session, isAdmin, loading, isAuthProcessing, isLoggingOut,
     billboardUserId, billboardUserName, userProfile,
     setBillboardUser, refreshUserProfile,
     signInWithKakao, signInWithGoogle, signOut,

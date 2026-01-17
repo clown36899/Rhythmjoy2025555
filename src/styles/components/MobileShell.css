@@ -308,7 +308,7 @@
   align-items: center;
   justify-content: space-between;
   padding-left: 1vw;
-  padding-right: 3vw;
+  padding-right: 1vw;
   margin: 0 auto;
 }
 
@@ -562,6 +562,32 @@
   border-radius: 50%;
   object-fit: cover;
   border: 1px solid rgba(255, 255, 255, 0.469);
+}
+
+/* Login Button (when not logged in) */
+.header-login-btn {
+  background: transparent;
+  border: 2px solid rgba(96, 165, 250, 0.8);
+  border-radius: min(1.8vw, 10px);
+  color: #60a5fa;
+  cursor: pointer;
+  padding: min(1.6vw, 8px) min(2.8vw, 15px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: min(0.8vw, 5px);
+  transition: all 0.25s ease;
+  flex-shrink: 0;
+  font-size: min(3vw, 14px);
+  font-weight: 600;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+}
+
+.header-login-btn:hover {
+  background: rgba(96, 165, 250, 0.15);
+  border-color: #60a5fa;
+  color: #93c5fd;
 }
 
 

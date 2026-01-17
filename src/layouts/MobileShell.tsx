@@ -20,7 +20,7 @@ interface MobileShellProps {
 export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, userProfile, isAdmin: authIsAdmin, refreshUserProfile, signOut, isAuthProcessing, cancelAuth } = useAuth();
+  const { user, userProfile, isAdmin: authIsAdmin, refreshUserProfile, signOut, isAuthProcessing, isLoggingOut, cancelAuth } = useAuth();
   const { i18n } = useTranslation();
   const onlineUsersData = useOnlineUsers();
   const { action: pageAction } = usePageAction();
@@ -70,6 +70,23 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
 
     fetchTotalUserCount();
   }, []);
+
+  // Show login modal on first visit if not logged in
+  useEffect(() => {
+    // Only run on main pages (not on specific detail pages)
+    if (!isEventsPage) return;
+
+    // Check if user is not logged in
+    if (user) return;
+
+    // Check if we've already shown the modal in this session
+    const hasShownLoginPrompt = sessionStorage.getItem('hasShownLoginPrompt');
+    if (hasShownLoginPrompt) return;
+
+    // Show login modal immediately
+    loginModal.open({ message: '댄스빌보드 로그인' });
+    sessionStorage.setItem('hasShownLoginPrompt', 'true');
+  }, [user, isEventsPage, loginModal]);
 
   // 🔄 Global Scroll Reset on Route Change
   useEffect(() => {
@@ -134,7 +151,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
     const handleProtectedAction = (e: any) => {
       const { message } = e.detail || {};
       loginModal.open({
-        message: message || '로그인이 필요한 서비스입니다.'
+        message: message || '댄스빌보드 로그인'
       });
     };
 
@@ -142,7 +159,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
     const handleOpenLoginModal = (e: any) => {
       const { message } = e.detail || {};
       loginModal.open({
-        message: message || '로그인이 필요한 서비스입니다.'
+        message: message || '댄스빌보드 로그인'
       });
     };
 
@@ -231,7 +248,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
     if (pageAction.requireAuth && !user) {
       window.dispatchEvent(new CustomEvent('requestProtectedAction', {
         detail: {
-          message: '로그인이 필요한 서비스입니다.',
+          message: '댄스빌보드 로그인',
           callback: () => {
             // 로그인 성공 후 실행할 동작
             pageAction.onClick();
@@ -275,7 +292,22 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                       <i className="ri-arrow-left-line"></i>
                     </button>
                   ) : (
-                    <img src="/logo.png" alt="RhythmJoy Logo" className="header-logo" />
+                    <>
+                      <button
+                        className="header-hamburger-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setIsDrawerOpen(true);
+                        }}
+                        data-analytics-id="header_hamburger"
+                        data-analytics-type="action"
+                        data-analytics-title="사이드 메뉴"
+                        data-analytics-section="header"
+                      >
+                        <i className="ri-menu-line"></i>
+                      </button>
+                      <img src="/logo.png" alt="RhythmJoy Logo" className="header-logo" />
+                    </>
                   )}
 
                   {/* 공통 헤더 텍스트 */}
@@ -360,53 +392,56 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                 <span style={{ fontSize: 'min(2.5vw, 12px)', fontWeight: 600 }}>{i18n.language.toUpperCase()}</span>
               </button>
 
-              <button
-                className="header-search-btn"
-                onClick={() => {
-                  if (isCalendarPage) {
-                    window.dispatchEvent(new CustomEvent('openCalendarSearch'));
-                  } else {
-                    window.dispatchEvent(new CustomEvent('openGlobalSearch'));
-                  }
-                }}
-                data-analytics-id="header_search"
-                data-analytics-type="action"
-                data-analytics-title="검색"
-                data-analytics-section="header"
-              >
-                <i className="ri-search-line"></i>
-              </button>
+              {/* Search button - only visible when logged in */}
+              {user && (
+                <button
+                  className="header-search-btn"
+                  onClick={() => {
+                    if (isCalendarPage) {
+                      window.dispatchEvent(new CustomEvent('openCalendarSearch'));
+                    } else {
+                      window.dispatchEvent(new CustomEvent('openGlobalSearch'));
+                    }
+                  }}
+                  data-analytics-id="header_search"
+                  data-analytics-type="action"
+                  data-analytics-title="검색"
+                  data-analytics-section="header"
+                >
+                  <i className="ri-search-line"></i>
+                </button>
+              )}
 
-              <button
-                className="header-user-btn"
-                onClick={() => setIsDrawerOpen(true)}
-                title={user ? "프로필" : "로그인"}
-                data-analytics-id="header_user"
-                data-analytics-type="action"
-                data-analytics-title={user ? "프로필" : "로그인"}
-                data-analytics-section="header"
-              >
-                {user ? (
-                  userProfile?.profile_image ? (
+              {/* User/Login button */}
+              {user ? (
+                <button
+                  className="header-user-btn"
+                  onClick={() => setIsDrawerOpen(true)}
+                  title="프로필"
+                  data-analytics-id="header_user"
+                  data-analytics-type="action"
+                  data-analytics-title="프로필"
+                  data-analytics-section="header"
+                >
+                  {userProfile?.profile_image ? (
                     <img src={userProfile.profile_image} alt="프로필" title={userProfile?.nickname} className="header-user-avatar" />
                   ) : (
                     <i className="ri-user-3-fill"></i>
-                  )
-                ) : (
-                  <i className="ri-login-box-line"></i>
-                )}
-              </button>
-
-              <button
-                className="header-hamburger-btn"
-                onClick={() => setIsDrawerOpen(true)}
-                data-analytics-id="header_hamburger"
-                data-analytics-type="action"
-                data-analytics-title="사이드 메뉴"
-                data-analytics-section="header"
-              >
-                <i className="ri-menu-line"></i>
-              </button>
+                  )}
+                </button>
+              ) : (
+                <button
+                  className="header-login-btn"
+                  onClick={() => loginModal.open({ message: '댄스빌보드 로그인' })}
+                  title="로그인"
+                  data-analytics-id="header_login"
+                  data-analytics-type="action"
+                  data-analytics-title="로그인"
+                  data-analytics-section="header"
+                >
+                  로그인
+                </button>
+              )}
             </div>
           </div>
         </header >
@@ -444,14 +479,14 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
         onLoginClick={() => {
           setIsDrawerOpen(false);
           loginModal.open({
-            message: '로그인이 필요한 서비스입니다.'
+            message: '댄스빌보드 로그인'
           });
         }}
       />
 
       <GlobalLoadingOverlay
         isLoading={isAuthProcessing}
-        message="카카오 로그인 중..."
+        message={isLoggingOut ? "로그아웃 중..." : "로그인 중..."}
         onCancel={cancelAuth}
       />
       <GlobalNoticePopup />

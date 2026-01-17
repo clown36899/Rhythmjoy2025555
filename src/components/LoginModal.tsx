@@ -21,14 +21,14 @@ export default function LoginModal({ isOpen, onClose, message }: LoginModalProps
         <div className="login-modal-overlay" onClick={onClose}>
             <div className="login-modal-content" onClick={e => e.stopPropagation()}>
                 <div className="login-modal-header">
-                    <h2 className="login-modal-title">로그인</h2>
+
                     <button className="login-modal-close" onClick={onClose}>
                         <i className="ri-close-line"></i>
                     </button>
                 </div>
 
                 <div className="login-modal-message">
-                    {message || '로그인이 필요한 서비스입니다.\n간편하게 로그인하고 이용해보세요.'}
+                    {message || '댄스빌보드 로그인.\n간편하게 로그인하고 이용해보세요.'}
                 </div>
 
                 <div className="login-actions">
@@ -39,8 +39,8 @@ export default function LoginModal({ isOpen, onClose, message }: LoginModalProps
                         }}
                         disabled={isAuthProcessing}
                     >
-                        <i className="ri-kakao-talk-fill" style={{ fontSize: '1.4rem' }}></i>
-                        카카오로 시작하기
+                        <i className="ri-kakao-talk-fill" ></i>
+                        카카오로 로그인
                     </button>
 
                     <button
@@ -56,7 +56,7 @@ export default function LoginModal({ isOpen, onClose, message }: LoginModalProps
                             <path d="M3.964 10.71c-.18-.54-.2822-1.1168-.2822-1.71s.1023-1.17.2823-1.71V4.9582H.9573A8.9965 8.9965 0 0 0 0 9c0 1.4523.3477 2.8268.9573 4.0418L3.964 10.71z" fill="#FBBC05" />
                             <path d="M9 3.5795c1.3214 0 2.5077.4541 3.4405 1.346l2.5813-2.5814C13.4632.8918 11.426 0 9 0 5.4818 0 2.4382 2.0168.9573 4.9582L3.964 7.29C4.6718 5.1627 6.6559 3.5795 9 3.5795z" fill="#EA4335" />
                         </svg>
-                        Google로 시작하기
+                        Google로 로그인
                     </button>
                 </div>
 
