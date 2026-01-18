@@ -10,7 +10,7 @@
   for = "/*"
   [headers.values]
     # Allow this site to be embedded in iframes from specific domains
-    Content-Security-Policy = "frame-ancestors 'self' https://xn--9m1bu8iv0ao6ao5fsta.com https://xn--o39an51adfcu1bv3f00ah0j.com https://xn--9m1bu8iv0ao6ao5fsta.com"
+    Content-Security-Policy = "frame-ancestors 'self' https://xn--9m1bu8iv0ao6ao5fsta.com https://xn--o39an51adfcu1bv3f00ah0j.com https://xn--xy1b23ggrmm5bfb82ees967e.com"
     X-Frame-Options = "ALLOW-FROM https://xn--o39an51adfcu1bv3f00ah0j.com"
 
 [[redirects]]
