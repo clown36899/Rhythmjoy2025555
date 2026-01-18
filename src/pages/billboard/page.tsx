@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { QRCodeCanvas } from "qrcode.react";
 import { supabase } from "../../lib/supabase";
 import type {
@@ -18,13 +18,15 @@ import './billboard.css';
 
 export default function BillboardPage() {
   const { userId } = useParams<{ userId: string }>();
+  const navigate = useNavigate();
+  const playedEventsCountRef = useRef(0); // [NEW] 재생된 이벤트 카운트
   const [billboardUser, setBillboardUser] = useState<BillboardUser | null>(null);
   const [settings, setSettings] = useState<BillboardUserSettings | null>(null);
   const settingsRef = useRef<BillboardUserSettings | null>(null); // Ref 동기화 (stale closure 방지)
   const [events, setEvents] = useState<Event[]>([]);
   const eventsRef = useRef<Event[]>([]); // Ref 동기화 (stale closure 방지)
   const [currentIndex, setCurrentIndex] = useState(0);
-  const currentEventIdRef = useRef<number | null>(null); // 현재 이벤트 ID 추적 (Event.id는 number 타입)
+  const currentEventIdRef = useRef<string | number | null>(null); // 현재 이벤트 ID 추적 (Event.id는 number 타입)
   const [nextSlideIndex, setNextSlideIndex] = useState<number | null>(null); // 다음 슬라이드 인덱스 (미리 로드용)
   const preloadTimerRef = useRef<NodeJS.Timeout | null>(null); // 다음 슬라이드 미리 로드 타이머
   const precomputedShuffleRef = useRef<number[] | null>(null); // Random 모드 wrap용 미리 계산된 shuffle
@@ -371,6 +373,27 @@ export default function BillboardPage() {
         const currentEventId = currentEventIdRef.current;
         const previousIndex = currentEventId ? latestEvents.findIndex(e => e.id === currentEventId) : 0;
 
+        // [NEW] 5회 재생 후 프리뷰 페이지로 이동 logic (이미지 슬라이드도 적용)
+        playedEventsCountRef.current += 1;
+        log(`[카운트(타이머)] 재생된 이벤트 수: ${playedEventsCountRef.current}`);
+
+        // 테스트 모드 확인
+        const isTestMode = new URLSearchParams(window.location.search).get('test') === 'true';
+        const threshold = isTestMode ? 2 : 5;
+
+        // 디버그 상태 업데이트
+        if (isTestMode) {
+          setRealtimeStatus(`TEST MODE: ${playedEventsCountRef.current}/${threshold} (Event #${previousIndex})`);
+        }
+
+        if (playedEventsCountRef.current >= threshold) {
+          log(`[전환] ${threshold}회 재생 완료 → 프리뷰 페이지로 이동 (테스트모드: ${isTestMode})`);
+          playedEventsCountRef.current = 0;
+          clearAllTimers();
+          navigate(`/billboard/${userId}/preview${isTestMode ? '?test=true' : ''}`);
+          return;
+        }
+
         log(`[💾 메모리 관리] 슬라이드 전환 시작 - 이전: ${previousIndex}, 메모리 해제 예정`);
 
         // 🎯 변경사항 감지 시 데이터만 새로고침 (React.memo가 Player 캐시 보존)
@@ -461,6 +484,23 @@ export default function BillboardPage() {
   const advanceToNextSlide = useCallback((reason: string = 'timer') => {
     // 멈춤 상태면 전환 안함
     if (isPausedRef.current) return;
+
+    // [NEW] 5회 재생 후 프리뷰 페이지로 이동 logic
+    // 단순히 다음 슬라이드로 넘어가는 것이 아니라, 카운트를 체크
+    playedEventsCountRef.current += 1;
+    log(`[카운트] 재생된 이벤트 수: ${playedEventsCountRef.current}`);
+
+    // 테스트 모드 확인
+    const isTestMode = new URLSearchParams(window.location.search).get('test') === 'true';
+    const threshold = isTestMode ? 2 : 5;
+
+    if (playedEventsCountRef.current >= threshold) {
+      log(`[전환] ${threshold}회 재생 완료 → 프리뷰 페이지로 이동 (테스트모드: ${isTestMode})`);
+      playedEventsCountRef.current = 0;
+      clearAllTimers();
+      navigate(`/billboard/${userId}/preview${isTestMode ? '?test=true' : ''}`);
+      return;
+    }
 
     // 마지막 슬라이드 변경 시간 업데이트
     lastSlideChangeTimeRef.current = Date.now();
@@ -652,6 +692,23 @@ export default function BillboardPage() {
         }
       };
       attemptPlay();
+    } else {
+      // [Fix] 이미지 슬라이드: 즉시 타이머 시작
+      const currentSettings = settingsRef.current;
+      if (currentSettings) {
+        // 테스트모드면 3초, 아니면 설정값
+        const isTestMode = new URLSearchParams(window.location.search).get('test') === 'true';
+        const slideDuration = isTestMode ? 3000 : (currentSettings.auto_slide_interval || 10000);
+
+        log(`[🖼️ 이미지] 슬라이드 ${currentIndex} (테스트:${isTestMode}) → ${slideDuration / 1000}초 후 전환`);
+        startSlideTimer(slideDuration);
+      }
+    }
+
+    // 디버그 상태 업데이트 (테스트 모드일 때만 카운트 표시)
+    if (new URLSearchParams(window.location.search).get('test') === 'true') {
+      const threshold = 2; // Test mode threshold
+      setRealtimeStatus(`TEST MODE: ${playedEventsCountRef.current + 1}/${threshold} (Event #${currentIndex})`);
     }
 
     prevIndexRef.current = currentIndex;
@@ -861,7 +918,10 @@ export default function BillboardPage() {
     return allEvents.filter((event) => {
       if (!event.id) return false; // id가 없으면 제외 (필수)
       if (!event?.image_full && !event?.image && !event?.video_url) return false;
-      if (settings.excluded_event_ids.includes(event.id)) return false;
+
+      const eventId = typeof event.id === 'string' ? parseInt(event.id, 10) : event.id;
+      if (settings.excluded_event_ids.includes(eventId)) return false;
+
       const eventDate = new Date(event.start_date || event.date || "");
       const weekday = eventDate.getDay();
       if (settings.excluded_weekdays.includes(weekday)) return false;
@@ -901,42 +961,118 @@ export default function BillboardPage() {
     try {
       log("[빌보드] 데이터 리로드: 기존 타이머 정리 중...");
 
-      const { data: user, error: userError } = await supabase
-        .from("billboard_users")
-        .select("*")
-        .eq("id", userId)
-        .eq("is_active", true)
-        .maybeSingle();
-      if (userError) throw userError;
-      if (!user) throw new Error("빌보드 사용자를 찾을 수 없습니다.");
-      setBillboardUser(user);
+      // [NEW] 테스트 모드 확인
+      const isTestMode = new URLSearchParams(window.location.search).get('test') === 'true';
 
-      // Analytics: 빌보드 로드 기록 (범인 색출용)
-      logEvent('Billboard', 'Start', `${user.name} (${userId})`);
+      let user: BillboardUser;
+      let userSettings: BillboardUserSettings;
+      let allEvents: any[] | null;
 
-      const { data: userSettings, error: settingsError } = await supabase
-        .from("billboard_user_settings")
-        .select("*")
-        .eq("billboard_user_id", userId)
-        .maybeSingle();
-      if (settingsError) throw settingsError;
-      if (!userSettings) throw new Error("빌보드 설정을 불러올 수 없습니다.");
-      log("[빌보드] 설정 로드:", {
-        auto_slide_interval: userSettings.auto_slide_interval,
-        video_play_duration: userSettings.video_play_duration,
-        auto_slide_interval_video: userSettings.auto_slide_interval_video,
-        date_filter_start: userSettings.date_filter_start,
-        date_filter_end: userSettings.date_filter_end,
-        excluded_weekdays: userSettings.excluded_weekdays,
-        excluded_event_ids: userSettings.excluded_event_ids?.length || 0,
-      });
-      setSettings(userSettings);
+      if (isTestMode) {
+        log("[빌보드] 🧪 테스트 모드 활성화: Mock 데이터 사용 (DB 조회 생략)");
+        user = {
+          id: userId || 'test-user',
+          name: '테스트 사용자',
+          // location: '테스트 지점', // Type Error fix
+          password_hash: 'mock_hash', // Type Error fix
+          is_active: true,
+          created_at: new Date().toISOString(),
+          // updated_at: new Date().toISOString() // Type Error fix
+        };
+        userSettings = {
+          id: 9999,
+          billboard_user_id: userId || 'test-user',
+          play_order: 'sequential', // Type Error fix: 'order' -> 'sequential'
+          auto_slide_interval: 3000, // 3초 (빠른 테스트)
+          video_play_duration: 10000,
+          auto_slide_interval_video: 5000,
+          // slide_transition_effect: 'fade', // Type Error fix
+          // show_weather: false, // Type Error fix
+          // show_clock: false, // Type Error fix
+          // show_news: false, // Type Error fix
+          // theme: 'dark', // Type Error fix
+          font_size: 'medium',
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          date_filter_start: null,
+          date_filter_end: null,
+          excluded_weekdays: [],
+          excluded_event_ids: []
+        };
+        // Mock 이벤트 3개 생성
+        allEvents = [
+          {
+            id: 10001,
+            title: '테스트 이벤트 1 (이미지)',
+            date: new Date().toISOString(),
+            start_date: new Date().toISOString(),
+            end_date: new Date().toISOString(),
+            time: '12:00',
+            location: '테스트룸 A',
+            image_full: 'https://via.placeholder.com/1920x1080/2c3e50/ffffff?text=TEST+EVENT+1',
+            category: 'TEST',
+            genre: 'TEST'
+          },
+          {
+            id: 10002,
+            title: '테스트 이벤트 2 (이미지)',
+            date: new Date().toISOString(),
+            start_date: new Date().toISOString(),
+            end_date: new Date().toISOString(),
+            time: '14:00',
+            location: '테스트룸 B',
+            image_full: 'https://via.placeholder.com/1920x1080/e74c3c/ffffff?text=TEST+EVENT+2',
+            category: 'TEST',
+            genre: 'TEST'
+          },
+          {
+            id: 10003,
+            title: '테스트 이벤트 3 (이미지)',
+            date: new Date().toISOString(),
+            start_date: new Date().toISOString(),
+            end_date: new Date().toISOString(),
+            time: '16:00',
+            location: '테스트룸 C',
+            image_full: 'https://via.placeholder.com/1920x1080/8e44ad/ffffff?text=TEST+EVENT+3',
+            category: 'TEST',
+            genre: 'TEST'
+          }
+        ];
+        setBillboardUser(user);
+        setSettings(userSettings);
+      } else {
+        // [기존 로직] DB 조회
+        const { data: userData, error: userError } = await supabase
+          .from("billboard_users")
+          .select("*")
+          .eq("id", userId)
+          .eq("is_active", true)
+          .maybeSingle();
+        if (userError) throw userError;
+        if (!userData) throw new Error("빌보드 사용자를 찾을 수 없습니다.");
+        user = userData;
+        setBillboardUser(user);
 
-      const { data: allEvents, error: eventsError } = await supabase
-        .from("events")
-        .select("id,title,date,start_date,end_date,time,location,image_full,image,video_url,show_title_on_billboard,category,genre")
-        .order("start_date", { ascending: true });
-      if (eventsError) throw eventsError;
+        // Analytics: 빌보드 로드 기록 (범인 색출용)
+        logEvent('Billboard', 'Start', `${user.name} (${userId})`);
+
+        const { data: settingsData, error: settingsError } = await supabase
+          .from("billboard_user_settings")
+          .select("*")
+          .eq("billboard_user_id", userId)
+          .maybeSingle();
+        if (settingsError) throw settingsError;
+        if (!settingsData) throw new Error("빌보드 설정을 불러올 수 없습니다.");
+        userSettings = settingsData;
+        setSettings(userSettings);
+
+        const { data: eventsData, error: eventsError } = await supabase
+          .from("events")
+          .select("id,title,date,start_date,end_date,time,location,image_full,image,video_url,show_title_on_billboard,category,genre")
+          .order("start_date", { ascending: true });
+        if (eventsError) throw eventsError;
+        allEvents = eventsData;
+      }
 
       const filteredEvents = filterEvents(allEvents || [], userSettings);
       log("[빌보드] 필터링 완료:", {
@@ -965,11 +1101,15 @@ export default function BillboardPage() {
           const indices = Array.from({ length: filteredEvents.length }, (_, i) => i);
           const shuffled = shuffleArray(indices);
           setShuffledPlaylist(shuffled);
+          setShuffledPlaylist(shuffled);
           playlistIndexRef.current = 0;
           setCurrentIndex(shuffled[0] || 0);
         } else {
           setCurrentIndex(safeIndex);
         }
+
+        // [Fix] 데이터 로드 시 카운트 리셋 (새로고침 시 등)
+        playedEventsCountRef.current = 0;
 
         // ✅ playerRefsRef 배열 크기 조정 (메모리 누수 방지)
         const oldLength = playerRefsRef.current.length;

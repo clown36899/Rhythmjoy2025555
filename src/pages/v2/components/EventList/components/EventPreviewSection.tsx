@@ -131,7 +131,7 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
     };
 
     return (
-        <div style={{ paddingBottom: '100px' }}>
+        <div className="evt-preview-section">
             {/* 2. Today Social */}
             <TodaySocial
                 schedules={todaySocialSchedules}

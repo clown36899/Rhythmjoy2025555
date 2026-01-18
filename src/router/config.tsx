@@ -2,6 +2,7 @@ import type { RouteObject } from "react-router-dom";
 import { Navigate } from "react-router-dom";
 import NotFound from "../pages/NotFound";
 import BillboardPage from "../pages/billboard/page";
+import BillboardPreviewPage from "../pages/billboard/preview/page";
 import InvitePage from "../pages/invite/page";
 import { MobileShell } from "../layouts/MobileShell";
 import { AuthProvider } from "../contexts/AuthContext";
@@ -16,6 +17,10 @@ const routes: RouteObject[] = [
   {
     path: "/billboard/:userId",
     element: <BillboardPage />,
+  },
+  {
+    path: "/billboard/:userId/preview",
+    element: <BillboardPreviewPage />,
   },
   {
     path: "/invite/:token",

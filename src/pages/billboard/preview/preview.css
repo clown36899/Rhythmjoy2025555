@@ -1,0 +1,160 @@
+/* Billboard Preview Mode Isolation */
+/* IMPORTANT: All rules must start with .billboard-preview-mode to ensure isolation */
+
+.billboard-preview-mode {
+    /* Override default font size for TV readability */
+    --base-font-size: 18px;
+}
+
+/* Hide elements unnecessary for passive viewing */
+.billboard-preview-mode .floating-action-button,
+.billboard-preview-mode .bottom-navigation,
+.billboard-preview-mode .header-search-bar,
+.billboard-preview-mode .modal-trigger-buttons {
+    display: none !important;
+}
+
+/* Enhance readability for events */
+.billboard-preview-mode .event-card {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: scale(1.02);
+    /* Slightly larger */
+}
+
+/* Adjust layout spacing */
+.billboard-preview-mode .main-content {
+    padding-bottom: 0 !important;
+    /* Remove bottom nav padding */
+    padding-top: 20px !important;
+}
+
+/* [NEW] Refactored from Inline Styles */
+.billboard-preview-root {
+    width: 100vw;
+    height: 100vh;
+    background-color: #000;
+    overflow: hidden;
+    position: relative;
+    /* Flexbox attributes removed to avoid conflict with absolute positioning of child */
+}
+
+.billboard-preview-wrapper {
+    /* width: 430px; -> Controlled by inline for JS calc or here */
+    height: auto;
+    /* visibility & opacity handled by class modifiers or inline if strictly dynamic */
+    /* For now, we removed the opacity logic in TSX for simplicity, or we can add it back if needed */
+    transition: opacity 0.3s ease-in-out;
+}
+
+
+.billboard-preview-content {
+    width: 100%;
+    min-height: 100vh;
+}
+
+/* [NEW] Feature: Wrap overflow content (Events/Classes) instead of horizontal scroll */
+/* Targets generic horizontal scroll containers typically used in mobile views */
+.billboard-preview-mode .event-horizontal-list,
+.billboard-preview-mode .horizontal-scroll-container,
+.billboard-preview-mode [class*="horizontal"],
+.billboard-preview-mode [style*="overflow-x: auto"],
+.billboard-preview-mode [style*="overflow-x: scroll"] {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    overflow-x: visible !important;
+    /* Disable scroll */
+    overflow-y: visible !important;
+    white-space: normal !important;
+    gap: 16px !important;
+    justify-content: flex-start !important;
+    padding-bottom: 20px !important;
+}
+
+/* Ensure individual cards don't shrink too small when wrapping */
+.billboard-preview-mode .event-card,
+.billboard-preview-mode .class-card {
+    flex: 0 0 auto !important;
+    /* Don't shrink */
+    width: calc(33.33% - 12px) !important;
+    /* 3 per row approx */
+    min-width: 280px !important;
+    /* Min legible width */
+    margin-right: 0 !important;
+    /* Reset margin provided by scroll view */
+}
+
+/* Responsive adjustments for wrapping */
+@media (max-width: 900px) {
+
+    .billboard-preview-mode .event-card,
+    .billboard-preview-mode .class-card {
+        width: calc(50% - 10px) !important;
+        /* 2 per row */
+    }
+}
+
+@media (max-width: 600px) {
+
+    .billboard-preview-mode .event-card,
+    .billboard-preview-mode .class-card {
+        width: 100% !important;
+        /* 1 per row */
+    }
+}
+
+/* [NEW] Remove 650px limit for TV Preview - Aggressive Override */
+.billboard-preview-mode .home-header,
+.billboard-preview-mode .home-calendar-wrapper,
+.billboard-preview-mode .home-container,
+.billboard-preview-mode .popup-box,
+.billboard-preview-mode .global-header,
+.billboard-preview-mode .mobile-shell,
+.billboard-preview-mode .layout-container,
+.billboard-preview-mode .page-container,
+.billboard-preview-mode .shell-header,
+.billboard-preview-mode .shell-main,
+.billboard-preview-mode main,
+.billboard-preview-mode section,
+.billboard-preview-mode header,
+.billboard-preview-mode .header-content-inner,
+.billboard-preview-mode .layout-compact .header-content-inner,
+.billboard-preview-mode .layout-wide .header-content-inner {
+    max-width: none !important;
+    width: 100% !important;
+    margin: 0 !important;
+    /* Remove horizontal padding that constrains content */
+    padding: 0 !important;
+    box-sizing: border-box !important;
+}
+
+/* Specific fix for calendar wrapper centering */
+.billboard-preview-mode .home-calendar-wrapper {
+    left: 0 !important;
+    right: 0 !important;
+    transform: none !important;
+    padding: 0 !important;
+}
+
+/* [NEW] Remove vertical padding in container to "Show top to bottom" fully */
+.billboard-preview-mode .home-container {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    min-height: auto !important;
+    height: 100% !important;
+}
+
+/* Force body and root release if class is propagated (Backup) */
+body:has(.billboard-preview-mode),
+#root:has(.billboard-preview-mode) {
+    max-width: none !important;
+    width: 100% !important;
+    height: 100% !important;
+    overflow: hidden !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+/* [NEW] Override EventPreviewSection padding */
+.billboard-preview-mode .evt-preview-section {
+    padding-bottom: 0px !important;
+}
