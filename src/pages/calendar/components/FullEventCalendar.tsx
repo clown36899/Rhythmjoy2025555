@@ -246,7 +246,7 @@ export default memo(function FullEventCalendar({
       const endOfRange = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 2, 0);
       const startDateStr = startOfRange.toISOString().split('T')[0];
       const endDateStr = endOfRange.toISOString().split('T')[0];
-      const columns = "id,title,date,start_date,end_date,event_dates,category,image_micro,scope";
+      const columns = "id,title,date,start_date,end_date,event_dates,category,image_micro,image_medium,scope";
 
       // Fetch V2 events
       const eventsPromise = supabase
@@ -472,7 +472,7 @@ export default memo(function FullEventCalendar({
               })
               .map((event) => {
                 const categoryColor = getEventColor(event.id);
-                const thumbnailUrl = event.image_micro;
+                const thumbnailUrl = event.image_medium || event.image_micro;
 
                 const eStart = (event.start_date || event.date || '').substring(0, 10);
                 const eEnd = (event.end_date || event.date || '').substring(0, 10);
