@@ -66,7 +66,25 @@ const VideoThumbnailSection: React.FC<Props> = ({ onVideoClick }) => {
         fetchRecentVideos();
     }, []);
 
-    if (loading) return null; // Or a skeleton loader
+    if (loading) {
+        return (
+            <section className="video-section-skeleton">
+                <div className="section-header-skeleton">
+                    <div className="title-skeleton"></div>
+                    <div className="btn-skeleton"></div>
+                </div>
+                <div className="scroll-skeleton">
+                    {[1, 2, 3].map((i) => (
+                        <div key={i} className="card-skeleton">
+                            <div className="thumb-skeleton"></div>
+                            <div className="text-skeleton"></div>
+                        </div>
+                    ))}
+                </div>
+            </section>
+        );
+    }
+
     if (videos.length === 0) return null;
 
     return (

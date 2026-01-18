@@ -2,7 +2,7 @@
     background-color: rgb(23 23 23 / 85%);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    /* border-bottom: 1px solid rgba(255, 255, 255, 0.08); */
     position: fixed;
     top: 60px;
     left: 0;
@@ -70,7 +70,7 @@
     bottom: 0;
     left: 0;
     height: 2px;
-    background-color: var(--primary-color, #3b82f6);
+    background-color: #ffffff;
     border-radius: 2px 2px 0 0;
     pointer-events: none;
     /* Transition and visibility are precision-controlled via React inline styles */

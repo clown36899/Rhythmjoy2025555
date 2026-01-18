@@ -104,12 +104,22 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
     };
 
     // Use useLayoutEffect to ensure positioning happens correctly
+    // Use useLayoutEffect to ensure positioning happens correctly
     useLayoutEffect(() => {
         const activeTab = tabRefs.current[activeCategory];
 
         if (activeTab && scrollerRef.current) {
-            const left = activeTab.offsetLeft;
-            const width = activeTab.offsetWidth;
+            const labelSpan = activeTab.querySelector('.board-tab-label') as HTMLElement;
+
+            let left = activeTab.offsetLeft;
+            let width = activeTab.offsetWidth;
+
+            if (labelSpan) {
+                // Width matches the text label
+                width = labelSpan.offsetWidth;
+                // Left matches the button position + label offset within button
+                left += labelSpan.offsetLeft;
+            }
 
             if (width > 0) {
                 setIndicatorStyle({ left, width, opacity: 1 });
