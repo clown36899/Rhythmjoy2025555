@@ -23,8 +23,10 @@ const getTypeName = (type: string): string => TYPE_NAMES[type] || type;
 
 interface AnalyticsSummary {
     total_clicks: number;
-    user_clicks: number;
-    anon_clicks: number;
+    user_clicks: number; // 클릭 기반
+    anon_clicks: number; // 클릭 기반
+    session_users?: number; // 세션 기반 (순수 접속자)
+    session_anon?: number; // 세션 기반 (순수 접속자)
     admin_clicks: number;
     type_breakdown: { type: string; count: number }[];
     daily_details: {
@@ -187,27 +189,55 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
 
             console.log(`[Analytics DEBUG] After unique filter: ${uniqueData.length} rows (removed ${validData.length - uniqueData.length} duplicates)`);
 
-            // [NEW] 고유 사용자 추적 및 이름 조회
-            const uniqueUserIds = new Set<string>();
-            const uniqueFingerprints = new Set<string>();
+            // 클릭 기반 사용자 통계 (기존 방식)
+            const clickBasedUserIds = new Set<string>();
+            const clickBasedFingerprints = new Set<string>();
 
             uniqueData.forEach(d => {
                 if (d.user_id) {
-                    uniqueUserIds.add(d.user_id);
+                    clickBasedUserIds.add(d.user_id);
                 } else if (d.fingerprint) {
-                    uniqueFingerprints.add(d.fingerprint);
+                    clickBasedFingerprints.add(d.fingerprint);
                 }
             });
 
-            console.log(`[Analytics DEBUG] Unique logged-in users: ${uniqueUserIds.size}`);
-            console.log(`[Analytics DEBUG] Unique guest fingerprints: ${uniqueFingerprints.size}`);
+            const clickBasedLoggedIn = clickBasedUserIds.size;
+            const clickBasedAnon = clickBasedFingerprints.size;
 
-            // 사용자 정보 추출 - uniqueUserIds Set을 직접 사용
-            if (uniqueUserIds.size > 0) {
-                const userIdsArray = Array.from(uniqueUserIds);
+            console.log(`[Analytics DEBUG] Click-based - Logged in: ${clickBasedLoggedIn}, Anonymous: ${clickBasedAnon}`);
 
-                // board_users 테이블에서 실제 사용자 정보 조회
-                // user_id (text/UUID)로 조회해야 함 (id는 serial integer)
+            // 세션 기반 사용자 통계 (순수 접속자)
+            const { data: sessionData, error: sessionError } = await supabase
+                .from('session_logs')
+                .select('*')
+                .gte('session_start', startStr)
+                .lte('session_start', endStr)
+                .not('is_admin', 'eq', 1);
+
+            let sessionBasedUserIds = new Set<string>();
+            let sessionBasedFingerprints = new Set<string>();
+
+            if (!sessionError && sessionData) {
+                console.log(`[Analytics DEBUG] Session data fetched: ${sessionData.length} sessions`);
+
+                sessionData.forEach(session => {
+                    if (session.user_id) {
+                        sessionBasedUserIds.add(session.user_id);
+                    } else if (session.fingerprint) {
+                        sessionBasedFingerprints.add(session.fingerprint);
+                    }
+                });
+            }
+
+            const sessionBasedLoggedIn = sessionBasedUserIds.size;
+            const sessionBasedAnon = sessionBasedFingerprints.size;
+
+            console.log(`[Analytics DEBUG] Session-based - Logged in: ${sessionBasedLoggedIn}, Anonymous: ${sessionBasedAnon}`);
+
+            // 사용자 정보 추출 (클릭 기반 사용자 목록)
+            if (clickBasedUserIds.size > 0) {
+                const userIdsArray = Array.from(clickBasedUserIds);
+
                 const { data: users, error: userError } = await supabase
                     .from('board_users')
                     .select('user_id, nickname')
@@ -236,9 +266,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             const processedData = uniqueData;
 
             const total = processedData.length;
-            // [FIX] user_clicks는 "고유 사용자 수"여야 함 (클릭 수가 아님)
-            const loggedIn = uniqueUserIds.size;
-            const anon = uniqueFingerprints.size;
+            // loggedIn and anon are now calculated from sessions above
             const admin = processedData.filter(d => d.is_admin).length;
 
             // [PHASE 11] 타입별 클릭 수 집계
@@ -281,7 +309,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 .map(([source, count]) => ({ source, count }));
 
             // [PHASE 16] 세션 통계 (이탈률 정확도 개선)
-            const { data: sessions, error: sessionError } = await supabase
+            const { data: sessions, error: sessionsError } = await supabase
                 .from('session_logs')
                 .select('*')
                 .gte('session_start', startStr)
@@ -294,7 +322,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 bounce_rate: 0
             };
 
-            if (!sessionError && sessions) {
+            if (!sessionsError && sessions) {
                 const completedSessions = sessions.filter(s => s.duration_seconds !== null);
                 const totalDuration = completedSessions.reduce((sum, s) => sum + (s.duration_seconds || 0), 0);
 
@@ -401,8 +429,10 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
 
             const newSummary = {
                 total_clicks: total,
-                user_clicks: loggedIn,
-                anon_clicks: anon,
+                user_clicks: clickBasedLoggedIn, // 클릭 기반
+                anon_clicks: clickBasedAnon, // 클릭 기반
+                session_users: sessionBasedLoggedIn, // 세션 기반 (순수 접속자)
+                session_anon: sessionBasedAnon, // 세션 기반 (순수 접속자)
                 admin_clicks: admin,
                 type_breakdown: typeStats,
                 daily_details: dailyDetails,
@@ -423,8 +453,8 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             // [PHASE 3] Auto Snapshot: 오늘치 스냅샷이 없으면 조용히 생성
             if (dateRange.end === getKRDateString(new Date())) {
                 checkAndAutoSnapshot({
-                    user_clicks: loggedIn,
-                    anon_clicks: anon,
+                    user_clicks: clickBasedLoggedIn,
+                    anon_clicks: clickBasedAnon,
                     admin_clicks: admin
                 } as any);
             }
@@ -554,11 +584,20 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                     style={{ cursor: userList.length > 0 ? 'pointer' : 'default' }}
                                     title={userList.length > 0 ? '사용자 목록 보기' : ''}
                                 >
-                                    로그인: <strong className="highlight-blue">{summary.user_clicks}</strong>
+                                    클릭 로그인: <strong className="highlight-blue">{summary.user_clicks}</strong>
                                     {userList.length > 0 && <i className="ri-user-line" style={{ marginLeft: '4px', fontSize: '0.9em' }}></i>}
                                 </span>
-                                <span>Guest: <strong className="highlight-gray">{summary.anon_clicks}</strong></span>
+                                <span>클릭 Guest: <strong className="highlight-gray">{summary.anon_clicks}</strong></span>
                             </div>
+
+                            {/* 세션 기반 통계 (순수 접속자) */}
+                            {(summary.session_users !== undefined || summary.session_anon !== undefined) && (
+                                <div className="analytics-summary-mini" style={{ marginTop: '8px', borderTop: '1px solid #333', paddingTop: '8px' }}>
+                                    <span style={{ fontSize: '0.85em', color: '#888' }}>순수 접속자 (세션 기반)</span>
+                                    <span>접속 로그인: <strong className="highlight-blue">{summary.session_users || 0}</strong></span>
+                                    <span>접속 Guest: <strong className="highlight-gray">{summary.session_anon || 0}</strong></span>
+                                </div>
+                            )}
 
                             {/* [PHASE 11] 타입별 통계 */}
                             {summary.type_breakdown.length > 0 && (
