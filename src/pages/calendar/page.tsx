@@ -17,6 +17,7 @@ import { useSetPageAction } from "../../contexts/PageActionContext";
 
 const EventPasswordModal = lazy(() => import("../v2/components/EventPasswordModal"));
 const EventRegistrationModal = lazy(() => import("../../components/EventRegistrationModal"));
+import RegistrationChoiceModal from "../v2/components/RegistrationChoiceModal";
 
 
 export default function CalendarPage() {
@@ -46,6 +47,7 @@ export default function CalendarPage() {
     const eventModal = useEventModal();
     const [highlightedEventId, setHighlightedEventId] = useState<number | string | null>(null);
     const [showRegisterModal, setShowRegisterModal] = useState(false);
+    const [showChoiceModal, setShowChoiceModal] = useState(false);
     const [showCalendarSearch, setShowCalendarSearch] = useState(false);
 
 
@@ -304,7 +306,7 @@ export default function CalendarPage() {
         icon: 'ri-add-line',
         label: '일정 등록',
         requireAuth: true,
-        onClick: () => setShowRegisterModal(true)
+        onClick: () => setShowChoiceModal(true)
     }), []));
 
     // 제스처 훅 사용 - 스와이프 기능을 위해 필요
@@ -487,6 +489,16 @@ export default function CalendarPage() {
                 />
             )}
 
+
+            {/* Registration Choice Modal */}
+            <RegistrationChoiceModal
+                isOpen={showChoiceModal}
+                onClose={() => setShowChoiceModal(false)}
+                onSelectMain={() => {
+                    setShowChoiceModal(false);
+                    setShowRegisterModal(true);
+                }}
+            />
 
             {/* Register Modal (New Event) */}
             {showRegisterModal && (

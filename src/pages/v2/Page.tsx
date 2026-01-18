@@ -18,6 +18,7 @@ import VenueDetailModal from "../practice/components/VenueDetailModal";
 import CalendarSearchModal from "./components/CalendarSearchModal";
 import VideoThumbnailSection from "./components/VideoThumbnailSection"; // [NEW]
 import { PlaylistModal } from "../learning/components/PlaylistModal"; // [NEW]
+import RegistrationChoiceModal from "./components/RegistrationChoiceModal"; // [NEW]
 import { useUserInteractions } from "../../hooks/useUserInteractions";
 import { registerLocale } from "react-datepicker";
 import { ko } from "date-fns/locale/ko";
@@ -62,6 +63,7 @@ export default function HomePageV2() {
 
     // Modal & View State
     const [showRegistrationModal, setShowRegistrationModal] = useState(false);
+    const [showChoiceModal, setShowChoiceModal] = useState(false); // [NEW]
     const [fromBanner, setFromBanner] = useState(false);
     const [bannerMonthBounds, setBannerMonthBounds] = useState<{ min: string; max: string } | null>(null);
     const [registrationCalendarMode, setRegistrationCalendarMode] = useState<'collapsed' | 'expanded' | 'fullscreen' | null>(null);
@@ -244,9 +246,7 @@ export default function HomePageV2() {
         label: '자율등록(누구나)',
         requireAuth: true,
         onClick: () => {
-            window.dispatchEvent(new CustomEvent('createEventForDate', {
-                detail: { source: 'floatingBtn', calendarMode }
-            }));
+            setShowChoiceModal(true);
         }
     }), [calendarMode]));
 
@@ -571,6 +571,17 @@ export default function HomePageV2() {
                         setSelectedEvent(event);
                     }}
                     searchMode="all"
+                />
+                <RegistrationChoiceModal
+                    isOpen={showChoiceModal}
+                    onClose={() => setShowChoiceModal(false)}
+                    onSelectMain={() => {
+                        setShowChoiceModal(false);
+                        // Trigger existing logic for main event registration
+                        window.dispatchEvent(new CustomEvent('createEventForDate', {
+                            detail: { source: 'floatingBtn', calendarMode }
+                        }));
+                    }}
                 />
             </div>
         </div >

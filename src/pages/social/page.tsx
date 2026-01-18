@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSocialGroups } from './hooks/useSocialGroups';
@@ -95,6 +95,19 @@ const SocialPage: React.FC = () => {
       checkAndScroll();
     }
   }, [location.search]);
+
+  // Handle auto-registration action from URL
+  const navigate = useNavigate();
+  useEffect(() => {
+    const action = searchParams.get('action');
+    if (action === 'register_social') {
+      setIsRegistrationModalOpen(true);
+      // Clean up URL
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('action');
+      navigate({ search: newParams.toString() }, { replace: true });
+    }
+  }, [location.search, navigate]);
 
   const [selectedGroup, setSelectedGroup] = useState<SocialGroup | null>(null);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
