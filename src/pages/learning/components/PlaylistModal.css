@@ -1,49 +1,115 @@
-/* PlaylistModal/Standard CSS */
 .pm-overlay {
     position: fixed;
     top: 0;
     left: 0;
-    right: 0;
-    bottom: 0;
+    width: 100vw;
+    height: 100vh;
     background-color: rgba(0, 0, 0, 0.85);
+    z-index: 5000;
     display: flex;
     justify-content: center;
     align-items: center;
-    z-index: 3100;
     backdrop-filter: blur(5px);
-    animation: pm-fadeIn 0.2s ease-out;
+    transition: background-color 0.3s ease, backdrop-filter 0.3s ease;
+}
+
+.pm-overlay.minimized {
+    background-color: transparent;
+    backdrop-filter: none;
+    pointer-events: none;
+    z-index: 4000;
+    /* Lower than restore button if needed, but keeping high for safety */
 }
 
 .pm-modal-content {
-    width: 95%;
+    background: #111;
+    width: 100%;
+    height: 100%;
     max-width: 1200px;
-    height: 95vh;
-    background-color: #111827;
+    max-height: 90vh;
     border-radius: 12px;
     overflow: hidden;
+    position: relative;
     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-    animation: pm-slideUp 0.3s ease-out;
-    border: 1px solid #374151;
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
 }
 
-@keyframes pm-fadeIn {
+/* Mobile Fullscreen adjustment */
+@media (max-width: 768px) {
+    .pm-modal-content {
+        max-height: 100vh;
+        border-radius: 0;
+    }
+}
+
+.pm-modal-content.minimized {
+    transform: translateX(-120vw) scale(0.9);
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Restore Button (Floating Action Button style) */
+.pm-restore-btn {
+    position: fixed;
+    top: 85%;
+    left: 0;
+    transform: translateY(-50%);
+    z-index: 6000;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-left: none;
+    /* Attached to edge */
+    color: white;
+    padding: 12px 4px 12px 2px;
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
+    cursor: pointer;
+    box-shadow: 4px 0 15px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    pointer-events: auto;
+    animation: slideInLeft 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.pm-restore-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    padding-left: 20px;
+    /* Slide out effect */
+    transform: translateY(-50%) scale(1.05);
+}
+
+.pm-restore-btn:active {
+    transform: translateY(-50%) scale(0.95);
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.pm-restore-btn i {
+    font-size: 24px;
+    color: #60a5fa;
+    /* Blue accent */
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.pm-restore-btn .pm-restore-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+@keyframes slideInLeft {
     from {
+        transform: translate(-100%, -50%);
         opacity: 0;
     }
 
     to {
-        opacity: 1;
-    }
-}
-
-@keyframes pm-slideUp {
-    from {
-        transform: translateY(20px);
-        opacity: 0;
-    }
-
-    to {
-        transform: translateY(0);
+        transform: translate(0, -50%);
         opacity: 1;
     }
 }

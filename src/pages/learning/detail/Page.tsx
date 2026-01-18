@@ -65,9 +65,14 @@ interface Props {
 }
 
 const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClose, isEditMode = false }) => {
-    // Check both potential parameter names
     const params = useParams();
+    // Prioritize prop if available (Global Player Mode), otherwise fallback to URL params
     const playlistId = propPlaylistId || params.playlistId || params.listId || params.id;
+
+    // Global Player Persistence Fix:
+    // If running in modal/prop mode, do NOT close or reset based on route params changing.
+    // The key is that this component should be stable as long as 'playlistId' prop is stable.
+
 
     const navigate = useNavigate();
     const { isAdmin } = useAuth(); // Use context
@@ -295,10 +300,15 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
 
     useEffect(() => {
         if (!playlistId) {
+            // Only warn if we really don't have an ID (shouldn't happen in Valid Global Player state)
             console.warn('[DetailPage] No playlistId found');
-            setError('재생목록 ID를 찾을 수 없습니다.');
+            // Do NOT set error that hides UI if we are in global/minimized state
+            // setError('재생목록 ID를 찾을 수 없습니다.');
             return;
         }
+
+        // Only fetch if playlistId CHANGED (Prevents re-fetching on simple route changes)
+        // We'll trust the internal state unless ID changes.
         fetchPlaylistData(playlistId);
     }, [playlistId, refreshTrigger]);
 
@@ -584,7 +594,10 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
                 iv_load_policy: 3,
                 autohide: 1,
                 enablejsapi: 1,
+                fs: 1, // Enable fullscreen
                 origin: window.location.origin,
+                // For localhost, we need to ensure the player can embed
+                widget_referrer: window.location.href
             },
             events: {
                 onReady: (event: any) => {

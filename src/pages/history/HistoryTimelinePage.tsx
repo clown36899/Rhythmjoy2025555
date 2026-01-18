@@ -3,6 +3,7 @@ import { useBlocker, useOutletContext } from 'react-router-dom';
 import { type ReactFlowInstance } from 'reactflow';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useGlobalPlayer } from '../../contexts/GlobalPlayerContext';
 import { useSetPageAction } from '../../contexts/PageActionContext';
 
 // Feature Components & Hooks
@@ -18,7 +19,6 @@ import { EditExitPromptModal } from '../../features/history/components/EditExitP
 import { EdgeEditorModal } from '../../features/history/components/EdgeEditorModal';
 import type { ResourceDrawerHandle } from '../../features/history/components/ResourceDrawer';
 // Learning Modals (Legacy support for drawer)
-import { PlaylistModal } from '../learning/components/PlaylistModal';
 import { PlaylistImportModal } from '../learning/components/PlaylistImportModal';
 import { DocumentCreateModal } from '../learning/components/DocumentCreateModal';
 import { PersonCreateModal } from '../learning/components/PersonCreateModal';
@@ -36,6 +36,8 @@ import { parseVideoUrl } from '../../utils/videoEmbed';
 function HistoryTimelinePage() {
     const { user, isAdmin } = useAuth();
     const { isFullscreen } = useOutletContext<{ isFullscreen: boolean }>();
+    // Global Player Hook
+    const { openPlayer } = useGlobalPlayer();
 
     const [isEditMode, setIsEditMode] = useState(false);
 
@@ -71,7 +73,6 @@ function HistoryTimelinePage() {
     const [viewingNodeStack, setViewingNodeStack] = useState<HistoryNodeData[]>([]);
     // const activeViewingNode = viewingNodeStack.length > 0 ? viewingNodeStack[viewingNodeStack.length - 1] : null;
 
-    const [previewResource, setPreviewResource] = useState<{ id: string, type: string, title: string } | null>(null);
     const [exitPromptOpen, setExitPromptOpen] = useState(false);
 
     const [showImportModal, setShowImportModal] = useState(false);
@@ -193,9 +194,12 @@ function HistoryTimelinePage() {
     // 🔥 Memoized Handlers for ResourceDrawer Optimization
     const handleDrawerItemClick = useCallback((item: any) => {
         if (item.type === 'video' || item.type === 'playlist') {
-            setPreviewResource({
+            // The original code already uses openPlayer for video/playlist types.
+            // The instruction's code snippet seems to be for a different context (e.g., node click).
+            // Assuming the intent is to ensure any video/playlist item from the drawer opens the player.
+            openPlayer({
                 id: item.type === 'video' ? `video:${item.id}` : item.id,
-                type: item.type,
+                type: item.type as 'playlist' | 'video',
                 title: item.title
             });
         } else {
@@ -216,7 +220,7 @@ function HistoryTimelinePage() {
                 node_behavior: 'LEAF'
             });
         }
-    }, [handleViewDetail]);
+    }, [handleViewDetail, openPlayer]);
 
     const handleCategoryChange = useCallback(() => setDrawerRefreshKey(k => k + 1), []);
     // Unused handlers removed
@@ -233,10 +237,11 @@ function HistoryTimelinePage() {
         documents: resourceData.documents
     }), [resourceData]);
 
+    // -- Handler: Play Video (with minimal re-creation)
     const handlePlayVideo = useCallback((url: string, _playlistId?: string | null, linkedVideoId?: string | null) => {
         // 1. If we have a DB Video ID (UUID), use it for full features (Bookmarks etc)
         if (linkedVideoId) {
-            setPreviewResource({
+            openPlayer({
                 id: `video:${linkedVideoId}`,
                 type: 'playlist',
                 title: 'Video Player'
@@ -247,13 +252,16 @@ function HistoryTimelinePage() {
         const videoInfo = parseVideoUrl(url);
         // 2. Fallback: Parse URL and use YouTube ID (Temp Mode, No Persistence)
         if (videoInfo?.videoId) {
-            setPreviewResource({
+            openPlayer({
                 id: `video:${videoInfo.videoId}`,
-                type: 'playlist',
+                type: 'playlist', // Use playlist type for compatibility with LearningDetailPage logic
                 title: 'Video Player'
             });
         }
-    }, []);
+    }, [openPlayer]);
+
+    /* Removed previewResource state */
+
 
     const handleCreateCategory = async (name: string) => {
         if (!isAdmin) return;
@@ -688,8 +696,13 @@ function HistoryTimelinePage() {
 
     // 🔥 Memoize Preview Handler
     const handlePreviewLinkedResource = useCallback((id: string, type: string, title: string) => {
-        setPreviewResource({ id, type, title });
-    }, []);
+        // setPreviewResource({ id, type, title });
+        openPlayer({
+            id: type === 'video' ? `video:${id}` : id,
+            type: type as 'playlist' | 'video',
+            title
+        });
+    }, [openPlayer]);
 
     // Resource Link Click Handler (from Node Content)
     const handleResourceClick = useCallback(async (rawKeyword: string) => {
@@ -1318,13 +1331,9 @@ function HistoryTimelinePage() {
 
 
             {/* Combined into NodeDetailModal - Unused legacy modals removed */}
-            {/* 🔥 Video/Playlist Modal (Separate from NodeDetail as requested) */}
-            {(previewResource?.type === 'playlist' || previewResource?.type === 'video') && (
-                <PlaylistModal
-                    playlistId={previewResource.id}
-                    onClose={() => setPreviewResource(null)}
-                />
-            )}
+            {/* 🔥 Video/Playlist Modal (Handled Globally in MobileShell) */}
+            {/* Local rendering removed */}
+
 
             {(loading || !isViewportReady) && (
                 <div className="timeline-loading-overlay">

@@ -17,7 +17,7 @@ import VenueDetailModal from "../practice/components/VenueDetailModal";
 // EventPasswordModal removed
 import CalendarSearchModal from "./components/CalendarSearchModal";
 import VideoThumbnailSection from "./components/VideoThumbnailSection"; // [NEW]
-import { PlaylistModal } from "../learning/components/PlaylistModal"; // [NEW]
+// PlaylistModal removed - Handled globally
 import RegistrationChoiceModal from "./components/RegistrationChoiceModal"; // [NEW]
 import { useUserInteractions } from "../../hooks/useUserInteractions";
 import { registerLocale } from "react-datepicker";
@@ -36,6 +36,10 @@ import { useDeepLinkLogic } from "./hooks/useDeepLinkLogic";
 
 import "./styles/Page.css";
 
+import { useGlobalPlayer } from "../../contexts/GlobalPlayerContext"; // [NEW] Import Context
+
+// ... imports ...
+
 export default function HomePageV2() {
     // --------------------------------------------------------------------------------
     // 1. Core Hooks & Context
@@ -43,6 +47,7 @@ export default function HomePageV2() {
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
     const { isAdmin, user, signInWithKakao } = useAuth();
+    const { openPlayer } = useGlobalPlayer(); // [NEW] Use Global Player Hook
 
 
     // Import Social Types and Components
@@ -73,8 +78,7 @@ export default function HomePageV2() {
     const [eventJustCreated, setEventJustCreated] = useState<number>(0);
     const [allGenres] = useState<{ class: string[]; event: string[] }>({ class: [], event: [] });
 
-    // [NEW] Video Player State
-    const [viewingPlaylistId, setViewingPlaylistId] = useState<string | null>(null);
+    // [NEW] Video Player State - REMOVED (Handled Globally)
 
     // --------------------------------------------------------------------------------
     // 3. Custom Logic Hooks (Refactored)
@@ -429,11 +433,12 @@ export default function HomePageV2() {
                 {/* Video Thumbnail Section */}
                 <VideoThumbnailSection
                     onVideoClick={(videoId) => {
-                        // 'video:' prefix signals to PlaylistModal that it's a single video context
-                        // However, PlaylistModal expects a playlistId or special ID.
-                        // The Logic in Learning/Page.tsx handles: if (itemType === 'standalone_video') -> setViewingPlaylistId(`video:${itemId}`);
-                        // Logic in PlaylistModal -> LearningDetailPage -> fetchPlaylistData handles 'video:' prefix.
-                        setViewingPlaylistId(`video:${videoId}`);
+                        // Pass database UUID directly - LearningDetailPage will fetch full resource
+                        openPlayer({
+                            id: videoId, // UUID without prefix
+                            type: 'video',
+                            title: 'Video Player'
+                        });
                     }}
                 />
 
@@ -460,13 +465,7 @@ export default function HomePageV2() {
 
 
                 {/* Modals */}
-                {/* Playlist Player Modal (for Video Section) */}
-                {viewingPlaylistId && (
-                    <PlaylistModal
-                        playlistId={viewingPlaylistId}
-                        onClose={() => setViewingPlaylistId(null)}
-                    />
-                )}
+                {/* PlaylistModal removed - Handled globally by MobileShell */}
 
 
                 {showRegistrationModal && selectedDate && (

@@ -104,7 +104,7 @@ const VideoThumbnailSection: React.FC<Props> = ({ onVideoClick }) => {
                     <div
                         key={video.id}
                         className="video-card"
-                        onClick={() => onVideoClick(video.id)} // Pass ID to parent handler
+                        onClick={() => onVideoClick(video.id)} // Pass database UUID to fetch full resource
                     >
                         <div className="thumbnail-wrapper">
                             <img

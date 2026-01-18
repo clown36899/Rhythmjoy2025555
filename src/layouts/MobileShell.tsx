@@ -11,6 +11,9 @@ import { supabase } from '../lib/supabase';
 import { logUserInteraction } from '../lib/analytics';
 import GlobalLoadingOverlay from '../components/GlobalLoadingOverlay';
 import GlobalNoticePopup from '../components/GlobalNoticePopup';
+import { useGlobalPlayer } from '../contexts/GlobalPlayerContext';
+import { PlaylistModal } from '../pages/learning/components/PlaylistModal';
+import LoginModal from '../components/LoginModal';
 import '../styles/components/MobileShell.css';
 
 interface MobileShellProps {
@@ -24,6 +27,8 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
   const { i18n } = useTranslation();
   const onlineUsersData = useOnlineUsers();
   const { action: pageAction } = usePageAction();
+  const { activeResource, isMinimized, closePlayer, minimizePlayer, restorePlayer } = useGlobalPlayer();
+
 
   // Modals
   const profileEditModal = useModal('profileEdit');
@@ -508,6 +513,27 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
           });
         }}
       />
+
+      {/* Global Playlist Player */}
+      {activeResource && (
+        <PlaylistModal
+          playlistId={activeResource.id}
+          onClose={closePlayer}
+          minimized={isMinimized}
+          onMinimize={minimizePlayer}
+          onRestore={restorePlayer}
+          isEditMode={false} // Global player usually view-only, or derived from context if needed
+        />
+      )}
+
+      {/* Login Modal */}
+      {loginModal.isOpen && (
+        <LoginModal
+          isOpen={loginModal.isOpen}
+          onClose={loginModal.close}
+          message={loginModal.props?.message} // Pass custom message
+        />
+      )}
 
       <GlobalLoadingOverlay
         isLoading={isAuthProcessing}
