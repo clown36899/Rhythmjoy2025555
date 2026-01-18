@@ -1221,6 +1221,70 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
 
                         {/* Playlist Tab Content */}
                         <div className={`ld-tab-pane ld-tab-pane-playlist ${activeTab === 'playlist' ? 'active' : ''}`}>
+                            {/* Playlist Header (Title & Description) - Added as per request */}
+                            <div className="ld-playlist-tab-header" style={{ padding: '0 20px 20px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', marginBottom: '20px' }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                    <div style={{ flex: 1 }}>
+                                        {isEditingTitle ? (
+                                            <div className="ld-edit-container-mini">
+                                                <input
+                                                    className="ld-edit-input-mini"
+                                                    value={editTitle}
+                                                    onChange={(e) => setEditTitle(e.target.value)}
+                                                    placeholder="재생목록 제목"
+                                                    autoFocus
+                                                />
+                                                <div className="ld-edit-actions-mini">
+                                                    <button onClick={handleUpdateTitle} className="ld-save-button-mini">확인</button>
+                                                    <button onClick={cancelEditingTitle} className="ld-cancel-button-mini">취소</button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: '#fff', margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                {playlist.title}
+                                                {canEdit && (
+                                                    <button
+                                                        onClick={startEditingTitle}
+                                                        className="ld-edit-button-small"
+                                                        style={{ fontSize: '12px', padding: '2px 6px' }}
+                                                    >
+                                                        ✎
+                                                    </button>
+                                                )}
+                                            </h2>
+                                        )}
+
+                                        {isEditingDesc ? (
+                                            <div className="ld-edit-container">
+                                                <textarea
+                                                    className="ld-edit-textarea"
+                                                    value={editDesc}
+                                                    onChange={(e) => setEditDesc(e.target.value)}
+                                                    placeholder="설명 (선택사항)"
+                                                />
+                                                <div className="ld-edit-actions">
+                                                    <button onClick={cancelEditingDesc} className="ld-cancel-button">취소</button>
+                                                    <button onClick={handleUpdateDesc} className="ld-save-button">저장</button>
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            <div style={{ fontSize: '0.9rem', color: '#d1d5db', lineHeight: 1.5, position: 'relative' }}>
+                                                {playlist.description ? renderTextWithLinks(playlist.description) : <span style={{ color: '#6b7280', fontStyle: 'italic' }}>설명이 없습니다.</span>}
+                                                {canEdit && !playlist.id.startsWith('category:') && (
+                                                    <button
+                                                        onClick={startEditingDesc}
+                                                        className="ld-edit-button-small"
+                                                        style={{ display: 'inline-block', marginLeft: '8px', fontSize: '11px', padding: '1px 5px', verticalAlign: 'middle' }}
+                                                    >
+                                                        ✎ 수정
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+
                             <div className="ld-playlist-section-inline">
                                 <div className="ld-playlist-container-inline">
                                     {videos.map((video, idx) => (

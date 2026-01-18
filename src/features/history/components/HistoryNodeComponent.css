@@ -538,6 +538,10 @@
     /* Re-enable clicks on buttons */
 }
 
+.react-flow__panel.bottom {
+    bottom: 61px;
+}
+
 /* ReactFlow Handles */
 .react-flow__handle {
     width: 24px;
