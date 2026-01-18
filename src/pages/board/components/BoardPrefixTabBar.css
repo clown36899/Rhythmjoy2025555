@@ -2,7 +2,7 @@
     background-color: rgb(23 23 23 / 85%);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    /* border-bottom: 1px solid rgba(255, 255, 255, 0.08); */
     position: fixed;
     top: 108px;
     left: 0;

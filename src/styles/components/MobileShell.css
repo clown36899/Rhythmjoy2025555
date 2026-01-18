@@ -289,7 +289,7 @@
   position: fixed;
   top: 0;
   left: 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  /* border-bottom: 1px solid rgba(255, 255, 255, 0.08); */
   width: 100%;
   height: 60px;
   background-color: rgb(23 23 23 / 85%);
@@ -750,7 +750,7 @@
   width: 100%;
   height: 48px;
   padding: 0;
-  background: #1c1c1c;
+  background: #1c1c1c59;
   color: white;
   border: none;
   display: flex !important;
