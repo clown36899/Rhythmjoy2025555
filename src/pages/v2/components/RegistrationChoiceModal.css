@@ -95,7 +95,7 @@
 
 .choice-label {
     display: block;
-    font-size: 1.05rem;
+    /* font-size: 1.05rem; */
     font-weight: 600;
     color: #fff;
     margin-bottom: 4px;
