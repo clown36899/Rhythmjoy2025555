@@ -212,7 +212,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 .select('*')
                 .gte('session_start', startStr)
                 .lte('session_start', endStr)
-                .not('is_admin', 'eq', 1);
+                .eq('is_admin', false);
 
             let sessionBasedUserIds = new Set<string>();
             let sessionBasedFingerprints = new Set<string>();
@@ -314,7 +314,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 .select('*')
                 .gte('session_start', startStr)
                 .lte('session_start', endStr)
-                .not('is_admin', 'eq', 1);
+                .eq('is_admin', false);
 
             let sessionStats = {
                 total_sessions: 0,

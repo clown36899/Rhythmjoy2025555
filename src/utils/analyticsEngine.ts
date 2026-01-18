@@ -30,24 +30,26 @@ let sessionStartTime: number | null = null;
 /**
  * 세션 ID 생성 또는 가져오기
  */
-const getOrCreateSessionId = (): string => {
+export const getOrCreateSessionId = (): string => {
     if (sessionId) return sessionId;
 
     // 세션 스토리지에서 확인 (탭 단위 세션)
-    const stored = sessionStorage.getItem('analytics_session_id');
-    if (stored) {
-        sessionId = stored;
+    const storedId = sessionStorage.getItem('analytics_session_id');
+    const storedStart = sessionStorage.getItem('analytics_session_start');
+
+    if (storedId) {
+        sessionId = storedId;
+        if (storedStart) sessionStartTime = parseInt(storedStart);
         return sessionId;
     }
 
     // 새 세션 생성
     sessionId = crypto.randomUUID();
-    sessionStorage.setItem('analytics_session_id', sessionId);
     sessionStartTime = Date.now();
     sessionSequence = 0;
 
-    // 세션 시작 로그
-    initializeSession();
+    sessionStorage.setItem('analytics_session_id', sessionId);
+    sessionStorage.setItem('analytics_session_start', sessionStartTime.toString());
 
     return sessionId;
 };
@@ -95,25 +97,39 @@ export const getReferrerType = (referrer: string): string => {
 };
 
 /**
- * 세션 초기화
+ * 세션 초기화 및 사이트 접속 기록 (순수 로그인 집계용)
  */
-const initializeSession = async () => {
+export const initializeAnalyticsSession = async (user?: { id: string }, isAdmin?: boolean) => {
+    const currentSessionId = getOrCreateSessionId();
     const utm = parseUTMParams();
     const referrer = document.referrer;
+    const fingerprint = localStorage.getItem(SITE_ANALYTICS_CONFIG.STORAGE_KEYS.FINGERPRINT);
+
+    if (!sessionStartTime) {
+        const storedStart = sessionStorage.getItem('analytics_session_start');
+        sessionStartTime = storedStart ? parseInt(storedStart) : Date.now();
+    }
 
     try {
         // [PHASE 18] UPSERT로 중복 방지
         await supabase.from('session_logs').upsert({
-            session_id: sessionId,
+            session_id: currentSessionId,
+            user_id: user?.id || null,
+            fingerprint: fingerprint || null,
+            is_admin: isAdmin || false,
             entry_page: window.location.pathname,
             referrer: referrer || null,
             utm_source: utm.utm_source,
             utm_medium: utm.utm_medium,
             utm_campaign: utm.utm_campaign,
-            session_start: new Date().toISOString(),
+            session_start: new Date(sessionStartTime).toISOString(),
         }, {
             onConflict: 'session_id'
         });
+
+        if (SITE_ANALYTICS_CONFIG.ENV.LOG_TO_CONSOLE) {
+            console.log('[Analytics] Session initialized:', { sessionId: currentSessionId, userId: user?.id, isAdmin });
+        }
     } catch (error) {
         console.error('[Analytics] Failed to initialize session:', error);
     }

@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { initializeFingerprint, trackEvent } from '../utils/analyticsEngine';
+import { initializeFingerprint, trackEvent, initializeAnalyticsSession } from '../utils/analyticsEngine';
 import type { AnalyticsLog } from '../utils/analyticsEngine';
 import { SITE_ANALYTICS_CONFIG } from '../config/analytics';
 
@@ -16,8 +16,9 @@ export const SiteAnalyticsProvider: React.FC<{ children: React.ReactNode }> = ({
     useEffect(() => {
         if (!SITE_ANALYTICS_CONFIG.ENABLED) return;
 
-        // 1. 비로그인 유저 식별자 초기화
+        // 1. 비로그인 유저 식별자 초기화 및 세션 시작 기록 (순수 로그인 집계용)
         initializeFingerprint();
+        initializeAnalyticsSession(user || undefined, isAdmin);
 
         // 2. 이벤트 위임(Event Delegation)을 통한 전역 클릭 리스너
         const handleGlobalClick = (event: MouseEvent) => {
