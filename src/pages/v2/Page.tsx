@@ -427,17 +427,15 @@ export default function HomePageV2() {
             >
 
                 {/* Video Thumbnail Section */}
-                {!showRegistrationModal && (
-                    <VideoThumbnailSection
-                        onVideoClick={(videoId) => {
-                            // 'video:' prefix signals to PlaylistModal that it's a single video context
-                            // However, PlaylistModal expects a playlistId or special ID.
-                            // The Logic in Learning/Page.tsx handles: if (itemType === 'standalone_video') -> setViewingPlaylistId(`video:${itemId}`);
-                            // Logic in PlaylistModal -> LearningDetailPage -> fetchPlaylistData handles 'video:' prefix.
-                            setViewingPlaylistId(`video:${videoId}`);
-                        }}
-                    />
-                )}
+                <VideoThumbnailSection
+                    onVideoClick={(videoId) => {
+                        // 'video:' prefix signals to PlaylistModal that it's a single video context
+                        // However, PlaylistModal expects a playlistId or special ID.
+                        // The Logic in Learning/Page.tsx handles: if (itemType === 'standalone_video') -> setViewingPlaylistId(`video:${itemId}`);
+                        // Logic in PlaylistModal -> LearningDetailPage -> fetchPlaylistData handles 'video:' prefix.
+                        setViewingPlaylistId(`video:${videoId}`);
+                    }}
+                />
 
                 {/* Event List - Hidden in Fullscreen Mode but still mounted for event listeners */}
                 {qrLoading ? (

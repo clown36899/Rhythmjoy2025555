@@ -39,7 +39,7 @@
     left: 50%;
     transform: translateX(-50%);
     width: 100%;
-    max-width: 800px;
+    /* max-width: 800px; */
     /* Match Page Max Width */
 
     z-index: 45;

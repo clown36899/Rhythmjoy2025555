@@ -20,7 +20,7 @@ interface MobileShellProps {
 export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, userProfile, isAdmin: authIsAdmin, refreshUserProfile, signOut, isAuthProcessing, isLoggingOut, cancelAuth } = useAuth();
+  const { user, userProfile, isAdmin: authIsAdmin, refreshUserProfile, signOut, isAuthProcessing, isLoggingOut, cancelAuth, isAuthCheckComplete } = useAuth();
   const { i18n } = useTranslation();
   const onlineUsersData = useOnlineUsers();
   const { action: pageAction } = usePageAction();
@@ -76,6 +76,9 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
     // Only run on main pages (not on specific detail pages)
     if (!isEventsPage) return;
 
+    // Wait for auth check to complete
+    if (!isAuthCheckComplete) return;
+
     // Check if user is not logged in
     if (user) return;
 
@@ -86,7 +89,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
     // Show login modal immediately
     loginModal.open({ message: '댄스빌보드 로그인' });
     sessionStorage.setItem('hasShownLoginPrompt', 'true');
-  }, [user, isEventsPage, loginModal]);
+  }, [user, isEventsPage, loginModal, isAuthCheckComplete]);
 
   // 🔄 Global Scroll Reset on Route Change
   useEffect(() => {
@@ -476,25 +479,24 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
       {!isFullscreen && (
         <div data-id="bottom-nav" className="shell-bottom-nav">
           {/* Top Bar Removed - Replaced by FAB Logic */}
-
+          {
+            pageAction && !isFullscreen && !isSocialPage && (
+              <button
+                className="shell-fab-btn"
+                onClick={handlePageAction}
+                aria-label={pageAction.label || "Action"}
+                data-analytics-id="fab_action"
+              >
+                <i className={pageAction.icon}></i>
+                {pageAction.label && <span className="fab-label">{pageAction.label}</span>}
+              </button>
+            )
+          }
           <BottomNavigation />
         </div>
       )}
 
       {/* Organic FAB */}
-      {
-        pageAction && !isFullscreen && !isSocialPage && (
-          <button
-            className="shell-fab-btn"
-            onClick={handlePageAction}
-            aria-label={pageAction.label || "Action"}
-            data-analytics-id="fab_action"
-          >
-            <i className={pageAction.icon}></i>
-            {pageAction.label && <span className="fab-label">{pageAction.label}</span>}
-          </button>
-        )
-      }
 
       <SideDrawer
         isOpen={isDrawerOpen}

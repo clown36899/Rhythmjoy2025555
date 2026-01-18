@@ -1776,7 +1776,7 @@
 
   /* mt-3 */
   padding: 0 1em;
-  border-bottom: 1px solid #333333;
+  /* border-bottom: 1px solid #333333; */
   cursor: pointer;
   display: flex;
   align-items: center;

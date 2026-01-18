@@ -51,6 +51,7 @@ export function useSocialSchedulesNew(groupId?: number, minDate?: string) {
         place_name, address, venue_id, description, 
         image_url, image_micro, image_thumbnail, image_medium, image_full,
         link_url, link_name,
+        v2_genre, v2_category,
         user_id, created_at, updated_at
       `;
 

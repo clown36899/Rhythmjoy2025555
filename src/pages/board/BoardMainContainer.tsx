@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBoardData } from '../../contexts/BoardDataContext';
@@ -23,7 +23,7 @@ import { useBoardInteractions } from './hooks/useBoardInteractions';
 
 export default function BoardMainContainer() {
     const [searchParams, setSearchParams] = useSearchParams();
-    const { user, isAdmin } = useAuth();
+    const { user, isAdmin, isAuthCheckComplete } = useAuth();
     const { data: boardData, refreshData } = useBoardData();
     const [isRealAdmin, setIsRealAdmin] = useState(false);
     const [isAdminChecked, setIsAdminChecked] = useState(false);
@@ -132,6 +132,15 @@ export default function BoardMainContainer() {
     const writeModal = useModal('boardWriteModal');
     const editorModal = useModal('boardEditorModal');
 
+    // Keep fresh reference to user for onClick handlers (avoids stale closure issues in PageAction)
+    const userRef = useRef(user);
+    const authCheckRef = useRef(isAuthCheckComplete); // Track auth check completion
+
+    useEffect(() => {
+        userRef.current = user;
+        authCheckRef.current = isAuthCheckComplete;
+    }, [user, isAuthCheckComplete]);
+
     // Register FAB action
     useSetPageAction(
         category === 'dev-log' ? null : {
@@ -141,7 +150,10 @@ export default function BoardMainContainer() {
                 if (category === 'anonymous') {
                     writeModal.open();
                 } else {
-                    if (!user) {
+                    // Prevent action while auth check is still pending (avoid false guest detection)
+                    if (!authCheckRef.current) return;
+
+                    if (!userRef.current) {
                         window.dispatchEvent(new CustomEvent('openLoginModal', {
                             detail: { message: '글쓰기는 로그인 후 이용 가능합니다.' }
                         }));

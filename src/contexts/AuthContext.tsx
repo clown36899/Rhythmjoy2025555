@@ -14,6 +14,7 @@ interface AuthContextType {
   session: Session | null;
   isAdmin: boolean;
   loading: boolean;
+  isAuthCheckComplete: boolean;
   isAuthProcessing: boolean;
   isLoggingOut: boolean;
   billboardUserId: string | null;
@@ -36,7 +37,9 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [loading, setLoading] = useState(false); // Always false to prevent black screen
+  const [loading, setLoading] = useState(false); // Always false to prevent black screen/delay
+  const [isAuthCheckComplete, setIsAuthCheckComplete] = useState(false); // Track initial session check completion
+
   const [isAuthProcessing, setIsAuthProcessing] = useState(() => {
     // Check if login is in progress from sessionStorage
     const inProgress = sessionStorage.getItem('kakao_login_in_progress') === 'true';
@@ -55,6 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     return inProgress;
   });
+
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -253,7 +257,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const adminCheckWithTimeout = Promise.race([
         supabase.rpc('get_user_admin_status'),
         new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Admin check timeout')), 1000) // 3초 → 1초
+          setTimeout(() => reject(new Error('Admin check timeout')), 5000) // 1초 -> 5초
         )
       ]);
 
@@ -276,7 +280,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (e) {
       const errorMsg = (e as Error).message;
       if (errorMsg.includes('timeout')) {
-        console.warn('[AuthContext] Admin check timeout - skipping');
+        // console.warn('[AuthContext] Admin check timeout - skipping');
       } else {
         console.error('[AuthContext] Admin check failed:', e);
       }
@@ -310,7 +314,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .eq('user_id', user.id)
           .maybeSingle(),
         new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Profile fetch timeout')), 3000)
+          setTimeout(() => reject(new Error('Profile fetch timeout')), 5000)
         )
       ]);
 
@@ -345,7 +349,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem(`${storagePrefix}userProfile`, JSON.stringify(newProfile));
       }
     } catch (e) {
-      console.warn('[AuthContext.refreshUserProfile] 프로필 로드 실패 또는 타임아웃, 폴백 사용:', e);
+      // console.warn('[AuthContext] Profile load delayed, using fallback:', e.message);
       // Fallback on error/timeout
       const fallbackProfile = {
         nickname: user.user_metadata?.name || user.email?.split('@')[0] || '',
@@ -378,7 +382,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // 수동 세션 검증 메서드 - useCallback으로 감싸서 리렌더링 시 참조 유지 (무한 루프 방지)
   const validateSession = useCallback(async () => {
-    console.log('[AuthContext] 🕵️‍♂️ Manual session validation requested');
+    // console.log('[AuthContext] 🕵️‍♂️ Manual session validation requested');
     const validSession = await validateAndRecoverSession();
     if (!validSession) {
       console.warn('[AuthContext] 🕵️‍♂️ Session became invalid during validation');
@@ -438,6 +442,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error('[AuthContext] 💥 Session init error:', error);
         await cleanupStaleSession();
         setLoading(false);
+      })
+      .finally(() => {
+        setIsAuthCheckComplete(true);
       });
 
     return () => {
@@ -737,6 +744,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     session,
     isAdmin,
     loading,
+    isAuthCheckComplete,
     isAuthProcessing,
     isLoggingOut,
     billboardUserId,
@@ -752,7 +760,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     storagePrefix,
     ...(import.meta.env.DEV && { signInAsDevAdmin }),
   }), [
-    user, session, isAdmin, loading, isAuthProcessing, isLoggingOut,
+    user, session, isAdmin, loading, isAuthCheckComplete, isAuthProcessing, isLoggingOut,
     billboardUserId, billboardUserName, userProfile,
     setBillboardUser, refreshUserProfile,
     signInWithKakao, signInWithGoogle, signOut,
