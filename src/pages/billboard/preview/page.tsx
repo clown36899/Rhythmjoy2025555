@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useLayoutEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { QRCodeSVG } from 'qrcode.react';
 import HomeV2 from '../../v2/Page';
 import './preview.css'; // [New] 독립적인 스타일 import
 
@@ -205,7 +206,24 @@ export default function BillboardPreviewPage() {
                         <HomeV2 />
                     </div>
                 </div>
+
+                {/* [NEW] QR Code Overlay: Inside wrapper for auto-rotation */}
+                <div className="preview-qr-overlay">
+                    <div className="qr-container">
+                        <div className="qr-description">일정 등록, 사이트 바로가기</div>
+                        <QRCodeSVG
+                            value="https://swingenjoy.com"
+                            size={240}
+                            bgColor={"#ffffff"}
+                            fgColor={"#000000"}
+                            level={"L"}
+                            includeMargin={true}
+                        />
+                        <div className="qr-label">swingenjoy.com</div>
+                    </div>
+                </div>
             </div>
+
         </div>
     );
 }

@@ -182,3 +182,41 @@ body:has(.billboard-preview-mode),
     cursor: default !important;
     pointer-events: none !important;
 }
+
+/* [NEW] QR Code Overlay Styling - Nested Inside Scaled Wrapper */
+.preview-qr-overlay {
+    position: absolute;
+    right: 40px;
+    /* Offset from content right edge */
+    bottom: 40px;
+    /* Offset from content bottom edge */
+    z-index: 10000;
+}
+
+.qr-container {
+    background-color: white;
+    padding: 20px;
+    border-radius: 24px;
+    box-shadow: 0 15px 45px rgba(0, 0, 0, 0.6);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    border: 3px solid #333;
+}
+
+.qr-description {
+    color: #444;
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    font-family: 'Inter', sans-serif;
+}
+
+.qr-label {
+    color: #000;
+    font-size: 24px;
+    font-weight: 800;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: -0.5px;
+}
