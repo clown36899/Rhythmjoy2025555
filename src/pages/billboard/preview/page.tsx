@@ -1,229 +1,75 @@
-import { useEffect, useState, useRef, useLayoutEffect } from 'react';
+import { useEffect, useState, useLayoutEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { QRCodeSVG } from 'qrcode.react';
-import HomeV2 from '../../v2/Page';
-import './preview.css'; // [New] 독립적인 스타일 import
-
-const REF_WIDTH = 1200;
-const REF_HEIGHT_MIN = 932;
-const SCREEN_PADDING = 40;
+import BillboardLayout from './BillboardLayout';
+import './preview.css';
 
 export default function BillboardPreviewPage() {
     const navigate = useNavigate();
     const { userId } = useParams<{ userId: string }>();
-    const containerRef = useRef<HTMLDivElement>(null);
-    const contentRef = useRef<HTMLDivElement>(null);
     const [needsRotation, setNeedsRotation] = useState(false);
-    const [scale, setScale] = useState(1);
-    const [measuredHeight, setMeasuredHeight] = useState(REF_HEIGHT_MIN);
+    const [viewportSize, setViewportSize] = useState({ w: window.innerWidth, h: window.innerHeight });
 
-    // Refs to track state to prevent infinite update loops
-    const lastHeightRef = useRef(REF_HEIGHT_MIN);
-    const lastScaleRef = useRef(1);
-
-    // 5분 후 빌보드로 복귀
+    // 5분 후 빌보드로 복귀 (유지)
     useEffect(() => {
         console.log("Preview Timer Disabled for Customization");
     }, [navigate, userId]);
 
-    // 화면 방향 및 스케일 계산 (Stable Scaling Logic)
+    // 회전 및 크기 변화 감지 로직 유지
     useLayoutEffect(() => {
-        let debounceTimer: NodeJS.Timeout;
-
         const updateLayout = () => {
-            if (!contentRef.current) return;
+            const w = window.innerWidth;
+            const h = window.innerHeight;
+            setViewportSize({ w, h });
 
-            const windowWidth = window.innerWidth;
-            const windowHeight = window.innerHeight;
-            const isLandscape = windowWidth > windowHeight;
-
-            setNeedsRotation(isLandscape);
-
-            const effectiveViewportWidth = isLandscape ? windowHeight : windowWidth;
-            const effectiveViewportHeight = isLandscape ? windowWidth : windowHeight;
-
-            const availableWidth = Math.max(effectiveViewportWidth - (SCREEN_PADDING * 2), 100);
-            const availableHeight = Math.max(effectiveViewportHeight - (SCREEN_PADDING * 2), 100);
-
-            // [안정성 강화] 소수점 단위의 미세한 변화를 무시하기 위해 Math.round 사용
-            const rawHeight = contentRef.current.scrollHeight;
-            const contentHeight = Math.round(Math.max(rawHeight, REF_HEIGHT_MIN));
-
-            const scaleW = availableWidth / REF_WIDTH;
-            const scaleH = availableHeight / contentHeight;
-
-            const fitScale = Math.min(scaleW, scaleH);
-            const finalScale = Math.min(fitScale, 1);
-
-            // [껌뻑거림 방지] 변화량이 매우 작으면 업데이트를 무시하여 정지시킴
-            const heightChange = Math.abs(contentHeight - lastHeightRef.current);
-            const scaleChange = Math.abs(finalScale - lastScaleRef.current);
-
-            if (heightChange > 3 || scaleChange > 0.005) {
-                lastHeightRef.current = contentHeight;
-                lastScaleRef.current = finalScale;
-                setMeasuredHeight(contentHeight);
-                setScale(finalScale);
-                console.log(`Scaler: Updated (H:${contentHeight}, S:${finalScale.toFixed(3)})`);
-            } else {
-                console.log("Scaler: Stabilized.");
-            }
+            // 전광판은 보통 세로(Portrait)이나, PC 모니터는 가로(Landscape).
+            // 가로 모니터에서 세로 전광판을 시뮬레이션하기 위해 가로가 더 넓으면 90도 회전을 적용하던 로직을 유지합니다.
+            setNeedsRotation(w > h);
         };
 
-        const debouncedResize = () => {
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(updateLayout, 150);
-        };
-        window.addEventListener('resize', debouncedResize);
-
-        const resizeObserver = new ResizeObserver(() => {
-            updateLayout();
-        });
-
-        if (contentRef.current) {
-            resizeObserver.observe(contentRef.current);
-        }
-
+        window.addEventListener('resize', updateLayout);
         updateLayout();
 
-        /* [Safe Styles Override] */
-        const rootElement = document.getElementById('root');
         const htmlElement = document.documentElement;
-
-        let originalRootStyles: { [key: string]: string } = {};
-        let originalBodyStyles: { [key: string]: string } = {};
-        let originalHtmlStyles: { [key: string]: string } = {};
-
-        originalHtmlStyles = {
-            maxWidth: htmlElement.style.maxWidth,
-            margin: htmlElement.style.margin,
-            width: htmlElement.style.width,
-            overflowX: htmlElement.style.overflowX,
-            backgroundColor: htmlElement.style.backgroundColor
-        };
-        htmlElement.style.maxWidth = 'none';
-        htmlElement.style.margin = '0';
-        htmlElement.style.width = '100%';
-        htmlElement.style.overflowX = 'hidden';
         htmlElement.style.backgroundColor = '#000000';
+        htmlElement.style.overflow = 'hidden';
+        document.body.style.overflow = 'hidden';
 
-        originalBodyStyles = {
-            maxWidth: document.body.style.maxWidth,
-            margin: document.body.style.margin,
-            width: document.body.style.width,
-            overflow: document.body.style.overflow,
-            backgroundColor: document.body.style.backgroundColor
-        };
-        document.body.style.maxWidth = 'none';
-        document.body.style.margin = '0';
-        document.body.style.width = '100%';
-        document.body.style.backgroundColor = '#000000';
-
-        if (rootElement) {
-            originalRootStyles = {
-                maxWidth: rootElement.style.maxWidth,
-                margin: rootElement.style.margin,
-                width: rootElement.style.width,
-                height: rootElement.style.height,
-                overflow: rootElement.style.overflow
-            };
-            rootElement.style.maxWidth = 'none';
-            rootElement.style.margin = '0';
-            rootElement.style.width = '100%';
-            rootElement.style.height = '100%';
-            rootElement.style.overflow = 'auto';
-        }
-
-        return () => {
-            clearTimeout(debounceTimer);
-            window.removeEventListener('resize', debouncedResize);
-            resizeObserver.disconnect();
-
-            htmlElement.style.maxWidth = originalHtmlStyles.maxWidth || '';
-            htmlElement.style.margin = originalHtmlStyles.margin || '';
-            htmlElement.style.width = originalHtmlStyles.width || '';
-            htmlElement.style.overflowX = originalHtmlStyles.overflowX || '';
-            htmlElement.style.backgroundColor = originalHtmlStyles.backgroundColor || '';
-
-            document.body.style.maxWidth = originalBodyStyles.maxWidth || '';
-            document.body.style.margin = originalBodyStyles.margin || '';
-            document.body.style.width = originalBodyStyles.width || '';
-            document.body.style.overflow = originalBodyStyles.overflow || '';
-            document.body.style.backgroundColor = originalBodyStyles.backgroundColor || '';
-
-            if (rootElement) {
-                rootElement.style.maxWidth = originalRootStyles.maxWidth || '';
-                rootElement.style.margin = originalRootStyles.margin || '';
-                rootElement.style.width = originalRootStyles.width || '';
-                rootElement.style.height = originalRootStyles.height || '';
-                rootElement.style.overflow = originalRootStyles.overflow || '';
-            }
-        };
+        return () => window.removeEventListener('resize', updateLayout);
     }, []);
 
+    /**
+     * [Fully Responsive Fill]
+     * needsRotation이 참이면 (가로 해상도 PC에서 보는 세로 전광판): 
+     *    너비를 viewport 높이로, 높이를 viewport 너비로 설정하고 90도 회전하여 '꽉 채움'
+     * needsRotation이 거짓이면 (이미 세로 모드인 전광판 기기):
+     *    100vw, 100vh를 그대로 사용
+     */
     const wrapperStyle: React.CSSProperties = needsRotation ? {
-        position: "absolute",
-        top: "50%",
-        left: "50%",
-
-        // 측정된 실제 크기를 기준값으로 사용 (Scale 적용 전 원래 크기)
-        width: REF_WIDTH,
-        height: measuredHeight,
-
-        // 중앙에 배치하고 스케일 적용 (회전 포함)
-        transform: `translate(-50%, -50%) rotate(90deg) scale(${scale})`,
-        transformOrigin: "center center",
-        backgroundColor: "black"
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: `${viewportSize.h}px`, // 회전 후 화면에 꽉 차도록 반전
+        height: `${viewportSize.w}px`,
+        transform: "rotate(90deg)",
+        transformOrigin: "top left",
+        left: `${viewportSize.w}px`, // 회전축 이동 보정
+        backgroundColor: "black",
+        overflow: "hidden"
     } : {
-        position: "absolute",
-        top: "50%",
-        left: "50%",
-
-        width: REF_WIDTH,
-        height: measuredHeight,
-
-        transform: `translate(-50%, -50%) scale(${scale})`,
-        transformOrigin: "center center",
-        backgroundColor: "black"
+        position: "fixed",
+        top: 0,
+        left: 0,
+        width: "100%",
+        height: "100%",
+        backgroundColor: "black",
+        overflow: "hidden"
     };
 
     return (
-        <div className="billboard-preview-root">
-            <div
-                ref={containerRef}
-                className="billboard-preview-mode billboard-preview-wrapper"
-                style={wrapperStyle}
-            >
-                <div
-                    ref={contentRef}
-                    className="billboard-preview-content"
-                    style={{
-                        width: REF_WIDTH, // [중요] 측정 기준 너비를 고정하여 무한 루프 방지
-                        minHeight: '100%'
-                    }}
-                >
-                    <div className="preview-content-wrapper">
-                        <HomeV2 />
-                    </div>
-                </div>
-
-                {/* [NEW] QR Code Overlay: Inside wrapper for auto-rotation */}
-                <div className="preview-qr-overlay">
-                    <div className="qr-container">
-                        <div className="qr-description">일정 등록, 사이트 바로가기</div>
-                        <QRCodeSVG
-                            value="https://swingenjoy.com"
-                            size={240}
-                            bgColor={"#ffffff"}
-                            fgColor={"#000000"}
-                            level={"L"}
-                            includeMargin={true}
-                        />
-                        <div className="qr-label">swingenjoy.com</div>
-                    </div>
-                </div>
+        <div className="billboard-preview-root-fully-responsive">
+            <div className="billboard-preview-wrapper" style={wrapperStyle}>
+                <BillboardLayout />
             </div>
-
         </div>
     );
 }

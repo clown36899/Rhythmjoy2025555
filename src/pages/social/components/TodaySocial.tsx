@@ -49,8 +49,8 @@ const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll, on
     // shuffledSchedules 대신 sortedSchedules 사용
     const displaySchedules = sortedSchedules;
 
-    // 오늘 일정이 0개일 때만 숨김
-    if (displaySchedules.length === 0) return null;
+    // 오늘 일정이 1개 이하일 때 숨김 (AllSocialSchedules에서 1개 이하일 때 이번주 일정에 포함시키기 때문)
+    if (displaySchedules.length <= 1) return null;
 
     const getMediumImage = (item: SocialSchedule) => {
         if (item.image_thumbnail) return item.image_thumbnail;

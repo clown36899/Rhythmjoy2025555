@@ -35,8 +35,8 @@
     background-color: #000;
     overflow: hidden;
     position: relative;
-    padding: 40px;
-    /* Requested padding */
+    padding: 0;
+    /* REMOVED PADDING FOR FULL BLEED */
     box-sizing: border-box;
 }
 
