@@ -35,7 +35,9 @@
     background-color: #000;
     overflow: hidden;
     position: relative;
-    /* Flexbox attributes removed to avoid conflict with absolute positioning of child */
+    padding: 40px;
+    /* Requested padding */
+    box-sizing: border-box;
 }
 
 .billboard-preview-wrapper {
@@ -157,4 +159,26 @@ body:has(.billboard-preview-mode),
 /* [NEW] Override EventPreviewSection padding */
 .billboard-preview-mode .evt-preview-section {
     padding-bottom: 0px !important;
+}
+
+/* [NEW] Remove tab menus and interactive UI bits */
+.billboard-preview-mode .evt-v2-genre-wrap,
+.billboard-preview-mode .evt-view-all-btn,
+.billboard-preview-mode .all-social-calendar-btn,
+.billboard-preview-mode .scroll-nav-btn,
+.billboard-preview-mode .shopping-banner-nav,
+.billboard-preview-mode .shopping-banner-indicators {
+    display: none !important;
+}
+
+/* Hide non-active social menu items or separators */
+.billboard-preview-mode .all-social-title-menu .menu-sep,
+.billboard-preview-mode .all-social-title-menu .menu-item:not(.active) {
+    display: none !important;
+}
+
+/* Ensure active menu item looks like a normal title */
+.billboard-preview-mode .all-social-title-menu .menu-item.active {
+    cursor: default !important;
+    pointer-events: none !important;
 }
