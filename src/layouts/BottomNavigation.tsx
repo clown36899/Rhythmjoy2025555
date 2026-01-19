@@ -8,10 +8,20 @@ import {
     prefetchGuidePage,
     prefetchShoppingPage
 } from '../router/prefetch';
-import { useEffect } from 'react';
+import { useEffect, ReactNode } from 'react';
 import { logUserInteraction } from '../lib/analytics';
 
-export function BottomNavigation() {
+interface BottomNavigationProps {
+    pageAction?: {
+        label?: string;
+        icon: string;
+        onClick: () => void;
+        requireAuth?: boolean;
+    } | null;
+    onPageActionClick?: () => void;
+}
+
+export function BottomNavigation({ pageAction, onPageActionClick }: BottomNavigationProps) {
     const navigate = useNavigate();
     const location = useLocation();
     const { t } = useTranslation();
@@ -91,45 +101,69 @@ export function BottomNavigation() {
             onTouchMove={(e) => e.stopPropagation()}
             onWheel={(e) => e.stopPropagation()}
         >
-            {NAVIGATION_ITEMS.map((item) => {
-                let isActive = false;
+            {(() => {
+                const items = [...NAVIGATION_ITEMS];
+                // Insert FAB in the middle (index 3)
+                const buttons = items.map((item, index) => {
+                    let isActive = false;
 
-                if (item.path === '/') {
-                    isActive = currentPath === '/';
-                } else if (item.path === '/v2') {
-                    // 이벤트: /v2 경로일 때 활성화 (더 이상 fullscreen 체크 불필요)
-                    isActive = currentPath.startsWith('/v2');
-                } else {
-                    isActive = currentPath.startsWith(item.path);
+                    if (item.path === '/') {
+                        isActive = currentPath === '/';
+                    } else if (item.path === '/v2') {
+                        isActive = currentPath.startsWith('/v2');
+                    } else {
+                        isActive = currentPath.startsWith(item.path);
+                    }
+
+                    const navButton = (
+                        <button
+                            key={`${item.path}-${item.label}`}
+                            onClick={() => handleNavigation(item.path, item.action)}
+                            className={`bottom-nav-item ${isActive ? 'active' : 'inactive'}`}
+                            data-analytics-id={item.path}
+                            data-analytics-type="nav_item"
+                            data-analytics-title={item.label}
+                            data-analytics-section="bottom_navigation"
+                        >
+                            <i
+                                className={`${isActive ? item.iconFilled : item.icon} bottom-nav-icon`}
+                            ></i>
+                            <span className={`bottom-nav-label manual-label-wrapper ${isActive ? 'active' : ''}`}>
+                                <span className="translated-part">{t(item.label)}</span>
+                                <span className="fixed-part ko" translate="no">{item.label}</span>
+                                <span className="fixed-part en" translate="no">{item.labelEn}</span>
+                            </span>
+
+                            {item.badge && (
+                                <span className="bottom-nav-badge">
+                                    {item.badge}
+                                </span>
+                            )}
+                        </button>
+                    );
+
+                    return navButton;
+                });
+
+                // Add the FAB button if present
+                if (pageAction) {
+                    const fabButton = (
+                        <button
+                            key="fab-center"
+                            onClick={onPageActionClick}
+                            className="bottom-nav-item fab-center-item"
+                            data-analytics-id="fab_action_center"
+                            data-analytics-type="action"
+                            data-analytics-title={pageAction.label || "Action"}
+                        >
+                            <i className={`${pageAction.icon} bottom-nav-icon fab-icon-only`}></i>
+                        </button>
+                    );
+                    buttons.splice(3, 0, fabButton);
                 }
 
-                return (
-                    <button
-                        key={`${item.path}-${item.label}`}
-                        onClick={() => handleNavigation(item.path, item.action)}
-                        className={`bottom-nav-item ${isActive ? 'active' : 'inactive'}`}
-                        data-analytics-id={item.path}
-                        data-analytics-type="nav_item"
-                        data-analytics-title={item.label}
-                        data-analytics-section="bottom_navigation"
-                    >
-                        <i
-                            className={`${isActive ? item.iconFilled : item.icon} bottom-nav-icon`}
-                        ></i>
-                        <span className={`bottom-nav-label manual-label-wrapper ${isActive ? 'active' : ''}`}>
-                            <span className="translated-part">{t(item.label)}</span>
-                            <span className="fixed-part ko" translate="no">{item.label}</span>
-                            <span className="fixed-part en" translate="no">{item.labelEn}</span>
-                        </span>
-
-                        {item.badge && (
-                            <span className="bottom-nav-badge">
-                                {item.badge}
-                            </span>
-                        )}
-                    </button>
-                );
-            })}
+                return buttons;
+            })()}
         </div>
     );
 }

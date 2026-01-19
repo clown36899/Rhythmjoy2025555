@@ -345,7 +345,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                       color: '#fff'
                     }}>
                       {(() => {
-                        if (isSocialPage) return '소셜 /동호회';
+                        if (isSocialPage) return '소셜';
                         if (isBoardPage) return '포럼';
                         if (isPracticePage) return '연습실';
                         if (isShoppingPage) return '쇼핑';
@@ -484,20 +484,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
       {!isFullscreen && (
         <div data-id="bottom-nav" className="shell-bottom-nav">
           {/* Top Bar Removed - Replaced by FAB Logic */}
-          {
-            pageAction && !isFullscreen && !isSocialPage && (
-              <button
-                className="shell-fab-btn"
-                onClick={handlePageAction}
-                aria-label={pageAction.label || "Action"}
-                data-analytics-id="fab_action"
-              >
-                <i className={pageAction.icon}></i>
-                {pageAction.label && <span className="fab-label">{pageAction.label}</span>}
-              </button>
-            )
-          }
-          <BottomNavigation />
+          <BottomNavigation pageAction={pageAction} onPageActionClick={handlePageAction} />
         </div>
       )}
 
