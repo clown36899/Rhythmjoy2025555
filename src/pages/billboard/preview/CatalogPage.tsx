@@ -4,10 +4,7 @@ import './preview.css';
 const versions = [
     { id: '1', name: 'Version 1', description: 'Classic Horizontal Layout' },
     { id: '2', name: 'Version 2', description: 'Event Grid Focus' },
-    { id: '3', name: 'Version 3', description: 'Schedule List Mode' },
-    { id: '4', name: 'Version 4', description: 'Large Visual / Minimal' },
-    { id: '5', name: 'Version 5', description: 'High Contrast Dark' },
-    { id: '6', name: 'Version 6', description: 'Social Multi-Grid' },
+    { id: '5', name: 'Version 5', description: 'High Contrast Dark / Gallery' },
     { id: '7', name: 'Version 7', description: 'Portrait Billboard (Fixed 1080x1920)', status: 'Active' },
 ];
 
@@ -15,58 +12,95 @@ export default function BillboardCatalogPage() {
     const navigate = useNavigate();
     const { userId } = useParams<{ userId: string }>();
 
+    const handleSelect = (id: string) => {
+        const targetUrl = `/billboard/${userId}/preview?v=${id}`;
+        console.log("Navigating to:", targetUrl);
+        navigate(targetUrl);
+    };
+
     return (
-        <div className="catalog-container" style={{ padding: '40px', background: '#000', minHeight: '100vh', color: '#fff' }}>
-            <h1 style={{ fontSize: '2.5rem', marginBottom: '10px', fontWeight: 900 }}>Billboard Catalog</h1>
-            <p style={{ color: '#888', marginBottom: '40px' }}>Select a version to preview on your billboard device.</p>
+        <div className="catalog-container" style={{
+            padding: '20px',
+            background: '#0a0a0a',
+            minHeight: '100vh',
+            color: '#fff',
+            fontFamily: 'Pretendard, sans-serif',
+            overflowY: 'auto' // Ensure scrolling
+        }}>
+            <div style={{ maxWidth: '800px', margin: '0 auto' }}>
+                <header style={{ marginBottom: '30px', borderBottom: '1px solid #222', paddingBottom: '20px' }}>
+                    <h1 style={{ fontSize: '1.8rem', marginBottom: '5px', fontWeight: 900, color: '#e54d4d' }}>BILLBOARD CATALOG</h1>
+                    <p style={{ color: '#666', fontSize: '0.9rem' }}>Select a layout version to preview. Scroll down for more options.</p>
+                </header>
 
-            <div className="catalog-grid" style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))',
-                gap: '20px'
-            }}>
-                {versions.map((v) => (
-                    <div
-                        key={v.id}
-                        className="catalog-card"
-                        onClick={() => navigate(`/billboard/${userId}/preview?v=${v.id}`)}
-                        style={{
-                            background: '#1a1a1a',
-                            border: v.id === '7' ? '2px solid #e54d4d' : '1px solid #333',
-                            borderRadius: '12px',
-                            padding: '25px',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s',
-                            position: 'relative'
-                        }}
-                    >
-                        {v.status && (
-                            <span style={{
-                                position: 'absolute',
-                                top: '15px',
-                                right: '15px',
-                                background: '#e54d4d',
-                                color: '#fff',
-                                padding: '4px 8px',
-                                borderRadius: '4px',
-                                fontSize: '12px',
-                                fontWeight: 800
-                            }}>
-                                {v.status}
-                            </span>
-                        )}
-                        <h2 style={{ fontSize: '1.5rem', marginBottom: '8px' }}>{v.name}</h2>
-                        <p style={{ color: '#aaa', fontSize: '1rem' }}>{v.description}</p>
+                <div className="catalog-list" style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '10px'
+                }}>
+                    {versions.map((v) => (
+                        <div
+                            key={v.id}
+                            className="catalog-item-bar"
+                            onClick={() => handleSelect(v.id)}
+                            style={{
+                                background: '#141414',
+                                border: v.id === '7' ? '1px solid #e54d4d' : '1px solid #222',
+                                borderRadius: '8px',
+                                padding: '12px 20px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                transition: 'all 0.1s ease',
+                                userSelect: 'none'
+                            }}
+                            onMouseOver={(e) => e.currentTarget.style.borderColor = '#e54d4d'}
+                            onMouseOut={(e) => e.currentTarget.style.borderColor = v.id === '7' ? '#e54d4d' : '#222'}
+                        >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flex: 1 }}>
+                                <span style={{
+                                    fontSize: '0.8rem',
+                                    color: '#e54d4d',
+                                    fontWeight: 900,
+                                    width: '30px',
+                                    textAlign: 'center',
+                                    background: '#000',
+                                    padding: '2px 4px',
+                                    borderRadius: '4px'
+                                }}>
+                                    V{v.id}
+                                </span>
+                                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'baseline', gap: '10px' }}>
+                                    <h2 style={{ fontSize: '1rem', margin: 0, fontWeight: 700 }}>{v.name}</h2>
+                                    <p style={{ color: '#555', fontSize: '0.85rem', margin: 0 }}>{v.description}</p>
+                                </div>
+                            </div>
 
-                        <div style={{ marginTop: '20px', color: '#e54d4d', fontWeight: 600 }}>
-                            Preview →
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                {v.status && (
+                                    <span style={{
+                                        background: '#e54d4d',
+                                        color: '#fff',
+                                        padding: '2px 6px',
+                                        borderRadius: '3px',
+                                        fontSize: '10px',
+                                        fontWeight: 800
+                                    }}>
+                                        {v.status}
+                                    </span>
+                                )}
+                                <div style={{ color: '#333', fontSize: '0.8rem' }}>SELECT →</div>
+                            </div>
                         </div>
-                    </div>
-                ))}
-            </div>
+                    ))}
+                </div>
 
-            <div style={{ marginTop: '50px', borderTop: '1px solid #333', paddingTop: '20px', color: '#555' }}>
-                <p>Note: Versions 1-6 are currently being restored. Selecting them will fallback to Version 7.</p>
+                <footer style={{ marginTop: '40px', padding: '20px 0', borderTop: '1px solid #222', textAlign: 'center' }}>
+                    <p style={{ color: '#444', fontSize: '0.8rem' }}>
+                        * Selection will update the billboard layout in real-time.
+                    </p>
+                </footer>
             </div>
         </div>
     );
