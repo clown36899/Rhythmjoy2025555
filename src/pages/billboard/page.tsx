@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { QRCodeCanvas } from "qrcode.react";
 import { supabase } from "../../lib/supabase";
 import type {
@@ -14,11 +14,11 @@ import { shuffleArray } from "./utils/helpers";
 import type { YouTubePlayerHandle } from "./types";
 import YouTubePlayer from "./components/YouTubePlayer";
 import { useYouTubeAPI } from "./hooks/useYouTubeAPI";
+import BillboardLayoutV7 from './preview/versions/v7/BillboardLayoutV7';
 import './billboard.css';
 
 export default function BillboardPage() {
   const { userId } = useParams<{ userId: string }>();
-  const navigate = useNavigate();
   const playedEventsCountRef = useRef(0); // [NEW] 재생된 이벤트 카운트
   const [billboardUser, setBillboardUser] = useState<BillboardUser | null>(null);
   const [settings, setSettings] = useState<BillboardUserSettings | null>(null);
@@ -36,6 +36,7 @@ export default function BillboardPage() {
   const shuffledPlaylistRef = useRef<number[]>([]); // Ref 동기화 (stale closure 방지)
   const playlistIndexRef = useRef(0);
   const [realtimeStatus, setRealtimeStatus] = useState<string>("연결중...");
+  const [showV7, setShowV7] = useState(false); // [NEW] V7 일시 노출 상태
   const [pendingReload, setPendingReload] = useState(false);
   const pendingReloadRef = useRef(false); // Ref 동기화 (stale closure 방지)
   const pendingReloadTimeRef = useRef<number>(0);
@@ -378,19 +379,22 @@ export default function BillboardPage() {
         log(`[카운트(타이머)] 재생된 이벤트 수: ${playedEventsCountRef.current}`);
 
         // 테스트 모드 확인
-        const isTestMode = new URLSearchParams(window.location.search).get('test') === 'true';
-        const threshold = isTestMode ? 2 : 5;
+        if (playedEventsCountRef.current % 3 === 0) {
+          log(`[전환] 3회 재생 완료 → V7 하이라이트 10초 노출`);
 
-        // 디버그 상태 업데이트
-        if (isTestMode) {
-          setRealtimeStatus(`TEST MODE: ${playedEventsCountRef.current}/${threshold} (Event #${previousIndex})`);
-        }
-
-        if (playedEventsCountRef.current >= threshold) {
-          log(`[전환] ${threshold}회 재생 완료 → 프리뷰 페이지로 이동 (테스트모드: ${isTestMode})`);
-          playedEventsCountRef.current = 0;
+          // 기존 타이머 정지
           clearAllTimers();
-          navigate(`/billboard/${userId}/preview${isTestMode ? '?test=true' : ''}`);
+          setShowV7(true);
+
+          // 10초 후 V7 종료 및 다음 슬라이드로 "진행"
+          setTimeout(() => {
+            setShowV7(false);
+            advanceToNextSlide('v7_end'); // V7 종료 후 다음 슬라이드 호출
+          }, 10000);
+
+          // v7Timer는 clearAllTimers에 의해 정리되지 않도록 transitionTimersRef에 넣지 않음
+          // (만약 넣는다면 clearAllTimers 호출 시 순서에 주의)
+          // 여기서는 그냥 별도로 관리하거나 watchdog이 커버하게 둠
           return;
         }
 
@@ -491,14 +495,15 @@ export default function BillboardPage() {
     log(`[카운트] 재생된 이벤트 수: ${playedEventsCountRef.current}`);
 
     // 테스트 모드 확인
-    const isTestMode = new URLSearchParams(window.location.search).get('test') === 'true';
-    const threshold = isTestMode ? 2 : 5;
-
-    if (playedEventsCountRef.current >= threshold) {
-      log(`[전환] ${threshold}회 재생 완료 → 프리뷰 페이지로 이동 (테스트모드: ${isTestMode})`);
-      playedEventsCountRef.current = 0;
+    if (playedEventsCountRef.current % 3 === 0) {
+      log(`[전환(강제)] 3회 재생 완료 → V7 하이라이트 10초 노출`);
       clearAllTimers();
-      navigate(`/billboard/${userId}/preview${isTestMode ? '?test=true' : ''}`);
+      setShowV7(true);
+
+      setTimeout(() => {
+        setShowV7(false);
+        advanceToNextSlide('v7_end');
+      }, 10000);
       return;
     }
 
@@ -986,12 +991,13 @@ export default function BillboardPage() {
           auto_slide_interval: 3000, // 3초 (빠른 테스트)
           video_play_duration: 10000,
           auto_slide_interval_video: 5000,
+          transition_duration: 500,
           // slide_transition_effect: 'fade', // Type Error fix
           // show_weather: false, // Type Error fix
           // show_clock: false, // Type Error fix
           // show_news: false, // Type Error fix
           // theme: 'dark', // Type Error fix
-          font_size: 'medium',
+          // font_size: 'medium',
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
           date_filter_start: null,
@@ -1747,6 +1753,21 @@ export default function BillboardPage() {
             </div>
           );
         })}
+
+        {/* [NEW] V7 하이라이트 오버레이 */}
+        {showV7 && (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            zIndex: 9999,
+            backgroundColor: '#000'
+          }}>
+            <BillboardLayoutV7 />
+          </div>
+        )}
       </div>
     </>
   );

@@ -25,7 +25,7 @@ interface NodeEditorModalProps {
     onEditSource?: () => void;
 }
 
-export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, onDelete, onClose, onEditSource }) => {
+export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, onDelete, onClose }) => {
     const [formData, setFormData] = useState({
         title: '',
         year: '',

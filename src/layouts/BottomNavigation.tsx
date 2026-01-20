@@ -8,7 +8,7 @@ import {
     prefetchGuidePage,
     prefetchShoppingPage
 } from '../router/prefetch';
-import { useEffect, ReactNode } from 'react';
+import { useEffect } from 'react';
 import { logUserInteraction } from '../lib/analytics';
 
 interface BottomNavigationProps {
@@ -104,7 +104,7 @@ export function BottomNavigation({ pageAction, onPageActionClick }: BottomNaviga
             {(() => {
                 const items = [...NAVIGATION_ITEMS];
                 // Insert FAB in the middle (index 3)
-                const buttons = items.map((item, index) => {
+                const buttons = items.map((item, _index) => {
                     let isActive = false;
 
                     if (item.path === '/') {

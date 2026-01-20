@@ -13,7 +13,11 @@ const BillboardLayoutV1: React.FC = () => {
     const allData = useMemo(() => {
         const todayStr = getLocalDateString();
         return events
-            .filter(e => (e.date || e.start_date || '') >= todayStr)
+            .filter(e => {
+                const isFuture = (e.date || e.start_date || '') >= todayStr;
+                const isExcludedCategory = e.category === 'club' || e.category === 'regular';
+                return isFuture && !isExcludedCategory;
+            })
             .sort((a, b) => (a.date || a.start_date || '').localeCompare(b.date || b.start_date || ''));
     }, [events]);
 
@@ -40,7 +44,7 @@ const BillboardLayoutV1: React.FC = () => {
         if (eventOnlyData.length === 0) return allData.slice(0, 24);
 
         const mainItem = eventOnlyData[highlightIndex];
-        const others = allData.filter(item => item.id !== mainItem?.id).slice(0, 20);
+        const others = allData.filter(item => item.id !== mainItem?.id).slice(0, 18);
 
         return [mainItem, ...others];
     }, [allData, eventOnlyData, highlightIndex]);

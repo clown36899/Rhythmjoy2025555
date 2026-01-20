@@ -26,7 +26,7 @@
 .wall-portrait-card {
     position: relative;
     background-size: cover;
-    background-position: center;
+    background-position: top center;
     background-repeat: no-repeat;
     overflow: hidden;
     border: none;
@@ -36,9 +36,12 @@
 
 /* Sizing Logic for Vertical Impact */
 .main {
-    grid-column: span 2;
+    grid-column: span 3;
     grid-row: span 2;
-    /* Big square/portrait for today highlights */
+    background-size: contain;
+    background-position: center;
+    /* Center vertically for contain */
+    background-color: #000;
 }
 
 .social,
