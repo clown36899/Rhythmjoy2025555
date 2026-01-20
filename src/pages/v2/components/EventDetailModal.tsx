@@ -189,6 +189,14 @@ export default function EventDetailModal({
     }
   }, [isOpen, event, incrementView]);
 
+  // Check if event has started (for hiding edit/delete buttons)
+  const isPastEvent = useMemo(() => {
+    if (!displayEvent) return false;
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const startDate = displayEvent.start_date || displayEvent.date;
+    return startDate ? startDate < today : false;
+  }, [displayEvent]);
+
   // Lock body scroll when modal is open
   useEffect(() => {
     if (isOpen) {
@@ -1070,6 +1078,16 @@ export default function EventDetailModal({
               </div>
             )}
 
+            {/* Check if event has started (for hiding edit/delete buttons) */}
+            {(() => {
+              const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+              const startDate = selectedEvent.start_date || selectedEvent.date;
+              const isPastEvent = startDate ? startDate < today : false;
+
+              // Store in a ref or state if needed elsewhere, but for now we'll use it inline
+              (window as any).__isPastEvent = isPastEvent;
+            })()}
+
             {/* 스크롤 가능한 전체 영역 */}
             <div
               className={`modal-scroll-container ${isSelectionMode ? 'selection-mode' : ''}`}
@@ -1816,7 +1834,7 @@ export default function EventDetailModal({
                 )}
 
                 {/* Delete Button (Only in Selection/Edit Mode) */}
-                {isSelectionMode && (
+                {isSelectionMode && !isPastEvent && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -1834,8 +1852,8 @@ export default function EventDetailModal({
                   </button>
                 )}
 
-                {/* Edit/Save Button - Only show if authorized (Admin or Owner) */}
-                {(isAdminMode || ((currentUserId || user?.id) && selectedEvent.user_id === (currentUserId || user?.id))) && (
+                {/* Edit/Save Button - Only show if authorized (Admin or Owner) AND event hasn't started */}
+                {(isAdminMode || ((currentUserId || user?.id) && selectedEvent.user_id === (currentUserId || user?.id))) && !isPastEvent && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();

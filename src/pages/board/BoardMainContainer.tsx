@@ -242,11 +242,20 @@ export default function BoardMainContainer() {
         const isLeftSwipe = deltaX > minSwipeDistance;
         const isRightSwipe = deltaX < -minSwipeDistance;
 
-        // Only allow swipe between free and anonymous boards
-        if (category === 'free' && isLeftSwipe) {
-            handleCategoryChange('anonymous');
-        } else if (category === 'anonymous' && isRightSwipe) {
-            handleCategoryChange('free');
+        // Define board order for swipe navigation
+        // market = 구인, trade = 양도/양수
+        const boardOrder = ['free', 'anonymous', 'market', 'history'];
+        const currentIndex = boardOrder.indexOf(category);
+
+        if (currentIndex === -1) return; // Not in swipeable boards
+
+        // Swipe left: go to next board
+        if (isLeftSwipe && currentIndex < boardOrder.length - 1) {
+            handleCategoryChange(boardOrder[currentIndex + 1]);
+        }
+        // Swipe right: go to previous board
+        else if (isRightSwipe && currentIndex > 0) {
+            handleCategoryChange(boardOrder[currentIndex - 1]);
         }
     };
 
