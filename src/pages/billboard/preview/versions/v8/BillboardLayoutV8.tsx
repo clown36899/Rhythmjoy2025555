@@ -114,6 +114,14 @@ export default function BillboardLayoutV8() {
 
             console.log('Calculated Optimal Columns (before constraint):', optimalColumns);
 
+            // CRITICAL: Also constrain by WIDTH to prevent horizontal overflow
+            const estimatedColumnWidth = avgImageHeight * 0.6; // Approximate width per column
+            const maxColumnsByWidth = Math.floor(containerWidth / (estimatedColumnWidth + columnGap));
+            console.log('Max Columns by Width:', maxColumnsByWidth, '(estimated column width:', estimatedColumnWidth, ')');
+
+            // Use the smaller of the two constraints
+            optimalColumns = Math.min(optimalColumns, maxColumnsByWidth);
+
             // Constrain between 4 and 12 columns for visual balance
             optimalColumns = Math.max(4, Math.min(12, optimalColumns));
 
@@ -125,13 +133,25 @@ export default function BillboardLayoutV8() {
         };
 
         // Delay calculation to ensure images are rendered first
-        const timer = setTimeout(calculateOptimalColumns, 200);
+        const timer = setTimeout(calculateOptimalColumns, 500); // Increased delay
+
+        // Also recalculate when images load
+        const images = albumSectionRef.current?.querySelectorAll('img');
+        const handleImageLoad = () => {
+            setTimeout(calculateOptimalColumns, 100);
+        };
+        images?.forEach(img => {
+            if (!img.complete) {
+                img.addEventListener('load', handleImageLoad, { once: true });
+            }
+        });
 
         // Recalculate on window resize
         window.addEventListener('resize', calculateOptimalColumns);
         return () => {
             clearTimeout(timer);
             window.removeEventListener('resize', calculateOptimalColumns);
+            images?.forEach(img => img.removeEventListener('load', handleImageLoad));
         };
     }, [photos.length]);
 
