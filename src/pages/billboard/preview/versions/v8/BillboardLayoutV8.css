@@ -52,6 +52,10 @@
     /* column-count is set dynamically via inline style */
     column-gap: 2px;
     height: 100%;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+    overflow-y: hidden;
 }
 
 .v8-masonry-item {
@@ -60,6 +64,8 @@
     background: #111;
     border-radius: 2px;
     overflow: hidden;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .v8-masonry-item img {
