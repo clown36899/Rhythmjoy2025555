@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useEventsQuery } from '../../../../../hooks/queries/useEventsQuery';
 import { getLocalDateString } from '../../../../../utils/dateUtils';
@@ -6,6 +6,8 @@ import './BillboardLayoutV8.css';
 
 export default function BillboardLayoutV8() {
     const [currentTime, setCurrentTime] = useState(new Date());
+    const [columnCount, setColumnCount] = useState(8);
+    const albumSectionRef = useRef<HTMLDivElement>(null);
     const { data: events = [] } = useEventsQuery();
 
     useEffect(() => {
@@ -61,6 +63,77 @@ export default function BillboardLayoutV8() {
             photos: photoData
         };
     }, [events]);
+
+    // Dynamic column calculation based on available space and image count
+    useEffect(() => {
+        const calculateOptimalColumns = () => {
+            if (!albumSectionRef.current || photos.length === 0) return;
+
+            // IMPORTANT: Billboard is rotated 90deg, so we use WIDTH not HEIGHT!
+            const containerWidth = albumSectionRef.current.clientWidth;
+            const containerHeight = albumSectionRef.current.clientHeight;
+            const imageCount = photos.length;
+
+            console.log('=== Column Calculation Debug ===');
+            console.log('Container Width (used for rotated layout):', containerWidth);
+            console.log('Container Height:', containerHeight);
+            console.log('Image Count:', imageCount);
+
+            // Measure actual image HEIGHTS from rendered images
+            const renderedImages = albumSectionRef.current.querySelectorAll('.v8-masonry-item');
+            let avgImageHeight = 150; // Default fallback
+            let usingActualHeight = false;
+
+            if (renderedImages.length > 0) {
+                const heights = Array.from(renderedImages)
+                    .slice(0, 20)
+                    .map((item: any) => item.clientHeight)
+                    .filter(h => h > 0);
+
+                console.log('Sample Image Heights:', heights.slice(0, 5));
+
+                if (heights.length > 0) {
+                    avgImageHeight = heights.reduce((a, b) => a + b, 0) / heights.length;
+                    usingActualHeight = true;
+                    console.log('✅ Using ACTUAL measured height:', avgImageHeight);
+                } else {
+                    console.log('⚠️ Images not yet rendered, using fallback:', avgImageHeight);
+                }
+            }
+
+            const columnGap = 2;
+
+            // Calculate how many images can fit in one column (based on HEIGHT)
+            const imagesPerColumn = Math.floor(containerHeight / (avgImageHeight + columnGap));
+
+            console.log('Column Gap:', columnGap);
+            console.log('Calculated Images Per Column:', imagesPerColumn);
+
+            // Calculate optimal columns to display all images
+            let optimalColumns = Math.ceil(imageCount / imagesPerColumn);
+
+            console.log('Calculated Optimal Columns (before constraint):', optimalColumns);
+
+            // Constrain between 4 and 12 columns for visual balance
+            optimalColumns = Math.max(4, Math.min(12, optimalColumns));
+
+            console.log('Final Columns (after constraint):', optimalColumns);
+            console.log('Using Actual Heights?', usingActualHeight);
+            console.log('================================');
+
+            setColumnCount(optimalColumns);
+        };
+
+        // Delay calculation to ensure images are rendered first
+        const timer = setTimeout(calculateOptimalColumns, 200);
+
+        // Recalculate on window resize
+        window.addEventListener('resize', calculateOptimalColumns);
+        return () => {
+            clearTimeout(timer);
+            window.removeEventListener('resize', calculateOptimalColumns);
+        };
+    }, [photos.length]);
 
     if (!mainItem) {
         return (
@@ -120,8 +193,8 @@ export default function BillboardLayoutV8() {
                 </div>
 
                 {/* Right: Column-based Masonry with CSS Columns */}
-                <div className="v8-album-section">
-                    <div className="v8-masonry-columns">
+                <div className="v8-album-section" ref={albumSectionRef}>
+                    <div className="v8-masonry-columns" style={{ columnCount }}>
                         {photos.map((photo: any, index: number) => (
                             <div key={index} className="v8-masonry-item">
                                 <img
