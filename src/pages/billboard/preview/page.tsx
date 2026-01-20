@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import BillboardLayoutV7 from './versions/v7/BillboardLayoutV7';
 import BillboardLayoutV5 from './versions/v5/BillboardLayoutV5';
 import BillboardLayoutV1 from './versions/v1/BillboardLayoutV1';
+import BillboardLayoutV2 from './versions/v2/BillboardLayoutV2';
 import './preview.css';
 
 interface Props {
@@ -71,8 +72,9 @@ export default function BillboardPreviewPage({ forcedVersion }: Props) {
         <div className="billboard-preview-root-fully-responsive">
             <div className="billboard-preview-wrapper" style={wrapperStyle}>
                 {version === '5' ? <BillboardLayoutV5 /> :
-                    version === '1' ? <BillboardLayoutV1 /> :
-                        <BillboardLayoutV7 />}
+                    version === '2' ? <BillboardLayoutV2 /> :
+                        version === '1' ? <BillboardLayoutV1 /> :
+                            <BillboardLayoutV7 />}
             </div>
         </div>
     );
