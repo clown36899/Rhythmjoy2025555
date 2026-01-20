@@ -39,6 +39,7 @@
     "react-ga4": "^2.1.0",
     "react-i18next": "^15.6.0",
     "react-image-crop": "^11.0.10",
+    "react-photo-album": "^3.4.0",
     "react-router-dom": "^7.6.3",
     "react-youtube": "^10.1.0",
     "reactflow": "^11.11.4"

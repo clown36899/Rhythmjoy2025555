@@ -1,0 +1,247 @@
+.v8-wall-root {
+    width: 100%;
+    height: 100%;
+    background: #000;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Split Layout Container */
+.v8-split-layout {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    inset: 0;
+}
+
+/* Left Side: Main Banner */
+.v8-main-section {
+    width: 38%;
+    /* Adjust width as preferred, approx 38% for Golden Ratio or suitable balance */
+    height: 100%;
+    position: relative;
+    border-right: 1px solid #111;
+    z-index: 5;
+}
+
+.v8-main-card {
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+}
+
+/* Right Side: Album Wall */
+.v8-album-section {
+    width: 62%;
+    height: 100%;
+    background: #000;
+    overflow: hidden;
+    padding-top: 25px;
+    padding-bottom: 80px;
+    padding-left: 4px;
+    padding-right: 4px;
+}
+
+/* CSS Columns Masonry Layout */
+.v8-masonry-columns {
+    column-count: 8;
+    column-gap: 2px;
+    height: 100%;
+}
+
+.v8-masonry-item {
+    break-inside: avoid;
+    margin-bottom: 2px;
+    background: #111;
+    border-radius: 2px;
+    overflow: hidden;
+}
+
+.v8-masonry-item img {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: cover;
+}
+
+/* Overlay Styles (Reused) */
+.v8-card-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.4) 40%, transparent 100%);
+    padding: 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+}
+
+.v8-card-tag {
+    font-size: 16px;
+    font-weight: 900;
+    padding: 6px 14px;
+    border-radius: 4px;
+    align-self: flex-start;
+    margin-bottom: 16px;
+    letter-spacing: 0.5px;
+}
+
+.social-t {
+    background: #ffd700;
+    color: #000;
+}
+
+.event-t {
+    background: #e74c3c;
+    color: #fff;
+}
+
+.class-t {
+    background: #3498db;
+    color: #fff;
+}
+
+.v8-card-title {
+    font-size: 48px;
+    font-weight: 900;
+    color: #fff;
+    line-height: 1.1;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+}
+
+.v8-card-time {
+    font-size: 24px;
+    font-weight: 800;
+    color: #ffd700;
+    margin-bottom: 6px;
+}
+
+.v8-card-date {
+    font-size: 18px;
+    font-weight: 700;
+    color: #888;
+}
+
+/* HUD Header */
+.v8-wall-hud-header {
+    position: absolute;
+    top: 25px;
+    left: 25px;
+    right: 25px;
+    z-index: 100;
+    display: flex;
+    justify-content: space-between;
+    pointer-events: none;
+}
+
+.v8-hud-time-block,
+.v8-hud-brand-block {
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(10px);
+    padding: 16px 30px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.v8-h-time {
+    font-size: 52px;
+    font-weight: 900;
+    line-height: 0.9;
+    letter-spacing: -1px;
+}
+
+.v8-h-date {
+    font-size: 15px;
+    color: #ffd700;
+    font-weight: 700;
+    margin-top: 6px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.v8-h-logo {
+    font-size: 26px;
+    font-weight: 900;
+    letter-spacing: 4px;
+}
+
+.v8-h-tag {
+    font-size: 11px;
+    font-weight: 600;
+    color: #888;
+    letter-spacing: 6px;
+    margin-top: 4px;
+}
+
+/* Footer HUD */
+.v8-wall-hud-footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+.v8-h-ticker-box {
+    flex: 1;
+    background: #ffd700;
+    padding: 16px 0;
+    overflow: hidden;
+    position: relative;
+    z-index: 10;
+}
+
+.v8-h-ticker-text {
+    color: #000;
+    font-size: 20px;
+    font-weight: 900;
+    white-space: nowrap;
+    animation: tickerV8 30s linear infinite;
+    letter-spacing: 1px;
+}
+
+@keyframes tickerV8 {
+    0% {
+        transform: translate3d(100%, 0, 0);
+    }
+
+    100% {
+        transform: translate3d(-100%, 0, 0);
+    }
+}
+
+.v8-h-qr-box {
+    background: #fff;
+    padding: 20px 40px;
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    border-top-left-radius: 40px;
+    box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.3);
+    position: relative;
+    z-index: 20;
+}
+
+.v8-q-t1 {
+    font-size: 13px;
+    color: #888;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.v8-q-t2 {
+    font-size: 32px;
+    color: #000;
+    font-weight: 900;
+    line-height: 0.9;
+    letter-spacing: -1px;
+}

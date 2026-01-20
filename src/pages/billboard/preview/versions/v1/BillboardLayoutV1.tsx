@@ -67,8 +67,8 @@ const BillboardLayoutV1: React.FC = () => {
                     <div className="h-date">{currentTime.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' })}</div>
                 </div>
                 <div className="hud-brand-block">
-                    <div className="h-logo">RHYTHMJOY</div>
-                    <div className="h-tag">KOREA DANCE BILLBOARD</div>
+                    <div className="h-logo">DANCE BILLBOARD</div>
+                    <div className="h-tag">KOREA </div>
                 </div>
             </div>
 

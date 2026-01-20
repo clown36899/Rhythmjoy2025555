@@ -6,6 +6,7 @@ const versions = [
     { id: '2', name: 'Version 2', description: 'Event Grid Focus' },
     { id: '5', name: 'Version 5', description: 'High Contrast Dark / Gallery' },
     { id: '7', name: 'Version 7', description: 'Portrait Billboard (Fixed 1080x1920)', status: 'Active' },
+    { id: '8', name: 'Version 8', description: 'Image Wall / Poster Focus', status: 'NEW' },
 ];
 
 export default function BillboardCatalogPage() {

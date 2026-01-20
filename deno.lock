@@ -65,6 +65,7 @@
         "npm:react-ga4@^2.1.0",
         "npm:react-i18next@^15.6.0",
         "npm:react-image-crop@^11.0.10",
+        "npm:react-photo-album@^3.4.0",
         "npm:react-router-dom@^7.6.3",
         "npm:react-youtube@^10.1.0",
         "npm:react@^19.1.0",

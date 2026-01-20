@@ -90,7 +90,7 @@
 }
 
 .card-title {
-    font-size: 20px;
+    font-size: clamp(0px, 0.9rem, 2rem);
     font-weight: 900;
     color: #fff;
     line-height: 1.2;
