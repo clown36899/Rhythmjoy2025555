@@ -417,8 +417,9 @@ export default memo(function FullEventCalendar({
       return (
         <div
           key={dateString}
+          id={todayFlag ? 'calendar-today-cell' : undefined}
           onClick={(e) => handleFullscreenDateClick(day, e)}
-          className="calendar-cell-fullscreen"
+          className={`calendar-cell-fullscreen ${todayFlag ? 'is-today' : ''}`}
           style={{
             minHeight: `${getCellHeight(monthDate)}px`,
             height: '100%',

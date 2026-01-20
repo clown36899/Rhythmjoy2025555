@@ -32,22 +32,44 @@ const BillboardLayoutV7: React.FC = () => {
     }, []);
 
     const calendarHeight = useMemo(() => {
-        return (TARGET_HEIGHT * 0.9);
+        // Force the calendar to be much taller than the screen to ensure it's scrollable
+        // and "Today" can be at the top.
+        return (TARGET_HEIGHT * 2.5);
     }, []);
 
+    // Force scroll to "Today" on mount and month change
     useEffect(() => {
-        const timer = setTimeout(() => {
-            const todayEl = document.querySelector('.calendar-day-item.is-today');
+        let retryCount = 0;
+        const maxRetries = 20; // Increase retries
+
+        const performScroll = () => {
+            const todayEl = document.querySelector('.v7-col-left .calendar-month-slide[data-active-month="true"] .is-today') as HTMLElement;
+
             if (todayEl) {
-                todayEl.scrollIntoView({ block: 'start', behavior: 'instant' });
-                const scrollContainer = document.querySelector('.v7-col-left .calendar-month-slide');
+                const scrollContainer = todayEl.closest('.calendar-month-slide') as HTMLElement;
                 if (scrollContainer) {
-                    scrollContainer.scrollTop -= 0;
+                    // Accumulate offsetTop relative to the scroll container
+                    let topPos = 0;
+                    let current = todayEl;
+                    while (current && current !== scrollContainer) {
+                        topPos += current.offsetTop;
+                        current = current.offsetParent as HTMLElement;
+                        // For safety, stop if we hit something unexpected
+                        if (current && (current.tagName === 'BODY' || current.tagName === 'HTML')) break;
+                    }
+
+                    scrollContainer.scrollTop = topPos;
+                    console.log("V7: Found Today and scrolled to exact topPos:", topPos);
                 }
+            } else if (retryCount < maxRetries) {
+                retryCount++;
+                setTimeout(performScroll, 200);
             }
-        }, 1000);
+        };
+
+        const timer = setTimeout(performScroll, 800);
         return () => clearTimeout(timer);
-    }, [scale, currentMonth]);
+    }, [scale, currentMonth, events]); // Add events as dependency
 
     const upcomingEvents = useMemo(() => {
         const today = getLocalDateString();
@@ -157,11 +179,12 @@ const BillboardLayoutV7: React.FC = () => {
                 <div className="v7-ticker-box">
                     <div className="v7-ticker-text">
                         WELCOME TO RHYTHMJOY DANCE BILLBOARD • CHECK OUT OUR UPCOMING SOCIALS AND EVENTS • RAW DATA DRIVEN DISPLAY •
+                        WELCOME TO RHYTHMJOY DANCE BILLBOARD • CHECK OUT OUR UPCOMING SOCIALS AND EVENTS • RAW DATA DRIVEN DISPLAY •
                     </div>
                 </div>
                 <div className="v7-qr-box">
                     <div className="v7-qr-info">
-                        <div className="v7-q-t1">SCAN FOR MORE</div>
+                        <div className="v7-q-t1">일정 확인, 등록, 홍보</div>
                         <div className="v7-q-t2">JOIN SOCIAL</div>
                     </div>
                     <QRCodeSVG value="https://swingenjoy.com" size={100} level="H" />
