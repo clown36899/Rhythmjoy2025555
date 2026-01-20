@@ -137,18 +137,42 @@ export function useBoardDetail({ postId, category, onPostDeleted, isAdmin, userI
     };
 
     const incrementViews = async (postId: string, currentViews: number) => {
-        const viewedPosts = JSON.parse(localStorage.getItem('viewedPosts') || '[]');
+        // Get user info
+        const { data: { user } } = await supabase.auth.getUser();
 
-        if (!viewedPosts.includes(postId)) {
-            const { error } = await supabase.rpc('increment_board_post_views', {
-                p_post_id: postId
-            });
-
-            if (!error) {
-                setPost(prev => prev ? { ...prev, views: currentViews + 1 } : null);
-                viewedPosts.push(postId);
-                localStorage.setItem('viewedPosts', JSON.stringify(viewedPosts));
+        // Get or create fingerprint for anonymous users
+        let fingerprint = null;
+        if (!user) {
+            fingerprint = localStorage.getItem('analytics_fingerprint');
+            if (!fingerprint) {
+                // Auto-generate fingerprint if missing
+                fingerprint = 'fp_' + Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
+                localStorage.setItem('analytics_fingerprint', fingerprint);
+                console.log('[ViewCounter] 🆕 Generated new fingerprint:', fingerprint);
             }
+        }
+
+        console.log(`[ViewCounter] 🔍 Post ID: ${postId}`);
+        console.log(`[ViewCounter] 👤 User:`, user?.id ? `Logged in (${user.id.substring(0, 8)}...)` : `Anonymous (${fingerprint?.substring(0, 12)}...)`);
+
+        const startTime = performance.now();
+
+        const { data: wasIncremented, error } = await supabase.rpc('increment_board_post_views', {
+            p_post_id: parseInt(postId),
+            p_user_id: user?.id || null,
+            p_fingerprint: fingerprint || null
+        });
+
+        const elapsed = performance.now() - startTime;
+        console.log(`[ViewCounter] ⏱️ RPC: ${elapsed.toFixed(2)}ms`);
+
+        if (error) {
+            console.error(`[ViewCounter] ❌ ERROR:`, error);
+        } else if (wasIncremented) {
+            console.log(`[ViewCounter] ✅ New view counted!`);
+            setPost(prev => prev ? { ...prev, views: currentViews + 1 } : null);
+        } else {
+            console.log(`[ViewCounter] ⏭️ Already viewed`);
         }
     };
 

@@ -151,35 +151,15 @@ export default function BoardDetailPage() {
 
             setPost(transformedPost as BoardPost);
 
-            // Increment views
-            incrementViews(postId, data.views);
+            // NOTE: View counting is handled by useBoardDetail hook
 
         } catch (error) {
             console.error('게시글 로딩 실패:', error);
         }
     };
 
-    const incrementViews = async (postId: string, currentViews: number) => {
-        // Check if user has already viewed this post
-        const viewedPosts = JSON.parse(localStorage.getItem('viewedPosts') || '[]');
-
-        if (!viewedPosts.includes(postId)) {
-            // User hasn't viewed this post yet, increment view count
-            // User hasn't viewed this post yet, increment view count
-            const { error } = await supabase.rpc('increment_board_post_views', {
-                p_post_id: postId
-            });
-
-            if (!error) {
-                // Update local state to reflect the change immediately
-                setPost(prev => prev ? { ...prev, views: currentViews + 1 } : null);
-
-                // Mark this post as viewed
-                viewedPosts.push(postId);
-                localStorage.setItem('viewedPosts', JSON.stringify(viewedPosts));
-            }
-        }
-    };
+    // NOTE: incrementViews is now handled by useBoardDetail hook
+    // Removed duplicate logic to prevent double-counting
 
     const handleDelete = async () => {
         if (!post) return;
