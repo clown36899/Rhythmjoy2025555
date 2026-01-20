@@ -6,7 +6,7 @@ import './BillboardLayoutV8.css';
 
 export default function BillboardLayoutV8() {
     const [currentTime, setCurrentTime] = useState(new Date());
-    const [columnCount, setColumnCount] = useState(8);
+    const [columnCount, setColumnCount] = useState(6);
     const albumSectionRef = useRef<HTMLDivElement>(null);
     const { data: events = [] } = useEventsQuery();
 
@@ -35,9 +35,21 @@ export default function BillboardLayoutV8() {
     const { mainItem, photos } = useMemo(() => {
         if (events.length === 0) return { mainItem: null, photos: [] };
 
-        const main = events[0];
+        // Filter for future events only (today or later)
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Reset to start of day
+
+        const futureEvents = events.filter((event: any) => {
+            if (!event.date) return false; // Skip events without dates
+            const eventDate = new Date(event.date);
+            return eventDate >= today;
+        });
+
+        if (futureEvents.length === 0) return { mainItem: null, photos: [] };
+
+        const main = futureEvents[0];
         // Filter out events without images and limit to 100 total
-        const others = events.slice(1).filter(hasValidImage).slice(0, 99);
+        const others = futureEvents.slice(1).filter(hasValidImage).slice(0, 99);
 
         // Convert to photo album format
         const photoData = others.map((item: any) => {
@@ -64,96 +76,98 @@ export default function BillboardLayoutV8() {
         };
     }, [events]);
 
-    // Dynamic column calculation based on available space and image count
+    // Robust dynamic column calculation using aspect ratio
     useEffect(() => {
         const calculateOptimalColumns = () => {
-            if (!albumSectionRef.current || photos.length === 0) return;
+            console.log('=== COLUMN CALCULATION START ===');
+            console.log('Photos array length:', photos.length);
 
-            // IMPORTANT: Billboard is rotated 90deg, so we use WIDTH not HEIGHT!
-            const containerWidth = albumSectionRef.current.clientWidth;
+            if (!albumSectionRef.current || photos.length === 0) {
+                console.log('⚠️ No container or no photos, setting default 6 columns');
+                setColumnCount(6);
+                return;
+            }
+
             const containerHeight = albumSectionRef.current.clientHeight;
+            const containerWidth = albumSectionRef.current.clientWidth;
             const imageCount = photos.length;
 
-            console.log('=== Column Calculation Debug ===');
-            console.log('Container Width (used for rotated layout):', containerWidth);
-            console.log('Container Height:', containerHeight);
-            console.log('Image Count:', imageCount);
+            console.log('Container dimensions:', { width: containerWidth, height: containerHeight });
+            console.log('Image count from photos:', imageCount);
 
-            // Measure actual image HEIGHTS from rendered images
-            const renderedImages = albumSectionRef.current.querySelectorAll('.v8-masonry-item');
-            let avgImageHeight = 150; // Default fallback
-            let usingActualHeight = false;
+            // Use aspect ratio from photo metadata (2:3 portrait)
+            // Instead of measuring rendered images which change with column count
+            const aspectRatio = photos[0]?.width && photos[0]?.height
+                ? photos[0].width / photos[0].height
+                : 2 / 3; // Default 2:3 portrait
 
-            if (renderedImages.length > 0) {
-                const heights = Array.from(renderedImages)
-                    .slice(0, 20)
-                    .map((item: any) => item.clientHeight)
-                    .filter(h => h > 0);
-
-                console.log('Sample Image Heights:', heights.slice(0, 5));
-
-                if (heights.length > 0) {
-                    avgImageHeight = heights.reduce((a, b) => a + b, 0) / heights.length;
-                    usingActualHeight = true;
-                    console.log('✅ Using ACTUAL measured height:', avgImageHeight);
-                } else {
-                    console.log('⚠️ Images not yet rendered, using fallback:', avgImageHeight);
-                }
-            }
+            console.log('Using aspect ratio:', aspectRatio);
 
             const columnGap = 2;
 
-            // Calculate how many images can fit in one column (based on HEIGHT)
-            const imagesPerColumn = Math.floor(containerHeight / (avgImageHeight + columnGap));
+            // Calculate how many columns we need based on container dimensions
+            // Start with: how many images fit vertically?
+            // Assume each image takes up a certain height based on container width
 
-            console.log('Column Gap:', columnGap);
-            console.log('Calculated Images Per Column:', imagesPerColumn);
+            // NEW APPROACH: Area-based heuristic
+            // We want to find the column count that makes images as large as possible
+            // while filling the container area.
 
-            // Calculate optimal columns to display all images
-            let optimalColumns = Math.ceil(imageCount / imagesPerColumn);
+            // Expected average aspect ratio (height / width)
+            // We'll be slightly more flexible than strict 2:3 (1.5)
+            const targetRatio = 1.35;
 
-            console.log('Calculated Optimal Columns (before constraint):', optimalColumns);
+            // ColCount = sqrt(NumImages * Ratio * ContainerWidth / ContainerHeight)
+            let idealColumns = Math.round(Math.sqrt(imageCount * targetRatio * containerWidth / containerHeight));
 
-            // CRITICAL: Also constrain by WIDTH to prevent horizontal overflow
-            const estimatedColumnWidth = avgImageHeight * 0.6; // Approximate width per column
-            const maxColumnsByWidth = Math.floor(containerWidth / (estimatedColumnWidth + columnGap));
-            console.log('Max Columns by Width:', maxColumnsByWidth, '(estimated column width:', estimatedColumnWidth, ')');
+            console.log('Area-based ideal columns:', idealColumns);
 
-            // Use the smaller of the two constraints
-            optimalColumns = Math.min(optimalColumns, maxColumnsByWidth);
+            // Clamp and choose
+            let finalColumns = Math.max(2, Math.min(12, idealColumns));
 
-            // Constrain between 4 and 12 columns for visual balance
-            optimalColumns = Math.max(4, Math.min(12, optimalColumns));
-
-            console.log('Final Columns (after constraint):', optimalColumns);
-            console.log('Using Actual Heights?', usingActualHeight);
-            console.log('================================');
-
-            setColumnCount(optimalColumns);
-        };
-
-        // Delay calculation to ensure images are rendered first
-        const timer = setTimeout(calculateOptimalColumns, 500); // Increased delay
-
-        // Also recalculate when images load
-        const images = albumSectionRef.current?.querySelectorAll('img');
-        const handleImageLoad = () => {
-            setTimeout(calculateOptimalColumns, 100);
-        };
-        images?.forEach(img => {
-            if (!img.complete) {
-                img.addEventListener('load', handleImageLoad, { once: true });
+            // Final check: if we have very few images, ensure we don't have too many columns
+            if (imageCount < finalColumns) {
+                finalColumns = Math.max(2, imageCount);
             }
-        });
 
-        // Recalculate on window resize
-        window.addEventListener('resize', calculateOptimalColumns);
-        return () => {
-            clearTimeout(timer);
-            window.removeEventListener('resize', calculateOptimalColumns);
-            images?.forEach(img => img.removeEventListener('load', handleImageLoad));
+            console.log('Final calculated columns:', finalColumns);
+            console.log('=== COLUMN CALCULATION END ===\n');
+
+            setColumnCount(finalColumns);
         };
-    }, [photos.length]);
+
+        // Wait for images to load using Promise.all
+        const waitForImages = async () => {
+            const images = albumSectionRef.current?.querySelectorAll('.v8-masonry-item img');
+            console.log('Waiting for images to load, count:', images?.length || 0);
+
+            if (!images || images.length === 0) {
+                calculateOptimalColumns();
+                return;
+            }
+
+            const imagePromises = Array.from(images).map((img: any) => {
+                if (img.complete) {
+                    return Promise.resolve();
+                }
+                return new Promise((resolve) => {
+                    img.addEventListener('load', resolve, { once: true });
+                    img.addEventListener('error', resolve, { once: true });
+                });
+            });
+
+            await Promise.all(imagePromises);
+            console.log('✅ All images loaded, calculating columns...');
+            calculateOptimalColumns();
+        };
+
+        // Start loading check
+        waitForImages();
+
+        // Also recalculate on resize
+        window.addEventListener('resize', calculateOptimalColumns);
+        return () => window.removeEventListener('resize', calculateOptimalColumns);
+    }, [photos.length, photos]);
 
     if (!mainItem) {
         return (
