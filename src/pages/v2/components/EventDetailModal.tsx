@@ -1125,6 +1125,7 @@ export default function EventDetailModal({
                               alt={selectedEvent.title}
                               className="detail-image-content"
                               loading="eager"
+                              draggable={false}
                               style={{
                                 ...imageStyle,
                                 zIndex: 1,
@@ -1141,6 +1142,7 @@ export default function EventDetailModal({
                               className="detail-image-content"
                               loading="eager"
                               decoding="async"
+                              draggable={false}
                               style={{
                                 ...imageStyle,
                                 zIndex: 2,
