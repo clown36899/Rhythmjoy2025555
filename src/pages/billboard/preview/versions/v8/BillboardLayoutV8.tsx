@@ -4,7 +4,9 @@ import { useEventsQuery } from '../../../../../hooks/queries/useEventsQuery';
 import './BillboardLayoutV8.css';
 
 export default function BillboardLayoutV8() {
-    const [heroIndex, setHeroIndex] = useState(0);
+    const [heroIndex1, setHeroIndex1] = useState(0);
+    const [heroIndex2, setHeroIndex2] = useState(1);
+    const [heroIndex3, setHeroIndex3] = useState(2);
     const [columnCount, setColumnCount] = useState(6);
     const albumSectionRef = useRef<HTMLDivElement>(null);
     const { data: events = [] } = useEventsQuery();
@@ -24,30 +26,52 @@ export default function BillboardLayoutV8() {
         });
     }, [events]);
 
-    // Random rotation timer
+    // Random rotation timer for triple heroes
     useEffect(() => {
-        if (futureEvents.length <= 1) return;
+        if (futureEvents.length <= 3) {
+            if (futureEvents.length >= 1) setHeroIndex1(0);
+            if (futureEvents.length >= 2) setHeroIndex2(1);
+            if (futureEvents.length >= 3) setHeroIndex3(2);
+            return;
+        }
 
         const interval = setInterval(() => {
-            setHeroIndex(prev => {
-                let next = prev;
-                // Pick a new random index that's different from current
-                while (next === prev && futureEvents.length > 1) {
-                    next = Math.floor(Math.random() * futureEvents.length);
-                }
-                return next;
-            });
-        }, 8000); // Rotate every 8 seconds
+            // Generate three different random indices
+            const indices: number[] = [];
+            while (indices.length < 3) {
+                const r = Math.floor(Math.random() * futureEvents.length);
+                if (!indices.includes(r)) indices.push(r);
+            }
+
+            setHeroIndex1(indices[0]);
+            setHeroIndex2(indices[1]);
+            setHeroIndex3(indices[2]);
+        }, 8000);
 
         return () => clearInterval(interval);
     }, [futureEvents.length]);
 
-    // Safety check: ensure heroIndex stays within bounds if data changes
+    // Safety check: ensure heroIndices stay within bounds if data changes
     useEffect(() => {
-        if (heroIndex >= futureEvents.length && futureEvents.length > 0) {
-            setHeroIndex(0);
+        if (futureEvents.length === 0) return;
+
+        const count = futureEvents.length;
+        if (heroIndex1 >= count) setHeroIndex1(0);
+        if (heroIndex2 >= count) setHeroIndex2(Math.min(1, count - 1));
+        if (heroIndex3 >= count) setHeroIndex3(Math.min(2, count - 1));
+
+        // Ensure they are different if possible
+        if (count >= 2 && heroIndex1 === heroIndex2) {
+            setHeroIndex2((heroIndex1 + 1) % count);
         }
-    }, [futureEvents.length, heroIndex]);
+        if (count >= 3 && (heroIndex3 === heroIndex1 || heroIndex3 === heroIndex2)) {
+            let next3 = (heroIndex3 + 1) % count;
+            while (next3 === heroIndex1 || next3 === heroIndex2) {
+                next3 = (next3 + 1) % count;
+            }
+            setHeroIndex3(next3);
+        }
+    }, [futureEvents.length, heroIndex1, heroIndex2, heroIndex3]);
 
     // Helper to get image URL
     const getImageUrl = (item: any) => {
@@ -63,15 +87,21 @@ export default function BillboardLayoutV8() {
     const hasValidImage = (item: any) => {
         return !!(item.image_full || item.image_medium || item.image || item.image_thumbnail);
     };
+    // Prepare main items and photos for album
+    const { hero1, hero2, hero3, photos } = useMemo(() => {
+        if (futureEvents.length === 0) return { hero1: null, hero2: null, hero3: null, photos: [] };
 
-    // Prepare main item and photos for album
-    const { mainItem, photos } = useMemo(() => {
-        if (futureEvents.length === 0) return { mainItem: null, photos: [] };
+        const h1 = futureEvents[Math.min(heroIndex1, futureEvents.length - 1)];
+        const h2 = futureEvents[Math.min(heroIndex2, futureEvents.length - 1)];
+        const h3 = futureEvents[Math.min(heroIndex3, futureEvents.length - 1)];
 
-        const main = futureEvents[Math.min(heroIndex, futureEvents.length - 1)];
-
-        // Photos = all OTHER events, excluding the one currently in hero
-        const others = futureEvents.filter((_, idx) => idx !== heroIndex && hasValidImage(futureEvents[idx])).slice(0, 99);
+        // Photos = all OTHER events, excluding the three currently in hero
+        const others = futureEvents.filter((_, idx) =>
+            idx !== heroIndex1 &&
+            idx !== heroIndex2 &&
+            idx !== heroIndex3 &&
+            hasValidImage(futureEvents[idx])
+        ).slice(0, 99);
 
         // Convert to photo album format
         const photoData = others.map((item: any) => {
@@ -85,18 +115,25 @@ export default function BillboardLayoutV8() {
             };
         });
 
-        return {
-            mainItem: {
-                id: main.id,
-                imageUrl: getImageUrl(main),
-                title: main.title || '',
-                date: main.date || '',
-                time: main.time || '',
+        const formatHero = (item: any) => {
+            if (!item) return null;
+            return {
+                id: item.id,
+                imageUrl: getImageUrl(item),
+                title: item.title || '',
+                date: item.date || '',
+                time: item.time || '',
                 type: 'event'
-            },
+            };
+        };
+
+        return {
+            hero1: formatHero(h1),
+            hero2: formatHero(h2),
+            hero3: formatHero(h3),
             photos: photoData
         };
-    }, [futureEvents, heroIndex]);
+    }, [futureEvents, heroIndex1, heroIndex2, heroIndex3]);
 
     // Robust dynamic column calculation using aspect ratio
     useEffect(() => {
@@ -146,7 +183,7 @@ export default function BillboardLayoutV8() {
         return () => window.removeEventListener('resize', calculateOptimalColumns);
     }, [photos.length, photos]);
 
-    if (!mainItem) {
+    if (!hero1) {
         return (
             <div className="v8-wall-root">
                 <div style={{
@@ -163,16 +200,29 @@ export default function BillboardLayoutV8() {
         );
     }
 
-
+    const renderHeroCard = (item: any) => {
+        if (!item) return null;
+        return (
+            <div
+                className="v8-main-card"
+                style={{ backgroundImage: `url(${item.imageUrl})` }}
+            >
+                <div className="v8-card-overlay">
+                    <div className={`v8-card-tag ${item.type}-t`}>
+                        {item.type.toUpperCase()}
+                    </div>
+                    <div className="v8-card-title">{item.title}</div>
+                    {item.time && <div className="v8-card-time">{item.time}</div>}
+                    {item.date && <div className="v8-card-date">{item.date}</div>}
+                </div>
+            </div>
+        );
+    };
 
     return (
         <div className="v8-wall-root">
             {/* HUD Header */}
             <div className="v8-wall-hud-header">
-                {/* <div className="v8-hud-time-block">
-                    <div className="v8-h-time">{timeStr}</div>
-                    <div className="v8-h-date">{dateStr}</div>
-                </div> */}
                 <div className="v8-hud-brand-block">
                     <div className="v8-h-logo">DANCE BILLBOARD</div>
                     <div className="v8-h-tag">SHOW SOCIAL</div>
@@ -181,21 +231,11 @@ export default function BillboardLayoutV8() {
 
             {/* Split Layout */}
             <div className="v8-split-layout">
-                {/* Left: Main Banner */}
+                {/* Left: Triple Main Banners */}
                 <div className="v8-main-section">
-                    <div
-                        className="v8-main-card"
-                        style={{ backgroundImage: `url(${mainItem.imageUrl})` }}
-                    >
-                        <div className="v8-card-overlay">
-                            <div className={`v8-card-tag ${mainItem.type}-t`}>
-                                {mainItem.type.toUpperCase()}
-                            </div>
-                            <div className="v8-card-title">{mainItem.title}</div>
-                            {mainItem.time && <div className="v8-card-time">{mainItem.time}</div>}
-                            {mainItem.date && <div className="v8-card-date">{mainItem.date}</div>}
-                        </div>
-                    </div>
+                    {renderHeroCard(hero1)}
+                    {renderHeroCard(hero2)}
+                    {renderHeroCard(hero3)}
                 </div>
 
                 {/* Right: Column-based Masonry with CSS Columns */}
