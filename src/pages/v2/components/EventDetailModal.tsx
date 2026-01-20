@@ -19,6 +19,7 @@ import "react-datepicker/dist/react-datepicker.css";
 registerLocale("ko", ko);
 import GlobalLoadingOverlay from '../../../components/GlobalLoadingOverlay';
 import { retryOperation } from '../../../utils/asyncUtils';
+import { useViewTracking } from '../../../hooks/useViewTracking';
 
 
 interface Event extends Omit<BaseEvent, 'date' | 'start_date' | 'end_date' | 'event_dates'> {
@@ -28,6 +29,7 @@ interface Event extends Omit<BaseEvent, 'date' | 'start_date' | 'end_date' | 'ev
   start_date?: string | null;
   end_date?: string | null;
   event_dates?: string[] | null;
+  views?: number | null;
 }
 
 const genreColorPalette = [
@@ -98,6 +100,11 @@ export default function EventDetailModal({
 
   const { user, signInWithKakao, isAdmin: isActualAdmin } = useAuth();
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+
+  // View tracking Hook
+  const eventId = event?.id ? String(event.id).replace('social-', '') : '';
+  const itemType = event?.id && String(event.id).startsWith('social-') ? 'schedule' : 'event';
+  const { incrementView } = useViewTracking(eventId, itemType as 'event' | 'schedule');
 
   // console.log('[EventDetailModal] 모달 열림 - event:', event?.title, 'isActualAdmin:', isActualAdmin, 'board_users:', (event as any)?.board_users);
 
@@ -176,8 +183,11 @@ export default function EventDetailModal({
       // 2. 가상 페이지뷰 로그 (신규 - 페이지 보고서 용)
       // 실제 URL은 변하지 않지만, GA4에는 페이지가 바뀐 것처럼 전송
       logPageView(`/event/${event.id}`, event.title);
+
+      // 3. 조회수 증가
+      incrementView();
     }
-  }, [isOpen, event]);
+  }, [isOpen, event, incrementView]);
 
   // Lock body scroll when modal is open
   useEffect(() => {
@@ -1427,6 +1437,16 @@ export default function EventDetailModal({
                       )}
                     </div>
                   </div>
+
+                  {/* 조회수 표시 */}
+                  {selectedEvent.views !== undefined && selectedEvent.views !== null && (
+                    <div className="info-item" style={{ marginTop: '8px', opacity: 0.7 }}>
+                      <i className="ri-eye-line info-icon"></i>
+                      <span style={{ fontSize: '14px' }}>
+                        조회 {selectedEvent.views.toLocaleString()}
+                      </span>
+                    </div>
+                  )}
 
                   {/* {selectedEvent.organizer && (
                     <div className="info-item">
