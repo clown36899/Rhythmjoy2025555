@@ -492,7 +492,7 @@ export default memo(function FullEventCalendar({
                       if (onEventClick) onEventClick(event);
                     }}
                   >
-                    <div style={{ position: 'relative', width: '100%', maxWidth: '65px' }}>
+                    <div style={{ position: 'relative', width: '100%' }}>
                       {thumbnailUrl ? (
                         <div className={`calendar-fullscreen-image-container ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
                           <img

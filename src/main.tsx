@@ -44,6 +44,7 @@ import GuidePage from './pages/guide/page';
 import PrivacyPage from './pages/privacy/page';
 import BillboardPage from './pages/billboard/page';
 import BillboardPreviewPage from './pages/billboard/preview/page';
+import BillboardCatalogPage from './pages/billboard/preview/CatalogPage';
 // import EventDetailPage from './pages/v2/EventDetailPage'; // File not found
 import CalendarPage from './pages/calendar/page';
 import MyActivitiesPage from './pages/user/MyActivitiesPage';
@@ -83,6 +84,24 @@ const router = createBrowserRouter([
               <ModalProvider>
                 <GlobalPlayerProvider>
                   <BillboardPreviewPage />
+                </GlobalPlayerProvider>
+              </ModalProvider>
+            </BoardDataProvider>
+          </QueryClientProvider>
+        </PageActionProvider>
+      </AuthProvider>
+    ),
+  },
+  {
+    path: "/billboard/:userId/preview/catalog",
+    element: (
+      <AuthProvider>
+        <PageActionProvider>
+          <QueryClientProvider client={queryClient}>
+            <BoardDataProvider>
+              <ModalProvider>
+                <GlobalPlayerProvider>
+                  <BillboardCatalogPage />
                 </GlobalPlayerProvider>
               </ModalProvider>
             </BoardDataProvider>

@@ -1,0 +1,235 @@
+.vertical-wall-root {
+    width: 100%;
+    height: 100%;
+    background: #000;
+    position: relative;
+    overflow: hidden;
+    padding: 0;
+    margin: 0;
+    display: flex;
+}
+
+/* THE WALL: Vertical Portrait Tiles covering 100% space with 0 gaps */
+.vertical-mosaic-grid {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    /* Divide horizontally into 6 high-density columns */
+    grid-template-columns: repeat(6, 1fr);
+    /* Divide vertically into 4 large flexible rows */
+    grid-template-rows: repeat(4, 1fr);
+    gap: 0;
+    grid-auto-flow: dense;
+    z-index: 1;
+}
+
+.wall-portrait-card {
+    position: relative;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    overflow: hidden;
+    border: 0.5px solid rgba(255, 255, 255, 0.1);
+    /* Key: Make all items vertical if possible */
+}
+
+/* Sizing Logic for Vertical Impact */
+.main {
+    grid-column: span 2;
+    grid-row: span 2;
+    /* Big square/portrait for today highlights */
+}
+
+.social,
+.program,
+.upcoming {
+    grid-column: span 1;
+    grid-row: span 1;
+    /* Small vertical tiles */
+}
+
+/* Shader & Information Overlay */
+.card-wall-shader {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(0deg, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.3) 50%, transparent 100%);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+}
+
+.card-tag {
+    font-size: 11px;
+    font-weight: 900;
+    padding: 2px 8px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    align-self: flex-start;
+    margin-bottom: 8px;
+}
+
+.social-t {
+    background: #ffd700;
+    color: #000;
+}
+
+.event-t {
+    background: #e74c3c;
+    color: #fff;
+}
+
+.class-t {
+    background: #3498db;
+    color: #fff;
+}
+
+.card-title {
+    font-size: 20px;
+    font-weight: 900;
+    color: #fff;
+    line-height: 1.2;
+    word-break: keep-all;
+}
+
+.main .card-title {
+    font-size: 40px;
+}
+
+.card-time,
+.card-date {
+    font-size: 16px;
+    font-weight: 800;
+    color: #ffd700;
+    margin-bottom: 4px;
+}
+
+/* HUD OVERLAYS (GLASS STYLE) */
+.wall-hud-header {
+    position: absolute;
+    top: 30px;
+    left: 30px;
+    right: 30px;
+    z-index: 100;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    pointer-events: none;
+}
+
+.hud-time-block,
+.hud-brand-block {
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(20px);
+    padding: 15px 30px;
+    border-radius: 15px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.h-time {
+    font-size: 60px;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.h-date {
+    font-size: 18px;
+    color: #ffd700;
+    font-weight: 700;
+    margin-top: 5px;
+}
+
+.h-logo {
+    font-size: 28px;
+    font-weight: 900;
+    letter-spacing: 4px;
+    color: #fff;
+}
+
+.h-tag {
+    font-size: 12px;
+    font-weight: 600;
+    color: #ffd700;
+    letter-spacing: 6px;
+}
+
+.wall-hud-footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+.h-ticker-box {
+    flex: 1;
+    background: rgba(255, 215, 0, 0.9);
+    padding: 15px 0;
+    overflow: hidden;
+}
+
+.h-ticker-text {
+    color: #000;
+    font-size: 20px;
+    font-weight: 900;
+    white-space: nowrap;
+    animation: wallTickerVertical 30s linear infinite;
+}
+
+@keyframes wallTickerVertical {
+    0% {
+        transform: translate3d(100%, 0, 0);
+    }
+
+    100% {
+        transform: translate3d(-100%, 0, 0);
+    }
+}
+
+.h-qr-box {
+    background: #fff;
+    padding: 20px 40px;
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    border-top-left-radius: 40px;
+}
+
+.q-t1 {
+    font-size: 16px;
+    color: #666;
+    font-weight: 700;
+}
+
+.q-t2 {
+    font-size: 30px;
+    color: #000;
+    font-weight: 900;
+    letter-spacing: -1px;
+}
+
+/* Responsive adjustments for narrow/portrait view */
+@media (max-aspect-ratio: 1/1) {
+    .vertical-mosaic-grid {
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: repeat(6, 1fr);
+    }
+
+    .main {
+        grid-column: span 3;
+        grid-row: span 2;
+    }
+
+    .h-time {
+        font-size: 40px;
+    }
+
+    .h-logo {
+        font-size: 20px;
+    }
+}

@@ -197,7 +197,7 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                 </div>
 
                 {/* PWA 설치 버튼 - 최상단 배치 */}
-                <div style={{ padding: '0.75rem 1rem 0' }}>
+                <div style={{ padding: '0.75rem 1rem 13px' }}>
                     <PWAInstallButton />
                 </div>
 
