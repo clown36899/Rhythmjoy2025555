@@ -1,152 +1,94 @@
-import React, { useMemo, useState, useEffect, useLayoutEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useLayoutEffect } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useEventsQuery } from '../../../../../hooks/queries/useEventsQuery';
 import { getLocalDateString } from '../../../../v2/utils/eventListUtils';
+import FullEventCalendar from '../../../../calendar/components/FullEventCalendar';
 import './BillboardLayoutV7.css';
 
-// Import Full Calendar
-import FullEventCalendar from '../../../../calendar/components/FullEventCalendar';
+const TARGET_WIDTH = 1080;
+const TARGET_HEIGHT = 1920;
 
 const BillboardLayoutV7: React.FC = () => {
-    // 1. DATA SOURCES for Right Column
     const { data: events = [] } = useEventsQuery();
-
-    // Calendar State
     const [currentMonth, setCurrentMonth] = useState(new Date());
-    const [viewMode, setViewMode] = useState<"month" | "year">("month");
-
-    // --- SCALING LOGIC START (CONTAINER AWARE) ---
-    const TARGET_WIDTH = 1080;
-    const TARGET_HEIGHT = 1920;
+    const [viewMode, setViewMode] = useState<'month' | 'year'>('month');
     const [scale, setScale] = useState(1);
     const containerRef = useRef<HTMLDivElement>(null);
 
     useLayoutEffect(() => {
-        const handleResize = () => {
-            if (!containerRef.current) return;
-            const containerW = containerRef.current.clientWidth || window.innerWidth;
-
-            // Calculate scale to FIT WIDTH (100% Width Match)
-            // Even if height overflows, we prioritize width filling.
-            // Safety measure: ensure non-zero width
-            const effectiveWidth = Math.max(containerW, 100);
-            const scaleX = effectiveWidth / TARGET_WIDTH;
-
-            // Apply scale
-            // Min scale 0.1 to prevent invisible render
-            const newScale = Math.max(scaleX, 0.1);
-            setScale(newScale);
+        const updateScale = () => {
+            if (containerRef.current) {
+                const clientW = containerRef.current.clientWidth || window.innerWidth;
+                const newScale = clientW / TARGET_WIDTH;
+                setScale(Math.max(0.1, newScale));
+            }
         };
 
-        const observer = new ResizeObserver(handleResize);
-        if (containerRef.current) {
-            observer.observe(containerRef.current);
-        }
-
-        // Initial calculation
-        handleResize();
+        const observer = new ResizeObserver(updateScale);
+        if (containerRef.current) observer.observe(containerRef.current);
+        updateScale();
 
         return () => observer.disconnect();
     }, []);
 
-    // Calendar Height based on Fixed Design Height (larger to allow scrolling)
-    const calendarHeight = TARGET_HEIGHT * 1.5;
-    // --- SCALING LOGIC END ---
+    const calendarHeight = useMemo(() => {
+        return (TARGET_HEIGHT * 0.9);
+    }, []);
 
-
-    // Scroll "Today" to top
     useEffect(() => {
-        const attemptScroll = (attempts = 0) => {
-            if (attempts > 30) return;
-
-            // Target the specific scrolling container for the active month
-            // Note: The selector depends on FullEventCalendar struct
-            const container = document.querySelector('.v7-col-left .calendar-month-slide[data-active-month="true"]');
-            const todayEl = container?.querySelector('.calendar-date-number-today');
-
-            if (container && todayEl) {
-                const cell = todayEl.closest('.calendar-cell-fullscreen') as HTMLElement;
-                if (cell) {
-                    // Force scroll "Today" to the very top (start of block)
-                    cell.scrollIntoView({ block: 'start', inline: 'nearest', behavior: 'auto' });
+        const timer = setTimeout(() => {
+            const todayEl = document.querySelector('.calendar-day-item.is-today');
+            if (todayEl) {
+                todayEl.scrollIntoView({ block: 'start', behavior: 'instant' });
+                const scrollContainer = document.querySelector('.v7-col-left .calendar-month-slide');
+                if (scrollContainer) {
+                    scrollContainer.scrollTop -= 0;
                 }
-            } else {
-                // Retry if not rendered yet
-                setTimeout(() => attemptScroll(attempts + 1), 100);
             }
-        };
-
-        // Trigger after a slight delay to allow layout/scale stabilization
-        const timer = setTimeout(() => attemptScroll(), 100);
+        }, 1000);
         return () => clearTimeout(timer);
-    }, [currentMonth, scale]); // Re-run whenever month changes or scale updates
+    }, [scale, currentMonth]);
 
-    // 2. EVENTS ONLY LOGIC (Right Column)
-    // Filter to show ONLY 'Events' (category='event') - From Today onwards
     const upcomingEvents = useMemo(() => {
-        const todayStr = getLocalDateString();
-
-        // 1. Events (category='event') - From Today onwards
-        const filteredEvents = events.filter(e => {
-            if (e.category !== 'event') return false;
-            const start = e.date || e.start_date;
-            return start && start >= todayStr;
-        });
-
-        // Sort by Date then Time
-        return filteredEvents.map(e => ({
-            ...e,
-            type: 'event',
-            sortDate: e.date || e.start_date
-        })).sort((a, b) => {
-            const dateA = a.sortDate || '';
-            const dateB = b.sortDate || '';
-            if (dateA !== dateB) return dateA.localeCompare(dateB);
-            return (a.time || '').localeCompare(b.time || '');
-        });
+        const today = getLocalDateString();
+        return events
+            .filter(e => (e.date || e.start_date || '') >= today)
+            .sort((a, b) => (a.date || a.start_date || '').localeCompare(b.date || b.start_date || ''))
+            .slice(0, 15);
     }, [events]);
 
-    const getImageUrl = (item: any): string => {
-        return item.image_full || item.image || item.image_url || item.image_medium || item.image_thumbnail || '';
-    };
+    const getImageUrl = (item: any) => item.image_medium || item.image || item.image_url || '';
 
-    const formatDate = (dateStr: string | null | undefined) => {
+    const formatDate = (dateStr: string) => {
         if (!dateStr) return '';
         const d = new Date(dateStr);
         return d.toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric', weekday: 'short' });
     };
 
     return (
-        <div ref={containerRef} style={{
+        <div className="v7-viewport-container" ref={containerRef} style={{
             width: '100%',
             height: '100%',
-            background: '#000',
-            display: 'flex',
-            alignItems: 'flex-start', // Top alignment (important for overflowing height)
-            justifyContent: 'center', // Center horizontally
             overflow: 'hidden',
-            position: 'absolute',
+            backgroundColor: '#000',
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'flex-start',
             top: 0,
-            left: 0
+            left: 0,
+            position: 'fixed'
         }}>
             <div className="v7-static-root" style={{
                 width: `${TARGET_WIDTH}px`,
                 height: `${TARGET_HEIGHT}px`,
                 transform: `scale(${scale})`,
-                transformOrigin: 'top center', // Scale from Top-Center
+                transformOrigin: 'top center',
                 flexShrink: 0,
-                top: 0,
-                position: 'fixed'
+                position: 'relative'
             }}>
+                {/* Header */}
                 <div className="v7-static-header">
                     <div className="v7-brand-mark">SOCIAL & EVENTS</div>
-                    <div className="v7-header-qr">
-                        <div className="v7-qr-text" style={{ textAlign: 'right', marginRight: '10px' }}>
-                            <div style={{ fontSize: '11px', fontWeight: 600, color: '#555', marginBottom: '2px', whiteSpace: 'nowrap' }}>코리아 댄스빌보드</div>
-                            <div style={{ fontSize: '14px', fontWeight: 800, lineHeight: '1.2', whiteSpace: 'nowrap' }}>QR 스캔하여 상세 정보 확인</div>
-                        </div>
-                        <QRCodeSVG value="https://swingenjoy.com" size={46} />
-                    </div>
                 </div>
 
                 <div className="v7-split-container">
@@ -168,7 +110,7 @@ const BillboardLayoutV7: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Right: UPCOMING EVENTS (Merged) */}
+                    {/* Right: UPCOMING EVENTS */}
                     <div className="v7-col-right">
                         <div className="v7-col-header event">
                             <i className="fas fa-list"></i>
@@ -207,6 +149,22 @@ const BillboardLayoutV7: React.FC = () => {
                             )}
                         </div>
                     </div>
+                </div>
+            </div>
+
+            {/* V1 Style Footer ported to V7 (Outside Scale Container) */}
+            <div className="v7-hud-footer">
+                <div className="v7-ticker-box">
+                    <div className="v7-ticker-text">
+                        WELCOME TO RHYTHMJOY DANCE BILLBOARD • CHECK OUT OUR UPCOMING SOCIALS AND EVENTS • RAW DATA DRIVEN DISPLAY •
+                    </div>
+                </div>
+                <div className="v7-qr-box">
+                    <div className="v7-qr-info">
+                        <div className="v7-q-t1">SCAN FOR MORE</div>
+                        <div className="v7-q-t2">JOIN SOCIAL</div>
+                    </div>
+                    <QRCodeSVG value="https://swingenjoy.com" size={100} level="H" />
                 </div>
             </div>
         </div>

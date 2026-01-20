@@ -7,14 +7,43 @@ import './BillboardLayoutV1.css';
 const BillboardLayoutV1: React.FC = () => {
     const { data: events = [] } = useEventsQuery();
     const [currentTime, setCurrentTime] = useState(new Date());
+    const [highlightIndex, setHighlightIndex] = useState(0);
 
-    const displayEvents = useMemo(() => {
+    // 1. Filter and Prepare All Future Data (Events + Classes)
+    const allData = useMemo(() => {
         const todayStr = getLocalDateString();
         return events
             .filter(e => (e.date || e.start_date || '') >= todayStr)
-            .sort((a, b) => (a.date || a.start_date || '').localeCompare(b.date || b.start_date || ''))
-            .slice(0, 12); // Grid size is around 12-16
+            .sort((a, b) => (a.date || a.start_date || '').localeCompare(b.date || b.start_date || ''));
     }, [events]);
+
+    // 2. Identify "Events" (행사) for Random Highlighting
+    const eventOnlyData = useMemo(() => {
+        return allData.filter(item => item.category === 'event' || !item.category || item.category === 'social');
+    }, [allData]);
+
+    // 3. Select a random highlight event every 10 seconds (optional rotation) or just once
+    useEffect(() => {
+        if (eventOnlyData.length > 0) {
+            const pickRandom = () => {
+                const randomIndex = Math.floor(Math.random() * eventOnlyData.length);
+                setHighlightIndex(randomIndex);
+            };
+            pickRandom();
+            const interval = setInterval(pickRandom, 15000); // Rotate large tile every 15s
+            return () => clearInterval(interval);
+        }
+    }, [eventOnlyData.length]);
+
+    // 4. Arrange tiles: Main (Random Event) + Others
+    const tileData = useMemo(() => {
+        if (eventOnlyData.length === 0) return allData.slice(0, 24);
+
+        const mainItem = eventOnlyData[highlightIndex];
+        const others = allData.filter(item => item.id !== mainItem?.id).slice(0, 20);
+
+        return [mainItem, ...others];
+    }, [allData, eventOnlyData, highlightIndex]);
 
     useEffect(() => {
         const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -41,9 +70,12 @@ const BillboardLayoutV1: React.FC = () => {
 
             {/* Mosaic Grid */}
             <div className="vertical-mosaic-grid">
-                {displayEvents.map((event, idx) => {
-                    const typeClass = idx === 0 ? 'main' : (idx < 4 ? 'social' : 'upcoming');
-                    const tagType = event.category === 'social' ? 'social-t' : (event.category === 'event' ? 'event-t' : 'class-t');
+                {tileData.map((event, idx) => {
+                    if (!event) return null;
+                    const isMain = idx === 0;
+                    const typeClass = isMain ? 'main' : (idx < 6 ? 'social' : 'upcoming');
+                    const category = event.category || 'event';
+                    const tagType = category === 'social' ? 'social-t' : (category === 'event' ? 'event-t' : 'class-t');
 
                     return (
                         <div
@@ -52,10 +84,10 @@ const BillboardLayoutV1: React.FC = () => {
                             style={{ backgroundImage: `url(${getImageUrl(event)})` }}
                         >
                             <div className="card-wall-shader">
-                                <span className={`card-tag ${tagType}`}>{event.category === 'social' ? 'SOCIAL' : 'EVENT'}</span>
+                                <span className={`card-tag ${tagType}`}>{category.toUpperCase()}</span>
                                 <div className="card-time">{event.time?.substring(0, 5)}</div>
                                 <div className="card-title">{event.title}</div>
-                                {idx === 0 && <div className="card-date">{event.date || event.start_date}</div>}
+                                {isMain && <div className="card-date">{event.date || event.start_date}</div>}
                             </div>
                         </div>
                     );
@@ -66,7 +98,7 @@ const BillboardLayoutV1: React.FC = () => {
             <div className="wall-hud-footer">
                 <div className="h-ticker-box">
                     <div className="h-ticker-text">
-                        WELCOME TO RHYTHMJOY DANCE BILLBOARD • CHECK OUT OUR UPCOMING SOCIALS AND EVENTS • RAW DATA DRIVEN DISPLAY •
+                        WELCOME TO RHYTHMJOY DANCE BILLBOARD • CHECK OUT OUR UPCOMING SOCIALS AND EVENTS • STAY TUNED FOR NEW CLASSES • NO.1 DANCE PLATFORM •
                     </div>
                 </div>
                 <div className="h-qr-box">
@@ -74,7 +106,7 @@ const BillboardLayoutV1: React.FC = () => {
                         <div className="q-t1">SCAN FOR MORE</div>
                         <div className="q-t2">JOIN SOCIAL</div>
                     </div>
-                    <QRCodeSVG value="https://swingenjoy.com" size={100} />
+                    <QRCodeSVG value="https://swingenjoy.com" size={100} level="H" />
                 </div>
             </div>
         </div>

@@ -28,22 +28,7 @@
     letter-spacing: 2px;
 }
 
-.v7-header-qr {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-    background: #fff;
-    padding: 4px 12px;
-    border-radius: 6px;
-    color: #000;
-}
-
-.v7-qr-text {
-    font-size: 0.8rem;
-    font-weight: 700;
-    text-align: right;
-    line-height: 1.1;
-}
+/* .v7-header-qr removed from here */
 
 /* MAIN SPLIT CONTAINER */
 .v7-split-container {
@@ -225,8 +210,77 @@
 }
 
 /* Ensure grid container expands to full height of content (which is huge due to calendarHeightPx) */
-.v7-col-left .calendar-grid-container {
-    height: auto !important;
-    min-height: 100%;
-    overflow: visible !important;
+/* V1 STYLE FOOTER FOR V7 */
+.v7-hud-footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+.v7-ticker-box {
+    flex: 1;
+    background: rgba(255, 215, 0, 0.95);
+    /* Bright Yellow Ticker */
+    padding: 20px 0;
+    overflow: hidden;
+    border-top: 2px solid #000;
+}
+
+.v7-ticker-text {
+    color: #000;
+    font-size: 24px;
+    font-weight: 900;
+    white-space: nowrap;
+    animation: v7TickerAnim 30s linear infinite;
+    display: inline-block;
+}
+
+@keyframes v7TickerAnim {
+    0% {
+        transform: translate3d(100%, 0, 0);
+    }
+
+    100% {
+        transform: translate3d(-100%, 0, 0);
+    }
+}
+
+.v7-qr-box {
+    background: #fff;
+    padding: 25px 40px;
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    border-top-left-radius: 40px;
+    box-shadow: -10px 0 30px rgba(0, 0, 0, 0.5);
+    border-top: 4px solid #e54d4d;
+    border-left: 4px solid #e54d4d;
+}
+
+.v7-qr-info {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.v7-q-t1 {
+    font-size: 16px;
+    color: #666;
+    font-weight: 700;
+}
+
+.v7-q-t2 {
+    font-size: 30px;
+    color: #000;
+    font-weight: 900;
+    letter-spacing: -1px;
+}
+
+.v7-qr-box svg {
+    border-radius: 4px;
 }
