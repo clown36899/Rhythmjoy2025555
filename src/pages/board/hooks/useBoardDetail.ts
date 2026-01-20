@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
-import type { BoardPost } from '../page';
+import type { BoardPost } from './useBoardPosts';
 import { useViewTracking } from '../../../hooks/useViewTracking';
 
 interface UseBoardDetailProps {

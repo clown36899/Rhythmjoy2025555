@@ -170,16 +170,23 @@
 /* ===== 게시글 카드 ===== */
 
 .standard-view .board-post-card {
-  padding: 6px 12px 5px 6px;
-  margin: 0px 0px 5px 0px;
-  transition: var(--transition-colors);
+  padding: 14px 16px;
+  margin: 0 8px 12px 8px;
+  transition: all 0.3s ease;
   cursor: pointer;
-  border: 1px solid rgba(255, 255, 255, 0.028);
+  border: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
-  /* border-radius: 1rem; */
+  border-radius: 12px;
   flex-direction: column;
   overflow: hidden;
-  background-color: #1a1a1a;
+  background: linear-gradient(135deg, #1f1f1f 0%, #1a1a1a 100%);
+}
+
+.standard-view .board-post-card:hover {
+  background: linear-gradient(135deg, #252525 0%, #1f1f1f 100%);
+  border-color: rgba(59, 130, 246, 0.3);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
 
@@ -203,13 +210,11 @@
 
 /* Thumbnail on the LEFT */
 .standard-view .board-post-thumbnail {
-  width: 80px;
-  /* Increased slightly for better visibility */
-  height: 80px;
-  /* Square aspect ratio */
+  width: 90px;
+  height: 90px;
   flex-shrink: 0;
-  /* Prevent shrinking */
-  border-radius: 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
   overflow: hidden;
   background-color: #333;
   display: flex;
@@ -245,36 +250,36 @@
 }
 
 .standard-view .board-post-prefix {
-  background-color: #000000;
+
   color: white;
-  font-size: 10px;
-  padding: 2px 5px;
-  border-radius: 4px;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 6px;
   font-weight: 600;
   flex-shrink: 0;
 }
 
 .standard-view .board-notice-badge {
-  background-color: #ef4444;
-  /* Red badge for notice */
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
   color: white;
-  font-size: 10px;
-  padding: 2px 5px;
-  border-radius: 4px;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 6px;
   font-weight: 600;
   flex-shrink: 0;
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
 }
 
 .standard-view .board-post-title {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  /* Single line title */
+  line-height: 1.4;
   margin: 0;
   padding: 0;
-  color: #fff;
+  color: #ffffff;
 }
 
 /* Hide separate title colors, just use white for consistency */
@@ -285,16 +290,15 @@
 }
 
 .standard-view .board-post-content {
-  color: #d1d5dba1;
-  padding: 0 0 0px 36px;
-  /* Light gray (Gray 300 equivalent) */
-  font-size: 12px;
+  color: #a8a8a8;
+  padding: 4px 0 0 0;
+  font-size: 13px;
+  line-height: 1.5;
   margin: 0;
   overflow: hidden;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
-  /* Clamp to 1 line */
   line-clamp: 2;
 }
 
@@ -303,13 +307,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 11px;
-  color: #888;
+  font-size: 12px;
+  color: #999;
   width: 100%;
-  padding-top: 4px;
-  padding-left: 38px;
-  /* border-top: 1px solid rgba(255, 255, 255, 0.05); */
-  /* Optional subtle separator */
+  padding-top: 8px;
+  padding-left: 0;
 }
 
 .standard-view .board-post-meta-left {
@@ -355,7 +357,8 @@
 }
 
 .standard-view .board-post-meta-icon {
-  font-size: 12px;
+  font-size: 13px;
+  opacity: 0.8;
 }
 
 /* Profile Avatar Styles */

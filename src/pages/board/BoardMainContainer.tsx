@@ -288,7 +288,7 @@ export default function BoardMainContainer() {
                 onTouchMove={onTouchMove}
                 onTouchEnd={onTouchEnd}
                 style={{
-                    paddingTop: prefixes.length > 0 ? '96px' : '48px',
+                    paddingTop: prefixes.length > 0 ? '87px' : '48px',
                     display: category === 'history' ? 'flex' : 'block',
                     flexDirection: 'column',
                     flex: 1

@@ -8,7 +8,7 @@ import CommentSection from '../components/CommentSection';
 import { type UserData } from '../components/UserRegistrationModal';
 import '../board.css';
 import './detail.css';
-import type { BoardPost } from '../page';
+import type { BoardPost } from '../hooks/useBoardPosts';
 
 export default function BoardDetailPage() {
     const { id } = useParams();

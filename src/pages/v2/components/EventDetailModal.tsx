@@ -1078,16 +1078,6 @@ export default function EventDetailModal({
               </div>
             )}
 
-            {/* Check if event has started (for hiding edit/delete buttons) */}
-            {(() => {
-              const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-              const startDate = selectedEvent.start_date || selectedEvent.date;
-              const isPastEvent = startDate ? startDate < today : false;
-
-              // Store in a ref or state if needed elsewhere, but for now we'll use it inline
-              (window as any).__isPastEvent = isPastEvent;
-            })()}
-
             {/* 스크롤 가능한 전체 영역 */}
             <div
               className={`modal-scroll-container ${isSelectionMode ? 'selection-mode' : ''}`}

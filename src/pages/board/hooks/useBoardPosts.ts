@@ -221,8 +221,13 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
 
     // Pagination Logic
     const filteredPosts = prefixId
-        ? posts.filter(p => p.is_notice || (p as StandardBoardPost).prefix_id === prefixId)
-        : posts;
+        ? posts.filter(p => {
+            // 공지 탭인 경우 공지만 보여줌
+            if (prefixId === 1) return p.is_notice;
+            // 다른 개별 탭인 경우 공지는 숨기고 해당 탭 게시물만 보여줌
+            return !p.is_notice && (p as StandardBoardPost).prefix_id === prefixId;
+        })
+        : posts; // "전체"인 경우 공지 포함 모든 게시물 노출
     const totalPages = Math.ceil(filteredPosts.length / postsPerPage);
     const currentPosts = filteredPosts.slice((currentPage - 1) * postsPerPage, currentPage * postsPerPage);
 
