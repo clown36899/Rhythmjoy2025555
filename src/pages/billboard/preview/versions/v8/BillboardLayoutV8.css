@@ -82,7 +82,7 @@
     position: absolute;
     inset: 0;
     background: linear-gradient(0deg, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.4) 40%, transparent 100%);
-    padding: 40px;
+    padding: 0 5px 40px 12px;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
@@ -114,7 +114,7 @@
 }
 
 .v8-card-title {
-    font-size: 48px;
+    font-size: clamp(0px, 2rem, 3rem);
     font-weight: 900;
     color: #fff;
     line-height: 1.1;
