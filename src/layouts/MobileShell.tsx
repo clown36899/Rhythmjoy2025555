@@ -290,12 +290,6 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
               {!isCalendarPage && (
                 <div
                   className={`header-events-content ${isLearningDetailPage ? 'with-back' : ''}`}
-                  onClick={isEventsPage ? () => window.location.reload() : undefined}
-                  style={{ cursor: isEventsPage ? 'pointer' : 'default' }}
-                  data-analytics-id={isEventsPage ? "logo_home" : "header_title"}
-                  data-analytics-type="nav_item"
-                  data-analytics-title={isEventsPage ? "댄스빌보드 로고" : "페이지 타이틀"}
-                  data-analytics-section="header"
                 >
                   {isLearningDetailPage ? (
                     <button
@@ -324,8 +318,20 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                   )}
 
                   {isEventsPage ? (
-                    /* Main Page: Logo + Detailed Title */
-                    <>
+                    /* Main Page: Logo + Detailed Title - Wrapped for clickable area */
+                    <div
+                      onClick={() => window.location.reload()}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '1.5vw',
+                        cursor: 'pointer'
+                      }}
+                      data-analytics-id="logo_home"
+                      data-analytics-type="nav_item"
+                      data-analytics-title="댄스빌보드 로고"
+                      data-analytics-section="header"
+                    >
                       <img src="/logo.png" alt="RhythmJoy Logo" className="header-logo" />
                       <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: '1', minWidth: 0, overflow: 'hidden', width: 'fit-content' }}>
                         <div style={{ display: 'flex', alignItems: 'baseline', gap: 'min(0.8vw, 6px)', flexWrap: 'nowrap', minWidth: 0 }}>
@@ -342,7 +348,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                           ))}
                         </span>
                       </div>
-                    </>
+                    </div>
                   ) : (
                     /* Other Pages: Simple Title Text */
                     <h1 className="header-title-simple" style={{
