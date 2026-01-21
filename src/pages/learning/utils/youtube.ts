@@ -112,20 +112,35 @@ export const fetchPlaylistVideos = async (playlistId: string): Promise<YouTubeVi
  * 단일 비디오 상세 정보 가져오기
  */
 export const fetchVideoDetails = async (videoId: string): Promise<YouTubeVideoInfo | null> => {
-    if (!API_KEY) return null;
+    console.log('[YouTube API] fetchVideoDetails called with videoId:', videoId);
+
+    if (!API_KEY) {
+        console.error('[YouTube API] API_KEY is missing!');
+        return null;
+    }
 
     try {
-        const response = await fetch(
-            `${BASE_URL}/videos?part=snippet&id=${videoId}&key=${API_KEY}`
-        );
+        const url = `${BASE_URL}/videos?part=snippet&id=${videoId}&key=${API_KEY}`;
+        console.log('[YouTube API] Fetching from URL:', url.replace(API_KEY, 'API_KEY_HIDDEN'));
 
-        if (!response.ok) return null;
+        const response = await fetch(url);
+        console.log('[YouTube API] Response status:', response.status, response.statusText);
+
+        if (!response.ok) {
+            console.error('[YouTube API] Response not OK:', response.status, response.statusText);
+            return null;
+        }
 
         const data = await response.json();
-        if (!data.items || data.items.length === 0) return null;
+        console.log('[YouTube API] Response data:', data);
+
+        if (!data.items || data.items.length === 0) {
+            console.error('[YouTube API] No items in response or empty items array');
+            return null;
+        }
 
         const item = data.items[0];
-        return {
+        const videoInfo = {
             id: item.id,
             title: item.snippet.title,
             description: item.snippet.description,
@@ -133,8 +148,11 @@ export const fetchVideoDetails = async (videoId: string): Promise<YouTubeVideoIn
             position: 0,
             resourceId: { videoId: item.id }
         };
+
+        console.log('[YouTube API] Successfully fetched video info:', videoInfo);
+        return videoInfo;
     } catch (e) {
-        console.error('Failed to fetch video details:', e);
+        console.error('[YouTube API] Exception caught in fetchVideoDetails:', e);
         return null;
     }
 };

@@ -40,10 +40,22 @@ export const SiteAnalyticsProvider: React.FC<{ children: React.ReactNode }> = ({
                     const isExternal = url.hostname !== window.location.hostname;
 
                     if (isExternal || link.href.startsWith('tel') || link.href.startsWith('mailto')) {
+                        // [FIX] 부모 요소에서 이벤트 제목 찾기 (data-analytics-title 속성)
+                        let eventTitle = '';
+                        let parentElement = link.parentElement;
+                        while (parentElement && !eventTitle) {
+                            const titleAttr = parentElement.getAttribute('data-analytics-title');
+                            if (titleAttr) {
+                                eventTitle = titleAttr;
+                                break;
+                            }
+                            parentElement = parentElement.parentElement;
+                        }
+
                         const log: AnalyticsLog = {
                             target_id: link.href,
                             target_type: 'auto_link',
-                            target_title: link.innerText.trim().substring(0, 50) || link.href,
+                            target_title: eventTitle || link.innerText.trim().substring(0, 50) || link.href,
                             section: 'auto_tracker',
                             route: location.pathname,
                             user_id: user?.id,

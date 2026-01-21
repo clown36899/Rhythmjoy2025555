@@ -58,7 +58,7 @@ interface AnalyticsSummary {
         recent_installs: { installed_at: string; user_id?: string; fingerprint?: string; display_mode?: string }[];
     };
     // [PHASE 20] Type Detail Data
-    items_by_type?: Record<string, { title: string; count: number }[]>;
+    items_by_type?: Record<string, { title: string; count: number; url?: string }[]>;
 }
 
 interface UserInfo {
@@ -73,7 +73,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
     const [userList, setUserList] = useState<UserInfo[]>([]);
     const [showUserList, setShowUserList] = useState(false);
     // [PHASE 20] Type Detail Modal State
-    const [selectedTypeDetail, setSelectedTypeDetail] = useState<{ type: string; items: { title: string; count: number }[] } | null>(null);
+    const [selectedTypeDetail, setSelectedTypeDetail] = useState<{ type: string; items: { title: string; count: number; url?: string }[] } | null>(null);
     // [PHASE 18] 캐싱
     const [cache, setCache] = useState<Map<string, AnalyticsSummary>>(new Map());
 
@@ -447,7 +447,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
 
 
             // [PHASE 20] 타입별 상세 아이템 집계
-            const itemsByTypeMap = new Map<string, Map<string, { title: string, count: number }>>();
+            const itemsByTypeMap = new Map<string, Map<string, { title: string, count: number, url?: string }>>();
 
             const totalItemMap = new Map<string, { title: string, type: string, count: number }>();
             const totalSectionMap = new Map<string, number>();
@@ -484,7 +484,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 const typeMap = itemsByTypeMap.get(type)!;
                 // 동일한 title로 그룹핑 (URL이나 ID 대신 사용자 친화적 타이틀 사용)
                 // [FIX] ID가 아닌 Friendly Title로 그룹핑하여 중복 제거 효과
-                const itemExisting = typeMap.get(friendlyTitle) || { title: friendlyTitle, count: 0 };
+                const itemExisting = typeMap.get(friendlyTitle) || { title: friendlyTitle, count: 0, url: type === 'auto_link' ? d.target_id : undefined };
                 typeMap.set(friendlyTitle, { ...itemExisting, count: itemExisting.count + 1 });
             });
 
@@ -1019,8 +1019,29 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                     {selectedTypeDetail.items.map((item, index) => (
                                         <div key={index} className="user-list-item">
                                             <span className="user-index">{index + 1}</span>
-                                            <span className="user-name" style={{ fontSize: '0.9rem' }}>{item.title}</span>
-                                            <span className="user-id" style={{ color: '#60a5fa', fontWeight: 'bold' }}>{item.count}</span>
+                                            <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                                <span className="user-name" style={{ fontSize: '0.9rem' }}>{item.title}</span>
+                                                {item.url && (
+                                                    <a
+                                                        href={item.url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        style={{
+                                                            fontSize: '0.75rem',
+                                                            color: '#60a5fa',
+                                                            textDecoration: 'none',
+                                                            overflow: 'hidden',
+                                                            textOverflow: 'ellipsis',
+                                                            whiteSpace: 'nowrap',
+                                                            display: 'block'
+                                                        }}
+                                                        onClick={(e) => e.stopPropagation()}
+                                                    >
+                                                        {item.url}
+                                                    </a>
+                                                )}
+                                            </div>
+                                            <span className="user-id" style={{ color: '#60a5fa', fontWeight: 'bold', flexShrink: 0 }}>{item.count}</span>
                                         </div>
                                     ))}
                                 </div>
