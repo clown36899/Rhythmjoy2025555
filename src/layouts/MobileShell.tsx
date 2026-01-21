@@ -35,6 +35,8 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
   const userRegistrationModal = useModal('userRegistration');
   const loginModal = useModal('login');
 
+  const siteAnalyticsModal = useModal('siteAnalytics');
+
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [calendarMode, setCalendarMode] = useState<'collapsed' | 'fullscreen'>('collapsed');
   const [calendarView, setCalendarView] = useState({ year: new Date().getFullYear(), month: new Date().getMonth() });
@@ -203,6 +205,11 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
     return (
       <span
         className="admin-stats-badge"
+        onClick={(e) => {
+          e.stopPropagation();
+          siteAnalyticsModal.open();
+        }}
+        title="운영 통계 리포트 보기"
         style={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -215,7 +222,8 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
           border: '1px solid rgba(255, 255, 255, 0.1)',
           marginLeft: '4px',
           color: '#e5e7eb',
-          flexShrink: 1
+          flexShrink: 1,
+          cursor: 'pointer'
         }}
       >
         <span key={`logged-in-${loggedInCount}`} style={{ color: '#00ddff' }}>{loggedInCount}</span>
@@ -229,7 +237,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
         )}
       </span>
     );
-  }, [isAdmin, onlineUsersData.loggedInUsers?.length, onlineUsersData.anonymousCount, totalUserCount]);
+  }, [isAdmin, onlineUsersData.loggedInUsers?.length, onlineUsersData.anonymousCount, totalUserCount, siteAnalyticsModal]);
 
   // Layout Mode: Determine if we need wide layout (for full-screen features like Swinpedia)
   const isWideLayout = useMemo(() => {

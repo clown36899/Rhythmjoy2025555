@@ -327,7 +327,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             };
 
             const referrerMap = new Map<string, number>();
-            data.forEach(d => {
+            processedData.forEach(d => {
                 const category = getReferrerCategory(d.referrer || '');
                 referrerMap.set(category, (referrerMap.get(category) || 0) + 1);
             });
@@ -372,7 +372,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             const journeyMap = new Map<string, number>();
             const sessionGroups = new Map<string, any[]>();
 
-            data.forEach(d => {
+            processedData.forEach(d => {
                 if (d.session_id) {
                     if (!sessionGroups.has(d.session_id)) {
                         sessionGroups.set(d.session_id, []);
@@ -452,12 +452,26 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             const totalItemMap = new Map<string, { title: string, type: string, count: number }>();
             const totalSectionMap = new Map<string, number>();
 
+            // [PHASE 21] Friendly Name Mapping
+            const getFriendlyTitle = (type: string | null, id: string | null, title: string | null) => {
+                if (title) return title;
+                const safeId = id || '';
+
+                if (safeId === 'login') return '로그인 버튼';
+                if (safeId === 'home_weekly_calendar_shortcut') return '주간 일정 바로가기 (상단)';
+                if (safeId === 'week_calendar_shortcut') return '주간 일정 바로가기';
+
+                return safeId;
+            };
+
             processedData.forEach(d => {
                 const key = d.target_type + ':' + d.target_id;
                 const type = d.target_type || 'unknown';
 
+                const friendlyTitle = getFriendlyTitle(d.target_type, d.target_id, d.target_title);
+
                 // Total Items
-                const existing = totalItemMap.get(key) || { title: d.target_title || d.target_id, type: d.target_type, count: 0 };
+                const existing = totalItemMap.get(key) || { title: friendlyTitle, type: d.target_type, count: 0 };
                 totalItemMap.set(key, { ...existing, count: existing.count + 1 });
 
                 // Section Stats
@@ -469,9 +483,9 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 }
                 const typeMap = itemsByTypeMap.get(type)!;
                 // 동일한 title로 그룹핑 (URL이나 ID 대신 사용자 친화적 타이틀 사용)
-                const titleKey = d.target_title || d.target_id;
-                const itemExisting = typeMap.get(titleKey) || { title: titleKey, count: 0 };
-                typeMap.set(titleKey, { ...itemExisting, count: itemExisting.count + 1 });
+                // [FIX] ID가 아닌 Friendly Title로 그룹핑하여 중복 제거 효과
+                const itemExisting = typeMap.get(friendlyTitle) || { title: friendlyTitle, count: 0 };
+                typeMap.set(friendlyTitle, { ...itemExisting, count: itemExisting.count + 1 });
             });
 
             // Convert itemsByTypeMap to Record object

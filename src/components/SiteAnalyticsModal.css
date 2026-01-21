@@ -146,6 +146,7 @@
 .range-inputs {
     display: flex;
     align-items: center;
+    color: #fff;
     gap: clamp(6px, 1.5vw, 12px);
     background: linear-gradient(135deg, rgba(59, 130, 246, 0.05), rgba(96, 165, 250, 0.05));
     padding: clamp(8px, 2vw, 12px) clamp(10px, 2.5vw, 16px);
