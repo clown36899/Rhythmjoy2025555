@@ -27,7 +27,7 @@
 
 /* Tab Bar Positioning - Standardized */
 .board-page-container.is-history-mode .board-tab-outer {
-  top: 60px !important;
+  /* top: 60px !important; */
   /* Right below header */
   z-index: 47;
 }

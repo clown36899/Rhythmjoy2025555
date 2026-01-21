@@ -50,6 +50,16 @@
     --memo-shadow-hover: 0 12px 30px rgba(0, 0, 0, 0.4);
 }
 
+.standard-mode .standard-view {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+    padding: 20px 16px;
+    width: 100%;
+    gap: 7px;
+    box-sizing: border-box;
+    align-items: start;
+}
+
 /* Anonymous Board GRID */
 .anonymous-mode .anonymous-view {
     display: grid;
