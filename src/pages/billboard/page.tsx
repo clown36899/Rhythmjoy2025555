@@ -15,6 +15,7 @@ import type { YouTubePlayerHandle } from "./types";
 import YouTubePlayer from "./components/YouTubePlayer";
 import { useYouTubeAPI } from "./hooks/useYouTubeAPI";
 import BillboardLayoutV1 from './preview/versions/v1/BillboardLayoutV1';
+import BillboardLayoutV8 from './preview/versions/v8/BillboardLayoutV8';
 import './billboard.css';
 
 export default function BillboardPage() {
@@ -37,6 +38,8 @@ export default function BillboardPage() {
   const playlistIndexRef = useRef(0);
   const [realtimeStatus, setRealtimeStatus] = useState<string>("연결중...");
   const [showV1, setShowV1] = useState(false); // [NEW] V1 카탈로그 일시 노출 상태
+  const [showV8, setShowV8] = useState(false); // [NEW] V8 카탈로그 일시 노출 상태
+  const catalogCountRef = useRef(0); // [NEW] 카탈로그 표시 횟수 (V1/V8 번갈아 표시)
   const [pendingReload, setPendingReload] = useState(false);
   const pendingReloadRef = useRef(false); // Ref 동기화 (stale closure 방지)
   const pendingReloadTimeRef = useRef<number>(0);
@@ -380,19 +383,33 @@ export default function BillboardPage() {
 
         // 테스트 모드 확인
         if (playedEventsCountRef.current % 3 === 0) {
-          log(`[전환] 3회 재생 완료 → V1 카탈로그 10초 노출`);
+          // V1과 V8을 번갈아 표시
+          catalogCountRef.current += 1;
+          const isV1 = catalogCountRef.current % 2 === 1; // 홀수번째는 V1, 짝수번째는 V8
+
+          log(`[전환] 3회 재생 완료 → ${isV1 ? 'V1' : 'V8'} 카탈로그 5분(300초) 노출 (카탈로그 표시 횟수: ${catalogCountRef.current})`);
 
           // 기존 타이머 정지
           clearAllTimers();
-          setShowV1(true);
 
-          // 10초 후 V1 종료 및 다음 슬라이드로 "진행"
+          if (isV1) {
+            setShowV1(true);
+          } else {
+            setShowV8(true);
+          }
+
+          // 5분(300초) 후 카탈로그 종료 및 다음 슬라이드로 "진행"
           setTimeout(() => {
-            setShowV1(false);
-            advanceToNextSlide('v1_end'); // V1 종료 후 다음 슬라이드 호출
-          }, 10000);
+            // 먼저 다음 슬라이드로 전환
+            advanceToNextSlide(isV1 ? 'v1_end' : 'v8_end');
+            // 그 다음 카탈로그 숨기기 (짧은 딜레이 후)
+            setTimeout(() => {
+              setShowV1(false);
+              setShowV8(false);
+            }, 100);
+          }, 300000);
 
-          // v1Timer는 clearAllTimers에 의해 정리되지 않도록 transitionTimersRef에 넣지 않음
+          // Timer는 clearAllTimers에 의해 정리되지 않도록 transitionTimersRef에 넣지 않음
           // (만약 넣는다면 clearAllTimers 호출 시 순서에 주의)
           // 여기서는 그냥 별도로 관리하거나 watchdog이 커버하게 둠
           return;
@@ -496,14 +513,28 @@ export default function BillboardPage() {
 
     // 테스트 모드 확인
     if (playedEventsCountRef.current % 3 === 0) {
-      log(`[전환(강제)] 3회 재생 완료 → V1 카탈로그 10초 노출`);
+      // V1과 V8을 번갈아 표시
+      catalogCountRef.current += 1;
+      const isV1 = catalogCountRef.current % 2 === 1;
+
+      log(`[전환(강제)] 3회 재생 완료 → ${isV1 ? 'V1' : 'V8'} 카탈로그 5분(300초) 노출 (카탈로그 표시 횟수: ${catalogCountRef.current})`);
       clearAllTimers();
-      setShowV1(true);
+
+      if (isV1) {
+        setShowV1(true);
+      } else {
+        setShowV8(true);
+      }
 
       setTimeout(() => {
-        setShowV1(false);
-        advanceToNextSlide('v1_end');
-      }, 10000);
+        // 먼저 다음 슬라이드로 전환
+        advanceToNextSlide(isV1 ? 'v1_end' : 'v8_end');
+        // 그 다음 카탈로그 숨기기 (짧은 딜레이 후)
+        setTimeout(() => {
+          setShowV1(false);
+          setShowV8(false);
+        }, 100);
+      }, 300000);
       return;
     }
 
@@ -1780,6 +1811,35 @@ export default function BillboardPage() {
             }
           }>
             <BillboardLayoutV1 />
+          </div>
+        )}
+
+        {/* [NEW] V8 카탈로그 오버레이 */}
+        {showV8 && (
+          <div style={
+            needsRotation ? {
+              position: 'fixed',
+              top: 0,
+              width: `${window.innerHeight}px`,
+              height: `${window.innerWidth}px`,
+              transform: 'rotate(90deg)',
+              transformOrigin: 'top left',
+              left: `${window.innerWidth}px`,
+              zIndex: 9999,
+              backgroundColor: '#000',
+              overflow: 'hidden'
+            } : {
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100vw',
+              height: '100vh',
+              zIndex: 9999,
+              backgroundColor: '#000',
+              overflow: 'hidden'
+            }
+          }>
+            <BillboardLayoutV8 />
           </div>
         )}
       </div>

@@ -6,7 +6,6 @@ import './BillboardLayoutV1.css';
 
 const BillboardLayoutV1: React.FC = () => {
     const { data: events = [] } = useEventsQuery();
-    const [currentTime, setCurrentTime] = useState(new Date());
     const [highlightIndex, setHighlightIndex] = useState(0);
 
     // 1. Filter and Prepare All Future Data (Events + Classes)
@@ -49,23 +48,15 @@ const BillboardLayoutV1: React.FC = () => {
         return [mainItem, ...others];
     }, [allData, eventOnlyData, highlightIndex]);
 
-    useEffect(() => {
-        const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-        return () => clearInterval(timer);
-    }, []);
-
     const getImageUrl = (item: any): string => {
         return item.image_full || item.image || item.image_url || '';
     };
+
 
     return (
         <div className="vertical-wall-root">
             {/* HUD Header */}
             <div className="wall-hud-header">
-                <div className="hud-time-block">
-                    <div className="h-time">{currentTime.toLocaleTimeString('ko-KR', { hour12: false, hour: '2-digit', minute: '2-digit' })}</div>
-                    <div className="h-date">{currentTime.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' })}</div>
-                </div>
                 <div className="hud-brand-block">
                     <div className="h-logo">DANCE BILLBOARD</div>
                     <div className="h-tag">KOREA </div>
