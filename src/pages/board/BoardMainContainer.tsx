@@ -243,8 +243,8 @@ export default function BoardMainContainer() {
         const isRightSwipe = deltaX < -minSwipeDistance;
 
         // Define board order for swipe navigation
-        // market = 구인, trade = 양도/양수
-        const boardOrder = ['free', 'anonymous', 'market', 'history'];
+        // market = 벼룩시장, trade = 문의
+        const boardOrder = ['free', 'anonymous', 'trade', 'market', 'history'];
         const currentIndex = boardOrder.indexOf(category);
 
         if (currentIndex === -1) return; // Not in swipeable boards

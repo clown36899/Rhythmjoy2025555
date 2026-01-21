@@ -670,10 +670,50 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                     {viewMode === 'daily' && (
                         <div className="range-picker">
                             <div className="range-shortcuts">
-                                <button onClick={() => setShortcutRange(0)}>오늘</button>
-                                <button onClick={() => setShortcutRange(1)}>어제</button>
-                                <button onClick={() => setShortcutRange(7)}>7일</button>
-                                <button onClick={() => setShortcutRange(30)}>30일</button>
+                                <div className="date-navigator">
+                                    <button onClick={() => {
+                                        const base = new Date(dateRange.end);
+                                        base.setDate(base.getDate() - 1);
+                                        const newDate = base.toISOString().split('T')[0];
+                                        setDateRange({ start: newDate, end: newDate });
+                                    }}>
+                                        <i className="ri-arrow-left-s-line"></i>
+                                    </button>
+                                    <span
+                                        className="current-date-display"
+                                        onClick={() => setShortcutRange(0)}
+                                        title="오늘로 이동"
+                                    >
+                                        {(() => {
+                                            const today = new Date().toISOString().split('T')[0];
+                                            const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+
+                                            // Only show simple text if start === end
+                                            if (dateRange.start === dateRange.end) {
+                                                if (dateRange.end === today) return '오늘';
+                                                if (dateRange.end === yesterday) return '어제';
+
+                                                // Format: MM.DD (Weekday)
+                                                const d = new Date(dateRange.end);
+                                                const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+                                                return `${d.getMonth() + 1}.${d.getDate()} (${weekdays[d.getDay()]})`;
+                                            }
+                                            return `${dateRange.start} ~ ${dateRange.end}`;
+                                        })()}
+                                    </span>
+                                    <button onClick={() => {
+                                        const base = new Date(dateRange.end);
+                                        base.setDate(base.getDate() + 1);
+                                        const newDate = base.toISOString().split('T')[0];
+                                        setDateRange({ start: newDate, end: newDate });
+                                    }}>
+                                        <i className="ri-arrow-right-s-line"></i>
+                                    </button>
+                                </div>
+                                <div className="period-buttons">
+                                    <button onClick={() => setShortcutRange(7)}>7일</button>
+                                    <button onClick={() => setShortcutRange(30)}>30일</button>
+                                </div>
                             </div>
                             <div className="range-inputs">
                                 <div className="date-input-group">

@@ -174,11 +174,11 @@ const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll, on
                                 ) : null;
                             })()}
                             <div className="today-card-info">
+                                <h3 className="today-card-title">{item.title}</h3>
                                 <p className="today-card-place">
                                     <i className="ri-map-pin-line"></i>
                                     <span className="today-card-place-text">{item.place_name || '장소 미정'}</span>
                                 </p>
-                                <h3 className="today-card-title">{item.title}</h3>
 
                             </div>
                         </div>
