@@ -1,13 +1,13 @@
-// 빌보드 PWA 서비스 워커 (Version: 20260117-0655 - Main V2 Menu Redesign)
-const CACHE_NAME = 'rhythmjoy-cache-v19';
+// 빌보드 PWA 서비스 워커 (Version: 20260121 - Billboard V1 Catalog + SW Error Fix)
+const CACHE_NAME = 'rhythmjoy-cache-v20';
 
 self.addEventListener('install', (event) => {
-  console.log('[SW] v19 - Main V2 Menu Redesign! 🎨');
+  console.log('[SW] v20 - Billboard V1 Catalog + SW Error Fix! 🎨');
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  console.log('[SW] v19 - Activated immediately! (Cache clear in background)');
+  console.log('[SW] v20 - Activated immediately! (Cache clear in background)');
 
   // 🔥 중요: event.waitUntil을 제거하여 캐시 삭제가 완료될 때까지 기다리지 않음
   // PWA가 캐시 락을 잡고 있어도 브라우저는 즉시 활성화되어 데이터를 불러올 수 있음
@@ -24,7 +24,17 @@ self.addEventListener('fetch', (event) => {
   // Supabase API 요청은 항상 네트워크 우선 (캐시 사용 안 함)
   // 이를 통해 로그아웃 후에도 캐시된 인증 정보가 사용되지 않음
   if (url.hostname.includes('supabase.co')) {
-    event.respondWith(fetch(event.request));
+    event.respondWith(
+      fetch(event.request).catch(err => {
+        console.warn('[SW] Supabase fetch failed (network error):', err.message);
+        // 네트워크 에러 시 적절한 응답 반환 (무한 재시도 방지)
+        return new Response(JSON.stringify({ error: 'Network error' }), {
+          status: 503,
+          statusText: 'Service Unavailable',
+          headers: { 'Content-Type': 'application/json' }
+        });
+      })
+    );
     return;
   }
 

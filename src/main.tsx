@@ -72,7 +72,11 @@ import MainV2TestPage from './pages/test/MainV2TestPage';
 const router = createBrowserRouter([
   {
     path: "/billboard/:userId",
-    element: <BillboardPage />,
+    element: (
+      <QueryClientProvider client={queryClient}>
+        <BillboardPage />
+      </QueryClientProvider>
+    ),
   },
   {
     path: "/billboard/:userId/preview",

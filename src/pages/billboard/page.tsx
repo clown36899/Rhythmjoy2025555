@@ -14,7 +14,7 @@ import { shuffleArray } from "./utils/helpers";
 import type { YouTubePlayerHandle } from "./types";
 import YouTubePlayer from "./components/YouTubePlayer";
 import { useYouTubeAPI } from "./hooks/useYouTubeAPI";
-import BillboardLayoutV7 from './preview/versions/v7/BillboardLayoutV7';
+import BillboardLayoutV1 from './preview/versions/v1/BillboardLayoutV1';
 import './billboard.css';
 
 export default function BillboardPage() {
@@ -36,7 +36,7 @@ export default function BillboardPage() {
   const shuffledPlaylistRef = useRef<number[]>([]); // Ref 동기화 (stale closure 방지)
   const playlistIndexRef = useRef(0);
   const [realtimeStatus, setRealtimeStatus] = useState<string>("연결중...");
-  const [showV7, setShowV7] = useState(false); // [NEW] V7 일시 노출 상태
+  const [showV1, setShowV1] = useState(false); // [NEW] V1 카탈로그 일시 노출 상태
   const [pendingReload, setPendingReload] = useState(false);
   const pendingReloadRef = useRef(false); // Ref 동기화 (stale closure 방지)
   const pendingReloadTimeRef = useRef<number>(0);
@@ -380,19 +380,19 @@ export default function BillboardPage() {
 
         // 테스트 모드 확인
         if (playedEventsCountRef.current % 3 === 0) {
-          log(`[전환] 3회 재생 완료 → V7 하이라이트 10초 노출`);
+          log(`[전환] 3회 재생 완료 → V1 카탈로그 10초 노출`);
 
           // 기존 타이머 정지
           clearAllTimers();
-          setShowV7(true);
+          setShowV1(true);
 
-          // 10초 후 V7 종료 및 다음 슬라이드로 "진행"
+          // 10초 후 V1 종료 및 다음 슬라이드로 "진행"
           setTimeout(() => {
-            setShowV7(false);
-            advanceToNextSlide('v7_end'); // V7 종료 후 다음 슬라이드 호출
+            setShowV1(false);
+            advanceToNextSlide('v1_end'); // V1 종료 후 다음 슬라이드 호출
           }, 10000);
 
-          // v7Timer는 clearAllTimers에 의해 정리되지 않도록 transitionTimersRef에 넣지 않음
+          // v1Timer는 clearAllTimers에 의해 정리되지 않도록 transitionTimersRef에 넣지 않음
           // (만약 넣는다면 clearAllTimers 호출 시 순서에 주의)
           // 여기서는 그냥 별도로 관리하거나 watchdog이 커버하게 둠
           return;
@@ -496,13 +496,13 @@ export default function BillboardPage() {
 
     // 테스트 모드 확인
     if (playedEventsCountRef.current % 3 === 0) {
-      log(`[전환(강제)] 3회 재생 완료 → V7 하이라이트 10초 노출`);
+      log(`[전환(강제)] 3회 재생 완료 → V1 카탈로그 10초 노출`);
       clearAllTimers();
-      setShowV7(true);
+      setShowV1(true);
 
       setTimeout(() => {
-        setShowV7(false);
-        advanceToNextSlide('v7_end');
+        setShowV1(false);
+        advanceToNextSlide('v1_end');
       }, 10000);
       return;
     }
@@ -1754,18 +1754,32 @@ export default function BillboardPage() {
           );
         })}
 
-        {/* [NEW] V7 하이라이트 오버레이 */}
-        {showV7 && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100vw',
-            height: '100vh',
-            zIndex: 9999,
-            backgroundColor: '#000'
-          }}>
-            <BillboardLayoutV7 />
+        {/* [NEW] V1 카탈로그 오버레이 */}
+        {showV1 && (
+          <div style={
+            needsRotation ? {
+              position: 'fixed',
+              top: 0,
+              width: `${window.innerHeight}px`,
+              height: `${window.innerWidth}px`,
+              transform: 'rotate(90deg)',
+              transformOrigin: 'top left',
+              left: `${window.innerWidth}px`,
+              zIndex: 9999,
+              backgroundColor: '#000',
+              overflow: 'hidden'
+            } : {
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100vw',
+              height: '100vh',
+              zIndex: 9999,
+              backgroundColor: '#000',
+              overflow: 'hidden'
+            }
+          }>
+            <BillboardLayoutV1 />
           </div>
         )}
       </div>

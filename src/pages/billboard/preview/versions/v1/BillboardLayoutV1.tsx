@@ -108,7 +108,7 @@ const BillboardLayoutV1: React.FC = () => {
                 <div className="h-qr-box">
                     <div className="h-qr-info">
                         <div className="q-t1">SCAN FOR MORE</div>
-                        <div className="q-t2">JOIN SOCIAL</div>
+                        <div className="q-t2">상세확인, 등록, 홍보</div>
                     </div>
                     <QRCodeSVG value="https://swingenjoy.com" size={100} level="H" />
                 </div>
