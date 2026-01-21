@@ -57,6 +57,8 @@ interface AnalyticsSummary {
         avg_browser_duration: number;
         recent_installs: { installed_at: string; user_id?: string; fingerprint?: string; display_mode?: string }[];
     };
+    // [PHASE 20] Type Detail Data
+    items_by_type?: Record<string, { title: string; count: number }[]>;
 }
 
 interface UserInfo {
@@ -70,6 +72,8 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
     const [viewMode, setViewMode] = useState<'summary' | 'daily' | 'advanced'>('daily'); // 기본값을 'daily'로 변경
     const [userList, setUserList] = useState<UserInfo[]>([]);
     const [showUserList, setShowUserList] = useState(false);
+    // [PHASE 20] Type Detail Modal State
+    const [selectedTypeDetail, setSelectedTypeDetail] = useState<{ type: string; items: { title: string; count: number }[] } | null>(null);
     // [PHASE 18] 캐싱
     const [cache, setCache] = useState<Map<string, AnalyticsSummary>>(new Map());
 
@@ -268,21 +272,20 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                     .select('user_id, nickname')
                     .in('user_id', userIdsArray);
 
-                if (!userError && users && users.length > 0) {
-                    setUserList(users);
-                    console.log(`[Analytics DEBUG] 로그인 사용자 목록 (${users.length}명):`);
-                    users.forEach(u => {
-                        console.log(`  - ${u.nickname || u.user_id.substring(0, 8)} (ID: ${u.user_id.substring(0, 8)}...)`);
-                    });
-                } else {
-                    // RLS 에러 또는 조회 실패시 fallback: ID만 표시
-                    const fallbackUsers = userIdsArray.map(user_id => ({
-                        user_id,
-                        nickname: null
-                    }));
-                    setUserList(fallbackUsers);
-                    console.log(`[Analytics DEBUG] Fallback user list (${fallbackUsers.length}명) - RLS 에러:`, userError);
+                if (userError) {
+                    console.error('[Analytics] Failed to fetch user nicknames:', userError);
                 }
+
+                // [FIX] DB에 없는 유저도 리스트에 포함시켜서 카운트(39명)와 리스트 개수(39개)를 일치시킴
+                const foundUsersMap = new Map(users?.map(u => [u.user_id, u.nickname]) || []);
+
+                const completeUserList = userIdsArray.map(id => ({
+                    user_id: id,
+                    nickname: foundUsersMap.get(id) || null // 닉네임 없으면 null (목록에서 ID로 표시됨)
+                }));
+
+                setUserList(completeUserList);
+                console.log(`[Analytics DEBUG] User List Synced: Count ${userIdsArray.length}, List Length ${completeUserList.length}`);
             } else {
                 setUserList([]);
             }
@@ -441,14 +444,40 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 console.error('[Analytics] Failed to fetch PWA stats:', error);
             }
 
+
+
+            // [PHASE 20] 타입별 상세 아이템 집계
+            const itemsByTypeMap = new Map<string, Map<string, { title: string, count: number }>>();
+
             const totalItemMap = new Map<string, { title: string, type: string, count: number }>();
             const totalSectionMap = new Map<string, number>();
 
             processedData.forEach(d => {
                 const key = d.target_type + ':' + d.target_id;
+                const type = d.target_type || 'unknown';
+
+                // Total Items
                 const existing = totalItemMap.get(key) || { title: d.target_title || d.target_id, type: d.target_type, count: 0 };
                 totalItemMap.set(key, { ...existing, count: existing.count + 1 });
+
+                // Section Stats
                 totalSectionMap.set(d.section, (totalSectionMap.get(d.section) || 0) + 1);
+
+                // Type Detail Items
+                if (!itemsByTypeMap.has(type)) {
+                    itemsByTypeMap.set(type, new Map());
+                }
+                const typeMap = itemsByTypeMap.get(type)!;
+                // 동일한 title로 그룹핑 (URL이나 ID 대신 사용자 친화적 타이틀 사용)
+                const titleKey = d.target_title || d.target_id;
+                const itemExisting = typeMap.get(titleKey) || { title: titleKey, count: 0 };
+                typeMap.set(titleKey, { ...itemExisting, count: itemExisting.count + 1 });
+            });
+
+            // Convert itemsByTypeMap to Record object
+            const itemsByTypeRecord: Record<string, { title: string; count: number }[]> = {};
+            itemsByTypeMap.forEach((map, type) => {
+                itemsByTypeRecord[type] = Array.from(map.values()).sort((a, b) => b.count - a.count);
             });
 
             const totalTopItems = Array.from(totalItemMap.values()).sort((a, b) => b.count - a.count).slice(0, 20);
@@ -515,8 +544,11 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 referrer_stats: referrerStats,
                 session_stats: sessionStats,
                 journey_patterns: journeyPatterns,
+
                 // PWA stats
-                pwa_stats: pwaStats
+                pwa_stats: pwaStats,
+                // Type details
+                items_by_type: itemsByTypeRecord
             };
 
             setSummary(newSummary);
@@ -651,42 +683,81 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                         <div className="analytics-loading">데이터 분석 중...</div>
                     ) : summary && summary.total_clicks > 0 ? (
                         <div className="analytics-scroll-container">
-                            <div className="analytics-summary-mini">
-                                <span>기간 내 총 클릭: <strong>{summary.total_clicks}</strong></span>
-                                <span
-                                    className="clickable-stat"
-                                    onClick={() => userList.length > 0 && setShowUserList(true)}
-                                    style={{ cursor: userList.length > 0 ? 'pointer' : 'default' }}
-                                    title={userList.length > 0 ? '사용자 목록 보기' : ''}
-                                >
-                                    클릭 로그인: <strong className="highlight-blue">{summary.user_clicks}</strong>
-                                    {userList.length > 0 && <i className="ri-user-line" style={{ marginLeft: '4px', fontSize: '0.9em' }}></i>}
-                                </span>
-                                <span>클릭 Guest: <strong className="highlight-gray">{summary.anon_clicks}</strong></span>
-                            </div>
-
-                            {/* 세션 기반 통계 (순수 접속자) */}
+                            {/* [PHASE 19] 통합 방문자 요약 카드 (Hero Section) */}
                             {(summary.session_users !== undefined || summary.session_anon !== undefined) && (
-                                <div className="analytics-summary-mini" style={{ marginTop: '8px', borderTop: '1px solid #333', paddingTop: '8px' }}>
-                                    <span style={{ fontSize: '0.85em', color: '#888' }}>순수 접속자 (세션 기반)</span>
-                                    <span>접속 로그인: <strong className="highlight-blue">{summary.session_users || 0}</strong></span>
-                                    <span>접속 Guest: <strong className="highlight-gray">{summary.session_anon || 0}</strong></span>
+                                <div className="analytics-hero-card">
+                                    <h3 className="hero-title">오늘의 총 방문자 (Unique Access)</h3>
+                                    <div className="hero-number">
+                                        {(summary.user_clicks || 0) + (summary.anon_clicks || 0)}
+                                        <span className="unit">명</span>
+                                    </div>
+
+                                    {/* 로그인 vs Guest 비율 바 */}
+                                    <div className="visitor-ratio-bar">
+                                        <div
+                                            className="ratio-fill-user"
+                                            style={{ width: `${((summary.user_clicks || 0) / ((summary.user_clicks || 0) + (summary.anon_clicks || 1)) * 100)}%` }}
+                                        ></div>
+                                    </div>
+
+                                    <div className="visitor-breakdown">
+                                        <div className="breakdown-item clickable" onClick={() => userList.length > 0 && setShowUserList(true)}>
+                                            <span className="label"><i className="ri-user-smile-line"></i> 로그인</span>
+                                            <span className="value highlight-blue">{summary.user_clicks || 0}</span>
+                                        </div>
+                                        <div className="breakdown-separator"></div>
+                                        <div className="breakdown-item">
+                                            <span className="label"><i className="ri-user-line"></i> Guest</span>
+                                            <span className="value highlight-gray">{summary.anon_clicks || 0}</span>
+                                        </div>
+                                    </div>
+
+                                    {/* [참고] 세션 로그 기반 정밀 데이터 */}
+                                    {(summary.session_users !== undefined) && (summary.session_users > 0 || summary.session_anon! > 0) && (
+                                        <div style={{ marginTop: '16px', fontSize: '0.75rem', color: '#555', textAlign: 'center' }}>
+                                            * 30초 이상 체류 (Beta): 로그인 {summary.session_users} / Guest {summary.session_anon}
+                                        </div>
+                                    )}
                                 </div>
                             )}
+
+                            {/* 활동량 요약 (기존 클릭 수 정보는 보조 지표로 축소) */}
+                            <div className="analytics-sub-stats">
+                                <div className="sub-stat-item">
+                                    <span className="label">총 페이지뷰(PV)</span>
+                                    <span className="value">{summary.total_clicks}</span>
+                                </div>
+                                <div className="sub-stat-item">
+                                    <span className="label">활동 회원</span>
+                                    <span className="value">{summary.user_clicks}</span>
+                                </div>
+                            </div>
+
 
                             {/* [PHASE 11] 타입별 통계 */}
                             {summary.type_breakdown.length > 0 && (
                                 <div className="type-breakdown-mini">
-                                    {summary.type_breakdown.map((item, idx) => {
-                                        const percent = ((item.count / summary.total_clicks) * 100).toFixed(1);
-                                        return (
-                                            <span key={idx} className="type-stat">
-                                                {getTypeName(item.type)}: <strong>{item.count}</strong> ({percent}%)
-                                            </span>
-                                        );
-                                    })}
+                                    {summary.type_breakdown.map(tb => (
+                                        <span
+                                            key={tb.type}
+                                            className="type-stat clickable"
+                                            onClick={() => {
+                                                if (summary.items_by_type && summary.items_by_type[tb.type]) {
+                                                    setSelectedTypeDetail({
+                                                        type: getTypeName(tb.type),
+                                                        items: summary.items_by_type[tb.type]
+                                                    });
+                                                }
+                                            }}
+                                            style={{ cursor: 'pointer' }}
+                                            title="클릭하여 상세 보기"
+                                        >
+                                            {getTypeName(tb.type)}: <strong>{tb.count}</strong> ({((tb.count / summary.total_clicks) * 100).toFixed(1)}%)
+                                        </span>
+                                    ))}
                                 </div>
                             )}
+
 
                             {/* 사용자 목록 팝업 */}
                             {showUserList && (
@@ -919,11 +990,31 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                     ) : (
                         <div className="analytics-empty">
                             <i className="ri-inbox-line"></i>
-                            <p>선택한 기간에 수집된 데이터가 없습니다.</p>
+                        </div>
+                    )}
+
+                    {/* [PHASE 20] Type Detail Modal */}
+                    {selectedTypeDetail && (
+                        <div className="user-list-overlay" onClick={() => setSelectedTypeDetail(null)}>
+                            <div className="user-list-modal" onClick={e => e.stopPropagation()}>
+                                <div className="user-list-header">
+                                    <h3><i className="ri-list-check"></i> {selectedTypeDetail.type} 상세 통계</h3>
+                                    <button onClick={() => setSelectedTypeDetail(null)}><i className="ri-close-line"></i></button>
+                                </div>
+                                <div className="user-list-body">
+                                    {selectedTypeDetail.items.map((item, index) => (
+                                        <div key={index} className="user-list-item">
+                                            <span className="user-index">{index + 1}</span>
+                                            <span className="user-name" style={{ fontSize: '0.9rem' }}>{item.title}</span>
+                                            <span className="user-id" style={{ color: '#60a5fa', fontWeight: 'bold' }}>{item.count}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                     )}
                 </div>
             </div>
-        </div>
+        </div >
     );
 }
