@@ -16,6 +16,11 @@ export const SiteAnalyticsProvider: React.FC<{ children: React.ReactNode }> = ({
     useEffect(() => {
         if (!SITE_ANALYTICS_CONFIG.ENABLED) return;
 
+        // [BILLBOARD EXCLUSION] 빌보드 페이지는 키오스크 모드이므로 세션 트래킹에서 제외
+        if (location.pathname.startsWith('/billboard')) {
+            return;
+        }
+
         // 1. 비로그인 유저 식별자 초기화 및 세션 시작 기록 (순수 로그인 집계용)
         initializeFingerprint();
         initializeAnalyticsSession(user || undefined, isAdmin);

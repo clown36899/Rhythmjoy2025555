@@ -47,6 +47,16 @@ interface AnalyticsSummary {
         bounce_rate: number;
     };
     journey_patterns?: { path: string[]; count: number }[];
+    // PWA tracking
+    pwa_stats?: {
+        total_installs: number;
+        pwa_sessions: number;
+        browser_sessions: number;
+        pwa_percentage: number;
+        avg_pwa_duration: number;
+        avg_browser_duration: number;
+        recent_installs: { installed_at: string; user_id?: string; fingerprint?: string; display_mode?: string }[];
+    };
 }
 
 interface UserInfo {
@@ -176,9 +186,13 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             const uniqueData = validData.filter(d => {
                 // 유저 식별자 (로그인 ID 또는 핑거프린트)
                 const userIdentifier = d.user_id || d.fingerprint || 'unknown';
-                // 고유 키: 타겟 + 유저 (날짜는 구분하지 않음 = 기간 내 1회만 인정)
-                // 만약 '일별' 중복을 허용하려면 날짜를 키에 포함해야 함. 유저 요구사항("100번 눌러도 1번")에 따라 전체 기간 Unique로 처리.
-                const uniqueKey = `${d.target_type}:${d.target_id}:${userIdentifier}`;
+
+                // [6시간 단위 중복 허용] 6시간 이내 동일 타겟/유저 클릭은 1회로 집계
+                // 카드에 표시되는 조회수(views)와 수치를 맞추기 위해 동일한 집계 로직 적용
+                const timestamp = new Date(d.created_at).getTime();
+                const timeBucket = Math.floor(timestamp / (6 * 3600 * 1000)); // 6시간(ms) 단위 버킷
+
+                const uniqueKey = `${d.target_type}:${d.target_id}:${userIdentifier}:${timeBucket}`;
 
                 if (uniqueSet.has(uniqueKey)) {
                     return false;
@@ -216,14 +230,25 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
 
             let sessionBasedUserIds = new Set<string>();
             let sessionBasedFingerprints = new Set<string>();
+            let loggedInFingerprints = new Set<string>(); // 로그인한 유저들의 Fingerprint 수집
 
             if (!sessionError && sessionData) {
                 console.log(`[Analytics DEBUG] Session data fetched: ${sessionData.length} sessions`);
 
+                // 1차 순회: 로그인 유저 식별 및 그들의 Fingerprint 수집
                 sessionData.forEach(session => {
                     if (session.user_id) {
                         sessionBasedUserIds.add(session.user_id);
-                    } else if (session.fingerprint) {
+                        if (session.fingerprint) {
+                            loggedInFingerprints.add(session.fingerprint);
+                        }
+                    }
+                });
+
+                // 2차 순회: 순수 익명 유저 식별 (로그인 유저의 흔적이 없는 경우만)
+                sessionData.forEach(session => {
+                    // 유저 ID가 없고, 로그인 기록이 있는 Fingerprint도 아니어야 함 (교집합 제거)
+                    if (!session.user_id && session.fingerprint && !loggedInFingerprints.has(session.fingerprint)) {
                         sessionBasedFingerprints.add(session.fingerprint);
                     }
                 });
@@ -232,7 +257,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             const sessionBasedLoggedIn = sessionBasedUserIds.size;
             const sessionBasedAnon = sessionBasedFingerprints.size;
 
-            console.log(`[Analytics DEBUG] Session-based - Logged in: ${sessionBasedLoggedIn}, Anonymous: ${sessionBasedAnon}`);
+            console.log(`[Analytics DEBUG] Session-based (Deduped) - Logged in: ${sessionBasedLoggedIn}, Anonymous: ${sessionBasedAnon}`);
 
             // 사용자 정보 추출 (클릭 기반 사용자 목록)
             if (clickBasedUserIds.size > 0) {
@@ -368,6 +393,54 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                     count
                 }));
 
+            // PWA 통계 수집
+            let pwaStats = undefined;
+            try {
+                // PWA 설치 수 조회
+                const { data: installData, error: installError } = await supabase
+                    .from('pwa_installs')
+                    .select('*')
+                    .gte('installed_at', startStr)
+                    .lte('installed_at', endStr)
+                    .order('installed_at', { ascending: false });
+
+                if (!installError && installData) {
+                    const totalInstalls = installData.length;
+                    const recentInstalls = installData.slice(0, 10);
+
+                    // PWA 세션 vs 브라우저 세션
+                    const pwaSessions = sessionData?.filter(s => s.is_pwa === true) || [];
+                    const browserSessions = sessionData?.filter(s => s.is_pwa === false) || [];
+
+                    // PWA 평균 체류 시간
+                    const pwaCompletedSessions = pwaSessions.filter(s => s.duration_seconds !== null);
+                    const avgPWADuration = pwaCompletedSessions.length > 0
+                        ? Math.round(pwaCompletedSessions.reduce((sum, s) => sum + (s.duration_seconds || 0), 0) / pwaCompletedSessions.length)
+                        : 0;
+
+                    // 브라우저 평균 체류 시간
+                    const browserCompletedSessions = browserSessions.filter(s => s.duration_seconds !== null);
+                    const avgBrowserDuration = browserCompletedSessions.length > 0
+                        ? Math.round(browserCompletedSessions.reduce((sum, s) => sum + (s.duration_seconds || 0), 0) / browserCompletedSessions.length)
+                        : 0;
+
+                    const totalSessions = (sessionData?.length || 0);
+                    const pwaPercentage = totalSessions > 0 ? (pwaSessions.length / totalSessions) * 100 : 0;
+
+                    pwaStats = {
+                        total_installs: totalInstalls,
+                        pwa_sessions: pwaSessions.length,
+                        browser_sessions: browserSessions.length,
+                        pwa_percentage: pwaPercentage,
+                        avg_pwa_duration: avgPWADuration,
+                        avg_browser_duration: avgBrowserDuration,
+                        recent_installs: recentInstalls
+                    };
+                }
+            } catch (error) {
+                console.error('[Analytics] Failed to fetch PWA stats:', error);
+            }
+
             const totalItemMap = new Map<string, { title: string, type: string, count: number }>();
             const totalSectionMap = new Map<string, number>();
 
@@ -441,7 +514,9 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 // [PHASE 15-17] Advanced analytics
                 referrer_stats: referrerStats,
                 session_stats: sessionStats,
-                journey_patterns: journeyPatterns
+                journey_patterns: journeyPatterns,
+                // PWA stats
+                pwa_stats: pwaStats
             };
 
             setSummary(newSummary);
@@ -697,7 +772,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                         </div>
                                     </div>
                                 </div>
-                            ) : (
+                            ) : viewMode === 'daily' ? (
                                 <div className="daily-view-content">
                                     <div className="daily-record-list">
                                         {summary.daily_details.map((day, dIdx) => (
@@ -723,6 +798,120 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                 </div>
                                             </div>
                                         ))}
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="advanced-view-content">
+                                    <div className="analytics-grid">
+                                        {/* PWA 통계 */}
+                                        {summary.pwa_stats && (
+                                            <div className="grid-section">
+                                                <h3><i className="ri-smartphone-line"></i> PWA 설치 및 사용 통계</h3>
+                                                <div className="pwa-stats-summary">
+                                                    <div className="stat-card">
+                                                        <div className="stat-label">총 설치 수</div>
+                                                        <div className="stat-value">{summary.pwa_stats.total_installs}</div>
+                                                    </div>
+                                                    <div className="stat-card">
+                                                        <div className="stat-label">PWA 세션</div>
+                                                        <div className="stat-value">{summary.pwa_stats.pwa_sessions}</div>
+                                                    </div>
+                                                    <div className="stat-card">
+                                                        <div className="stat-label">브라우저 세션</div>
+                                                        <div className="stat-value">{summary.pwa_stats.browser_sessions}</div>
+                                                    </div>
+                                                    <div className="stat-card">
+                                                        <div className="stat-label">PWA 사용 비율</div>
+                                                        <div className="stat-value">{summary.pwa_stats.pwa_percentage.toFixed(1)}%</div>
+                                                    </div>
+                                                </div>
+                                                <div className="pwa-duration-comparison" style={{ marginTop: '16px' }}>
+                                                    <div className="comparison-row">
+                                                        <span>PWA 평균 체류시간</span>
+                                                        <strong>{Math.floor(summary.pwa_stats.avg_pwa_duration / 60)}분 {summary.pwa_stats.avg_pwa_duration % 60}초</strong>
+                                                    </div>
+                                                    <div className="comparison-row">
+                                                        <span>브라우저 평균 체류시간</span>
+                                                        <strong>{Math.floor(summary.pwa_stats.avg_browser_duration / 60)}분 {summary.pwa_stats.avg_browser_duration % 60}초</strong>
+                                                    </div>
+                                                </div>
+                                                {summary.pwa_stats.recent_installs.length > 0 && (
+                                                    <div style={{ marginTop: '16px' }}>
+                                                        <h4 style={{ fontSize: '0.9em', marginBottom: '8px', color: '#888' }}>최근 설치 (최대 10개)</h4>
+                                                        <div className="recent-installs-list">
+                                                            {summary.pwa_stats.recent_installs.map((install, idx) => (
+                                                                <div key={idx} className="install-item" style={{ padding: '8px', borderBottom: '1px solid #333', fontSize: '0.85em' }}>
+                                                                    <div>{new Date(install.installed_at).toLocaleString('ko-KR')}</div>
+                                                                    <div style={{ color: '#888' }}>
+                                                                        {install.user_id ? `User: ${install.user_id.substring(0, 8)}...` : `Guest: ${install.fingerprint?.substring(0, 12)}...`}
+                                                                        {install.display_mode && ` (${install.display_mode})`}
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {/* Referrer 통계 */}
+                                        {summary.referrer_stats && summary.referrer_stats.length > 0 && (
+                                            <div className="grid-section">
+                                                <h3><i className="ri-links-line"></i> 유입 경로 분석</h3>
+                                                <div className="ranking-list">
+                                                    {summary.referrer_stats.map((ref, idx) => (
+                                                        <div key={idx} className="ranking-item">
+                                                            <span className="item-rank">{idx + 1}</span>
+                                                            <div className="item-info">
+                                                                <span className="item-title">{ref.source}</span>
+                                                            </div>
+                                                            <span className="item-count">{ref.count}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* 세션 통계 */}
+                                        {summary.session_stats && (
+                                            <div className="grid-section">
+                                                <h3><i className="ri-time-line"></i> 세션 통계</h3>
+                                                <div className="pwa-stats-summary">
+                                                    <div className="stat-card">
+                                                        <div className="stat-label">총 세션 수</div>
+                                                        <div className="stat-value">{summary.session_stats.total_sessions}</div>
+                                                    </div>
+                                                    <div className="stat-card">
+                                                        <div className="stat-label">평균 체류시간</div>
+                                                        <div className="stat-value">{Math.floor(summary.session_stats.avg_duration / 60)}분 {summary.session_stats.avg_duration % 60}초</div>
+                                                    </div>
+                                                    <div className="stat-card">
+                                                        <div className="stat-label">이탈률</div>
+                                                        <div className="stat-value">{summary.session_stats.bounce_rate.toFixed(1)}%</div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* 사용자 여정 패턴 */}
+                                        {summary.journey_patterns && summary.journey_patterns.length > 0 && (
+                                            <div className="grid-section">
+                                                <h3><i className="ri-route-line"></i> 사용자 여정 패턴 (Top 10)</h3>
+                                                <div className="journey-list">
+                                                    {summary.journey_patterns.map((pattern, idx) => (
+                                                        <div key={idx} className="journey-item" style={{ padding: '12px', borderBottom: '1px solid #333' }}>
+                                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                                                <div style={{ flex: 1 }}>
+                                                                    <div style={{ fontSize: '0.9em', color: '#888', marginBottom: '4px' }}>패턴 #{idx + 1}</div>
+                                                                    <div style={{ fontSize: '0.95em' }}>{pattern.path.join(' → ')}</div>
+                                                                </div>
+                                                                <div style={{ fontSize: '1.1em', fontWeight: 'bold', marginLeft: '16px' }}>{pattern.count}</div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                             )}

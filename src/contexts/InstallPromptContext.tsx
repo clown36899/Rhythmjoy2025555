@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { trackPWAInstall } from '../utils/analyticsEngine';
 
 interface BeforeInstallPromptEvent extends Event {
     prompt: () => Promise<void>;
@@ -84,12 +85,19 @@ export const InstallPromptProvider: React.FC<{ children: React.ReactNode }> = ({
 
         // PWA 설치 완료 감지
         // PWA 설치 완료 감지
-        const handleAppInstalled = () => {
+        const handleAppInstalled = async () => {
             // console.log('✅ [InstallPromptProvider] App installed!');
             setIsInstalled(true);
             setPromptEvent(null);
             // localStorage에 설치 기록
             localStorage.setItem('pwa_installed', 'true');
+
+            // DB에 설치 이벤트 기록 (trackPWAInstall 내부에서 최신 세션 확인)
+            try {
+                await trackPWAInstall();
+            } catch (error) {
+                console.error('[InstallPromptProvider] Failed to track PWA install:', error);
+            }
         };
 
         // console.log('👂 [InstallPromptProvider] Registering global event listeners...');

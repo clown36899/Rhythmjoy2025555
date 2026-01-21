@@ -97,6 +97,77 @@ export const getReferrerType = (referrer: string): string => {
 };
 
 /**
+ * PWA 모드 감지
+ */
+export const detectPWAMode = (): { isPWA: boolean; displayMode: string | null } => {
+    // 1. display-mode 체크 (다양한 모드 지원)
+    const standaloneMode = window.matchMedia('(display-mode: standalone)').matches;
+    const fullscreenMode = window.matchMedia('(display-mode: fullscreen)').matches;
+    const minimalUIMode = window.matchMedia('(display-mode: minimal-ui)').matches;
+    const windowControlsMode = window.matchMedia('(display-mode: window-controls-overlay)').matches;
+
+    // 2. iOS standalone 체크
+    const iosStandalone = (window.navigator as any).standalone === true;
+
+    // 3. URL 파라미터 체크 (manifest start_url fallback)
+    const urlParams = new URLSearchParams(window.location.search);
+    const isPWASource = urlParams.get('utm_source') === 'pwa';
+
+    const isPWA = standaloneMode || fullscreenMode || minimalUIMode || windowControlsMode || iosStandalone || isPWASource;
+
+    let displayMode: string | null = null;
+    if (standaloneMode) displayMode = 'standalone';
+    else if (fullscreenMode) displayMode = 'fullscreen';
+    else if (minimalUIMode) displayMode = 'minimal-ui';
+    else if (windowControlsMode) displayMode = 'window-controls-overlay';
+    else if (iosStandalone) displayMode = 'ios-standalone';
+    else if (isPWASource) displayMode = 'pwa-source';
+
+    return { isPWA, displayMode };
+};
+
+/**
+ * PWA 설치 이벤트 기록
+ */
+export const trackPWAInstall = async (user?: { id: string }) => {
+    const currentSessionId = getOrCreateSessionId();
+    const utm = parseUTMParams();
+    const referrer = document.referrer;
+    const fingerprint = localStorage.getItem(SITE_ANALYTICS_CONFIG.STORAGE_KEYS.FINGERPRINT);
+    const { displayMode } = detectPWAMode();
+
+    // 입력받은 유저가 없으면 현재 supabase 세션에서 확인
+    let userId = user?.id;
+    if (!userId) {
+        const { data: { session } } = await supabase.auth.getSession();
+        userId = session?.user?.id;
+    }
+
+    try {
+        await supabase.from('pwa_installs').insert({
+            user_id: userId || null,
+            fingerprint: fingerprint || null,
+            installed_at: new Date().toISOString(),
+            install_page: window.location.pathname,
+            display_mode: displayMode,
+            user_agent: navigator.userAgent,
+            platform: navigator.platform,
+            utm_source: utm.utm_source,
+            utm_medium: utm.utm_medium,
+            utm_campaign: utm.utm_campaign,
+            referrer: referrer || null,
+            session_id: currentSessionId,
+        });
+
+        if (SITE_ANALYTICS_CONFIG.ENV.LOG_TO_CONSOLE) {
+            console.log('[Analytics] PWA install tracked:', { userId, displayMode });
+        }
+    } catch (error) {
+        console.error('[Analytics] Failed to track PWA install:', error);
+    }
+};
+
+/**
  * 세션 초기화 및 사이트 접속 기록 (순수 로그인 집계용)
  */
 export const initializeAnalyticsSession = async (user?: { id: string }, isAdmin?: boolean) => {
@@ -104,6 +175,7 @@ export const initializeAnalyticsSession = async (user?: { id: string }, isAdmin?
     const utm = parseUTMParams();
     const referrer = document.referrer;
     const fingerprint = localStorage.getItem(SITE_ANALYTICS_CONFIG.STORAGE_KEYS.FINGERPRINT);
+    const { isPWA, displayMode } = detectPWAMode();
 
     if (!sessionStartTime) {
         const storedStart = sessionStorage.getItem('analytics_session_start');
@@ -123,12 +195,14 @@ export const initializeAnalyticsSession = async (user?: { id: string }, isAdmin?
             utm_medium: utm.utm_medium,
             utm_campaign: utm.utm_campaign,
             session_start: new Date(sessionStartTime).toISOString(),
+            is_pwa: isPWA,
+            pwa_display_mode: displayMode,
         }, {
             onConflict: 'session_id'
         });
 
         if (SITE_ANALYTICS_CONFIG.ENV.LOG_TO_CONSOLE) {
-            console.log('[Analytics] Session initialized:', { sessionId: currentSessionId, userId: user?.id, isAdmin });
+            console.log('[Analytics] Session initialized:', { sessionId: currentSessionId, userId: user?.id, isAdmin, isPWA, displayMode });
         }
     } catch (error) {
         console.error('[Analytics] Failed to initialize session:', error);
