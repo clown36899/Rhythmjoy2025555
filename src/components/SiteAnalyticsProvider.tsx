@@ -11,10 +11,14 @@ import { SITE_ANALYTICS_CONFIG } from '../config/analytics';
  */
 export const SiteAnalyticsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const location = useLocation();
-    const { user, isAdmin } = useAuth();
+    const { user, isAdmin, loading } = useAuth(); // [FIX] Get loading state
 
     useEffect(() => {
         if (!SITE_ANALYTICS_CONFIG.ENABLED) return;
+
+        // [FIX] Wait for auth to initialize before tracking
+        // This prevents logging as 'anonymous' while the user session is being restored
+        if (loading) return;
 
         // [BILLBOARD EXCLUSION] 빌보드 페이지는 키오스크 모드이므로 세션 트래킹에서 제외
         if (location.pathname.startsWith('/billboard')) {
@@ -93,7 +97,7 @@ export const SiteAnalyticsProvider: React.FC<{ children: React.ReactNode }> = ({
 
         window.addEventListener('click', handleGlobalClick, { capture: true });
         return () => window.removeEventListener('click', handleGlobalClick, { capture: true });
-    }, [location.pathname, user?.id, isAdmin]);
+    }, [location.pathname, user?.id, isAdmin, loading]); // [FIX] Add loading dependencies
 
     return <>{children}</>;
 };
