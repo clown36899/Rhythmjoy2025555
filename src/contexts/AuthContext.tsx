@@ -85,38 +85,77 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const metadata = userObj.user_metadata || {};
       const nickname = metadata.name || metadata.full_name || userObj.email?.split('@')[0] || 'User';
       const profileImage = metadata.avatar_url || metadata.picture || null;
-      const provider = userObj.app_metadata.provider || 'unknown';
 
-      // Capture real name from metadata if available (social login name)
-      const realName = metadata.name || metadata.full_name || null;
+      // [FIX] Provider detection logic
+      let provider = userObj.app_metadata?.provider || 'email';
+      // If provider is 'email' but it's actually Google/Kakao login (common in Supabase)
+      if (provider === 'email' && userObj.app_metadata?.providers && userObj.app_metadata.providers.length > 0) {
+        provider = userObj.app_metadata.providers[0];
+      }
+
+      // Capture real name logic
+      // Google: full_name is usually the real name
+      // Kakao: captured in backend logic, but if available here, use it
+      const realName = metadata.full_name || metadata.name || null;
 
       const { data: existingUser } = await supabase
         .from('board_users')
-        .select('user_id')
+        .select('user_id, status, nickname')
         .eq('user_id', userObj.id)
         .maybeSingle();
 
-      const upsertData = {
-        user_id: userObj.id,
-        nickname: existingUser ? undefined : nickname + '_' + Math.floor(Math.random() * 10000), // Only for NEW
-        profile_image: existingUser ? undefined : profileImage, // Only for NEW (don't overwrite custom profile)
-        real_name: realName, // Always sync
-        email: userObj.email, // Always sync
-        provider: provider, // Always sync
-        updated_at: new Date().toISOString()
-      };
+      if (existingUser) {
+        // [CASE 1] Update existing user (SYNC metadata)
+        const isWithdrawn = existingUser.status === 'deleted' || existingUser.nickname === '탈퇴한 사용자';
 
-      // Clean undefined to avoid overwriting with null if we meant "don't change"
-      Object.keys(upsertData).forEach(key => (upsertData as any)[key] === undefined && delete (upsertData as any)[key]);
+        const updateData: any = {
+          real_name: realName,
+          email: userObj.email,
+          provider: provider,
+          // phone_number: ... 
+          updated_at: new Date().toISOString()
+        };
 
-      const { error: upsertError } = await supabase
-        .from('board_users')
-        .upsert(upsertData, { onConflict: 'user_id' });
+        // If user was withdrawn, RESURRECT them
+        if (isWithdrawn) {
+          console.log('[AuthContext] 🧟‍♂️ Resurrecting withdrawn user:', userObj.id);
+          updateData.status = 'active';
+          updateData.deleted_at = null;
+          // Restore nickname/profile if available from metadata, or generate new
+          updateData.nickname = nickname + '_' + Math.floor(Math.random() * 10000);
+          if (profileImage) updateData.profile_image = profileImage;
+        }
 
-      if (upsertError) {
-        console.error('[AuthContext] Error syncing board_users record:', upsertError);
+        // Clean undefined
+        Object.keys(updateData).forEach(key => (updateData as any)[key] === undefined && delete (updateData as any)[key]);
+
+        const { error: updateError } = await supabase
+          .from('board_users')
+          .update(updateData)
+          .eq('user_id', userObj.id);
+
+        if (updateError) console.error('[AuthContext] Error updating board_users:', updateError);
+
       } else {
-        console.log('[AuthContext] Successfully synced board_users record.');
+        // [CASE 2] Insert new user
+        const insertData = {
+          user_id: userObj.id,
+          nickname: nickname + '_' + Math.floor(Math.random() * 10000),
+          profile_image: profileImage,
+          real_name: realName,
+          email: userObj.email,
+          provider: provider,
+          // phone_number: null, // Default
+          updated_at: new Date().toISOString()
+        };
+        // Clean undefined
+        Object.keys(insertData).forEach(key => (insertData as any)[key] === undefined && delete (insertData as any)[key]);
+
+        const { error: insertError } = await supabase
+          .from('board_users')
+          .insert([insertData]);
+
+        if (insertError) console.error('[AuthContext] Error inserting board_users:', insertError);
       }
     } catch (e) {
       console.error('[AuthContext] ensureBoardUser execution error:', e);
