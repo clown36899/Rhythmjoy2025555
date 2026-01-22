@@ -82,25 +82,69 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!userObj) return;
 
     try {
+      // 🔍 DEBUG: Log all metadata to understand what Supabase provides
+      console.log('[ensureBoardUser] 🔍 Full User Object Debug:', {
+        userId: userObj.id,
+        email: userObj.email,
+        app_metadata: userObj.app_metadata,
+        user_metadata: userObj.user_metadata,
+        identities: userObj.identities,
+      });
+
       const metadata = userObj.user_metadata || {};
       const nickname = metadata.name || metadata.full_name || userObj.email?.split('@')[0] || 'User';
       const profileImage = metadata.avatar_url || metadata.picture || null;
 
-      // [FIX] Provider detection logic
-      let provider = userObj.app_metadata?.provider || 'email';
-      // If provider is 'email' but it's actually Google/Kakao login (common in Supabase)
-      if (provider === 'email' && userObj.app_metadata?.providers && userObj.app_metadata.providers.length > 0) {
-        provider = userObj.app_metadata.providers[0];
+      // [FIX] Provider detection logic - Use tiered priority to handle social logins correctly
+      let provider = 'email'; // Default
+
+      // 1. Check Identities (Official Supabase social link)
+      const identities = userObj.identities || [];
+      const socialIdentity = identities.find(i => i.provider !== 'email');
+
+      if (socialIdentity) {
+        provider = socialIdentity.provider;
+        console.log('[ensureBoardUser] ✅ Provider from identities:', provider);
+      }
+      // 2. Check App Metadata Providers array
+      else if (userObj.app_metadata?.providers) {
+        const providers = userObj.app_metadata.providers;
+        const socialProvider = providers.find((p: string) => p !== 'email');
+        if (socialProvider) {
+          provider = socialProvider;
+          console.log('[ensureBoardUser] ✅ Provider from app_metadata.providers:', provider);
+        }
       }
 
-      // Capture real name logic
-      // Google: full_name is usually the real name
-      // Kakao: captured in backend logic, but if available here, use it
-      const realName = metadata.full_name || metadata.name || null;
+      // 3. Fallback: If still 'email', check metadata and profile image for social hints
+      if (provider === 'email') {
+        if (userObj.app_metadata?.provider && userObj.app_metadata.provider !== 'email') {
+          provider = userObj.app_metadata.provider;
+          console.log('[ensureBoardUser] ✅ Provider from app_metadata.provider:', provider);
+        } else if (metadata.kakao_id || metadata.iss?.includes('kakao') || userObj.email?.includes('kakao')) {
+          provider = 'kakao';
+          console.log('[ensureBoardUser] 🔍 Inferred Kakao from metadata/email');
+        } else if (profileImage?.includes('googleusercontent.com')) {
+          provider = 'google';
+          console.log('[ensureBoardUser] 🔍 Inferred Google from profile image');
+        } else if (profileImage?.includes('kakaocdn.net') || profileImage?.includes('kakao.com')) {
+          provider = 'kakao';
+          console.log('[ensureBoardUser] 🔍 Inferred Kakao from profile image');
+        } else if (metadata.iss && metadata.iss.includes('google')) {
+          provider = 'google';
+          console.log('[ensureBoardUser] 🔍 Inferred Google from iss metadata');
+        }
+      }
+
+      console.log(`[ensureBoardUser] 🎯 Final provider decision: "${provider}" for user ${userObj.id}`);
+
+      // Capture real name and phone from metadata
+      const realName = metadata.real_name || metadata.full_name || metadata.name || null;
+      const phoneNumber = metadata.phone_number || null;
 
       const { data: existingUser } = await supabase
         .from('board_users')
-        .select('user_id, status, nickname')
+        .select('user_id, status, nickname, real_name, phone_number, provider, profile_image')
         .eq('user_id', userObj.id)
         .maybeSingle();
 
@@ -109,32 +153,66 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const isWithdrawn = existingUser.status === 'deleted' || existingUser.nickname === '탈퇴한 사용자';
 
         const updateData: any = {
-          real_name: realName,
           email: userObj.email,
-          provider: provider,
-          // phone_number: ... 
           updated_at: new Date().toISOString()
         };
+
+        // 🛡️ Data Preservation & Correction Logic
+
+        // 1. 프로바이더 확정 및 보정
+        // - DB에 kakao_id가 이미 있다면 얘는 무조건 kakao입니다.
+        // - 혹은 현재 감지된 프로바이더가 'email'이 아닌 소셜 프로바이더이고, DB가 'email'이거나 없으면 업데이트합니다.
+        const hasKakaoIdInDB = (existingUser as any).kakao_id;
+        const effectiveProvider = hasKakaoIdInDB ? 'kakao' : provider;
+
+        if (effectiveProvider !== 'email' && (!existingUser.provider || existingUser.provider === 'email')) {
+          updateData.provider = effectiveProvider;
+          console.log(`[AuthContext] 🛠️ Correcting provider for user ${userObj.id}: ${existingUser.provider} -> ${effectiveProvider}`);
+        }
+
+        // 2. 실명 보충 (DB가 비어있을 때만)
+        if (realName && !existingUser.real_name) {
+          updateData.real_name = realName;
+        }
+
+        // 3. 전화번호 보충 (DB가 비어있을 때만)
+        if (phoneNumber && !existingUser.phone_number) {
+          updateData.phone_number = phoneNumber;
+        }
+
+        // 4. 프로필 이미지 보충
+        if (profileImage && !existingUser.profile_image) {
+          updateData.profile_image = profileImage;
+        }
+
+        // [추가] kakao_id가 DB에 없는데 메타데이터에 있다면 동기화 (기존 유저 대응)
+        if (metadata.kakao_id && !(existingUser as any).kakao_id) {
+          updateData.kakao_id = metadata.kakao_id;
+        }
 
         // If user was withdrawn, RESURRECT them
         if (isWithdrawn) {
           console.log('[AuthContext] 🧟‍♂️ Resurrecting withdrawn user:', userObj.id);
           updateData.status = 'active';
           updateData.deleted_at = null;
-          // Restore nickname/profile if available from metadata, or generate new
           updateData.nickname = nickname + '_' + Math.floor(Math.random() * 10000);
           if (profileImage) updateData.profile_image = profileImage;
         }
 
-        // Clean undefined
-        Object.keys(updateData).forEach(key => (updateData as any)[key] === undefined && delete (updateData as any)[key]);
+        // Check if there are actual changes before updating
+        const hasChanges = Object.keys(updateData).some(key =>
+          key !== 'updated_at' && updateData[key] !== (existingUser as any)[key]
+        );
 
-        const { error: updateError } = await supabase
-          .from('board_users')
-          .update(updateData)
-          .eq('user_id', userObj.id);
+        if (hasChanges || isWithdrawn) {
+          console.log('[AuthContext] 🔄 Updating board_users with corrected data:', Object.keys(updateData));
+          const { error: updateError } = await supabase
+            .from('board_users')
+            .update(updateData)
+            .eq('user_id', userObj.id);
 
-        if (updateError) console.error('[AuthContext] Error updating board_users:', updateError);
+          if (updateError) console.error('[AuthContext] Error updating board_users:', updateError);
+        }
 
       } else {
         // [CASE 2] Insert new user
@@ -143,9 +221,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           nickname: nickname + '_' + Math.floor(Math.random() * 10000),
           profile_image: profileImage,
           real_name: realName,
+          phone_number: phoneNumber,
           email: userObj.email,
           provider: provider,
-          // phone_number: null, // Default
+          // kakao_id: metadata.kakao_id || null, // Optional: if column exists
           updated_at: new Date().toISOString()
         };
         // Clean undefined

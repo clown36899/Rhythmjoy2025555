@@ -143,7 +143,14 @@ export const handler: Handler = async (event) => {
         email,
         password: randomPassword,
         email_confirm: true,
-        user_metadata: { name: nickname, kakao_id: kakaoId }
+        user_metadata: {
+          name: nickname,
+          full_name: realName || nickname, // Save real name as full_name for Supabase compatibility
+          real_name: realName,
+          phone_number: phoneNumber,
+          kakao_id: kakaoId,
+          provider: 'kakao'
+        }
       });
 
       if (createError) {
@@ -163,6 +170,23 @@ export const handler: Handler = async (event) => {
     }
 
     if (!userId) throw new Error('Could not determine User ID for session');
+
+    // [중요] 기존 사용자든 신규 사용자든, 최신 카카오 정보를 인증 메타데이터에 연동
+    // 이를 통해 프론트엔드 세션(user object)에서 즉시 최신 정보를 인지할 수 있음
+    try {
+      await supabaseAdmin.auth.admin.updateUserById(userId, {
+        user_metadata: {
+          kakao_id: kakaoId,
+          real_name: realName,
+          phone_number: phoneNumber,
+          full_name: realName || nickname,
+          provider: 'kakao'
+        }
+      });
+      console.log('[kakao-login] ✅ User metadata updated successfully');
+    } catch (metaError) {
+      console.error('[kakao-login] ⚠️ Failed to update user metadata:', metaError);
+    }
 
     // 4. 병렬 처리: 프로필 갱신(DB)과 세션 생성(Auth)
     const upsertPromise = (async () => {
