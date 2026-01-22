@@ -1,3 +1,4 @@
+/// <reference lib="deno.ns" />
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 export default async (request: Request, context: any) => {
@@ -61,6 +62,8 @@ export default async (request: Request, context: any) => {
         let email: string = '';
         let nickname: string = '';
         let profileImage: string | null = null;
+        let realName: string | null = null;
+        let phoneNumber: string | null = null;
         let usingOIDC = false;
 
         if (kakaoIdToken) {
@@ -96,9 +99,17 @@ export default async (request: Request, context: any) => {
             }
 
             kakaoId = String(userData.id);
-            email = userData.kakao_account?.email || `kakao_${kakaoId}@swingenjoy.com`;
-            nickname = userData.properties?.nickname || userData.kakao_account?.profile?.nickname || `User${kakaoId}`;
-            profileImage = userData.properties?.profile_image || userData.kakao_account?.profile?.profile_image_url;
+            const kakaoAccount = userData.kakao_account || {};
+            email = kakaoAccount.email || `kakao_${kakaoId}@swingenjoy.com`;
+            nickname = userData.properties?.nickname || kakaoAccount.profile?.nickname || `User${kakaoId}`;
+            profileImage = userData.properties?.profile_image || kakaoAccount.profile?.profile_image_url;
+
+            // 실명 및 전화번호 추출 추가
+            realName = kakaoAccount.name || null;
+            const phoneNumberRaw = kakaoAccount.phone_number || '';
+            phoneNumber = phoneNumberRaw ? phoneNumberRaw.replace('+82 ', '0').replace(/-/g, '') : null;
+
+            console.log(`[kakao-login-edge] 👤 User Info Extracted: name=${!!realName}, phone=${!!phoneNumber}`);
         }
 
         // 6. Supabase User Lookup/Creation (RPC Optimized: 1 RT)
@@ -112,7 +123,6 @@ export default async (request: Request, context: any) => {
 
         if (rpcData) {
             userId = rpcData.user_id;
-            // Use email from Auth if available, otherwise trust RPC or fallback
             if (rpcData.email) email = rpcData.email;
             console.log('[kakao-login-edge] ✅ User found via RPC');
         } else {
@@ -122,12 +132,19 @@ export default async (request: Request, context: any) => {
         if (!userId) {
             // Create new user
             console.log('[kakao-login-edge] Creating new user');
-            const randomPassword = crypto.randomUUID(); // Web API
+            const randomPassword = crypto.randomUUID();
             const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
                 email,
                 password: randomPassword,
                 email_confirm: true,
-                user_metadata: { name: nickname, kakao_id: kakaoId }
+                user_metadata: {
+                    name: nickname,
+                    full_name: realName || nickname,
+                    real_name: realName,
+                    phone_number: phoneNumber,
+                    kakao_id: kakaoId,
+                    provider: 'kakao'
+                }
             });
             if (createError && !createError.message?.includes('registered')) {
                 throw createError;
@@ -135,26 +152,53 @@ export default async (request: Request, context: any) => {
             if (newUser?.user) userId = newUser.user.id;
         }
 
-        // 7. Parallel: Upsert & Session Generation
-        console.log('[kakao-login-edge] 4. Parallel Processing');
+        if (!userId) {
+            // Fallback by email
+            const { data: listData } = await supabaseAdmin.auth.admin.listUsers();
+            const userByEmail = listData?.users.find((u: any) => u.email === email);
+            if (userByEmail) userId = userByEmail.id;
+        }
 
-        // ⚠️ profile_image는 신규 사용자에게만 설정하고, 기존 사용자는 덮어쓰지 않음
+        if (!userId) throw new Error('Could not determine User ID');
+
+        // [중요] 기존 사용자든 신규 사용자든 메타데이터 최신화
+        try {
+            console.log(`[kakao-login-edge] 🔄 Updating Auth metadata for user: ${userId}`);
+            await supabaseAdmin.auth.admin.updateUserById(userId, {
+                user_metadata: {
+                    kakao_id: kakaoId,
+                    real_name: realName,
+                    phone_number: phoneNumber,
+                    full_name: realName || nickname,
+                    provider: 'kakao'
+                }
+            });
+            console.log('[kakao-login-edge] ✅ Auth metadata updated successfully');
+        } catch (e) {
+            console.error('[kakao-login-edge] ⚠️ Failed to update auth metadata:', e);
+        }
+
+        // 7. Parallel: Upsert & Session Generation
+        console.log('[kakao-login-edge] 4. Parallel Processing (Database Sync)');
+
         const isNewUser = !rpcData;
         const updateData: any = {
             user_id: userId,
             kakao_id: kakaoId,
             nickname: nickname,
+            real_name: realName,
+            phone_number: phoneNumber,
+            provider: 'kakao', // ✅ 프로바이더 명시
             updated_at: new Date().toISOString()
         };
 
-        // profile_image는 신규 사용자이고 카카오에서 이미지를 제공한 경우에만 설정
         if (isNewUser && profileImage) {
             updateData.profile_image = profileImage;
-            console.log('[kakao-login-edge] 신규 사용자 - 카카오 프로필 이미지 설정');
+            console.log('[kakao-login-edge] ✨ New User - Setting profile image');
         } else if (isNewUser) {
-            console.log('[kakao-login-edge] 신규 사용자 - 카카오 프로필 이미지 없음');
+            console.log('[kakao-login-edge] ✨ New User - No profile image provided');
         } else {
-            console.log('[kakao-login-edge] 기존 사용자 - profile_image 유지 (덮어쓰지 않음)');
+            console.log(`[kakao-login-edge] 🔄 Existing User - Syncing social info (real_name: ${!!realName}, phone: ${!!phoneNumber})`);
         }
 
         const upsertPromise = supabaseAdmin.from('board_users').upsert(updateData, { onConflict: 'user_id' });
