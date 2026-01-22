@@ -171,8 +171,8 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             } else {
                 // Daily: 선택한 기간
                 startStr = dateRange.start + 'T00:00:00+09:00';
-                endStr = dateRange.end + 'T23:59:59+09:59'; // Changed to 23:59:59 to include the whole end day
-                console.log(`[Analytics] Daily Mode: Fetching Range ${startStr} ~ ${endStr}`);
+                endStr = dateRange.end + 'T23:59:59+09:00'; // [FIX] Timezone offset fix
+                console.log(`[Analytics] Daily Mode: Fetch Range ${startStr} ~ ${endStr}`);
             }
 
             // [PHASE 20] Sever-side Analytics (RPC) - Accurate Counts via DB
@@ -265,24 +265,51 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
 
             console.log(`[Analytics DEBUG] Final Stats - Logged in: ${clickBasedLoggedIn}, Anon: ${clickBasedAnon}, Total: ${totalVisits}`);
 
-            // [NOTE]            // [LEGACY CLEANUP] Session-based logic is replaced by RPC.
-            // Mapping legacy variables to simple counts or 0 to satisfy TS and prevent errors.
-            // If explicit session tracking is needed later, we must add it to RPC.
-            const sessionData: any[] = [];
+            // [PHASE 16] 세션 통계 직접 조회 (PWA 및 체류시간 분석용)
+            // Note: SiteAnalyticsProvider tracks sessions in session_logs.
+            const { data: sessions, error: sessionsError } = await supabase
+                .from('session_logs')
+                .select('*')
+                .gte('session_start', startStr)
+                .lte('session_start', endStr)
+                .eq('is_admin', false);
+
+            let sessionStats = {
+                total_sessions: 0,
+                avg_duration: 0,
+                bounce_rate: 0
+            };
+
+            if (!sessionsError && sessions) {
+                const completedSessions = sessions.filter((s: any) => s.duration_seconds !== null);
+                const totalDuration = completedSessions.reduce((sum: number, s: any) => sum + (s.duration_seconds || 0), 0);
+
+                // [PHASE 18] 이탈률 개선: 클릭 1회 이하 AND 체류 시간 30초 미만
+                const bouncedSessions = completedSessions.filter((s: any) => {
+                    const clicks = s.total_clicks || 0;
+                    const duration = s.duration_seconds || 0;
+                    return clicks <= 1 && duration < 30;
+                });
+
+                sessionStats = {
+                    total_sessions: sessions.length,
+                    avg_duration: completedSessions.length > 0 ? Math.round(totalDuration / completedSessions.length) : 0,
+                    bounce_rate: completedSessions.length > 0 ? (bouncedSessions.length / completedSessions.length) * 100 : 0
+                };
+            }
+
+            // [NOTE] [LEGACY CLEANUP] Session-based logic is replaced by RPC for some metrics,
+            // but for PWA/Session details, we use the fetched 'sessions' data.
+            const sessionData = sessions || [];
 
             // [REMOVED] 30-second stay logic - replaced with per-user duration in user list
             // 3. [Activity Unique] for consistency in charts
             const uniqueData = visitorUniqueData;
 
-            // The session-based user statistics and session_logs fetch are now removed as per instruction.
-            // The RPC call provides click-based logged-in and anonymous counts.
-            // If session-based metrics are still needed, they would need to be added to the RPC or re-implemented.
-
             // 통계 집계는 이제 '순수 유니크 데이터(uniqueData)'를 기준으로 함
             const processedData = uniqueData;
 
             const total = processedData.length;
-            // loggedIn and anon are now calculated from sessions above
             const admin = processedData.filter(d => d.is_admin).length;
 
             // [PHASE 11] 타입별 클릭 수 집계
@@ -325,36 +352,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 .map(([source, count]) => ({ source, count }));
 
             // [PHASE 16] 세션 통계 (이탈률 정확도 개선)
-            const { data: sessions, error: sessionsError } = await supabase
-                .from('session_logs')
-                .select('*')
-                .gte('session_start', startStr)
-                .lte('session_start', endStr)
-                .eq('is_admin', false);
-
-            let sessionStats = {
-                total_sessions: 0,
-                avg_duration: 0,
-                bounce_rate: 0
-            };
-
-            if (!sessionsError && sessions) {
-                const completedSessions = sessions.filter(s => s.duration_seconds !== null);
-                const totalDuration = completedSessions.reduce((sum, s) => sum + (s.duration_seconds || 0), 0);
-
-                // [PHASE 18] 이탈률 개선: 클릭 1회 이하 AND 체류 시간 30초 미만
-                const bouncedSessions = completedSessions.filter(s => {
-                    const clicks = s.total_clicks || 0;
-                    const duration = s.duration_seconds || 0;
-                    return clicks <= 1 && duration < 30;
-                });
-
-                sessionStats = {
-                    total_sessions: sessions.length,
-                    avg_duration: completedSessions.length > 0 ? Math.round(totalDuration / completedSessions.length) : 0,
-                    bounce_rate: completedSessions.length > 0 ? (bouncedSessions.length / completedSessions.length) * 100 : 0
-                };
-            }
+            // Calculated above in the restored session fetch block.
 
             // [PHASE 17] 사용자 여정 패턴 (세션별 클릭 순서)
             const journeyMap = new Map<string, number>();
@@ -400,22 +398,22 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                     const recentInstalls = installData.slice(0, 10);
 
                     // PWA 세션 vs 브라우저 세션
-                    const pwaSessions = sessionData?.filter(s => s.is_pwa === true) || [];
-                    const browserSessions = sessionData?.filter(s => s.is_pwa === false) || [];
+                    const pwaSessions = sessionData.filter((s: any) => s.is_pwa === true);
+                    const browserSessions = sessionData.filter((s: any) => s.is_pwa === false);
 
                     // PWA 평균 체류 시간
-                    const pwaCompletedSessions = pwaSessions.filter(s => s.duration_seconds !== null);
+                    const pwaCompletedSessions = pwaSessions.filter((s: any) => s.duration_seconds !== null);
                     const avgPWADuration = pwaCompletedSessions.length > 0
-                        ? Math.round(pwaCompletedSessions.reduce((sum, s) => sum + (s.duration_seconds || 0), 0) / pwaCompletedSessions.length)
+                        ? Math.round(pwaCompletedSessions.reduce((sum: number, s: any) => sum + (s.duration_seconds || 0), 0) / pwaCompletedSessions.length)
                         : 0;
 
                     // 브라우저 평균 체류 시간
-                    const browserCompletedSessions = browserSessions.filter(s => s.duration_seconds !== null);
+                    const browserCompletedSessions = browserSessions.filter((s: any) => s.duration_seconds !== null);
                     const avgBrowserDuration = browserCompletedSessions.length > 0
-                        ? Math.round(browserCompletedSessions.reduce((sum, s) => sum + (s.duration_seconds || 0), 0) / browserCompletedSessions.length)
+                        ? Math.round(browserCompletedSessions.reduce((sum: number, s: any) => sum + (s.duration_seconds || 0), 0) / browserCompletedSessions.length)
                         : 0;
 
-                    const totalSessions = (sessionData?.length || 0);
+                    const totalSessions = sessionData.length;
                     const pwaPercentage = totalSessions > 0 ? (pwaSessions.length / totalSessions) * 100 : 0;
 
                     pwaStats = {
