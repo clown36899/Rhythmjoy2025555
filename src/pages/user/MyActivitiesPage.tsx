@@ -24,8 +24,9 @@ import '../../styles/components/MobileShell.css'; // Import MobileShell styles
 import './styles/MyActivitiesPage.css'; // New dedicated styles
 import './styles/RegisteredEvents.css'; // New managed events styles
 import '../social/components/GroupDirectory.css'; // Reuse group styles
+import MyImpactCard from './components/MyImpactCard';
 
-type TabType = 'events' | 'classes' | 'groups' | 'posts';
+type TabType = 'events' | 'classes' | 'groups' | 'posts' | 'stats';
 
 export default function MyActivitiesPage() {
     const { user, isAdmin } = useAuth();
@@ -189,7 +190,7 @@ export default function MyActivitiesPage() {
             <div className="my-activities-content evt-ongoing-section evt-preview-section my-activities-view-container" style={{ paddingTop: '60px' }}>
 
                 {/* Tabs restored and expanded as per user request */}
-                <div className="activity-tabs-container" style={{ display: 'flex', margin: '16px 8px', gap: '4px' }}>
+                <div className="activity-tabs-container" style={{ display: 'flex', margin: '16px 8px', gap: '4px', flexWrap: 'wrap' }}>
                     <button
                         className={`activity-tab-btn ${currentTab === 'events' ? 'active' : ''}`}
                         onClick={() => handleTabChange('events')}
@@ -218,6 +219,13 @@ export default function MyActivitiesPage() {
                     >
                         내가 쓴 글
                     </button>
+                    <button
+                        className={`activity-tab-btn ${currentTab === 'stats' ? 'active' : ''}`}
+                        onClick={() => handleTabChange('stats')}
+                        style={{ flex: 0.8, padding: '8px 4px', fontSize: '13px', minWidth: '50px' }}
+                    >
+                        통계
+                    </button>
                 </div>
 
                 {loading ? (
@@ -226,6 +234,22 @@ export default function MyActivitiesPage() {
                     </div>
                 ) : (
                     <>
+                        {/* STATS TAB CONTENT */}
+                        {currentTab === 'stats' && (
+                            <div className="activity-tab-content" style={{ padding: '0 12px' }}>
+                                <div className="evt-v2-section-title" style={{ padding: '0 4px', marginBottom: '12px' }}>
+                                    <i className="ri-bar-chart-groupped-fill" style={{ color: '#22c55e', marginRight: '6px' }}></i>
+                                    <span>활동 분석</span>
+                                </div>
+                                <MyImpactCard
+                                    user={user}
+                                    posts={posts}
+                                    events={events} // Pass all events for aggregation
+                                    initialExpanded={true}
+                                />
+                            </div>
+                        )}
+
                         {(currentTab === 'events' || currentTab === 'classes') && (
                             <div className="activity-tab-content">
                                 <div className="evt-favorites-section" style={{ marginTop: '0' }}>
@@ -353,8 +377,15 @@ export default function MyActivitiesPage() {
                             </div>
                         )}
 
+                        {/* ... (other imports) */}
+
+                        {/* ... */}
+
                         {currentTab === 'posts' && (
                             <div className="board-posts-list">
+                                {/* My Impact Dashboard */}
+                                {/* My Impact Dashboard MOVED TO STATS TAB */}
+
                                 <div className="evt-favorites-section" style={{ marginTop: '0' }}>
                                     <div className="evt-v2-section-title" style={{ padding: '0 16px', marginBottom: '12px' }}>
                                         <i className="ri-chat-3-fill" style={{ color: '#ffaa00', marginRight: '6px' }}></i>

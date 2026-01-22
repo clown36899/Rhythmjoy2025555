@@ -6,49 +6,31 @@ const supabaseServiceKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXB
 const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
 async function checkTableStructure() {
-    console.log('\n=== Checking board_anonymous_comment_likes structure ===\n');
+    console.log('\n=== Checking POSTS table structure ===\n');
 
-    // Method 1: Try to select from table to see columns
-    const { data: sampleData, error: sampleError } = await supabase
-        .from('board_anonymous_comment_likes')
+    // Method: Try to select from table to see columns
+    const { data: eventsSample, error: eventsError } = await supabase
+        .from('events')
         .select('*')
         .limit(1);
 
-    if (sampleError) {
-        console.log('Sample query error:', sampleError.message);
+    if (eventsError) {
+        console.log('Events query error:', eventsError.message);
     } else {
-        console.log('Sample data columns:', sampleData && sampleData.length > 0 ? Object.keys(sampleData[0]) : 'Table is empty');
+        console.log('Events Sample keys:', eventsSample && eventsSample.length > 0 ? Object.keys(eventsSample[0]) : 'Table is empty');
     }
 
-    // Method 2: Query information_schema using RPC
-    const { data: schemaData, error: schemaError } = await supabase
-        .rpc('exec_sql', {
-            sql: `
-                SELECT column_name, data_type, is_nullable, column_default
-                FROM information_schema.columns 
-                WHERE table_name = 'board_anonymous_comment_likes' 
-                ORDER BY ordinal_position;
-            `
-        });
+    console.log('\n=== Checking SITE_ANALYTICS_LOGS table structure ===\n');
 
-    if (schemaError) {
-        console.log('\nRPC query error:', schemaError.message);
-    } else {
-        console.log('\nTable schema from information_schema:');
-        console.table(schemaData);
-    }
-
-    console.log('\n=== Checking board_anonymous_comment_dislikes structure ===\n');
-
-    const { data: dislikeSample, error: dislikeError } = await supabase
-        .from('board_anonymous_comment_dislikes')
+    const { data: logsSample, error: logsError } = await supabase
+        .from('site_analytics_logs')
         .select('*')
         .limit(1);
 
-    if (dislikeError) {
-        console.log('Sample query error:', dislikeError.message);
+    if (logsError) {
+        console.log('Logs query error:', logsError.message);
     } else {
-        console.log('Sample data columns:', dislikeSample && dislikeSample.length > 0 ? Object.keys(dislikeSample[0]) : 'Table is empty');
+        console.log('Logs Sample keys:', logsSample && logsSample.length > 0 ? Object.keys(logsSample[0]) : 'Table is empty');
     }
 }
 

@@ -86,6 +86,7 @@ export interface Event {
   venue_custom_link?: string | null;
   storage_path?: string | null;
   scope?: string;
+  views?: number; // Added for analytics
 }
 
 export interface BillboardUser {
