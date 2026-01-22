@@ -1,6 +1,4 @@
-
 import { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import "./BoardUserManagementModal.css"; // Reuse BOUM styles
@@ -80,8 +78,8 @@ export default function AdminSecureMembersModal({ isOpen, onClose }: AdminSecure
 
     if (!isOpen) return null;
 
-    return createPortal(
-        <div className="admin-modal-overlay">
+    return (
+        <div className="boum-overlay">
             {/* Reuse boum-container style with overrides for sizing */}
             <div className="boum-container secure-container-override" translate="no" style={{
                 maxWidth: '1000px',
@@ -182,9 +180,6 @@ export default function AdminSecureMembersModal({ isOpen, onClose }: AdminSecure
                     )}
                 </div>
             </div>
-
-            {/* Nested AdminUserInfoModal removed as it's no longer needed */}
-        </div>,
-        document.body
+        </div>
     );
 }

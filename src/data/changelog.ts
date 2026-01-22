@@ -8,6 +8,35 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '3.6.2',
+        date: '2026-01-23',
+        changes: [
+            '[🔒 Admin] 관리자 권한 판별 로직 메인 관리자 전용으로 원복',
+            '[🔒 Security] 실시간 접속자(session_logs) 조회 권한 강화 (RLS)',
+            '[🔧 Fix] AuthContext 내 미존재 컬럼(is_admin) 조회 로직 제거',
+            '[🧹 Data] 테스트용 유령 데이터 및 중복 로그 클린업'
+        ]
+    },
+    {
+        version: '3.6.1',
+        date: '2026-01-23',
+        changes: [
+            '[✨ Auth] 카카오 로그인 실명/전화번호 연동 최적화 (기존 가입자 포함)',
+            '[✨ Admin] 관리자 보완 조회 시스템(회원관리) 정상화 (is_admin 권한 및 CSS 복구)',
+            '[🔧 Auth] AuthContext 데이터 신뢰 정책 개선 (DB 데이터 우선 정책 적용)',
+            '[🔧 모달] 전역 모달 시스템 렌더링 최적화 및 이중 포탈 제거'
+        ]
+    },
+    {
+        version: '3.6.0',
+        date: '2026-01-21',
+        changes: [
+            '[✨ 기능] 범용 조회수 추적 시스템(item_views) 구축',
+            '[🔧 개선] 모든 콘텐츠 타입 통합 조회수 관리 Hook(useViewTracking) 개발',
+            '[🚀 성능] 게시물 조회수 집계 로직 RPC 범용화 및 DB 최적화'
+        ]
+    },
+    {
         version: '3.5.3',
         date: '2026-01-15',
         changes: [

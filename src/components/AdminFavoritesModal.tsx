@@ -1,6 +1,5 @@
 
 import { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import "./BoardUserManagementModal.css"; // Reuse BOUM styles for table layout
@@ -136,8 +135,8 @@ export default function AdminFavoritesModal({ isOpen, onClose }: AdminFavoritesM
 
     if (!isOpen) return null;
 
-    return createPortal(
-        <div className="admin-modal-overlay">
+    return (
+        <div className="boum-overlay">
             <div className="boum-container secure-container-override" translate="no" style={{
                 maxWidth: '900px',
                 width: '95%',
@@ -243,7 +242,6 @@ export default function AdminFavoritesModal({ isOpen, onClose }: AdminFavoritesM
                     )}
                 </div>
             </div>
-        </div>,
-        document.body
+        </div>
     );
 }

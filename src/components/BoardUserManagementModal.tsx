@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import "./BoardUserManagementModal.css";
@@ -100,7 +99,7 @@ export default function BoardUserManagementModal({
 
   if (!isOpen) return null;
 
-  const modalContent = (
+  return (
     <div className="boum-overlay">
       <div className="boum-container" translate="no">
         <div className="boum-header">
@@ -190,6 +189,4 @@ export default function BoardUserManagementModal({
       </div>
     </div>
   );
-
-  return createPortal(modalContent, document.body);
 }
