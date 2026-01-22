@@ -66,6 +66,7 @@ interface UserInfo {
     nickname: string | null;
     visitCount: number;
     visitLogs: string[]; // Timestamps
+    avgDuration?: number; // Average session duration in seconds
 }
 
 export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
@@ -244,7 +245,8 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                     user_id: u.user_id,
                     nickname: u.nickname,
                     visitCount: u.visitCount, // Matches SQL json_build_object key
-                    visitLogs: u.visitLogs || [] // Matches SQL json_build_object key
+                    visitLogs: u.visitLogs || [], // Matches SQL json_build_object key
+                    avgDuration: u.avgDuration || 0 // Average session duration in seconds
                 }));
 
                 setUserList(rpcUserList);
@@ -267,16 +269,8 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             // Mapping legacy variables to simple counts or 0 to satisfy TS and prevent errors.
             // If explicit session tracking is needed later, we must add it to RPC.
             const sessionData: any[] = [];
-            const sessionBasedLoggedIn = clickBasedLoggedIn; // Use RPC value
-            const sessionBasedAnon = clickBasedAnon; // Use RPC value
 
-            // 30-second stay logic was relying on sessions. For now, we mimic or disable deep logic.
-            // Since we don't have session duration from RPC yet, we set stay counts to 0 or estimates?
-            // User didn't prioritize duration, only counts. We'll set safe defaults.
-            const loggedInStayCount = 0;
-            const anonStayCount = 0;
-            const avgDuration = 0;
-            const totalDuration = 0;
+            // [REMOVED] 30-second stay logic - replaced with per-user duration in user list
             // 3. [Activity Unique] for consistency in charts
             const uniqueData = visitorUniqueData;
 
@@ -541,8 +535,6 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 total_clicks: total,
                 user_clicks: clickBasedLoggedIn, // 클릭 기반
                 anon_clicks: clickBasedAnon, // 클릭 기반
-                session_users: sessionBasedLoggedIn, // 세션 기반 (순수 접속자)
-                session_anon: sessionBasedAnon, // 세션 기반 (순수 접속자)
                 admin_clicks: admin,
                 type_breakdown: typeStats,
                 daily_details: dailyDetails,
@@ -732,7 +724,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                     ) : summary && summary.total_clicks > 0 ? (
                         <div className="analytics-scroll-container">
                             {/* [PHASE 19] 통합 방문자 요약 카드 (Hero Section) */}
-                            {(summary.session_users !== undefined || summary.session_anon !== undefined) && (
+                            {(summary.user_clicks !== undefined || summary.anon_clicks !== undefined) && (
                                 <div className="analytics-hero-card">
                                     <h3 className="hero-title">
                                         {viewMode === 'summary'
@@ -766,12 +758,6 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                         </div>
                                     </div>
 
-                                    {/* [참고] 세션 로그 기반 정밀 데이터 */}
-                                    {(summary.session_users !== undefined) && (summary.session_users > 0 || summary.session_anon! > 0) && (
-                                        <div style={{ marginTop: '16px', fontSize: '0.75rem', color: '#555', textAlign: 'center' }}>
-                                            * 30초 이상 체류 (Beta): 로그인 {summary.session_users} / Guest {summary.session_anon}
-                                        </div>
-                                    )}
                                 </div>
                             )}
 
@@ -838,6 +824,11 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                                 <span className="user-name">
                                                                     {user.nickname || '알 수 없는 사용자'}
                                                                     <span style={{ fontSize: '0.8rem', color: '#60a5fa', marginLeft: '6px' }}>({user.visitCount}회)</span>
+                                                                    {user.avgDuration !== undefined && (
+                                                                        <span style={{ fontSize: '0.75rem', color: '#888', marginLeft: '8px' }}>
+                                                                            · 평균 {user.avgDuration >= 3600 ? `${Math.floor(user.avgDuration / 3600)}시간 ` : ''}{Math.floor((user.avgDuration % 3600) / 60)}분 {Math.floor(user.avgDuration % 60)}초
+                                                                        </span>
+                                                                    )}
                                                                 </span>
                                                                 <span className="user-id">{user.user_id.substring(0, 8)}...</span>
                                                                 <i className="ri-arrow-down-s-line" style={{ marginLeft: 'auto', color: '#71717a' }}></i>

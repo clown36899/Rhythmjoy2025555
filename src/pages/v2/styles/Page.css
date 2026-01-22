@@ -318,3 +318,43 @@
   color: white;
   animation: pulse 1s infinite;
 }
+
+/* ===== 게시물 통계 사이드 플로팅 탭 ===== */
+.stats-side-tab {
+  position: fixed;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 50;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 16px 6px;
+  border-radius: 0 16px 16px 0;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 4px 0 15px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-left: none;
+}
+
+.stats-side-tab:hover {
+  padding-right: 12px;
+  background: #fff;
+}
+
+.stats-side-tab-text {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  color: #1a1a1a;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.stats-side-tab-icon {
+  color: #1a1a1a;
+  font-size: 16px;
+}

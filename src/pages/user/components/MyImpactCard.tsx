@@ -1,5 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
-import { supabase } from '../../../lib/supabase';
+import { useState, useMemo } from 'react';
 import type { StandardBoardPost } from '../../../types/board';
 import type { Event as SupabaseEvent } from '../../../lib/supabase';
 
@@ -10,9 +9,8 @@ interface MyImpactCardProps {
     initialExpanded?: boolean;
 }
 
-export default function MyImpactCard({ user, posts, events, initialExpanded = false }: MyImpactCardProps) {
-    const [todayViews, setTodayViews] = useState<number | null>(null);
-    const [loading, setLoading] = useState(true);
+export default function MyImpactCard({ posts, events, initialExpanded = false }: MyImpactCardProps) {
+    const [showDetail, setShowDetail] = useState(initialExpanded);
 
     // 1. Calculate Aggregates (Client-Side)
     const stats = useMemo(() => {
@@ -33,45 +31,37 @@ export default function MyImpactCard({ user, posts, events, initialExpanded = fa
         };
     }, [posts, events]);
 
-    // 2. Fetch "Today's Views" from RPC
-    useEffect(() => {
-        if (!user) return;
-
-        const fetchTodayViews = async () => {
-            try {
-                // Try calling the RPC function
-                const { data, error } = await supabase.rpc('get_user_today_views', {
-                    target_user_id: user.id
-                });
-
-                if (error) {
-                    console.warn('[MyImpact] RPC get_user_today_views failed (schema may not be applied):', error.message);
-                    setTodayViews(null); // Fallback to null (show nothing or loading)
-                } else {
-                    setTodayViews(data);
-                }
-            } catch (err) {
-                console.error('[MyImpact] Error fetching today views:', err);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchTodayViews();
-    }, [user]);
-
-    const [showDetail, setShowDetail] = useState(initialExpanded);
-
     // UI Props
     const impactLevel = useMemo(() => {
-        if (stats.totalViews > 10000) return { label: "Trendsetter", color: "#a855f7" }; // Purple
-        if (stats.totalViews > 1000) return { label: "Rising Star", color: "#00ddff" }; // Cyan
-        return { label: "Rookie", color: "#22c55e" }; // Green
+        if (stats.totalViews > 10000) return { color: "#a855f7" }; // Purple
+        if (stats.totalViews > 1000) return { color: "#00ddff" }; // Cyan
+        return { color: "#22c55e" }; // Green
     }, [stats.totalViews]);
 
     // Top Lists
     const topPosts = useMemo(() => [...posts].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5), [posts]);
     const topEvents = useMemo(() => [...events].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 5), [events]);
+
+    // 3. Exposure Status Logic (Matching Main Screen Filters)
+    const getExposureStatus = (item: any, type: 'post' | 'event') => {
+        if (type === 'post') return { label: '노출 중', color: '#22c55e', isActive: true };
+
+        const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD local
+        let startDate = item.start_date || item.date;
+
+        if (item.event_dates && item.event_dates.length > 0) {
+            const sorted = [...item.event_dates].sort();
+            startDate = sorted[0];
+        }
+
+        // Logic from User: "If start date has passed today, it's not visible"
+        // This applies to both Events and Classes/Clubs.
+        const isVisible = !(today > (startDate || ''));
+
+        return isVisible
+            ? { label: '노출 중', color: '#22c55e', isActive: true }
+            : { label: '종료됨', color: '#71717a', isActive: false };
+    };
 
     return (
         <div style={{
@@ -112,58 +102,31 @@ export default function MyImpactCard({ user, posts, events, initialExpanded = fa
                         gap: '8px'
                     }}>
                         <i className="ri-bar-chart-groupped-fill" style={{ color: impactLevel.color }}></i>
-                        My Impact
+                        내 활동
                     </h3>
                     <span style={{ fontSize: '12px', color: '#9ca3af', marginTop: '4px' }}>
                         지금까지 <strong>{stats.totalViews.toLocaleString()}명</strong>에게 영감을 주셨어요!
                     </span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{
-                        padding: '4px 12px',
-                        borderRadius: '20px',
-                        background: `${impactLevel.color}20`,
-                        color: impactLevel.color,
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        border: `1px solid ${impactLevel.color}40`
-                    }}>
-                        {impactLevel.label}
-                    </div>
                     <i className={`ri-arrow-down-s-line ${showDetail ? 'rotate-180' : ''}`} style={{ color: '#6b7280', transition: 'transform 0.2s' }}></i>
                 </div>
             </div>
 
             {/* Stats Grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px', position: 'relative' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', position: 'relative' }}>
                 {/* 1. Total Views */}
-                <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '12px', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column' }}>
                     <span style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '4px' }}>누적 조회수</span>
-                    <span style={{ fontSize: '20px', fontWeight: 700, color: '#fff' }}>
+                    <span style={{ fontSize: '24px', fontWeight: 700, color: '#fff' }}>
                         {stats.totalViews.toLocaleString()}
                     </span>
                 </div>
 
-                {/* 2. Today's Views */}
-                <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '12px', display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <i className="ri-flashlight-line" style={{ color: '#f59e0b' }}></i> 오늘 조회
-                    </span>
-                    <span style={{ fontSize: '20px', fontWeight: 700, color: '#fff' }}>
-                        {loading ? (
-                            <span style={{ fontSize: '14px', color: '#6b7280' }}>...</span>
-                        ) : todayViews !== null ? (
-                            todayViews.toLocaleString()
-                        ) : (
-                            <span style={{ fontSize: '12px', color: '#6b7280' }}>-</span>
-                        )}
-                    </span>
-                </div>
-
-                {/* 3. Likes/Engagement */}
-                <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '12px', display: 'flex', flexDirection: 'column' }}>
+                {/* 2. Likes/Engagement */}
+                <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '16px', display: 'flex', flexDirection: 'column' }}>
                     <span style={{ fontSize: '11px', color: '#9ca3af', marginBottom: '4px' }}>받은 좋아요</span>
-                    <span style={{ fontSize: '20px', fontWeight: 700, color: '#ec4899' }}>
+                    <span style={{ fontSize: '24px', fontWeight: 700, color: '#ec4899' }}>
                         {stats.totalLikes.toLocaleString()}
                     </span>
                 </div>
@@ -192,9 +155,21 @@ export default function MyImpactCard({ user, posts, events, initialExpanded = fa
                         {topPosts.length > 0 ? (
                             <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                                 {topPosts.map(post => (
-                                    <li key={post.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '13px' }}>
+                                    <li key={post.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '13px' }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
-                                            <span style={{ color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '180px' }}>{post.title}</span>
+                                            <div style={{
+                                                padding: '2px 6px',
+                                                borderRadius: '4px',
+                                                background: `${getExposureStatus(post, 'post').color}15`,
+                                                color: getExposureStatus(post, 'post').color,
+                                                fontSize: '10px',
+                                                fontWeight: 600,
+                                                whiteSpace: 'nowrap',
+                                                border: `1px solid ${getExposureStatus(post, 'post').color}30`
+                                            }}>
+                                                {getExposureStatus(post, 'post').label}
+                                            </div>
+                                            <span style={{ color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '140px' }}>{post.title}</span>
                                         </div>
                                         <div style={{ display: 'flex', gap: '12px', fontSize: '12px' }}>
                                             <span style={{ color: '#9ca3af' }}><i className="ri-eye-line"></i> {post.views?.toLocaleString()}</span>
@@ -216,8 +191,22 @@ export default function MyImpactCard({ user, posts, events, initialExpanded = fa
                         {topEvents.length > 0 ? (
                             <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                                 {topEvents.map(event => (
-                                    <li key={event.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '13px' }}>
-                                        <span style={{ color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '200px' }}>{event.title}</span>
+                                    <li key={event.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.05)', fontSize: '13px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                                            <div style={{
+                                                padding: '2px 6px',
+                                                borderRadius: '4px',
+                                                background: `${getExposureStatus(event, 'event').color}15`,
+                                                color: getExposureStatus(event, 'event').color,
+                                                fontSize: '10px',
+                                                fontWeight: 600,
+                                                whiteSpace: 'nowrap',
+                                                border: `1px solid ${getExposureStatus(event, 'event').color}30`
+                                            }}>
+                                                {getExposureStatus(event, 'event').label}
+                                            </div>
+                                            <span style={{ color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '160px' }}>{event.title}</span>
+                                        </div>
                                         <span style={{ color: '#9ca3af', fontSize: '12px' }}><i className="ri-eye-line"></i> {event.views?.toLocaleString()}</span>
                                     </li>
                                 ))}

@@ -19,6 +19,7 @@ import CalendarSearchModal from "./components/CalendarSearchModal";
 import VideoThumbnailSection from "./components/VideoThumbnailSection"; // [NEW]
 // PlaylistModal removed - Handled globally
 import RegistrationChoiceModal from "./components/RegistrationChoiceModal"; // [NEW]
+import StatsModal from "./components/StatsModal"; // [NEW]
 import { useUserInteractions } from "../../hooks/useUserInteractions";
 import { registerLocale } from "react-datepicker";
 import { ko } from "date-fns/locale/ko";
@@ -72,6 +73,7 @@ export default function HomePageV2() {
     const [fromBanner, setFromBanner] = useState(false);
     const [bannerMonthBounds, setBannerMonthBounds] = useState<{ min: string; max: string } | null>(null);
     const [registrationCalendarMode, setRegistrationCalendarMode] = useState<'collapsed' | 'expanded' | 'fullscreen' | null>(null);
+    const [showStatsModal, setShowStatsModal] = useState(false); // [NEW]
 
     // Search & Sort State
     const [showInputModal, setShowInputModal] = useState(false);
@@ -429,6 +431,23 @@ export default function HomePageV2() {
                 ref={eventListElementRef}
 
             >
+                {/* Floating Side Stats Tab [NEW] */}
+                <div className="stats-side-tab" onClick={async () => {
+                    if (!user) {
+                        if (confirm('통계를 확인하려면 로그인이 필요합니다.\n로그인하시겠습니까?')) {
+                            try {
+                                await signInWithKakao();
+                            } catch (err) {
+                                console.error(err);
+                            }
+                        }
+                        return;
+                    }
+                    setShowStatsModal(true);
+                }}>
+                    <i className="ri-bar-chart-groupped-fill stats-side-tab-icon"></i>
+                    <span className="stats-side-tab-text">게시물 통계</span>
+                </div>
 
                 {/* Video Thumbnail Section */}
                 <VideoThumbnailSection
@@ -582,6 +601,15 @@ export default function HomePageV2() {
                         }));
                     }}
                 />
+
+                {/* Stats Modal [NEW] */}
+                {user && (
+                    <StatsModal
+                        isOpen={showStatsModal}
+                        onClose={() => setShowStatsModal(false)}
+                        userId={user.id}
+                    />
+                )}
             </div>
         </div >
     );

@@ -1,5 +1,4 @@
--- [New RPC Function] Server-side Analytics Aggregation with 6-Hour Deduplication
--- This bypasses the 1000-row limit and ensures accurate "Visitor" counts (valid 6-hour sessions).
+-- Update get_analytics_summary_v2 RPC to include average session duration per user
 
 create or replace function get_analytics_summary_v2(
   start_date text,
@@ -8,7 +7,7 @@ create or replace function get_analytics_summary_v2(
 returns json
 language plpgsql
 security definer
-as $func$
+as $$
 declare
   result json;
   v_start timestamptz;
@@ -51,44 +50,14 @@ begin
     where user_id is not null
     group by user_id
   ),
-  -- Session-level duration estimation from click logs (grouped by 6h buckets to prevent cross-day inflation)
-  click_durations as (
-    select
-      session_id,
-      user_id,
-      floor(extract(epoch from created_at) / (21600)) as time_bucket,
-      extract(epoch from (max(created_at) - min(created_at))) as interaction_duration
-    from site_analytics_logs
-    where created_at >= v_start and created_at <= v_end
-      and is_admin = false
-      and session_id is not null
-    group by session_id, user_id, time_bucket
-  ),
-  -- Unified Session Stats: Use reported duration if exists, else estimate from clicks
-  unified_sessions as (
-    select
-      coalesce(sl.user_id::text, cd.user_id::text) as user_id,
-      greatest(
-        coalesce(sl.duration_seconds, 0),
-        coalesce(cd.interaction_duration, 0)
-      ) as final_duration
-    from click_durations cd
-    left join session_logs sl on cd.session_id = sl.session_id 
-      and sl.user_id::text = cd.user_id::text
-      -- Match session_logs to the same 6-hour bucket to ensure precision
-      and sl.created_at >= to_timestamp(cd.time_bucket * 21600)
-      and sl.created_at < to_timestamp((cd.time_bucket + 1) * 21600)
-    where coalesce(sl.user_id::text, cd.user_id::text) is not null
-  ),
-  -- User Stats: Average of all valid session durations
+  -- Session Duration Stats: Calculate average session duration per user
   session_duration_stats as (
     select
       user_id,
-      avg(final_duration) as avg_duration
-    from unified_sessions
-    where final_duration > 0
-      -- Safety cap: A single 6-hour bucket cannot have more than 6 hours of duration
-      and final_duration <= 21600 
+      avg(duration_seconds) as avg_duration
+    from session_logs
+    where duration_seconds is not null
+      and duration_seconds > 0
     group by user_id
   )
   select json_build_object(
@@ -116,4 +85,4 @@ begin
 
   return result;
 end;
-$func$;
+$$;

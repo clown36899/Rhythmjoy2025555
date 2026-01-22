@@ -28,6 +28,7 @@ export default function ProfileEditModal({
     const [previewImage, setPreviewImage] = useState<string | null>(currentUser.profile_image || null);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isWithdrawing, setIsWithdrawing] = useState(false); // 탈퇴 처리 상태
     const [oldImagePath, setOldImagePath] = useState<string | null>(null);
     const [imageDeleted, setImageDeleted] = useState(false); // 이미지 삭제 플래그
     const [nicknameStatus, setNicknameStatus] = useState<{
@@ -294,16 +295,63 @@ export default function ProfileEditModal({
         }
     };
 
+    const handleWithdrawal = async () => {
+        if (!confirm('정말로 서비스를 탈퇴(회원 등록 취소)하시겠습니까?\n작성하신 활동 기록은 익명으로 보관되며, 더 이상 이 계정으로 로그인할 수 없습니다.')) {
+            return;
+        }
+
+        setIsWithdrawing(true);
+        try {
+            console.log('[회원 탈퇴] 시작', { userId });
+
+            // 1. RPC 호출 (DB 정보 익명화)
+            const { error: rpcError } = await supabase.rpc('handle_user_withdrawal', {
+                p_user_id: userId
+            });
+
+            if (rpcError) throw rpcError;
+
+            // 2. 로그아웃 및 세션 정리
+            await supabase.auth.signOut();
+            sessionStorage.clear();
+
+            console.log('[회원 탈퇴] 성공');
+            alert('회원 등록이 취소되었습니다. 그동안 이용해주셔서 감사합니다.');
+            window.location.href = '/'; // 메인으로 리다이렉트
+        } catch (error: any) {
+            console.error('[회원 탈퇴] 실패:', error);
+            alert(`탈퇴 처리 중 오류가 발생했습니다: ${error.message}`);
+        } finally {
+            setIsWithdrawing(false);
+        }
+    };
+
     if (!isOpen) return null;
 
     const modalContent = (
-        <div className="userreg-overlay">
-            <div className="userreg-modal" style={{ maxWidth: '360px' }}>
-                <div className="userreg-header">
+        <div className="userreg-overlay" style={{ animation: 'fadeIn 0.3s ease-out' }}>
+            <div className="userreg-modal" style={{
+                maxWidth: '360px',
+                border: '1px solid rgba(255,255,255,0.1)',
+                background: 'rgba(30, 30, 30, 0.9)',
+                backdropFilter: 'blur(20px)',
+                boxShadow: '0 20px 40px rgba(0,0,0,0.6)',
+                borderRadius: '24px'
+            }}>
+                <div className="userreg-header" style={{ padding: '28px 24px 20px' }}>
                     <div className="userreg-header-top">
-                        <h2 className="userreg-title">내 정보 수정</h2>
-                        <button onClick={onClose} className="userreg-close-btn">
-                            <i className="ri-close-line text-2xl"></i>
+                        <h2 className="userreg-title" style={{ fontSize: '1.35rem', color: '#fff', letterSpacing: '-0.5px' }}>내 정보 수정</h2>
+                        <button onClick={onClose} className="userreg-close-btn" style={{
+                            top: '24px',
+                            right: '24px',
+                            background: 'rgba(255, 255, 255, 0.05)',
+                            width: '36px',
+                            height: '36px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }}>
+                            <i className="ri-close-line text-xl"></i>
                         </button>
                     </div>
                 </div>
@@ -313,28 +361,33 @@ export default function ProfileEditModal({
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '20px' }}>
                         <div
                             style={{
-                                width: '100px',
-                                height: '100px',
+                                width: '106px',
+                                height: '106px',
                                 borderRadius: '50%',
                                 overflow: 'hidden',
-                                backgroundColor: '#333',
-                                // marginBottom: '10px',
+                                backgroundColor: '#27272a',
                                 cursor: 'pointer',
-                                position: 'relative'
+                                position: 'relative',
+                                border: '3px solid rgba(255,255,255,0.15)',
+                                boxShadow: '0 10px 20px rgba(0,0,0,0.3)',
+                                transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
                             }}
+                            className="profile-preview-container"
                             onClick={() => fileInputRef.current?.click()}
                         >
                             {previewImage ? (
                                 <img src={previewImage} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                             ) : (
-                                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>
-                                    <i className="ri-user-line" style={{ fontSize: '40px' }}></i>
+                                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555' }}>
+                                    <i className="ri-user-line" style={{ fontSize: '44px' }}></i>
                                 </div>
                             )}
                             <div style={{
                                 position: 'absolute', bottom: 0, left: 0, right: 0,
-                                backgroundColor: 'rgba(0,0,0,0.5)', color: 'white',
-                                fontSize: '10px', textAlign: 'center', padding: '4px'
+                                backgroundColor: 'rgba(0,0,0,0.6)', color: 'white',
+                                fontSize: '11px', textAlign: 'center', padding: '6px',
+                                fontWeight: '600',
+                                backdropFilter: 'blur(4px)'
                             }}>
                                 편집
                             </div>
@@ -385,7 +438,7 @@ export default function ProfileEditModal({
                         </p>
                     </div>
 
-                    <div className="userreg-footer" style={{ marginTop: '20px', display: 'flex', gap: '10px' }}>
+                    <div className="userreg-footer" style={{ marginTop: '24px', display: 'flex', gap: '12px' }}>
                         {onLogout && (
                             <button
                                 onClick={() => {
@@ -394,32 +447,67 @@ export default function ProfileEditModal({
                                         onClose();
                                     }
                                 }}
-                                disabled={isSubmitting}
+                                disabled={isSubmitting || isWithdrawing}
                                 className="userreg-submit-btn"
                                 style={{
-                                    backgroundColor: 'transparent',
+                                    backgroundColor: 'rgba(239, 68, 68, 0.08)',
                                     color: '#ef4444',
-                                    border: '1px solid #ef4444',
-                                    flex: 1
+                                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                                    flex: 1,
+                                    fontSize: '0.92rem',
+                                    transition: 'all 0.2s'
                                 }}
                             >
-                                <i className="ri-logout-box-line" style={{ marginRight: '6px' }}></i>
+                                <i className="ri-logout-box-line"></i>
                                 로그아웃
                             </button>
                         )}
                         <button
                             onClick={handleSubmit}
-                            disabled={isSubmitting || !nicknameStatus?.isAvailable || nicknameStatus?.checking}
+                            disabled={isSubmitting || isWithdrawing || !nicknameStatus?.isAvailable || nicknameStatus?.checking}
                             className="userreg-submit-btn"
                             style={{
-                                backgroundColor: 'var(--primary-color)',
-                                color: 'white',
-                                opacity: (isSubmitting || !nicknameStatus?.isAvailable || nicknameStatus?.checking) ? 0.6 : 1,
-                                cursor: (isSubmitting || !nicknameStatus?.isAvailable || nicknameStatus?.checking) ? 'not-allowed' : 'pointer',
-                                flex: 2
+                                backgroundColor: 'var(--primary-color, #FEE500)',
+                                color: '#000',
+                                opacity: (isSubmitting || isWithdrawing || !nicknameStatus?.isAvailable || nicknameStatus?.checking) ? 0.6 : 1,
+                                cursor: (isSubmitting || isWithdrawing || !nicknameStatus?.isAvailable || nicknameStatus?.checking) ? 'not-allowed' : 'pointer',
+                                flex: 2,
+                                fontSize: '0.95rem',
+                                fontWeight: '700',
+                                boxShadow: '0 4px 15px rgba(254, 229, 0, 0.25)'
                             }}
                         >
                             {isSubmitting ? '저장 중...' : '저장하기'}
+                        </button>
+                    </div>
+
+                    {/* 회원 등록 취소 (탈퇴) 버튼 추가 */}
+                    <div style={{ marginTop: '30px', textAlign: 'center', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '20px' }}>
+                        <button
+                            onClick={handleWithdrawal}
+                            disabled={isSubmitting || isWithdrawing}
+                            style={{
+                                background: 'transparent',
+                                border: 'none',
+                                color: 'rgb(112, 112, 121)',
+                                fontSize: '0.78rem',
+                                textDecoration: 'none',
+                                cursor: 'pointer',
+                                padding: '6px 12px',
+                                borderRadius: '6px',
+                                transition: 'all 0.2s',
+                                opacity: 0.8
+                            }}
+                            onMouseOver={(e) => {
+                                e.currentTarget.style.color = '#a1a1aa';
+                                e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.03)';
+                            }}
+                            onMouseOut={(e) => {
+                                e.currentTarget.style.color = 'rgb(112, 112, 121)';
+                                e.currentTarget.style.backgroundColor = 'transparent';
+                            }}
+                        >
+                            더 이상 서비스를 이용하지 않으시나요? (탈퇴)
                         </button>
                     </div>
                 </div>
