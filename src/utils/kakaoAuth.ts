@@ -72,7 +72,7 @@ export const loginWithKakao = (): void => {
   // 리다이렉트 방식으로 카카오 로그인
   const redirectUri = `${window.location.origin}/auth/kakao-callback`;
   console.log('[KakaoAuth.loginWithKakao] 리다이렉트 URI:', redirectUri);
-  console.log('[KakaoAuth.loginWithKakao] 요청 스코프: account_email, profile_nickname, name, phone_number');
+  console.log('[KakaoAuth.loginWithKakao] 요청 스코프: account_email, profile_nickname, name, phone_number, openid');
 
   window.Kakao.Auth.authorize({
     redirectUri,

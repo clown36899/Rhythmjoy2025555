@@ -1,4 +1,3 @@
-/// <reference lib="deno.ns" />
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 export default async (request: Request, context: any) => {
@@ -57,7 +56,7 @@ export default async (request: Request, context: any) => {
 
         const { access_token: kakaoAccessToken, id_token: kakaoIdToken } = tokenData;
 
-        // 5. User Info Retrieval (OIDC Optimization)
+        // 5. User Info Retrieval (OIDC Optimization & Full Sync)
         let kakaoId: string = '';
         let email: string = '';
         let nickname: string = '';
@@ -66,50 +65,59 @@ export default async (request: Request, context: any) => {
         let phoneNumber: string | null = null;
         let usingOIDC = false;
 
+        // OIDC 시도 (인증 패스트 패스)
         if (kakaoIdToken) {
             try {
                 console.log('[kakao-login-edge] 🆔 ID Token found - Decoding');
                 const payloadBase64 = kakaoIdToken.split('.')[1];
-                // Deno/Web API Base64 Decode
                 const binaryString = atob(payloadBase64.replace(/-/g, '+').replace(/_/g, '/'));
                 const payloadDecoded = new TextDecoder().decode(Uint8Array.from(binaryString, c => c.charCodeAt(0)));
                 const idTokenPayload = JSON.parse(payloadDecoded);
 
                 if (idTokenPayload.sub) {
                     kakaoId = String(idTokenPayload.sub);
-                    email = idTokenPayload.email || `kakao_${kakaoId}@example.com`;
-                    nickname = idTokenPayload.nickname || 'Unknown User';
+                    email = idTokenPayload.email || '';
+                    nickname = idTokenPayload.nickname || '';
                     profileImage = idTokenPayload.picture || null;
                     usingOIDC = true;
-                    console.log('[kakao-login-edge] ✅ OIDC Optimization Success');
+                    console.log('[kakao-login-edge] ✅ OIDC Decoded Success');
                 }
             } catch (e) {
                 console.warn('[kakao-login-edge] ⚠️ OIDC Decode Failed:', e);
             }
         }
 
-        if (!usingOIDC) {
-            console.log('[kakao-login-edge] 2. User Info Fetch (Fallback)');
-            const userResponse = await fetch('https://kapi.kakao.com/v2/user/me', {
-                headers: { Authorization: `Bearer ${kakaoAccessToken}` },
-            });
-            const userData = await userResponse.json();
-            if (!userResponse.ok) {
-                return new Response(JSON.stringify({ error: 'Failed to fetch user info', details: userData }), { status: 401 });
-            }
+        // 상세 정보 조회를 위해 항상 API 호출 (실명, 번호 등 OIDC에 없는 정보 대응)
+        console.log('[kakao-login-edge] 2. User Info Fetch (Deep Sync)');
+        const userResponse = await fetch('https://kapi.kakao.com/v2/user/me', {
+            headers: { Authorization: `Bearer ${kakaoAccessToken}` },
+        });
+        const userData = await userResponse.json();
 
+        if (userResponse.ok) {
             kakaoId = String(userData.id);
             const kakaoAccount = userData.kakao_account || {};
-            email = kakaoAccount.email || `kakao_${kakaoId}@swingenjoy.com`;
-            nickname = userData.properties?.nickname || kakaoAccount.profile?.nickname || `User${kakaoId}`;
-            profileImage = userData.properties?.profile_image || kakaoAccount.profile?.profile_image_url;
 
-            // 실명 및 전화번호 추출 추가
-            realName = kakaoAccount.name || null;
+            // 데이터 병합 (API 정보를 우선함)
+            email = kakaoAccount.email || email || `kakao_${kakaoId}@swingenjoy.com`;
+            nickname = userData.properties?.nickname || kakaoAccount.profile?.nickname || nickname || `User${kakaoId}`;
+            profileImage = userData.properties?.profile_image || kakaoAccount.profile?.profile_image_url || profileImage;
+
+            // 상세 정보 추출
+            realName = kakaoAccount.name || realName;
             const phoneNumberRaw = kakaoAccount.phone_number || '';
-            phoneNumber = phoneNumberRaw ? phoneNumberRaw.replace('+82 ', '0').replace(/-/g, '') : null;
+            if (phoneNumberRaw) {
+                phoneNumber = phoneNumberRaw.replace('+82 ', '0').replace(/-/g, '');
+            }
 
-            console.log(`[kakao-login-edge] 👤 User Info Extracted: name=${!!realName}, phone=${!!phoneNumber}`);
+            console.log(`[kakao-login-edge] 👤 Profile Sync Result: name=${!!realName}, phone=${!!phoneNumber}`);
+            console.log('[kakao-login-edge] 🕵️ 동의 상태 확인:', {
+                phone_needs_agreement: kakaoAccount.phone_number_needs_agreement,
+                all_keys: Object.keys(kakaoAccount)
+            });
+        } else if (!usingOIDC) {
+            console.error('[kakao-login-edge] Failed to fetch user info:', userData);
+            return new Response(JSON.stringify({ error: 'Failed to fetch user info', details: userData }), { status: 401 });
         }
 
         // 6. Supabase User Lookup/Creation (RPC Optimized: 1 RT)

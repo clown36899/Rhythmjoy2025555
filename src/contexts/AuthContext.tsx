@@ -138,13 +138,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       console.log(`[ensureBoardUser] 🎯 Final provider decision: "${provider}" for user ${userObj.id}`);
 
-      // Capture real name and phone from metadata
+      // Capture personal info from metadata
       const realName = metadata.real_name || metadata.full_name || metadata.name || null;
       const phoneNumber = metadata.phone_number || null;
 
+      console.log('[AuthContext] 🕵️ Metadata received:', { realName, phoneNumber });
+
       const { data: existingUser } = await supabase
         .from('board_users')
-        .select('user_id, status, nickname, real_name, phone_number, provider, profile_image')
+        .select('user_id, status, nickname, real_name, phone_number, provider, profile_image, kakao_id, gender')
         .eq('user_id', userObj.id)
         .maybeSingle();
 
@@ -185,6 +187,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           updateData.profile_image = profileImage;
         }
 
+
+
         // [추가] kakao_id가 DB에 없는데 메타데이터에 있다면 동기화 (기존 유저 대응)
         if (metadata.kakao_id && !(existingUser as any).kakao_id) {
           updateData.kakao_id = metadata.kakao_id;
@@ -224,7 +228,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           phone_number: phoneNumber,
           email: userObj.email,
           provider: provider,
-          // kakao_id: metadata.kakao_id || null, // Optional: if column exists
+          kakao_id: metadata.kakao_id || null,
           updated_at: new Date().toISOString()
         };
         // Clean undefined
