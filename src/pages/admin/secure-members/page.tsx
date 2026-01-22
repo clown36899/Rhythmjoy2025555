@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
-import AdminUserInfoModal from '../../../components/AdminUserInfoModal';
 import "../../../components/BoardUserManagementModal.css"; // Reusing existing styles
 import "./page.css"; // Custom overrides
 
@@ -10,6 +9,10 @@ interface BoardUser {
     id: number;
     user_id: string;
     nickname: string;
+    real_name: string | null;
+    phone_number: string | null;
+    email: string | null;
+    provider: string | null;
     created_at: string;
     profile_image?: string;
 }
@@ -21,7 +24,6 @@ export default function SecureMembersPage() {
     const [filteredUsers, setFilteredUsers] = useState<BoardUser[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedUser, setSelectedUser] = useState<{ id: string, name: string } | null>(null);
 
     useEffect(() => {
         // Basic protection (Client-side)
@@ -44,7 +46,7 @@ export default function SecureMembersPage() {
             setLoading(true);
             const { data, error } = await supabase
                 .from('board_users')
-                .select('id, user_id, nickname, profile_image, created_at')
+                .select('id, user_id, nickname, real_name, phone_number, email, provider, profile_image, created_at')
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -63,7 +65,9 @@ export default function SecureMembersPage() {
         }
         const term = searchTerm.toLowerCase();
         const filtered = users.filter(user =>
-            user.nickname.toLowerCase().includes(term)
+            user.nickname.toLowerCase().includes(term) ||
+            (user.real_name && user.real_name.toLowerCase().includes(term)) ||
+            (user.email && user.email.toLowerCase().includes(term))
         );
         setFilteredUsers(filtered);
     };
@@ -127,14 +131,29 @@ export default function SecureMembersPage() {
                             <table className="boum-table">
                                 <thead>
                                     <tr className="boum-table-head">
-                                        <th className="boum-table-header">닉네임</th>
+                                        <th className="boum-table-header">가입경로</th>
+                                        <th className="boum-table-header">닉네임/실명</th>
+                                        <th className="boum-table-header">연락처</th>
+                                        <th className="boum-table-header">이메일</th>
                                         <th className="boum-table-header">가입일</th>
-                                        <th className="boum-table-header">비상 연락망 조회</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                                     {filteredUsers.map((user) => (
                                         <tr key={user.id} className="boum-table-row">
+                                            <td className="boum-table-cell" style={{ textAlign: 'center' }}>
+                                                {user.provider === 'kakao' ? (
+                                                    <div title="카카오 가입" style={{ background: '#FEE500', color: '#3C1E1E', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto', fontSize: '16px' }}>
+                                                        <i className="ri-kakao-talk-fill"></i>
+                                                    </div>
+                                                ) : user.provider === 'google' ? (
+                                                    <div title="구글 가입" style={{ background: '#fff', color: '#4285F4', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto', fontSize: '16px', border: '1px solid #eee' }}>
+                                                        <i className="ri-google-fill"></i>
+                                                    </div>
+                                                ) : (
+                                                    <span style={{ fontSize: '12px', color: '#666' }}>{user.provider || '-'}</span>
+                                                )}
+                                            </td>
                                             <td className="boum-table-cell">
                                                 <div className="boum-nickname-cell">
                                                     <div className="boum-avatar">
@@ -144,19 +163,20 @@ export default function SecureMembersPage() {
                                                             user.nickname.charAt(0)
                                                         )}
                                                     </div>
-                                                    <span className="boum-nickname">{user.nickname}</span>
+                                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                        <span className="boum-nickname">{user.nickname}</span>
+                                                        <span style={{ fontSize: '11px', color: '#666' }}>{user.real_name || '-'}</span>
+                                                    </div>
                                                 </div>
+                                            </td>
+                                            <td className="boum-table-cell" style={{ fontSize: '13px' }}>
+                                                {user.phone_number || '-'}
+                                            </td>
+                                            <td className="boum-table-cell" style={{ fontSize: '12px', color: '#666' }}>
+                                                {user.email || '-'}
                                             </td>
                                             <td className="boum-table-cell boum-date-text">
                                                 {formatDate(user.created_at)}
-                                            </td>
-                                            <td className="boum-table-cell">
-                                                <button
-                                                    className="boum-action-btn boum-btn-yellow"
-                                                    onClick={() => setSelectedUser({ id: user.user_id, name: user.nickname })}
-                                                >
-                                                    <i className="ri-shield-keyhole-line"></i> 보안 조회
-                                                </button>
                                             </td>
                                         </tr>
                                     ))}
@@ -167,13 +187,7 @@ export default function SecureMembersPage() {
                 </div>
             </div>
 
-            {selectedUser && (
-                <AdminUserInfoModal
-                    userId={selectedUser.id}
-                    userName={selectedUser.name}
-                    onClose={() => setSelectedUser(null)}
-                />
-            )}
+            {/* AdminUserInfoModal removed */}
         </div>
     );
 }

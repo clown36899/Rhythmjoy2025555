@@ -77,51 +77,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return localStorage.getItem(`${storagePrefix}billboardUserName`);
   });
 
-  // helper to ensure board_users exists
+  // helper to ensure board_users exists and is up to date
   const ensureBoardUser = async (userObj: User) => {
     if (!userObj) return;
 
     try {
-      const { data } = await supabase
+      const metadata = userObj.user_metadata || {};
+      const nickname = metadata.name || metadata.full_name || userObj.email?.split('@')[0] || 'User';
+      const profileImage = metadata.avatar_url || metadata.picture || null;
+      const provider = userObj.app_metadata.provider || 'unknown';
+
+      // Capture real name from metadata if available (social login name)
+      const realName = metadata.name || metadata.full_name || null;
+
+      const { data: existingUser } = await supabase
         .from('board_users')
         .select('user_id')
         .eq('user_id', userObj.id)
         .maybeSingle();
 
-      if (!data) {
-        console.log('[AuthContext] board_users record missing for', userObj.email, '- Creating now...');
-        // 2. Insert default
-        // 구글 로그인 등의 경우 메타데이터에서 이름/아바타 추출
-        const metadata = userObj.user_metadata || {};
-        const nickname = metadata.name || metadata.full_name || userObj.email?.split('@')[0] || 'User';
-        const profileImage = metadata.avatar_url || metadata.picture || null;
+      const upsertData = {
+        user_id: userObj.id,
+        nickname: existingUser ? undefined : nickname + '_' + Math.floor(Math.random() * 10000), // Only for NEW
+        profile_image: existingUser ? undefined : profileImage, // Only for NEW (don't overwrite custom profile)
+        real_name: realName, // Always sync
+        email: userObj.email, // Always sync
+        provider: provider, // Always sync
+        updated_at: new Date().toISOString()
+      };
 
-        // nickname 중복 방지를 위해 간단한 suffix 로직 필요할 수 있으나, 
-        // 우선은 충돌 시 DB 오류 나면 handle 해야 함. 
-        // 여기서는 간단히 타임스탬프 붙이거나, 그냥 시도.
-        // board_users의 nickname이 unique라면 충돌 가능성 있음.
-        // 임시로 random suffix
-        const randomSuffix = Math.floor(Math.random() * 10000).toString();
-        const safeNickname = `${nickname}_${randomSuffix}`;
+      // Clean undefined to avoid overwriting with null if we meant "don't change"
+      Object.keys(upsertData).forEach(key => (upsertData as any)[key] === undefined && delete (upsertData as any)[key]);
 
-        const { error: insertError } = await supabase
-          .from('board_users')
-          .insert([
-            {
-              user_id: userObj.id,
-              nickname: safeNickname, // Unique key constraint avoidance
-              profile_image: profileImage,
-              // database.types.ts 안에는 email 컬럼이 board_users에 없음. (auth.users에만 있음)
-              // 따라서 email은 제외.
-            }
-          ]);
+      const { error: upsertError } = await supabase
+        .from('board_users')
+        .upsert(upsertData, { onConflict: 'user_id' });
 
-        if (insertError) {
-          console.error('[AuthContext] Error creating board_users record:', insertError);
-          // 닉네임 중복 에러일 경우 재시도 로직 등이 필요할 수 있음
-        } else {
-          console.log('[AuthContext] Successfully created board_users record.');
-        }
+      if (upsertError) {
+        console.error('[AuthContext] Error syncing board_users record:', upsertError);
+      } else {
+        console.log('[AuthContext] Successfully synced board_users record.');
       }
     } catch (e) {
       console.error('[AuthContext] ensureBoardUser execution error:', e);

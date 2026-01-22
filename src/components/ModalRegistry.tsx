@@ -53,7 +53,6 @@ import { OnlineUsersModal } from '../components/OnlineUsersModal';
 import GlobalNoticeEditor from '../components/GlobalNoticeEditor';
 
 // Admin Modals
-import AdminUserInfoModal from '../components/AdminUserInfoModal';
 import BillboardUserManagementModal from '../components/BillboardUserManagementModal';
 import BoardPrefixManagementModal from '../components/BoardPrefixManagementModal';
 import BoardUserManagementModal from '../components/BoardUserManagementModal';
@@ -118,7 +117,6 @@ const MODAL_COMPONENTS: Record<string, any> = {
     'onlineUsers': OnlineUsersModal,
 
     // Admin Modals
-    'adminUserInfo': AdminUserInfoModal,
     'billboardUserManagement': BillboardUserManagementModal,
     'boardPrefixManagement': BoardPrefixManagementModal,
     'boardUserManagement': BoardUserManagementModal,
