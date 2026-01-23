@@ -3,6 +3,7 @@ import { supabase } from '../../../lib/supabase';
 import MyImpactCard from '../../user/components/MyImpactCard';
 import type { Event as SupabaseEvent } from '../../../lib/supabase';
 import type { StandardBoardPost } from '../../../types/board';
+import SwingSceneStats from './SwingSceneStats.tsx';
 
 interface StatsModalProps {
     isOpen: boolean;
@@ -15,6 +16,7 @@ export default function StatsModal({ isOpen, onClose, userId }: StatsModalProps)
     const [posts, setPosts] = useState<StandardBoardPost[]>([]);
     const [loading, setLoading] = useState(true);
     const [userProfile, setUserProfile] = useState<any>(null);
+    const [activeTab, setActiveTab] = useState<'my' | 'scene'>('my');
 
     useEffect(() => {
         if (isOpen && userId) {
@@ -64,8 +66,54 @@ export default function StatsModal({ isOpen, onClose, userId }: StatsModalProps)
                 padding: '24px',
                 position: 'relative'
             }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                    <h2 style={{ margin: 0, fontSize: '1.2rem', color: '#fff', fontWeight: '700' }}>내 활동 통계</h2>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', gap: '16px' }}>
+                        <h2
+                            onClick={() => setActiveTab('my')}
+                            style={{
+                                margin: 0,
+                                fontSize: '1.2rem',
+                                color: activeTab === 'my' ? '#fff' : '#52525b',
+                                fontWeight: '700',
+                                cursor: 'pointer',
+                                borderBottom: activeTab === 'my' ? '2px solid #3b82f6' : '2px solid transparent',
+                                paddingBottom: '4px',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            내 활동
+                        </h2>
+                        <h2
+                            onClick={() => setActiveTab('scene')}
+                            style={{
+                                margin: 0,
+                                fontSize: '1.2rem',
+                                color: activeTab === 'scene' ? '#fff' : '#52525b',
+                                fontWeight: '700',
+                                cursor: 'pointer',
+                                borderBottom: activeTab === 'scene' ? '2px solid #3b82f6' : '2px solid transparent',
+                                paddingBottom: '4px',
+                                transition: 'all 0.2s'
+                            }}
+                        >
+                            <div style={{ position: 'relative', display: 'inline-block' }}>
+                                스윙씬 통계
+                                <span style={{
+                                    position: 'absolute',
+                                    top: '-4px',
+                                    right: '-38px',
+                                    fontSize: '0.6rem',
+                                    color: '#000',
+                                    background: '#f59e0b',
+                                    padding: '1px 4px',
+                                    borderRadius: '4px',
+                                    fontWeight: '600',
+                                    lineHeight: '1',
+                                    transform: 'scale(0.9)'
+                                }}>개선중</span>
+                            </div>
+                        </h2>
+                    </div>
                     <button onClick={onClose} style={{
                         background: 'rgba(255,255,255,0.05)',
                         border: 'none',
@@ -88,32 +136,38 @@ export default function StatsModal({ isOpen, onClose, userId }: StatsModalProps)
                     </div>
                 ) : (
                     <div style={{ maxHeight: '70vh', overflowY: 'auto', paddingRight: '4px' }} className="custom-scrollbar">
-                        <MyImpactCard
-                            user={{ id: userId, ...userProfile }}
-                            posts={posts}
-                            events={events}
-                            initialExpanded={true}
-                        />
+                        {activeTab === 'my' ? (
+                            <>
+                                <MyImpactCard
+                                    user={{ id: userId, ...userProfile }}
+                                    posts={posts}
+                                    events={events}
+                                    initialExpanded={true}
+                                />
 
-                        <div style={{
-                            marginTop: '20px',
-                            padding: '16px',
-                            background: 'rgba(255,255,255,0.03)',
-                            borderRadius: '12px',
-                            border: '1px solid rgba(255,255,255,0.05)'
-                        }}>
-                            <h4 style={{ fontSize: '13px', color: '#a1a1aa', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <i className="ri-information-line"></i> 노출 상태 안내
-                            </h4>
-                            <div style={{ fontSize: '11px', color: '#71717a', lineHeight: '1.6', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                <p style={{ margin: 0 }}>⏰ <strong>행사 및 강습</strong>: 이미 시작했거나 날짜가 지난 일정은 메인 화면에서 자동으로 내려가며, 통계에서는 '종료됨'으로 표시됩니다.</p>
-                                <p style={{ margin: 0 }}>📝 <strong>게시판 글</strong>: 자유게시판 등에 올린 글은 삭제하지 않는 한 언제나 '노출 중' 상태를 유지합니다.</p>
-                            </div>
-                        </div>
+                                <div style={{
+                                    marginTop: '20px',
+                                    padding: '16px',
+                                    background: 'rgba(255,255,255,0.03)',
+                                    borderRadius: '12px',
+                                    border: '1px solid rgba(255,255,255,0.05)'
+                                }}>
+                                    <h4 style={{ fontSize: '13px', color: '#a1a1aa', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                        <i className="ri-information-line"></i> 노출 상태 안내
+                                    </h4>
+                                    <div style={{ fontSize: '11px', color: '#71717a', lineHeight: '1.6', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                        <p style={{ margin: 0 }}>⏰ <strong>행사 및 강습</strong>: 이미 시작했거나 날짜가 지난 일정은 메인 화면에서 자동으로 내려가며, 통계에서는 '종료됨'으로 표시됩니다.</p>
+                                        <p style={{ margin: 0 }}>📝 <strong>게시판 글</strong>: 자유게시판 등에 올린 글은 삭제하지 않는 한 언제나 '노출 중' 상태를 유지합니다.</p>
+                                    </div>
+                                </div>
 
-                        <p style={{ fontSize: '11px', color: '#52525b', textAlign: 'center', marginTop: '16px' }}>
-                            상세한 활동 내역은 마이페이지의 '통계' 탭에서 확인하실 수 있습니다.
-                        </p>
+                                <p style={{ fontSize: '11px', color: '#52525b', textAlign: 'center', marginTop: '16px' }}>
+                                    상세한 활동 내역은 마이페이지의 '통계' 탭에서 확인하실 수 있습니다.
+                                </p>
+                            </>
+                        ) : (
+                            <SwingSceneStats />
+                        )}
                     </div>
                 )}
             </div>
