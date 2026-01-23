@@ -4,6 +4,7 @@ import type { CSSProperties } from "react";
 import { supabase } from "../../../lib/supabase";
 import type { Event as AppEvent } from "../../../lib/supabase";
 import EventRegistrationModal from "../../../components/EventRegistrationModal";
+import DateEventsModal from "./DateEventsModal";
 import "../styles/FullEventCalendar.css";
 // import { getEventThumbnail } from "../../../utils/getEventThumbnail"; // Removed unused import
 // import { useDefaultThumbnail } from "../../../hooks/useDefaultThumbnail"; // Removed unused import
@@ -49,6 +50,11 @@ export default memo(function FullEventCalendar({
   const [socialSchedules, setSocialSchedules] = useState<any[]>([]);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [yearRangeBase, setYearRangeBase] = useState(new Date().getFullYear());
+
+  // Date Events Modal state
+  const [showDateModal, setShowDateModal] = useState(false);
+  const [modalEvents, setModalEvents] = useState<AppEvent[]>([]);
+
   // const { defaultThumbnailClass, defaultThumbnailEvent } = useDefaultThumbnail(); // Removed unused hook
 
   // Internal state for swipe gestures
@@ -246,7 +252,7 @@ export default memo(function FullEventCalendar({
       const endOfRange = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 2, 0);
       const startDateStr = startOfRange.toISOString().split('T')[0];
       const endDateStr = endOfRange.toISOString().split('T')[0];
-      const columns = "id,title,date,start_date,end_date,event_dates,category,image_micro,image_medium,scope";
+      const columns = "id,title,date,start_date,end_date,event_dates,category,image_micro,image_thumbnail,image_medium,scope";
 
       // Fetch V2 events
       const eventsPromise = supabase
@@ -403,6 +409,19 @@ export default memo(function FullEventCalendar({
   const currentDays = getDaysInMonth(currentMonth);
   const nextDays = getDaysInMonth(nextMonth);
 
+  // 날짜 숫자 클릭 핸들러
+  const handleDateNumberClick = (e: React.MouseEvent, date: Date) => {
+    e.stopPropagation(); // 부모 셀의 클릭 이벤트(전체화면 모드 등) 방지
+
+    const dayEvents = getEventsForDate(date);
+    if (dayEvents && dayEvents.length > 0) {
+      // 선택된 날짜 업데이트 (필요한 경우)
+      onDateSelect(date);
+      setModalEvents(dayEvents);
+      setShowDateModal(true);
+    }
+  };
+
   // 전체화면 모드 그리드 렌더링
   const renderFullscreenGrid = (days: Date[], monthDate: Date) => {
     return days.map((day, index) => {
@@ -429,6 +448,8 @@ export default memo(function FullEventCalendar({
           {/* 헤더: 날짜 숫자 */}
           <div className="calendar-cell-fullscreen-header">
             <span
+              onClick={(e) => handleDateNumberClick(e, day)}
+              style={{ cursor: 'pointer' }}
               className={`calendar-date-number-fullscreen ${todayFlag
                 ? "calendar-date-number-today"
                 : day.getDay() === 0
@@ -607,6 +628,18 @@ export default memo(function FullEventCalendar({
           onEventCreated={handleEventCreated}
         />
       )}
+
+      {/* Date Events Modal */}
+      <DateEventsModal
+        isOpen={showDateModal}
+        onClose={() => setShowDateModal(false)}
+        date={selectedDate}
+        events={modalEvents}
+        onEventClick={(event) => {
+          setShowDateModal(false);
+          if (onEventClick) onEventClick(event);
+        }}
+      />
     </>
   );
 });

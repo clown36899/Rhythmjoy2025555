@@ -622,6 +622,7 @@ export default function HomePageV2() {
                         isOpen={showStatsModal}
                         onClose={() => setShowStatsModal(false)}
                         userId={user.id}
+                        initialTab={statsInitialTab}
                     />
                 )}
             </div>

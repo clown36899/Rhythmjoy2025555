@@ -831,6 +831,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         }
     };
 
+    /*
     const handleUpdatePlaylistContent = async () => {
         if (!isAdmin) return;
         if (!playlist || playlist.id.startsWith('category:')) return;
@@ -848,6 +849,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
             setRefreshTrigger(prev => prev + 1);
         }
     };
+    */
 
     // 드래그 핸들러
     const handleMarkerDragStart = () => {
@@ -1022,6 +1024,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
     };
 
     // --- Video Metadata Handlers (Individual) ---
+    /*
     const startEditingVideoTitle = () => {
         if (!isAdmin) return;
         const video = videos[currentVideoIndex];
@@ -1029,6 +1032,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         setEditVideoTitle(video.title);
         setIsEditingVideoTitle(true);
     };
+    */
 
     const handleUpdateVideoTitle = async () => {
         if (!isAdmin) return;
@@ -1090,6 +1094,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         }
     };
 
+    /*
     const startEditingVideoMemo = () => {
         if (!isAdmin) return;
         const video = videos[currentVideoIndex];
@@ -1097,6 +1102,7 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         setEditVideoMemo(video.memo || '');
         setIsEditingVideoMemo(true);
     };
+    */
 
     const handleUpdateVideoMemo = async () => {
         if (!isAdmin) return;
