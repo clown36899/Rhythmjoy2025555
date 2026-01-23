@@ -56,6 +56,7 @@ interface AnalyticsSummary {
         avg_pwa_duration: number;
         avg_browser_duration: number;
         recent_installs: { installed_at: string; user_id?: string; fingerprint?: string; display_mode?: string }[];
+        recent_pwa_sessions?: { session_start: string; user_id?: string; nickname?: string; display_mode?: string; duration_seconds?: number }[];
     };
     // [PHASE 20] Type Detail Data
     items_by_type?: Record<string, { title: string; count: number; url?: string }[]>;
@@ -78,7 +79,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
     // [PHASE 20] Type Detail Modal State
     const [selectedTypeDetail, setSelectedTypeDetail] = useState<{ type: string; items: { title: string; count: number; url?: string }[] } | null>(null);
     // [PHASE 18] 캐싱
-    const [cache, setCache] = useState<Map<string, AnalyticsSummary>>(new Map());
+    const [_cache, setCache] = useState<Map<string, AnalyticsSummary>>(new Map());
 
     // Helper: Get YYYY-MM-DD in Korean Time (UTC+9)
     const getKRDateString = (date: Date) => {
@@ -137,60 +138,54 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
         });
     };
 
-    const fetchAnalytics = async (forceRefresh = false) => {
-        // [PHASE 18] 캐싱 체크 (forceRefresh가 true면 캐시 무시)
-        const cacheKey = `${viewMode}-${dateRange.start}-${dateRange.end}`;
-
-        // [FIX] User List 기능 추가로 인해, 'Summary'만 캐싱된 데이터로는 리스트를 복원할 수 없음.
-        // 따라서 정확성을 위해 일단 캐싱을 무시하고 매번 새로 데이터를 가져오도록 변경함. (리스트 데이터 보장)
-        // if (!forceRefresh && cache.has(cacheKey)) {
-        //     console.log('[Analytics] Using cached data');
-        //     setSummary(cache.get(cacheKey)!);
-        //     setLoading(false);
-        //     return;
-        // }
-
+    const fetchAnalytics = async (_forceRefresh = false) => {
         setLoading(true);
-        setUserList([]); // [FIX] 데이터 로딩 시작 시 리스트 초기화 (이전 날짜 데이터 잔존 방지)
-        try {
-            let startStr, endStr;
+        setUserList([]);
+        let localUserList: UserInfo[] = [];
 
-            // [PHASE 9] View Mode 분리
-            // Summary Mode: "전체 요약"은 기간 선택과 무관하게 최근 1년(또는 전체) 데이터를 가져옴
-            // Daily Mode: "날짜별 상세"는 사용자가 선택한 기간(dateRange)을 따름
+        try {
+            let startStr: string, endStr: string;
+
             if (viewMode === 'summary') {
-                // Summary: 최근 365일 -> 전체 기간 (서비스 시작일 포함하도록 50년 전으로 설정)
                 const today = new Date();
                 const past = new Date();
                 past.setDate(today.getDate() - (365 * 50));
-
-
                 startStr = getKRDateString(past) + 'T00:00:00+09:00';
                 endStr = getKRDateString(today) + 'T23:59:59+09:00';
-                console.log(`[Analytics] Summary Mode: Fetching All-Time (Last 365 Days)`);
             } else {
-                // Daily: 선택한 기간
                 startStr = dateRange.start + 'T00:00:00+09:00';
-                endStr = dateRange.end + 'T23:59:59+09:00'; // [FIX] Timezone offset fix
-                console.log(`[Analytics] Daily Mode: Fetch Range ${startStr} ~ ${endStr}`);
+                endStr = dateRange.end + 'T23:59:59+09:00';
             }
 
-            // [PHASE 20] Sever-side Analytics (RPC) - Accurate Counts via DB
-            // Client-side fetch has 1000 row limit. We use RPC to get accurate totals and user list.
+            // RPC Call
             const { data: rpcData, error: rpcError } = await supabase
                 .rpc('get_analytics_summary_v2', {
                     start_date: startStr,
                     end_date: endStr
                 });
 
+            let clickBasedLoggedIn = 0;
+            let clickBasedAnon = 0;
+
             if (rpcError) {
                 console.error('[Analytics] RPC Call Failed:', rpcError);
-            } else {
-                console.log('[Analytics] RPC Data Received:', rpcData);
+            } else if (rpcData) {
+                const stats = rpcData as any;
+                clickBasedLoggedIn = stats.logged_in_visits || 0;
+                clickBasedAnon = stats.anonymous_visits || 0;
+
+                localUserList = (stats.user_list || []).map((u: any) => ({
+                    user_id: u.user_id,
+                    nickname: u.nickname,
+                    visitCount: u.visitCount,
+                    visitLogs: u.visitLogs || [],
+                    avgDuration: u.avgDuration || 0
+                }));
+
+                setUserList(localUserList);
             }
 
-            // Raw Data Fetch (Still needed for Trend Chart & Rankings for now)
-            // Attempt to increase limit to 10000 just in case defaults are low
+            // Raw Data Fetch
             const { data, error } = await supabase
                 .from('site_analytics_logs')
                 .select('*')
@@ -201,72 +196,18 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
 
             if (error) throw error;
 
-            console.log(`[Analytics DEBUG] Raw data fetched: ${data.length} rows`);
-
-            // [PHASE 5] Admin Exclusion
             const validData = data.filter(d => !d.is_admin);
-
-            // [Legacy Client-side Logic]
-            // We keep this for 'Trend Data' calculation below, but for Hero Stats and User List, we use RPC.
-
-            // 2. [Visitor Unique] 방문자 수 집계용 중복 제거 (For Charts)
             const visitorUniqueSet = new Set<string>();
             const visitorUniqueData = validData.filter(d => {
                 const userIdentifier = d.user_id || d.fingerprint || 'unknown';
-                const timestamp = new Date(d.created_at).getTime();
-                const timeBucket = Math.floor(timestamp / (6 * 3600 * 1000));
-
+                const timeBucket = Math.floor(new Date(d.created_at).getTime() / (24 * 3600 * 1000)); // Daily bucket for trend
                 const uniqueKey = `${userIdentifier}:${timeBucket}`;
-
-                if (visitorUniqueSet.has(uniqueKey)) {
-                    return false;
-                }
+                if (visitorUniqueSet.has(uniqueKey)) return false;
                 visitorUniqueSet.add(uniqueKey);
                 return true;
             });
 
-            // [FIX] Use RPC Data for Hero Counters if available
-            // If RPC failed, fallback to client-side calc (visitorUniqueData filters)
-            let clickBasedLoggedIn = 0;
-            let clickBasedAnon = 0;
-            let totalVisits = 0;
-
-            if (rpcData) {
-                // RPC returns: { total_visits, logged_in_visits, anonymous_visits, user_list }
-                // Cast to any to access properties if TS complains about JSON type
-                const stats = rpcData as any;
-                clickBasedLoggedIn = stats.logged_in_visits || 0;
-                clickBasedAnon = stats.anonymous_visits || 0;
-                totalVisits = stats.total_visits || 0;
-
-                // [FIX] Use RPC User List (Contains accurate historical counts)
-                // The SQL returns 'visit_logs' and 'visitCount' correctly.
-                const rpcUserList = (stats.user_list || []).map((u: any) => ({
-                    user_id: u.user_id,
-                    nickname: u.nickname,
-                    visitCount: u.visitCount, // Matches SQL json_build_object key
-                    visitLogs: u.visitLogs || [], // Matches SQL json_build_object key
-                    avgDuration: u.avgDuration || 0 // Average session duration in seconds
-                }));
-
-                setUserList(rpcUserList);
-                console.log(`[Analytics] Using RPC User List: ${rpcUserList.length} users`);
-            } else {
-                // Fallback (Client-side)
-                clickBasedLoggedIn = visitorUniqueData.filter(d => d.user_id).length;
-                clickBasedAnon = visitorUniqueData.filter(d => !d.user_id).length;
-                totalVisits = visitorUniqueData.length;
-
-                // Fallback User List generation... (Skipped to avoid duplicate code block, assuming RPC works)
-                // If RPC fails, list might be empty or we could keep the old logic block here?
-                // For safety, let's just leave the list empty or rely on the fact user approved RPC.
-                console.warn('[Analytics] RPC failed, Hero stats falling back to limited client data.');
-            }
-
-            console.log(`[Analytics DEBUG] Final Stats - Logged in: ${clickBasedLoggedIn}, Anon: ${clickBasedAnon}, Total: ${totalVisits}`);
-
-            // [PHASE 16] 세션 통계 직접 조회 (PWA 및 체류시간 분석용)
-            // Note: SiteAnalyticsProvider tracks sessions in session_logs.
+            // Session Data for PWA
             const { data: sessions, error: sessionsError } = await supabase
                 .from('session_logs')
                 .select('*')
@@ -274,22 +215,13 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 .lte('session_start', endStr)
                 .eq('is_admin', false);
 
-            let sessionStats = {
-                total_sessions: 0,
-                avg_duration: 0,
-                bounce_rate: 0
-            };
+            const sessionData = sessions || [];
+            let sessionStats = { total_sessions: 0, avg_duration: 0, bounce_rate: 0 };
 
             if (!sessionsError && sessions) {
                 const completedSessions = sessions.filter((s: any) => s.duration_seconds !== null);
                 const totalDuration = completedSessions.reduce((sum: number, s: any) => sum + (s.duration_seconds || 0), 0);
-
-                // [PHASE 18] 이탈률 개선: 클릭 1회 이하 AND 체류 시간 30초 미만
-                const bouncedSessions = completedSessions.filter((s: any) => {
-                    const clicks = s.total_clicks || 0;
-                    const duration = s.duration_seconds || 0;
-                    return clicks <= 1 && duration < 30;
-                });
+                const bouncedSessions = completedSessions.filter((s: any) => (s.total_clicks || 0) <= 1 && (s.duration_seconds || 0) < 30);
 
                 sessionStats = {
                     total_sessions: sessions.length,
@@ -298,31 +230,58 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 };
             }
 
-            // [NOTE] [LEGACY CLEANUP] Session-based logic is replaced by RPC for some metrics,
-            // but for PWA/Session details, we use the fetched 'sessions' data.
-            const sessionData = sessions || [];
+            // PWA Stats
+            let pwaStats: any = undefined;
+            const { data: installData, error: installError } = await supabase
+                .from('pwa_installs')
+                .select('*')
+                .gte('installed_at', startStr)
+                .lte('installed_at', endStr)
+                .order('installed_at', { ascending: false });
 
-            // [REMOVED] 30-second stay logic - replaced with per-user duration in user list
-            // 3. [Activity Unique] for consistency in charts
-            const uniqueData = visitorUniqueData;
+            if (!installError && installData) {
+                const pwaSessions = sessionData.filter((s: any) => s.is_pwa === true);
+                const browserSessions = sessionData.filter((s: any) => s.is_pwa === false);
+                const pwaCompletedSessions = pwaSessions.filter((s: any) => s.duration_seconds !== null);
+                const avgPWADuration = pwaCompletedSessions.length > 0 ? Math.round(pwaCompletedSessions.reduce((sum: number, s: any) => sum + (s.duration_seconds || 0), 0) / pwaCompletedSessions.length) : 0;
+                const browserCompletedSessions = browserSessions.filter((s: any) => s.duration_seconds !== null);
+                const avgBrowserDuration = browserCompletedSessions.length > 0 ? Math.round(browserCompletedSessions.reduce((sum: number, s: any) => sum + (s.duration_seconds || 0), 0) / browserCompletedSessions.length) : 0;
 
-            // 통계 집계는 이제 '순수 유니크 데이터(uniqueData)'를 기준으로 함
-            const processedData = uniqueData;
+                const recentPWASessions = pwaSessions
+                    .sort((a, b) => new Date(b.session_start).getTime() - new Date(a.session_start).getTime())
+                    .slice(0, 10)
+                    .map((s: any) => {
+                        const user = localUserList.find(u => u.user_id === s.user_id);
+                        return {
+                            session_start: s.session_start,
+                            user_id: s.user_id,
+                            nickname: user ? user.nickname : (s.user_id ? '회원' : 'Guest'),
+                            display_mode: s.pwa_display_mode,
+                            duration_seconds: s.duration_seconds
+                        };
+                    });
 
-            const total = processedData.length;
-            const admin = processedData.filter(d => d.is_admin).length;
+                pwaStats = {
+                    total_installs: installData.length,
+                    pwa_sessions: pwaSessions.length,
+                    browser_sessions: browserSessions.length,
+                    pwa_percentage: sessionData.length > 0 ? (pwaSessions.length / sessionData.length) * 100 : 0,
+                    avg_pwa_duration: avgPWADuration,
+                    avg_browser_duration: avgBrowserDuration,
+                    recent_installs: installData.slice(0, 10),
+                    recent_pwa_sessions: recentPWASessions
+                };
+            }
 
-            // [PHASE 11] 타입별 클릭 수 집계
-            const typeBreakdown = new Map<string, number>();
-            processedData.forEach(d => {
+            // Type Breakdown
+            const typeBreakdownMap = new Map<string, number>();
+            visitorUniqueData.forEach(d => {
                 const type = d.target_type || 'unknown';
-                typeBreakdown.set(type, (typeBreakdown.get(type) || 0) + 1);
+                typeBreakdownMap.set(type, (typeBreakdownMap.get(type) || 0) + 1);
             });
-            const typeStats = Array.from(typeBreakdown.entries())
-                .sort((a, b) => b[1] - a[1])
-                .map(([type, count]) => ({ type, count }));
+            const typeStats = Array.from(typeBreakdownMap.entries()).sort((a, b) => b[1] - a[1]).map(([type, count]) => ({ type, count }));
 
-            // [PHASE 15] Referrer 통계 (분류 개선)
+            // Referrer stats
             const getReferrerCategory = (ref: string): string => {
                 if (!ref) return '직접 입력';
                 try {
@@ -336,192 +295,89 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                     if (hostname.includes('instagram')) return 'Instagram';
                     if (hostname.includes('facebook')) return 'Facebook';
                     return hostname;
-                } catch {
-                    return '알 수 없음';
-                }
+                } catch { return '알 수 없음'; }
             };
 
             const referrerMap = new Map<string, number>();
-            processedData.forEach(d => {
+            visitorUniqueData.forEach(d => {
                 const category = getReferrerCategory(d.referrer || '');
                 referrerMap.set(category, (referrerMap.get(category) || 0) + 1);
             });
-            const referrerStats = Array.from(referrerMap.entries())
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, 10)
-                .map(([source, count]) => ({ source, count }));
+            const referrerStats = Array.from(referrerMap.entries()).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([source, count]) => ({ source, count }));
 
-            // [PHASE 16] 세션 통계 (이탈률 정확도 개선)
-            // Calculated above in the restored session fetch block.
-
-            // [PHASE 17] 사용자 여정 패턴 (세션별 클릭 순서)
+            // Journey patterns
             const journeyMap = new Map<string, number>();
             const sessionGroups = new Map<string, any[]>();
-
-            processedData.forEach(d => {
+            visitorUniqueData.forEach(d => {
                 if (d.session_id) {
-                    if (!sessionGroups.has(d.session_id)) {
-                        sessionGroups.set(d.session_id, []);
-                    }
+                    if (!sessionGroups.has(d.session_id)) sessionGroups.set(d.session_id, []);
                     sessionGroups.get(d.session_id)!.push(d);
                 }
             });
-
             sessionGroups.forEach(logs => {
                 const sorted = logs.sort((a, b) => (a.sequence_number || 0) - (b.sequence_number || 0));
                 const path = sorted.slice(0, 5).map(l => l.target_type);
                 const pathKey = path.join(' → ');
                 journeyMap.set(pathKey, (journeyMap.get(pathKey) || 0) + 1);
             });
+            const journeyPatterns = Array.from(journeyMap.entries()).sort((a, b) => b[1] - a[1]).slice(0, 10).map(([pathStr, count]) => ({ path: pathStr.split(' → '), count }));
 
-            const journeyPatterns = Array.from(journeyMap.entries())
-                .sort((a, b) => b[1] - a[1])
-                .slice(0, 10)
-                .map(([pathStr, count]) => ({
-                    path: pathStr.split(' → '),
-                    count
-                }));
-
-            // PWA 통계 수집
-            let pwaStats = undefined;
-            try {
-                // PWA 설치 수 조회
-                const { data: installData, error: installError } = await supabase
-                    .from('pwa_installs')
-                    .select('*')
-                    .gte('installed_at', startStr)
-                    .lte('installed_at', endStr)
-                    .order('installed_at', { ascending: false });
-
-                if (!installError && installData) {
-                    const totalInstalls = installData.length;
-                    const recentInstalls = installData.slice(0, 10);
-
-                    // PWA 세션 vs 브라우저 세션
-                    const pwaSessions = sessionData.filter((s: any) => s.is_pwa === true);
-                    const browserSessions = sessionData.filter((s: any) => s.is_pwa === false);
-
-                    // PWA 평균 체류 시간
-                    const pwaCompletedSessions = pwaSessions.filter((s: any) => s.duration_seconds !== null);
-                    const avgPWADuration = pwaCompletedSessions.length > 0
-                        ? Math.round(pwaCompletedSessions.reduce((sum: number, s: any) => sum + (s.duration_seconds || 0), 0) / pwaCompletedSessions.length)
-                        : 0;
-
-                    // 브라우저 평균 체류 시간
-                    const browserCompletedSessions = browserSessions.filter((s: any) => s.duration_seconds !== null);
-                    const avgBrowserDuration = browserCompletedSessions.length > 0
-                        ? Math.round(browserCompletedSessions.reduce((sum: number, s: any) => sum + (s.duration_seconds || 0), 0) / browserCompletedSessions.length)
-                        : 0;
-
-                    const totalSessions = sessionData.length;
-                    const pwaPercentage = totalSessions > 0 ? (pwaSessions.length / totalSessions) * 100 : 0;
-
-                    pwaStats = {
-                        total_installs: totalInstalls,
-                        pwa_sessions: pwaSessions.length,
-                        browser_sessions: browserSessions.length,
-                        pwa_percentage: pwaPercentage,
-                        avg_pwa_duration: avgPWADuration,
-                        avg_browser_duration: avgBrowserDuration,
-                        recent_installs: recentInstalls
-                    };
-                }
-            } catch (error) {
-                console.error('[Analytics] Failed to fetch PWA stats:', error);
-            }
-
-
-
-            // [PHASE 20] 타입별 상세 아이템 집계
+            // Detailed Item 집계
             const itemsByTypeMap = new Map<string, Map<string, { title: string, count: number, url?: string }>>();
-
             const totalItemMap = new Map<string, { title: string, type: string, count: number }>();
             const totalSectionMap = new Map<string, number>();
 
-            // [PHASE 21] Friendly Name Mapping
-            const getFriendlyTitle = (type: string | null, id: string | null, title: string | null) => {
+            const getFriendlyTitle = (_type: string | null, id: string | null, title: string | null) => {
                 if (title) return title;
                 const safeId = id || '';
-
                 if (safeId === 'login') return '로그인 버튼';
                 if (safeId === 'home_weekly_calendar_shortcut') return '주간 일정 바로가기 (상단)';
                 if (safeId === 'week_calendar_shortcut') return '주간 일정 바로가기';
-
                 return safeId;
             };
 
-            processedData.forEach(d => {
+            visitorUniqueData.forEach(d => {
                 const key = d.target_type + ':' + d.target_id;
                 const type = d.target_type || 'unknown';
-
                 const friendlyTitle = getFriendlyTitle(d.target_type, d.target_id, d.target_title);
-
-                // Total Items
                 const existing = totalItemMap.get(key) || { title: friendlyTitle, type: d.target_type, count: 0 };
                 totalItemMap.set(key, { ...existing, count: existing.count + 1 });
-
-                // Section Stats
                 totalSectionMap.set(d.section, (totalSectionMap.get(d.section) || 0) + 1);
-
-                // Type Detail Items
-                if (!itemsByTypeMap.has(type)) {
-                    itemsByTypeMap.set(type, new Map());
-                }
+                if (!itemsByTypeMap.has(type)) itemsByTypeMap.set(type, new Map());
                 const typeMap = itemsByTypeMap.get(type)!;
-                // 동일한 title로 그룹핑 (URL이나 ID 대신 사용자 친화적 타이틀 사용)
-                // [FIX] ID가 아닌 Friendly Title로 그룹핑하여 중복 제거 효과
                 const itemExisting = typeMap.get(friendlyTitle) || { title: friendlyTitle, count: 0, url: type === 'auto_link' ? d.target_id : undefined };
                 typeMap.set(friendlyTitle, { ...itemExisting, count: itemExisting.count + 1 });
             });
 
-            // Convert itemsByTypeMap to Record object
             const itemsByTypeRecord: Record<string, { title: string; count: number }[]> = {};
-            itemsByTypeMap.forEach((map, type) => {
-                itemsByTypeRecord[type] = Array.from(map.values()).sort((a, b) => b.count - a.count);
-            });
-
+            itemsByTypeMap.forEach((map, type) => { itemsByTypeRecord[type] = Array.from(map.values()).sort((a, b) => b.count - a.count); });
             const totalTopItems = Array.from(totalItemMap.values()).sort((a, b) => b.count - a.count).slice(0, 20);
-            const totalSections = Array.from(totalSectionMap.entries())
-                .map(([section, count]) => ({ section, count }))
-                .sort((a, b) => b.count - a.count);
+            const totalSections = Array.from(totalSectionMap.entries()).map(([section, count]) => ({ section, count })).sort((a, b) => b.count - a.count);
 
-            const dateGroups = new Map<string, any[]>();
-            processedData.forEach(d => {
-                // [FIX] UTC 날짜가 아니라 KST 날짜로 그룹핑해야 정확함 (새벽 00~09시 데이터가 전날로 가는 문제 해결)
+            // Daily records
+            const dailyGroups = new Map<string, any[]>();
+            visitorUniqueData.forEach(d => {
                 const kstDate = getKRDateString(new Date(d.created_at));
-                const dateKey = kstDate;
-
-                const group = dateGroups.get(dateKey) || [];
+                const group = dailyGroups.get(kstDate) || [];
                 group.push(d);
-                dateGroups.set(dateKey, group);
+                dailyGroups.set(kstDate, group);
             });
 
-            const dailyDetails = Array.from(dateGroups.entries())
+            const dailyDetails = Array.from(dailyGroups.entries())
                 .sort((a, b) => b[0].localeCompare(a[0]))
                 .map(([date, logs]) => {
-                    // [PHASE 7] 날짜별 회원/게스트 구분 집계
-                    let dUser = 0;
-                    let dGuest = 0;
-
+                    let dUser = 0, dGuest = 0;
                     const eventMap = new Map<string, { title: string, type: string, count: number }>();
                     logs.forEach(l => {
-                        // 날짜별 회원/게스트 카운트
                         if (l.user_id && !l.is_admin) dUser++;
                         else if (!l.user_id && !l.is_admin) dGuest++;
-
                         const key = l.target_type + ':' + l.target_id;
                         const existing = eventMap.get(key) || { title: l.target_title || l.target_id, type: l.target_type, count: 0 };
                         eventMap.set(key, { ...existing, count: existing.count + 1 });
                     });
-
-                    const dObj = new Date(date);
-                    const displayDate = dObj.toLocaleDateString('ko-KR', {
-                        month: 'long', day: 'numeric', weekday: 'short'
-                    });
-
                     return {
                         date,
-                        displayDate,
+                        displayDate: new Date(date).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' }),
                         total: logs.length,
                         user: dUser,
                         guest: dGuest,
@@ -530,37 +386,33 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 });
 
             const newSummary = {
-                total_clicks: total,
-                user_clicks: clickBasedLoggedIn, // 클릭 기반
-                anon_clicks: clickBasedAnon, // 클릭 기반
-                admin_clicks: admin,
+                total_clicks: visitorUniqueData.length,
+                user_clicks: clickBasedLoggedIn,
+                anon_clicks: clickBasedAnon,
+                admin_clicks: validData.length - visitorUniqueData.length, // Rough estimate or just exclude admin
                 type_breakdown: typeStats,
                 daily_details: dailyDetails,
                 total_top_items: totalTopItems,
                 total_sections: totalSections,
-                // [PHASE 15-17] Advanced analytics
                 referrer_stats: referrerStats,
                 session_stats: sessionStats,
                 journey_patterns: journeyPatterns,
-
-                // PWA stats
                 pwa_stats: pwaStats,
-                // Type details
                 items_by_type: itemsByTypeRecord
             };
 
-            setSummary(newSummary);
+            setSummary(newSummary as any);
 
-            // [PHASE 18] 캐시에 저장
+            // Cache
             const cacheKey = `${viewMode}-${dateRange.start}-${dateRange.end}`;
-            setCache(new Map(cache.set(cacheKey, newSummary)));
+            setCache(prev => new Map(prev.set(cacheKey, newSummary as any)));
 
-            // [PHASE 3] Auto Snapshot: 오늘치 스냅샷이 없으면 조용히 생성
+            // Auto Snapshot
             if (dateRange.end === getKRDateString(new Date())) {
                 checkAndAutoSnapshot({
                     user_clicks: clickBasedLoggedIn,
                     anon_clicks: clickBasedAnon,
-                    admin_clicks: admin
+                    admin_clicks: 0 // Admin excluded from this logic
                 } as any);
             }
         } catch (err) {
@@ -976,9 +828,59 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                         <strong>{Math.floor(summary.pwa_stats.avg_browser_duration / 60)}분 {summary.pwa_stats.avg_browser_duration % 60}초</strong>
                                                     </div>
                                                 </div>
+                                                {summary.pwa_stats.recent_pwa_sessions && summary.pwa_stats.recent_pwa_sessions.length > 0 && (
+                                                    <div style={{ marginTop: '24px' }}>
+                                                        <h4 style={{ fontSize: '0.9em', marginBottom: '12px', color: '#fbbf24', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                            <i className="ri-user-follow-line"></i> 최근 PWA 접속 사용자 (최대 10개)
+                                                        </h4>
+                                                        <div className="recent-installs-list">
+                                                            {summary.pwa_stats.recent_pwa_sessions.map((session, idx) => (
+                                                                <div key={idx} className="install-item" style={{
+                                                                    padding: '10px 12px',
+                                                                    borderBottom: '1px solid #27272a',
+                                                                    fontSize: '0.85em',
+                                                                    display: 'flex',
+                                                                    justifyContent: 'space-between',
+                                                                    alignItems: 'center',
+                                                                    background: idx % 2 === 0 ? 'rgba(39, 39, 42, 0.3)' : 'transparent',
+                                                                    borderRadius: '4px'
+                                                                }}>
+                                                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                                                        <div style={{ fontWeight: '600', color: '#f4f4f5' }}>{session.nickname || 'Guest'}</div>
+                                                                        <div style={{ color: '#71717a', fontSize: '0.75rem' }}>
+                                                                            {new Date(session.session_start).toLocaleString('ko-KR', {
+                                                                                month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'
+                                                                            })}
+                                                                            {session.display_mode && ` · ${session.display_mode}`}
+                                                                        </div>
+                                                                    </div>
+                                                                    <div style={{ textAlign: 'right' }}>
+                                                                        {session.duration_seconds ? (
+                                                                            <span style={{ color: '#10b981', fontWeight: '500' }}>
+                                                                                {Math.floor(session.duration_seconds / 60)}분 {session.duration_seconds % 60}초
+                                                                            </span>
+                                                                        ) : (
+                                                                            (() => {
+                                                                                const isVeryRecent = (new Date().getTime() - new Date(session.session_start).getTime()) < 3600000; // 1시간 이내
+                                                                                return isVeryRecent ? (
+                                                                                    <span style={{ color: '#fbbf24', fontSize: '0.8em' }}>접속 중</span>
+                                                                                ) : (
+                                                                                    <span style={{ color: '#3f3f46', fontSize: '0.8em' }}>-</span>
+                                                                                );
+                                                                            })()
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
                                                 {summary.pwa_stats.recent_installs.length > 0 && (
-                                                    <div style={{ marginTop: '16px' }}>
-                                                        <h4 style={{ fontSize: '0.9em', marginBottom: '8px', color: '#888' }}>최근 설치 (최대 10개)</h4>
+                                                    <div style={{ marginTop: '24px' }}>
+                                                        <h4 style={{ fontSize: '0.9em', marginBottom: '12px', color: '#888', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                            <i className="ri-download-line"></i> 최근 설치 내역
+                                                        </h4>
                                                         <div className="recent-installs-list">
                                                             {summary.pwa_stats.recent_installs.map((install, idx) => (
                                                                 <div key={idx} className="install-item" style={{ padding: '8px', borderBottom: '1px solid #333', fontSize: '0.85em' }}>

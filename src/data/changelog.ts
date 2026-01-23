@@ -21,7 +21,7 @@ export const changelogData: ChangelogVersion[] = [
         version: '3.6.1',
         date: '2026-01-23',
         changes: [
-            '[✨ Auth] 카카오 로그인 실명/전화번호 연동 최적화 (기존 가입자 포함)',
+
             '[✨ Admin] 관리자 보완 조회 시스템(회원관리) 정상화 (is_admin 권한 및 CSS 복구)',
             '[🔧 Auth] AuthContext 데이터 신뢰 정책 개선 (DB 데이터 우선 정책 적용)',
             '[🔧 모달] 전역 모달 시스템 렌더링 최적화 및 이중 포탈 제거'
