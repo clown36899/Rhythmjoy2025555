@@ -484,7 +484,7 @@ export default function SwingSceneStats() {
             {/* 1. 월별 통계 */}
             <div style={sectionStyle}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-                    <h4 style={sectionTitleStyle}><i className="ri-bar-chart-fill"></i> 월별 콘텐츠 등록 추이</h4>
+                    <h4 style={{ ...sectionTitleStyle, whiteSpace: 'nowrap', fontSize: 'min(3.5vw, 13px)', flex: '1 1 auto', minWidth: 0 }}><i className="ri-bar-chart-fill"></i> 월별 콘텐츠 등록 추이</h4>
                     <div style={tabGroupStyle}>
                         <button onClick={() => setMonthlyRange('6m')} style={{ ...tabButtonStyle, background: monthlyRange === '6m' ? 'rgba(255,255,255,0.1)' : 'transparent', color: monthlyRange === '6m' ? '#fff' : '#71717a' }}>6개월</button>
                         <button onClick={() => setMonthlyRange('1y')} style={{ ...tabButtonStyle, background: monthlyRange === '1y' ? 'rgba(255,255,255,0.1)' : 'transparent', color: monthlyRange === '1y' ? '#fff' : '#71717a' }}>1년</button>

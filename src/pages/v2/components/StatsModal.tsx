@@ -9,14 +9,22 @@ interface StatsModalProps {
     isOpen: boolean;
     onClose: () => void;
     userId: string | undefined;
+    initialTab?: 'my' | 'scene'; // [NEW] Optional initial tab
 }
 
-export default function StatsModal({ isOpen, onClose, userId }: StatsModalProps) {
+export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' }: StatsModalProps) {
     const [events, setEvents] = useState<SupabaseEvent[]>([]);
     const [posts, setPosts] = useState<StandardBoardPost[]>([]);
     const [loading, setLoading] = useState(true);
     const [userProfile, setUserProfile] = useState<any>(null);
     const [activeTab, setActiveTab] = useState<'my' | 'scene'>('my');
+
+    // [NEW] Sync activeTab with initialTab when modal opens
+    useEffect(() => {
+        if (isOpen) {
+            setActiveTab(initialTab);
+        }
+    }, [isOpen, initialTab]);
 
     useEffect(() => {
         if (isOpen && userId) {

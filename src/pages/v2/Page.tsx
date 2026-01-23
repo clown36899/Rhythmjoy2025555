@@ -74,6 +74,7 @@ export default function HomePageV2() {
     const [bannerMonthBounds, setBannerMonthBounds] = useState<{ min: string; max: string } | null>(null);
     const [registrationCalendarMode, setRegistrationCalendarMode] = useState<'collapsed' | 'expanded' | 'fullscreen' | null>(null);
     const [showStatsModal, setShowStatsModal] = useState(false); // [NEW]
+    const [statsInitialTab, setStatsInitialTab] = useState<'my' | 'scene'>('my');
 
     // Search & Sort State
     const [showInputModal, setShowInputModal] = useState(false);
@@ -147,6 +148,7 @@ export default function HomePageV2() {
     useEffect(() => {
         const modalType = searchParams.get("modal");
         if (modalType === "stats") {
+            setStatsInitialTab('scene');
             setShowStatsModal(true);
             // Clean up URL parameters
             const newParams = new URLSearchParams(searchParams);
