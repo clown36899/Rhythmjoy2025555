@@ -93,7 +93,7 @@ const BillboardLayoutV1: React.FC = () => {
             <div className="wall-hud-footer">
                 <div className="h-ticker-box">
                     <div className="h-ticker-text">
-                        WELCOME TO RHYTHMJOY DANCE BILLBOARD • CHECK OUT OUR UPCOMING SOCIALS AND EVENTS • STAY TUNED FOR NEW CLASSES • NO.1 DANCE PLATFORM •
+                        WELCOME TO DANCE BILLBOARD • CHECK OUT OUR UPCOMING SOCIALS AND EVENTS • STAY TUNED FOR NEW CLASSES • NO.1 DANCE PLATFORM •
                     </div>
                 </div>
                 <div className="h-qr-box">

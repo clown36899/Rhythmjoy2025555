@@ -51,7 +51,7 @@ const EventPhotoFinderPage: React.FC = () => {
             <header className="shell-header global-header-fixed">
                 <div className="header-left-content">
                     <div className="header-events-content">
-                        <img src="/logo.png" alt="RhythmJoy Logo" className="header-logo" />
+                        <img src="/logo.png" alt="Dance Billboard Logo" className="header-logo" />
                         {/* <h1 className="header-title">
                             내 사진 찾기 AI
                         </h1> */}

@@ -652,8 +652,8 @@ const LearningDetailPage: React.FC<Props> = ({ playlistId: propPlaylistId, onClo
         // 🔥 Update MediaSession Metadata when video changes
         if ('mediaSession' in navigator) {
             navigator.mediaSession.metadata = new MediaMetadata({
-                title: video.title || 'RhythmJoy Video',
-                artist: 'RhythmJoy Learning',
+                title: video.title || 'Dance Billboard Video',
+                artist: 'Dance Billboard Learning',
                 artwork: [
                     { src: `https://img.youtube.com/vi/${currentId}/mqdefault.jpg`, sizes: '320x180', type: 'image/jpeg' }
                 ]

@@ -55,7 +55,7 @@ const BillboardLayoutV5: React.FC = () => {
                             <img src={getImageUrl(currentEvent)} className="v5-hero-img-contain" alt="" />
                         </>
                     ) : (
-                        <div className="v5-no-image">RHYTHMJOY</div>
+                        <div className="v5-no-image">DANCE BILLBOARD</div>
                     )}
                 </div>
 
@@ -79,7 +79,7 @@ const BillboardLayoutV5: React.FC = () => {
             {/* List Section (Right) */}
             <div className="v5-list-section">
                 <div className="v5-list-header">
-                    <div className="v5-brand">RHYTHMJOY</div>
+                    <div className="v5-brand">DANCE BILLBOARD</div>
                     <div className="v5-clock">{currentTime.toLocaleTimeString('ko-KR', { hour12: false, hour: '2-digit', minute: '2-digit' })}</div>
                 </div>
 

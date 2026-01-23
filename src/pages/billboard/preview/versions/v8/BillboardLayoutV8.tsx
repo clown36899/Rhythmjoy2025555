@@ -269,7 +269,7 @@ export default function BillboardLayoutV8() {
                         <div className="v8-q-t2"></div>
                     </div>
                     <QRCodeSVG
-                        value="https://rhythmjoy.com"
+                        value="https://swingenjoy.com"
                         size={80}
                         level="M"
                         includeMargin={false}

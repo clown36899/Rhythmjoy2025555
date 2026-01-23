@@ -349,7 +349,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                       data-analytics-title="댄스빌보드 로고"
                       data-analytics-section="header"
                     >
-                      <img src="/logo.png" alt="RhythmJoy Logo" className="header-logo" />
+                      <img src="/logo.png" alt="Dance Billboard Logo" className="header-logo" />
                       <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: '1', minWidth: 0, overflow: 'hidden', width: 'fit-content' }}>
                         <div style={{ display: 'flex', alignItems: 'baseline', gap: 'min(0.8vw, 6px)', flexWrap: 'nowrap', minWidth: 0 }}>
                           <h1 className="header-title" style={{ margin: 0, fontSize: 'min(4vw, 1.45rem)', minWidth: 0, flexShrink: 1, overflow: 'hidden' }}>

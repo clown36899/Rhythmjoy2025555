@@ -178,8 +178,8 @@ const BillboardLayoutV7: React.FC = () => {
             <div className="v7-hud-footer">
                 <div className="v7-ticker-box">
                     <div className="v7-ticker-text">
-                        WELCOME TO RHYTHMJOY DANCE BILLBOARD • CHECK OUT OUR UPCOMING SOCIALS AND EVENTS • RAW DATA DRIVEN DISPLAY •
-                        WELCOME TO RHYTHMJOY DANCE BILLBOARD • CHECK OUT OUR UPCOMING SOCIALS AND EVENTS • RAW DATA DRIVEN DISPLAY •
+                        WELCOME TO DANCE BILLBOARD • CHECK OUT OUR UPCOMING SOCIALS AND EVENTS • RAW DATA DRIVEN DISPLAY •
+                        WELCOME TO DANCE BILLBOARD • CHECK OUT OUR UPCOMING SOCIALS AND EVENTS • RAW DATA DRIVEN DISPLAY •
                     </div>
                 </div>
                 <div className="v7-qr-box">

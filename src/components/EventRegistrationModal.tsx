@@ -147,7 +147,7 @@ export default memo(function EventRegistrationModal({
               description: "이벤트 설명이 들어갑니다.",
               category: "event",
               genre: "K-POP",
-              organizer: "RhythmJoy",
+              organizer: "Dance Billboard",
               image: "", // Placeholder will be used
               organizer_name: "관리자",
               time: "00:00",
@@ -171,7 +171,7 @@ export default memo(function EventRegistrationModal({
             description: "이벤트 설명이 들어갑니다.",
             category: "event",
             genre: "K-POP",
-            organizer: "RhythmJoy",
+            organizer: "Dance Billboard",
             image: "",
             organizer_name: "관리자",
             time: "00:00",
