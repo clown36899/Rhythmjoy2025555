@@ -418,9 +418,54 @@ export default function SwingSceneStats() {
     const getTypeItems = (day: string | null) => day ? currentWeekly.find(d => d.day === day)?.items || [] : [];
     const getGenreItems = (day: string | null) => day ? (currentWeekly.find(d => d.day === day)?.items || []).filter(i => i.type !== '게시글') : [];
 
+    const handleShare = async () => {
+        if (!stats) return;
+        const text = `📊 스윙씬 통계 요약\n\n- 최근 1년 등록: ${stats.summary.totalItems}건\n- 월평균 등록: ${stats.summary.monthlyAverage}건\n- 가장 활발한 요일: ${stats.summary.topDay}요일\n\n더 자세한 스윙씬 트렌드는 리듬조이에서 확인하세요!\nhttps://rhythmjoy.com`;
+
+        if (navigator.share) {
+            try {
+                await navigator.share({
+                    title: '스윙씬 통계',
+                    text: text,
+                    url: 'https://rhythmjoy.com'
+                });
+            } catch (err) {
+                console.error('Share failed:', err);
+            }
+        } else {
+            try {
+                await navigator.clipboard.writeText(text);
+                alert('통계 요약이 클립보드에 복사되었습니다!');
+            } catch (err) {
+                console.error('Clipboard failed:', err);
+                alert('공유하기를 지원하지 않는 브라우저입니다.');
+            }
+        }
+    };
+
     return (
         <div style={{ color: '#fff' }}>
             {/* 요약 */}
+            {/* 요약 */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
+                <button onClick={handleShare} style={{
+                    background: 'rgba(255, 255, 255, 0.1)',
+                    border: '1px solid rgba(255, 255, 255, 0.2)',
+                    borderRadius: '8px',
+                    color: '#fff',
+                    padding: '6px 12px',
+                    fontSize: '12px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    transition: 'all 0.2s'
+                }}>
+                    <i className="ri-share-forward-line"></i> 통계 공유
+                </button>
+            </div>
+
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '24px' }}>
                 <div style={cardStyle}>
                     <div style={labelStyle}>최근 1년</div>
