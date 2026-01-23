@@ -420,14 +420,14 @@ export default function SwingSceneStats() {
 
     const handleShare = async () => {
         if (!stats) return;
-        const text = `📊 스윙씬 통계 요약\n\n- 최근 1년 등록: ${stats.summary.totalItems}건\n- 월평균 등록: ${stats.summary.monthlyAverage}건\n- 가장 활발한 요일: ${stats.summary.topDay}요일\n\n더 자세한 스윙씬 트렌드는 리듬조이에서 확인하세요!\nhttps://rhythmjoy.com`;
+        const text = `📊 스윙씬 통계 요약 (From 댄스빌보드)\n\n- 최근 1년 등록: ${stats.summary.totalItems}건\n- 월평균 등록: ${stats.summary.monthlyAverage}건\n- 가장 활발한 요일: ${stats.summary.topDay}요일\n\n더 자세한 스윙씬 트렌드는 댄스빌보드에서 확인하세요!\nhttps://rhythmjoy.com?modal=stats`;
 
         if (navigator.share) {
             try {
                 await navigator.share({
-                    title: '스윙씬 통계',
+                    title: '스윙씬 통계 - 댄스빌보드',
                     text: text,
-                    url: 'https://rhythmjoy.com'
+                    url: 'https://rhythmjoy.com?modal=stats'
                 });
             } catch (err) {
                 console.error('Share failed:', err);
@@ -435,7 +435,7 @@ export default function SwingSceneStats() {
         } else {
             try {
                 await navigator.clipboard.writeText(text);
-                alert('통계 요약이 클립보드에 복사되었습니다!');
+                alert('통계 요약 링크가 클립보드에 복사되었습니다!');
             } catch (err) {
                 console.error('Clipboard failed:', err);
                 alert('공유하기를 지원하지 않는 브라우저입니다.');

@@ -143,6 +143,18 @@ export default function HomePageV2() {
         }
     }, [user, signInWithKakao, baseToggleEventFavorite]);
 
+    // [NEW] Deep Link Logic for Stats Modal
+    useEffect(() => {
+        const modalType = searchParams.get("modal");
+        if (modalType === "stats") {
+            setShowStatsModal(true);
+            // Clean up URL parameters
+            const newParams = new URLSearchParams(searchParams);
+            newParams.delete("modal");
+            setSearchParams(newParams, { replace: true });
+        }
+    }, [searchParams, setSearchParams]);
+
 
 
 
