@@ -76,6 +76,23 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
     };
 
     fetchTotalUserCount();
+
+    // 🔥 실시간 가입자 수 동기화 추가
+    const channel = supabase
+      .channel('public:board_users')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'board_users' },
+        () => {
+          fetchTotalUserCount();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      channel.unsubscribe();
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   // Show login modal on first visit if not logged in
