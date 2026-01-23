@@ -818,6 +818,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       console.log('[signInWithGoogle] Auth options:', JSON.stringify(authOptions, null, 2));
 
+
+      // [DEBUG] 모바일 환경 리다이렉트 문제 확인용
+      // if (window.innerWidth < 768) {
+      //   alert(`Login Redirect URL:\n${authOptions.options.redirectTo}`);
+      // }
+
       const { data, error } = await supabase.auth.signInWithOAuth(authOptions);
 
       console.log('[signInWithGoogle] Response data:', data);

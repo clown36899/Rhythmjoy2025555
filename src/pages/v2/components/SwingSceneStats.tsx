@@ -420,14 +420,14 @@ export default function SwingSceneStats() {
 
     const handleShare = async () => {
         if (!stats) return;
-        const text = `📊 스윙씬 통계 요약 (From 댄스빌보드)\n\n- 최근 1년 등록: ${stats.summary.totalItems}건\n- 월평균 등록: ${stats.summary.monthlyAverage}건\n- 가장 활발한 요일: ${stats.summary.topDay}요일\n\n더 자세한 스윙씬 트렌드는 댄스빌보드에서 확인하세요!\nhttps://rhythmjoy.com?modal=stats`;
+        const text = `📊 스윙씬 통계 요약 (From 댄스빌보드)\n\n- 최근 1년 등록: ${stats.summary.totalItems}건\n- 월평균 등록: ${stats.summary.monthlyAverage}건\n- 가장 활발한 요일: ${stats.summary.topDay}요일\n\n더 자세한 스윙씬 트렌드는 댄스빌보드에서 확인하세요!\nhttps://swingenjoy.com?modal=stats`;
 
         if (navigator.share) {
             try {
                 await navigator.share({
                     title: '스윙씬 통계 - 댄스빌보드',
                     text: text,
-                    url: 'https://rhythmjoy.com?modal=stats'
+                    url: 'https://swingenjoy.com?modal=stats'
                 });
             } catch (err) {
                 console.error('Share failed:', err);
