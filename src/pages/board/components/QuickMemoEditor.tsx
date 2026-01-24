@@ -37,6 +37,9 @@ export default function QuickMemoEditor({
     const [isNotice, setIsNotice] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // [NEW] Registry for deferred uploads
+    const pendingUploads = useRef<Map<string, File>>(new Map());
+
     // Auth Check for Anonymous Board
     const { user, signOut } = useAuth(); // Import useAuth hook at top if not present, or pass as prop
     // Since useAuth is context, we should import it.
@@ -82,6 +85,11 @@ export default function QuickMemoEditor({
 
     useEffect(() => {
         loadBannedWords();
+        // Cleanup pending object URLs on unmount
+        return () => {
+            pendingUploads.current.forEach((_, key) => URL.revokeObjectURL(key));
+            pendingUploads.current.clear();
+        };
     }, []);
 
     // Sync form with editData
@@ -100,6 +108,7 @@ export default function QuickMemoEditor({
             setNickname('');
             setPassword('');
             setIsNotice(false);
+            pendingUploads.current.clear(); // Clear pending on reset
         }
     }, [editData, providedPassword]);
 
@@ -137,6 +146,14 @@ export default function QuickMemoEditor({
         };
     }, [imagePreview]);
 
+    // [UPDATED] Deferred Inline Image Upload Handler
+    const handleInlineImageUpload = async (file: File): Promise<string> => {
+        console.log('[QuickMemo] Image added to queue (deferred upload). File:', file.name);
+        const objectUrl = URL.createObjectURL(file);
+        pendingUploads.current.set(objectUrl, file);
+        return objectUrl;
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -167,6 +184,32 @@ export default function QuickMemoEditor({
         setIsSubmitting(true);
 
         try {
+            // 0. Processing Pending Inline Images
+            let finalContent = content;
+            const pendingMap = pendingUploads.current;
+
+            if (pendingMap.size > 0) {
+                const entries = Array.from(pendingMap.entries());
+                for (const [blobUrl, file] of entries) {
+                    if (finalContent.includes(blobUrl)) {
+                        const timestamp = Date.now();
+                        const randomString = Math.random().toString(36).substring(2, 10);
+                        const fileName = `${timestamp}_${randomString}.webp`;
+
+                        const resizeResult = await resizeImage(blobUrl, 800, 0.8, fileName);
+
+                        const { error } = await supabase.storage.from("images").upload(`board-images/content/${fileName}`, resizeResult);
+                        if (error) {
+                            console.error('Failed to upload inline image:', file.name, error);
+                            throw error;
+                        }
+
+                        const publicUrl = supabase.storage.from("images").getPublicUrl(`board-images/content/${fileName}`).data.publicUrl;
+                        finalContent = finalContent.replaceAll(blobUrl, publicUrl);
+                    }
+                }
+            }
+
             let imageUrls = { image: null as string | null, image_thumbnail: null as string | null };
 
             if (imageFile) {
@@ -204,7 +247,7 @@ export default function QuickMemoEditor({
                     console.log('Updating anonymous post as Admin (Direct)');
                     const updates: any = {
                         title: title.trim(),
-                        content: content.trim(),
+                        content: finalContent, // Use processed content
                         author_name: nickname,
                         author_nickname: nickname,
                         is_notice: isNotice
@@ -231,7 +274,7 @@ export default function QuickMemoEditor({
                         p_post_id: editData.id,
                         p_password: finalPassword,
                         p_title: title.trim(),
-                        p_content: content.trim(),
+                        p_content: finalContent, // Use processed content
                         p_nickname: nickname,
                         p_image: imageUrls.image,
                         p_image_thumbnail: imageUrls.image_thumbnail
@@ -253,7 +296,7 @@ export default function QuickMemoEditor({
                 // Create new post
                 const { error } = await supabase.from('board_anonymous_posts').insert({
                     title: title.trim(),
-                    content: content.trim(),
+                    content: finalContent, // Use processed content
                     author_name: nickname,
                     author_nickname: nickname,
                     password: password.trim(),
@@ -352,29 +395,6 @@ export default function QuickMemoEditor({
         }
     };
 
-    // [NEW] Inline Image Upload Handler for Universal Editor
-    const handleInlineImageUpload = async (file: File): Promise<string> => {
-        const timestamp = Date.now();
-        const fileName = `${timestamp}_${Math.random().toString(36).substring(2)}.webp`;
-        const fileUrl = URL.createObjectURL(file);
-
-        try {
-            // Resize for optimize (using medium size for content)
-            const medium = await resizeImage(fileUrl, 800, 0.8, fileName); // Higher quality for content
-
-            const { error } = await supabase.storage.from("images").upload(`board-images/content/${fileName}`, medium);
-            if (error) throw error;
-
-            const publicUrl = supabase.storage.from("images").getPublicUrl(`board-images/content/${fileName}`).data.publicUrl;
-            return publicUrl;
-        } catch (error) {
-            console.error('Content image upload failed:', error);
-            throw error;
-        } finally {
-            URL.revokeObjectURL(fileUrl);
-        }
-    };
-
     return (
         <div className={`quick-memo-editor ${isExpanded ? 'expanded' : 'collapsed'} ${className}`}>
             {!isExpanded && !editData && (
@@ -457,14 +477,7 @@ export default function QuickMemoEditor({
                 </div>
 
                 <div className="memo-action-bar">
-                    <button
-                        type="button"
-                        className="memo-icon-btn"
-                        onClick={() => fileInputRef.current?.click()}
-                        title="이미지 첨부"
-                    >
-                        <i className="ri-image-add-line"></i>
-                    </button>
+
 
                     <div className="memo-submit-group">
                         {editData && (

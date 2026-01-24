@@ -75,10 +75,16 @@ export default function UniversalEditor({
     });
 
     useEffect(() => {
-        if (editor && content !== editor.getHTML()) {
-            if (content === '' && editor.getText() !== '') {
-                editor.commands.setContent(content || '');
-            }
+        if (editor && content !== undefined && content !== editor.getHTML()) {
+            // [FIX] Correctly sync content from prop to editor
+            // Prevent cursor jumps if we are typing (only set if significantly different or on mount)
+            // Ideally on mount, editor.getHTML() is empty path.
+
+            // Simple check to avoid loop: only set if different.
+            // Note: getHTML() might return different string for same content (attr order).
+            // But usually this pattern is standard for controlled inputs.
+            // For now, simple setContent is better than the previous buggy "only if empty" check.
+            editor.commands.setContent(content);
         }
     }, [content, editor]);
 

@@ -6,8 +6,9 @@ import { useBoardData } from '../../../contexts/BoardDataContext';
 import type { BoardPost } from '../hooks/useBoardPosts';
 import type { BoardPrefix } from '../../../components/BoardPrefixManagementModal';
 import { type BoardCategory } from './BoardTabBar';
-import { createResizedImages, resizeImage } from '../../../utils/imageResize'; // [UPDATED] Import resizeImage
-import { retryOperation } from '../../../utils/asyncUtils';
+// import { createResizedImages, resizeImage } from '../../../utils/imageResize';
+import { resizeImage } from '../../../utils/imageResize'; // [UPDATED] Only resizeImage needed
+// import { retryOperation } from '../../../utils/asyncUtils'; // [UPDATED] Unused
 import { useModalHistory } from '../../../hooks/useModalHistory';
 import UniversalEditor from '../../../components/UniversalEditor/Core/UniversalEditor'; // [UPDATED] Import UniversalEditor
 import './PostEditorModal.css';
@@ -44,10 +45,10 @@ export default function UniversalPostEditor({
         category: category
     });
 
-    const [imageFile, setImageFile] = useState<File | null>(null);
-    const [imagePreview, setImagePreview] = useState<string | null>(null);
-    const [isImageDeleted, setIsImageDeleted] = useState(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
+
+
+    // [NEW] Registry for deferred uploads
+    const pendingUploads = useRef<Map<string, File>>(new Map());
 
     const [prefixes, setPrefixes] = useState<BoardPrefix[]>([]);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -58,35 +59,30 @@ export default function UniversalPostEditor({
         if (isOpen) {
             document.body.style.overflow = 'hidden';
             loadBannedWords();
+            pendingUploads.current.clear(); // Reset pending uploads
 
             if (post) {
+                // Edit Mode
                 setFormData({
                     title: post.title,
-                    content: post.content,
-                    author_name: post.author_name,
+                    content: post.content || '',
+                    author_name: isAdmin ? "관리자" : post.author_name, // [UPDATED] Force admin name
                     is_notice: post.is_notice || false,
-                    prefix_id: post.prefix_id || null,
+                    prefix_id: (post as any).prefix_id || null, // [FIX] Cast to any
                     category: (post as any).category || 'free'
                 });
-                if ((post as any).image_thumbnail) {
-                    setImagePreview((post as any).image_thumbnail);
-                    setIsImageDeleted(false);
-                } else {
-                    setImagePreview(null);
-                    setIsImageDeleted(false);
-                }
+
             } else {
+                // New Mode
                 setFormData({
                     title: '',
                     content: '',
-                    author_name: user?.user_metadata?.name || user?.email?.split('@')[0] || '',
+                    author_name: isAdmin ? "관리자" : (user?.user_metadata?.name || user?.email?.split('@')[0] || ''), // [UPDATED] Force admin name
                     is_notice: false,
                     prefix_id: null,
                     category: category
                 });
-                setImageFile(null);
-                setImagePreview(null);
-                setIsImageDeleted(false);
+
             }
         } else {
             document.body.style.overflow = '';
@@ -94,6 +90,9 @@ export default function UniversalPostEditor({
 
         return () => {
             document.body.style.overflow = '';
+            // Cleanup pending object URLs on unmount/close
+            pendingUploads.current.forEach((_, key) => URL.revokeObjectURL(key));
+            pendingUploads.current.clear();
         };
     }, [isOpen, post, user, category]);
 
@@ -123,23 +122,7 @@ export default function UniversalPostEditor({
         }));
     };
 
-    const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
-            setImageFile(file);
-            const objectUrl = URL.createObjectURL(file);
-            setImagePreview(objectUrl);
-            setIsImageDeleted(false);
-        }
-    };
 
-    useEffect(() => {
-        return () => {
-            if (imagePreview && imagePreview.startsWith('blob:')) {
-                URL.revokeObjectURL(imagePreview);
-            }
-        };
-    }, [imagePreview]);
 
     const checkBannedWords = (text: string) => {
         for (const word of bannedWords) {
@@ -148,27 +131,12 @@ export default function UniversalPostEditor({
         return null;
     };
 
-    // [NEW] Inline Image Upload Handler for Universal Editor
+    // [UPDATED] Deferred Inline Image Upload Handler
     const handleInlineImageUpload = async (file: File): Promise<string> => {
-        const timestamp = Date.now();
-        const fileName = `${timestamp}_${Math.random().toString(36).substring(2)}.webp`;
-        const fileUrl = URL.createObjectURL(file);
-
-        try {
-            // Resize for optimize (using medium size for content)
-            const medium = await resizeImage(fileUrl, 800, 0.8, fileName);
-
-            const { error } = await supabase.storage.from("images").upload(`board-images/content/${fileName}`, medium);
-            if (error) throw error;
-
-            const publicUrl = supabase.storage.from("images").getPublicUrl(`board-images/content/${fileName}`).data.publicUrl;
-            return publicUrl;
-        } catch (error) {
-            console.error('Content image upload failed:', error);
-            throw error;
-        } finally {
-            URL.revokeObjectURL(fileUrl);
-        }
+        console.log('[UniversalPostEditor] Image added to queue (deferred upload). File:', file.name);
+        const objectUrl = URL.createObjectURL(file);
+        pendingUploads.current.set(objectUrl, file);
+        return objectUrl;
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -191,12 +159,16 @@ export default function UniversalPostEditor({
             return;
         }
 
-        if (post && !isAdmin && post.user_id !== user?.id) {
-            if (!post.user_id) {
+        // Edit permission check
+        // [FIX] Checking user_id needs casting because AnonymousBoardPost doesn't have it (logic relies on it being undefined for anon)
+        if (post && !isAdmin && (post as any).user_id !== user?.id) {
+            // Standard posts must be edited by owner or admin
+            if (!(post as any).user_id) {
+                // This shouldn't happen for standard posts, but just in case
                 alert('수정 권한이 없습니다.');
                 return;
             }
-            if (post.user_id !== user.id) {
+            if ((post as any).user_id !== user.id) {
                 alert('본인이 작성한 글만 수정할 수 있습니다.');
                 return;
             }
@@ -206,60 +178,79 @@ export default function UniversalPostEditor({
         setLoadingMessage("저장 중...");
 
         try {
+            // 0. Process Content Images (Deferred Upload)
+            let finalContent = formData.content;
+
+            // Check if content contains any blob URLs from our pending list
+            const pendingMap = pendingUploads.current;
+            if (pendingMap.size > 0) {
+                // Convert map entries to array for async iteration
+                const entries = Array.from(pendingMap.entries());
+
+                for (const [blobUrl, file] of entries) {
+                    // Check if this blobUrl is actually used in the current content
+                    if (finalContent.includes(blobUrl)) {
+                        setLoadingMessage(`이미지 업로드 중... (${file.name})`);
+
+                        const timestamp = Date.now();
+                        const randomString = Math.random().toString(36).substring(2, 10);
+                        const fileName = `${timestamp}_${randomString}.webp`;
+
+                        // Create temp ObjectURL for resizing (needs to be fresh or reuse existing)
+                        // We can reuse the blobUrl since it points to the file
+                        const resizeResult = await resizeImage(blobUrl, 800, 0.8, fileName);
+
+                        const { error } = await supabase.storage.from("images").upload(`board-images/content/${fileName}`, resizeResult);
+                        if (error) {
+                            console.error('Failed to upload inline image:', file.name, error);
+                            throw error;
+                        }
+
+                        const publicUrl = supabase.storage.from("images").getPublicUrl(`board-images/content/${fileName}`).data.publicUrl;
+
+                        // Replace all occurrences of the blob URL with the real public URL
+                        finalContent = finalContent.replaceAll(blobUrl, publicUrl);
+                    }
+                }
+            }
+
             let imageUrls = {
                 image: null as string | null,
                 image_thumbnail: null as string | null,
             };
 
-            if (imageFile) {
-                setLoadingMessage("이미지 업로드 중...");
-                const timestamp = Date.now();
-                const randomString = Math.random().toString(36).substring(2, 15);
-                const basePath = `board-images`;
-
-                try {
-                    const resizedImages = await createResizedImages(imageFile);
-                    const fileName = `${timestamp}_${randomString}.webp`;
-
-                    const uploadImage = async (path: string, file: Blob) => {
-                        const { error } = await supabase.storage.from("images").upload(path, file);
-                        if (error) throw error;
-                        return supabase.storage.from("images").getPublicUrl(path).data.publicUrl;
-                    };
-
-                    const [thumbUrl, mainUrl] = await Promise.all([
-                        retryOperation(() => uploadImage(`${basePath}/thumbnails/${fileName}`, resizedImages.thumbnail)),
-                        retryOperation(() => uploadImage(`${basePath}/medium/${fileName}`, resizedImages.medium))
-                    ]);
-
-                    imageUrls.image = mainUrl;
-                    imageUrls.image_thumbnail = thumbUrl;
-
-                } catch (imgError) {
-                    console.error("Image upload failed", imgError);
-                    alert("이미지 업로드 실패. 텍스트만 저장됩니다.");
+            // [UPDATED] Auto-extract thumbnail from content instead of manual upload
+            if (finalContent) {
+                // Simple regex to find the first image src
+                const imgMatch = finalContent.match(/<img[^>]+src="([^">]+)"/);
+                if (imgMatch && imgMatch[1]) {
+                    imageUrls.image = imgMatch[1];
+                    imageUrls.image_thumbnail = imgMatch[1]; // Use same image for thumbnail (content images are already resized ~800px)
                 }
             }
 
+            // Remove legacy imageFile logic
             setLoadingMessage("글 저장 중...");
 
             if (post) {
                 const updates: any = {
                     title: formData.title,
-                    content: formData.content,
+                    content: finalContent, // Use processed content
                     is_notice: formData.is_notice,
                     prefix_id: formData.prefix_id,
                     category: formData.category,
                     updated_at: new Date().toISOString()
                 };
 
-                if (imageUrls.image) {
-                    updates.image = imageUrls.image;
-                    updates.image_thumbnail = imageUrls.image_thumbnail;
-                } else if (isImageDeleted) {
-                    updates.image = null;
-                    updates.image_thumbnail = null;
+                // [UPDATED] Force "관리자" for admin posts during update
+                if (isAdmin) {
+                    updates.author_name = "관리자";
+                    updates.author_nickname = "관리자";
                 }
+
+                // [UPDATED] Auto-sync thumbnail with content
+                updates.image = imageUrls.image;
+                updates.image_thumbnail = imageUrls.image_thumbnail;
 
                 const { error } = await supabase
                     .from('board_posts')
@@ -276,11 +267,15 @@ export default function UniversalPostEditor({
                     currentNickname = ud?.nickname;
                 }
 
+                // [UPDATED] Force "관리자" for admin posts
+                const finalAuthorName = isAdmin ? "관리자" : (formData.author_name || user?.user_metadata?.name || "사용자");
+                const finalNickname = isAdmin ? "관리자" : (currentNickname || formData.author_name || "사용자");
+
                 const newPost = {
                     title: formData.title,
-                    content: formData.content,
-                    author_name: formData.author_name || user?.user_metadata?.name || "사용자",
-                    author_nickname: currentNickname || formData.author_name || "사용자",
+                    content: finalContent, // Use processed content
+                    author_name: finalAuthorName,
+                    author_nickname: finalNickname,
                     user_id: user?.id,
                     is_notice: formData.is_notice,
                     prefix_id: formData.prefix_id,
@@ -395,40 +390,7 @@ export default function UniversalPostEditor({
                             )}
                         </div>
 
-                        <div className="pem-form-group">
-                            <label className="pem-label">대표 이미지 (선택)</label>
-                            <div className="image-upload-area" onClick={() => fileInputRef.current?.click()}>
-                                {imagePreview ? (
-                                    <div className="image-preview-wrapper">
-                                        <img src={imagePreview} alt="Preview" className="image-preview" />
-                                        <button
-                                            type="button"
-                                            className="image-remove-btn"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setImageFile(null);
-                                                setImagePreview(null);
-                                                setIsImageDeleted(true);
-                                            }}
-                                        >
-                                            <i className="ri-close-circle-fill"></i>
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div className="image-placeholder">
-                                        <i className="ri-camera-add-line"></i>
-                                        <span>이미지 추가</span>
-                                    </div>
-                                )}
-                                <input
-                                    type="file"
-                                    hidden
-                                    ref={fileInputRef}
-                                    accept="image/*"
-                                    onChange={handleImageSelect}
-                                />
-                            </div>
-                        </div>
+
 
                         {isAdmin && (
                             <label className="pem-checkbox-label">

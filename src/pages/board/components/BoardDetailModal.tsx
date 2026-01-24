@@ -9,6 +9,7 @@ import { type UserData } from './UserRegistrationModal';
 import '../board.css';
 import '../detail/detail.css';
 import './BoardDetailModal.css';
+import '../../../components/UniversalEditor/Core/UniversalEditor.css'; // [New] Import Editor Styles
 
 interface BoardDetailModalProps {
     postId: string;
@@ -62,7 +63,7 @@ export default function BoardDetailModal({ postId, isOpen, onClose }: BoardDetai
     };
 
     const handleEdit = () => {
-        if (!isAdmin && post?.user_id !== user?.id) {
+        if (!isAdmin && (post as any)?.user_id !== user?.id) {
             alert('본인이 작성한 글만 수정할 수 있습니다.');
             return;
         }
@@ -109,28 +110,29 @@ export default function BoardDetailModal({ postId, isOpen, onClose }: BoardDetai
                 ) : (
                     <div className="board-detail-modal-content">
                         {/* Header Section */}
+                        {/* Header Section */}
                         <div className="board-detail-header">
                             <div className="board-detail-header-top">
                                 <div className="board-detail-title-section">
-                                    {post.prefix && (
+                                    {(post as any).prefix && (
                                         <span
                                             className="board-detail-prefix manual-label-wrapper"
-                                            style={{ backgroundColor: post.prefix.color }}
+                                            style={{ backgroundColor: (post as any).prefix.color }}
                                         >
                                             <span className="translated-part">{
-                                                post.prefix.name === '잡담' ? 'Discussion' :
-                                                    post.prefix.name === '질문' ? 'Question' :
-                                                        post.prefix.name === '정보' ? 'Info' :
-                                                            post.prefix.name === '후기' ? 'Review' :
-                                                                post.prefix.name
+                                                (post as any).prefix.name === '잡담' ? 'Discussion' :
+                                                    (post as any).prefix.name === '질문' ? 'Question' :
+                                                        (post as any).prefix.name === '정보' ? 'Info' :
+                                                            (post as any).prefix.name === '후기' ? 'Review' :
+                                                                (post as any).prefix.name
                                             }</span>
-                                            <span className="fixed-part ko" translate="no">{post.prefix.name}</span>
+                                            <span className="fixed-part ko" translate="no">{(post as any).prefix.name}</span>
                                             <span className="fixed-part en" translate="no">{
-                                                post.prefix.name === '잡담' ? 'Discussion' :
-                                                    post.prefix.name === '질문' ? 'Question' :
-                                                        post.prefix.name === '정보' ? 'Info' :
-                                                            post.prefix.name === '후기' ? 'Review' :
-                                                                post.prefix.name
+                                                (post as any).prefix.name === '잡담' ? 'Discussion' :
+                                                    (post as any).prefix.name === '질문' ? 'Question' :
+                                                        (post as any).prefix.name === '정보' ? 'Info' :
+                                                            (post as any).prefix.name === '후기' ? 'Review' :
+                                                                (post as any).prefix.name
                                             }</span>
                                         </span>
                                     )}
@@ -139,7 +141,7 @@ export default function BoardDetailModal({ postId, isOpen, onClose }: BoardDetai
                                     )}
                                 </div>
 
-                                {(isAdmin || post.user_id === user?.id) && (
+                                {(isAdmin || (post as any).user_id === user?.id) && (
                                     <div className="board-detail-top-actions">
                                         <button onClick={handleEdit} className="top-action-btn edit" title="수정">
                                             <i className="ri-edit-line"></i>
@@ -166,9 +168,9 @@ export default function BoardDetailModal({ postId, isOpen, onClose }: BoardDetai
 
                             <div className="board-detail-meta">
                                 <div className="board-detail-meta-item">
-                                    {post.author_profile_image ? (
+                                    {(post as any).author_profile_image ? (
                                         <img
-                                            src={post.author_profile_image}
+                                            src={(post as any).author_profile_image}
                                             alt="Profile"
                                             className="board-detail-author-avatar"
                                         />
@@ -192,7 +194,7 @@ export default function BoardDetailModal({ postId, isOpen, onClose }: BoardDetai
                                     <i className="ri-thumb-up-line"></i>
                                     {(post as any).likes || 0}
                                 </div>
-                                {post.category === 'anonymous' && (
+                                {(post as any).category === 'anonymous' && (
                                     <>
                                         <div className="board-detail-meta-divider"></div>
                                         <div className="board-detail-meta-item">
@@ -205,21 +207,16 @@ export default function BoardDetailModal({ postId, isOpen, onClose }: BoardDetai
                         </div>
 
                         {/* Body Section */}
-                        <div className="board-detail-body">
-                            {(post as any).image && (
-                                <div className="board-detail-image-container" style={{ marginBottom: '20px' }}>
-                                    <img
-                                        src={(post as any).image}
-                                        alt="Post Image"
-                                        style={{ maxWidth: '100%', borderRadius: '8px', maxHeight: '500px', objectFit: 'contain' }}
-                                    />
-                                </div>
-                            )}
-                            {post.content}
+                        <div className="board-detail-body universal-editor-content">
+
+                            <div
+                                dangerouslySetInnerHTML={{ __html: post.content || '' }}
+                                style={{ width: '100%' }}
+                            />
                         </div>
 
                         {/* Comment Section */}
-                        <CommentSection postId={post.id} category={post.category || 'free'} />
+                        <CommentSection postId={post.id} category={(post as any).category || 'free'} />
                     </div>
                 )}
 

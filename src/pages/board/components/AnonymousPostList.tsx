@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import type { AnonymousBoardPost } from '../../../types/board';
 import CommentSection from './CommentSection';
 import './BoardPostList.css';
+import '../../../components/UniversalEditor/Core/UniversalEditor.css'; // [New] Import Editor Styles
 
 interface AnonymousPostListProps {
     posts: AnonymousBoardPost[];
@@ -163,10 +164,12 @@ export default function AnonymousPostList({
 
                                 {/* Content - Hidden if blinded by reports OR if folded notice */}
                                 {!isBlind && (!post.is_notice || isUnfolded(post.id)) && (
-                                    <div className="board-post-content">
-                                        <div onClick={() => onPostClick(post)} style={{ cursor: 'pointer' }}>
-                                            {post.content}
-                                        </div>
+                                    <div className="board-post-content universal-editor-content">
+                                        <div
+                                            onClick={() => onPostClick(post)}
+                                            style={{ cursor: 'pointer' }}
+                                            dangerouslySetInnerHTML={{ __html: post.content || '' }}
+                                        />
 
                                         {post.image && (
                                             <div

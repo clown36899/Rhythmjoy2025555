@@ -79,11 +79,15 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
 
     // 🔥 실시간 가입자 수 동기화 추가
     const channel = supabase
-      .channel('public:board_users')
+      .channel('public:board_users_count')
       .on(
         'postgres_changes',
-        { event: '*', schema: 'public', table: 'board_users' },
-        () => {
+        { event: 'INSERT', schema: 'public', table: 'board_users' },
+        (payload) => {
+          console.log('[Realtime] New user registered!', payload);
+          // 1. Optimistic update
+          setTotalUserCount(prev => (prev !== null ? prev + 1 : null));
+          // 2. Verified fetch
           fetchTotalUserCount();
         }
       )

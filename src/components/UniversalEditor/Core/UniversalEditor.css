@@ -36,10 +36,21 @@
 .image-section p {
     display: block;
     margin-top: 0rem;
+    margin-bottom: 0.2rem;
+    /* [UPDATED] Reduced margin for grouped look */
+    /* [UPDATED] Add padding to separate from image */
+    line-height: 1.4;
+    /* [UPDATED] Tighter line height */
     /* Ensure text wraps around the float */
     word-break: break-all;
     clear: none;
     /* Do NOT clear the float by default */
+}
+
+/* [NEW] Apply padding ONLY to the first paragraph next to the image */
+.image-section .image-block-container+p {
+    padding-top: 0.1rem;
+    /* Adjust this value to control top spacing */
 }
 
 /* [UPDATED] Ensure paragraphs have height */
@@ -110,7 +121,7 @@
     color: #e5e7eb;
     font-size: 16px;
     line-height: 1.0;
-    min-height: 200px;
+    /* min-height removed to prevent large gaps in list view */
     width: 100%;
     /* [UPDATED] Check alignment reference */
 }

@@ -12,19 +12,38 @@ export const CustomImage = Image.extend({
             ...this.parent?.(),
             float: {
                 default: 'none',
-                parseHTML: (element) => element.getAttribute('data-float'),
+                parseHTML: (element) => element.style.float || element.getAttribute('data-float'), // [UPDATED] Parse style too
                 renderHTML: (attributes) => {
+                    const styles: string[] = [];
+                    // [UPDATED] Match Editor Behavior: Default to 50% width if floated and no width set
+                    const hasExplicitWidth = !!attributes.width;
+
+                    if (attributes.float === 'left') {
+                        styles.push(`float: left; margin-right: 1.5rem; margin-bottom: 0.5rem;`);
+                        if (!hasExplicitWidth) styles.push('width: 50%;');
+                    }
+                    if (attributes.float === 'right') {
+                        styles.push(`float: right; margin-left: 1.5rem; margin-bottom: 0.5rem;`);
+                        if (!hasExplicitWidth) styles.push('width: 50%;');
+                    }
+                    if (attributes.float === 'none') {
+                        styles.push('margin: 0 auto 1.5rem auto; display: block;');
+                        if (!hasExplicitWidth) styles.push('width: 50%;'); // Default centered width
+                    }
+
                     return {
                         'data-float': attributes.float,
+                        style: styles.join(' '),
                     };
                 },
             },
             width: {
-                default: null, // [UPDATED] Default to null so we can apply context-aware defaults (e.g. 50% if floated)
-                parseHTML: (element) => element.getAttribute('width'),
+                default: null,
+                parseHTML: (element) => element.style.width || element.getAttribute('width'),
                 renderHTML: (attributes) => {
                     return {
                         width: attributes.width,
+                        style: attributes.width ? `width: ${attributes.width};` : '',
                     };
                 },
             },

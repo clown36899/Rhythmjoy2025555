@@ -1,8 +1,8 @@
-// 빌보드 PWA 서비스 워커 (Version: 20260121-2 - V1/V8 Alternating Catalogs)
-const CACHE_NAME = 'rhythmjoy-cache-v21';
+// 빌보드 PWA 서비스 워커 (Version: 20260125-1 - V1/V8 Alternating Catalogs)
+const CACHE_NAME = 'rhythmjoy-cache-v22';
 
 self.addEventListener('install', (event) => {
-  console.log('[SW] v21 - V1/V8 Alternating Catalogs (5min each)! 🎨🎭');
+  console.log('[SW] v22 - V1/V8 Alternating Catalogs (5min each)! 🎨🎭');
   self.skipWaiting();
 });
 

@@ -8,6 +8,16 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '3.7.14',
+        date: '2026-01-25',
+        changes: [
+            '[🔒 Admin] 헤더 실시간 회원/접속자 통계(Realtime) 관리자 전용 기능 구축',
+            '[📝 Editor] 게시글 대표 이미지 자동 추출(본문 첫 이미지) 및 중복 표시 제거',
+            '[📝 Editor] 관리자 작성/수정 시 작성자명 "관리자" 강제 통일',
+            '[🚀 Performance] 실시간 회원 가입 감지(Optimistic Update) 적용'
+        ]
+    },
+    {
         version: '3.7.13',
         date: '2026-01-24',
         changes: [
