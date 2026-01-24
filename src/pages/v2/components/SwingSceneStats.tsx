@@ -59,7 +59,7 @@ export default function SwingSceneStats() {
             const oneMonthAgo = new Date();
             oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
 
-            console.log('%c[Stats Debug] Starting Analysis (Dec 2025 Focus)', 'background: #222; color: #bada55; font-size: 14px');
+
 
             // 1. Fetch data (Fetch enough history to cover 12 months)
             // Using 'dateStr' (12 months ago) as base.
@@ -75,7 +75,7 @@ export default function SwingSceneStats() {
             const socials = socialsRes.data || [];
             const posts = postsRes.data || [];
 
-            console.log(`[Stats Debug] Raw Fetched: Events=${events.length}, Socials=${socials.length}, Posts=${posts.length}`);
+
 
 
             // 2. Process Data
@@ -130,7 +130,7 @@ export default function SwingSceneStats() {
                 }
 
                 if (targetDates.length === 0) {
-                    console.log(`[Stats Exclude] "${e.title || 'Untitled'}" - 날짜 정보 없음`);
+
                     return;
                 }
 
@@ -144,7 +144,7 @@ export default function SwingSceneStats() {
                     uniqueDays.add(dowKey);
                 });
 
-                console.log(`[Stats Event] "${e.title || 'Untitled'}" (${typeKr}) -> Days: ${Array.from(uniqueDays).join(', ')} (Dates: ${targetDates.length})`);
+
 
                 uniqueDays.forEach(dowKey => {
                     // Item for Inspector
