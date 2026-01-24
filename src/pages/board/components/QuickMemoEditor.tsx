@@ -65,6 +65,8 @@ export default function QuickMemoEditor({
         }
     }, [user, category, isAdmin, editData, className, signOut, onCancelEdit]);
 
+
+
     const handleNoticeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const checked = e.target.checked;
         setIsNotice(checked);

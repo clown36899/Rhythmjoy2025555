@@ -476,6 +476,8 @@
     flex-direction: column;
     overflow-y: auto;
     gap: 16px;
+    overscroll-behavior: contain;
+    /* [UPDATED] Prevent scroll chaining to body */
 }
 
 /* Larger inputs in modal */

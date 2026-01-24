@@ -43,7 +43,12 @@ export default function AnonymousWriteModal({
                 justifyContent: 'center'
             }}
         >
-            <div className="anonymous-write-modal-content" onClick={e => e.stopPropagation()}>
+            <div
+                className="anonymous-write-modal-content"
+                onClick={e => e.stopPropagation()}
+                onWheel={e => e.stopPropagation()}
+                onTouchMove={e => e.stopPropagation()}
+            >
                 <div className="anonymous-modal-header">
                     <button
                         className="anonymous-modal-close"
