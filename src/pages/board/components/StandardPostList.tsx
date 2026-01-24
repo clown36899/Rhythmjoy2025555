@@ -191,6 +191,63 @@ export default function StandardPostList({
         </div >
     );
 
+    const isEmpty = posts.length === 0;
+
+    const handleWriteClick = () => {
+        window.dispatchEvent(new CustomEvent('boardWriteClick'));
+    };
+
+    if (isEmpty) {
+        return (
+            <div className="board-posts-list standard-mode">
+                <div className="board-empty-state" style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '60px 20px',
+                    color: '#888',
+                    gap: '16px'
+                }}>
+                    <div style={{
+                        width: '60px',
+                        height: '60px',
+                        background: 'rgba(255,255,255,0.05)',
+                        borderRadius: '50%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                    }}>
+                        <i className="ri-chat-1-line" style={{ fontSize: '28px', opacity: 0.7 }}></i>
+                    </div>
+                    <p style={{ margin: 0, fontSize: '0.95rem' }}>게시글이 없습니다.</p>
+                    <button
+                        onClick={handleWriteClick}
+                        className="board-empty-write-btn"
+                        style={{
+                            padding: '10px 20px',
+                            background: '#3b82f6',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontSize: '0.9rem',
+                            fontWeight: 500,
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            marginTop: '8px',
+                            transition: 'background 0.2s'
+                        }}
+                    >
+                        <i className="ri-pencil-line"></i>
+                        첫 글 쓰기
+                    </button>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="board-posts-list standard-mode">
             <div className="standard-view">

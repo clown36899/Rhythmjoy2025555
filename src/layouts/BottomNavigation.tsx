@@ -147,16 +147,33 @@ export function BottomNavigation({ pageAction, onPageActionClick }: BottomNaviga
 
                 // Add the FAB button if present
                 if (pageAction) {
+                    const isBoard = currentPath.startsWith('/board');
+
                     const fabButton = (
                         <button
                             key="fab-center"
                             onClick={onPageActionClick}
-                            className="bottom-nav-item fab-center-item"
+                            className={`bottom-nav-item fab-center-item ${isBoard ? 'board-fab' : ''}`}
                             data-analytics-id="fab_action_center"
                             data-analytics-type="action"
                             data-analytics-title={pageAction.label || "Action"}
+                            style={isBoard ? {
+                                backgroundColor: '#3b82f6', // Blue
+                                borderRadius: '50%',
+                                width: '40px',
+                                height: '40px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                marginTop: '-12px', // Pop out a bit
+                                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)',
+                                border: '2px solid #111'
+                            } : undefined}
                         >
-                            <i className={`${pageAction.icon} bottom-nav-icon fab-icon-only`}></i>
+                            <i
+                                className={`${pageAction.icon} bottom-nav-icon fab-icon-only`}
+                                style={isBoard ? { color: 'white', fontSize: '20px', margin: 0 } : undefined}
+                            ></i>
                         </button>
                     );
                     buttons.splice(3, 0, fabButton);

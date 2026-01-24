@@ -53,6 +53,14 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
     // Load board categories on mount
     useEffect(() => {
         loadBoardCategories();
+
+        // Listen for board updates
+        const handleRefresh = () => {
+            loadBoardCategories();
+        };
+
+        window.addEventListener('refreshBoardCategories', handleRefresh);
+        return () => window.removeEventListener('refreshBoardCategories', handleRefresh);
     }, []);
 
     const loadBoardCategories = async () => {
@@ -101,7 +109,7 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
             case 'free': return 'ri-chat-1-line';
             case 'anonymous': return 'ri-user-secret-line';
             case 'dev-log': return 'ri-code-box-line';
-            default: return 'ri-chat-3-line';
+            default: return 'ri-chat-3-line'; // Fallback for new boards
         }
     };
 
@@ -114,7 +122,7 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
             'anonymous': 'Anonymous',
             'dev-log': 'Dev Log',
         };
-        return mapping[code] || name;
+        return mapping[code] || name; // Fallback to provided name
     };
 
     const handleNavigation = (path: string) => {

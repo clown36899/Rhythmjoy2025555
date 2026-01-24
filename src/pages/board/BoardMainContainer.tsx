@@ -239,23 +239,35 @@ export default function BoardMainContainer() {
         // Only trigger if horizontal movement is at least 1.5x greater than vertical movement
         if (absX < absY * 1.5) return;
 
+
         const isLeftSwipe = deltaX > minSwipeDistance;
         const isRightSwipe = deltaX < -minSwipeDistance;
 
-        // Define board order for swipe navigation
-        // market = 벼룩시장, trade = 문의
-        const boardOrder = ['free', 'anonymous', 'trade', 'market', 'history'];
-        const currentIndex = boardOrder.indexOf(category);
+        // Dynamic Board Order for Swipe Navigation
+        // Filter active categories and map to codes
+        const boardOrder = boardData?.categories
+            ? boardData.categories
+                .filter(c => c.is_active)
+                .sort((a, b) => (a.display_order || 0) - (b.display_order || 0))
+                .map(c => c.code)
+            : ['free', 'anonymous', 'trade', 'market']; // Fallback
+
+        // Add history and dev-log manually if needed, or rely on categories if they are in DB
+        // Assuming 'history' is not a board category in DB but a special page
+        const fullSwipeOrder = [...boardOrder];
+        if (!fullSwipeOrder.includes('history')) fullSwipeOrder.push('history');
+
+        const currentIndex = fullSwipeOrder.indexOf(category);
 
         if (currentIndex === -1) return; // Not in swipeable boards
 
         // Swipe left: go to next board
-        if (isLeftSwipe && currentIndex < boardOrder.length - 1) {
-            handleCategoryChange(boardOrder[currentIndex + 1]);
+        if (isLeftSwipe && currentIndex < fullSwipeOrder.length - 1) {
+            handleCategoryChange(fullSwipeOrder[currentIndex + 1]);
         }
         // Swipe right: go to previous board
         else if (isRightSwipe && currentIndex > 0) {
-            handleCategoryChange(boardOrder[currentIndex - 1]);
+            handleCategoryChange(fullSwipeOrder[currentIndex - 1]);
         }
     };
 

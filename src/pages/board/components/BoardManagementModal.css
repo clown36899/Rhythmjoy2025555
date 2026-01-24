@@ -99,6 +99,23 @@
     border-bottom: 1px solid #2a2a2a;
     color: #eee;
     vertical-align: middle;
+    transition: background-color 0.3s ease;
+}
+
+.bmm-table tr.highlight-row td {
+    background-color: rgba(251, 191, 36, 0.15);
+    /* Primary color low opacity */
+    animation: highlight-pulse 2s forwards;
+}
+
+@keyframes highlight-pulse {
+    0% {
+        background-color: rgba(251, 191, 36, 0.2);
+    }
+
+    100% {
+        background-color: transparent;
+    }
 }
 
 .bmm-input {
@@ -175,4 +192,50 @@
 
 .bmm-order-btn i {
     font-size: 16px;
+}
+
+/* Save Button */
+.bmm-save-btn {
+    background-color: #333;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+}
+
+.bmm-save-btn:hover {
+    background-color: var(--primary-color, #fbbf24);
+    color: black;
+}
+
+/* Delete Button */
+.bmm-delete-btn {
+    background-color: transparent;
+    border: 1px solid #444;
+    color: #ef4444;
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-left: 8px;
+}
+
+.bmm-delete-btn:hover:not(:disabled) {
+    background-color: #ef4444;
+    color: white;
+    border-color: #ef4444;
+}
+
+.bmm-delete-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.3;
+    filter: grayscale(100%);
 }
