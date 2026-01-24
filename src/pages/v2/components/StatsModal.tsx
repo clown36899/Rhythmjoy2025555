@@ -4,12 +4,13 @@ import MyImpactCard from '../../user/components/MyImpactCard';
 import type { Event as SupabaseEvent } from '../../../lib/supabase';
 import type { StandardBoardPost } from '../../../types/board';
 import SwingSceneStats from './SwingSceneStats.tsx';
+import { useAuth } from '../../../contexts/AuthContext';
 
 interface StatsModalProps {
     isOpen: boolean;
     onClose: () => void;
     userId: string | undefined;
-    initialTab?: 'my' | 'scene'; // [NEW] Optional initial tab
+    initialTab?: 'my' | 'scene' | 'monthly'; // [NEW] Optional initial tab
 }
 
 export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' }: StatsModalProps) {
@@ -17,7 +18,7 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
     const [posts, setPosts] = useState<StandardBoardPost[]>([]);
     const [loading, setLoading] = useState(true);
     const [userProfile, setUserProfile] = useState<any>(null);
-    const [activeTab, setActiveTab] = useState<'my' | 'scene'>('my');
+    const [activeTab, setActiveTab] = useState<'my' | 'scene' | 'monthly'>('my');
 
     // [NEW] Sync activeTab with initialTab when modal opens
     useEffect(() => {
@@ -65,7 +66,7 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
     return (
         <div className="userreg-overlay" style={{ zIndex: 1000, animation: 'fadeIn 0.2s ease-out' }}>
             <div className="userreg-modal" style={{
-                maxWidth: '400px',
+                maxWidth: '450px', // Slightly wider for 3 tabs
                 width: '90%',
                 background: 'rgba(20, 20, 20, 0.95)',
                 backdropFilter: 'blur(15px)',
@@ -74,19 +75,40 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
                 padding: '24px',
                 position: 'relative'
             }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                    <div style={{ display: 'flex', gap: '16px' }}>
+                {/* Close Button - Moved to absolute position to avoid overlap */}
+                <button onClick={onClose} style={{
+                    position: 'absolute',
+                    top: '20px',
+                    right: '20px',
+                    background: 'rgba(255,255,255,0.05)',
+                    border: 'none',
+                    color: '#fff',
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    zIndex: 10
+                }}>
+                    <i className="ri-close-line text-xl"></i>
+                </button>
+
+                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', paddingTop: '14px', paddingRight: '40px', overflowX: 'auto', scrollbarWidth: 'none' }}>
+                    <div style={{ display: 'flex', gap: '32px', flexWrap: 'nowrap' }}>
                         <h2
                             onClick={() => setActiveTab('my')}
                             style={{
                                 margin: 0,
-                                fontSize: '1.2rem',
+                                fontSize: '1.1rem',
                                 color: activeTab === 'my' ? '#fff' : '#52525b',
                                 fontWeight: '700',
                                 cursor: 'pointer',
                                 borderBottom: activeTab === 'my' ? '2px solid #3b82f6' : '2px solid transparent',
                                 paddingBottom: '4px',
-                                transition: 'all 0.2s'
+                                transition: 'all 0.2s',
+                                whiteSpace: 'nowrap'
                             }}
                         >
                             내 활동
@@ -95,47 +117,52 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
                             onClick={() => setActiveTab('scene')}
                             style={{
                                 margin: 0,
-                                fontSize: '1.2rem',
+                                fontSize: '1.1rem',
                                 color: activeTab === 'scene' ? '#fff' : '#52525b',
                                 fontWeight: '700',
                                 cursor: 'pointer',
                                 borderBottom: activeTab === 'scene' ? '2px solid #3b82f6' : '2px solid transparent',
                                 paddingBottom: '4px',
-                                transition: 'all 0.2s'
+                                transition: 'all 0.2s',
+                                whiteSpace: 'nowrap'
                             }}
                         >
                             <div style={{ position: 'relative', display: 'inline-block' }}>
                                 스윙씬 통계
                                 <span style={{
                                     position: 'absolute',
-                                    top: '-4px',
-                                    right: '-38px',
-                                    fontSize: '0.6rem',
+                                    top: '-12px',
+                                    right: '-10px',
+                                    fontSize: '0.55rem',
                                     color: '#000',
                                     background: '#f59e0b',
                                     padding: '1px 4px',
                                     borderRadius: '4px',
                                     fontWeight: '600',
                                     lineHeight: '1',
-                                    transform: 'scale(0.9)'
+                                    transform: 'scale(0.9)',
+                                    whiteSpace: 'nowrap',
+                                    zIndex: 1
                                 }}>개선중</span>
                             </div>
                         </h2>
+                        <h2
+                            onClick={() => setActiveTab('monthly')}
+                            style={{
+                                margin: 0,
+                                fontSize: '1.1rem',
+                                color: activeTab === 'monthly' ? '#fff' : '#52525b',
+                                fontWeight: '700',
+                                cursor: 'pointer',
+                                borderBottom: activeTab === 'monthly' ? '2px solid #3b82f6' : '2px solid transparent',
+                                paddingBottom: '4px',
+                                transition: 'all 0.2s',
+                                whiteSpace: 'nowrap'
+                            }}
+                        >
+                            월간 빌보드
+                        </h2>
                     </div>
-                    <button onClick={onClose} style={{
-                        background: 'rgba(255,255,255,0.05)',
-                        border: 'none',
-                        color: '#fff',
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer'
-                    }}>
-                        <i className="ri-close-line text-xl"></i>
-                    </button>
                 </div>
 
                 {loading ? (
@@ -144,7 +171,7 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
                     </div>
                 ) : (
                     <div style={{ maxHeight: '70vh', overflowY: 'auto', paddingRight: '4px' }} className="custom-scrollbar">
-                        {activeTab === 'my' ? (
+                        {activeTab === 'my' && (
                             <>
                                 <MyImpactCard
                                     user={{ id: userId, ...userProfile }}
@@ -173,8 +200,22 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
                                     상세한 활동 내역은 마이페이지의 '통계' 탭에서 확인하실 수 있습니다.
                                 </p>
                             </>
-                        ) : (
+                        )}
+
+                        {activeTab === 'scene' && (
                             <SwingSceneStats />
+                        )}
+
+                        {activeTab === 'monthly' && (
+                            <div style={{ padding: '40px 0', textAlign: 'center', color: '#a1a1aa' }}>
+                                <div style={{ fontSize: '40px', marginBottom: '16px', opacity: 0.5 }}>📊</div>
+                                <h3 style={{ margin: '0 0 8px 0', color: '#fff' }}>월간 인사이트 리포트</h3>
+                                <p style={{ fontSize: '13px', lineHeight: '1.5' }}>
+                                    매월 스윙씬의 주요 흐름과 데이터를<br />
+                                    보기 쉬운 웹진 형태로 제공할 예정입니다.<br />
+                                    (준비 중)
+                                </p>
+                            </div>
                         )}
                     </div>
                 )}
