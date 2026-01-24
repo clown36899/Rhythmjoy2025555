@@ -162,10 +162,13 @@ export function BottomNavigation({ pageAction, onPageActionClick }: BottomNaviga
                                 borderRadius: '50%',
                                 width: '40px',
                                 height: '40px',
+                                minWidth: '40px', // Prevent shrink
+                                minHeight: '40px', // Prevent shrink
+                                flexShrink: 0,    // Prevent flex shrink
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                marginTop: '-12px', // Pop out a bit
+                                marginTop: '-17px', // Pop out a bit
                                 boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)',
                                 border: '2px solid #111'
                             } : undefined}

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import UniversalEditor from '../../../components/UniversalEditor/Core/UniversalEditor';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { resizeImage } from '../../../utils/imageResize';
@@ -349,6 +350,29 @@ export default function QuickMemoEditor({
         }
     };
 
+    // [NEW] Inline Image Upload Handler for Universal Editor
+    const handleInlineImageUpload = async (file: File): Promise<string> => {
+        const timestamp = Date.now();
+        const fileName = `${timestamp}_${Math.random().toString(36).substring(2)}.webp`;
+        const fileUrl = URL.createObjectURL(file);
+
+        try {
+            // Resize for optimize (using medium size for content)
+            const medium = await resizeImage(fileUrl, 800, 0.8, fileName); // Higher quality for content
+
+            const { error } = await supabase.storage.from("images").upload(`board-images/content/${fileName}`, medium);
+            if (error) throw error;
+
+            const publicUrl = supabase.storage.from("images").getPublicUrl(`board-images/content/${fileName}`).data.publicUrl;
+            return publicUrl;
+        } catch (error) {
+            console.error('Content image upload failed:', error);
+            throw error;
+        } finally {
+            URL.revokeObjectURL(fileUrl);
+        }
+    };
+
     return (
         <div className={`quick-memo-editor ${isExpanded ? 'expanded' : 'collapsed'} ${className}`}>
             {!isExpanded && !editData && (
@@ -406,13 +430,15 @@ export default function QuickMemoEditor({
                         onChange={(e) => setTitle(e.target.value)}
                         className="memo-title-input"
                     />
-                    <textarea
-                        placeholder={"익명으로 자유롭게 이야기해보세요...\n(신고 누적시 자동 숨김처리)"}
-                        value={content}
-                        onChange={(e) => setContent(e.target.value)}
-                        className="memo-textarea"
-                        autoFocus={!!editData}
-                    />
+                    {/* Replace textarea with Universal Editor */}
+                    <div className="memo-editor-wrapper" style={{ minHeight: '200px', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', overflow: 'hidden' }}>
+                        <UniversalEditor
+                            content={content}
+                            onChange={(html) => setContent(html)}
+                            placeholder={"익명으로 자유롭게 이야기해보세요...\n(신고 누적시 자동 숨김처리)"}
+                            onImageUpload={handleInlineImageUpload} // [NEW] Pass upload handler
+                        />
+                    </div>
 
                     {imagePreview && (
                         <div className="memo-preview-area">

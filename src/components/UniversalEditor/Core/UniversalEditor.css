@@ -1,0 +1,193 @@
+/* UniversalEditor.css */
+
+.universal-editor-container {
+    background: #1a1a1a;
+    border-radius: 8px;
+    border: 1px solid #333;
+    min-height: 300px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+    /* For toolbar containment */
+}
+
+/* Fixed Toolbar Styles */
+.editor-key-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 10px;
+    background: #252525;
+    border-bottom: 1px solid #333;
+    flex-wrap: wrap;
+    position: sticky;
+    /* [UPDATED] Sticky positioning */
+    top: 0;
+    z-index: 50;
+    /* Ensure it floats above content */
+}
+
+.toolbar-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: #a1a1aa;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 1.1rem;
+}
+
+.toolbar-btn:hover {
+    background: #3f3f46;
+    color: #fff;
+}
+
+.toolbar-btn.is-active {
+    background: #3b82f6;
+    color: #fff;
+}
+
+.toolbar-divider {
+    width: 1px;
+    height: 20px;
+    background: #404040;
+    margin: 0 6px;
+}
+
+.editor-canvas {
+    flex: 1;
+    padding: 20px;
+    cursor: text;
+    width: 100%;
+    /* [UPDATED] Ensure canvas fills width */
+    box-sizing: border-box;
+}
+
+/* TipTap Editor Content Styles */
+.universal-editor-content {
+    /* Reset default styles */
+    color: #e5e7eb;
+    font-size: 16px;
+    line-height: 1.6;
+    min-height: 200px;
+    width: 100%;
+    /* [UPDATED] Check alignment reference */
+}
+
+/* Target the inner ProseMirror editable div */
+.universal-editor-content .ProseMirror {
+    width: 100% !important;
+    min-height: 100%;
+    outline: none;
+}
+
+.universal-editor-content:focus {
+    outline: none;
+}
+
+/* Placeholder Extension Styles */
+.universal-editor-content p.is-editor-empty:first-child::before {
+    color: #6b7280;
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
+}
+
+/* Basic Typography */
+.universal-editor-content h1 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-top: 1.5em;
+    margin-bottom: 0.5em;
+    color: #fff;
+}
+
+.universal-editor-content h2 {
+    font-size: 1.4rem;
+    font-weight: 600;
+    margin-top: 1.25em;
+    margin-bottom: 0.5em;
+    color: #f3f4f6;
+}
+
+.universal-editor-content p {
+    margin-bottom: 1em;
+}
+
+.universal-editor-content ul {
+    list-style-type: disc;
+    padding-left: 1.5em;
+    margin-bottom: 1em;
+}
+
+.universal-editor-content ol {
+    list-style-type: decimal;
+    padding-left: 1.5em;
+    margin-bottom: 1em;
+}
+
+.universal-editor-content blockquote {
+    border-left: 3px solid #3b82f6;
+    padding-left: 1em;
+    color: #9ca3af;
+    font-style: italic;
+    margin-bottom: 1em;
+}
+
+/* Bubble Menu & Floating Menu Styles */
+.bubble-menu,
+.floating-menu {
+    display: flex;
+    background-color: #262626;
+    padding: 0.2rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    border: 1px solid #404040;
+    z-index: 100 !important;
+    /* [UPDATED] Ensure menu appears on top */
+    position: relative;
+    /* Tiptap handles absolute/fixed, but relative helps context if needed */
+}
+
+.bubble-menu button,
+.floating-menu button {
+    border: none;
+    background: none;
+    color: #a3a3a3;
+    font-size: 0.85rem;
+    font-weight: 500;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    cursor: pointer;
+}
+
+.bubble-menu button:hover,
+.floating-menu button:hover,
+.bubble-menu button.is-active,
+.floating-menu button.is-active {
+    color: #fff;
+    background-color: #3b82f6;
+}
+
+/* Force hide Google Translate Popups/Icons if they are injected into DOM */
+.gtx-bubble,
+.gtx-trans-icon,
+#google_translate_element,
+#gtx-trans,
+[id^="gtx-"],
+[class*="gtx-"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    z-index: -9999 !important;
+}

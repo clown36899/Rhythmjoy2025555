@@ -117,7 +117,14 @@
 /* Center FAB Button Styles */
 .bottom-nav-item.fab-center-item {
     padding: 0;
-    flex: 1;
+    flex: 0 0 auto !important;
+    /* Force rigid width, do not grow or shrink */
+    width: 40px !important;
+    height: 40px !important;
+    min-width: 40px !important;
+    min-height: 40px !important;
+    border-radius: 50%;
+    /* Ensure circle */
 }
 
 .bottom-nav-item.fab-center-item .bottom-nav-icon {
