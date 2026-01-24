@@ -272,7 +272,15 @@ export default function UniversalEditor({
                 </BubbleMenu>
             )}
 
-            <div className="editor-canvas">
+            <div
+                className="editor-canvas"
+                onClick={(e) => {
+                    // If clicking the canvas background (not the content itself), focus the very end
+                    if (e.target === e.currentTarget) {
+                        editor.commands.focus('end');
+                    }
+                }}
+            >
                 <EditorContent editor={editor} />
             </div>
         </div>

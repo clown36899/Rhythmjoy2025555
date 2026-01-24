@@ -360,7 +360,8 @@
     height: 100%;
     height: 100dvh;
     background: rgba(0, 0, 0, 0.95);
-    z-index: 9999;
+    z-index: 100000 !important;
+    /* [UPDATED] Force modal on top of everything */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -383,6 +384,7 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+
 }
 
 .modal-drag-handle {
@@ -391,10 +393,7 @@
 
 /* Modal Header */
 .anonymous-modal-header {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
+    width: 100%;
     height: 60px;
     background: rgba(30, 30, 30, 0.95);
     backdrop-filter: blur(10px);
@@ -403,6 +402,10 @@
     align-items: center;
     padding: 0 16px;
     z-index: 10;
+    flex-shrink: 0;
+    /* [UPDATED] Prevent header shrinking */
+    position: relative;
+    /* [UPDATED] Layout naturally in flex column */
 }
 
 .anonymous-modal-close {
@@ -431,12 +434,9 @@
     margin-right: 40px;
 }
 
-.anonymous-write-modal-content::before {
-    content: '';
-    display: block;
-    height: 60px;
-    flex-shrink: 0;
-}
+/* Container content now flows naturally below relative header */
+
+/* Spacer removed in favor of padding-top */
 
 @keyframes slideIn {
     from {
@@ -510,7 +510,9 @@
         height: auto;
     }
 
-    .anonymous-write-modal-content::before {
-        display: none;
+    .anonymous-write-modal-content {
+        border-radius: 16px;
+        max-height: 90vh;
+        height: auto;
     }
 }

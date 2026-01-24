@@ -85,6 +85,10 @@
     width: 100% !important;
     min-height: 100%;
     outline: none;
+    flex: 1;
+    /* [UPDATED] Fill remaining space */
+    display: flex;
+    flex-direction: column;
 }
 
 .universal-editor-content:focus {
