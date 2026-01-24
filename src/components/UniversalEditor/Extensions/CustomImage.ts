@@ -1,6 +1,12 @@
 import Image from '@tiptap/extension-image';
 
 export const CustomImage = Image.extend({
+    // [UPDATED] Fixed Schema Error "Mixing inline and block content"
+    // Image MUST be a Block Node to sit alongside Paragraph (Block) inside ImageSection (Block)
+    group: 'block',
+    inline: false,
+    draggable: true,
+
     addAttributes() {
         return {
             ...this.parent?.(),
@@ -14,7 +20,7 @@ export const CustomImage = Image.extend({
                 },
             },
             width: {
-                default: '100%',
+                default: null, // [UPDATED] Default to null so we can apply context-aware defaults (e.g. 50% if floated)
                 parseHTML: (element) => element.getAttribute('width'),
                 renderHTML: (attributes) => {
                     return {
@@ -28,32 +34,55 @@ export const CustomImage = Image.extend({
     addNodeView() {
         return ({ node, editor, getPos }) => {
             const { float, width, src, alt, title } = node.attrs;
-            const img = document.createElement('img');
 
+            // Container for the image (Block Wrapper)
+            const container = document.createElement('div');
+            container.classList.add('image-block-container');
+
+            // Apply Float & Margin to the CONTAINER, not just the image if needed,
+            // or keep standard block behavior.
+            // For now, let's keep the float logic on the container to behave like a "Floated Block".
+            container.style.overflow = 'hidden'; // Clearfix internal
+            container.style.marginBottom = '1rem';
+            container.style.position = 'relative';
+
+            const img = document.createElement('img');
             img.src = src;
             if (alt) img.alt = alt;
             if (title) img.title = title;
 
-            // Apply Styles
+            // Apply Styles to Image
             img.style.width = width || '100%';
             img.style.height = 'auto';
             img.style.display = 'block';
 
+            // Float Logic: Applied to the container or image? 
+            // If Block Node: The Container is the Block.
             if (float === 'left') {
-                img.style.float = 'left';
-                img.style.marginRight = '1.5rem';
-                img.style.marginBottom = '0.5rem';
+                container.style.float = 'left';
+                container.style.width = width || '50%'; // Auto-shrink if floated
+                container.style.marginRight = '1.5rem';
+                container.style.marginBottom = '0.5rem';
+                img.style.width = '100%'; // Image fills container
             } else if (float === 'right') {
-                img.style.float = 'right';
-                img.style.marginLeft = '1.5rem';
-                img.style.marginBottom = '0.5rem';
+                container.style.float = 'right';
+                container.style.width = width || '50%';
+                container.style.marginLeft = '1.5rem';
+                container.style.marginBottom = '0.5rem';
+                img.style.width = '100%';
             } else {
-                img.style.float = 'none';
-                img.style.margin = '0 auto 1.5rem auto';
+                container.style.float = 'none';
+                container.style.width = width || '100%';
+                container.style.margin = '0 auto 1.5rem auto';
             }
 
-            // Explicitly handle selection on click
-            img.addEventListener('click', () => {
+            container.appendChild(img);
+
+            // [UPDATED] Selection Logic
+            // Only clicking the IMAGE should select the node.
+            // Clicking the container's margin/padding should pass through to the editor (allowing cursor placement)
+            img.addEventListener('click', (event) => {
+                event.stopPropagation(); // Prevent container click
                 if (typeof getPos === 'function') {
                     const pos = getPos();
                     if (typeof pos === 'number') {
@@ -62,8 +91,12 @@ export const CustomImage = Image.extend({
                 }
             });
 
+            // Allow clicking container void to focus roughly near? 
+            // Actually, let default behavior handle the void. 
+            // Just don't trap it with the container listener.
+
             return {
-                dom: img,
+                dom: container,
             };
         };
     },

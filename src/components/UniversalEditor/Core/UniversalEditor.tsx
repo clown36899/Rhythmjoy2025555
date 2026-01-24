@@ -5,7 +5,23 @@ import Placeholder from '@tiptap/extension-placeholder';
 import { CustomImage } from '../Extensions/CustomImage';
 import TextAlign from '@tiptap/extension-text-align';
 import { useEffect, useRef } from 'react';
+import { Node, mergeAttributes } from '@tiptap/core';
 import './UniversalEditor.css';
+
+// [NEW] ImageSection: A wrapper that contains an Image and its related Text (Paragraphs)
+const ImageSection = Node.create({
+    name: 'imageSection',
+    group: 'block',
+    content: 'image paragraph+',
+    defining: true, // Copy/Paste preserves structure
+    isolating: true, // Editing stays inside (prevents accidental breakout)
+    parseHTML() {
+        return [{ tag: 'div.image-section' }];
+    },
+    renderHTML({ HTMLAttributes }) {
+        return ['div', mergeAttributes(HTMLAttributes, { class: 'image-section' }), 0];
+    },
+});
 
 interface UniversalEditorProps {
     content?: string;
@@ -26,11 +42,14 @@ export default function UniversalEditor({
 
     const editor = useEditor({
         extensions: [
-            StarterKit,
+            StarterKit, // Use default StarterKit again
+            ImageSection, // [NEW] Wrapper Node
             Placeholder.configure({
                 placeholder,
             }),
-            CustomImage,
+            CustomImage.configure({
+                inline: true, // Ensure it sits inside the wrapper
+            }),
             TextAlign.configure({
                 types: ['heading', 'paragraph'],
             }),
@@ -77,25 +96,94 @@ export default function UniversalEditor({
 
     // Handle Image Selection
     const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        console.log('[UniversalEditor] Image selection triggered');
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
+            console.log('[UniversalEditor] File selected:', file.name);
+
             if (onImageUpload) {
                 try {
+                    console.log('[UniversalEditor] Starting upload...');
                     const url = await onImageUpload(file);
-                    editor?.chain().focus().setImage({ src: url }).run();
+                    console.log('[UniversalEditor] Upload success. URL:', url);
+
+                    // [UPDATED] Robust Insertion using JSON (Block Image + Empty Paragraph)
+                    if (editor) {
+                        try {
+                            editor.chain()
+                                .focus()
+                                .insertContent([
+                                    {
+                                        type: 'imageSection',
+                                        content: [
+                                            {
+                                                type: 'image',
+                                                attrs: {
+                                                    src: url,
+                                                    float: 'left' // [UPDATED] Default to left float for side-by-side text
+                                                }
+                                            },
+                                            {
+                                                type: 'paragraph'
+                                            }
+                                        ]
+                                    },
+                                    {
+                                        type: 'paragraph'
+                                    }
+                                ])
+                                .focus()
+                                .run();
+                            console.log('[UniversalEditor] Insertion command executed (Section Mode).');
+                        } catch (err) {
+                            console.error('[UniversalEditor] Insertion failed:', err);
+                        }
+                    }
+
                 } catch (error) {
-                    console.error('Image upload failed', error);
+                    console.error('[UniversalEditor] Upload failed:', error);
                     alert('이미지 업로드에 실패했습니다.');
                 }
             } else {
+                console.log('[UniversalEditor] No upload handler, using FileReader');
                 const reader = new FileReader();
                 reader.onload = (event) => {
                     const src = event.target?.result as string;
-                    editor?.chain().focus().setImage({ src }).run();
+                    console.log('[UniversalEditor] FileReader ready.');
+
+                    if (editor) {
+                        editor.chain()
+                            .focus()
+                            .insertContent([
+                                {
+                                    type: 'imageSection',
+                                    content: [
+                                        {
+                                            type: 'image',
+                                            attrs: {
+                                                src,
+                                                float: 'left' // [UPDATED] Default to left float
+                                            }
+                                        },
+                                        {
+                                            type: 'paragraph'
+                                        }
+                                    ]
+                                },
+                                {
+                                    type: 'paragraph'
+                                }
+                            ])
+                            .focus()
+                            .run();
+                        console.log('[UniversalEditor] Local preview inserted (Section Mode).');
+                    }
                 };
                 reader.readAsDataURL(file);
             }
             if (fileInputRef.current) fileInputRef.current.value = '';
+        } else {
+            console.log('[UniversalEditor] No files found in event target');
         }
     };
 
@@ -275,8 +363,10 @@ export default function UniversalEditor({
             <div
                 className="editor-canvas"
                 onClick={(e) => {
-                    // If clicking the canvas background (not the content itself), focus the very end
-                    if (e.target === e.currentTarget) {
+                    // Simple background click -> focus end
+                    // (Since images now auto-create space below, we don't need complex logic here)
+                    const target = e.target as HTMLElement;
+                    if (target.classList.contains('editor-canvas') || target.classList.contains('ProseMirror')) {
                         editor.commands.focus('end');
                     }
                 }}

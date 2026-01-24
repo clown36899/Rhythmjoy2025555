@@ -12,6 +12,41 @@
     /* For toolbar containment */
 }
 
+/* [UPDATED] ClearNode style */
+.clear-node {
+    clear: both;
+    display: block;
+    height: 10px;
+    width: 100%;
+}
+
+
+
+/* [UPDATED] ImageSection Container */
+.image-section {
+    display: block !important;
+    /* CRITICAL: Override any external Flex rules to ensure Float works */
+    overflow: hidden;
+    /* Clearfix for floats */
+    margin-bottom: 2rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.1);
+}
+
+.image-section p {
+    display: block;
+    margin-top: 0.5rem;
+    /* Ensure text wraps around the float */
+    word-break: break-all;
+    clear: none;
+    /* Do NOT clear the float by default */
+}
+
+/* [UPDATED] Ensure paragraphs have height */
+.ProseMirror p {
+    min-height: 1.5em;
+}
+
 /* Fixed Toolbar Styles */
 .editor-key-toolbar {
     display: flex;
@@ -87,8 +122,9 @@
     outline: none;
     flex: 1;
     /* [UPDATED] Fill remaining space */
-    display: flex;
-    flex-direction: column;
+    /* [UPDATED] Use Block layout for standard document flow (supports floats) */
+    display: block;
+    height: 100%;
 }
 
 .universal-editor-content:focus {
