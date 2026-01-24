@@ -12,9 +12,9 @@ import './UniversalEditor.css';
 const ImageSection = Node.create({
     name: 'imageSection',
     group: 'block',
-    content: 'image paragraph+',
-    defining: true, // Copy/Paste preserves structure
-    isolating: true, // Editing stays inside (prevents accidental breakout)
+    content: 'image* paragraph+', // [UPDATED] Allow 0 or more images (enables multiple images & safe deletion)
+    defining: true,
+    isolating: true,
     parseHTML() {
         return [{ tag: 'div.image-section' }];
     },
@@ -81,6 +81,48 @@ export default function UniversalEditor({
             }
         }
     }, [content, editor]);
+
+    // [UPDATED] Auto-Unwrap Empty ImageSections
+    useEffect(() => {
+        if (!editor) return;
+
+        const handleTransaction = () => {
+            const { state } = editor;
+            const { doc } = state;
+            let tr = state.tr;
+            let modified = false;
+
+            doc.descendants((node, pos) => {
+                if (node.type.name === 'imageSection') {
+                    // Check if it has any 'image' children
+                    let hasImage = false;
+                    node.content.forEach((child) => {
+                        if (child.type.name === 'image') hasImage = true;
+                    });
+
+                    if (!hasImage) {
+                        // Empty ImageSection found! Lift its content.
+                        // We lift the range of the node's content
+                        const from = pos + 1;
+                        const to = pos + node.nodeSize - 1;
+
+                        // Lift content out of the section
+                        tr = tr.lift(state.doc.resolve(from).blockRange(state.doc.resolve(to))!, 0);
+                        modified = true;
+                    }
+                }
+            });
+
+            if (modified && tr.docChanged) {
+                editor.view.dispatch(tr);
+            }
+        };
+
+        editor.on('transaction', handleTransaction);
+        return () => {
+            editor.off('transaction', handleTransaction);
+        };
+    }, [editor]);
 
     // Nuclear Option: Disable Google Translate Page-wide while editor is active
     useEffect(() => {

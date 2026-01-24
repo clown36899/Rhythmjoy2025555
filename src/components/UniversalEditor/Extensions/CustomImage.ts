@@ -72,8 +72,9 @@ export const CustomImage = Image.extend({
                 img.style.width = '100%';
             } else {
                 container.style.float = 'none';
-                container.style.width = width || '100%';
+                container.style.width = width || '50%'; // [UPDATED] Default to 50% for consistency with Left/Right
                 container.style.margin = '0 auto 1.5rem auto';
+                img.style.width = '100%';
             }
 
             container.appendChild(img);

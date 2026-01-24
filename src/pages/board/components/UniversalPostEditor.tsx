@@ -3,14 +3,15 @@ import { createPortal } from 'react-dom';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useBoardData } from '../../../contexts/BoardDataContext';
-import type { BoardPost } from '../page';
+import type { BoardPost } from '../hooks/useBoardPosts';
 import type { BoardPrefix } from '../../../components/BoardPrefixManagementModal';
 import { type BoardCategory } from './BoardTabBar';
-import { createResizedImages } from '../../../utils/imageResize';
+import { createResizedImages, resizeImage } from '../../../utils/imageResize'; // [UPDATED] Import resizeImage
 import { retryOperation } from '../../../utils/asyncUtils';
 import { useModalHistory } from '../../../hooks/useModalHistory';
-import './PostEditorModal.css'; // Reusing existing styles for consistency
-import './UniversalPostEditor.css'; // New styles for image area
+import UniversalEditor from '../../../components/UniversalEditor/Core/UniversalEditor'; // [UPDATED] Import UniversalEditor
+import './PostEditorModal.css';
+import './UniversalPostEditor.css';
 
 interface UniversalPostEditorProps {
     isOpen: boolean;
@@ -18,7 +19,7 @@ interface UniversalPostEditorProps {
     onPostCreated: () => void;
     post?: BoardPost | null;
     userNickname?: string;
-    category: BoardCategory; // Current category context
+    category: BoardCategory;
 }
 
 export default function UniversalPostEditor({
@@ -29,12 +30,8 @@ export default function UniversalPostEditor({
     userNickname,
     category
 }: UniversalPostEditorProps) {
-    // Enable back gesture
     useModalHistory(isOpen, onClose);
 
-
-
-    // Form State
     const { isAdmin, user } = useAuth();
     const { data: boardData } = useBoardData();
 
@@ -44,14 +41,12 @@ export default function UniversalPostEditor({
         author_name: '',
         is_notice: false,
         prefix_id: null as number | null,
-        // Add category field, default to current category context but can be changed if needed (though usually fixed per tab)
         category: category
     });
 
-    // Image State (For Market)
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string | null>(null);
-    const [isImageDeleted, setIsImageDeleted] = useState(false); // Track if image was actively removed
+    const [isImageDeleted, setIsImageDeleted] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const [prefixes, setPrefixes] = useState<BoardPrefix[]>([]);
@@ -65,7 +60,6 @@ export default function UniversalPostEditor({
             loadBannedWords();
 
             if (post) {
-                // Edit Mode
                 setFormData({
                     title: post.title,
                     content: post.content,
@@ -74,7 +68,6 @@ export default function UniversalPostEditor({
                     prefix_id: post.prefix_id || null,
                     category: (post as any).category || 'free'
                 });
-                // Load existing image if any
                 if ((post as any).image_thumbnail) {
                     setImagePreview((post as any).image_thumbnail);
                     setIsImageDeleted(false);
@@ -83,7 +76,6 @@ export default function UniversalPostEditor({
                     setIsImageDeleted(false);
                 }
             } else {
-                // New Mode
                 setFormData({
                     title: '',
                     content: '',
@@ -114,7 +106,6 @@ export default function UniversalPostEditor({
         }
     };
 
-    // Load prefixes from BoardDataContext when category changes
     useEffect(() => {
         if (formData.category && boardData?.prefixes) {
             const categoryPrefixes = (boardData.prefixes[formData.category] || []) as BoardPrefix[];
@@ -132,20 +123,16 @@ export default function UniversalPostEditor({
         }));
     };
 
-    // Image Handlers
     const handleImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
             setImageFile(file);
-
-            // Create local preview using Object URL for better performance/memory
             const objectUrl = URL.createObjectURL(file);
             setImagePreview(objectUrl);
             setIsImageDeleted(false);
         }
     };
 
-    // Cleanup object URL
     useEffect(() => {
         return () => {
             if (imagePreview && imagePreview.startsWith('blob:')) {
@@ -161,13 +148,35 @@ export default function UniversalPostEditor({
         return null;
     };
 
+    // [NEW] Inline Image Upload Handler for Universal Editor
+    const handleInlineImageUpload = async (file: File): Promise<string> => {
+        const timestamp = Date.now();
+        const fileName = `${timestamp}_${Math.random().toString(36).substring(2)}.webp`;
+        const fileUrl = URL.createObjectURL(file);
+
+        try {
+            // Resize for optimize (using medium size for content)
+            const medium = await resizeImage(fileUrl, 800, 0.8, fileName);
+
+            const { error } = await supabase.storage.from("images").upload(`board-images/content/${fileName}`, medium);
+            if (error) throw error;
+
+            const publicUrl = supabase.storage.from("images").getPublicUrl(`board-images/content/${fileName}`).data.publicUrl;
+            return publicUrl;
+        } catch (error) {
+            console.error('Content image upload failed:', error);
+            throw error;
+        } finally {
+            URL.revokeObjectURL(fileUrl);
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         if (!formData.title.trim()) { alert('제목을 입력해주세요.'); return; }
         if (!formData.content.trim()) { alert('내용을 입력해주세요.'); return; }
 
-        // Banned words check
         const bannedTitle = checkBannedWords(formData.title);
         const bannedContent = checkBannedWords(formData.content);
         if (bannedTitle || bannedContent) {
@@ -182,11 +191,8 @@ export default function UniversalPostEditor({
             return;
         }
 
-        // Edit permission check
         if (post && !isAdmin && post.user_id !== user?.id) {
-            // Standard posts must be edited by owner or admin
             if (!post.user_id) {
-                // This shouldn't happen for standard posts, but just in case
                 alert('수정 권한이 없습니다.');
                 return;
             }
@@ -205,7 +211,6 @@ export default function UniversalPostEditor({
                 image_thumbnail: null as string | null,
             };
 
-            // 1. Image Upload (only if file selected)
             if (imageFile) {
                 setLoadingMessage("이미지 업로드 중...");
                 const timestamp = Date.now();
@@ -222,7 +227,6 @@ export default function UniversalPostEditor({
                         return supabase.storage.from("images").getPublicUrl(path).data.publicUrl;
                     };
 
-                    // Upload thumbnail and medium (used as main)
                     const [thumbUrl, mainUrl] = await Promise.all([
                         retryOperation(() => uploadImage(`${basePath}/thumbnails/${fileName}`, resizedImages.thumbnail)),
                         retryOperation(() => uploadImage(`${basePath}/medium/${fileName}`, resizedImages.medium))
@@ -237,17 +241,15 @@ export default function UniversalPostEditor({
                 }
             }
 
-            // 2. Save Post
             setLoadingMessage("글 저장 중...");
 
             if (post) {
-                // Update
                 const updates: any = {
                     title: formData.title,
                     content: formData.content,
                     is_notice: formData.is_notice,
                     prefix_id: formData.prefix_id,
-                    category: formData.category, // Save category
+                    category: formData.category,
                     updated_at: new Date().toISOString()
                 };
 
@@ -255,7 +257,6 @@ export default function UniversalPostEditor({
                     updates.image = imageUrls.image;
                     updates.image_thumbnail = imageUrls.image_thumbnail;
                 } else if (isImageDeleted) {
-                    // Explicitly remove image if deleted and not replaced
                     updates.image = null;
                     updates.image_thumbnail = null;
                 }
@@ -269,7 +270,6 @@ export default function UniversalPostEditor({
                 alert('게시글이 수정되었습니다!');
 
             } else {
-                // Create
                 let currentNickname = userNickname;
                 if (!currentNickname && user?.id) {
                     const { data: ud } = await supabase.from('board_users').select('nickname').eq('user_id', user.id).maybeSingle();
@@ -314,10 +314,6 @@ export default function UniversalPostEditor({
     const modalContent = (
         <div className="pem-modal-overlay">
             <div className="pem-modal-container universal-editor-container" style={{ position: 'relative' }}>
-                {/* Login Requirement Overlay */}
-
-
-                {/* Header */}
                 <div className="pem-modal-header">
                     <h2 className="pem-modal-title">
                         {formData.category === 'market' ? '벼룩시장 글쓰기' : '글쓰기'}
@@ -327,11 +323,9 @@ export default function UniversalPostEditor({
                     </button>
                 </div>
 
-                {/* Content */}
                 <form onSubmit={handleSubmit} className="pem-form">
                     <div className="pem-form-content">
 
-                        {/* Title Input First */}
                         <div className="pem-form-group">
                             <input
                                 type="text"
@@ -344,22 +338,17 @@ export default function UniversalPostEditor({
                             />
                         </div>
 
-                        {/* Content Input Second (Primary Writing Area) */}
-                        <div className="pem-form-group">
-                            <textarea
-                                name="content"
-                                value={formData.content}
-                                onChange={handleInputChange}
-                                required
-                                rows={10}
-                                className="pem-textarea"
-                                placeholder="내용을 입력하세요"
+                        {/* [UPDATED] UniversalEditor Replaced Textarea */}
+                        <div className="pem-form-group" style={{ flex: 1, minHeight: '300px', display: 'flex', flexDirection: 'column' }}>
+                            <UniversalEditor
+                                content={formData.content}
+                                onChange={(html) => setFormData(prev => ({ ...prev, content: html }))}
+                                placeholder="내용을 입력하세요..."
+                                onImageUpload={handleInlineImageUpload}
                             />
                         </div>
 
-                        {/* Metadata Row (Prefix & Author) */}
                         <div className="form-row">
-                            {/* Korean Select */}
                             <select
                                 value={formData.prefix_id || ''}
                                 name="prefix_id"
@@ -372,7 +361,6 @@ export default function UniversalPostEditor({
                                     <option key={p.id} value={p.id}>{p.name}</option>
                                 ))}
                             </select>
-                            {/* English Select */}
                             <select
                                 value={formData.prefix_id || ''}
                                 name="prefix_id"
@@ -407,7 +395,6 @@ export default function UniversalPostEditor({
                             )}
                         </div>
 
-                        {/* Image Upload for All Categories */}
                         <div className="pem-form-group">
                             <label className="pem-label">대표 이미지 (선택)</label>
                             <div className="image-upload-area" onClick={() => fileInputRef.current?.click()}>
@@ -421,7 +408,7 @@ export default function UniversalPostEditor({
                                                 e.stopPropagation();
                                                 setImageFile(null);
                                                 setImagePreview(null);
-                                                setIsImageDeleted(true); // Mark as deleted
+                                                setIsImageDeleted(true);
                                             }}
                                         >
                                             <i className="ri-close-circle-fill"></i>
@@ -443,7 +430,6 @@ export default function UniversalPostEditor({
                             </div>
                         </div>
 
-                        {/* Notice Checkbox (Admin Only) */}
                         {isAdmin && (
                             <label className="pem-checkbox-label">
                                 <input
@@ -465,7 +451,6 @@ export default function UniversalPostEditor({
 
                     </div>
 
-                    {/* Footer */}
                     <div className="pem-modal-footer">
                         <button type="button" onClick={onClose} className="pem-btn pem-btn-cancel">취소</button>
                         <button

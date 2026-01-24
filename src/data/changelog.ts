@@ -8,6 +8,16 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '3.7.13',
+        date: '2026-01-24',
+        changes: [
+            '[📝 Editor] 이미지 섹션 자동 삭제 기능 추가 (빈 섹션 자동 정리)',
+            '[📝 Editor] 멀티 이미지 지원 (같은 줄에 이미지 추가 가능)',
+            '[📝 Editor] 이미지 크기 일관성 개선 (좌/우/중앙 모두 50% 기본값 통일)',
+            '[📝 Editor] 설정 메뉴 위치 최적화 (이미지 추적)'
+        ]
+    },
+    {
         version: '3.7.12',
         date: '2026-01-23',
         changes: [
