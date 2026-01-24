@@ -55,11 +55,18 @@ interface AnalyticsSummary {
         pwa_percentage: number;
         avg_pwa_duration: number;
         avg_browser_duration: number;
-        recent_installs: { installed_at: string; user_id?: string; fingerprint?: string; display_mode?: string }[];
+        recent_installs: { installed_at: string; user_id?: string; nickname?: string; fingerprint?: string; display_mode?: string }[];
         recent_pwa_sessions?: { session_start: string; user_id?: string; nickname?: string; display_mode?: string; duration_seconds?: number }[];
     };
     // [PHASE 20] Type Detail Data
     items_by_type?: Record<string, { title: string; count: number; url?: string }[]>;
+    // [PHASE 21] Visitor Stats (Added)
+    visitor_stats?: {
+        weekday: { day: string; count: number; ratio: number }[];
+        hourly: { hour: number; label: string; count: number; ratio: number }[];
+        monthly: { month: string; count: number; ratio: number }[];
+    };
+    daily_visit_trend?: { date: string; count: number }[];
 }
 
 interface UserInfo {
@@ -73,7 +80,7 @@ interface UserInfo {
 export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
     const [summary, setSummary] = useState<AnalyticsSummary | null>(null);
     const [loading, setLoading] = useState(true);
-    const [viewMode, setViewMode] = useState<'summary' | 'daily' | 'advanced'>('daily'); // 기본값을 'daily'로 변경
+    const [viewMode, setViewMode] = useState<'summary' | 'daily' | 'advanced' | 'visitor'>('daily'); // 'visitor' 추가
     const [userList, setUserList] = useState<UserInfo[]>([]);
     const [showUserList, setShowUserList] = useState(false);
     // [PHASE 20] Type Detail Modal State
@@ -146,10 +153,11 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
         try {
             let startStr: string, endStr: string;
 
-            if (viewMode === 'summary') {
+            // [PHASE 21] Visitor mode or Summary mode -> Fetch long term
+            if (viewMode === 'summary' || viewMode === 'visitor') {
                 const today = new Date();
                 const past = new Date();
-                past.setDate(today.getDate() - (365 * 50));
+                past.setDate(today.getDate() - 365); // 1년치 데이터 (비지터 분석용)
                 startStr = getKRDateString(past) + 'T00:00:00+09:00';
                 endStr = getKRDateString(today) + 'T23:59:59+09:00';
             } else {
@@ -185,18 +193,47 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 setUserList(localUserList);
             }
 
-            // Raw Data Fetch
-            const { data, error } = await supabase
-                .from('site_analytics_logs')
-                .select('*')
-                .gte('created_at', startStr)
-                .lte('created_at', endStr)
-                .limit(10000)
-                .order('created_at', { ascending: false });
+            // [PHASE 22] 특정 사용자 제외 (clown313joy@gmail.com)
+            let excludedUserId: string | null = null;
+            const { data: excludedUser } = await supabase
+                .from('billboard_users')
+                .select('id')
+                .eq('email', 'clown313joy@gmail.com')
+                .single();
+            if (excludedUser) excludedUserId = excludedUser.id;
 
-            if (error) throw error;
+            // Raw Data Fetch (Pagination to bypass Supabase 1000 limit)
+            let allLogs: any[] = [];
+            let page = 0;
+            const PAGE_SIZE = 1000;
+            let hasMore = true;
 
-            const validData = data.filter(d => !d.is_admin);
+            while (hasMore) {
+                const { data: chunk, error } = await supabase
+                    .from('site_analytics_logs')
+                    .select('*')
+                    .gte('created_at', startStr)
+                    .lte('created_at', endStr)
+                    .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1)
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+
+                if (chunk && chunk.length > 0) {
+                    allLogs = allLogs.concat(chunk);
+                    if (chunk.length < PAGE_SIZE) {
+                        hasMore = false;
+                    } else {
+                        page++;
+                    }
+                } else {
+                    hasMore = false;
+                }
+                if (allLogs.length > 300000) break; // Safety brake
+            }
+            const data = allLogs;
+
+            const validData = data.filter(d => !d.is_admin && d.user_id !== excludedUserId);
             const visitorUniqueSet = new Set<string>();
             const visitorUniqueData = validData.filter(d => {
                 const userIdentifier = d.user_id || d.fingerprint || 'unknown';
@@ -207,16 +244,90 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 return true;
             });
 
-            // Session Data for PWA
-            const { data: sessions, error: sessionsError } = await supabase
-                .from('session_logs')
-                .select('*')
-                .gte('session_start', startStr)
-                .lte('session_start', endStr)
-                .eq('is_admin', false);
+            // Session Data (Paginated)
+            let allSessions: any[] = [];
+            page = 0;
+            hasMore = true;
+
+            while (hasMore) {
+                const { data: sChunk, error: sError } = await supabase
+                    .from('session_logs')
+                    .select('*')
+                    .gte('session_start', startStr)
+                    .lte('session_start', endStr)
+                    .eq('is_admin', false)
+                    .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+
+                if (sError) {
+                    console.error('Session fetch error:', sError);
+                    break;
+                }
+
+                if (sChunk && sChunk.length > 0) {
+                    allSessions = allSessions.concat(sChunk);
+                    if (sChunk.length < PAGE_SIZE) {
+                        hasMore = false;
+                    } else {
+                        page++;
+                    }
+                } else {
+                    hasMore = false;
+                }
+                if (allSessions.length > 50000) break;
+            }
+            // Use 'sessions' identifier to match downstream code usage (if checking !sessionsError)
+            // But downstream checks { data: sessions, error: sessionsError }. 
+            // We need to simulate that structure or modify downstream
+            const sessions = allSessions.filter(s => s.user_id !== excludedUserId);
+            const sessionsError = null;
 
             const sessionData = sessions || [];
             let sessionStats = { total_sessions: 0, avg_duration: 0, bounce_rate: 0 };
+
+            // [PHASE 21] Visitor Analysis Logic
+            const weekdays = ['일', '월', '화', '수', '목', '금', '토'];
+            const weekdayCounts = new Array(7).fill(0);
+            const hourlyCounts = new Array(24).fill(0);
+            const monthlyCountsMap = new Map<string, number>();
+
+            sessionData.forEach((s: any) => {
+                const date = new Date(s.session_start);
+                // Convert to KST for accurate weekday/hour
+                const kstDate = new Date(date.toLocaleString("en-US", { timeZone: "Asia/Seoul" }));
+
+                weekdayCounts[kstDate.getDay()]++;
+                hourlyCounts[kstDate.getHours()]++;
+
+                const monthKey = `${kstDate.getFullYear()}.${String(kstDate.getMonth() + 1).padStart(2, '0')}`;
+                monthlyCountsMap.set(monthKey, (monthlyCountsMap.get(monthKey) || 0) + 1);
+            });
+
+            const maxWeekday = Math.max(...weekdayCounts, 1);
+            const maxHourly = Math.max(...hourlyCounts, 1);
+            const monthlyCounts = Array.from(monthlyCountsMap.entries())
+                .map(([month, count]) => ({ month, count }))
+                .sort((a, b) => a.month.localeCompare(b.month)); // Oldest first
+            const maxMonthly = Math.max(...monthlyCounts.map(m => m.count), 1);
+
+            const visitor_stats = {
+                weekday: weekdayCounts.map((count, idx) => ({
+                    day: weekdays[idx],
+                    count,
+                    ratio: (count / maxWeekday) * 100
+                })),
+                hourly: hourlyCounts.map((count, idx) => ({
+                    hour: idx,
+                    label: `${idx}시`,
+                    count,
+                    ratio: (count / maxHourly) * 100
+                })),
+                monthly: monthlyCounts.map(m => ({
+                    month: m.month,
+                    count: m.count,
+                    ratio: (m.count / maxMonthly) * 100
+                }))
+            };
+
 
             if (!sessionsError && sessions) {
                 const completedSessions = sessions.filter((s: any) => s.duration_seconds !== null);
@@ -261,6 +372,43 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                         };
                     });
 
+                // [FIX] 최근 설치 유저 닉네임 별도 조회 (Safe Fetch)
+                const installUserIds = installData
+                    .slice(0, 50)
+                    .map((i: any) => i.user_id)
+                    .filter((id: any) => id && id.length > 20); // Check for valid UUID-like strings
+
+                let installUserMap = new Map<string, string>();
+                if (installUserIds.length > 0) {
+                    try {
+                        const uniqueIds = Array.from(new Set(installUserIds));
+                        const { data: uData, error: uError } = await supabase
+                            .from('billboard_users')
+                            .select('id, name')
+                            .in('id', uniqueIds);
+
+                        if (uError) {
+                            console.warn('[Analytics] Failed to fetch nicknames:', uError);
+                        } else if (uData) {
+                            uData.forEach((u: any) => installUserMap.set(u.id, u.name));
+                        }
+                    } catch (err) {
+                        console.error('[Analytics] Error resolving nicknames:', err);
+                    }
+                }
+
+                const recentInstalls = installData.slice(0, 10).map((inst: any) => {
+                    const explicitNickname = installUserMap.get(inst.user_id);
+                    const listUser = localUserList.find(u => u.user_id === inst.user_id);
+                    // 1. Explicit fetch 2. Summary list 3. Default
+                    const finalNickname = explicitNickname || (listUser ? listUser.nickname : null);
+
+                    return {
+                        ...inst,
+                        nickname: finalNickname || (inst.user_id ? '회원' : 'Guest')
+                    };
+                });
+
                 pwaStats = {
                     total_installs: installData.length,
                     pwa_sessions: pwaSessions.length,
@@ -268,7 +416,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                     pwa_percentage: sessionData.length > 0 ? (pwaSessions.length / sessionData.length) * 100 : 0,
                     avg_pwa_duration: avgPWADuration,
                     avg_browser_duration: avgBrowserDuration,
-                    recent_installs: installData.slice(0, 10),
+                    recent_installs: recentInstalls,
                     recent_pwa_sessions: recentPWASessions
                 };
             }
@@ -385,6 +533,26 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                     };
                 });
 
+            // [PHASE 23] Visit Trend Calculation
+            const visitTrendMap = new Map<string, number>();
+            sessionData.forEach((s: any) => {
+                const kstDate = getKRDateString(new Date(s.session_start));
+                visitTrendMap.set(kstDate, (visitTrendMap.get(kstDate) || 0) + 1);
+            });
+
+            // [FIX] Fill missing dates to match selected range
+            const trendDates: string[] = [];
+            const dStart = new Date(dateRange.start);
+            const dEnd = new Date(dateRange.end);
+            for (let d = new Date(dStart); d <= dEnd; d.setDate(d.getDate() + 1)) {
+                trendDates.push(getKRDateString(d));
+            }
+
+            const dailyVisitTrend = trendDates.map(date => ({
+                date,
+                count: visitTrendMap.get(date) || 0
+            })).sort((a, b) => b.date.localeCompare(a.date)); // Descending match
+
             const newSummary = {
                 total_clicks: visitorUniqueData.length,
                 user_clicks: clickBasedLoggedIn,
@@ -398,7 +566,9 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 session_stats: sessionStats,
                 journey_patterns: journeyPatterns,
                 pwa_stats: pwaStats,
-                items_by_type: itemsByTypeRecord
+                items_by_type: itemsByTypeRecord,
+                visitor_stats,
+                daily_visit_trend: dailyVisitTrend
             };
 
             setSummary(newSummary as any);
@@ -473,9 +643,12 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
         }
     };
 
-    // 최근 7일 트렌드 데이터 계산
-    const trendData = summary ? summary.daily_details.slice(0, 7).reverse() : [];
+    // [PHASE 21] 트렌드 데이터 계산 (선택된 기간 전체 반영)
+    const trendData = summary ? [...summary.daily_details].reverse() : [];
     const maxDayClicks = trendData.length > 0 ? Math.max(...trendData.map(d => d.total)) : 0;
+
+    const visitTrendData = summary && summary.daily_visit_trend ? [...summary.daily_visit_trend].reverse() : [];
+    const maxVisitCount = visitTrendData.length > 0 ? Math.max(...visitTrendData.map(d => d.count)) : 0;
 
     if (!isOpen) return null;
 
@@ -498,6 +671,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                         <div className="view-mode-tabs">
                             <button className={viewMode === 'summary' ? 'active' : ''} onClick={() => setViewMode('summary')}>전체 요약</button>
                             <button className={viewMode === 'daily' ? 'active' : ''} onClick={() => setViewMode('daily')}>날짜별 상세</button>
+                            <button className={viewMode === 'visitor' ? 'active' : ''} onClick={() => setViewMode('visitor')}>방문 분석</button>
                             <button className={viewMode === 'advanced' ? 'active' : ''} onClick={() => setViewMode('advanced')}>고급 분석</button>
                         </div>
                     </div>
@@ -569,6 +743,8 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 </div>
 
                 <div className="analytics-modal-body">
+
+
                     {loading ? (
                         <div className="analytics-loading">데이터 분석 중...</div>
                     ) : summary && summary.total_clicks > 0 ? (
@@ -702,9 +878,9 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                 </div>
                             )}
 
-                            {/* [PHASE 2] 트렌드 미니 차트 */}
+                            {/* [PHASE 2] 트렌드 미니 차트 (클릭) */}
                             <div className="analytics-trend-section">
-                                <h3><i className="ri-line-chart-line"></i> 최근 7일 클릭 트렌드</h3>
+                                <h3><i className="ri-mouse-line"></i> 클릭 트렌드 (Click)</h3>
                                 <div className="trend-chart-container">
                                     {trendData.map((day, idx) => {
                                         const height = maxDayClicks > 0 ? (day.total / maxDayClicks) * 100 : 0;
@@ -719,6 +895,30 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                             </div>
                                         );
                                     })}
+                                </div>
+                            </div>
+
+                            {/* [PHASE 23] 방문 트렌드 차트 (세션) */}
+                            <div className="analytics-trend-section" style={{ marginTop: '24px' }}>
+                                <h3><i className="ri-footprint-line"></i> 방문 트렌드 (Session)</h3>
+                                <div className="trend-chart-container">
+                                    {visitTrendData.length === 0 ? (
+                                        <div style={{ width: '100%', textAlign: 'center', color: '#666', fontSize: '0.9rem', padding: '20px' }}>데이터 수집 중 (최근 추가됨)</div>
+                                    ) : (
+                                        visitTrendData.map((day, idx) => {
+                                            const height = maxVisitCount > 0 ? (day.count / maxVisitCount) * 100 : 0;
+                                            return (
+                                                <div key={idx} className="trend-bar-wrapper">
+                                                    <div className="trend-bar-at-bottom">
+                                                        <div className="trend-bar-fill" style={{ height: `${height}%`, backgroundColor: '#f472b6' }}>
+                                                            <span className="trend-tooltip">{day.count}</span>
+                                                        </div>
+                                                    </div>
+                                                    <span className="trend-label">{day.date.split('-')[2]}일</span>
+                                                </div>
+                                            );
+                                        })
+                                    )}
                                 </div>
                             </div>
 
@@ -791,6 +991,67 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                 </div>
                                             </div>
                                         ))}
+                                    </div>
+                                </div>
+                            ) : viewMode === 'visitor' ? (
+                                <div className="visitor-view-content">
+                                    <div className="analytics-grid">
+
+                                        {/* 요일별 방문 */}
+                                        <div className="grid-section full-width">
+                                            <h3><i className="ri-calendar-event-line"></i> 요일별 방문 집중도</h3>
+                                            <div className="trend-chart-container" style={{ height: '180px', marginTop: '1rem', alignItems: 'flex-end' }}>
+                                                {summary.visitor_stats?.weekday.map((d, i) => (
+                                                    <div key={i} className="trend-bar-wrapper" style={{ flex: 1 }}>
+                                                        <div className="trend-bar-at-bottom">
+                                                            <div className="trend-bar-fill" style={{ height: `${d.ratio}%`, backgroundColor: d.ratio > 80 ? '#fbbf24' : '#60a5fa' }}>
+                                                                <span className="trend-tooltip">{d.count}명</span>
+                                                            </div>
+                                                        </div>
+                                                        <span className="trend-label">{d.day}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* 시간대별 방문 */}
+                                        <div className="grid-section full-width">
+                                            <h3><i className="ri-time-line"></i> 시간대별 접속량 (Peak Time)</h3>
+                                            <div className="trend-chart-container" style={{ height: '180px', marginTop: '1rem', overflowX: 'auto' }}>
+                                                {summary.visitor_stats?.hourly.map((h, i) => (
+                                                    <div key={i} className="trend-bar-wrapper" style={{ minWidth: '30px', flex: 1 }}>
+                                                        <div className="trend-bar-at-bottom">
+                                                            <div className="trend-bar-fill" style={{ height: `${h.ratio}%`, backgroundColor: h.ratio > 80 ? '#fbbf24' : '#a78bfa' }}>
+                                                                <span className="trend-tooltip">{h.count}</span>
+                                                            </div>
+                                                        </div>
+                                                        <span className="trend-label" style={{ fontSize: '0.7rem' }}>{h.hour}시</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* 월별 방문 */}
+                                        <div className="grid-section full-width">
+                                            <h3><i className="ri-calendar-line"></i> 월별 방문 추이</h3>
+                                            <div className="trend-chart-container" style={{ height: '180px', marginTop: '1rem' }}>
+                                                {summary.visitor_stats?.monthly.length === 0 ? (
+                                                    <div style={{ width: '100%', textAlign: 'center', color: '#666' }}>데이터 수집 중입니다...</div>
+                                                ) : (
+                                                    summary.visitor_stats?.monthly.map((m, i) => (
+                                                        <div key={i} className="trend-bar-wrapper" style={{ flex: 1, minWidth: '50px' }}>
+                                                            <div className="trend-bar-at-bottom">
+                                                                <div className="trend-bar-fill" style={{ height: `${m.ratio}%`, backgroundColor: '#34d399' }}>
+                                                                    <span className="trend-tooltip">{m.count}명</span>
+                                                                </div>
+                                                            </div>
+                                                            <span className="trend-label">{m.month.split('.')[1]}월</span>
+                                                        </div>
+                                                    ))
+                                                )}
+                                            </div>
+                                        </div>
+
                                     </div>
                                 </div>
                             ) : (
@@ -885,9 +1146,12 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                             {summary.pwa_stats.recent_installs.map((install, idx) => (
                                                                 <div key={idx} className="install-item" style={{ padding: '8px', borderBottom: '1px solid #333', fontSize: '0.85em' }}>
                                                                     <div>{new Date(install.installed_at).toLocaleString('ko-KR')}</div>
-                                                                    <div style={{ color: '#888' }}>
-                                                                        {install.user_id ? `User: ${install.user_id.substring(0, 8)}...` : `Guest: ${install.fingerprint?.substring(0, 12)}...`}
-                                                                        {install.display_mode && ` (${install.display_mode})`}
+                                                                    <div style={{ color: '#e4e4e7', fontWeight: '500' }}>
+                                                                        {install.nickname || (install.user_id ? '회원' : 'Guest')}
+                                                                    </div>
+                                                                    <div style={{ color: '#71717a', fontSize: '0.9em' }}>
+                                                                        {install.user_id ? (install.nickname ? `(${install.user_id.substring(0, 4)}..)` : `(${install.user_id.substring(0, 8)}..)`) : (install.fingerprint ? `Guest: ${install.fingerprint.substring(0, 8)}..` : '-')}
+                                                                        {install.display_mode && ` · ${install.display_mode}`}
                                                                     </div>
                                                                 </div>
                                                             ))}
