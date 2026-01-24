@@ -67,18 +67,27 @@
     flex-direction: column;
 }
 
-.date-info h3 {
-    margin: 0;
-    font-size: 1.25rem;
-    font-weight: 800;
-    color: white;
-    letter-spacing: -0.5px;
+.date-info .subtitle {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #9ca3af;
+    order: 2;
 }
 
 .date-info .weekday {
-    font-size: 0.85rem;
-    color: #9ca3af;
-    margin-top: 2px;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: white;
+    margin-bottom: 2px;
+    order: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.date-info .day-num {
+    color: #fbbf24;
+    /* Highlight color (amber/gold) for date number */
 }
 
 .close-btn {

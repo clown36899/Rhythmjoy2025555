@@ -81,8 +81,8 @@ export default function DateEventsModal({
                 {/* Header */}
                 <div className="date-events-header">
                     <div className="date-info">
-                        <h3>{date.getFullYear()}. {date.getMonth() + 1}. {date.getDate()}</h3>
-                        <span className="weekday">{weekDayNames[date.getDay()]}요일 / 총 {sortedEvents.length}건</span>
+                        <span className="weekday">{weekDayNames[date.getDay()]}요일 <span className="day-num">{date.getDate()}일</span></span>
+                        <span className="subtitle">소셜/이벤트</span>
                     </div>
                     <button className="close-btn" onClick={onClose}>
                         <i className="ri-close-line"></i>

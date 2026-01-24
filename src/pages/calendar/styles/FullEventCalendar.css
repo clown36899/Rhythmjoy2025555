@@ -1667,7 +1667,7 @@
   justify-content: flex-start;
   /* Align date to top-left */
   align-items: center;
-  height: 24px;
+  height: 30px;
   flex-shrink: 0;
 }
 
