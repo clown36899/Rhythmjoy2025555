@@ -26,7 +26,7 @@ export default async (request: Request, context: Context) => {
     return;
 };
 
-export const config = {
-    path: "/*",
-    excludedPath: ["/assets/*", "/_netlify/*", "/favicon.ico"]
-};
+// export const config = {
+//     path: "/*",
+//     excludedPath: ["/assets/*", "/_netlify/*", "/favicon.ico"]
+// };
