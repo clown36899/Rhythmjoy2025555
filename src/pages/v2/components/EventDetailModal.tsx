@@ -29,7 +29,7 @@ interface Event extends Omit<BaseEvent, 'date' | 'start_date' | 'end_date' | 'ev
   start_date?: string | null;
   end_date?: string | null;
   event_dates?: string[] | null;
-  views?: number | null;
+  views?: number;
 }
 
 const genreColorPalette = [
@@ -385,8 +385,17 @@ export default function EventDetailModal({
         try {
           setIsFetchingDetail(true);
 
-          const isSocialIntegrated = String(event.id).startsWith('social-');
-          const originalId = isSocialIntegrated ? String(event.id).replace('social-', '') : event.id;
+          let isSocialIntegrated = String(event.id).startsWith('social-');
+          let originalId = isSocialIntegrated ? String(event.id).replace('social-', '') : event.id;
+
+          // [FIX] FullCalendar Offset Handling (ID > 10,000,000)
+          // FullEventCalendar adds 10,000,000 to social event IDs to avoid collision
+          // We must reverse this to get the real DB ID for social_schedules
+          if (Number(event.id) > 10000000) {
+            isSocialIntegrated = true;
+            originalId = String(Number(event.id) - 10000000);
+            console.log('[EventDetailModal] Detected FullCalendar Social Event. Decoded ID:', originalId);
+          }
 
           if (isSocialIntegrated) {
             // [소셜 일정 연동] social_schedules 테이블 조회
