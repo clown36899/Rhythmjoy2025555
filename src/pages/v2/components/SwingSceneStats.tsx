@@ -471,8 +471,7 @@ export default function SwingSceneStats() {
                         gap: 24px;
                         height: 100%;
                         overflow: hidden;
-                        padding-right: 0;
-                        padding-bottom: 0;
+                        padding: 0 24px 24px 24px;
                     }
 
                     .stats-col-1, .stats-col-2, .stats-col-3 {
@@ -647,13 +646,145 @@ export default function SwingSceneStats() {
                     border: 1px solid rgba(59, 130, 246, 0.1);
                     flex-shrink: 0;
                 }
+
+                /* Utility / Specific Overrides */
+                .share-container { display: flex; justify-content: flex-end; margin-bottom: 16px; }
+                .weekly-header { margin-bottom: 16px; padding: 0 4px; }
+                .weekly-title { margin: 0; font-size: 16px; font-weight: 700; color: #fff; }
+                .touch-hint { margin-bottom: 12px; font-size: 11px; color: #9ca3af; text-align: right; margin-top: 4px; }
+                .spacer-52 { height: 52px; }
+                .spacer-30 { height: 30px; }
+                .legend-grid.three-cols { grid-template-columns: repeat(3, 1fr); }
+
+                /* Data Inspector Modal Styles */
+                .inspector-overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    z-index: 9999;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    background: rgba(0, 0, 0, 0.6);
+                    backdrop-filter: blur(4px);
+                    animation: fadeIn 0.2s ease-out;
+                }
+
+                .inspector-modal {
+                    background: #1e293b;
+                    width: 90%;
+                    max-width: 500px;
+                    max-height: 80vh;
+                    border-radius: 16px;
+                    border: 1px solid rgba(148, 163, 184, 0.2);
+                    display: flex;
+                    flex-direction: column;
+                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+                    overflow: hidden;
+                }
+
+                .inspector-header {
+                    padding: 16px 20px;
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    background: #1e293b; /* Ensure opaque background */
+                }
+
+                .inspector-title {
+                    margin: 0;
+                    font-size: 16px;
+                    font-weight: 600;
+                    color: #fff;
+                }
+
+                .inspector-subtitle {
+                    font-size: 13px;
+                    color: #94a3b8;
+                    font-weight: 400;
+                }
+
+                .inspector-close-btn {
+                    background: none;
+                    border: none;
+                    color: #94a3b8;
+                    cursor: pointer;
+                    padding: 4px;
+                    display: flex;
+                    align-items: center;
+                    transition: color 0.2s;
+                }
+                .inspector-close-btn:hover { color: #fff; }
+
+                .inspector-content {
+                    flex: 1;
+                    overflow-y: auto;
+                }
+
+                .inspector-empty {
+                    padding: 40px;
+                    text-align: center;
+                    color: #64748b;
+                    font-size: 14px;
+                }
+
+                .inspector-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    font-size: 13px;
+                }
+
+                .inspector-thead {
+                    position: sticky;
+                    top: 0;
+                    background: #1e293b;
+                    z-index: 10;
+                }
+
+                .inspector-th {
+                    padding: 12px 16px;
+                    text-align: left;
+                    font-weight: 500;
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                    color: #94a3b8;
+                }
+                .inspector-th.highlight-type { color: #60a5fa; }
+                .inspector-th.highlight-genre { color: #fcd34d; }
+                .inspector-th.align-right { text-align: right; }
+
+                .inspector-tr {
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+                    transition: background 0.1s;
+                }
+                .inspector-tr:nth-child(even) { background: rgba(255, 255, 255, 0.01); }
+                .inspector-tr:hover { background: rgba(255, 255, 255, 0.03); }
+
+                .inspector-td { padding: 12px 16px; color: #e2e8f0; }
+                .inspector-td.date { color: #94a3b8; text-align: right; font-size: 12px; white-space: nowrap; }
+                .inspector-td.genre-highlight { color: #fcd34d; font-weight: 600; }
+                .inspector-td.genre-dim { color: #cbd5e1; font-weight: 400; }
+
+                .type-badge {
+                    padding: 2px 8px;
+                    border-radius: 4px;
+                    font-size: 11px;
+                    font-weight: 600;
+                }
+                .type-badge.class { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
+                .type-badge.event { background: rgba(251, 191, 36, 0.2); color: #fcd34d; }
+                .type-badge.social { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+                .type-badge.post { background: rgba(168, 85, 247, 0.2); color: #c084fc; }
+
             `}</style>
 
             <div className="stats-container">
 
                 {/* Column 1: Summary & Monthly */}
                 <div className="stats-col-1">
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
+                    <div className="share-container">
                         <button onClick={handleShare} className="share-btn">
                             <i className="ri-share-forward-line"></i> 통계 공유
                         </button>
@@ -707,8 +838,8 @@ export default function SwingSceneStats() {
 
                 {/* Column 2: Weekly Types */}
                 <div className="stats-col-2">
-                    <div className="stats-header" style={{ marginBottom: '16px', padding: '0 4px' }}>
-                        <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#fff' }}>주간 집중 분석</h3>
+                    <div className="stats-header weekly-header">
+                        <h3 className="weekly-title">주간 집중 분석</h3>
                         <div className="tab-group">
                             <button onClick={() => { setWeeklyTab('total'); setInspectTypeDay(null); setInspectGenreDay(null); }} className={`tab-btn ${weeklyTab === 'total' ? 'active' : ''}`}>전체</button>
                             <button onClick={() => { setWeeklyTab('monthly'); setInspectTypeDay(null); setInspectGenreDay(null); }} className={`tab-btn ${weeklyTab === 'monthly' ? 'active' : ''}`}>이번 달</button>
@@ -717,7 +848,7 @@ export default function SwingSceneStats() {
 
                     <div className="stats-section">
                         <h4 className="section-title"><i className="ri-calendar-todo-line"></i> 요일별 유형 비중</h4>
-                        <div style={{ marginBottom: '12px', fontSize: '11px', color: '#9ca3af', textAlign: 'right', marginTop: '4px' }}>* 그래프 터치하여 상세 보기</div>
+                        <div className="touch-hint">* 그래프 터치하여 상세 보기</div>
 
                         <div className="chart-container">
                             {currentWeekly.map((d, i) => (
@@ -752,7 +883,7 @@ export default function SwingSceneStats() {
 
                 {/* Column 3: Weekly Genres */}
                 <div className="stats-col-3">
-                    <div style={{ height: '52px' }}></div> {/* Spacer to align with Section 2 */}
+                    <div className="spacer-52"></div> {/* Spacer to align with Section 2 */}
 
                     <div className="stats-section">
                         <h4 className="section-title"><i className="ri-medal-2-line"></i> 요일별 장르 비중</h4>
@@ -771,7 +902,7 @@ export default function SwingSceneStats() {
                             ))}
                         </div>
 
-                        <div className="legend-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                        <div className="legend-grid three-cols">
                             {stats.topGenresList.map((g, i) => (
                                 <div key={i} className="legend-item">
                                     <span className="legend-dot" style={{ background: getGenreColor(g, i) }}></span>
@@ -789,7 +920,7 @@ export default function SwingSceneStats() {
                         )}
                     </div>
 
-                    <div style={{ height: '30px' }}></div>
+                    <div className="spacer-30"></div>
                 </div>
             </div>
         </div>
@@ -818,47 +949,42 @@ const DataInspectorModal = ({ day, items, sortBy, onClose }: { day: string, item
     });
 
     return (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(4px)' }}>
-            <div style={{ background: '#1e293b', width: '90%', maxWidth: '500px', maxHeight: '80vh', borderRadius: '16px', border: '1px solid rgba(148, 163, 184, 0.2)', display: 'flex', flexDirection: 'column', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)' }}>
-                <div style={{ padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h4 style={{ margin: 0, fontSize: '16px', fontWeight: '600', color: '#fff' }}>
-                        {day}요일 상세 데이터 <span style={{ fontSize: '13px', color: '#94a3b8', fontWeight: '400' }}>({sortedItems.length}건) - {sortBy === 'type' ? '유형별' : '장르별'} 정렬</span>
+        <div className="inspector-overlay">
+            <div className="inspector-modal">
+                <div className="inspector-header">
+                    <h4 className="inspector-title">
+                        {day}요일 상세 <span className="inspector-subtitle">({sortedItems.length}건) - {sortBy === 'type' ? '유형별' : '장르별'} 정렬</span>
                     </h4>
-                    <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px' }}>
+                    <button onClick={onClose} className="inspector-close-btn">
                         <i className="ri-close-line" style={{ fontSize: '24px' }}></i>
                     </button>
                 </div>
 
-                <div style={{ flex: 1, overflowY: 'auto' }}>
+                <div className="inspector-content custom-scrollbar">
                     {sortedItems.length === 0 ? (
-                        <div style={{ padding: '40px', textAlign: 'center', color: '#64748b', fontSize: '14px' }}>데이터가 없습니다.</div>
+                        <div className="inspector-empty">데이터가 없습니다.</div>
                     ) : (
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                            <thead style={{ position: 'sticky', top: 0, background: '#1e293b', zIndex: 10 }}>
-                                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', color: '#94a3b8' }}>
-                                    <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '500', color: sortBy === 'type' ? '#60a5fa' : '#94a3b8' }}>구분</th>
-                                    <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '500' }}>제목</th>
-                                    <th style={{ padding: '12px 16px', textAlign: 'left', fontWeight: '500', color: sortBy === 'genre' ? '#fcd34d' : '#94a3b8' }}>장르</th>
-                                    <th style={{ padding: '12px 16px', textAlign: 'right', fontWeight: '500' }}>날짜</th>
+                        <table className="inspector-table">
+                            <thead className="inspector-thead">
+                                <tr>
+                                    <th className={`inspector-th ${sortBy === 'type' ? 'highlight-type' : ''}`}>구분</th>
+                                    <th className="inspector-th">제목</th>
+                                    <th className={`inspector-th ${sortBy === 'genre' ? 'highlight-genre' : ''}`}>장르</th>
+                                    <th className="inspector-th align-right">날짜</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {sortedItems.map((item, idx) => (
-                                    <tr key={idx} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', background: idx % 2 === 0 ? 'rgba(255,255,255,0.01)' : 'transparent' }}>
-                                        <td style={{ padding: '12px 16px' }}>
-                                            <span style={{
-                                                padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: '600',
-                                                background: item.type === '강습' ? 'rgba(59, 130, 246, 0.2)' :
-                                                    item.type === '행사' ? 'rgba(251, 191, 36, 0.2)' :
-                                                        item.type === '소셜' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(168, 85, 247, 0.2)',
-                                                color: item.type === '강습' ? '#60a5fa' :
-                                                    item.type === '행사' ? '#fcd34d' :
-                                                        item.type === '소셜' ? '#34d399' : '#c084fc'
-                                            }}>{item.type}</span>
+                                    <tr key={idx} className="inspector-tr">
+                                        <td className="inspector-td">
+                                            <span className={`type-badge ${item.type === '강습' ? 'class' :
+                                                item.type === '행사' ? 'event' :
+                                                    item.type === '소셜' ? 'social' : 'post'
+                                                }`}>{item.type}</span>
                                         </td>
-                                        <td style={{ padding: '12px 16px', color: '#e2e8f0', minWidth: '120px' }}>{item.title}</td>
-                                        <td style={{ padding: '12px 16px', color: sortBy === 'genre' ? '#fcd34d' : '#cbd5e1', fontWeight: sortBy === 'genre' ? '600' : '400' }}>{item.genre}</td>
-                                        <td style={{ padding: '12px 16px', color: '#94a3b8', textAlign: 'right', fontSize: '12px', whiteSpace: 'nowrap' }}>{item.date}</td>
+                                        <td className="inspector-td" style={{ minWidth: '120px' }}>{item.title}</td>
+                                        <td className={`inspector-td ${sortBy === 'genre' ? 'genre-highlight' : 'genre-dim'}`}>{item.genre}</td>
+                                        <td className="inspector-td date">{item.date}</td>
                                     </tr>
                                 ))}
                             </tbody>

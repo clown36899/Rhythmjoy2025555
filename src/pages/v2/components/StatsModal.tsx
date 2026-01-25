@@ -65,128 +65,209 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
     if (!isOpen) return null;
 
     return (
-        <div className="userreg-overlay" style={{ zIndex: 1000, animation: 'fadeIn 0.2s ease-out' }}>
-            <div className="userreg-modal" style={{
-                maxWidth: (activeTab === 'monthly' || activeTab === 'scene') ? '95vw' : '450px', // Maximize width for stats
-                width: '90%',
-                background: 'rgba(20, 20, 20, 0.95)',
-                backdropFilter: 'blur(15px)',
-                borderRadius: '24px',
-                border: '1px solid rgba(255,255,255,0.08)',
-                padding: (activeTab === 'monthly' || activeTab === 'scene') ? '0' : '24px', // Full width for Stats/Monthly
-                position: 'relative',
-                transition: 'max-width 0.3s ease, padding 0.3s ease', // Smooth transition
-                overflow: 'hidden' // Ensure rounded corners clip content
-            }}>
-                {/* Close Button - Moved to absolute position to avoid overlap */}
-                <button onClick={onClose} style={{
-                    position: 'absolute',
-                    top: '16px',
-                    right: '16px',
-                    background: 'rgba(255,255,255,0.05)',
-                    border: 'none',
-                    color: '#fff',
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    zIndex: 20 // Higher z-index to sit on top of everything
-                }}>
+        <div className="stats-modal-overlay">
+            <style>{`
+                .stats-modal-overlay {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    background: rgba(0, 0, 0, 0.7);
+                    backdrop-filter: blur(4px);
+                    z-index: 1000;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    animation: fadeIn 0.2s ease-out;
+                }
+                
+                .stats-modal {
+                    width: 90%;
+                    max-width: 450px;
+                    background: rgba(20, 20, 20, 0.95);
+                    backdrop-filter: blur(15px);
+                    border-radius: 24px;
+                    border: 1px solid rgba(255, 255, 255, 0.08);
+                    padding: 24px;
+                    position: relative;
+                    overflow: hidden;
+                    display: flex;
+                    flex-direction: column;
+                    transition: max-width 0.3s ease, padding 0.3s ease;
+                    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+                }
+                
+                .stats-modal.wide-mode {
+                    max-width: 95vw; /* Maximize width for stats */
+                    padding: 0;
+                }
+
+                .close-btn {
+                    position: absolute;
+                    top: 16px;
+                    right: 16px;
+                    background: rgba(255, 255, 255, 0.05);
+                    border: none;
+                    color: #fff;
+                    width: 32px;
+                    height: 32px;
+                    border-radius: 50%;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    cursor: pointer;
+                    z-index: 20;
+                    transition: background 0.2s;
+                }
+                .close-btn:hover { background: rgba(255, 255, 255, 0.1); }
+
+                .tabs-header {
+                    display: flex;
+                    align-items: center;
+                    overflow-x: auto;
+                    scrollbar-width: none;
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+                    padding-bottom: 16px;
+                    margin-bottom: 0;
+                    flex-shrink: 0;
+                }
+                .tabs-header::-webkit-scrollbar { display: none; }
+                
+                .tabs-header.wide-header {
+                    padding-top: 20px;
+                    padding-left: 24px;
+                    padding-right: 60px;
+                    background: #18181b;
+                }
+
+                .tabs-container {
+                    display: flex;
+                    gap: 32px;
+                    flex-wrap: nowrap;
+                }
+
+                .tab-item {
+                    margin: 0;
+                    font-size: 1.1rem;
+                    color: #52525b;
+                    font-weight: 700;
+                    cursor: pointer;
+                    border-bottom: 2px solid transparent;
+                    padding-bottom: 4px;
+                    transition: all 0.2s;
+                    white-space: nowrap;
+                    position: relative;
+                    display: inline-block;
+                }
+                
+                .tab-item.active {
+                    color: #fff;
+                    border-bottom-color: #3b82f6;
+                }
+
+                .badge-beta {
+                    position: absolute;
+                    top: -12px;
+                    right: -10px;
+                    font-size: 0.55rem;
+                    color: #000;
+                    background: #f59e0b;
+                    padding: 1px 4px;
+                    border-radius: 4px;
+                    font-weight: 600;
+                    line-height: 1;
+                    transform: scale(0.9);
+                    white-space: nowrap;
+                    z-index: 1;
+                }
+
+                .content-area {
+                    max-height: 70vh;
+                    overflow-y: auto;
+                    padding-right: 4px;
+                }
+                
+                .content-area.wide-content {
+                    height: 100%;
+                    max-height: 76vh;
+                    overflow-y: hidden; /* No outer scroll for wide mode */
+                    display: flex;
+                    flex-direction: column;
+                }
+
+                .loading-container {
+                    height: 200px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                }
+
+                .info-box {
+                    margin-top: 20px;
+                    padding: 16px;
+                    background: rgba(255, 255, 255, 0.03);
+                    border-radius: 12px;
+                    border: 1px solid rgba(255, 255, 255, 0.05);
+                }
+                
+                .info-title {
+                    font-size: 13px;
+                    color: #a1a1aa;
+                    margin-bottom: 8px;
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    margin-top: 0;
+                }
+
+                .info-content {
+                    font-size: 11px;
+                    color: #71717a;
+                    line-height: 1.6;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 8px;
+                }
+                
+                .info-text { margin: 0; }
+                
+                .footer-text {
+                    font-size: 11px;
+                    color: #52525b;
+                    text-align: center;
+                    margin-top: 16px;
+                }
+
+                @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+            `}</style>
+
+            <div className={`stats-modal ${activeTab === 'monthly' || activeTab === 'scene' ? 'wide-mode' : ''}`}>
+                <button onClick={onClose} className="close-btn">
                     <i className="ri-close-line text-xl"></i>
                 </button>
 
-                {/* Header Tabs Container - Needs padding if modal padding is 0 */}
-                <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    marginBottom: '0',
-                    paddingTop: (activeTab === 'monthly' || activeTab === 'scene') ? '20px' : '0',
-                    paddingLeft: (activeTab === 'monthly' || activeTab === 'scene') ? '24px' : '0',
-                    paddingRight: '60px',
-                    overflowX: 'auto',
-                    scrollbarWidth: 'none',
-                    borderBottom: '1px solid rgba(255,255,255,0.05)',
-                    paddingBottom: '16px',
-                    background: (activeTab === 'monthly' || activeTab === 'scene') ? '#18181b' : 'transparent' // Seamless header background
-                }}>
-                    <div style={{ display: 'flex', gap: '32px', flexWrap: 'nowrap' }}>
-                        <h2
-                            onClick={() => setActiveTab('my')}
-                            style={{
-                                margin: 0,
-                                fontSize: '1.1rem',
-                                color: activeTab === 'my' ? '#fff' : '#52525b',
-                                fontWeight: '700',
-                                cursor: 'pointer',
-                                borderBottom: activeTab === 'my' ? '2px solid #3b82f6' : '2px solid transparent',
-                                paddingBottom: '4px',
-                                transition: 'all 0.2s',
-                                whiteSpace: 'nowrap'
-                            }}
-                        >
+                <div className={`tabs-header ${activeTab === 'monthly' || activeTab === 'scene' ? 'wide-header' : ''}`}>
+                    <div className="tabs-container">
+                        <h2 onClick={() => setActiveTab('my')} className={`tab-item ${activeTab === 'my' ? 'active' : ''}`}>
                             내 활동
                         </h2>
-                        <h2
-                            onClick={() => setActiveTab('scene')}
-                            style={{
-                                margin: 0,
-                                fontSize: '1.1rem',
-                                color: activeTab === 'scene' ? '#fff' : '#52525b',
-                                fontWeight: '700',
-                                cursor: 'pointer',
-                                borderBottom: activeTab === 'scene' ? '2px solid #3b82f6' : '2px solid transparent',
-                                paddingBottom: '4px',
-                                transition: 'all 0.2s',
-                                whiteSpace: 'nowrap'
-                            }}
-                        >
-                            <div style={{ position: 'relative', display: 'inline-block' }}>
-                                스윙씬 통계
-                                <span style={{
-                                    position: 'absolute',
-                                    top: '-12px',
-                                    right: '-10px',
-                                    fontSize: '0.55rem',
-                                    color: '#000',
-                                    background: '#f59e0b',
-                                    padding: '1px 4px',
-                                    borderRadius: '4px',
-                                    fontWeight: '600',
-                                    lineHeight: '1',
-                                    transform: 'scale(0.9)',
-                                    whiteSpace: 'nowrap',
-                                    zIndex: 1
-                                }}>개선중</span>
-                            </div>
+                        <h2 onClick={() => setActiveTab('scene')} className={`tab-item ${activeTab === 'scene' ? 'active' : ''}`}>
+                            스윙씬 통계
+                            <span className="badge-beta">개선중</span>
                         </h2>
-                        <h2
-                            onClick={() => setActiveTab('monthly')}
-                            style={{
-                                margin: 0,
-                                fontSize: '1.1rem',
-                                color: activeTab === 'monthly' ? '#fff' : '#52525b',
-                                fontWeight: '700',
-                                cursor: 'pointer',
-                                borderBottom: activeTab === 'monthly' ? '2px solid #3b82f6' : '2px solid transparent',
-                                paddingBottom: '4px',
-                                transition: 'all 0.2s',
-                                whiteSpace: 'nowrap'
-                            }}
-                        >
+                        <h2 onClick={() => setActiveTab('monthly')} className={`tab-item ${activeTab === 'monthly' ? 'active' : ''}`}>
                             월간 빌보드
                         </h2>
                     </div>
                 </div>
 
                 {loading ? (
-                    <div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div className="loading-container">
                         <div className="evt-loading-spinner-base evt-loading-spinner-blue evt-animate-spin"></div>
                     </div>
                 ) : (
-                    <div style={{ height: '100%', maxHeight: '76vh', overflowY: (activeTab === 'scene' || activeTab === 'monthly') ? 'hidden' : 'auto', paddingRight: '4px', display: 'flex', flexDirection: 'column' }} className="custom-scrollbar">
+                    <div className={`content-area custom-scrollbar ${activeTab === 'monthly' || activeTab === 'scene' ? 'wide-content' : ''}`}>
                         {activeTab === 'my' && (
                             <>
                                 <MyImpactCard
@@ -196,23 +277,17 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
                                     initialExpanded={true}
                                 />
 
-                                <div style={{
-                                    marginTop: '20px',
-                                    padding: '16px',
-                                    background: 'rgba(255,255,255,0.03)',
-                                    borderRadius: '12px',
-                                    border: '1px solid rgba(255,255,255,0.05)'
-                                }}>
-                                    <h4 style={{ fontSize: '13px', color: '#a1a1aa', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                <div className="info-box">
+                                    <h4 className="info-title">
                                         <i className="ri-information-line"></i> 노출 상태 안내
                                     </h4>
-                                    <div style={{ fontSize: '11px', color: '#71717a', lineHeight: '1.6', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                        <p style={{ margin: 0 }}>⏰ <strong>행사 및 강습</strong>: 이미 시작했거나 날짜가 지난 일정은 메인 화면에서 자동으로 내려가며, 통계에서는 '종료됨'으로 표시됩니다.</p>
-                                        <p style={{ margin: 0 }}>📝 <strong>게시판 글</strong>: 자유게시판 등에 올린 글은 삭제하지 않는 한 언제나 '노출 중' 상태를 유지합니다.</p>
+                                    <div className="info-content">
+                                        <p className="info-text">⏰ <strong>행사 및 강습</strong>: 이미 시작했거나 날짜가 지난 일정은 메인 화면에서 자동으로 내려가며, 통계에서는 '종료됨'으로 표시됩니다.</p>
+                                        <p className="info-text">📝 <strong>게시판 글</strong>: 자유게시판 등에 올린 글은 삭제하지 않는 한 언제나 '노출 중' 상태를 유지합니다.</p>
                                     </div>
                                 </div>
 
-                                <p style={{ fontSize: '11px', color: '#52525b', textAlign: 'center', marginTop: '16px' }}>
+                                <p className="footer-text">
                                     상세한 활동 내역은 마이페이지의 '통계' 탭에서 확인하실 수 있습니다.
                                 </p>
                             </>
