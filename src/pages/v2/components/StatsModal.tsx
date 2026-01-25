@@ -100,7 +100,7 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
                 
                 .stats-modal.wide-mode {
                     max-width: 95vw; /* Maximize width for stats */
-                    padding: 0;
+                    padding: 20px;
                 }
 
                 .close-btn {
@@ -127,7 +127,6 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
                     align-items: center;
                     overflow-x: auto;
                     scrollbar-width: none;
-                    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
                     padding-bottom: 16px;
                     margin-bottom: 0;
                     flex-shrink: 0;
@@ -138,7 +137,7 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
                     padding-top: 20px;
                     padding-left: 24px;
                     padding-right: 60px;
-                    background: #18181b;
+                   
                 }
 
                 .tabs-container {
