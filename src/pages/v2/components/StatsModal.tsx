@@ -6,70 +6,7 @@ import type { StandardBoardPost } from '../../../types/board';
 import SwingSceneStats from './SwingSceneStats';
 import MonthlyWebzine from './MonthlyBillboard/MonthlyWebzine';
 
-
-interface StatsModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    userId: string | undefined;
-    initialTab?: 'my' | 'scene' | 'monthly'; // [NEW] Optional initial tab
-}
-
-
-export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' }: StatsModalProps) {
-    const [events, setEvents] = useState<SupabaseEvent[]>([]);
-    const [posts, setPosts] = useState<StandardBoardPost[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [userProfile, setUserProfile] = useState<any>(null);
-    const [activeTab, setActiveTab] = useState<'my' | 'scene' | 'monthly'>('my');
-
-    // [NEW] Sync activeTab with initialTab when modal opens
-    useEffect(() => {
-        if (isOpen) {
-            setActiveTab(initialTab);
-        }
-    }, [isOpen, initialTab]);
-
-    useEffect(() => {
-        if (isOpen && userId) {
-            fetchStatsData();
-        }
-    }, [isOpen, userId]);
-
-    const fetchStatsData = async () => {
-        if (!userId) return;
-        setLoading(true);
-        try {
-            const [eventsRes, postsRes, userRes] = await Promise.all([
-                supabase.from('events').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
-                supabase.from('board_posts').select('*, prefix:board_prefixes(*)').eq('user_id', userId).order('created_at', { ascending: false }),
-                supabase.from('board_users').select('profile_image, nickname').eq('user_id', userId).maybeSingle()
-            ]);
-
-            if (eventsRes.data) setEvents(eventsRes.data as any);
-            if (postsRes.data) {
-                const profileImage = userRes.data?.profile_image || null;
-                const normalizedPosts = postsRes.data.map((post: any) => ({
-                    ...post,
-                    prefix: Array.isArray(post.prefix) ? post.prefix[0] : post.prefix,
-                    author_profile_image: profileImage
-                }));
-                setPosts(normalizedPosts as any);
-            }
-            if (userRes.data) setUserProfile(userRes.data);
-        } catch (error) {
-            console.error('[StatsModal] Error fetching data:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    if (!isOpen) return null;
-
-    return (
-        <div className="stats-modal-overlay" onClick={(e) => {
-            if (e.target === e.currentTarget) onClose();
-        }}>
-            <style>{`
+const modalStyles = `
                 .stats-modal-overlay {
                     position: fixed;
                     top: 0;
@@ -78,18 +15,23 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
                     bottom: 0;
                     background: rgba(0, 0, 0, 0.7);
                     backdrop-filter: blur(8px);
+                    -webkit-backdrop-filter: blur(8px);
                     z-index: 1000;
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     animation: fadeIn 0.15s ease-out;
+                    /* [Standard Fix] Isolate touch and scroll */
+                    touch-action: pan-y !important;
+                    overscroll-behavior: contain !important;
                 }
                 
                 .stats-modal {
                     width: 90%;
                     max-width: 450px;
-                    background: rgba(20, 20, 20, 0.95);
-                    backdrop-filter: blur(15px);
+                    height: auto;
+                    max-height: 90vh;
+                    background: rgba(15, 15, 15, 0.98);
                     border-radius: 24px;
                     border: 1px solid rgba(255, 255, 255, 0.08);
                     padding: 24px;
@@ -97,12 +39,12 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
                     overflow: hidden;
                     display: flex;
                     flex-direction: column;
-                    transition: max-width 0.3s ease, padding 0.3s ease;
+                    transition: none;
                     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
                 }
                 
                 .stats-modal.wide-mode {
-                    max-width: 95vw; /* Maximize width for stats */
+                    max-width: 95vw;
                     padding: 20px;
                 }
 
@@ -140,7 +82,6 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
                     padding-top: 20px;
                     padding-left: 24px;
                     padding-right: 60px;
-                   
                 }
 
                 .tabs-container {
@@ -185,17 +126,29 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
                 }
 
                 .content-area {
-                    max-height: 70vh;
-                    overflow-y: auto;
+                    flex: 1;
+                    min-height: 0;
+                    overflow-y: auto !important;
                     padding-right: 4px;
+                    -webkit-overflow-scrolling: touch;
+                    pointer-events: auto !important;
+                    touch-action: pan-y !important;
+                    overscroll-behavior: contain !important;
                 }
                 
                 .content-area.wide-content {
-                    height: 100%;
-                    max-height: 76vh;
-                    overflow-y: hidden; /* No outer scroll for wide mode */
+                    flex: 1;
+                    min-height: 0;
                     display: flex;
                     flex-direction: column;
+                    overflow: hidden !important; /* Fixed on Desktop */
+                }
+                
+                @media (max-width: 1023px) {
+                    .content-area.wide-content {
+                        overflow-y: auto !important; /* Unified Scroll on Mobile */
+                        padding-bottom: 60px;
+                    }
                 }
 
                 .loading-container {
@@ -242,7 +195,77 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
                 }
 
                 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-            `}</style>
+`;
+
+interface StatsModalProps {
+    isOpen: boolean;
+    onClose: () => void;
+    userId: string | undefined;
+    initialTab?: 'my' | 'scene' | 'monthly';
+}
+
+
+export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' }: StatsModalProps) {
+    const [events, setEvents] = useState<SupabaseEvent[]>([]);
+    const [posts, setPosts] = useState<StandardBoardPost[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [userProfile, setUserProfile] = useState<any>(null);
+    const [activeTab, setActiveTab] = useState<'my' | 'scene' | 'monthly'>('my');
+
+    useEffect(() => {
+        if (isOpen) {
+            setActiveTab(initialTab);
+        }
+    }, [isOpen, initialTab]);
+
+    useEffect(() => {
+        if (isOpen) {
+            fetchStatsData();
+            // [Standard Fix] Lock both html and body to prevent background scroll-chaining
+            document.documentElement.classList.add('modal-open');
+        } else {
+            document.documentElement.classList.remove('modal-open');
+        }
+        return () => {
+            document.documentElement.classList.remove('modal-open');
+        };
+    }, [isOpen, userId]);
+
+    const fetchStatsData = async () => {
+        if (!userId) return;
+        setLoading(true);
+        try {
+            const [eventsRes, postsRes, userRes] = await Promise.all([
+                supabase.from('events').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
+                supabase.from('board_posts').select('*, prefix:board_prefixes(*)').eq('user_id', userId).order('created_at', { ascending: false }),
+                supabase.from('board_users').select('profile_image, nickname').eq('user_id', userId).maybeSingle()
+            ]);
+
+            if (eventsRes.data) setEvents(eventsRes.data as any);
+            if (postsRes.data) {
+                const profileImage = userRes.data?.profile_image || null;
+                const normalizedPosts = postsRes.data.map((post: any) => ({
+                    ...post,
+                    prefix: Array.isArray(post.prefix) ? post.prefix[0] : post.prefix,
+                    author_profile_image: profileImage
+                }));
+                setPosts(normalizedPosts as any);
+            }
+            if (userRes.data) setUserProfile(userRes.data);
+        } catch (error) {
+            console.error('[StatsModal] Error fetching data:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="stats-modal-overlay" onClick={(e) => {
+            if (e.target === e.currentTarget) onClose();
+        }}>
+            <style>{modalStyles}</style>
 
             <div className={`stats-modal ${activeTab === 'monthly' || activeTab === 'scene' ? 'wide-mode' : ''}`}>
                 <button onClick={onClose} className="close-btn">
@@ -269,7 +292,7 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
                         <div className="evt-loading-spinner-base evt-loading-spinner-blue evt-animate-spin"></div>
                     </div>
                 ) : (
-                    <div className={`content-area custom-scrollbar ${activeTab === 'monthly' || activeTab === 'scene' ? 'wide-content' : ''}`}>
+                    <div className={`content-area ${activeTab === 'monthly' || activeTab === 'scene' ? 'wide-content' : ''}`}>
                         {activeTab === 'my' && (
                             <>
                                 <MyImpactCard

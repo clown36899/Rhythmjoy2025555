@@ -329,19 +329,23 @@ html {
   }
 }
 
-/* [Standard Fix] 전역 모달 오픈 시 배경 스크롤 원천 차단 */
+/* [Standard Fix] 전역 모달 오픈 시 배경 제스처 간섭 원천 차단 */
 html.modal-open,
 html.modal-open body {
   overflow: hidden !important;
   height: 100svh !important;
-  overscroll-behavior: none !important;
-  touch-action: none !important;
+  /* 터치 액션은 살려두되, 배경 스크롤만 막음 */
+  touch-action: auto;
 }
 
 /* 모달 내부의 스크롤은 허용 */
 .modal-open .modal-content-area,
 .modal-open .content-area,
-.modal-open [class*="content"] {
+.modal-open .scroll-list,
+.modal-open .custom-scrollbar,
+.modal-open [class*="content"],
+.modal-open [class*="scroll"] {
   touch-action: auto !important;
   overscroll-behavior: contain !important;
+  pointer-events: auto !important;
 }

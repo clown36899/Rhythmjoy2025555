@@ -108,6 +108,11 @@ export function useCalendarGesture({
     };
 
     const handleGestureStart = (e: TouchEvent | MouseEvent) => {
+      // [Definitive Fix] If a modal is open, don't intercept ANY gestures.
+      // Check both html and body for maximum compatibility.
+      if (document.documentElement.classList.contains('modal-open') ||
+        document.body.classList.contains('modal-open')) return;
+
       if (latestStateRef.current.isAnimating || (e instanceof TouchEvent && e.touches.length > 1)) return;
       const target = e.target as HTMLElement;
       // Allow gestures on calendar cells and event cards even if they have role="button"

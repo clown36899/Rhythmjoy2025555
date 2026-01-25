@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback, useMemo, forwardRef, lazy, Suspense } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from "react";
+import { useSearchParams } from "react-router-dom";
 import EventList from "./components/EventList";
 
 // Lazy loading으로 성능 최적화 - 큰 모달 컴포넌트들
@@ -29,7 +29,6 @@ export default function HomePageV2() {
     // 1. Core Hooks & Context
     // --------------------------------------------------------------------------------
     const [searchParams, setSearchParams] = useSearchParams();
-    const navigate = useNavigate();
     const { isAdmin, user, signInWithKakao } = useAuth();
     const { openPlayer } = useGlobalPlayer();
     const { openModal, closeModal } = useModalActions();
@@ -40,8 +39,8 @@ export default function HomePageV2() {
     // --------------------------------------------------------------------------------
     // 2. Local State
     // --------------------------------------------------------------------------------
-    const [adminType, setAdminType] = useState<"super" | "sub" | null>(null);
-    const [isAdminModeOverride, setIsAdminModeOverride] = useState(false);
+    const [adminType] = useState<"super" | "sub" | null>(null);
+    const [isAdminModeOverride] = useState(false);
     const effectiveIsAdmin = isAdmin || isAdminModeOverride;
 
     const [showRegistrationModal, setShowRegistrationModal] = useState(false);
@@ -66,7 +65,7 @@ export default function HomePageV2() {
 
     const {
         selectedEvent, setSelectedEvent,
-        handleDailyModalEventClick, closeModal: closeEventModal,
+        handleDailyModalEventClick,
         handleEditClick, handleDeleteClick,
         selectedVenueId, handleVenueClick, closeVenueModal,
         isDeleting, deleteProgress
@@ -138,10 +137,12 @@ export default function HomePageV2() {
     const eventListElementRef = useRef<HTMLDivElement>(null!);
 
     useEffect(() => {
-        const isAnyModalOpen = modalStack.length > 0 || showInputModal || showRegistrationModal || !!selectedEvent;
-        const container = containerRef.current;
-        if (container) container.inert = isAnyModalOpen;
-        return () => { if (container) container.inert = false; };
+        // [Safety Check] inert attribute is experimental and can glitch HMR updates or interaction threads.
+        // Commenting out to restore native interaction chain.
+        // const isAnyModalOpen = modalStack.length > 0 || showInputModal || showRegistrationModal || !!selectedEvent;
+        // const container = containerRef.current;
+        // if (container) container.inert = isAnyModalOpen;
+        // return () => { if (container) container.inert = false; };
     }, [modalStack.length, showInputModal, showRegistrationModal, selectedEvent]);
 
     const handleHorizontalSwipe = useCallback((direction: 'next' | 'prev') => {

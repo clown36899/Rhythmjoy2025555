@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../../lib/supabase';
 
 export interface BillboardData {
@@ -47,10 +47,10 @@ export const useMonthlyBillboard = () => {
         const cached = localStorage.getItem('monthly_billboard_cache');
         if (cached) {
             try {
-                const { timestamp, data } = JSON.parse(cached);
+                const { timestamp, data, v } = JSON.parse(cached);
                 const now = new Date().getTime();
-                // 1 Hour Cache
-                if (now - timestamp < 3600 * 1000) {
+                // 1 Hour Cache + Version Invalidation (v3)
+                if (v === 'v3' && now - timestamp < 3600 * 1000) {
                     setData(data);
                     setLoading(false);
                     return;
@@ -143,7 +143,7 @@ export const useMonthlyBillboard = () => {
             let totalClassViews = 0;
             let totalEventViews = 0;
 
-            // Process Logs (Clicks)
+            // Process Logs (Clicks/Views)
             allLogs.forEach((l: any) => {
                 const d = new Date(l.created_at);
                 const kstD = new Date(d.getTime() + (9 * 60 * 60 * 1000));
@@ -151,28 +151,31 @@ export const useMonthlyBillboard = () => {
 
                 const type = l.target_type;
                 const title = (l.target_title || '').toLowerCase();
-                const isClass = type === 'class' || title.includes('강습');
-                const isEvent = type === 'event' || title.includes('파티');
+
+                // Enhanced Keywords for more accurate mapping
+                const isClass = type === 'class' || title.includes('강습') || title.includes('교육') || title.includes('수업') || title.includes('모집');
+                const isEvent = type === 'event' || title.includes('파티') || title.includes('소셜') || title.includes('행사') || title.includes('워크샵');
 
                 if (isClass) { hours[hour].class++; totalClassViews++; }
                 if (isEvent) { hours[hour].event++; totalEventViews++; }
             });
 
-            // Normalize
+            // Uniform Peak Finding (Based on Absolute Counts for Honesty)
+            let maxClassH = 11, maxClassValRaw = 0;
+            let maxEventH = 19, maxEventValRaw = 0;
+
+            hours.forEach(h => {
+                if (h.class > maxClassValRaw) { maxClassValRaw = h.class; maxClassH = h.hour; }
+                if (h.event > maxEventValRaw) { maxEventValRaw = h.event; maxEventH = h.hour; }
+            });
+
+            // Normalize for visual rendering (Fixed: Shared Denominator for Visual Honesty)
+            const combinedViews = totalClassViews + totalEventViews;
             const normalizedHours = hours.map(h => ({
                 hour: h.hour,
-                class: totalClassViews > 0 ? (h.class / totalClassViews) * 100 : 0,
-                event: totalEventViews > 0 ? (h.event / totalEventViews) * 100 : 0
+                class: combinedViews > 0 ? (h.class / combinedViews) * 100 : 0,
+                event: combinedViews > 0 ? (h.event / combinedViews) * 100 : 0
             }));
-
-            // Find Peaks
-            let maxClassH = 0, maxClassVal = 0;
-            let maxEventH = 0, maxEventVal = 0;
-
-            normalizedHours.forEach(h => {
-                if (h.class > maxClassVal) { maxClassVal = h.class; maxClassH = h.hour; }
-                if (h.event > maxEventVal) { maxEventVal = h.event; maxEventH = h.hour; }
-            });
 
             // C. Lead Time & Top 20 
             const contentMap = new Map<string, RankingItem>();
@@ -227,7 +230,8 @@ export const useMonthlyBillboard = () => {
             try {
                 localStorage.setItem('monthly_billboard_cache', JSON.stringify({
                     timestamp: new Date().getTime(),
-                    data: result
+                    data: result,
+                    v: 'v3'
                 }));
             } catch (e) {
                 console.error('Cache save failed', e);
@@ -239,5 +243,5 @@ export const useMonthlyBillboard = () => {
         }
     };
 
-    return { data, loading };
+    return useMemo(() => ({ data, loading }), [data, loading]);
 };

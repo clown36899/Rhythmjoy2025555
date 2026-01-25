@@ -8,12 +8,11 @@ import './index.css'
 import { polyfill } from 'mobile-drag-drop';
 import { scrollBehaviourDragImageTranslateOverride } from 'mobile-drag-drop/scroll-behaviour';
 
-// [Critical Fix] Desktop Safari (iOS User Agent) Compat
-// 데스크톱 Safari에서 iOS User Agent 사용 시 TouchEvent가 정의되지 않아 발생하는 ReferenceError 방지
-if (typeof window !== 'undefined' && typeof window.TouchEvent === 'undefined') {
+// [Critical Fix] Mobile Safari (iOS) Compatibility
+// Only shim if it's actually an iOS-like environment that lacks TouchEvent (rare but possible in some Safari versions)
+if (typeof window !== 'undefined' && /iPhone|iPad|iPod/i.test(navigator.userAgent) && typeof (window as any).TouchEvent === 'undefined') {
   try {
-    // @ts-ignore
-    window.TouchEvent = class TouchEvent { };
+    (window as any).TouchEvent = class TouchEvent { };
   } catch (e) {
     console.warn('[Shim] Failed to shim TouchEvent:', e);
   }
@@ -264,14 +263,13 @@ function RootApp() {
 }
 
 // Polyfill 초기화 (아이폰 등 모바일에서 드래그 동작 지원)
-// TouchEvent가 없는 환경(데스크톱 Safari with iOS UA)에서는 스킵
-if (typeof TouchEvent !== 'undefined' || /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+// [Definitive Fix] Only activate if the device actually supports Touch events natively.
+// This prevents the polyfill from intercepting mouse clicks on Mac Chrome/Safari.
+if (typeof window !== 'undefined' && 'ontouchstart' in window && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
   try {
     polyfill({
       dragImageCenterOnTouch: true,
-      // 탭해서 스크롤시 드래그로 오인되지 않게 하는 옵션
-      iterationInterval: 50,
-      // 드래그 중 스크롤 처리
+      iterationInterval: 16,
       dragImageTranslateOverride: scrollBehaviourDragImageTranslateOverride
     });
   } catch (error) {
