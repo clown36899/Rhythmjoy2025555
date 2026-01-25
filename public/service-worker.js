@@ -1,13 +1,13 @@
-// 빌보드 PWA 서비스 워커 (Version: 20260125-1 - V1/V8 Alternating Catalogs)
-const CACHE_NAME = 'rhythmjoy-cache-v22';
+// 빌보드 PWA 서비스 워커 (Version: 20260126-1 - V23/Optimization Applied)
+const CACHE_NAME = 'rhythmjoy-cache-v23';
 
 self.addEventListener('install', (event) => {
-  console.log('[SW] v22 - V1/V8 Alternating Catalogs (5min each)! 🎨🎭');
+  console.log('[SW] v23 - Optimization & Scroll Fix Applied! 🚀✨');
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  console.log('[SW] v21 - Activated immediately! (Cache clear in background)');
+  console.log('[SW] v23 - Activated immediately! (Cache clear in progress)');
 
   // 🔥 중요: event.waitUntil을 제거하여 캐시 삭제가 완료될 때까지 기다리지 않음
   // PWA가 캐시 락을 잡고 있어도 브라우저는 즉시 활성화되어 데이터를 불러올 수 있음
