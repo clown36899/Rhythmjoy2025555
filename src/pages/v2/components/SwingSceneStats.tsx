@@ -444,152 +444,359 @@ export default function SwingSceneStats() {
     };
 
     return (
-        <div style={{ color: '#fff' }}>
-            {/* 요약 */}
-            {/* 요약 */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
-                <button onClick={handleShare} style={{
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    borderRadius: '8px',
-                    color: '#fff',
-                    padding: '6px 12px',
-                    fontSize: '12px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    transition: 'all 0.2s'
-                }}>
-                    <i className="ri-share-forward-line"></i> 통계 공유
-                </button>
-            </div>
+        <div className="swing-scene-stats">
+            <style>{`
+                .swing-scene-stats {
+                    color: #fff;
+                    font-family: 'Pretendard', sans-serif;
+                    height: 100%;
+                    width: 100%;
+                }
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', marginBottom: '24px' }}>
-                <div style={cardStyle}>
-                    <div style={labelStyle}>최근 1년</div>
-                    <div style={valueStyle}>{stats.summary.totalItems}건</div>
-                </div>
-                <div style={cardStyle}>
-                    <div style={labelStyle}>월평균 등록</div>
-                    <div style={valueStyle}>{stats.summary.monthlyAverage}건</div>
-                </div>
-                <div style={cardStyle}>
-                    <div style={labelStyle}>최고 활성</div>
-                    <div style={valueStyle}>{stats.summary.topDay}요일</div>
-                </div>
-            </div>
+                .stats-container {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 16px; 
+                    width: 100%;
+                    height: 100%;
+                    box-sizing: border-box;
+                    padding: 0 24px;
+                }
+                
+                @media (min-width: 1024px) {
+                    .stats-container {
+                        display: grid;
+                        grid-template-columns: 1fr 1fr 1fr;
+                        grid-template-rows: 1fr; /* Single row, 100% height */
+                        gap: 24px;
+                        height: 100%;
+                        overflow: hidden;
+                        padding-right: 0;
+                        padding-bottom: 0;
+                    }
 
-            {/* 1. 월별 통계 */}
-            <div style={sectionStyle}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-                    <h4 style={{ ...sectionTitleStyle, whiteSpace: 'nowrap', fontSize: 'min(3.5vw, 13px)', flex: '1 1 auto', minWidth: 0 }}><i className="ri-bar-chart-fill"></i> 월별 콘텐츠 등록 추이</h4>
-                    <div style={tabGroupStyle}>
-                        <button onClick={() => setMonthlyRange('6m')} style={{ ...tabButtonStyle, background: monthlyRange === '6m' ? 'rgba(255,255,255,0.1)' : 'transparent', color: monthlyRange === '6m' ? '#fff' : '#71717a' }}>6개월</button>
-                        <button onClick={() => setMonthlyRange('1y')} style={{ ...tabButtonStyle, background: monthlyRange === '1y' ? 'rgba(255,255,255,0.1)' : 'transparent', color: monthlyRange === '1y' ? '#fff' : '#71717a' }}>1년</button>
+                    .stats-col-1, .stats-col-2, .stats-col-3 {
+                        overflow: hidden; /* Prevent scrolling inside columns */
+                        padding-right: 0;
+                        display: flex;
+                        flex-direction: column;
+                        gap: 16px; /* Slightly reduced gap */
+                        height: 100%;
+                        min-height: 0; /* Crucial for nested flex scrolling/shrinking */
+                    }
+                    
+                    .stats-col-2, .stats-col-3 {
+                        border-left: 1px solid rgba(255,255,255,0.06);
+                        padding-left: 20px;
+                    }
+                }
+
+                /* Component Styles */
+                .stats-section {
+                    background: rgba(255,255,255,0.02);
+                    padding: 16px 20px; /* Reduced vertical padding */
+                    border-radius: 20px;
+                    border: 1px solid rgba(255,255,255,0.06);
+                    display: flex;
+                    flex-direction: column;
+                    flex: 1; /* Expand to fill column */
+                    min-height: 0; /* Allow shrinking */
+                    justify-content: space-between;
+                }
+                
+                .stats-header {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    margin-bottom: 12px;
+                    flex-shrink: 0; /* Don't shrink header */
+                }
+
+                .section-title {
+                    margin: 0;
+                    font-size: 14px;
+                    color: #e4e4e7;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    font-weight: 600;
+                }
+
+                .stats-card-grid {
+                    display: grid;
+                    grid-template-columns: repeat(3, 1fr);
+                    gap: 12px;
+                    margin-bottom: 20px;
+                    flex-shrink: 0;
+                }
+
+                .stats-card {
+                    background: rgba(255,255,255,0.03);
+                    padding: 16px 12px;
+                    border-radius: 16px;
+                    border: 1px solid rgba(255,255,255,0.08);
+                    text-align: center;
+                    transition: transform 0.2s;
+                }
+                .stats-card:hover { transform: translateY(-2px); background: rgba(255,255,255,0.05); }
+
+                .card-label { font-size: 11px; color: #a1a1aa; margin-bottom: 6px; }
+                .card-value { font-size: 16px; color: #fff; font-weight: 700; }
+
+                /* Chart Components */
+                .chart-container {
+                    display: flex;
+                    align-items: flex-end;
+                    justify-content: space-between;
+                    flex: 1; /* Take all available height */
+                    min-height: 0; /* Allow massive shrinking if needed */
+                    margin-top: 12px;
+                    padding-bottom: 8px;
+                    border-bottom: 1px solid rgba(255,255,255,0.08);
+                }
+
+                .bar-wrapper {
+                    flex: 1;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    height: 100%;
+                    justify-content: flex-end;
+                    position: relative;
+                }
+                
+                .stacked-bar { 
+                    width: 20px;
+                    height: 100%; /* Fill container */
+                    display: flex; 
+                    flex-direction: column-reverse; 
+                    gap: 1px;
+                    border-radius: 4px;
+                    overflow: hidden;
+                    justify-content: flex-start; /* Stack from bottom */
+                }
+                
+                .bar-segment { width: 100%; transition: height 0.3s ease; }
+                
+                .total-label { font-size: 10px; color: #fff; margin-bottom: 6px; font-weight: 600; }
+                .axis-label { font-size: 11px; color: #71717a; margin-top: 10px; flex-shrink: 0; }
+
+                /* Legend */
+                .legend-grid {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 8px;
+                    margin-top: 16px;
+                    flex-shrink: 0;
+                }
+                .legend-item {
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    font-size: 11px;
+                    color: #a1a1aa;
+                }
+                .legend-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
+
+                /* Tabs & Buttons */
+                .tab-group {
+                    display: flex;
+                    background: rgba(0,0,0,0.3);
+                    padding: 3px;
+                    border-radius: 8px;
+                    border: 1px solid rgba(255,255,255,0.08);
+                }
+
+                .tab-btn {
+                    padding: 6px 14px;
+                    font-size: 11px;
+                    border: none;
+                    border-radius: 6px;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    font-weight: 500;
+                    color: #71717a;
+                    background: transparent;
+                }
+                .tab-btn.active { background: rgba(255,255,255,0.15); color: #fff; font-weight: 600; }
+
+                .share-btn {
+                    background: rgba(255, 255, 255, 0.08);
+                    border: 1px solid rgba(255, 255, 255, 0.15);
+                    border-radius: 8px;
+                    color: #e4e4e7;
+                    padding: 8px 16px;
+                    font-size: 12px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    transition: all 0.2s;
+                }
+                .share-btn:hover { background: rgba(255, 255, 255, 0.12); border-color: rgba(255,255,255,0.3); }
+
+                .chart-desc {
+                    margin-top: 16px;
+                    padding: 12px;
+                    background: rgba(59, 130, 246, 0.08);
+                    border-radius: 12px;
+                    font-size: 12px;
+                    color: #bae6fd;
+                    line-height: 1.4;
+                    border: 1px solid rgba(59, 130, 246, 0.1);
+                    flex-shrink: 0;
+                }
+            `}</style>
+
+            <div className="stats-container">
+
+                {/* Column 1: Summary & Monthly */}
+                <div className="stats-col-1">
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '16px' }}>
+                        <button onClick={handleShare} className="share-btn">
+                            <i className="ri-share-forward-line"></i> 통계 공유
+                        </button>
+                    </div>
+
+                    <div className="stats-card-grid">
+                        <div className="stats-card">
+                            <div className="card-label">최근 1년</div>
+                            <div className="card-value">{stats.summary.totalItems}건</div>
+                        </div>
+                        <div className="stats-card">
+                            <div className="card-label">월평균 등록</div>
+                            <div className="card-value">{stats.summary.monthlyAverage}건</div>
+                        </div>
+                        <div className="stats-card">
+                            <div className="card-label">최고 활성</div>
+                            <div className="card-value">{stats.summary.topDay}요일</div>
+                        </div>
+                    </div>
+
+                    <div className="stats-section">
+                        <div className="stats-header">
+                            <h4 className="section-title"><i className="ri-bar-chart-fill"></i> 월별 추이</h4>
+                            <div className="tab-group">
+                                <button onClick={() => setMonthlyRange('6m')} className={`tab-btn ${monthlyRange === '6m' ? 'active' : ''}`}>6개월</button>
+                                <button onClick={() => setMonthlyRange('1y')} className={`tab-btn ${monthlyRange === '1y' ? 'active' : ''}`}>1년</button>
+                            </div>
+                        </div>
+                        <div className="chart-container">
+                            {currentMonthly.map((m, i) => (
+                                <div key={i} className="bar-wrapper">
+                                    {m.total > 0 && <span className="total-label">{m.total}</span>}
+                                    <div className="stacked-bar">
+                                        <div className="bar-segment" style={{ height: (m.classes / maxMonthly) * 150, background: COLORS.classes }}></div>
+                                        <div className="bar-segment" style={{ height: (m.events / maxMonthly) * 150, background: COLORS.events }}></div>
+                                        <div className="bar-segment" style={{ height: (m.socials / maxMonthly) * 150, background: COLORS.socials }}></div>
+                                        <div className="bar-segment" style={{ height: (m.posts / maxMonthly) * 150, background: COLORS.posts }}></div>
+                                    </div>
+                                    <span className="axis-label">{m.month.split('-')[1]}월</span>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="legend-grid">
+                            <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.classes }}></span> 강습</div>
+                            <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.events }}></span> 행사</div>
+                            <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.socials }}></span> 소셜</div>
+                            <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.posts }}></span> 게시글</div>
+                        </div>
                     </div>
                 </div>
-                <div style={chartContainerStyle}>
-                    {currentMonthly.map((m, i) => (
-                        <div key={i} style={barWrapperStyle}>
-                            {m.total > 0 && <span style={totalLabelStyle}>{m.total}</span>}
-                            <div style={stackedBarOuterStyle}>
-                                <div style={{ height: (m.classes / maxMonthly) * 150, width: '100%', background: COLORS.classes }}></div>
-                                <div style={{ height: (m.events / maxMonthly) * 150, width: '100%', background: COLORS.events }}></div>
-                                <div style={{ height: (m.socials / maxMonthly) * 150, width: '100%', background: COLORS.socials }}></div>
-                                <div style={{ height: (m.posts / maxMonthly) * 150, width: '100%', background: COLORS.posts, borderRadius: '2px 2px 0 0' }}></div>
-                            </div>
-                            <span style={axisLabelStyle}>{m.month.split('-')[1]}월</span>
+
+                {/* Column 2: Weekly Types */}
+                <div className="stats-col-2">
+                    <div className="stats-header" style={{ marginBottom: '16px', padding: '0 4px' }}>
+                        <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: '#fff' }}>주간 집중 분석</h3>
+                        <div className="tab-group">
+                            <button onClick={() => { setWeeklyTab('total'); setInspectTypeDay(null); setInspectGenreDay(null); }} className={`tab-btn ${weeklyTab === 'total' ? 'active' : ''}`}>전체</button>
+                            <button onClick={() => { setWeeklyTab('monthly'); setInspectTypeDay(null); setInspectGenreDay(null); }} className={`tab-btn ${weeklyTab === 'monthly' ? 'active' : ''}`}>이번 달</button>
                         </div>
-                    ))}
+                    </div>
+
+                    <div className="stats-section">
+                        <h4 className="section-title"><i className="ri-calendar-todo-line"></i> 요일별 유형 비중</h4>
+                        <div style={{ marginBottom: '12px', fontSize: '11px', color: '#9ca3af', textAlign: 'right', marginTop: '4px' }}>* 그래프 터치하여 상세 보기</div>
+
+                        <div className="chart-container">
+                            {currentWeekly.map((d, i) => (
+                                <div key={i} className="bar-wrapper" style={{ cursor: 'pointer', opacity: inspectTypeDay && inspectTypeDay !== d.day ? 0.3 : 1 }} onClick={() => setInspectTypeDay(inspectTypeDay === d.day ? null : d.day)}>
+                                    {d.count > 0 && <span className="total-label" style={{ color: inspectTypeDay === d.day ? '#60a5fa' : '#fff' }}>{d.count}</span>}
+                                    <div className="stacked-bar">
+                                        {d.typeBreakdown.map((tb, idx) => (
+                                            <div key={idx} className="bar-segment" style={{ height: (tb.count / maxDay) * 150, background: [COLORS.classes, COLORS.events, COLORS.socials, COLORS.posts][idx] }}></div>
+                                        ))}
+                                    </div>
+                                    <span className="axis-label" style={{ color: inspectTypeDay === d.day ? '#60a5fa' : '#71717a' }}>{d.day}</span>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="legend-grid">
+                            <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.classes }}></span> 강습</div>
+                            <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.events }}></span> 행사</div>
+                            <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.socials }}></span> 소셜</div>
+                            <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.posts }}></span> 게시글</div>
+                        </div>
+
+                        <div className="chart-desc">
+                            <p>• 소셜은 <strong>{getTypePeak('소셜')}요일</strong>, 행사는 <strong>{getTypePeak('행사')}요일</strong>에 가장 활발합니다.</p>
+                        </div>
+
+                        {inspectTypeDay && (
+                            <DataInspectorModal day={inspectTypeDay} items={getTypeItems(inspectTypeDay)} sortBy="type" onClose={() => setInspectTypeDay(null)} />
+                        )}
+                    </div>
                 </div>
-                <div style={legendGridStyle}>
-                    <div style={legendItemStyle}><span style={{ ...dotStyle, background: COLORS.classes }}></span> 강습</div>
-                    <div style={legendItemStyle}><span style={{ ...dotStyle, background: COLORS.events }}></span> 행사</div>
-                    <div style={legendItemStyle}><span style={{ ...dotStyle, background: COLORS.socials }}></span> 소셜</div>
-                    <div style={legendItemStyle}><span style={{ ...dotStyle, background: COLORS.posts }}></span> 게시글</div>
+
+                {/* Column 3: Weekly Genres */}
+                <div className="stats-col-3">
+                    <div style={{ height: '52px' }}></div> {/* Spacer to align with Section 2 */}
+
+                    <div className="stats-section">
+                        <h4 className="section-title"><i className="ri-medal-2-line"></i> 요일별 장르 비중</h4>
+
+                        <div className="chart-container">
+                            {currentWeekly.map((d, i) => (
+                                <div key={i} className="bar-wrapper" style={{ cursor: 'pointer', opacity: inspectGenreDay && inspectGenreDay !== d.day ? 0.3 : 1 }} onClick={() => setInspectGenreDay(inspectGenreDay === d.day ? null : d.day)}>
+                                    {d.count > 0 && <span className="total-label" style={{ color: inspectGenreDay === d.day ? '#60a5fa' : '#fff' }}>{d.count}</span>}
+                                    <div className="stacked-bar">
+                                        {d.genreBreakdown.map((gb, idx) => (
+                                            <div key={idx} className="bar-segment" style={{ height: (gb.count / maxDay) * 150, width: '100%', background: getGenreColor(gb.name, idx) }}></div>
+                                        ))}
+                                    </div>
+                                    <span className="axis-label" style={{ color: inspectGenreDay === d.day ? '#60a5fa' : '#71717a' }}>{d.day}</span>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="legend-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }}>
+                            {stats.topGenresList.map((g, i) => (
+                                <div key={i} className="legend-item">
+                                    <span className="legend-dot" style={{ background: getGenreColor(g, i) }}></span>
+                                    <span>{g}</span>
+                                </div>
+                            ))}
+                        </div>
+
+                        <div className="chart-desc">
+                            <p>• {stats.topGenresList[0]} 장르는 <strong>{getGenrePeak(stats.topGenresList[0])}요일</strong>에 가장 핫합니다.</p>
+                        </div>
+
+                        {inspectGenreDay && (
+                            <DataInspectorModal day={inspectGenreDay} items={getGenreItems(inspectGenreDay)} sortBy="genre" onClose={() => setInspectGenreDay(null)} />
+                        )}
+                    </div>
+
+                    <div style={{ height: '30px' }}></div>
                 </div>
             </div>
-
-            <div style={{ height: '32px' }}></div>
-
-            {/* 주간 통계 헤더 (탭) */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px', padding: '0 4px' }}>
-                <h3 style={{ margin: 0, fontSize: '15px', fontWeight: '700', color: '#fff' }}>주간 집중 분석</h3>
-                <div style={tabGroupStyle}>
-                    <button onClick={() => { setWeeklyTab('total'); setInspectTypeDay(null); setInspectGenreDay(null); }} style={{ ...tabButtonStyle, background: weeklyTab === 'total' ? 'rgba(255,255,255,0.1)' : 'transparent', color: weeklyTab === 'total' ? '#fff' : '#71717a' }}>전체</button>
-                    <button onClick={() => { setWeeklyTab('monthly'); setInspectTypeDay(null); setInspectGenreDay(null); }} style={{ ...tabButtonStyle, background: weeklyTab === 'monthly' ? 'rgba(255,255,255,0.1)' : 'transparent', color: weeklyTab === 'monthly' ? '#fff' : '#71717a' }}>이번 달</button>
-                </div>
-            </div>
-
-            {/* 2. 요일별 콘텐츠 유형 */}
-            <div style={sectionStyle}>
-                <h4 style={sectionTitleStyle}><i className="ri-calendar-todo-line"></i> 요일별 유형 비중 ({weeklyTab === 'total' ? '12개월 평균' : '이번 달'})</h4>
-                <div style={{ marginBottom: '12px', fontSize: '11px', color: '#9ca3af', textAlign: 'right' }}>* 그래프를 클릭하여 상세 데이터를 확인하세요</div>
-                <div style={chartContainerStyle}>
-                    {currentWeekly.map((d, i) => (
-                        <div key={i} style={{ ...barWrapperStyle, cursor: 'pointer', opacity: inspectTypeDay && inspectTypeDay !== d.day ? 0.3 : 1 }} onClick={() => setInspectTypeDay(inspectTypeDay === d.day ? null : d.day)}>
-                            {d.count > 0 && <span style={{ ...totalLabelStyle, color: inspectTypeDay === d.day ? '#60a5fa' : '#fff', fontWeight: inspectTypeDay === d.day ? '700' : '400' }}>{d.count}</span>}
-                            <div style={stackedBarOuterStyle}>
-                                {d.typeBreakdown.map((tb, idx) => (
-                                    <div key={idx} style={{ height: (tb.count / maxDay) * 150, width: '100%', background: [COLORS.classes, COLORS.events, COLORS.socials, COLORS.posts][idx] }}></div>
-                                ))}
-                            </div>
-                            <span style={{ ...axisLabelStyle, color: inspectTypeDay === d.day ? '#60a5fa' : '#71717a' }}>{d.day}</span>
-                        </div>
-                    ))}
-                </div>
-                <div style={legendGridStyle}>
-                    <div style={legendItemStyle}><span style={{ ...dotStyle, background: COLORS.classes }}></span> 강습</div>
-                    <div style={legendItemStyle}><span style={{ ...dotStyle, background: COLORS.events }}></span> 행사</div>
-                    <div style={legendItemStyle}><span style={{ ...dotStyle, background: COLORS.socials }}></span> 소셜</div>
-                    <div style={legendItemStyle}><span style={{ ...dotStyle, background: COLORS.posts }}></span> 게시글</div>
-                </div>
-                <div style={chartDescStyle}>
-                    <p>• 소셜은 주로 <strong>{getTypePeak('소셜')}요일</strong>, 행사는 <strong>{getTypePeak('행사')}요일</strong>에 가장 활발하게 등록됩니다.</p>
-                </div>
-                {inspectTypeDay && (
-                    <DataInspectorModal day={inspectTypeDay} items={getTypeItems(inspectTypeDay)} sortBy="type" onClose={() => setInspectTypeDay(null)} />
-                )}
-            </div>
-
-            {/* 3. 요일별 장르 비중 */}
-            <div style={{ ...sectionStyle, marginTop: '20px' }}>
-                <h4 style={sectionTitleStyle}><i className="ri-medal-2-line"></i> 요일별 장르 비중 ({weeklyTab === 'total' ? '12개월 평균' : '이번 달'})</h4>
-                <div style={chartContainerStyle}>
-                    {currentWeekly.map((d, i) => (
-                        <div key={i} style={{ ...barWrapperStyle, cursor: 'pointer', opacity: inspectGenreDay && inspectGenreDay !== d.day ? 0.3 : 1 }} onClick={() => setInspectGenreDay(inspectGenreDay === d.day ? null : d.day)}>
-                            {d.count > 0 && <span style={{ ...totalLabelStyle, color: inspectGenreDay === d.day ? '#60a5fa' : '#fff', fontWeight: inspectGenreDay === d.day ? '700' : '400' }}>{d.count}</span>}
-                            <div style={stackedBarOuterStyle}>
-                                {d.genreBreakdown.map((gb, idx) => (
-                                    <div key={idx} style={{ height: (gb.count / maxDay) * 150, width: '100%', background: getGenreColor(gb.name, idx), borderRadius: idx === d.genreBreakdown.length - 1 ? '2px 2px 0 0' : '0' }}></div>
-                                ))}
-                            </div>
-                            <span style={{ ...axisLabelStyle, color: inspectGenreDay === d.day ? '#60a5fa' : '#71717a' }}>{d.day}</span>
-                        </div>
-                    ))}
-                </div>
-                <div style={{ ...legendGridStyle, gridTemplateColumns: 'repeat(3, 1fr)' }}>
-                    {stats.topGenresList.map((g, i) => (
-                        <div key={i} style={legendItemStyle}>
-                            <span style={{ ...dotStyle, background: getGenreColor(g, i) }}></span>
-                            <span style={{ fontSize: '10px' }}>{g}</span>
-                        </div>
-                    ))}
-                </div>
-                <div style={chartDescStyle}>
-                    <p>• {stats.topGenresList[0]} 장르는 <strong>{getGenrePeak(stats.topGenresList[0])}요일</strong>에 가장 높은 점유율을 기록합니다.</p>
-                </div>
-                {inspectGenreDay && (
-                    <DataInspectorModal day={inspectGenreDay} items={getGenreItems(inspectGenreDay)} sortBy="genre" onClose={() => setInspectGenreDay(null)} />
-                )}
-            </div>
-
-            <div style={{ height: '30px' }}></div>
-        </div >
+        </div>
     );
+
 }
+
 
 const DataInspectorModal = ({ day, items, sortBy, onClose }: { day: string, items: StatItem[], sortBy: 'type' | 'genre', onClose: () => void }) => {
     const sortedItems = [...items].sort((a, b) => {
@@ -671,19 +878,4 @@ const GENRE_COLORS: { [key: string]: string } = {
 
 const COLORS = { classes: '#3b82f6', events: '#fbbf24', socials: '#10b981', posts: '#a855f7' };
 
-const cardStyle: React.CSSProperties = { background: 'rgba(255,255,255,0.04)', padding: '12px 4px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)', textAlign: 'center' };
-const labelStyle: React.CSSProperties = { fontSize: '10px', color: '#a1a1aa', marginBottom: '4px' };
-const valueStyle: React.CSSProperties = { fontSize: '15px', color: '#fff', fontWeight: '700' };
-const sectionStyle: React.CSSProperties = { background: 'rgba(255,255,255,0.02)', padding: '20px 16px', borderRadius: '24px', border: '1px solid rgba(255,255,255,0.04)' };
-const sectionTitleStyle: React.CSSProperties = { margin: 0, fontSize: '13px', color: '#d1d5db', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '600', opacity: 0.9 };
-const chartContainerStyle: React.CSSProperties = { display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', height: '170px', marginTop: '20px', paddingBottom: '8px', borderBottom: '1px solid rgba(255,255,255,0.05)' };
-const barWrapperStyle: React.CSSProperties = { flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', height: '100%', justifyContent: 'flex-end' };
-const stackedBarOuterStyle: React.CSSProperties = { width: '18px', display: 'flex', flexDirection: 'column-reverse', gap: '1px' };
-const totalLabelStyle: React.CSSProperties = { fontSize: '9px', color: '#fff', marginBottom: '4px' };
-const axisLabelStyle: React.CSSProperties = { fontSize: '10px', color: '#71717a', marginTop: '8px' };
-const legendGridStyle: React.CSSProperties = { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', marginTop: '16px' };
-const legendItemStyle: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', color: '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis' };
-const dotStyle: React.CSSProperties = { width: '7px', height: '7px', borderRadius: '2px', flexShrink: 0 };
-const tabGroupStyle: React.CSSProperties = { display: 'flex', background: 'rgba(0,0,0,0.2)', padding: '2px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)' };
-const tabButtonStyle: React.CSSProperties = { padding: '4px 12px', fontSize: '11px', border: 'none', borderRadius: '6px', cursor: 'pointer', transition: 'all 0.2s', fontWeight: '500' };
-const chartDescStyle: React.CSSProperties = { marginTop: '16px', padding: '12px', background: 'rgba(59, 130, 246, 0.05)', borderRadius: '12px', fontSize: '12px', color: '#e0f2fe', lineHeight: '1.6' };
+

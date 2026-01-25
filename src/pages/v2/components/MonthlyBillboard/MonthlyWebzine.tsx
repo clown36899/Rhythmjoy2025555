@@ -1,15 +1,46 @@
-
 import React, { useState, useEffect } from 'react';
 import { useMonthlyBillboard } from '../../hooks/useMonthlyBillboard';
+
+// --- Premium Dark Mode Colors & Styles ---
+const colors = {
+    bg: 'rgba(255,255,255,0.02)',
+    border: 'rgba(255,255,255,0.06)',
+    highlight: '#fbbf24', // Amber 400
+    textMain: '#f4f4f5', // Zinc 100
+    textSub: '#a1a1aa',  // Zinc 400
+    class: '#3b82f6',    // Blue 500
+    event: '#f43f5e',    // Rose 500
+};
+
+const cardStyle: React.CSSProperties = {
+    backgroundColor: colors.bg,
+    borderRadius: '16px',
+    border: `1px solid ${colors.border}`,
+    padding: '16px',
+    display: 'flex',
+    flexDirection: 'column',
+    position: 'relative',
+    overflow: 'hidden',
+    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
+};
+
+const sectionTitleStyle: React.CSSProperties = {
+    fontSize: '13px',
+    fontWeight: '700',
+    color: colors.textMain,
+    marginBottom: '12px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    letterSpacing: '-0.3px'
+};
 
 const MonthlyWebzine = () => {
     const { data, loading } = useMonthlyBillboard();
     const [viewMode, setViewMode] = useState<'percent' | 'count'>('percent');
-
-    // Tooltip State
     const [userActivityInfo, setUserActivityInfo] = useState<{ day: string, val: number, idx: number } | null>(null);
 
-    // Effect to set default tooltip once data is loaded
+    // Initial Tooltip Setup
     useEffect(() => {
         if (data?.weeklyFlow?.visitorTrafficDays) {
             const traffic = data.weeklyFlow.visitorTrafficDays;
@@ -24,378 +55,327 @@ const MonthlyWebzine = () => {
 
     if (loading || !data) {
         return (
-            <div style={{ padding: '60px 0', textAlign: 'center' }}>
-                <div className="evt-loading-spinner-base evt-loading-spinner-blue evt-animate-spin" style={{ margin: '0 auto' }}></div>
-                <p style={{ marginTop: '12px', color: '#71717a', fontSize: '13px' }}>1월 전체 데이터 분석 중...<br />(잠시만 기다려주세요)</p>
+            <div style={{ height: '400px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                <div className="evt-loading-spinner-base evt-loading-spinner-blue evt-animate-spin"></div>
+                <p style={{ marginTop: '16px', color: colors.textSub, fontSize: '12px', fontWeight: '500' }}>데이터 분석 중...</p>
             </div>
         );
     }
 
     const { weeklyFlow, dailyFlow, leadTime, topContents, meta } = data;
 
-    // Helper for Bar Chart (Weekly)
+    // --- Helper Functions ---
     const maxSupply = Math.max(...weeklyFlow.classStartDays, ...weeklyFlow.socialRunDays, 1);
-    const getBarHeight = (val: number) => Math.max((val / maxSupply) * 60, 4); // max 60px
+    const getBarHeight = (val: number) => Math.max((val / maxSupply) * 50, 4); // max 50px for compactness
 
-    // --- Chart Data Logic (Toggle) ---
     const sourceData = viewMode === 'percent' ? dailyFlow.hourlyData : dailyFlow.rawHourlyData;
+    const maxValHourly = Math.max(...sourceData.map(h => Math.max(h.class, h.event)), 1);
 
-    // Y-Axis Scale
-    const maxVal = Math.max(...sourceData.map(h => Math.max(h.class, h.event)), 1);
-
-    // SVG Config
-    const width = 300;
-    const height = 120;
-    const stepX = width / 23;
-
-    // Create points string
-    const classPoints = sourceData.map((d, i) => `${i * stepX},${height - (d.class / maxVal) * (height - 20)}`).join(' ');
-    const eventPoints = sourceData.map((d, i) => `${i * stepX},${height - (d.event / maxVal) * (height - 20)}`).join(' ');
+    // Hourly Chart SVG Props
+    const hourlyW = 300;
+    const hourlyH = 80; // Compact height
+    const stepX = hourlyW / 23;
+    const classPoints = sourceData.map((d, i) => `${i * stepX},${hourlyH - (d.class / maxValHourly) * (hourlyH - 10)}`).join(' ');
+    const eventPoints = sourceData.map((d, i) => `${i * stepX},${hourlyH - (d.event / maxValHourly) * (hourlyH - 10)}`).join(' ');
 
     return (
-        <div style={{ padding: '24px 4px', color: '#fff', fontFamily: "'Pretendard', sans-serif" }}>
+        <div style={{ padding: '0 4px', color: colors.textMain, fontFamily: "'Pretendard', sans-serif" }}>
 
-            {/* 1. Header & Intro */}
-            <div style={{ marginBottom: '40px', padding: '0 12px' }}>
-                <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#fbbf24', marginBottom: '8px', letterSpacing: '1px', textTransform: 'uppercase' }}>Monthly Insight • January 2026</div>
-                <h1 style={{ fontSize: '28px', fontWeight: '800', margin: '0 0 16px 0', lineHeight: '1.3', color: '#fff' }}>
-                    동호회의 주말,<br />
-                    외부 강습의 평일.
-                </h1>
-                <div style={{ fontSize: '13px', lineHeight: '1.6', color: '#a1a1aa', backgroundColor: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
-                    <p style={{ margin: '0 0 6px 0', color: '#fff', fontSize: '12px' }}><i className="ri-database-2-fill"></i> 데이터 분석 기준</p>
-                    <ul style={{ margin: 0, paddingLeft: '20px', listStyleType: 'disc', fontSize: '12px' }}>
-                        <li><strong>기간</strong>: {meta.range} (전체)</li>
-                        <li><strong>표본</strong>: 총 {meta.totalLogs.toLocaleString()}건 활동 로그 분석</li>
-                        <li><strong>방식</strong>: 시간대별 활동(클릭) 로그 전수 조사</li>
-                    </ul>
-                </div>
-            </div>
+            <style>{`
+                .monthly-dashboard {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 12px;
+                }
+                
+                @media (min-width: 1024px) {
+                    .monthly-dashboard {
+                        display: grid;
+                        grid-template-rows: auto 1fr;
+                        height: calc(70vh - 48px); /* Strictly fit inside modal with padding */
+                        gap: 0;
+                    }
 
-            {/* 2. Weekly Flow (Supply Side) */}
-            <section style={sectionStyle}>
-                <h3 style={sectionTitleStyle}>
-                    1. 스윙 라이프사이클
-                </h3>
-                <p style={descStyle}>
-                    <strong style={{ color: '#fff' }}>"역할의 분담"</strong><br />
-                    월/화요일엔 외부 강습이 시작되고(43%),<br />
-                    주말엔 동호회 소셜(72%)이 열립니다.
-                </p>
+                    .dashboard-header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: flex-end;
+                        margin-bottom: 16px;
+                        padding: 0 8px;
+                    }
 
-                {/* Chart Container */}
-                {/* Chart Container */}
-                <div style={{ position: 'relative', height: '140px', borderBottom: '1px solid rgba(255,255,255,0.1)', paddingBottom: '0', marginBottom: '12px' }}>
+                    .dashboard-grid {
+                        display: grid;
+                        grid-template-columns: 1fr 1.1fr 0.9fr; /* Optimized ratios */
+                        gap: 12px;
+                        overflow: hidden; /* Parent prevents scroll */
+                        flex: 1;
+                        min-height: 0; /* Important for firefox/grid scrolling */
+                    }
+                    
+                    .dashboard-col {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 12px;
+                        overflow: hidden;
+                        height: 100%;
+                    }
 
-                    {/* Line Chart Background (SVG Path Only) */}
-                    <svg viewBox="0 0 600 100" preserveAspectRatio="none" style={{ position: 'absolute', top: 0, left: '6%', width: '88%', height: 'calc(100% - 24px)', overflow: 'visible', zIndex: 0, pointerEvents: 'none' }}>
-                        <path d={
-                            weeklyFlow.visitorTrafficDays.map((val, i) => {
-                                const maxTraffic = Math.max(...weeklyFlow.visitorTrafficDays, 1);
-                                const x = i * 100; // 0 to 600
-                                const y = 100 - (val / maxTraffic) * 90; // Scale 0-90
-                                return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
-                            }).join(' ')
-                        } fill="none" stroke="#fbbf24" strokeWidth="3" vectorEffect="non-scaling-stroke" strokeLinejoin="round" />
-                    </svg>
+                    /* Custom Scrollbar for the list only */
+                    .scroll-list {
+                        overflow-y: auto;
+                        padding-right: 2px;
+                        overscroll-behavior: contain; /* Prevent parent scroll interaction */
+                        will-change: scroll-position; /* Optimize scrolling */
+                    }
+                    .scroll-list::-webkit-scrollbar { width: 4px; } /* Slightly wider for better grab */
+                    .scroll-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; } /* More visible thumb */
+                    .scroll-list::-webkit-scrollbar-track { background: transparent; }
+                }
 
-                    {/* Columns + Dots (HTML) */}
-                    <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', height: '100%', paddingBottom: '24px', position: 'relative', zIndex: 1 }}>
-                        {['일', '월', '화', '수', '목', '금', '토'].map((day, idx) => {
-                            const trafficVal = weeklyFlow.visitorTrafficDays[idx];
-                            const maxTraffic = Math.max(...weeklyFlow.visitorTrafficDays, 1);
-                            const trafficHeightPct = (trafficVal / maxTraffic) * 90; // Match SVG Y scale (90%)
+                /* Text Gradients */
+                .text-gradient {
+                    background: linear-gradient(to right, #fff, #a1a1aa);
+                    -webkit-background-clip: text;
+                    -webkit-text-fill-color: transparent;
+                }
+            `}</style>
 
-                            return (
-                                <div
-                                    key={day}
-                                    onClick={() => setUserActivityInfo({ day, val: trafficVal, idx })}
-                                    style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '12%', position: 'relative', height: '100%', justifyContent: 'flex-end', cursor: 'pointer' }}
-                                >
-                                    {/* Supply Bars */}
-                                    <div style={{ width: '60%', height: `${getBarHeight(weeklyFlow.socialRunDays[idx])}px`, backgroundColor: '#ef4444', marginBottom: '2px', borderRadius: '2px', opacity: 0.8 }}></div>
-                                    <div style={{ width: '60%', height: `${getBarHeight(weeklyFlow.classStartDays[idx])}px`, backgroundColor: '#3b82f6', borderRadius: '2px', opacity: 0.8 }}></div>
-                                    <span style={{ position: 'absolute', bottom: '-24px', fontSize: '11px', color: '#71717a' }}>{day}</span>
+            <div className="monthly-dashboard">
 
-                                    {/* Traffic Dot (HTML) - Absolute positioned relative to column height */}
-                                    <div style={{
-                                        position: 'absolute',
-                                        bottom: `calc(${trafficHeightPct}% - 4px)`,
-                                        left: '50%',
-                                        transform: 'translateX(-50%)',
-                                        width: '8px',
-                                        height: '8px',
-                                        background: '#fbbf24',
-                                        borderRadius: '50%',
-                                        zIndex: 2,
-                                        boxShadow: '0 2px 4px rgba(0,0,0,0.5)'
-                                    }} />
-
-                                    {/* Tooltip (Conditional) */}
-                                    {userActivityInfo && userActivityInfo.idx === idx && (
-                                        <div style={{
-                                            position: 'absolute',
-                                            bottom: `calc(${trafficHeightPct}% + 8px)`,
-                                            left: '50%',
-                                            transform: 'translateX(-50%)',
-                                            background: '#fbbf24',
-                                            color: '#000',
-                                            padding: '4px 8px',
-                                            borderRadius: '6px',
-                                            fontSize: '10px',
-                                            fontWeight: 'bold',
-                                            whiteSpace: 'nowrap',
-                                            zIndex: 10,
-                                            boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
-                                            animation: 'fadeIn 0.2s'
-                                        }}>
-                                            {trafficVal}회 활동
-                                            <div style={{ position: 'absolute', bottom: '-4px', left: '50%', transform: 'translateX(-50%)', borderLeft: '4px solid transparent', borderRight: '4px solid transparent', borderTop: '4px solid #fbbf24' }}></div>
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-
-                <div style={{ display: 'flex', fontSize: '11px', color: '#a1a1aa', justifyContent: 'center', gap: '16px', flexWrap: 'wrap' }}>
-                    <span style={{ display: 'flex', alignItems: 'center' }}><span style={{ width: '8px', height: '8px', background: '#ef4444', marginRight: '6px', borderRadius: '2px' }}></span>소셜/행사</span>
-                    <span style={{ display: 'flex', alignItems: 'center' }}><span style={{ width: '8px', height: '8px', background: '#3b82f6', marginRight: '6px', borderRadius: '2px' }}></span>강습 시작</span>
-                    <span style={{ display: 'flex', alignItems: 'center' }}><span style={{ width: '12px', height: '2px', background: '#fbbf24', marginRight: '6px' }}></span>유저 활동(클릭)</span>
-                </div>
-                <p style={{ textAlign: 'center', fontSize: '10px', color: '#52525b', marginTop: '8px' }}>
-                    *점(Point)을 클릭하면 실제 활동 수치를 확인할 수 있습니다.
-                </p>
-            </section>
-
-
-            {/* 3. Daily Flow (Hourly Patterns) */}
-            <section style={sectionStyle}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '16px' }}>
-                    <h3 style={{ ...sectionTitleStyle, marginBottom: 0 }}>
-                        2. 시간대별 행동 패턴
-                    </h3>
-                    <div style={{ display: 'flex', backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: '16px', padding: '2px' }}>
-                        <button
-                            onClick={() => setViewMode('percent')}
-                            style={{
-                                padding: '4px 8px',
-                                borderRadius: '14px',
-                                fontSize: '10px',
-                                fontWeight: 'bold',
-                                border: 'none',
-                                backgroundColor: viewMode === 'percent' ? 'rgba(255,255,255,0.15)' : 'transparent',
-                                color: viewMode === 'percent' ? '#fff' : '#71717a',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s'
-                            }}
-                        >
-                            패턴 비교(%)
-                        </button>
-                        <button
-                            onClick={() => setViewMode('count')}
-                            style={{
-                                padding: '4px 8px',
-                                borderRadius: '14px',
-                                fontSize: '10px',
-                                fontWeight: 'bold',
-                                border: 'none',
-                                backgroundColor: viewMode === 'count' ? 'rgba(255,255,255,0.15)' : 'transparent',
-                                color: viewMode === 'count' ? '#fff' : '#71717a',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s'
-                            }}
-                        >
-                            실제 수치(건)
-                        </button>
-                    </div>
-                </div>
-
-                <p style={descStyle}>
-                    <strong style={{ color: '#fff' }}>"{dailyFlow.classPeakHour}시 / {dailyFlow.eventPeakHour}시 집중"</strong><br />
-                    점심시간 전후와 퇴근 시간대에 트래픽이 집중되며,<br />
-                    강습과 행사 모두 비슷한 시간대 패턴을 보입니다.
-                </p>
-
-                <div style={{ position: 'relative', height: '140px', borderBottom: '1px solid rgba(255,255,255,0.1)', marginBottom: '10px', marginTop: '20px' }}>
-                    <svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`} preserveAspectRatio="none" style={{ overflow: 'visible' }}>
-                        {/* Grid */}
-                        <line x1="0" y1={height * 0.25} x2={width} y2={height * 0.25} stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-                        <line x1="0" y1={height * 0.5} x2={width} y2={height * 0.5} stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-                        <line x1="0" y1={height * 0.75} x2={width} y2={height * 0.75} stroke="rgba(255,255,255,0.05)" strokeWidth="1" />
-
-                        {/* Class Line (Blue) */}
-                        <polyline points={classPoints} fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                        {/* Event Line (Red) */}
-                        <polyline points={eventPoints} fill="none" stroke="#ef4444" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-
-                    {/* Peak Labels (Only in Percent Mode) */}
-                    {viewMode === 'percent' && (
-                        <>
-                            <div style={{ position: 'absolute', left: `${(dailyFlow.classPeakHour / 23) * 100}%`, top: '0', transform: 'translate(-50%, -50%)', backgroundColor: '#3b82f6', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '10px', whiteSpace: 'nowrap', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', zIndex: 2 }}>
-                                {dailyFlow.classPeakHour}시 강습
-                            </div>
-                            <div style={{ position: 'absolute', left: `${(dailyFlow.eventPeakHour / 23) * 100}%`, top: '35%', transform: 'translate(-50%, -50%)', backgroundColor: '#ef4444', color: 'white', padding: '2px 8px', borderRadius: '12px', fontSize: '10px', whiteSpace: 'nowrap', boxShadow: '0 2px 4px rgba(0,0,0,0.3)', zIndex: 2 }}>
-                                {dailyFlow.eventPeakHour}시 행사
-                            </div>
-                        </>
-                    )}
-                </div>
-
-                {/* Legend & X-Axis */}
-                <div style={{ display: 'flex', flexDirection: 'column', marginTop: '12px', gap: '8px' }}>
-                    {/* Legend */}
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', fontSize: '10px', color: '#a1a1aa' }}>
-                        <span style={{ display: 'flex', alignItems: 'center' }}><span style={{ width: '8px', height: '8px', background: '#3b82f6', marginRight: '6px', borderRadius: '2px' }}></span>강습 클릭</span>
-                        <span style={{ display: 'flex', alignItems: 'center' }}><span style={{ width: '8px', height: '8px', background: '#ef4444', marginRight: '6px', borderRadius: '2px' }}></span>행사 클릭</span>
-                    </div>
-                    {/* Time Scale */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '9px', color: '#52525b', padding: '0 2px', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '4px' }}>
-                        <span>00</span>
-                        <span>03</span>
-                        <span>06</span>
-                        <span>09</span>
-                        <span>12</span>
-                        <span>15</span>
-                        <span>18</span>
-                        <span>21</span>
-                        <span>24</span>
-                    </div>
-                </div>
-            </section>
-
-            {/* 4. Lead Time Cards */}
-            <section style={sectionStyle}>
-                <h3 style={sectionTitleStyle}>
-                    3. 등록 시점별 노출 추이
-                </h3>
-                <p style={descStyle}>
-                    <span style={{ color: '#fbbf24' }}>⚠ 분석의 한계</span><br />
-                    실제 신청률 데이터가 없으므로,<br />
-                    현재는 <strong>'노출 기간'에 따른 누적 조회수 차이</strong>만을<br />
-                    간접적으로 확인할 수 있습니다.
-                </p>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    {/* Class Card */}
-                    <div style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', padding: '16px', borderRadius: '16px', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
-                        <div style={{ fontSize: '11px', color: '#60a5fa', fontWeight: 'bold', marginBottom: '6px' }}>강습(Class)</div>
-                        <div style={{ fontSize: '20px', fontWeight: '800', color: '#93c5fd', marginBottom: '8px' }}>4주 전</div>
-                        <p style={{ fontSize: '11px', color: '#bfdbfe', lineHeight: '1.4' }}>
-                            미리 등록 시<br />
-                            <strong style={{ color: '#fff' }}>평균 {leadTime.classD28}회 조회</strong><br />
-                            <span style={{ color: '#60a5fa', opacity: 0.7, fontSize: '10px' }}>(1주 전: {leadTime.classD7}회)</span>
-                        </p>
-                    </div>
-
-                    {/* Event Card */}
-                    <div style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)', padding: '16px', borderRadius: '16px', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-                        <div style={{ fontSize: '11px', color: '#f87171', fontWeight: 'bold', marginBottom: '6px' }}>행사(Event)</div>
-                        <div style={{ fontSize: '20px', fontWeight: '800', color: '#fca5a5', marginBottom: '8px' }}>6주 전</div>
-                        <p style={{ fontSize: '11px', color: '#fecaca', lineHeight: '1.4' }}>
-                            미리 등록 시<br />
-                            <strong style={{ color: '#fff' }}>평균 {leadTime.eventD42}회 조회</strong><br />
-                            <span style={{ color: '#f87171', opacity: 0.7, fontSize: '10px' }}>(2주 전: {leadTime.eventD14}회)</span>
-                        </p>
-                    </div>
-                </div>
-                <p style={{ fontSize: '12px', color: '#a1a1aa', marginTop: '16px', textAlign: 'center', backgroundColor: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '8px' }}>
-                    💡 <strong>데이터 기반 제언</strong><br />
-                    유의미한 노출 도달을 위해서는<br />
-                    최소 <strong>4주(강습) / 6주(행사)</strong> 전에 홍보를 시작하는 것이 유리합니다.
-                </p>
-            </section>
-
-            {/* 5. Top 20 Ranking */}
-            <section style={{ marginBottom: '40px', padding: '0 12px' }}>
-                <h3 style={{ ...sectionTitleStyle, paddingLeft: 0, borderLeft: 'none', marginBottom: '16px' }}>
-                    4. 1월의 화제 (Top 20)
-                </h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {topContents.map((item, index) => (
-                        <div key={index} style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            padding: '12px 16px',
-                            backgroundColor: 'rgba(255,255,255,0.02)',
-                            borderRadius: '12px',
-                            border: '1px solid rgba(255,255,255,0.03)'
-                        }}>
-                            <div style={{
-                                width: '28px',
-                                fontSize: '16px',
-                                fontWeight: '800',
-                                color: index < 3 ? '#fbbf24' : '#52525b',
-                                marginRight: '12px',
-                                fontStyle: 'italic'
-                            }}>
-                                {index + 1}
-                            </div>
-                            <div style={{ flex: 1, overflow: 'hidden' }}>
-                                <div style={{
-                                    fontSize: '10px',
-                                    color: item.type === 'class' ? '#60a5fa' : '#f87171',
-                                    fontWeight: 'bold',
-                                    marginBottom: '3px',
-                                    textTransform: 'uppercase'
-                                }}>
-
-                                    {item.type === 'board_post' ? 'INFO' : item.type}
-                                </div>
-                                <div style={{
-                                    fontSize: '14px',
-                                    color: '#f4f4f5',
-                                    whiteSpace: 'nowrap',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    fontWeight: '500'
-                                }}>
-                                    {item.title}
-                                </div>
-                            </div>
-                            <div style={{ fontSize: '12px', color: '#71717a', fontWeight: '500' }}>
-                                {item.count}회
-                            </div>
+                {/* 1. Header (Compact) */}
+                <div className="dashboard-header">
+                    <div>
+                        <div style={{ fontSize: '10px', fontWeight: '800', color: colors.highlight, marginBottom: '4px', letterSpacing: '1px', textTransform: 'uppercase', opacity: 0.9 }}>
+                            Monthly Insight • JAN 2026
                         </div>
-                    ))}
+                        <h1 style={{ fontSize: '20px', fontWeight: '800', margin: 0, lineHeight: '1.2', letterSpacing: '-0.5px' }} className="text-gradient">
+                            동호회의 주말, 외부 강습의 평일.
+                        </h1>
+                    </div>
+
+                    <div style={{
+                        fontSize: '10px',
+                        color: colors.textSub,
+                        background: 'rgba(255,255,255,0.03)',
+                        padding: '8px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid rgba(255,255,255,0.05)',
+                        backdropFilter: 'blur(10px)',
+                        textAlign: 'right'
+                    }}>
+                        <div style={{ marginBottom: '2px' }}><span style={{ color: colors.highlight }}>●</span> <strong>Data</strong>: {meta.totalLogs.toLocaleString()} Logs Analysis</div>
+                        <div><span style={{ opacity: 0.6 }}>Range: {meta.range}</span></div>
+                    </div>
                 </div>
-            </section>
 
-            <div style={{ textAlign: 'center', fontSize: '11px', color: '#52525b', paddingBottom: '20px' }}>
-                Data Source: RhythmJoy Analytics ({meta.range})
+                {/* 2. Main Grid */}
+                <div className="dashboard-grid">
+
+                    {/* Col 1: Lifecycle (High Visual Impact) */}
+                    <div className="dashboard-col">
+                        <section style={{ ...cardStyle, flex: 1, padding: '20px' }}>
+                            <h3 style={sectionTitleStyle}>1. 스윙 라이프사이클</h3>
+
+                            <div style={{ fontSize: '12px', color: '#d4d4d8', marginBottom: '20px', lineHeight: '1.5' }}>
+                                <span style={{ color: colors.class, fontWeight: '700' }}>월/화</span>에 시작하고,
+                                <span style={{ color: colors.event, fontWeight: '700' }}> 주말</span>에 폭발합니다.<br />
+                                <span style={{ fontSize: '11px', color: colors.textSub, marginTop: '4px', display: 'block' }}>* 강습 오픈(초반) → 소셜/행사 참여(후반)</span>
+                            </div>
+
+                            <div style={{ flex: 1, position: 'relative', minHeight: '120px', marginBottom: '10px' }}>
+                                {/* Background Line Chart (User Activity) */}
+                                <svg viewBox="0 0 600 100" preserveAspectRatio="none" style={{ position: 'absolute', top: 0, left: '6%', width: '88%', height: 'calc(100% - 20px)', zIndex: 0, overflow: 'visible' }}>
+                                    <defs>
+                                        <linearGradient id="lineGap" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor={colors.highlight} stopOpacity="0.2" />
+                                            <stop offset="100%" stopColor={colors.highlight} stopOpacity="0" />
+                                        </linearGradient>
+                                    </defs>
+                                    <path d={weeklyFlow.visitorTrafficDays.map((val, i) => {
+                                        const max = Math.max(...weeklyFlow.visitorTrafficDays, 1);
+                                        const x = i * 100;
+                                        const y = 100 - (val / max) * 90;
+                                        return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+                                    }).join(' ')} fill="url(#lineGap)" stroke={colors.highlight} strokeWidth="2" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
+                                </svg>
+
+                                {/* Bar System */}
+                                <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', height: '100%', paddingBottom: '20px', position: 'relative', zIndex: 1 }}>
+                                    {['일', '월', '화', '수', '목', '금', '토'].map((day, idx) => {
+                                        const trafficVal = weeklyFlow.visitorTrafficDays[idx];
+                                        const maxTraffic = Math.max(...weeklyFlow.visitorTrafficDays, 1);
+                                        const trafficHeightPct = (trafficVal / maxTraffic) * 90;
+
+                                        return (
+                                            <div key={day}
+                                                onClick={() => setUserActivityInfo({ day, val: trafficVal, idx })}
+                                                style={{ width: '12%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-end', height: '100%', cursor: 'pointer', position: 'relative' }}
+                                            >
+                                                {/* Bars */}
+                                                <div style={{ width: '6px', height: `${getBarHeight(weeklyFlow.socialRunDays[idx])}px`, background: colors.event, borderRadius: '4px', marginBottom: '2px', opacity: 0.9 }}></div>
+                                                <div style={{ width: '6px', height: `${getBarHeight(weeklyFlow.classStartDays[idx])}px`, background: colors.class, borderRadius: '4px', opacity: 0.9 }}></div>
+
+                                                {/* X Label */}
+                                                <span style={{ position: 'absolute', bottom: '-20px', fontSize: '10px', fontWeight: '600', color: colors.textSub }}>{day}</span>
+
+                                                {/* Active Dot */}
+                                                <div style={{
+                                                    position: 'absolute',
+                                                    bottom: `calc(${trafficHeightPct}% - 4px)`,
+                                                    width: '8px', height: '8px',
+                                                    background: colors.highlight,
+                                                    borderRadius: '50%',
+                                                    border: '2px solid #18181b', // Match bg
+                                                    boxShadow: '0 2px 4px rgba(0,0,0,0.5)',
+                                                    transition: 'bottom 0.3s ease'
+                                                }} />
+
+                                                {/* Tooltip */}
+                                                {userActivityInfo?.idx === idx && (
+                                                    <div style={{
+                                                        position: 'absolute',
+                                                        bottom: `calc(${trafficHeightPct}% + 10px)`,
+                                                        background: 'rgba(255,255,255,0.9)',
+                                                        color: '#000',
+                                                        padding: '4px 8px',
+                                                        borderRadius: '6px',
+                                                        fontSize: '10px',
+                                                        fontWeight: '800',
+                                                        whiteSpace: 'nowrap',
+                                                        zIndex: 10,
+                                                        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                                                        pointerEvents: 'none'
+                                                    }}>
+                                                        {trafficVal.toLocaleString()}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'center', gap: '16px', marginTop: '12px' }}>
+                                <div style={{ fontSize: '10px', display: 'flex', alignItems: 'center', color: colors.textSub }}><div style={{ width: '6px', height: '6px', background: colors.event, borderRadius: '2px', marginRight: '6px' }} />소셜/행사</div>
+                                <div style={{ fontSize: '10px', display: 'flex', alignItems: 'center', color: colors.textSub }}><div style={{ width: '6px', height: '6px', background: colors.class, borderRadius: '2px', marginRight: '6px' }} />강습 시작</div>
+                                <div style={{ fontSize: '10px', display: 'flex', alignItems: 'center', color: colors.textSub }}><div style={{ width: '8px', height: '2px', background: colors.highlight, marginRight: '6px' }} />유저 트래픽</div>
+                            </div>
+                        </section>
+                    </div>
+
+                    {/* Col 2: Hourly & Lead (Dense) */}
+                    <div className="dashboard-col">
+                        {/* 2. Hourly */}
+                        <section style={{ ...cardStyle }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
+                                <h3 style={{ ...sectionTitleStyle, marginBottom: 0 }}>2. 시간대별 패턴</h3>
+                                <button onClick={() => setViewMode(m => m === 'percent' ? 'count' : 'percent')} style={{ background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '4px', padding: '2px 6px', fontSize: '9px', color: colors.textSub, cursor: 'pointer' }}>
+                                    {viewMode === 'percent' ? '% 보기' : '수치 보기'}
+                                </button>
+                            </div>
+
+                            <div style={{ fontSize: '11px', color: '#d4d4d8', marginBottom: '12px' }}>
+                                점심(<strong>{dailyFlow.classPeakHour}시</strong>)은 강습, 퇴근 전(<strong>{dailyFlow.eventPeakHour}시</strong>)은 행사.
+                            </div>
+
+                            <div style={{ height: '80px', position: 'relative', width: '100%' }}>
+                                <svg width="100%" height="100%" viewBox={`0 0 ${hourlyW} ${hourlyH}`} preserveAspectRatio="none" style={{ overflow: 'visible' }}>
+                                    {/* Grid Lines */}
+                                    <line x1="0" y1={hourlyH * 0.25} x2={hourlyW} y2={hourlyH * 0.25} stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
+                                    <line x1="0" y1={hourlyH * 0.5} x2={hourlyW} y2={hourlyH * 0.5} stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
+                                    <line x1="0" y1={hourlyH * 0.75} x2={hourlyW} y2={hourlyH * 0.75} stroke="rgba(255,255,255,0.03)" strokeWidth="1" />
+
+                                    {/* Charts */}
+                                    <polyline points={classPoints} fill="none" stroke={colors.class} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                    <polyline points={eventPoints} fill="none" stroke={colors.event} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                                {/* X-Axis Labels Compact */}
+                                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', fontSize: '8px', color: '#52525b', padding: '0 2px' }}>
+                                    <span>00</span><span>06</span><span>12</span><span>18</span><span>24</span>
+                                </div>
+                            </div>
+                        </section>
+
+                        {/* 3. Lead Time */}
+                        <section style={{ ...cardStyle, flex: 1 }}>
+                            <h3 style={{ ...sectionTitleStyle, marginBottom: '8px' }}>3. 등록 리드타임</h3>
+                            <div style={{ fontSize: '11px', color: '#d4d4d8', marginBottom: '12px' }}>
+                                빠를수록 좋습니다. (Max 조회수 기준)
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: 'rgba(59, 130, 246, 0.08)', borderRadius: '8px', border: '1px solid rgba(59, 130, 246, 0.15)' }}>
+                                    <div>
+                                        <div style={{ fontSize: '10px', fontWeight: '700', color: '#60a5fa' }}>CLASS</div>
+                                        <div style={{ fontSize: '12px', color: '#fff' }}>4주 전 등록</div>
+                                    </div>
+                                    <div style={{ textAlign: 'right' }}>
+                                        <div style={{ fontSize: '16px', fontWeight: '800', color: '#fff' }}>{leadTime.classD28}<span style={{ fontSize: '10px', fontWeight: '400', color: '#93c5fd', marginLeft: '2px' }}>회</span></div>
+                                        <div style={{ fontSize: '9px', color: '#93c5fd', opacity: 0.7 }}>평균 조회</div>
+                                    </div>
+                                </div>
+
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: 'rgba(244, 63, 94, 0.08)', borderRadius: '8px', border: '1px solid rgba(244, 63, 94, 0.15)' }}>
+                                    <div>
+                                        <div style={{ fontSize: '10px', fontWeight: '700', color: '#fb7185' }}>EVENT</div>
+                                        <div style={{ fontSize: '12px', color: '#fff' }}>6주 전 등록</div>
+                                    </div>
+                                    <div style={{ textAlign: 'right' }}>
+                                        <div style={{ fontSize: '16px', fontWeight: '800', color: '#fff' }}>{leadTime.eventD42}<span style={{ fontSize: '10px', fontWeight: '400', color: '#fca5a5', marginLeft: '2px' }}>회</span></div>
+                                        <div style={{ fontSize: '9px', color: '#fca5a5', opacity: 0.7 }}>평균 조회</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+
+                    {/* Col 3: Ranking (Scrollable) */}
+                    <div className="dashboard-col">
+                        <section style={{ ...cardStyle, flex: 1, padding: '16px 4px 16px 16px', background: 'rgba(255,255,255,0.01)', border: 'none' }}>
+                            <h3 style={{ ...sectionTitleStyle, paddingLeft: '4px' }}>4. 1월의 화제 (Top 20)</h3>
+
+                            <div className="scroll-list" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px', paddingRight: '12px' }}>
+                                {topContents.map((item, index) => (
+                                    <div key={index} style={{
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        padding: '10px 12px',
+                                        borderRadius: '10px',
+                                        background: index < 3 ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.02)',
+                                        border: index < 3 ? '1px solid rgba(251, 191, 36, 0.15)' : '1px solid transparent'
+                                    }}>
+                                        <div style={{
+                                            width: '24px',
+                                            fontSize: '14px',
+                                            fontWeight: '800',
+                                            color: index < 3 ? colors.highlight : '#52525b',
+                                            fontStyle: 'italic',
+                                            marginRight: '8px'
+                                        }}>{index + 1}</div>
+
+                                        <div style={{ flex: 1, minWidth: 0, marginRight: '8px' }}>
+                                            <div style={{ fontSize: '9px', fontWeight: '700', color: item.type === 'class' ? colors.class : colors.event, marginBottom: '2px', textTransform: 'uppercase' }}>
+                                                {item.type === 'board_post' ? 'INFO' : item.type}
+                                            </div>
+                                            <div style={{ fontSize: '12px', fontWeight: '500', color: '#f4f4f5', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                                {item.title}
+                                            </div>
+                                        </div>
+
+                                        <div style={{ fontSize: '11px', color: '#71717a', fontWeight: '500' }}>
+                                            {item.count}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </section>
+                    </div>
+
+                </div>
             </div>
-
         </div>
     );
-};
-
-// Dark Mode Styles
-const sectionStyle: React.CSSProperties = {
-    marginBottom: '32px',
-    backgroundColor: 'rgba(255,255,255,0.02)',
-    padding: '24px 16px',
-    borderRadius: '24px',
-    border: '1px solid rgba(255,255,255,0.04)',
-    margin: '0 12px 32px 12px'
-};
-
-const sectionTitleStyle: React.CSSProperties = {
-    fontSize: '16px',
-    fontWeight: '700',
-    marginBottom: '16px',
-    color: '#e4e4e7',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '8px'
-};
-
-const descStyle: React.CSSProperties = {
-    fontSize: '13px',
-    color: '#a1a1aa',
-    marginBottom: '24px',
-    lineHeight: '1.6'
 };
 
 export default MonthlyWebzine;

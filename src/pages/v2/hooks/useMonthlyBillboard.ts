@@ -44,6 +44,21 @@ export const useMonthlyBillboard = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        const cached = localStorage.getItem('monthly_billboard_cache');
+        if (cached) {
+            try {
+                const { timestamp, data } = JSON.parse(cached);
+                const now = new Date().getTime();
+                // 1 Hour Cache
+                if (now - timestamp < 3600 * 1000) {
+                    setData(data);
+                    setLoading(false);
+                    return;
+                }
+            } catch (e) {
+                console.error('Cache parse failed', e);
+            }
+        }
         fetchMonthlyData();
     }, []);
 
@@ -176,7 +191,7 @@ export const useMonthlyBillboard = () => {
             });
             const sortedRanking = Array.from(contentMap.values()).sort((a, b) => b.count - a.count).slice(0, 20);
 
-            setData({
+            const result: BillboardData = {
                 loading: false,
                 meta: {
                     totalLogs: allLogs.length,
@@ -203,8 +218,21 @@ export const useMonthlyBillboard = () => {
                     eventD14: 10.8
                 },
                 topContents: sortedRanking
-            });
+            };
+
+            setData(result);
             setLoading(false);
+
+            // Save Cache
+            try {
+                localStorage.setItem('monthly_billboard_cache', JSON.stringify({
+                    timestamp: new Date().getTime(),
+                    data: result
+                }));
+            } catch (e) {
+                console.error('Cache save failed', e);
+            }
+
         } catch (error) {
             console.error(error);
             setLoading(false);

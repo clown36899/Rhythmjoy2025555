@@ -3,7 +3,7 @@ import { supabase } from '../../../lib/supabase';
 import MyImpactCard from '../../user/components/MyImpactCard';
 import type { Event as SupabaseEvent } from '../../../lib/supabase';
 import type { StandardBoardPost } from '../../../types/board';
-import SwingSceneStats from './SwingSceneStats.tsx';
+import SwingSceneStats from './SwingSceneStats';
 import MonthlyWebzine from './MonthlyBillboard/MonthlyWebzine';
 
 
@@ -67,20 +67,22 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
     return (
         <div className="userreg-overlay" style={{ zIndex: 1000, animation: 'fadeIn 0.2s ease-out' }}>
             <div className="userreg-modal" style={{
-                maxWidth: '450px', // Slightly wider for 3 tabs
+                maxWidth: (activeTab === 'monthly' || activeTab === 'scene') ? '95vw' : '450px', // Maximize width for stats
                 width: '90%',
                 background: 'rgba(20, 20, 20, 0.95)',
                 backdropFilter: 'blur(15px)',
                 borderRadius: '24px',
                 border: '1px solid rgba(255,255,255,0.08)',
-                padding: '24px',
-                position: 'relative'
+                padding: (activeTab === 'monthly' || activeTab === 'scene') ? '0' : '24px', // Full width for Stats/Monthly
+                position: 'relative',
+                transition: 'max-width 0.3s ease, padding 0.3s ease', // Smooth transition
+                overflow: 'hidden' // Ensure rounded corners clip content
             }}>
                 {/* Close Button - Moved to absolute position to avoid overlap */}
                 <button onClick={onClose} style={{
                     position: 'absolute',
-                    top: '20px',
-                    right: '20px',
+                    top: '16px',
+                    right: '16px',
                     background: 'rgba(255,255,255,0.05)',
                     border: 'none',
                     color: '#fff',
@@ -91,12 +93,25 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
                     alignItems: 'center',
                     justifyContent: 'center',
                     cursor: 'pointer',
-                    zIndex: 10
+                    zIndex: 20 // Higher z-index to sit on top of everything
                 }}>
                     <i className="ri-close-line text-xl"></i>
                 </button>
 
-                <div style={{ display: 'flex', alignItems: 'center', marginBottom: '10px', paddingTop: '14px', paddingRight: '40px', overflowX: 'auto', scrollbarWidth: 'none' }}>
+                {/* Header Tabs Container - Needs padding if modal padding is 0 */}
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    marginBottom: '0',
+                    paddingTop: (activeTab === 'monthly' || activeTab === 'scene') ? '20px' : '0',
+                    paddingLeft: (activeTab === 'monthly' || activeTab === 'scene') ? '24px' : '0',
+                    paddingRight: '60px',
+                    overflowX: 'auto',
+                    scrollbarWidth: 'none',
+                    borderBottom: '1px solid rgba(255,255,255,0.05)',
+                    paddingBottom: '16px',
+                    background: (activeTab === 'monthly' || activeTab === 'scene') ? '#18181b' : 'transparent' // Seamless header background
+                }}>
                     <div style={{ display: 'flex', gap: '32px', flexWrap: 'nowrap' }}>
                         <h2
                             onClick={() => setActiveTab('my')}
@@ -171,7 +186,7 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
                         <div className="evt-loading-spinner-base evt-loading-spinner-blue evt-animate-spin"></div>
                     </div>
                 ) : (
-                    <div style={{ maxHeight: '70vh', overflowY: 'auto', paddingRight: '4px' }} className="custom-scrollbar">
+                    <div style={{ height: '100%', maxHeight: '76vh', overflowY: (activeTab === 'scene' || activeTab === 'monthly') ? 'hidden' : 'auto', paddingRight: '4px', display: 'flex', flexDirection: 'column' }} className="custom-scrollbar">
                         {activeTab === 'my' && (
                             <>
                                 <MyImpactCard
