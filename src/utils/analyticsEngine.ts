@@ -143,6 +143,14 @@ export const trackPWAInstall = async (user?: { id: string }) => {
         userId = session?.user?.id;
     }
 
+    // [FIX] 중복 추적 방지 (세션당 1회 제한)
+    const storedInstallTrack = sessionStorage.getItem('pwa_install_tracked');
+    if (storedInstallTrack) {
+        console.log('[Analytics] PWA install already tracked for this session, skipping.');
+        return;
+    }
+    sessionStorage.setItem('pwa_install_tracked', 'true');
+
     try {
         await supabase.from('pwa_installs').insert({
             user_id: userId || null,

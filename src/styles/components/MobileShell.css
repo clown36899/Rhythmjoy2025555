@@ -508,7 +508,7 @@
 .header-right-buttons {
   display: flex;
   align-items: center;
-  gap: 2vw;
+  gap: 10px;
   /* 고정 clamp 제거, 순수 vw 사용 */
   flex-shrink: 1;
   /* 전체가 같이 줄어들도록 설정 */

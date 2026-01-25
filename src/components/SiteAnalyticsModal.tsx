@@ -188,19 +188,14 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                     visitCount: u.visitCount,
                     visitLogs: u.visitLogs || [],
                     avgDuration: u.avgDuration || 0
-                }));
+                })).filter((u: any) => !u.user_id.startsWith('91b04b25')); // [FIX] Exclude test account from list
 
                 setUserList(localUserList);
             }
 
-            // [PHASE 22] 특정 사용자 제외 (clown313joy@gmail.com)
-            let excludedUserId: string | null = null;
-            const { data: excludedUser } = await supabase
-                .from('billboard_users')
-                .select('id')
-                .eq('email', 'clown313joy@gmail.com')
-                .single();
-            if (excludedUser) excludedUserId = excludedUser.id;
+            // [PHASE 22] 특정 사용자 제외 (앱테스트계정 ID Prefix)
+            // 풀 ID를 못 가져오는 경우를 대비해 Prefix로 차단 (UUID 충돌 가능성 희박)
+            const excludedPrefix = '91b04b25';
 
             // Raw Data Fetch (Pagination to bypass Supabase 1000 limit)
             let allLogs: any[] = [];
@@ -233,16 +228,19 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             }
             const data = allLogs;
 
-            const validData = data.filter(d => !d.is_admin && d.user_id !== excludedUserId);
+            const validData = data.filter(d => !d.is_admin && (d.user_id ? !d.user_id.startsWith(excludedPrefix) : true));
             const visitorUniqueSet = new Set<string>();
             const visitorUniqueData = validData.filter(d => {
                 const userIdentifier = d.user_id || d.fingerprint || 'unknown';
-                const timeBucket = Math.floor(new Date(d.created_at).getTime() / (24 * 3600 * 1000)); // Daily bucket for trend
+                const timeBucket = Math.floor(new Date(d.created_at).getTime() / (6 * 60 * 60 * 1000)); // [FIX] 6-hour bucket (was Daily)
                 const uniqueKey = `${userIdentifier}:${timeBucket}`;
                 if (visitorUniqueSet.has(uniqueKey)) return false;
                 visitorUniqueSet.add(uniqueKey);
                 return true;
             });
+
+            // RPC counts are now accurate (DB migration applied), so no need to overwrite.
+            // clickBasedLoggedIn and clickBasedAnon are already set from rpcData.
 
             // Session Data (Paginated)
             let allSessions: any[] = [];
@@ -255,7 +253,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                     .select('*')
                     .gte('session_start', startStr)
                     .lte('session_start', endStr)
-                    .eq('is_admin', false)
+                    .eq('is_admin', false) // [RESTORE] Database-side filtering is safer
                     .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
 
                 if (sError) {
@@ -278,7 +276,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             // Use 'sessions' identifier to match downstream code usage (if checking !sessionsError)
             // But downstream checks { data: sessions, error: sessionsError }. 
             // We need to simulate that structure or modify downstream
-            const sessions = allSessions.filter(s => s.user_id !== excludedUserId);
+            const sessions = allSessions.filter(s => !s.is_admin && (s.user_id ? !s.user_id.startsWith(excludedPrefix) : true));
             const sessionsError = null;
 
             const sessionData = sessions || [];
@@ -351,7 +349,8 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 .order('installed_at', { ascending: false });
 
             if (!installError && installData) {
-                const pwaSessions = sessionData.filter((s: any) => s.is_pwa === true);
+                // [FIX] PWA Stats: Exclude Guess/Anonymous sessions (Only count logged-in usage)
+                const pwaSessions = sessionData.filter((s: any) => s.is_pwa === true && s.user_id);
                 const browserSessions = sessionData.filter((s: any) => s.is_pwa === false);
                 const pwaCompletedSessions = pwaSessions.filter((s: any) => s.duration_seconds !== null);
                 const avgPWADuration = pwaCompletedSessions.length > 0 ? Math.round(pwaCompletedSessions.reduce((sum: number, s: any) => sum + (s.duration_seconds || 0), 0) / pwaCompletedSessions.length) : 0;
@@ -397,7 +396,16 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                     }
                 }
 
-                const recentInstalls = installData.slice(0, 10).map((inst: any) => {
+                // Deduplicate installs by user_id (Keep latest) and exclude guests
+                const uniqueInstallMap = new Map();
+                installData.forEach((inst: any) => {
+                    if (inst.user_id && !uniqueInstallMap.has(inst.user_id)) {
+                        uniqueInstallMap.set(inst.user_id, inst);
+                    }
+                });
+                const uniqueInstalls = Array.from(uniqueInstallMap.values());
+
+                const recentInstalls = uniqueInstalls.slice(0, 10).map((inst: any) => {
                     const explicitNickname = installUserMap.get(inst.user_id);
                     const listUser = localUserList.find(u => u.user_id === inst.user_id);
                     // 1. Explicit fetch 2. Summary list 3. Default
@@ -503,55 +511,95 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             const totalSections = Array.from(totalSectionMap.entries()).map(([section, count]) => ({ section, count })).sort((a, b) => b.count - a.count);
 
             // Daily records
+            // [FIX] Use validData (All Clicks) instead of visitorUniqueData (DAU) for "Click Trend"
+            // This ensures Click Trend > Visit Trend (Sessions), which is the expected hierarchy.
             const dailyGroups = new Map<string, any[]>();
-            visitorUniqueData.forEach(d => {
+            validData.forEach(d => {
                 const kstDate = getKRDateString(new Date(d.created_at));
                 const group = dailyGroups.get(kstDate) || [];
                 group.push(d);
                 dailyGroups.set(kstDate, group);
             });
 
-            const dailyDetails = Array.from(dailyGroups.entries())
-                .sort((a, b) => b[0].localeCompare(a[0]))
-                .map(([date, logs]) => {
-                    let dUser = 0, dGuest = 0;
-                    const eventMap = new Map<string, { title: string, type: string, count: number }>();
-                    logs.forEach(l => {
-                        if (l.user_id && !l.is_admin) dUser++;
-                        else if (!l.user_id && !l.is_admin) dGuest++;
-                        const key = l.target_type + ':' + l.target_id;
-                        const existing = eventMap.get(key) || { title: l.target_title || l.target_id, type: l.target_type, count: 0 };
-                        eventMap.set(key, { ...existing, count: existing.count + 1 });
-                    });
-                    return {
-                        date,
-                        displayDate: new Date(date).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' }),
-                        total: logs.length,
-                        user: dUser,
-                        guest: dGuest,
-                        events: Array.from(eventMap.values()).sort((a, b) => b.count - a.count)
-                    };
-                });
+            // [FIX] Generate full date range to ensure zero-filling for BOTH trends
+            const trendDates: string[] = [];
+            const dStart = new Date(dateRange.start);
+            const dEnd = new Date(dateRange.end);
+            // Safety: limit to 365 days
+            let loops = 0;
+            // Create a working date copy to avoid side effects if dStart is used elsewhere
+            let curr = new Date(dStart);
+            while (curr <= dEnd && loops < 366) {
+                trendDates.push(getKRDateString(curr));
+                curr.setDate(curr.getDate() + 1);
+                loops++;
+            }
+            if (trendDates.length === 0 && dailyGroups.size > 0) {
+                // Fallback if range generation failed but we have data
+                trendDates.push(...Array.from(dailyGroups.keys()).sort());
+            }
 
-            // [PHASE 23] Visit Trend Calculation
+            const dailyDetails = trendDates.map(date => {
+                const logs = dailyGroups.get(date) || [];
+                let dUser = 0, dGuest = 0;
+                const eventMap = new Map<string, { title: string, type: string, count: number }>();
+                logs.forEach(l => {
+                    if (l.user_id && !l.is_admin) dUser++;
+                    else if (!l.user_id && !l.is_admin) dGuest++;
+                    const key = l.target_type + ':' + l.target_id;
+                    const existing = eventMap.get(key) || { title: l.target_title || l.target_id, type: l.target_type, count: 0 };
+                    eventMap.set(key, { ...existing, count: existing.count + 1 });
+                });
+                return {
+                    date,
+                    displayDate: new Date(date).toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' }),
+                    total: logs.length,
+                    user: dUser,
+                    guest: dGuest,
+                    events: Array.from(eventMap.values()).sort((a, b) => b.count - a.count)
+                };
+            }).reverse(); // Descending for UI
+
+            // [PHASE 23] Visit Trend Calculation (Hybrid: Real Sessions + Fallback Estimation)
             const visitTrendMap = new Map<string, number>();
+
+            // 1. Count Real Sessions
             sessionData.forEach((s: any) => {
                 const kstDate = getKRDateString(new Date(s.session_start));
                 visitTrendMap.set(kstDate, (visitTrendMap.get(kstDate) || 0) + 1);
             });
 
-            // [FIX] Fill missing dates to match selected range
-            const trendDates: string[] = [];
-            const dStart = new Date(dateRange.start);
-            const dEnd = new Date(dateRange.end);
-            for (let d = new Date(dStart); d <= dEnd; d.setDate(d.getDate() + 1)) {
-                trendDates.push(getKRDateString(d));
-            }
+            // 2. Fallback: Estimate from Activity Logs for dates with 0 real sessions
+            // (For dates before Jan 21 when session tracking started)
+            const fallbackSessionMap = new Map<string, Set<string>>();
+            validData.forEach(d => {
+                const kstDate = getKRDateString(new Date(d.created_at));
+                // Only if no real sessions exist for this day (optimization/prevention of double count)
+                // But we check existence later. Let's build the map first.
 
-            const dailyVisitTrend = trendDates.map(date => ({
-                date,
-                count: visitTrendMap.get(date) || 0
-            })).sort((a, b) => b.date.localeCompare(a.date)); // Descending match
+                const time = new Date(d.created_at).getTime();
+                // 6-hour bucket ID
+                const bucketId = Math.floor(time / (6 * 60 * 60 * 1000));
+                const userKey = d.user_id || d.fingerprint || 'unknown';
+                const sessionKey = `${userKey}_${bucketId}`;
+
+                if (!fallbackSessionMap.has(kstDate)) {
+                    fallbackSessionMap.set(kstDate, new Set());
+                }
+                fallbackSessionMap.get(kstDate)!.add(sessionKey);
+            });
+
+            const dailyVisitTrend = trendDates.map(date => {
+                let count = visitTrendMap.get(date) || 0;
+
+                // If real session count is 0 (or significantly low indicating partial data), use fallback
+                // We assume if 'count' is 0, it's before tracking started.
+                if (count === 0 && fallbackSessionMap.has(date)) {
+                    count = fallbackSessionMap.get(date)!.size;
+                }
+
+                return { date, count };
+            }).sort((a, b) => b.date.localeCompare(a.date)); // Descending match
 
             const newSummary = {
                 total_clicks: visitorUniqueData.length,
@@ -920,6 +968,9 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                         })
                                     )}
                                 </div>
+                                <div style={{ marginTop: '12px', fontSize: '0.8rem', color: '#71717a', textAlign: 'right' }}>
+                                    * 방문 트렌드 기준: 6시간 단위 유니크 세션 (21일 이전은 활동 로그 기반 추정치)
+                                </div>
                             </div>
 
                             {viewMode === 'summary' ? (
@@ -966,33 +1017,9 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                     </div>
                                 </div>
                             ) : viewMode === 'daily' ? (
-                                <div className="daily-view-content">
-                                    <div className="daily-record-list">
-                                        {summary.daily_details.map((day, dIdx) => (
-                                            <div key={dIdx} className="daily-section">
-                                                <div className="daily-header">
-                                                    <div className="daily-header-left">
-                                                        <span className="daily-date">{day.displayDate}</span>
-                                                        <div className="daily-badges">
-                                                            <span className="badge-user">회원 {day.user}</span>
-                                                            <span className="badge-guest">Guest {day.guest}</span>
-                                                        </div>
-                                                    </div>
-                                                    <span className="daily-total">{day.total} clicks</span>
-                                                </div>
-                                                <div className="daily-events-grid">
-                                                    {day.events.map((evt, eIdx) => (
-                                                        <div key={eIdx} className="daily-event-row">
-                                                            <span className="evt-type">{evt.type}</span>
-                                                            <span className="evt-title">{evt.title}</span>
-                                                            <span className="evt-count">{evt.count}</span>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
+                                <>
+                                    {/* Daily Record List removed as per request (Redundant with Type Breakdown) */}
+                                </>
                             ) : viewMode === 'visitor' ? (
                                 <div className="visitor-view-content">
                                     <div className="analytics-grid">

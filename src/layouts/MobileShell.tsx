@@ -241,7 +241,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
           padding: '2px 6px',
           borderRadius: '6px',
           border: '1px solid rgba(255, 255, 255, 0.1)',
-          marginLeft: '4px',
+          marginLeft: '0px',
           color: '#e5e7eb',
           flexShrink: 1,
           cursor: 'pointer'
