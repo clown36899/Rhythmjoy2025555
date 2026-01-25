@@ -14,6 +14,7 @@ export interface BillboardData {
         weekendClassDrop: number;
         classStartDays: number[];
         socialRunDays: number[];
+        visitorTrafficDays: number[];
     };
     dailyFlow: {
         classPeakHour: number;
@@ -89,6 +90,7 @@ export const useMonthlyBillboard = () => {
             // A. Weekly Flow
             const classStartCounts = Array(7).fill(0);
             const socialCounts = Array(7).fill(0);
+            const visitorTrafficCounts = Array(7).fill(0); // [Sun, Mon, ..., Sat]
             let totalClass = 0;
             let totalSocial = 0;
 
@@ -105,6 +107,14 @@ export const useMonthlyBillboard = () => {
                     socialCounts[day]++;
                     totalSocial++;
                 }
+            });
+
+            // Calculate Visitor Traffic from Logs
+            allLogs.forEach((l: any) => {
+                const d = new Date(l.created_at);
+                const kstD = new Date(d.getTime() + (9 * 60 * 60 * 1000));
+                const day = kstD.getUTCDay();
+                visitorTrafficCounts[day]++;
             });
 
             const monTueClass = classStartCounts[1] + classStartCounts[2];
@@ -177,7 +187,8 @@ export const useMonthlyBillboard = () => {
                     weekendSocialRatio,
                     weekendClassDrop,
                     classStartDays: classStartCounts,
-                    socialRunDays: socialCounts
+                    socialRunDays: socialCounts,
+                    visitorTrafficDays: visitorTrafficCounts
                 },
                 dailyFlow: {
                     classPeakHour: maxClassH,
