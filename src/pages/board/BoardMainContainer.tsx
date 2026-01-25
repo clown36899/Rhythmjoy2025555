@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { useBoardData } from '../../contexts/BoardDataContext';
+import { useBoardStaticData } from '../../contexts/BoardDataContext';
 import { useSetPageAction } from '../../contexts/PageActionContext';
 import BoardTabBar, { type BoardCategory } from './components/BoardTabBar';
 import BoardPrefixTabBar from './components/BoardPrefixTabBar';
@@ -24,7 +24,7 @@ import { useBoardInteractions } from './hooks/useBoardInteractions';
 export default function BoardMainContainer() {
     const [searchParams, setSearchParams] = useSearchParams();
     const { user, isAdmin, isAuthCheckComplete } = useAuth();
-    const { data: boardData, refreshData } = useBoardData();
+    const { data: boardData, refreshData } = useBoardStaticData();
     const [isRealAdmin, setIsRealAdmin] = useState(false);
     const [isAdminChecked, setIsAdminChecked] = useState(false);
 

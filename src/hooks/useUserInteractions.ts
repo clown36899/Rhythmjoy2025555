@@ -1,8 +1,9 @@
 import { useEffect, useCallback } from 'react';
-import { useBoardData } from '../contexts/BoardDataContext';
+import { useUserInteractionsContext, useBoardStaticData } from '../contexts/BoardDataContext';
 
 export const useUserInteractions = (userId: string | null) => {
-    const { interactions, loading, error, refreshInteractions, toggleEventFavorite: baseToggle } = useBoardData();
+    const { interactions, refreshInteractions, toggleEventFavorite: baseToggle } = useUserInteractionsContext();
+    const { loading, error } = useBoardStaticData();
 
     useEffect(() => {
         if (userId && !interactions && !loading) {

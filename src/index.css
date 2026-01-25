@@ -333,8 +333,7 @@ html {
 html.modal-open,
 html.modal-open body {
   overflow: hidden !important;
-  height: 100svh !important;
-  /* 터치 액션은 살려두되, 배경 스크롤만 막음 */
+  /* height: 100svh !important; // Removed to prevent scroll reset */
   touch-action: auto;
 }
 

@@ -13,7 +13,7 @@ import { useSocialSchedulesQuery } from "../../../hooks/queries/useSocialSchedul
 import { useUserInteractions } from "../../../hooks/useUserInteractions";
 import { useEventFilters } from "./EventList/hooks/useEventFilters";
 import { useEventSelection } from "./EventList/hooks/useEventSelection";
-import { useBoardData } from "../../../contexts/BoardDataContext";
+import { useBoardStaticData } from "../../../contexts/BoardDataContext";
 import { useRandomizedEvents } from "./EventList/hooks/useRandomizedEvents";
 import { useEffect } from "react";
 
@@ -91,7 +91,7 @@ const EventList: React.FC<EventListProps> = ({
   });
 
   // 3.5 Genre Weights from BoardDataContext
-  const { data: boardData } = useBoardData();
+  const { data: boardData } = useBoardStaticData();
   const genreWeights = boardData?.genre_weights || null;
 
   // 3.6 Memoized Randomized Lists (Moved to custom hook for cleanliness and re-randomization on menu click)

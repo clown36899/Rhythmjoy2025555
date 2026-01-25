@@ -99,18 +99,55 @@ interface BoardStaticData {
     genre_weights?: Record<string, number>; // Added
 }
 
-interface BoardDataContextType {
+
+// --- 1. Static Configuration Context ---
+interface BoardStaticContextType {
     data: BoardStaticData | null;
-    interactions: UserInteractions | null;
     loading: boolean;
     error: string | null;
     refreshData: () => Promise<void>;
+}
+
+const BoardStaticContext = createContext<BoardStaticContextType | undefined>(undefined);
+
+// --- 2. User Interactions Context ---
+interface UserInteractionsContextType {
+    interactions: UserInteractions | null;
     refreshInteractions: (userId: string) => Promise<void>;
     toggleEventFavorite: (userId: string, eventId: number | string) => Promise<void>;
 }
 
-const BoardDataContext = createContext<BoardDataContextType | undefined>(undefined);
+const UserInteractionsContext = createContext<UserInteractionsContextType | undefined>(undefined);
 
+// --- Hooks ---
+export const useBoardStaticData = () => {
+    const context = useContext(BoardStaticContext);
+    if (context === undefined) {
+        throw new Error('useBoardStaticData must be used within a BoardStaticProvider');
+    }
+    return context;
+};
+
+export const useUserInteractionsContext = () => {
+    const context = useContext(UserInteractionsContext);
+    if (context === undefined) {
+        throw new Error('useUserInteractionsContext must be used within a UserInteractionsProvider');
+    }
+    return context;
+};
+
+// Compatibility Hook (combines both)
+export const useBoardData = () => {
+    const staticData = useBoardStaticData();
+    const interactions = useUserInteractionsContext();
+
+    return useMemo(() => ({
+        ...staticData,
+        ...interactions
+    }), [staticData, interactions]);
+};
+
+// --- Providers ---
 export const BoardDataProvider = ({ children }: { children: ReactNode }) => {
     const [data, setData] = useState<BoardStaticData | null>(null);
     const [interactions, setInteractions] = useState<UserInteractions | null>(null);
@@ -126,7 +163,6 @@ export const BoardDataProvider = ({ children }: { children: ReactNode }) => {
             setInteractions(interactionData);
         } catch (err) {
             console.error('[BoardDataContext] Interactions Error:', err);
-            // Fallback to empty
             setInteractions({
                 post_likes: [], post_dislikes: [], post_favorites: [],
                 anonymous_post_likes: [], anonymous_post_dislikes: [],
@@ -139,7 +175,6 @@ export const BoardDataProvider = ({ children }: { children: ReactNode }) => {
     }, []);
 
     const toggleEventFavorite = useCallback(async (userId: string, eventId: number | string) => {
-        // Only allow numeric IDs to be favorited as they exist in the events table
         const numericId = typeof eventId === 'number' ? eventId : Number(eventId);
         if (isNaN(numericId)) return;
 
@@ -161,7 +196,6 @@ export const BoardDataProvider = ({ children }: { children: ReactNode }) => {
                 if (error) throw error;
             }
 
-            // Immediately refresh local state
             await fetchInteractions(userId);
         } catch (err) {
             console.error('[BoardDataContext] toggleEventFavorite Error:', err);
@@ -179,12 +213,9 @@ export const BoardDataProvider = ({ children }: { children: ReactNode }) => {
 
             const { data: rpcData, error: rpcError } = await supabase.rpc('get_board_static_data');
 
-            // Abort check after await
             if (signal.aborted) return;
-
             if (rpcError) throw rpcError;
 
-            // Ensure genre_weights has at least an empty object for safety
             const processedData = {
                 ...rpcData,
                 genre_weights: rpcData.genre_weights || {}
@@ -192,9 +223,7 @@ export const BoardDataProvider = ({ children }: { children: ReactNode }) => {
 
             setData(processedData);
         } catch (err) {
-            // Ignore abort errors
             if (signal.aborted) return;
-
             console.error('[BoardDataContext] Error:', err);
             setError((err as Error).message);
         } finally {
@@ -217,27 +246,25 @@ export const BoardDataProvider = ({ children }: { children: ReactNode }) => {
         await fetchData();
     }, [fetchData]);
 
-    const contextValue = useMemo(() => ({
+    // Separate Values for Better Granularity
+    const staticValue = useMemo(() => ({
         data,
-        interactions,
         loading,
         error,
-        refreshData,
+        refreshData
+    }), [data, loading, error, refreshData]);
+
+    const interactionValue = useMemo(() => ({
+        interactions,
         refreshInteractions: fetchInteractions,
         toggleEventFavorite
-    }), [data, interactions, loading, error, refreshData, fetchInteractions, toggleEventFavorite]);
+    }), [interactions, fetchInteractions, toggleEventFavorite]);
 
     return (
-        <BoardDataContext.Provider value={contextValue}>
-            {children}
-        </BoardDataContext.Provider>
+        <BoardStaticContext.Provider value={staticValue}>
+            <UserInteractionsContext.Provider value={interactionValue}>
+                {children}
+            </UserInteractionsContext.Provider>
+        </BoardStaticContext.Provider>
     );
-};
-
-export const useBoardData = () => {
-    const context = useContext(BoardDataContext);
-    if (context === undefined) {
-        throw new Error('useBoardData must be used within a BoardDataProvider');
-    }
-    return context;
 };
