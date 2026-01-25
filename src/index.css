@@ -328,3 +328,20 @@ html {
     transform: rotate(360deg);
   }
 }
+
+/* [Standard Fix] 전역 모달 오픈 시 배경 스크롤 원천 차단 */
+html.modal-open,
+html.modal-open body {
+  overflow: hidden !important;
+  height: 100svh !important;
+  overscroll-behavior: none !important;
+  touch-action: none !important;
+}
+
+/* 모달 내부의 스크롤은 허용 */
+.modal-open .modal-content-area,
+.modal-open .content-area,
+.modal-open [class*="content"] {
+  touch-action: auto !important;
+  overscroll-behavior: contain !important;
+}

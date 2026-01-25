@@ -12,6 +12,8 @@ import CalendarSearchModal from '../pages/v2/components/CalendarSearchModal';
 import VenueSelectModal from '../pages/v2/components/VenueSelectModal';
 import ManualVenueInputModal from '../pages/v2/components/ManualVenueInputModal';
 import AdminBillboardModal from '../pages/v2/components/AdminBillboardModal';
+import StatsModal from '../pages/v2/components/StatsModal';
+import RegistrationChoiceModal from '../pages/v2/components/RegistrationChoiceModal';
 
 // Social Modals
 import SocialDetailModal from '../pages/social/components/SocialDetailModal';
@@ -76,6 +78,8 @@ const MODAL_COMPONENTS: Record<string, any> = {
     'venueSelect': VenueSelectModal,
     'manualVenueInput': ManualVenueInputModal,
     'adminBillboard': AdminBillboardModal,
+    'stats': StatsModal,
+    'registrationChoice': RegistrationChoiceModal,
 
     // Social Modals
     'socialDetail': SocialDetailModal,

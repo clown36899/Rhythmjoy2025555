@@ -107,7 +107,6 @@ const MonthlyWebzine = () => {
                     .scroll-list {
                         overflow-y: auto;
                         padding-right: 2px;
-                        overscroll-behavior: contain;
                     }
                     .scroll-list::-webkit-scrollbar { width: 4px; }
                     .scroll-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 4px; }

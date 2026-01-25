@@ -197,24 +197,6 @@ export default function EventDetailModal({
     return startDate ? startDate < today : false;
   }, [displayEvent]);
 
-  // Lock body scroll when modal is open
-  useEffect(() => {
-    if (isOpen) {
-      document.documentElement.style.overflow = 'hidden';
-      document.body.style.overflow = 'hidden';
-      // Optional: Prevent iOS rubber banding on body
-      document.body.style.touchAction = 'none';
-    } else {
-      document.documentElement.style.overflow = '';
-      document.body.style.overflow = '';
-      document.body.style.touchAction = '';
-    }
-    return () => {
-      document.documentElement.style.overflow = '';
-      document.body.style.overflow = '';
-      document.body.style.touchAction = '';
-    };
-  }, [isOpen]);
 
   const handleLogin = () => {
     signInWithKakao();

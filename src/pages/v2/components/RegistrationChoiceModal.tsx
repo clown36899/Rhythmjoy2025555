@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import './RegistrationChoiceModal.css';
 
@@ -26,17 +26,6 @@ const RegistrationChoiceModal: React.FC<RegistrationChoiceModalProps> = ({
             navigate('/social?action=register_social');
         }
     };
-
-    useEffect(() => {
-        if (isOpen) {
-            document.body.style.overflow = 'hidden';
-        } else {
-            document.body.style.overflow = '';
-        }
-        return () => {
-            document.body.style.overflow = '';
-        };
-    }, [isOpen]);
 
     if (!isOpen) return null;
 

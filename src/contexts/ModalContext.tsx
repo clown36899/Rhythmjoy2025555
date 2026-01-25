@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, type ReactNode, useMemo } from 'react';
+import { createContext, useContext, useState, useCallback, type ReactNode, useMemo, useEffect } from 'react';
 
 // 1. 상태(State) 인터페이스
 interface ModalStateData {
@@ -27,6 +27,20 @@ const ModalDispatchContext = createContext<ModalDispatchContextType | undefined>
 export function ModalProvider({ children }: { children: ReactNode }) {
     const [modals, setModals] = useState<Record<string, ModalStateData>>({});
     const [modalStack, setModalStack] = useState<string[]>([]);
+
+    // [Standard Fix] Global Body Scroll Lock
+    // 모달이 하나라도 열려있으면 배경 스크롤을 완전히 차단합니다.
+    useEffect(() => {
+        const root = document.documentElement;
+        if (modalStack.length > 0) {
+            root.classList.add('modal-open');
+            return () => {
+                root.classList.remove('modal-open');
+            };
+        } else {
+            root.classList.remove('modal-open');
+        }
+    }, [modalStack.length]);
 
     const openModal = useCallback((modalId: string, props?: any) => {
         setModals(prev => ({

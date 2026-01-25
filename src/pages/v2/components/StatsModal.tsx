@@ -14,6 +14,7 @@ interface StatsModalProps {
     initialTab?: 'my' | 'scene' | 'monthly'; // [NEW] Optional initial tab
 }
 
+
 export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' }: StatsModalProps) {
     const [events, setEvents] = useState<SupabaseEvent[]>([]);
     const [posts, setPosts] = useState<StandardBoardPost[]>([]);
@@ -65,7 +66,9 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
     if (!isOpen) return null;
 
     return (
-        <div className="stats-modal-overlay">
+        <div className="stats-modal-overlay" onClick={(e) => {
+            if (e.target === e.currentTarget) onClose();
+        }}>
             <style>{`
                 .stats-modal-overlay {
                     position: fixed;
@@ -74,12 +77,12 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
                     right: 0;
                     bottom: 0;
                     background: rgba(0, 0, 0, 0.7);
-                    backdrop-filter: blur(4px);
+                    backdrop-filter: blur(8px);
                     z-index: 1000;
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    animation: fadeIn 0.2s ease-out;
+                    animation: fadeIn 0.15s ease-out;
                 }
                 
                 .stats-modal {
@@ -302,6 +305,6 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 }
