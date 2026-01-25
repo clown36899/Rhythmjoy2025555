@@ -8,6 +8,14 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '3.7.15',
+        date: '2026-01-25',
+        changes: [
+            '[🐛 Fix] 전체 달력 상세 모달 내용 누락 수정 (ID 오프셋 복원 로직 적용)',
+            '[🎨 UI] 하단 네비게이션 FAB 버튼 스타일 개선 (게시판 스타일로 통일)'
+        ]
+    },
+    {
         version: '3.7.14',
         date: '2026-01-25',
         changes: [
