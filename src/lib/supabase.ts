@@ -187,11 +187,14 @@ export const validateAndRecoverSession = async (): Promise<any> => {
 
   // 검증 프로세스를 프로미스 변수에 할당하여 락킹 시작
   validationPromise = (async () => {
+    let localSession: any = null;
+
     try {
       const now = Date.now();
 
       // 1. 단기 캐시 확인 (60초 이내면 서버 호출 없이 로컬 세션 반환)
-      const { data: { session: localSession } } = await supabase.auth.getSession();
+      const { data: { session: cachedSession } } = await supabase.auth.getSession();
+      localSession = cachedSession;
 
       if (localSession && (now - lastValidationTime < VALIDATION_CACHE_TIME)) {
         authLogger.log('[Supabase] ⚡ Using cached session validation (Short-circuit)');
@@ -302,7 +305,13 @@ export const validateAndRecoverSession = async (): Promise<any> => {
       lastValidationTime = Date.now();
       return session;
     } catch (e) {
-      console.error('[Supabase] 💥 Session recovery failed:', e);
+      console.error('[Supabase] 💥 Session recovery failed (General Error):', e);
+      // [FIX] 알 수 없는 에러(네트워크 등) 발생 시 무조건 로그아웃 하지 않고, 로컬 세션이 있으면 유지
+      // (보안 토큰이 만료되었더라도 오프라인 모드로 진입하는 것이 UX상 유리)
+      if (localSession) {
+        console.warn('[Supabase] 🛡️ Fallback to local session due to recovery failure');
+        return localSession;
+      }
       return null;
     } finally {
       // 락 해제
