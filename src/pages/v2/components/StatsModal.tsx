@@ -4,7 +4,8 @@ import MyImpactCard from '../../user/components/MyImpactCard';
 import type { Event as SupabaseEvent } from '../../../lib/supabase';
 import type { StandardBoardPost } from '../../../types/board';
 import SwingSceneStats from './SwingSceneStats.tsx';
-import { useAuth } from '../../../contexts/AuthContext';
+import MonthlyWebzine from './MonthlyBillboard/MonthlyWebzine';
+
 
 interface StatsModalProps {
     isOpen: boolean;
@@ -207,15 +208,7 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
                         )}
 
                         {activeTab === 'monthly' && (
-                            <div style={{ padding: '40px 0', textAlign: 'center', color: '#a1a1aa' }}>
-                                <div style={{ fontSize: '40px', marginBottom: '16px', opacity: 0.5 }}>📊</div>
-                                <h3 style={{ margin: '0 0 8px 0', color: '#fff' }}>월간 인사이트 리포트</h3>
-                                <p style={{ fontSize: '13px', lineHeight: '1.5' }}>
-                                    매월 스윙씬의 주요 흐름과 데이터를<br />
-                                    보기 쉬운 웹진 형태로 제공할 예정입니다.<br />
-                                    (준비 중)
-                                </p>
-                            </div>
+                            <MonthlyWebzine />
                         )}
                     </div>
                 )}

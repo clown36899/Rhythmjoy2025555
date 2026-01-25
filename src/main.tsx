@@ -68,6 +68,7 @@ import HistoryTimelinePage from './pages/history/HistoryTimelinePage';
 import KakaoCallbackPage from './pages/auth/kakao-callback/page';
 import SiteMapPage from './pages/sitemap/SiteMapPage';
 import MainV2TestPage from './pages/test/MainV2TestPage';
+import SurveyTestPage from './pages/test/SurveyTestPage';
 
 const router = createBrowserRouter([
   {
@@ -153,6 +154,10 @@ const router = createBrowserRouter([
       {
         path: "main-v2-test",
         element: <MainV2TestPage />,
+      },
+      {
+        path: "test/survey",
+        element: <SurveyTestPage />,
       },
       {
         element: <ArchiveLayout />,
