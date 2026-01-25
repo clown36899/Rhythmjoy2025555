@@ -2,7 +2,7 @@
 
 /* Modal Scroll Container - Prevent footer overlap */
 .modal-scroll-container {
-    padding-bottom: 100px;
+    padding-bottom: 0;
     /* Footer height (80px) + extra spacing (20px) */
 }
 
@@ -660,6 +660,7 @@
     justify-content: center;
     width: 100%;
 }
+
 /* Desktop Layout (768px+) - Matching EventDetailModal */
 @media (min-width: 768px) {
     .event-detail-modal-container {
@@ -701,12 +702,15 @@
     .info-section {
         flex: 1 !important;
         overflow-y: auto !important;
-        padding: 0 32px 120px 32px !important; /* Space for fixed footer */
-        scrollbar-width: none; /* Firefox */
+        padding: 0 32px 0 32px !important;
+        /* Removed 120px bottom padding */
+        scrollbar-width: none;
+        /* Firefox */
     }
 
     .info-section::-webkit-scrollbar {
-        display: none; /* Chrome, Safari, Edge */
+        display: none;
+        /* Chrome, Safari, Edge */
     }
 
     .sticky-header {
@@ -748,7 +752,8 @@
 }
 
 .classification-selector .category-badge {
-    position: static !important; /* Override absolute position from EventDetailModal.css */
+    position: static !important;
+    /* Override absolute position from EventDetailModal.css */
     margin: 0 !important;
     padding: 4px 8px !important;
     font-size: 0.75rem !important;
@@ -786,7 +791,8 @@
     .bottom-sheet-content {
         max-width: 500px !important;
         width: 100% !important;
-        border-radius: 24px !important; /* All corners rounded for desktop modal feel */
+        border-radius: 24px !important;
+        /* All corners rounded for desktop modal feel */
         border: 1px solid rgba(255, 255, 255, 0.1) !important;
         max-height: 90vh !important;
         animation: modalEnter 0.3s cubic-bezier(0.19, 1, 0.22, 1) !important;
@@ -794,7 +800,8 @@
     }
 
     .bottom-sheet-handle {
-        display: none !important; /* No need for swipe handle on desktop */
+        display: none !important;
+        /* No need for swipe handle on desktop */
     }
 
     .bottom-sheet-body {
@@ -836,8 +843,8 @@
 }
 
 /* Genre and Category Grid Buttons refinement */
-.genre-grid-btn, 
-.editable-genre-btn, 
+.genre-grid-btn,
+.editable-genre-btn,
 .editable-category-btn {
     background: rgba(255, 255, 255, 0.05) !important;
     border: 1px solid rgba(255, 255, 255, 0.1) !important;
@@ -849,8 +856,8 @@
     cursor: pointer !important;
 }
 
-.genre-grid-btn:hover, 
-.editable-genre-btn:hover, 
+.genre-grid-btn:hover,
+.editable-genre-btn:hover,
 .editable-category-btn:hover {
     background: rgba(255, 255, 255, 0.1) !important;
     border-color: rgba(255, 255, 255, 0.2) !important;
@@ -858,7 +865,7 @@
     transform: translateY(-1px) !important;
 }
 
-.genre-grid-btn.active, 
+.genre-grid-btn.active,
 .editable-genre-btn.active,
 .editable-category-btn.event-active,
 .editable-category-btn.class-active {

@@ -91,8 +91,14 @@ export default function HomePageV2() {
     }, [user, signInWithKakao, baseToggleEventFavorite]);
 
     // [Standard Fix] Open Detail Modal via Global Registry
+    const lastOpenedEventIdRef = useRef<string | number | null>(null);
+
     useEffect(() => {
         if (selectedEvent) {
+            // Guard: Only open if it's a new event or the modal was closed
+            if (lastOpenedEventIdRef.current === selectedEvent.id) return;
+
+            lastOpenedEventIdRef.current = selectedEvent.id;
             openModal('eventDetail', {
                 event: selectedEvent,
                 onEdit: handleEditClick,
@@ -105,8 +111,14 @@ export default function HomePageV2() {
                 onToggleFavorite: (e: React.MouseEvent) => toggleFavorite(selectedEvent.id, e),
                 isDeleting: isDeleting,
                 deleteProgress: deleteProgress,
-                onClose: () => setSelectedEvent(null)
+                onClose: () => {
+                    setSelectedEvent(null);
+                    lastOpenedEventIdRef.current = null;
+                    closeModal('eventDetail'); // Sync with global stack
+                }
             });
+        } else {
+            lastOpenedEventIdRef.current = null;
         }
     }, [selectedEvent, openModal, handleEditClick, handleDeleteClick, effectiveIsAdmin, user?.id, handleVenueClick, allGenres, favoriteEventIds, toggleFavorite, isDeleting, deleteProgress, setSelectedEvent]);
 

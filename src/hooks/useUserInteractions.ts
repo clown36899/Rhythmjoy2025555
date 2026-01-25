@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useBoardData } from '../contexts/BoardDataContext';
 
 export const useUserInteractions = (userId: string | null) => {
@@ -10,11 +10,19 @@ export const useUserInteractions = (userId: string | null) => {
         }
     }, [userId, interactions, loading, refreshInteractions]);
 
+    const refreshInteractionsCallback = useCallback(() => {
+        return userId ? refreshInteractions(userId) : Promise.resolve();
+    }, [userId, refreshInteractions]);
+
+    const toggleEventFavoriteCallback = useCallback((eventId: number | string) => {
+        return userId ? baseToggle(userId, eventId) : Promise.resolve();
+    }, [userId, baseToggle]);
+
     return {
         interactions,
         loading,
         error,
-        refreshInteractions: () => userId ? refreshInteractions(userId) : Promise.resolve(),
-        toggleEventFavorite: (eventId: number | string) => userId ? baseToggle(userId, eventId) : Promise.resolve()
+        refreshInteractions: refreshInteractionsCallback,
+        toggleEventFavorite: toggleEventFavoriteCallback
     };
 };

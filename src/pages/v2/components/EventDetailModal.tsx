@@ -1613,18 +1613,6 @@ export default function EventDetailModal({
                       );
                     })()}
 
-                  {/* Debug Permission Info */}
-                  {(() => {
-                    const effectiveUserId = currentUserId || user?.id;
-                    const isOwner = effectiveUserId && selectedEvent.user_id === effectiveUserId;
-                    console.log('[EventDetail] ✅ Permission Check:', {
-                      isAdminMode,
-                      effectiveUserId,
-                      eventUserId: selectedEvent.user_id,
-                      isMatch: isOwner
-                    });
-                    return null;
-                  })()}
 
                   {(isAdminMode || ((currentUserId || user?.id) && selectedEvent.user_id === (currentUserId || user?.id))) &&
                     (selectedEvent.organizer_name ||

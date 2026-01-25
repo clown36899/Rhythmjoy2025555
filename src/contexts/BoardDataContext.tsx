@@ -213,9 +213,9 @@ export const BoardDataProvider = ({ children }: { children: ReactNode }) => {
         };
     }, [fetchData]);
 
-    const refreshData = async () => {
+    const refreshData = useCallback(async () => {
         await fetchData();
-    };
+    }, [fetchData]);
 
     const contextValue = useMemo(() => ({
         data,

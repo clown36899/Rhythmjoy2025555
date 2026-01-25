@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useMonthlyBillboard } from '../../hooks/useMonthlyBillboard';
+import MonthlyLogDetailModal from './MonthlyLogDetailModal';
 
 // --- Premium Dark Mode Colors (Used for Chart Logic & Dynamic Styles) ---
 const colors = {
@@ -80,8 +81,10 @@ const mwStyles = `
                 .mw-meta-box {
                     font-size: 10px; color: #a1a1aa; background: rgba(255,255,255,0.03);
                     padding: 4px 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);
-                    text-align: right;
+                    text-align: right; cursor: pointer; transition: all 0.2s ease;
                 }
+                .mw-meta-box:hover { background: rgba(255,255,255,0.08); border-color: rgba(251, 191, 36, 0.3); transform: translateY(-1px); }
+                .mw-meta-box:active { transform: translateY(0); opacity: 0.8; }
                 .mw-highlight-dot { color: #fbbf24; }
                 .mw-meta-sub { opacity: 0.6; }
 
@@ -241,10 +244,11 @@ const MonthlyWebzine = () => {
     const [viewMode, setViewMode] = useState<'percent' | 'count'>('percent');
     const [userActivityInfo, setUserActivityInfo] = useState<{ day: string, val: number, idx: number } | null>(null);
     const [hoverHour, setHoverHour] = useState<number | null>(null);
+    const [showDetailModal, setShowDetailModal] = useState(false);
 
-    // Initial Tooltip Setup
+    // Initial Tooltip Setup - Set only once when data becomes available
     useEffect(() => {
-        if (data?.weeklyFlow?.visitorTrafficDays) {
+        if (data?.weeklyFlow?.visitorTrafficDays && !userActivityInfo) {
             const traffic = data.weeklyFlow.visitorTrafficDays;
             const maxVal = Math.max(...traffic, 0);
             const maxIdx = traffic.indexOf(maxVal);
@@ -253,14 +257,14 @@ const MonthlyWebzine = () => {
                 setUserActivityInfo({ day: days[maxIdx], val: maxVal, idx: maxIdx });
             }
         }
-    }, [data]);
+    }, [data, userActivityInfo]);
 
     const { weeklyFlow, dailyFlow, leadTime, topContents, meta } = data || {
         weeklyFlow: { classStartDays: [], socialRunDays: [], visitorTrafficDays: [] },
         dailyFlow: { hourlyData: [], rawHourlyData: [], classPeakHour: 0, eventPeakHour: 0 },
         leadTime: { classD28: 0, eventD42: 0 },
         topContents: [],
-        meta: { totalLogs: 0, range: '' }
+        meta: { totalLogs: 0, uniqueVisitors: 0, clickRate: 0, range: '' }
     };
 
     const getHourLabel = (h: number) => {
@@ -337,8 +341,8 @@ const MonthlyWebzine = () => {
                         <h1 className="mw-headline">동호회의 주말, 외부 강습의 평일.</h1>
                     </div>
 
-                    <div className="mw-meta-box">
-                        <div style={{ marginBottom: '2px' }}><span className="mw-highlight-dot">●</span> <strong>Data</strong>: {meta.totalLogs.toLocaleString()} Logs Analysis</div>
+                    <div className="mw-meta-box" onClick={() => setShowDetailModal(true)}>
+                        <div style={{ marginBottom: '2px' }}><span className="mw-highlight-dot">●</span> <strong>Data</strong>: {meta.uniqueVisitors.toLocaleString()} Visitors ({meta.totalLogs.toLocaleString()} Logs)</div>
                         <div><span className="mw-meta-sub">Range: {meta.range}</span></div>
                     </div>
                 </div>
@@ -543,7 +547,7 @@ const MonthlyWebzine = () => {
                     {/* Col 3: Ranking (Scrollable) */}
                     <div className="mw-col dashboard-col">
                         <section className="mw-card flex-1 no-bg">
-                            <h3 className="mw-section-title pl-1">4. 1월의 화제 (Top 20)</h3>
+                            <h3 className="mw-section-title pl-1">4. 1월 조회수 (Top 20)</h3>
 
                             <div className="ranking-container scroll-list">
                                 {topContents.slice(0, 20).map((item: any, index: number) => (
@@ -569,6 +573,12 @@ const MonthlyWebzine = () => {
                     </div>
 
                 </div>
+                {/* Modal Registry */}
+                <MonthlyLogDetailModal
+                    isOpen={showDetailModal}
+                    onClose={() => setShowDetailModal(false)}
+                    data={meta}
+                />
             </div>
         </div>
     );

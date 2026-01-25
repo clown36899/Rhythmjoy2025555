@@ -6,6 +6,8 @@ export interface BillboardData {
     loading: boolean;
     meta: {
         totalLogs: number;
+        uniqueVisitors: number;
+        clickRate: number;
         range: string;
     };
     weeklyFlow: {
@@ -49,8 +51,8 @@ export const useMonthlyBillboard = () => {
             try {
                 const { timestamp, data, v } = JSON.parse(cached);
                 const now = new Date().getTime();
-                // 1 Hour Cache + Version Invalidation (v3)
-                if (v === 'v3' && now - timestamp < 3600 * 1000) {
+                // 1 Hour Cache + Version Invalidation (v9)
+                if (v === 'v9' && now - timestamp < 3600 * 1000) {
                     setData(data);
                     setLoading(false);
                     return;
@@ -76,9 +78,10 @@ export const useMonthlyBillboard = () => {
             while (logHasMore && logPage < 30) {
                 const { data: logs, error: lError } = await supabase
                     .from('site_analytics_logs')
-                    .select('created_at, target_type, target_title')
+                    .select('created_at, target_type, target_title, session_id, user_id, fingerprint')
                     .gte('created_at', startDate)
                     .lte('created_at', endDate)
+                    .eq('is_admin', false)
                     .range(logPage * pageSize, (logPage + 1) * pageSize - 1);
 
                 if (lError) throw lError;
@@ -101,6 +104,19 @@ export const useMonthlyBillboard = () => {
             if (eError) throw eError;
 
             // --- Analysis ---
+            const TEST_USER_PREFIX = '91b04b25';
+            const validLogs = allLogs.filter(l => !(l.user_id && l.user_id.startsWith(TEST_USER_PREFIX)));
+
+            // [UNIFY] Identical Identifier Logic (Matches Global Stats RPC)
+            const visitorUniqueSet = new Set();
+            validLogs.forEach(l => {
+                const identifier = l.user_id || l.fingerprint || 'unknown';
+                const timeBucket = Math.floor(new Date(l.created_at).getTime() / (21600000)); // 6h in ms
+                visitorUniqueSet.add(`${identifier}:${timeBucket}`);
+            });
+
+            const uniqueVisitors = visitorUniqueSet.size || 1;
+            const clickRate = Number((validLogs.length / uniqueVisitors).toFixed(1));
 
             // A. Weekly Flow
             const classStartCounts = Array(7).fill(0);
@@ -125,7 +141,7 @@ export const useMonthlyBillboard = () => {
             });
 
             // Calculate Visitor Traffic from Logs
-            allLogs.forEach((l: any) => {
+            validLogs.forEach((l: any) => {
                 const d = new Date(l.created_at);
                 const kstD = new Date(d.getTime() + (9 * 60 * 60 * 1000));
                 const day = kstD.getUTCDay();
@@ -144,7 +160,7 @@ export const useMonthlyBillboard = () => {
             let totalEventViews = 0;
 
             // Process Logs (Clicks/Views)
-            allLogs.forEach((l: any) => {
+            validLogs.forEach((l: any) => {
                 const d = new Date(l.created_at);
                 const kstD = new Date(d.getTime() + (9 * 60 * 60 * 1000));
                 const hour = kstD.getUTCHours();
@@ -179,7 +195,7 @@ export const useMonthlyBillboard = () => {
 
             // C. Lead Time & Top 20 
             const contentMap = new Map<string, RankingItem>();
-            allLogs.forEach((l: any) => {
+            validLogs.forEach((l: any) => {
                 if (!['event', 'class'].includes(l.target_type)) return;
                 const key = `${l.target_type}_${l.target_title}`;
                 if (!contentMap.has(key)) {
@@ -197,7 +213,9 @@ export const useMonthlyBillboard = () => {
             const result: BillboardData = {
                 loading: false,
                 meta: {
-                    totalLogs: allLogs.length,
+                    totalLogs: validLogs.length,
+                    uniqueVisitors: uniqueVisitors,
+                    clickRate: clickRate,
                     range: 'Jan 1 - Jan 31'
                 },
                 weeklyFlow: {
@@ -231,7 +249,7 @@ export const useMonthlyBillboard = () => {
                 localStorage.setItem('monthly_billboard_cache', JSON.stringify({
                     timestamp: new Date().getTime(),
                     data: result,
-                    v: 'v3'
+                    v: 'v9'
                 }));
             } catch (e) {
                 console.error('Cache save failed', e);
