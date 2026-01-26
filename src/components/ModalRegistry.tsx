@@ -1,76 +1,74 @@
-import { memo } from 'react';
+import { memo, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { useModalContext } from '../contexts/ModalContext';
 
-// Event Modals (v2)
-import EventDetailModal from '../pages/v2/components/EventDetailModal';
+// --- Lazy Loading Definitions ---
 
-import EventPasswordModal from '../pages/v2/components/EventPasswordModal';
-import EventSearchModal from '../pages/v2/components/EventSearchModal';
-import EventSortModal from '../pages/v2/components/EventSortModal';
-import CalendarSearchModal from '../pages/v2/components/CalendarSearchModal';
-import VenueSelectModal from '../pages/v2/components/VenueSelectModal';
-import ManualVenueInputModal from '../pages/v2/components/ManualVenueInputModal';
-import AdminBillboardModal from '../pages/v2/components/AdminBillboardModal';
-import StatsModal from '../pages/v2/components/StatsModal';
-import RegistrationChoiceModal from '../pages/v2/components/RegistrationChoiceModal';
+// Event Modals (v2)
+const EventDetailModal = lazy(() => import('../pages/v2/components/EventDetailModal'));
+const EventPasswordModal = lazy(() => import('../pages/v2/components/EventPasswordModal'));
+const EventSearchModal = lazy(() => import('../pages/v2/components/EventSearchModal'));
+const EventSortModal = lazy(() => import('../pages/v2/components/EventSortModal'));
+const CalendarSearchModal = lazy(() => import('../pages/v2/components/CalendarSearchModal'));
+const VenueSelectModal = lazy(() => import('../pages/v2/components/VenueSelectModal'));
+const ManualVenueInputModal = lazy(() => import('../pages/v2/components/ManualVenueInputModal'));
+const AdminBillboardModal = lazy(() => import('../pages/v2/components/AdminBillboardModal'));
+const StatsModal = lazy(() => import('../pages/v2/components/StatsModal'));
+const RegistrationChoiceModal = lazy(() => import('../pages/v2/components/RegistrationChoiceModal'));
 
 // Social Modals
-import SocialDetailModal from '../pages/social/components/SocialDetailModal';
-import SocialEditModal from '../pages/social/components/SocialEditModal';
-import SocialEventModal from '../pages/social/components/SocialEventModal';
-import SocialPasswordModal from '../pages/social/components/SocialPasswordModal';
-import SocialPlaceDetailModal from '../pages/social/components/SocialPlaceDetailModal';
-import PlaceModal from '../pages/social/components/PlaceModal';
-import ScheduleModal from '../pages/social/components/ScheduleModal';
-import SocialScheduleModal from '../pages/social/components/SocialScheduleModal';
+const SocialDetailModal = lazy(() => import('../pages/social/components/SocialDetailModal'));
+const SocialEditModal = lazy(() => import('../pages/social/components/SocialEditModal'));
+const SocialEventModal = lazy(() => import('../pages/social/components/SocialEventModal'));
+const SocialPasswordModal = lazy(() => import('../pages/social/components/SocialPasswordModal'));
+const SocialPlaceDetailModal = lazy(() => import('../pages/social/components/SocialPlaceDetailModal'));
+const PlaceModal = lazy(() => import('../pages/social/components/PlaceModal'));
+const ScheduleModal = lazy(() => import('../pages/social/components/ScheduleModal'));
+const SocialScheduleModal = lazy(() => import('../pages/social/components/SocialScheduleModal'));
 
 // Shopping Modals
-import ShopDetailModal from '../pages/shopping/components/ShopDetailModal';
-import ShopEditModal from '../pages/shopping/components/ShopEditModal';
-import ShopRegisterModal from '../pages/shopping/components/ShopRegisterModal';
+const ShopDetailModal = lazy(() => import('../pages/shopping/components/ShopDetailModal'));
+const ShopEditModal = lazy(() => import('../pages/shopping/components/ShopEditModal'));
+const ShopRegisterModal = lazy(() => import('../pages/shopping/components/ShopRegisterModal'));
 
 // Practice Modals
-import VenueDetailModal from '../pages/practice/components/VenueDetailModal';
-import VenueRegistrationModal from '../pages/practice/components/VenueRegistrationModal';
+const VenueDetailModal = lazy(() => import('../pages/practice/components/VenueDetailModal'));
+const VenueRegistrationModal = lazy(() => import('../pages/practice/components/VenueRegistrationModal'));
 
 // Board Modals
-import PostDetailModal from '../pages/board/components/PostDetailModal';
-import PostEditorModal from '../pages/board/components/PostEditorModal';
-import ProfileEditModal from '../pages/board/components/ProfileEditModal';
-import UserRegistrationModal from '../pages/board/components/UserRegistrationModal';
-import BoardManagementModal from '../pages/board/components/BoardManagementModal';
+const PostDetailModal = lazy(() => import('../pages/board/components/PostDetailModal'));
+const PostEditorModal = lazy(() => import('../pages/board/components/PostEditorModal'));
+const ProfileEditModal = lazy(() => import('../pages/board/components/ProfileEditModal'));
+const UserRegistrationModal = lazy(() => import('../pages/board/components/UserRegistrationModal'));
+const BoardManagementModal = lazy(() => import('../pages/board/components/BoardManagementModal'));
 
 // Global Component Modals
-import EventRegistrationModal from '../components/EventRegistrationModal';
-import FullscreenDateEventsModal from '../components/FullscreenDateEventsModal';
-import GlobalSearchModal from '../components/GlobalSearchModal';
-import LoginModal from '../components/LoginModal';
-import QRCodeModal from '../components/QRCodeModal';
-import ColorSettingsModal from '../components/ColorSettingsModal';
-import DefaultThumbnailSettingsModal from '../components/DefaultThumbnailSettingsModal';
-import InvitationManagementModal from '../components/InvitationManagementModal';
-
-import { OnlineUsersModal } from '../components/OnlineUsersModal';
-import GlobalNoticeEditor from '../components/GlobalNoticeEditor';
+const EventRegistrationModal = lazy(() => import('../components/EventRegistrationModal'));
+const FullscreenDateEventsModal = lazy(() => import('../components/FullscreenDateEventsModal'));
+const GlobalSearchModal = lazy(() => import('../components/GlobalSearchModal'));
+const LoginModal = lazy(() => import('../components/LoginModal'));
+const QRCodeModal = lazy(() => import('../components/QRCodeModal'));
+const ColorSettingsModal = lazy(() => import('../components/ColorSettingsModal'));
+const DefaultThumbnailSettingsModal = lazy(() => import('../components/DefaultThumbnailSettingsModal'));
+const InvitationManagementModal = lazy(() => import('../components/InvitationManagementModal'));
+const GlobalNoticeEditor = lazy(() => import('../components/GlobalNoticeEditor'));
 
 // Admin Modals
-import BillboardUserManagementModal from '../components/BillboardUserManagementModal';
-import BoardPrefixManagementModal from '../components/BoardPrefixManagementModal';
-import BoardUserManagementModal from '../components/BoardUserManagementModal';
-import AdminFavoritesModal from '../components/AdminFavoritesModal';
-import AdminSecureMembersModal from '../components/AdminSecureMembersModal';
-import GenreWeightSettingsModal from '../components/GenreWeightSettingsModal';
-import SiteAnalyticsModal from '../components/SiteAnalyticsModal';
+const BillboardUserManagementModal = lazy(() => import('../components/BillboardUserManagementModal'));
+const BoardPrefixManagementModal = lazy(() => import('../components/BoardPrefixManagementModal'));
+const BoardUserManagementModal = lazy(() => import('../components/BoardUserManagementModal'));
+const AdminFavoritesModal = lazy(() => import('../components/AdminFavoritesModal'));
+const AdminSecureMembersModal = lazy(() => import('../components/AdminSecureMembersModal'));
+const GenreWeightSettingsModal = lazy(() => import('../components/GenreWeightSettingsModal'));
+const SiteAnalyticsModal = lazy(() => import('../components/SiteAnalyticsModal'));
+const OnlineUsersModal = lazy(() => import('../components/OnlineUsersModal').then(module => ({ default: module.OnlineUsersModal })));
 
 /**
  * 모든 모달 컴포넌트를 ID로 매핑
- * 새로운 모달을 추가할 때는 여기에 등록해야 함
  */
 const MODAL_COMPONENTS: Record<string, any> = {
     // Event Modals (v2)
     'eventDetail': EventDetailModal,
-
     'eventPassword': EventPasswordModal,
     'eventSearch': EventSearchModal,
     'eventSort': EventSortModal,
@@ -111,13 +109,11 @@ const MODAL_COMPONENTS: Record<string, any> = {
     'eventRegistration': EventRegistrationModal,
     'fullscreenDateEvents': FullscreenDateEventsModal,
     'globalSearch': GlobalSearchModal,
-    // 'imageCrop': ImageCropModal, // 로컬 렌더링 사용 (EventList 등에서 중복 렌더링 방지)
     'qrCode': QRCodeModal,
     'login': LoginModal,
     'colorSettings': ColorSettingsModal,
     'defaultThumbnailSettings': DefaultThumbnailSettingsModal,
     'invitationManagement': InvitationManagementModal,
-
     'onlineUsers': OnlineUsersModal,
 
     // Admin Modals
@@ -133,8 +129,6 @@ const MODAL_COMPONENTS: Record<string, any> = {
 
 /**
  * 모든 모달을 렌더링하는 레지스트리 컴포넌트
- * ModalContext의 modalStack을 기반으로 활성화된 모달만 렌더링
- * createPortal을 사용하여 document.body에 직접 렌더링
  */
 export const ModalRegistry = memo(function ModalRegistry() {
     const { modalStack, getModalProps, closeModal } = useModalContext();
@@ -150,16 +144,16 @@ export const ModalRegistry = memo(function ModalRegistry() {
         const props = getModalProps(modalId);
 
         return (
-            <ModalComponent
-                key={modalId}
-                isOpen={true}
-                onClose={() => closeModal(modalId)}
-                {...props}
-            />
+            <Suspense key={modalId} fallback={null}>
+                <ModalComponent
+                    isOpen={true}
+                    onClose={() => closeModal(modalId)}
+                    {...props}
+                />
+            </Suspense>
         );
     });
 
-    // createPortal을 사용하여 모든 모달을 document.body에 렌더링
     return createPortal(
         <>{modals}</>,
         document.body

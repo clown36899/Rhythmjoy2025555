@@ -1,4 +1,4 @@
-import { StrictMode, useEffect } from 'react'
+import { StrictMode, useEffect, lazy, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import './i18n'
@@ -9,7 +9,6 @@ import { polyfill } from 'mobile-drag-drop';
 import { scrollBehaviourDragImageTranslateOverride } from 'mobile-drag-drop/scroll-behaviour';
 
 // [Critical Fix] Mobile Safari (iOS) Compatibility
-// Only shim if it's actually an iOS-like environment that lacks TouchEvent (rare but possible in some Safari versions)
 if (typeof window !== 'undefined' && /iPhone|iPad|iPod/i.test(navigator.userAgent) && typeof (window as any).TouchEvent === 'undefined') {
   try {
     (window as any).TouchEvent = class TouchEvent { };
@@ -33,85 +32,84 @@ import GlobalErrorBoundary from './components/GlobalErrorBoundary';
 import { ModalRegistry } from './components/ModalRegistry';
 import { initGAWithEngagement } from './lib/analytics';
 
-// Pages
+// Pages - HomePage stays static for instant first paint
 import HomePageV2 from './pages/v2/Page';
-import SocialPage from './pages/social/page';
-import PracticePage from './pages/practice/page';
-import BoardPage from './pages/board/page';
-import ShoppingPage from './pages/shopping/page';
-import GuidePage from './pages/guide/page';
-import PrivacyPage from './pages/privacy/page';
-import BillboardPage from './pages/billboard/page';
-import BillboardPreviewPage from './pages/billboard/preview/page';
-import BillboardCatalogPage from './pages/billboard/preview/CatalogPage';
-// import EventDetailPage from './pages/v2/EventDetailPage'; // File not found
-import CalendarPage from './pages/calendar/page';
-import MyActivitiesPage from './pages/user/MyActivitiesPage';
 
-/* Admin Pages - Temporarily disabled due to missing files
-import AdminPage from './pages/admin/Page';
-import AdminDashboard from './pages/admin/dashboard/Dashboard';
-import AdminBanners from './pages/admin/banners/Banners';
-import AdminUsers from './pages/admin/users/Users';
-import AdminEvents from './pages/admin/events/Events';
-import AdminCommunity from './pages/admin/community/Community';
-*/
-// import KakaoCallback from './components/auth/KakaoCallback';
+// Lazy Loaded Pages
+const SocialPage = lazy(() => import('./pages/social/page'));
+const PracticePage = lazy(() => import('./pages/practice/page'));
+const BoardPage = lazy(() => import('./pages/board/page'));
+const ShoppingPage = lazy(() => import('./pages/shopping/page'));
+const GuidePage = lazy(() => import('./pages/guide/page'));
+const PrivacyPage = lazy(() => import('./pages/privacy/page'));
+const BillboardPage = lazy(() => import('./pages/billboard/page'));
+const BillboardPreviewPage = lazy(() => import('./pages/billboard/preview/page'));
+const BillboardCatalogPage = lazy(() => import('./pages/billboard/preview/CatalogPage'));
+const CalendarPage = lazy(() => import('./pages/calendar/page'));
+const MyActivitiesPage = lazy(() => import('./pages/user/MyActivitiesPage'));
+const ArchiveLayout = lazy(() => import('./layouts/ArchiveLayout'));
+const LearningPage = lazy(() => import('./pages/learning/Page'));
+const LearningDetailPage = lazy(() => import('./pages/learning/detail/Page'));
+const HistoryTimelinePage = lazy(() => import('./pages/history/HistoryTimelinePage'));
+const KakaoCallbackPage = lazy(() => import('./pages/auth/kakao-callback/page'));
+const SiteMapPage = lazy(() => import('./pages/sitemap/SiteMapPage'));
+const MainV2TestPage = lazy(() => import('./pages/test/MainV2TestPage'));
+const SurveyTestPage = lazy(() => import('./pages/test/SurveyTestPage'));
 
-// Archive Pages
-import ArchiveLayout from './layouts/ArchiveLayout';
-import LearningPage from './pages/learning/Page';
-import LearningDetailPage from './pages/learning/detail/Page';
-// import HistoryPage from './pages/history/Page';
-import HistoryTimelinePage from './pages/history/HistoryTimelinePage';
-import KakaoCallbackPage from './pages/auth/kakao-callback/page';
-import SiteMapPage from './pages/sitemap/SiteMapPage';
-import MainV2TestPage from './pages/test/MainV2TestPage';
-import SurveyTestPage from './pages/test/SurveyTestPage';
+const BillboardFallback = () => (
+  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', backgroundColor: '#000000', color: 'white' }}>
+  </div>
+);
 
 const router = createBrowserRouter([
   {
     path: "/billboard/:userId",
     element: (
-      <QueryClientProvider client={queryClient}>
-        <BillboardPage />
-      </QueryClientProvider>
+      <Suspense fallback={<BillboardFallback />}>
+        <QueryClientProvider client={queryClient}>
+          <BillboardPage />
+        </QueryClientProvider>
+      </Suspense>
     ),
   },
   {
     path: "/billboard/:userId/preview",
     element: (
-      <AuthProvider>
-        <PageActionProvider>
-          <QueryClientProvider client={queryClient}>
-            <BoardDataProvider>
-              <ModalProvider>
-                <GlobalPlayerProvider>
-                  <BillboardPreviewPage />
-                </GlobalPlayerProvider>
-              </ModalProvider>
-            </BoardDataProvider>
-          </QueryClientProvider>
-        </PageActionProvider>
-      </AuthProvider>
+      <Suspense fallback={<BillboardFallback />}>
+        <AuthProvider>
+          <PageActionProvider>
+            <QueryClientProvider client={queryClient}>
+              <BoardDataProvider>
+                <ModalProvider>
+                  <GlobalPlayerProvider>
+                    <BillboardPreviewPage />
+                  </GlobalPlayerProvider>
+                </ModalProvider>
+              </BoardDataProvider>
+            </QueryClientProvider>
+          </PageActionProvider>
+        </AuthProvider>
+      </Suspense>
     ),
   },
   {
     path: "/billboard/:userId/preview/catalog",
     element: (
-      <AuthProvider>
-        <PageActionProvider>
-          <QueryClientProvider client={queryClient}>
-            <BoardDataProvider>
-              <ModalProvider>
-                <GlobalPlayerProvider>
-                  <BillboardCatalogPage />
-                </GlobalPlayerProvider>
-              </ModalProvider>
-            </BoardDataProvider>
-          </QueryClientProvider>
-        </PageActionProvider>
-      </AuthProvider>
+      <Suspense fallback={<BillboardFallback />}>
+        <AuthProvider>
+          <PageActionProvider>
+            <QueryClientProvider client={queryClient}>
+              <BoardDataProvider>
+                <ModalProvider>
+                  <GlobalPlayerProvider>
+                    <BillboardCatalogPage />
+                  </GlobalPlayerProvider>
+                </ModalProvider>
+              </BoardDataProvider>
+            </QueryClientProvider>
+          </PageActionProvider>
+        </AuthProvider>
+      </Suspense>
     ),
   },
   {

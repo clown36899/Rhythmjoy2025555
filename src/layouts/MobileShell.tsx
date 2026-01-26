@@ -77,24 +77,29 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
 
     fetchTotalUserCount();
 
-    // 🔥 실시간 가입자 수 동기화 추가
+    // 🔥 실시간 가입자 수 동기화 개정
+    // INSERT(신규 가입) 및 DELETE(탈퇴 등) 감지 시 카운트 즉시 갱신
     const channel = supabase
-      .channel('public:board_users_count')
+      .channel('registered-users-count')
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'board_users' },
+        { event: '*', schema: 'public', table: 'board_users' },
         (payload) => {
-          console.log('[Realtime] New user registered!', payload);
-          // 1. Optimistic update
-          setTotalUserCount(prev => (prev !== null ? prev + 1 : null));
-          // 2. Verified fetch
-          fetchTotalUserCount();
+          console.log('[Realtime] board_users change detected:', payload.eventType);
+          // 가입(INSERT) 또는 삭제(DELETE) 발생 시에만 DB에서 최신 카운트 재조회
+          if (payload.eventType === 'INSERT' || payload.eventType === 'DELETE') {
+            fetchTotalUserCount();
+          }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        // console.log('[Realtime] Subscriber count subscription status:', status);
+        if (status === 'SUBSCRIBED') {
+          fetchTotalUserCount(); // 연결 시점에 다시 한 번 동기화
+        }
+      });
 
     return () => {
-      channel.unsubscribe();
       supabase.removeChannel(channel);
     };
   }, []);
