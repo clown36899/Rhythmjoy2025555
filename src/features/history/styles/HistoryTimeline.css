@@ -663,21 +663,7 @@
     font-weight: 700;
 }
 
-.menu-item {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    border: none;
-    background: transparent;
-    color: #e4e4e7;
-    font-size: 13.5px;
-    cursor: pointer;
-    border-radius: 4px;
-    text-align: left;
-    transition: background 0.15s;
-}
+
 
 .menu-item:hover {
     background: #3f3f46;

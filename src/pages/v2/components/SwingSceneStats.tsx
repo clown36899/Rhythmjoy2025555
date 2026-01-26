@@ -46,6 +46,21 @@ export default function SwingSceneStats() {
     const [inspectGenreDay, setInspectGenreDay] = useState<string | null>(null);
 
     useEffect(() => {
+        const cached = localStorage.getItem('swing_scene_stats_cache');
+        if (cached) {
+            try {
+                const { timestamp, data, v } = JSON.parse(cached);
+                const now = new Date().getTime();
+                // 1 Hour Cache + Version Invalidation
+                if (v === 'v3' && now - timestamp < 3600 * 1000) {
+                    setStats(data);
+                    setLoading(false);
+                    return;
+                }
+            } catch (e) {
+                console.error('Cache parse failed', e);
+            }
+        }
         fetchSceneStats();
     }, []);
 
@@ -375,6 +390,21 @@ export default function SwingSceneStats() {
             setLoading(false);
         }
     };
+
+    // Save Cache when stats update
+    useEffect(() => {
+        if (stats) {
+            try {
+                localStorage.setItem('swing_scene_stats_cache', JSON.stringify({
+                    timestamp: new Date().getTime(),
+                    data: stats,
+                    v: 'v3'
+                }));
+            } catch (e) {
+                console.error('Cache save failed', e);
+            }
+        }
+    }, [stats]);
 
     if (loading || !stats) {
         return (

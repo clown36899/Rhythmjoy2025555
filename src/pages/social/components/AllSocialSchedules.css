@@ -7,7 +7,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0px 10px 0px 8px;
+    padding: 0px 11px 0px 19px;
     margin-bottom: min(4vw, 16px);
     width: 100%;
     min-width: 0;
@@ -135,8 +135,8 @@
 
 .all-social-card {
     flex: 0 0 auto;
-    width: 127px;
-    max-width: 150px;
+    width: 33%;
+    max-width: 130px;
     background: rgba(255, 255, 255, 0.05);
     border-radius: 12px;
     /* overflow: hidden; Removed to allow badge overflow */

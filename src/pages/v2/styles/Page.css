@@ -325,7 +325,7 @@
 .stats-side-tab {
   position: fixed;
   left: 0;
-  top: 50%;
+  bottom: 20%;
   transform: translateY(-50%);
   z-index: 50;
   background: rgba(30, 30, 30, 0.95);

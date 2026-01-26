@@ -27,58 +27,56 @@ const modalStyles = `
                 }
                 
                 .stats-modal {
-                    width: 95%; /* Increased from 90% for mobile */
+                    width: 95%;
                     max-width: 450px;
                     height: auto;
-                    max-height: 90vh;
+                    max-height: 92dvh; /* Use dynamic viewport height and leave safe margin */
                     background: rgba(15, 15, 15, 0.98);
-                    border-radius: 24px;
+                    border-radius: 20px;
                     border: 1px solid rgba(255, 255, 255, 0.08);
-                    padding: 16px; /* Reduced from 24px for mobile */
+                    padding: 0 !important;
                     position: relative;
                     overflow: hidden;
                     display: flex;
                     flex-direction: column;
-                    transition: none;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-                    box-sizing: border-box; /* Ensure padding doesn't push width */
+                    box-sizing: border-box;
                 }
                 
                 @media (min-width: 768px) {
                     .stats-modal {
                         width: 90%;
-                        padding: 24px;
                     }
                 }
 
                 .stats-modal.wide-mode {
-                    max-width: 98vw; /* Increased from 95vw for mobile space */
-                    padding: 12px; /* Denser padding for mobile wide mode */
+                    max-width: 98vw;
                 }
                 
                 @media (min-width: 1024px) {
                     .stats-modal.wide-mode {
                         max-width: 95vw;
-                        padding: 20px;
                     }
                 }
-
+                
                 .close-btn {
                     position: absolute;
-                    top: 16px;
-                    right: 16px;
-                    background: rgba(255, 255, 255, 0.05);
+                    top: 14px;
+                    right: 14px;
+                    background: rgba(255, 255, 255, 0.1);
                     border: none;
                     color: #fff;
-                    width: 32px;
-                    height: 32px;
+                    width: 36px;
+                    height: 36px;
                     border-radius: 50%;
                     display: flex;
                     align-items: center;
                     justify-content: center;
                     cursor: pointer;
-                    z-index: 20;
+                    z-index: 1100;
                     transition: background 0.2s;
+                    backdrop-filter: blur(4px);
                 }
                 .close-btn:hover { background: rgba(255, 255, 255, 0.1); }
 
@@ -87,27 +85,23 @@ const modalStyles = `
                     align-items: center;
                     overflow-x: auto;
                     scrollbar-width: none;
-                    padding-bottom: 16px;
-                    margin-bottom: 0;
                     flex-shrink: 0;
+                    /* Base Padding + Modal Offset simulation */
+                    padding: 24px 80px 16px 20px; 
+                    margin-bottom: 0;
+                    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
                 }
                 .tabs-header::-webkit-scrollbar { display: none; }
-                
-                .tabs-header.wide-header {
-                    padding-top: 20px;
-                    padding-left: 24px;
-                    padding-right: 60px;
-                }
 
                 .tabs-container {
                     display: flex;
-                    gap: 32px;
+                    gap: 24px; /* Reduced from 32px to save space */
                     flex-wrap: nowrap;
                 }
 
                 .tab-item {
                     margin: 0;
-                    font-size: 1.1rem;
+                    font-size: 1rem; /* Reduced from 1.1rem for mobile */
                     color: #52525b;
                     font-weight: 700;
                     cursor: pointer;
@@ -144,11 +138,16 @@ const modalStyles = `
                     flex: 1;
                     min-height: 0;
                     overflow-y: auto !important;
-                    padding-right: 4px;
+                    padding: 0 16px 24px 16px; /* New Unified Padding */
                     -webkit-overflow-scrolling: touch;
                     pointer-events: auto !important;
                     touch-action: pan-y !important;
                     overscroll-behavior: contain !important;
+                    transition: opacity 0.15s ease-in-out; 
+                }
+                
+                .content-area.switching {
+                    opacity: 0;
                 }
                 
                 .content-area.wide-content {
@@ -226,12 +225,24 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
     const [loading, setLoading] = useState(true);
     const [userProfile, setUserProfile] = useState<any>(null);
     const [activeTab, setActiveTab] = useState<'my' | 'scene' | 'monthly'>('my');
+    const [isSwitching, setIsSwitching] = useState(false);
 
     useEffect(() => {
         if (isOpen) {
+            setIsSwitching(true);
             setActiveTab(initialTab);
+            setTimeout(() => setIsSwitching(false), 150);
         }
     }, [isOpen, initialTab]);
+
+    const handleTabChange = (tab: 'my' | 'scene' | 'monthly') => {
+        if (tab === activeTab) return;
+        setIsSwitching(true);
+        setTimeout(() => {
+            setActiveTab(tab);
+            setIsSwitching(false);
+        }, 150);
+    };
 
     useEffect(() => {
         if (isOpen) {
@@ -287,16 +298,16 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
                     <i className="ri-close-line text-xl"></i>
                 </button>
 
-                <div className={`tabs-header ${activeTab === 'monthly' || activeTab === 'scene' ? 'wide-header' : ''}`}>
+                <div className="tabs-header">
                     <div className="tabs-container">
-                        <h2 onClick={() => setActiveTab('my')} className={`tab-item ${activeTab === 'my' ? 'active' : ''}`}>
+                        <h2 onClick={() => handleTabChange('my')} className={`tab-item ${activeTab === 'my' ? 'active' : ''}`}>
                             내 활동
                         </h2>
-                        <h2 onClick={() => setActiveTab('scene')} className={`tab-item ${activeTab === 'scene' ? 'active' : ''}`}>
+                        <h2 onClick={() => handleTabChange('scene')} className={`tab-item ${activeTab === 'scene' ? 'active' : ''}`}>
                             스윙씬 통계
                             <span className="badge-beta">개선중</span>
                         </h2>
-                        <h2 onClick={() => setActiveTab('monthly')} className={`tab-item ${activeTab === 'monthly' ? 'active' : ''}`}>
+                        <h2 onClick={() => handleTabChange('monthly')} className={`tab-item ${activeTab === 'monthly' ? 'active' : ''}`}>
                             월간 빌보드
                         </h2>
                     </div>
@@ -307,39 +318,37 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
                         <div className="evt-loading-spinner-base evt-loading-spinner-blue evt-animate-spin"></div>
                     </div>
                 ) : (
-                    <div className={`content-area ${activeTab === 'monthly' || activeTab === 'scene' ? 'wide-content' : ''}`}>
-                        {activeTab === 'my' && (
-                            <>
-                                <MyImpactCard
-                                    user={{ id: userId, ...userProfile }}
-                                    posts={posts}
-                                    events={events}
-                                    initialExpanded={true}
-                                />
+                    <div className={`content-area ${activeTab === 'monthly' || activeTab === 'scene' ? 'wide-content' : ''} ${isSwitching ? 'switching' : ''}`}>
+                        <div style={{ display: activeTab === 'my' ? 'block' : 'none' }}>
+                            <MyImpactCard
+                                user={{ id: userId, ...userProfile }}
+                                posts={posts}
+                                events={events}
+                                initialExpanded={true}
+                            />
 
-                                <div className="info-box">
-                                    <h4 className="info-title">
-                                        <i className="ri-information-line"></i> 노출 상태 안내
-                                    </h4>
-                                    <div className="info-content">
-                                        <p className="info-text">⏰ <strong>행사 및 강습</strong>: 이미 시작했거나 날짜가 지난 일정은 메인 화면에서 자동으로 내려가며, 통계에서는 '종료됨'으로 표시됩니다.</p>
-                                        <p className="info-text">📝 <strong>게시판 글</strong>: 자유게시판 등에 올린 글은 삭제하지 않는 한 언제나 '노출 중' 상태를 유지합니다.</p>
-                                    </div>
+                            <div className="info-box">
+                                <h4 className="info-title">
+                                    <i className="ri-information-line"></i> 노출 상태 안내
+                                </h4>
+                                <div className="info-content">
+                                    <p className="info-text">⏰ <strong>행사 및 강습</strong>: 이미 시작했거나 날짜가 지난 일정은 메인 화면에서 자동으로 내려가며, 통계에서는 '종료됨'으로 표시됩니다.</p>
+                                    <p className="info-text">📝 <strong>게시판 글</strong>: 자유게시판 등에 올린 글은 삭제하지 않는 한 언제나 '노출 중' 상태를 유지합니다.</p>
                                 </div>
+                            </div>
 
-                                <p className="footer-text">
-                                    상세한 활동 내역은 마이페이지의 '통계' 탭에서 확인하실 수 있습니다.
-                                </p>
-                            </>
-                        )}
+                            <p className="footer-text">
+                                상세한 활동 내역은 마이페이지의 '통계' 탭에서 확인하실 수 있습니다.
+                            </p>
+                        </div>
 
-                        {activeTab === 'scene' && (
+                        <div style={{ display: activeTab === 'scene' ? 'block' : 'none', height: '100%' }}>
                             <SwingSceneStats />
-                        )}
+                        </div>
 
-                        {activeTab === 'monthly' && (
+                        <div style={{ display: activeTab === 'monthly' ? 'block' : 'none', height: '100%' }}>
                             <MonthlyWebzine />
-                        )}
+                        </div>
                     </div>
                 )}
             </div>

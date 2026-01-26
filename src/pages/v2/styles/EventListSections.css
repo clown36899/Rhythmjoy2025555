@@ -22,7 +22,7 @@
     /* 이벤트 카드 스크롤 영역 전용 스타일 */
     /* 테스트: 이벤트 카드 간격 조정 */
     gap: 0.8rem;
-    padding-left: 14px;
+    padding-left: 35px;
 }
 
 /* 진행중인 강습 섹션 - 독립 스타일 */
@@ -39,7 +39,7 @@
     /* 강습 카드 스크롤 영역 전용 스타일 */
     /* 테스트: 강습 카드 간격 조정 - 이벤트와 동일하게 맞춤 */
     gap: 0.8rem;
-    padding-left: 14px;
+    padding-left: 35px;
 }
 
 /* Section Title */
@@ -151,7 +151,7 @@
 /* Card sizing */
 .evt-v2-horizontal-scroll>.card-container {
     flex: 0 0 auto;
-    width: 38%;
+    width: 25%;
     max-width: 105px;
 }
 
