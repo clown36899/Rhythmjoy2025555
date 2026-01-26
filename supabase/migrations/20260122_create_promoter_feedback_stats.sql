@@ -2,7 +2,12 @@
 -- Purpose: Aggregate activity stats (Posts + Events) for each user
 -- This is a lightweight view that sums up existing columns.
 
-CREATE OR REPLACE VIEW user_impact_stats_view AS
+-- Clean up the old view to allow column type changes (UUID -> TEXT or vice versa)
+DROP VIEW IF EXISTS user_impact_stats_view;
+
+CREATE OR REPLACE VIEW user_impact_stats_view 
+WITH (security_invoker = true)
+AS
 WITH post_stats AS (
     SELECT user_id, count(*) as count, sum(views) as views, sum(likes) as likes
     FROM board_posts 
@@ -15,7 +20,7 @@ event_stats AS (
     GROUP BY user_id
 )
 SELECT
-    u.id as user_id,
+    u.user_id::uuid as user_id,
     COALESCE(p.count, 0) as total_posts,
     COALESCE(p.views, 0) as total_post_views,
     COALESCE(p.likes, 0) as total_post_likes,
@@ -23,9 +28,9 @@ SELECT
     COALESCE(e.views, 0) as total_event_views,
     (COALESCE(p.views, 0) + COALESCE(e.views, 0)) as total_combined_views
 FROM
-    auth.users u
-    LEFT JOIN post_stats p ON u.id::text = p.user_id
-    LEFT JOIN event_stats e ON u.id::text = e.user_id;
+    board_users u
+    LEFT JOIN post_stats p ON u.user_id = p.user_id
+    LEFT JOIN event_stats e ON u.user_id = e.user_id;
 
 -- Function: get_user_today_views
 -- Purpose: Count views for a user's *posts* and *events* that happened TODAY

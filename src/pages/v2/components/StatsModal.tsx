@@ -27,25 +27,40 @@ const modalStyles = `
                 }
                 
                 .stats-modal {
-                    width: 90%;
+                    width: 95%; /* Increased from 90% for mobile */
                     max-width: 450px;
                     height: auto;
                     max-height: 90vh;
                     background: rgba(15, 15, 15, 0.98);
                     border-radius: 24px;
                     border: 1px solid rgba(255, 255, 255, 0.08);
-                    padding: 24px;
+                    padding: 16px; /* Reduced from 24px for mobile */
                     position: relative;
                     overflow: hidden;
                     display: flex;
                     flex-direction: column;
                     transition: none;
                     box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+                    box-sizing: border-box; /* Ensure padding doesn't push width */
                 }
                 
+                @media (min-width: 768px) {
+                    .stats-modal {
+                        width: 90%;
+                        padding: 24px;
+                    }
+                }
+
                 .stats-modal.wide-mode {
-                    max-width: 95vw;
-                    padding: 20px;
+                    max-width: 98vw; /* Increased from 95vw for mobile space */
+                    padding: 12px; /* Denser padding for mobile wide mode */
+                }
+                
+                @media (min-width: 1024px) {
+                    .stats-modal.wide-mode {
+                        max-width: 95vw;
+                        padding: 20px;
+                    }
                 }
 
                 .close-btn {

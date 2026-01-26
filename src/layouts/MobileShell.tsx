@@ -460,7 +460,6 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                   <span className="divider">/</span>
                   <span className="en-char">A</span>
                 </div>
-                <span style={{ fontSize: 'min(2.5vw, 12px)', fontWeight: 600 }}>{i18n.language.toUpperCase()}</span>
               </button>
 
               {/* Search button - only visible when logged in */}

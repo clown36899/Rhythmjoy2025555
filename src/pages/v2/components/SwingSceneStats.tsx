@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 
 interface StatItem {
@@ -456,11 +456,11 @@ export default function SwingSceneStats() {
                 .stats-container {
                     display: flex;
                     flex-direction: column;
-                    gap: 16px; 
+                    gap: 12px; 
                     width: 100%;
                     height: 100%;
                     box-sizing: border-box;
-                    padding: 0 24px;
+                    padding: 0 4px; /* Significantly reduced for mobile */
                 }
                 
                 @media (min-width: 1024px) {
@@ -565,20 +565,24 @@ export default function SwingSceneStats() {
                 }
                 
                 .stacked-bar { 
-                    width: 20px;
-                    height: 100%; /* Fill container */
+                    width: 16px; /* Reduced from 20px for mobile scaling */
+                    height: 100%;
                     display: flex; 
                     flex-direction: column-reverse; 
                     gap: 1px;
                     border-radius: 4px;
                     overflow: hidden;
-                    justify-content: flex-start; /* Stack from bottom */
+                    justify-content: flex-start;
+                }
+                
+                @media (min-width: 375px) {
+                    .stacked-bar { width: 20px; }
                 }
                 
                 .bar-segment { width: 100%; transition: height 0.3s ease; }
                 
-                .total-label { font-size: 10px; color: #fff; margin-bottom: 6px; font-weight: 600; }
-                .axis-label { font-size: 11px; color: #71717a; margin-top: 10px; flex-shrink: 0; }
+                .total-label { font-size: 9px; color: #fff; margin-bottom: 4px; font-weight: 600; }
+                .axis-label { font-size: 10px; color: #71717a; margin-top: 8px; flex-shrink: 0; }
 
                 /* Legend */
                 .legend-grid {
