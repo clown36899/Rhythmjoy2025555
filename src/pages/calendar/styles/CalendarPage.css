@@ -6,7 +6,7 @@ html {
 }
 
 .calendar-page-container {
-    min-height: 100vh;
+    min-height: auto;
     display: flex;
     flex-direction: column;
     /* overflow: hidden; - Removed to allow pull-to-refresh */

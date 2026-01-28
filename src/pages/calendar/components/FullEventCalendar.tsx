@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, memo, useMemo } from "react";
+import { useState, useEffect, useCallback, memo, useMemo, useRef, useLayoutEffect } from "react";
 import { useTranslation } from "react-i18next";
 import type { CSSProperties } from "react";
 import { supabase } from "../../../lib/supabase";
@@ -65,6 +65,10 @@ export default memo(function FullEventCalendar({
   const effectiveDragOffset = dragOffset !== undefined ? dragOffset : internalDragOffset;
   const effectiveIsAnimating = isAnimating !== undefined ? isAnimating : internalIsAnimating;
 
+  // Dynamic Height State
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [containerHeight, setContainerHeight] = useState<number | undefined>(undefined);
+
   // 실제 필요한 주 수 계산 (전체 달력 모드용)
   const getActualWeeksCount = (date: Date) => {
     const year = date.getFullYear();
@@ -77,10 +81,11 @@ export default memo(function FullEventCalendar({
     return Math.ceil(totalDays / 7);
   };
 
-  // 달력 셀 높이 계산 함수 (각 달마다 개별 계산)
-  const getCellHeight = (monthDate: Date) => {
-    if (!calendarHeightPx) return 100;
-    return Math.max(30, (calendarHeightPx - 16) / getActualWeeksCount(monthDate));
+  // 달력 셀 높이 계산 함수
+  // 이전 로직: 화면 높이에 맞춰서 늘림 -> 문제: 이벤트가 적어도 강제로 늘어남
+  // 수정 로직: 최소 높이만 보장하고 컨텐츠에 맞게 늘어나도록 함 (30px은 기본 헤더/날짜 높이)
+  const getCellHeight = (_monthDate: Date) => {
+    return 30; // 최소 높이만 설정 (헤더 등)
   };
 
   // 카테고리에 따라 이벤트 필터링 (기존 로직 유지)
@@ -219,6 +224,11 @@ export default memo(function FullEventCalendar({
     }));
   }, [currentMonth, viewMode]);
 
+  // 월이 변경되거나 탭이 변경될 때 스크롤을 최상단으로 이동 (즉시 애니메이션 없이)
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  }, [currentMonth, tabFilter]);
+
   // currentMonth가 변경될 때 년도 범위 업데이트
   useEffect(() => {
     const newYear = currentMonth.getFullYear();
@@ -231,6 +241,31 @@ export default memo(function FullEventCalendar({
   useEffect(() => {
     fetchEvents();
   }, [currentMonth]);
+
+  // Height measurement effect
+  useLayoutEffect(() => {
+    const updateHeight = () => {
+      if (containerRef.current) {
+        // Find the active slide (index 1)
+        const activeSlide = containerRef.current.querySelector('[data-active-month="true"]');
+        if (activeSlide) {
+          const gridContainer = activeSlide.querySelector('.calendar-grid-container');
+          // Prefer grid height, fallback to slide height
+          const newHeight = gridContainer ? gridContainer.scrollHeight : activeSlide.scrollHeight;
+
+          if (newHeight > 0) {
+            setContainerHeight(newHeight);
+          }
+        }
+      }
+    };
+
+    updateHeight();
+
+    // Also update on window resize
+    window.addEventListener('resize', updateHeight);
+    return () => window.removeEventListener('resize', updateHeight);
+  }, [currentMonth, events, socialSchedules, filteredEvents, viewMode]);
 
   // 이벤트 삭제 감지를 위한 이벤트 리스너 추가
   useEffect(() => {
@@ -441,7 +476,7 @@ export default memo(function FullEventCalendar({
           className={`calendar-cell-fullscreen ${todayFlag ? 'is-today' : ''}`}
           style={{
             minHeight: `${getCellHeight(monthDate)}px`,
-            height: '100%',
+            height: 'auto',
             paddingBottom: isLastRow ? 'calc(60px + env(safe-area-inset-bottom))' : undefined
           }}
         >
@@ -582,16 +617,25 @@ export default memo(function FullEventCalendar({
         {viewMode === "year" ? (
           <div className="cal-flex-1 cal-overflow-y-auto">{renderYearView()}</div>
         ) : (
-          <div className={`calendar-carousel-container calendar-mode-fullscreen`}>
+          <div
+            className={`calendar-carousel-container calendar-mode-fullscreen`}
+            style={{
+              height: containerHeight ? `${containerHeight}px` : 'auto',
+              transition: 'height 0.3s ease-in-out',
+              overflow: 'hidden'
+            }}
+          >
             <div
+              ref={containerRef}
               className="calendar-carousel-track"
               style={{
                 width: '300%',
                 display: 'flex',
                 transform: `translateX(calc(-33.3333% + ${effectiveDragOffset}px))`,
                 transition: effectiveIsAnimating ? "transform 0.3s ease-out" : "none",
-                height: '100%',
-                minHeight: '100%'
+                alignItems: 'flex-start', // Important: let slides have their own height
+                // height: '100%', // Removed to allow auto height
+                // minHeight: '100%' // Removed
               }}
             >
               {[prevMonth, currentMonth, nextMonth].map((month, idx) => {
@@ -600,14 +644,14 @@ export default memo(function FullEventCalendar({
                   <div
                     key={`${month.getFullYear()}-${month.getMonth()}`}
                     className="calendar-month-slide"
-                    style={{ width: "33.3333%" }}
+                    style={{ width: "33.3333%", height: 'auto' }}
                     data-active-month={idx === 1}
                   >
                     <div
                       className="calendar-grid-container"
                       style={{
                         gridTemplateRows: `repeat(${getActualWeeksCount(month)}, auto)`,
-                        minHeight: '100%',
+                        // minHeight: '100%', // Removed to let it shrink
                       } as CSSProperties}
                     >
                       {renderFullscreenGrid(days, month)}
