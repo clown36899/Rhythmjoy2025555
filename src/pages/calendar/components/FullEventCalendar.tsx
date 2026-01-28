@@ -84,8 +84,13 @@ export default memo(function FullEventCalendar({
   // 달력 셀 높이 계산 함수
   // 이전 로직: 화면 높이에 맞춰서 늘림 -> 문제: 이벤트가 적어도 강제로 늘어남
   // 수정 로직: 최소 높이만 보장하고 컨텐츠에 맞게 늘어나도록 함 (30px은 기본 헤더/날짜 높이)
-  const getCellHeight = (_monthDate: Date) => {
-    return 30; // 최소 높이만 설정 (헤더 등)
+  const getCellHeight = (monthDate: Date) => {
+    // 화면 높이에 맞춰서 최소 높이 분배 (이벤트 없을 때 꽉 차게)
+    // 단, 30px보다는 작아지지 않도록 함
+    if (!calendarHeightPx) return 30;
+
+    // 약간의 여유분(헤더 등)을 고려해 보정값 -10 정도
+    return Math.max(30, (calendarHeightPx - 10) / getActualWeeksCount(monthDate));
   };
 
   // 카테고리에 따라 이벤트 필터링 (기존 로직 유지)
