@@ -160,76 +160,63 @@ export async function saveSubscriptionToSupabase(
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('User not logged in');
 
-        // isAdmin 판단: (contexts/AuthContext.tsx 로직 참고)
+        // isAdmin 판단
         const isAdmin = user.email === 'clown313@naver.com' || (user.app_metadata?.is_admin === true);
 
         const subJson = JSON.parse(JSON.stringify(subscription));
         const endpoint = subscription.endpoint;
+        // [Fix] UserAgent가 없으면 'unknown'으로 설정하여 DB에 NULL 방지
+        const userAgent = navigator.userAgent || 'unknown-device';
 
         if (!endpoint) {
             console.error('[Push] Endpoint is missing in subscription object');
             return false;
         }
 
-        console.log('[Push] Starting DB save/upsert for user:', user.id, 'endpoint:', endpoint.substring(0, 20) + '...');
+        console.log('[Push] Starting DB save logic for user:', user.id);
 
-        // 1. 중복 엔드포인트 정리 로직 제거 (RLS로 인해 타인 데이터 삭제 불가하므로 의미 없음)
-        // clean-up logic removed
-
-        // 2. 현재 유저의 정보를 저장/갱신 (Manual UPSERT pattern to avoid index issues)
-        // 2-1. Check existence
-        const { data: existing } = await supabase
+        // 1. [Dedup] 같은 기기(브라우저)에서 생성된 기존 '죽은' 구독 정보 삭제
+        // (재설치/캐시삭제 시 endpoint가 바뀌므로, 기존 endpoint는 더 이상 유효하지 않음)
+        // 1-A. 현재 UserAgent와 일치하는 기록 삭제
+        await supabase
             .from('user_push_subscriptions')
-            .select('id')
+            .delete()
             .eq('user_id', user.id)
-            .eq('endpoint', endpoint)
-            .maybeSingle();
+            .eq('user_agent', userAgent);
 
-        let error;
+        // 1-B. [Cleanup] UserAgent가 없는(과거 버그 or 초기 데이터) 기록도 삭제 (중복 방지)
+        await supabase
+            .from('user_push_subscriptions')
+            .delete()
+            .eq('user_id', user.id)
+            .is('user_agent', null);
 
-        if (existing) {
-            // Update
-            const { error: updateError } = await supabase
-                .from('user_push_subscriptions')
-                .update({
-                    subscription: subJson,
-                    is_admin: isAdmin,
-                    pref_events: options?.pref_events ?? true,
-                    pref_lessons: options?.pref_lessons ?? true,
-                    updated_at: new Date().toISOString()
-                })
-                .eq('id', existing.id);
-            error = updateError;
-        } else {
-            // Insert
-            const { error: insertError } = await supabase
-                .from('user_push_subscriptions')
-                .insert({
-                    user_id: user.id,
-                    endpoint: endpoint,
-                    subscription: subJson,
-                    is_admin: isAdmin,
-                    pref_events: options?.pref_events ?? true,
-                    pref_lessons: options?.pref_lessons ?? true,
-                    updated_at: new Date().toISOString()
-                });
-            error = insertError;
-        }
+        console.log('[Push] Cleaned up old subscriptions for this device.');
 
-        if (error) {
-            console.error('[Push] Supabase DB Error:', error);
-            // [Debug] Show alert to user
-            alert(`DB 저장 실패:\n${error.message}\n(Code: ${error.code})`);
+        // 2. 새로운 구독 정보 저장
+        const { error: insertError } = await supabase
+            .from('user_push_subscriptions')
+            .insert({
+                user_id: user.id,
+                endpoint: endpoint,
+                subscription: subJson,
+                is_admin: isAdmin,
+                user_agent: userAgent, // [New] 기기 식별 정보 저장
+                pref_events: options?.pref_events ?? true,
+                pref_lessons: options?.pref_lessons ?? true,
+                updated_at: new Date().toISOString()
+            });
 
-            // [중요] 에러가 "column does not exist"라면 SQL 실행이 안 된 것임
-            if (error.message?.includes('column') || error.code === '42703' || error.code === 'PGRST204') {
-                alert('DB 에러: endpoint 컬럼이 없습니다. 제공해드린 SQL을 먼저 실행해주세요!');
+        if (insertError) {
+            console.error('[Push] Supabase Insert Error:', insertError);
+            if (insertError.message?.includes('column') || insertError.code === '42703') {
+                alert('DB 스키마 업데이트가 필요합니다. (user_agent, endpoint 컬럼 추가)');
             }
-            throw error;
+            throw insertError;
         }
 
         console.log('[Push] Push subscription saved to Supabase successfully');
-        alert('✅ DB 저장 성공! (기기 등록 완료)');
+        // alert('✅ DB 저장 성공! (기기 등록 완료)'); // 사용자 경험을 위해 Alert 제거 (조용히 성공)
         return true;
     } catch (error: any) {
         console.error('[Push] Fatal error in saveSubscriptionToSupabase:', error);

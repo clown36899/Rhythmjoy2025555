@@ -84,8 +84,14 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
 
         const checkPWA = () => {
             const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                window.matchMedia('(display-mode: fullscreen)').matches ||
+                window.matchMedia('(display-mode: minimal-ui)').matches ||
                 (window.navigator as any).standalone === true ||
                 new URLSearchParams(window.location.search).get('utm_source') === 'pwa';
+
+            // [Debug] PWA 감지 로그
+            if (isStandalone) console.log('[SideDrawer] PWA Environment Detected');
+
             setIsRunningInPWA(isStandalone);
         };
 
