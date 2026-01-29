@@ -204,6 +204,7 @@ export default function CommentItem({ comment: initialComment, isAnonymous, onEd
                             src={comment.author_profile_image}
                             alt="Profile"
                             className="comment-item-avatar"
+                            referrerPolicy="no-referrer"
                         />
                     ) : (
                         <i className="ri-user-line comment-item-avatar-icon"></i>

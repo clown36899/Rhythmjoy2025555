@@ -152,7 +152,12 @@ export default function AdminSecureMembersModal({ isOpen, onClose }: AdminSecure
                                                 <div className="boum-nickname-cell">
                                                     <div className="boum-avatar">
                                                         {user.profile_image ? (
-                                                            <img src={user.profile_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                            <img
+                                                                src={user.profile_image}
+                                                                alt=""
+                                                                referrerPolicy="no-referrer"
+                                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                            />
                                                         ) : (
                                                             user.nickname.charAt(0)
                                                         )}

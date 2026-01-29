@@ -47,7 +47,7 @@ export function OnlineUsersModal({ isOpen, onClose }: OnlineUsersModalProps) {
                                 <div key={user.session_id} className="online-user-item">
                                     <div className="online-user-avatar">
                                         {user.profile_image_url ? (
-                                            <img src={user.profile_image_url} alt={user.nickname || '사용자'} />
+                                            <img src={user.profile_image_url} alt={user.nickname || '사용자'} referrerPolicy="no-referrer" />
                                         ) : (
                                             <i className="fas fa-user"></i>
                                         )}

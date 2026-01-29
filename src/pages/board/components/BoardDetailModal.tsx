@@ -173,6 +173,7 @@ export default function BoardDetailModal({ postId, isOpen, onClose }: BoardDetai
                                             src={(post as any).author_profile_image}
                                             alt="Profile"
                                             className="board-detail-author-avatar"
+                                            referrerPolicy="no-referrer"
                                         />
                                     ) : (
                                         <i className="ri-user-line"></i>

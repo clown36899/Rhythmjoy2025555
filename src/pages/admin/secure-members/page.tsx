@@ -158,7 +158,7 @@ export default function SecureMembersPage() {
                                                 <div className="boum-nickname-cell">
                                                     <div className="boum-avatar">
                                                         {user.profile_image ? (
-                                                            <img src={user.profile_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                            <img src={user.profile_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} referrerPolicy="no-referrer" />
                                                         ) : (
                                                             user.nickname.charAt(0)
                                                         )}

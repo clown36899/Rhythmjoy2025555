@@ -260,7 +260,7 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                         <div className="drawer-user-profile">
                             <div className="drawer-avatar">
                                 {profileImage ? (
-                                    <img src={profileImage} alt="Profile" />
+                                    <img src={profileImage} alt="Profile" referrerPolicy="no-referrer" />
                                 ) : (
                                     <i className="ri-user-smile-line"></i>
                                 )}
