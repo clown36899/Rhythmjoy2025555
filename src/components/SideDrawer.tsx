@@ -157,7 +157,8 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                         setIsPushEnabled(false); // Revert
                         return;
                     }
-                    await saveSubscriptionToSupabase(sub);
+                    // [Fix] 구독 저장 시 현재 설정(태그 등)도 같이 저장
+                    await saveSubscriptionToSupabase(sub, pushPrefs);
                     console.log('Subscribed successfully');
                 } else {
                     // Turn OFF (Unsubscribe)

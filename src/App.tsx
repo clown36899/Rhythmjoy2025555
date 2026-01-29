@@ -78,6 +78,37 @@ function AppContent() {
     };
   }, []);
 
+  // [PWA Auto-Subscribe] 앱 최초 실행 시(PWA 모드) 알림 권한 자동 요청
+  useEffect(() => {
+    const initPwaPush = async () => {
+      // PWA 모드(standalone)인지 확인
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
+
+      if (isStandalone) {
+        // 이미 구독되어 있는지 확인
+        const existingSub = await getPushSubscription();
+        if (!existingSub) {
+          // 구독이 없으면 자동으로 권한 요청 및 구독 시도
+          console.log('[App] PWA detected. Attempting auto-subscribe...');
+          const sub = await subscribeToPush();
+          if (sub) {
+            // 기본 설정(전체 수신)으로 저장
+            await saveSubscriptionToSupabase(sub, {
+              pref_events: true,
+              pref_lessons: true,
+              pref_filter_tags: null
+            });
+            // 안내 메시지 (Toast 대신 간단한 alert 혹은 조용한 처리)
+            // alert('알림이 활성화되었습니다. 설정 메뉴에서 변경 가능합니다.'); 
+            console.log('[App] PWA Auto-subscribed successfully.');
+          }
+        }
+      }
+    };
+
+    initPwaPush();
+  }, []);
+
   // 2. 페이지 이동 시에도 청소 (location)
   useEffect(() => {
     clearNotifications();
