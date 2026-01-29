@@ -1,16 +1,12 @@
-// 빌보드 PWA 서비스 워커 (Version: 20260126-1 - V23/Optimization Applied)
-const CACHE_NAME = 'rhythmjoy-cache-v23';
+// 빌보드 PWA 서비스 워커 (Version: 20260129-4 - V27/Native Badge & Fix)
+const CACHE_NAME = 'rhythmjoy-cache-v27';
 
 self.addEventListener('install', (event) => {
-  console.log('[SW] v23 - Optimization & Scroll Fix Applied! 🚀✨');
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  console.log('[SW] v23 - Activated immediately! (Cache clear in progress)');
-
   // 🔥 중요: event.waitUntil을 제거하여 캐시 삭제가 완료될 때까지 기다리지 않음
-  // PWA가 캐시 락을 잡고 있어도 브라우저는 즉시 활성화되어 데이터를 불러올 수 있음
   caches.keys().then(keys => Promise.all(keys.map(key => caches.delete(key))))
     .catch(err => console.warn('[SW] Cache clear failed (non-fatal):', err));
 
@@ -20,15 +16,9 @@ self.addEventListener('activate', (event) => {
 // Fetch 이벤트 핸들러 - Supabase API는 항상 네트워크 우선
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
-
-  // Supabase API 요청은 자바스크립트 코드(supabase-js)가 직접 처리하도록 내버려둠
-  // 서비스 워커가 개입하면 CORS나 인증 헤더 처리에 문제가 생길 수 있음
   if (url.hostname.includes('supabase.co')) {
-    return; // 개입하지 않음 (브라우저 기본 동작에 맡김)
+    return;
   }
-
-  // 나머지 요청은 기본 동작 (브라우저가 처리)
-  // 이 핸들러는 Chrome이 PWA로 인식하기 위한 최소 요구사항
 });
 
 self.addEventListener('message', (event) => {
@@ -37,8 +27,6 @@ self.addEventListener('message', (event) => {
 
 // 푸시 알림 수신 이벤트
 self.addEventListener('push', (event) => {
-  console.log('[SW] Push notification received:', event);
-
   let notificationData = {
     title: '댄스빌보드',
     body: '새로운 알림이 도착했습니다!',
@@ -50,7 +38,6 @@ self.addEventListener('push', (event) => {
     }
   };
 
-  // 푸시 데이터가 있으면 파싱
   if (event.data) {
     try {
       const data = event.data.json();
@@ -67,6 +54,19 @@ self.addEventListener('push', (event) => {
     }
   }
 
+  // [Feature] 앱 아이콘 배지 설정 (Native Badging API)
+  if (navigator.setAppBadge) {
+    // 숫자를 1로 설정 (단순 알림 'ON' 의미)
+    navigator.setAppBadge(1).catch(e => console.error('[SW] Badge Error:', e));
+  }
+
+  // [Debug] 창에 메시지 보내기 (Admin 테스트용)
+  self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
+    clients.forEach(client => {
+      client.postMessage({ type: 'PUSH_DEBUG', payload: notificationData });
+    });
+  });
+
   event.waitUntil(
     self.registration.showNotification(notificationData.title, {
       body: notificationData.body,
@@ -75,31 +75,42 @@ self.addEventListener('push', (event) => {
       tag: notificationData.tag,
       data: notificationData.data,
       vibrate: [200, 100, 200],
-      requireInteraction: true, // [Changed] 데스크탑에서 알림이 사라지지 않게 강제
-      silent: false, // [Added] 소리/진동 강제
-      renotify: true // [Added] 같은 태그여도 다시 알림
+      requireInteraction: true, // [Critical] 데스크탑에서 배너 유지
+      silent: false, // [Critical] 소리/진동 켜기
+      renotify: true // [Critical] 같은 태그여도 다시 알림
+    }).catch(err => {
+      console.error('[SW] Notification Error:', err);
+      // 에러 전파
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {
+        clients.forEach(client => {
+          client.postMessage({ type: 'PUSH_ERROR', error: err.toString() });
+        });
+      });
     })
   );
 });
 
 // 알림 클릭 이벤트
 self.addEventListener('notificationclick', (event) => {
-  console.log('[SW] Notification clicked:', event.notification.tag);
-
   event.notification.close();
+
+  // [Feature] 배지 초기화 (알림 확인했으므로 제거)
+  if (navigator.clearAppBadge) {
+    navigator.clearAppBadge().catch(e => console.error('[SW] Clear Badge Error:', e));
+  } else if (navigator.setAppBadge) {
+    navigator.setAppBadge(0).catch(e => console.error('[SW] Clear Badge Error:', e));
+  }
 
   const urlToOpen = event.notification.data?.url || '/';
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
-        // 이미 열린 창이 있으면 포커스
         for (const client of clientList) {
           if (client.url === new URL(urlToOpen, self.location.origin).href && 'focus' in client) {
             return client.focus();
           }
         }
-        // 없으면 새 창 열기
         if (clients.openWindow) {
           return clients.openWindow(urlToOpen);
         }

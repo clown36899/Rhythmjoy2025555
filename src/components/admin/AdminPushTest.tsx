@@ -33,6 +33,22 @@ export const AdminPushTest: React.FC = () => {
     if (!isAdmin && user?.email !== 'clown313@naver.com') return null;
 
     // 1. 수신기 등록 (이 기기에서 알림을 받겠다고 설정)
+    // [Debug] SW 메시지 리스너
+    React.useEffect(() => {
+        const handler = (event: MessageEvent) => {
+            if (event.data && event.data.type === 'PUSH_DEBUG') {
+                console.log('🔔 [디버그] SW 수신됨:', event.data.payload);
+                setResult(prev => prev + '\n✅ SW 수신 확인됨 (OS 배너는 숨겨졌을 수 있음)');
+            }
+            if (event.data && event.data.type === 'PUSH_ERROR') {
+                console.error('❌ [SW 에러] 알림 표시 실패:', event.data.error);
+                setResult(prev => prev + `\n❌ SW 표시 에러: ${event.data.error}`);
+            }
+        };
+        navigator.serviceWorker.addEventListener('message', handler);
+        return () => navigator.serviceWorker.removeEventListener('message', handler);
+    }, []);
+
     const handleSubscribe = async () => {
         setSubscribing(true);
         setResult(null);
@@ -113,6 +129,41 @@ export const AdminPushTest: React.FC = () => {
         }
     };
 
+    // [New] 로컬 즉시 알림 테스트 (OS 차단 확인용)
+    const handleLocalTest = async () => {
+        try {
+            if (Notification.permission !== 'granted') {
+                const perm = await Notification.requestPermission();
+                if (perm !== 'granted') {
+                    alert('알림 권한이 거부되어 있습니다. 브라우저 설정에서 권한을 허용해주세요.');
+                    return;
+                }
+            }
+
+            // 1. 일반 알림 (Main Thread)
+            new Notification("테스트 알림 (Main)", {
+                body: "이 알림이 보인다면 OS 설정은 정상입니다!",
+                icon: '/icon-192.png'
+            });
+
+            // 2. SW 알림 (Service Worker)
+            if ('serviceWorker' in navigator) {
+                const reg = await navigator.serviceWorker.ready;
+                await reg.showNotification("테스트 알림 (SW)", {
+                    body: "이것도 보여야 푸시가 작동합니다.",
+                    icon: '/icon-192.png',
+                    requireInteraction: true
+                });
+            }
+
+            alert("알림을 요청했습니다. 우측 상단을 확인하세요!");
+        } catch (e: any) {
+            alert(`테스트 실패: ${e.message}`);
+        }
+    };
+
+    // if (!isPushSupported) return null; // Removed check to avoid lint error
+
     return (
         <div style={{
             padding: '24px',
@@ -127,6 +178,23 @@ export const AdminPushTest: React.FC = () => {
                 <div>📡 <b>SW Status:</b> {swStatus}</div>
                 <div>🔑 <b>VAPID Hint:</b> {vapidHint}</div>
             </div>
+
+            {/* New: Local Test Button */}
+            <button
+                onClick={handleLocalTest}
+                style={{
+                    padding: '8px',
+                    background: '#f59e0b',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                }}
+            >
+                📢 로컬 알림 테스트 (OS Check)
+            </button>
+
             <div>
                 <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: 700 }}>
                     📱 1단계: 수신기 등록 (받는 쪽)
