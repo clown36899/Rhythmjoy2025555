@@ -17,16 +17,30 @@ const VAPID_PUBLIC_KEY = import.meta.env.VITE_PUBLIC_VAPID_KEY || 'BKg5c8Ja6Ce_i
 export async function checkServiceWorkerRegistration(): Promise<ServiceWorkerRegistration | null> {
     if (!('serviceWorker' in navigator)) {
         console.warn('Service Worker not supported');
+        console.warn('[Push] Service Worker not supported');
         return null;
     }
 
     try {
         const registration = await navigator.serviceWorker.ready;
+        console.log('[Push] Service Worker registered and ready:', registration);
         return registration;
     } catch (error) {
-        console.error('Service Worker registration check failed:', error);
+        console.error('[Push] Service Worker registration check failed:', error);
         return null;
     }
+}
+
+export function isPushSupported(): boolean {
+    const supported = 'serviceWorker' in navigator && 'PushManager' in window;
+    console.log('[Push] Support check:', { supported, sw: 'serviceWorker' in navigator, pm: 'PushManager' in window });
+    return supported;
+}
+
+export async function checkNotificationPermission(): Promise<NotificationPermission> {
+    const permission = Notification.permission;
+    console.log('[Push] Current permission:', permission);
+    return permission;
 }
 
 /**
@@ -43,12 +57,13 @@ export function getNotificationPermission(): NotificationPermission {
  * 푸시 알림 권한 요청
  */
 export async function requestNotificationPermission(): Promise<NotificationPermission> {
+    console.log('[Push] Requesting permission...');
     if (!('Notification' in window)) {
-        throw new Error('This browser does not support notifications');
+        console.warn('[Push] Notifications not supported in this browser');
+        return 'denied';
     }
-
     const permission = await Notification.requestPermission();
-    console.log('Notification permission:', permission);
+    console.log('[Push] Permission result:', permission);
     return permission;
 }
 
@@ -74,54 +89,53 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
  * 푸시 구독 생성
  */
 export async function subscribeToPush(): Promise<PushSubscription | null> {
+    console.log('[Push] subscribeToPush started');
     try {
-        const registration = await checkServiceWorkerRegistration();
-        if (!registration) {
-            throw new Error('Service Worker not registered');
+        if (!isPushSupported()) {
+            console.error('[Push] Push not supported');
+            return null;
         }
 
-        const permission = await requestNotificationPermission();
-        if (permission !== 'granted') {
-            throw new Error('Notification permission denied');
+        const registration = await navigator.serviceWorker.ready;
+        console.log('[Push] SW registration ready:', registration);
+
+        const existingSubscription = await registration.pushManager.getSubscription();
+        if (existingSubscription) {
+            console.log('[Push] Existing subscription found:', existingSubscription);
+            await saveSubscriptionToSupabase(existingSubscription); // Assuming saveSubscriptionToSupabase can handle just subscription
+            return existingSubscription;
         }
 
-        // 기존 구독 확인
-        let subscription = await registration.pushManager.getSubscription();
-
-        if (subscription) {
-            console.log('Already subscribed to push notifications');
-            return subscription;
-        }
-
-        // 새 구독 생성
-        subscription = await registration.pushManager.subscribe({
+        console.log('[Push] Creating new subscription with VAPID:', VAPID_PUBLIC_KEY);
+        const subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource
+            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
         });
 
-        console.log('Push subscription created:', subscription);
-
-        // 실제 프로덕션에서는 여기서 서버에 구독 정보 저장
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-            await saveSubscriptionToSupabase(user.id, subscription);
-        }
-
+        console.log('[Push] New subscription success:', subscription);
+        await saveSubscriptionToSupabase(subscription); // Assuming saveSubscriptionToSupabase can handle just subscription
         return subscription;
     } catch (error) {
-        console.error('Failed to subscribe to push notifications:', error);
-        throw error;
+        console.error('[Push] subscribeToPush failed:', error);
+        return null;
     }
 }
 
 /**
  * Supabase에 구독 정보 저장
  */
-export async function saveSubscriptionToSupabase(userId: string, subscription: PushSubscription): Promise<void> {
+export async function saveSubscriptionToSupabase(subscription: PushSubscription): Promise<void> {
+    console.log('[Push] Saving subscription to Supabase...');
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+        console.warn('[Push] No user logged in, cannot save subscription to Supabase.');
+        return;
+    }
+
     const { error } = await supabase
         .from('user_push_subscriptions')
         .upsert({
-            user_id: userId,
+            user_id: user.id,
             subscription: subscription.toJSON(),
             updated_at: new Date().toISOString()
         }, {
@@ -129,30 +143,32 @@ export async function saveSubscriptionToSupabase(userId: string, subscription: P
         });
 
     if (error) {
-        console.error('Failed to save push subscription to Supabase:', error);
+        console.error('[Push] Failed to save push subscription to Supabase:', error);
         throw error;
     }
-    console.log('Push subscription saved to Supabase');
+    console.log('[Push] Push subscription saved to Supabase');
 }
 
 /**
  * 푸시 구독 해제
  */
 export async function unsubscribeFromPush(): Promise<boolean> {
+    console.log('[Push] Unsubscribing from push notifications...');
     try {
         const registration = await checkServiceWorkerRegistration();
         if (!registration) {
+            console.warn('[Push] No Service Worker registration found for unsubscribe.');
             return false;
         }
 
         const subscription = await registration.pushManager.getSubscription();
         if (!subscription) {
-            console.log('No active subscription found');
+            console.log('[Push] No active subscription found to unsubscribe.');
             return true;
         }
 
         const successful = await subscription.unsubscribe();
-        console.log('Push subscription removed:', successful);
+        console.log('[Push] Push subscription removed from browser:', successful);
 
         // 실제 프로덕션에서는 여기서 서버에서도 구독 정보 삭제
         const { data: { user } } = await supabase.auth.getUser();
@@ -162,7 +178,7 @@ export async function unsubscribeFromPush(): Promise<boolean> {
 
         return successful;
     } catch (error) {
-        console.error('Failed to unsubscribe from push notifications:', error);
+        console.error('[Push] Failed to unsubscribe from push notifications:', error);
         return false;
     }
 }
@@ -171,32 +187,36 @@ export async function unsubscribeFromPush(): Promise<boolean> {
  * Supabase에서 구독 정보 삭제
  */
 export async function removeSubscriptionFromSupabase(userId: string): Promise<void> {
+    console.log(`[Push] Removing subscription for user ${userId} from Supabase...`);
     const { error } = await supabase
         .from('user_push_subscriptions')
         .delete()
         .eq('user_id', userId);
 
     if (error) {
-        console.error('Failed to remove push subscription from Supabase:', error);
+        console.error('[Push] Failed to remove push subscription from Supabase:', error);
         throw error;
     }
-    console.log('Push subscription removed from Supabase');
+    console.log('[Push] Push subscription removed from Supabase');
 }
 
 /**
  * 현재 푸시 구독 상태 확인
  */
 export async function getPushSubscription(): Promise<PushSubscription | null> {
+    console.log('[Push] Getting current push subscription...');
     try {
         const registration = await checkServiceWorkerRegistration();
         if (!registration) {
+            console.warn('[Push] No Service Worker registration found for getting subscription.');
             return null;
         }
 
         const subscription = await registration.pushManager.getSubscription();
+        console.log('[Push] Current push subscription:', subscription);
         return subscription;
     } catch (error) {
-        console.error('Failed to get push subscription:', error);
+        console.error('[Push] Failed to get push subscription:', error);
         return null;
     }
 }
@@ -205,15 +225,16 @@ export async function getPushSubscription(): Promise<PushSubscription | null> {
  * 앱 배지 설정 (숫자 표시)
  */
 export async function setBadge(count: number): Promise<void> {
+    console.log(`[Push] Attempting to set app badge to ${count}...`);
     if ('setAppBadge' in navigator) {
         try {
             await (navigator as any).setAppBadge(count);
-            console.log('Badge set to:', count);
+            console.log('[Push] Badge set to:', count);
         } catch (error) {
-            console.error('Failed to set badge:', error);
+            console.error('[Push] Failed to set badge:', error);
         }
     } else {
-        console.warn('Badge API not supported');
+        console.warn('[Push] Badge API not supported');
     }
 }
 
@@ -221,15 +242,16 @@ export async function setBadge(count: number): Promise<void> {
  * 앱 배지 제거
  */
 export async function clearBadge(): Promise<void> {
+    console.log('[Push] Attempting to clear app badge...');
     if ('clearAppBadge' in navigator) {
         try {
             await (navigator as any).clearAppBadge();
-            console.log('Badge cleared');
+            console.log('[Push] Badge cleared');
         } catch (error) {
-            console.error('Failed to clear badge:', error);
+            console.error('[Push] Failed to clear badge:', error);
         }
     } else {
-        console.warn('Badge API not supported');
+        console.warn('[Push] Badge API not supported');
     }
 }
 
@@ -237,30 +259,29 @@ export async function clearBadge(): Promise<void> {
  * 테스트용 로컬 알림 표시
  * (실제 푸시 서버 없이 테스트하기 위한 함수)
  */
-export async function showTestNotification(title: string, body: string, url: string = '/'): Promise<void> {
+export async function showTestNotification(title: string, body: string) {
+    console.log('[Push] showTestNotification called:', { title, body });
     try {
-        const registration = await checkServiceWorkerRegistration();
-        if (!registration) {
-            throw new Error('Service Worker not registered');
+        if (Notification.permission === 'granted') {
+            const registration = await navigator.serviceWorker.ready;
+            console.log('[Push] Triggering SW showNotification from registered worker');
+            await registration.showNotification(title, {
+                body,
+                icon: '/icons/icon-192x192.png',
+                badge: '/icons/badge-72x72.png',
+                data: {
+                    dateOfArrival: Date.now(),
+                    primaryKey: 1
+                }
+            });
+        } else {
+            console.warn('[Push] Show notification failed: Permission not granted. Current:', Notification.permission);
+            const perm = await requestNotificationPermission();
+            if (perm === 'granted') {
+                await showTestNotification(title, body);
+            }
         }
-
-        const permission = getNotificationPermission();
-        if (permission !== 'granted') {
-            throw new Error('Notification permission not granted');
-        }
-
-        await registration.showNotification(title, {
-            body,
-            icon: '/icon-192.png',
-            badge: '/icon-192.png',
-            tag: 'test-notification',
-            data: { url },
-            requireInteraction: false
-        });
-
-        console.log('Test notification shown');
     } catch (error) {
-        console.error('Failed to show test notification:', error);
-        throw error;
+        console.error('[Push] showTestNotification error:', error);
     }
 }
