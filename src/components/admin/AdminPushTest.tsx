@@ -21,8 +21,8 @@ export const AdminPushTest: React.FC = () => {
             // isAdmin 정보를 넘겨서 저장
             const sub = await subscribeToPush();
             if (sub) {
-                await saveSubscriptionToSupabase(sub, isAdmin || user?.email === 'clown313@naver.com');
-                setResult('✅ 관리자 기기로 등록되었습니다! (테스트 알림을 받을 수 있습니다)');
+                await saveSubscriptionToSupabase(sub);
+                setResult('✅ 수신기 연결 성공! (이제 이 아이디로 알림을 받을 수 있습니다)');
             } else {
                 setResult('❌ 구독 실패. PWA 모드가 아니거나 이미 거절되었을 수 있습니다.');
             }
@@ -33,25 +33,34 @@ export const AdminPushTest: React.FC = () => {
         }
     };
 
-    // 2. 알림 발송 (서버를 통해 등록된 모든 내 기기에 신호 전송)
-    const handleSendRealPush = async () => {
+    // 2. 관리자 대상 전체 발송 (userId: 'ALL' -> 엣지 펑션에서 is_admin: true 필터링)
+    const handleSendAdminBroadcast = async () => {
         setLoading(true);
         setResult(null);
         try {
-            console.log('[AdminPushTest] Sending broadcast via Edge Function...');
             const { error } = await supabase.functions.invoke('send-push-notification', {
-                body: {
-                    title,
-                    body,
-                    userId: 'ALL', // 서버에서 is_admin=true 필터링 수행
-                    url: window.location.origin
-                }
+                body: { title, body, userId: 'ALL', url: window.location.origin }
             });
-
             if (error) throw error;
-            setResult(`🚀 관리자 전체 발송 성공!`);
+            setResult(`🚀 모든 관리자 기기에 발송 신호를 보냈습니다.`);
         } catch (err: any) {
-            console.error('Push test failed:', err);
+            setResult(`❌ 발송 실패: ${err.message}`);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // 3. 현재 로그인된 '나'에게만 발송 (ID 기반 발송 확인용)
+    const handleSendToMe = async () => {
+        setLoading(true);
+        setResult(null);
+        try {
+            const { error } = await supabase.functions.invoke('send-push-notification', {
+                body: { title, body, userId: user?.id, url: window.location.origin }
+            });
+            if (error) throw error;
+            setResult(`🎯 사용자님(${user?.email})의 기기로만 발송했습니다.`);
+        } catch (err: any) {
             setResult(`❌ 발송 실패: ${err.message}`);
         } finally {
             setLoading(false);
@@ -165,12 +174,11 @@ export const AdminPushTest: React.FC = () => {
                     />
                 </div>
 
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                     <button
-                        onClick={handleSendRealPush}
+                        onClick={handleSendToMe}
                         disabled={loading}
                         style={{
-                            flex: 2,
                             padding: '12px',
                             background: '#2563eb',
                             color: 'white',
@@ -180,22 +188,22 @@ export const AdminPushTest: React.FC = () => {
                             cursor: loading ? 'not-allowed' : 'pointer'
                         }}
                     >
-                        {loading ? '전송 중...' : '관리자 전체에 푸시 전송'}
+                        {loading ? '전송 중...' : '🎯 오직 나에게만 발송 (ID 기반)'}
                     </button>
                     <button
-                        onClick={handleSendLocalNotification}
+                        onClick={handleSendAdminBroadcast}
+                        disabled={loading}
                         style={{
-                            flex: 1,
                             padding: '12px',
-                            background: '#64748b',
+                            background: '#6366f1',
                             color: 'white',
                             border: 'none',
                             borderRadius: '8px',
                             fontWeight: 600,
-                            cursor: 'pointer'
+                            cursor: loading ? 'not-allowed' : 'pointer'
                         }}
                     >
-                        테스트 알림
+                        {loading ? '전송 중...' : '📢 관리자 전체 기기에 발송'}
                     </button>
                 </div>
             </div>

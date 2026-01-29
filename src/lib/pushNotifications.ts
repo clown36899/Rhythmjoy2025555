@@ -124,31 +124,36 @@ export async function subscribeToPush(): Promise<PushSubscription | null> {
 /**
  * Supabase에 구독 정보 저장
  */
-export async function saveSubscriptionToSupabase(subscription: PushSubscription, isAdmin: boolean = false): Promise<void> {
-    console.log(`[Push] Saving subscription (isAdmin: ${isAdmin}) to Supabase...`);
+export async function saveSubscriptionToSupabase(subscription: PushSubscription): Promise<void> {
+    console.log('[Push] Saving subscription to Supabase...');
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
         console.warn('[Push] No user logged in, cannot save subscription to Supabase.');
         return;
     }
 
+    // 관리자 여부를 유저 메타데이터와 이메일로부터 동적으로 로드
+    const isAdmin = user.app_metadata?.role === 'admin' ||
+        user.user_metadata?.role === 'admin' ||
+        user.email === 'clown313@naver.com';
+
     const subJson = subscription.toJSON();
     const endpoint = subJson.endpoint;
 
-    // 1. 단말기 소유권 정리: 동일한 endpoint(기기)를 가진 다른 유저의 구독 정보가 있다면 먼저 삭제
+    // 1. 단말기 소유권 정리: 동일한 endpoint(기기)를 가진 다른 유저의 구독 정보가 있다면 삭제
     await supabase
         .from('user_push_subscriptions')
         .delete()
         .neq('user_id', user.id)
         .filter('subscription->>endpoint', 'eq', endpoint);
 
-    // 2. 현재 유저의 정보를 저장/갱신 (is_admin 플래그 포함)
+    // 2. 현재 유저의 정보를 저장/갱신
     const { error } = await supabase
         .from('user_push_subscriptions')
         .upsert({
             user_id: user.id,
             subscription: subJson,
-            is_admin: isAdmin, // 관리자 여부 저장
+            is_admin: isAdmin, // 동적으로 판별된 관리자 상태 저장
             updated_at: new Date().toISOString()
         }, {
             onConflict: 'user_id'
