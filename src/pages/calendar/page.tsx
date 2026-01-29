@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "../../lib/supabase";
 import { lazy, Suspense } from "react";
 
 import FullEventCalendar from "./components/FullEventCalendar";
@@ -199,7 +200,9 @@ export default function CalendarPage() {
             window.removeEventListener('touchmove', handleUserInteraction);
             window.removeEventListener('keydown', handleUserInteraction);
         };
-    }, [currentMonth, tabFilter]); // tabFilter 추가: 탭 전환 시에도 스크롤
+    }, []); // Mount 시 1회 실행, handleMonthChange 의존성
+
+
 
 
 
@@ -209,6 +212,48 @@ export default function CalendarPage() {
         setSelectedDate(null);
         setSelectedWeekday(null);
     }, []);
+
+    // URL 파라미터에서 'id' 읽어서 이벤트 상세 모달 열기 (Deep Link)
+    useEffect(() => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const eventId = urlParams.get('id');
+
+        if (eventId) {
+            const fetchEvent = async () => {
+                try {
+                    const { data, error } = await supabase
+                        .from('events')
+                        .select('*')
+                        .eq('id', eventId)
+                        .maybeSingle();
+
+                    if (error) throw error;
+
+                    if (data) {
+                        // 1. 해당 월로 달력 이동
+                        const eventDate = new Date(data.date || data.start_date || new Date());
+                        const targetMonth = new Date(eventDate.getFullYear(), eventDate.getMonth(), 1);
+                        handleMonthChange(targetMonth);
+
+                        // 2. 모달 열기
+                        // 약간의 지연을 두어 데이터가 로드되고 렌더링된 후 열리도록 함
+                        setTimeout(() => {
+                            eventModal.setSelectedEvent(data);
+                            setHighlightedEventId(data.id);
+                        }, 500);
+
+                        // 3. 3초 후 하이라이트 제거
+                        setTimeout(() => {
+                            setHighlightedEventId(null);
+                        }, 3500);
+                    }
+                } catch (err) {
+                    console.error('Deep link failed:', err);
+                }
+            };
+            fetchEvent();
+        }
+    }, [handleMonthChange]);
 
     const handleNavigateMonth = useCallback((direction: "prev" | "next") => {
         const newMonth = new Date(currentMonth);
