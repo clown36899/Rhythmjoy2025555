@@ -307,53 +307,57 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                     <div className="drawer-pwa-container">
                         <PWAInstallButton />
 
-                        {/* 강습, 이벤트 알람 받기 버튼 */}
-                        <div
-                            onClick={handlePushToggle}
-                            className={`drawer-push-toggle-btn ${isRunningInPWA ? (isPushEnabled ? 'active' : '') : 'guide'}`}
-                        >
-                            <div className="drawer-push-info">
-                                <i className={isPushEnabled ? "ri-notification-3-fill" : "ri-notification-3-line"}></i>
-                                <div className="drawer-push-text">
-                                    <span className="push-label">강습, 이벤트 알람 받기</span>
-                                    <span className="push-status">
-                                        {isRunningInPWA
-                                            ? (isPushEnabled ? '실시간 알림 활성화됨' : '누르면 알림이 켜집니다')
-                                            : '위의 [앱 설치] 버튼으로 설치 후 알림 설정이 가능합니다'}
-                                    </span>
+                        {/* 강습, 이벤트 알람 받기 버튼 (관리자 전용 테스트) */}
+                        {isAdmin && (
+                            <>
+                                <div
+                                    onClick={handlePushToggle}
+                                    className={`drawer-push-toggle-btn ${isRunningInPWA ? (isPushEnabled ? 'active' : '') : 'guide'}`}
+                                >
+                                    <div className="drawer-push-info">
+                                        <i className={isPushEnabled ? "ri-notification-3-fill" : "ri-notification-3-line"}></i>
+                                        <div className="drawer-push-text">
+                                            <span className="push-label">강습, 이벤트 알람 받기</span>
+                                            <span className="push-status">
+                                                {isRunningInPWA
+                                                    ? (isPushEnabled ? '실시간 알림 활성화됨' : '누르면 알림이 켜집니다')
+                                                    : '위의 [앱 설치] 버튼으로 설치 후 알림 설정이 가능합니다'}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    {isRunningInPWA ? (
+                                        <div className="drawer-toggle-switch">
+                                            <div className="drawer-toggle-handle" />
+                                        </div>
+                                    ) : (
+                                        <i className="ri-arrow-right-s-line guide-arrow"></i>
+                                    )}
                                 </div>
-                            </div>
-                            {isRunningInPWA ? (
-                                <div className="drawer-toggle-switch">
-                                    <div className="drawer-toggle-handle" />
-                                </div>
-                            ) : (
-                                <i className="ri-arrow-right-s-line guide-arrow"></i>
-                            )}
-                        </div>
 
-                        {/* 세부 설정 (PWA 모드 & 알림 활성화 시에만 노출) */}
-                        {isRunningInPWA && isPushEnabled && (
-                            <div className="drawer-push-sub-items">
-                                <div
-                                    className="drawer-push-sub-item"
-                                    onClick={() => handlePreferenceToggle('pref_events')}
-                                >
-                                    <span>행사 알림</span>
-                                    <div className={`sub-toggle ${pushPrefs.pref_events ? 'active' : ''}`}>
-                                        <div className="sub-toggle-handle" />
+                                {/* 세부 설정 (PWA 모드 & 알림 활성화 시에만 노출) */}
+                                {isRunningInPWA && isPushEnabled && (
+                                    <div className="drawer-push-sub-items">
+                                        <div
+                                            className="drawer-push-sub-item"
+                                            onClick={() => handlePreferenceToggle('pref_events')}
+                                        >
+                                            <span>행사 알림</span>
+                                            <div className={`sub-toggle ${pushPrefs.pref_events ? 'active' : ''}`}>
+                                                <div className="sub-toggle-handle" />
+                                            </div>
+                                        </div>
+                                        <div
+                                            className="drawer-push-sub-item"
+                                            onClick={() => handlePreferenceToggle('pref_lessons')}
+                                        >
+                                            <span>강습 알림</span>
+                                            <div className={`sub-toggle ${pushPrefs.pref_lessons ? 'active' : ''}`}>
+                                                <div className="sub-toggle-handle" />
+                                            </div>
+                                        </div>
                                     </div>
-                                </div>
-                                <div
-                                    className="drawer-push-sub-item"
-                                    onClick={() => handlePreferenceToggle('pref_lessons')}
-                                >
-                                    <span>강습 알림</span>
-                                    <div className={`sub-toggle ${pushPrefs.pref_lessons ? 'active' : ''}`}>
-                                        <div className="sub-toggle-handle" />
-                                    </div>
-                                </div>
-                            </div>
+                                )}
+                            </>
                         )}
                     </div>
                 </div>

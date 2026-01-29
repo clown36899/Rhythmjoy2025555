@@ -22,7 +22,21 @@ self.addEventListener('fetch', (event) => {
 });
 
 self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') self.skipWaiting();
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+  // [Feature] 클라이언트(앱)가 켜졌을 때 알림창/배지 모두 제거
+  if (event.data && event.data.type === 'CLEAR_NOTIFICATIONS') {
+    self.registration.getNotifications().then(notifications => {
+      notifications.forEach(notification => notification.close());
+    });
+    // 배지 API도 명시적으로 클리어
+    if (navigator.clearAppBadge) {
+      navigator.clearAppBadge().catch(console.error);
+    } else if (navigator.setAppBadge) {
+      navigator.setAppBadge(0).catch(console.error);
+    }
+  }
 });
 
 // 푸시 알림 수신 이벤트
