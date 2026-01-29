@@ -151,24 +151,19 @@ export async function getPushSubscription(): Promise<PushSubscription | null> {
 /**
  * 푸시 구독 정보를 Supabase에 저장
  */
-/**
- * 푸시 구독 정보를 Supabase에 저장
- */
 export async function saveSubscriptionToSupabase(
     subscription: PushSubscription,
     options?: { pref_events?: boolean, pref_lessons?: boolean, pref_filter_tags?: string[] | null }
 ): Promise<boolean> {
-    console.log('[Push] Saving subscription to Supabase...');
+    console.log('[Push] Saving subscription to Supabase (via RPC)...');
     try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error('User not logged in');
 
         // isAdmin 판단
         const isAdmin = user.email === 'clown313@naver.com' || (user.app_metadata?.is_admin === true);
-
         const subJson = JSON.parse(JSON.stringify(subscription));
         const endpoint = subscription.endpoint;
-        // [Fix] UserAgent가 없으면 'unknown'으로 설정하여 DB에 NULL 방지
         const userAgent = navigator.userAgent || 'unknown-device';
 
         if (!endpoint) {
@@ -176,39 +171,24 @@ export async function saveSubscriptionToSupabase(
             return false;
         }
 
-        console.log('[Push] Starting DB save logic for user:', user.id);
+        // [RPC Call] RLS와 Unique 제약조건 충돌을 피하기 위해
+        // Security Definer 함수를 통해 안전하게 Upsert(등록/소유권이전) 수행
+        const { error } = await supabase.rpc('handle_push_subscription', {
+            p_endpoint: endpoint,
+            p_subscription: subJson,
+            p_user_agent: userAgent,
+            p_is_admin: isAdmin,
+            p_pref_events: options?.pref_events ?? true,
+            p_pref_lessons: options?.pref_lessons ?? true,
+            p_pref_filter_tags: options?.pref_filter_tags ?? null
+        });
 
-        // [Updated Logic - Industry Standard]
-        // "One Endpoint = One Active User"
-        // endpoint가 유니크 키입니다.
-        // - 새 기기면: Insert됨.
-        // - 기존 기기인데 유저가 바뀌면: Update됨 (기존 유저는 덮어씌워짐 -> 보안상 안전).
-        // - 내 기기면: Update됨 (정보 갱신).
-
-        const { error: upsertError } = await supabase
-            .from('user_push_subscriptions')
-            .upsert({
-                // id: ... (Optional, 기존 user_id로 찾을 수 없으므로 endpoint 기준 매칭)
-                user_id: user.id,
-                endpoint: endpoint,
-                subscription: subJson,
-                is_admin: isAdmin,
-                user_agent: userAgent,
-                pref_events: options?.pref_events ?? true,
-                pref_lessons: options?.pref_lessons ?? true,
-                pref_filter_tags: options?.pref_filter_tags ?? null,
-                updated_at: new Date().toISOString()
-            }, {
-                onConflict: 'endpoint' // [Standard] Endpoint 기준으로 덮어쓰기
-            });
-
-        if (upsertError) {
-            console.error('[Push] Supabase Upsert Error:', upsertError);
-            throw upsertError;
+        if (error) {
+            console.error('[Push] RPC save failed:', error);
+            throw error;
         }
 
-        console.log('[Push] Push subscription saved to Supabase successfully');
-        // alert('✅ DB 저장 성공! (기기 등록 완료)'); // 사용자 경험을 위해 Alert 제거 (조용히 성공)
+        console.log('[Push] Push subscription saved via RPC successfully');
         return true;
     } catch (error: any) {
         console.error('[Push] Fatal error in saveSubscriptionToSupabase:', error);
