@@ -75,7 +75,9 @@ self.addEventListener('push', (event) => {
       tag: notificationData.tag,
       data: notificationData.data,
       vibrate: [200, 100, 200],
-      requireInteraction: false
+      requireInteraction: true, // [Changed] 데스크탑에서 알림이 사라지지 않게 강제
+      silent: false, // [Added] 소리/진동 강제
+      renotify: true // [Added] 같은 태그여도 다시 알림
     })
   );
 });
