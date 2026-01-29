@@ -728,6 +728,20 @@ export default memo(function EventRegistrationModal({
               window.dispatchEvent(new CustomEvent("eventCreated", {
                 detail: { event: createdEvent }
               }));
+
+              // [NEW] 관리자에게 자동 푸시 알림 발송 (행사/강습 구분)
+              const isLesson = createdEvent.category === 'class' || createdEvent.category === 'regular' || createdEvent.category === 'club';
+              const pushCategory = isLesson ? 'lesson' : 'event';
+
+              supabase.functions.invoke('send-push-notification', {
+                body: {
+                  title: `[신규 ${pushCategory === 'lesson' ? '강습' : '행사'}] ${createdEvent.title}`,
+                  body: `${createdEvent.date || createdEvent.start_date || ''} | ${createdEvent.location || '장소 미정'}`,
+                  userId: 'ALL',
+                  category: pushCategory,
+                  url: `${window.location.origin}/calendar?id=${createdEvent.id}`
+                }
+              }).catch(err => console.error('[Push] Auto-send failed:', err));
               // Analytics: Log Create
               logEvent('Event', 'Create', `${title} (ID: ${createdEvent.id})`);
             }

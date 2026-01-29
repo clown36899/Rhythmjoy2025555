@@ -5,6 +5,16 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { useEffect, useState } from 'react';
 import { PWAInstallButton } from './PWAInstallButton';
+import GlobalLoadingOverlay from './GlobalLoadingOverlay';
+import {
+    isPushSupported,
+    getPushSubscription,
+    subscribeToPush,
+    saveSubscriptionToSupabase,
+    unsubscribeFromPush,
+    getPushPreferences,
+    updatePushPreferences
+} from '../lib/pushNotifications';
 import '../styles/components/SideDrawer.css';
 
 interface SideDrawerProps {
@@ -30,6 +40,10 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
     const [showDevTools, setShowDevTools] = useState(() => {
         return localStorage.getItem('showDevTools') === 'true';
     });
+    const [isPushEnabled, setIsPushEnabled] = useState<boolean>(false);
+    const [isPushLoading, setIsPushLoading] = useState<boolean>(false);
+    const [isRunningInPWA, setIsRunningInPWA] = useState(false);
+    const [pushPrefs, setPushPrefs] = useState({ pref_events: true, pref_lessons: true });
 
     // Modals
     const boardManagementModal = useModal('boardManagement');
@@ -63,6 +77,83 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
         window.addEventListener('refreshBoardCategories', handleRefresh);
         return () => window.removeEventListener('refreshBoardCategories', handleRefresh);
     }, []);
+
+    // PWA 모드 및 푸시 상태 확인
+    useEffect(() => {
+        if (!isOpen) return;
+
+        const checkPWA = () => {
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+                (window.navigator as any).standalone === true ||
+                new URLSearchParams(window.location.search).get('utm_source') === 'pwa';
+            setIsRunningInPWA(isStandalone);
+        };
+
+        checkPWA();
+        checkPushStatus();
+    }, [isOpen]);
+
+    const checkPushStatus = async () => {
+        if (!isPushSupported()) return;
+        const sub = await getPushSubscription();
+        setIsPushEnabled(!!sub);
+
+        if (sub) {
+            const prefs = await getPushPreferences();
+            if (prefs) setPushPrefs(prefs);
+        }
+    };
+
+    const handlePreferenceToggle = async (type: 'pref_events' | 'pref_lessons') => {
+        const newPrefs = { ...pushPrefs, [type]: !pushPrefs[type] };
+        setPushPrefs(newPrefs);
+        await updatePushPreferences(newPrefs);
+    };
+
+    const handlePushToggle = async () => {
+        if (!user) {
+            onLoginClick();
+            onClose();
+            return;
+        }
+
+        if (!isRunningInPWA) {
+            // 브라우저 모드: PWA 설치 안내 트리거
+            window.dispatchEvent(new CustomEvent('showPWAInstructions'));
+            return;
+        }
+
+        // 1. 이미 요청이 진행 중이면 차단 (연타 방지)
+        if (isPushLoading) return;
+
+        // 2. 단시간 내 반복 요청 방지 (2초간 쿨타임)
+        const now = Date.now();
+        const lastClick = Number(sessionStorage.getItem('lastPushClick') || 0);
+        if (now - lastClick < 2000) {
+            console.warn('[SideDrawer] Push toggle throttled - too frequent');
+            return;
+        }
+
+        setIsPushLoading(true);
+        sessionStorage.setItem('lastPushClick', now.toString());
+
+        try {
+            if (isPushEnabled) {
+                const success = await unsubscribeFromPush();
+                if (success) setIsPushEnabled(false);
+            } else {
+                const sub = await subscribeToPush();
+                if (sub) {
+                    await saveSubscriptionToSupabase(sub);
+                    setIsPushEnabled(true);
+                }
+            }
+        } catch (error) {
+            console.error('[SideDrawer] Push toggle error:', error);
+        } finally {
+            setIsPushLoading(false);
+        }
+    };
 
     const loadBoardCategories = async () => {
         try {
@@ -153,6 +244,11 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                 className={`drawer-container ${isOpen ? 'open' : ''}`}
                 onClick={(e) => e.stopPropagation()}
             >
+                {/* 푸시 로딩 오버레이 */}
+                <GlobalLoadingOverlay
+                    isLoading={isPushLoading}
+                    message="알림 설정을 구성 중입니다..."
+                />
                 <div className="drawer-header">
                     {user ? (
                         <div className="drawer-user-profile">
@@ -205,9 +301,61 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                     </button>
                 </div>
 
-                {/* PWA 설치 버튼 - 최상단 배치 */}
-                <div style={{ padding: '0.75rem 1rem 13px' }}>
-                    <PWAInstallButton />
+                {/* PWA 전용 섹션 */}
+                <div className="drawer-pwa-section">
+                    <div className="drawer-section-title">APP 전용 기능</div>
+                    <div className="drawer-pwa-container">
+                        <PWAInstallButton />
+
+                        {/* 강습, 이벤트 알람 받기 버튼 */}
+                        <div
+                            onClick={handlePushToggle}
+                            className={`drawer-push-toggle-btn ${isRunningInPWA ? (isPushEnabled ? 'active' : '') : 'guide'}`}
+                        >
+                            <div className="drawer-push-info">
+                                <i className={isPushEnabled ? "ri-notification-3-fill" : "ri-notification-3-line"}></i>
+                                <div className="drawer-push-text">
+                                    <span className="push-label">강습, 이벤트 알람 받기</span>
+                                    <span className="push-status">
+                                        {isRunningInPWA
+                                            ? (isPushEnabled ? '실시간 알림 활성화됨' : '누르면 알림이 켜집니다')
+                                            : '위의 [앱 설치] 버튼으로 설치 후 알림 설정이 가능합니다'}
+                                    </span>
+                                </div>
+                            </div>
+                            {isRunningInPWA ? (
+                                <div className="drawer-toggle-switch">
+                                    <div className="drawer-toggle-handle" />
+                                </div>
+                            ) : (
+                                <i className="ri-arrow-right-s-line guide-arrow"></i>
+                            )}
+                        </div>
+
+                        {/* 세부 설정 (PWA 모드 & 알림 활성화 시에만 노출) */}
+                        {isRunningInPWA && isPushEnabled && (
+                            <div className="drawer-push-sub-items">
+                                <div
+                                    className="drawer-push-sub-item"
+                                    onClick={() => handlePreferenceToggle('pref_events')}
+                                >
+                                    <span>행사 알림</span>
+                                    <div className={`sub-toggle ${pushPrefs.pref_events ? 'active' : ''}`}>
+                                        <div className="sub-toggle-handle" />
+                                    </div>
+                                </div>
+                                <div
+                                    className="drawer-push-sub-item"
+                                    onClick={() => handlePreferenceToggle('pref_lessons')}
+                                >
+                                    <span>강습 알림</span>
+                                    <div className={`sub-toggle ${pushPrefs.pref_lessons ? 'active' : ''}`}>
+                                        <div className="sub-toggle-handle" />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 <nav className="drawer-nav">

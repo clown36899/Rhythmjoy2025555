@@ -18,23 +18,30 @@ Deno.serve(async (req) => {
         const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
 
         const payload = await req.json();
-        const { title, body, url, userId } = payload;
+        const { title, body, url, userId, category } = payload; // category 추가
 
-        console.log(`[Push] Payload: userID=${userId}, title=${title}`);
+        console.log(`[Push] Payload: userID=${userId}, category=${category}, title=${title}`);
 
         // 1. Fetch Subscriptions
         let query = supabaseClient
             .from('user_push_subscriptions')
-            .select('subscription');
+            .select('subscription, user_id');
 
         if (userId && userId !== 'ALL') {
             // 특정 유저에게 발송
             console.log(`[Push] Targeted send to userId: ${userId}`);
             query = query.eq('user_id', userId);
         } else {
-            // 관리자 전체(Broadcast) 발송 - 테스트 기간이므로 관리자로 한정
+            // 관리자 전체(Broadcast) 발송 시 필터링
             console.log(`[Push] Admin broadcast initiated`);
             query = query.eq('is_admin', true);
+
+            // 카테고리에 따른 추가 필터링
+            if (category === 'event') {
+                query = query.eq('pref_events', true);
+            } else if (category === 'lesson') {
+                query = query.eq('pref_lessons', true);
+            }
         }
 
         const { data: subscriptions, error: dbError } = await query;
@@ -42,14 +49,18 @@ Deno.serve(async (req) => {
         if (dbError) throw new Error(`DB Error: ${dbError.message}`);
 
         if (!subscriptions || subscriptions.length === 0) {
+            console.log('[Push] No target subscriptions found.');
             return new Response(JSON.stringify({
                 status: 'warning',
-                message: 'No subscriptions found for this user.'
+                message: 'No subscriptions found for targeting.'
             }), {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
                 status: 200,
             });
         }
+
+        const targetUserIds = [...new Set(subscriptions.map((s: any) => s.user_id))];
+        console.log(`[Push] Sending to ${subscriptions.length} devices for users: ${targetUserIds.join(', ')}`);
 
         // 2. Configure VAPID
         const vapidPublic = Deno.env.get('VAPID_PUBLIC_KEY');
@@ -81,6 +92,7 @@ Deno.serve(async (req) => {
 
         return new Response(JSON.stringify({
             status: 'success',
+            targetUsers: targetUserIds,
             results: results.map(r => ({
                 status: r.status,
                 // @ts-ignore: Accessing reason/value safely

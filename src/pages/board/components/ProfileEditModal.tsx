@@ -97,13 +97,8 @@ export default function ProfileEditModal({
             // 기존 이미지 경로 저장 (삭제용)
             if (currentUser.profile_image) {
                 const path = extractStoragePath(currentUser.profile_image);
-                console.log('[프로필 수정 모달] 기존 이미지 경로 추출', {
-                    original: currentUser.profile_image,
-                    extracted: path
-                });
                 setOldImagePath(path);
             } else {
-                console.log('[프로필 수정 모달] 기존 이미지 없음');
                 setOldImagePath(null);
             }
         }

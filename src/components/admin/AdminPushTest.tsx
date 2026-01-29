@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { showTestNotification, subscribeToPush, saveSubscriptionToSupabase, unsubscribeFromPush } from '../../lib/pushNotifications';
+import { subscribeToPush, saveSubscriptionToSupabase, unsubscribeFromPush } from '../../lib/pushNotifications';
 
 export const AdminPushTest: React.FC = () => {
     const { user, isAdmin } = useAuth();
     const [title, setTitle] = useState('테스트 알림');
     const [body, setBody] = useState('이것은 PWA 푸시 알림 테스트입니다.');
+    const [category, setCategory] = useState<'none' | 'event' | 'lesson'>('none');
     const [loading, setLoading] = useState(false);
     const [subscribing, setSubscribing] = useState(false);
     const [result, setResult] = useState<string | null>(null);
@@ -38,11 +39,22 @@ export const AdminPushTest: React.FC = () => {
         setLoading(true);
         setResult(null);
         try {
-            const { error } = await supabase.functions.invoke('send-push-notification', {
-                body: { title, body, userId: 'ALL', url: window.location.origin }
+            const { data, error } = await supabase.functions.invoke('send-push-notification', {
+                body: {
+                    title,
+                    body,
+                    userId: 'ALL',
+                    category: category === 'none' ? undefined : category,
+                    url: window.location.origin
+                }
             });
             if (error) throw error;
-            setResult(`🚀 모든 관리자 기기에 발송 신호를 보냈습니다.`);
+
+            console.log('[Push Success] Response data:', data);
+            const targetInfo = data.targetUsers?.length > 0
+                ? ` (대상 ID: ${data.targetUsers.join(', ')})`
+                : '';
+            setResult(`🚀 모든 관리자 기기에 발송 신호를 보냈습니다.${targetInfo}`);
         } catch (err: any) {
             setResult(`❌ 발송 실패: ${err.message}`);
         } finally {
@@ -55,11 +67,16 @@ export const AdminPushTest: React.FC = () => {
         setLoading(true);
         setResult(null);
         try {
-            const { error } = await supabase.functions.invoke('send-push-notification', {
+            const { data, error } = await supabase.functions.invoke('send-push-notification', {
                 body: { title, body, userId: user?.id, url: window.location.origin }
             });
             if (error) throw error;
-            setResult(`🎯 사용자님(${user?.email})의 기기로만 발송했습니다.`);
+
+            console.log('[Push Success] Response data:', data);
+            const targetInfo = data.targetUsers?.length > 0
+                ? ` (대상 ID: ${data.targetUsers.join(', ')})`
+                : '';
+            setResult(`🎯 사용자님 전용 발송 완료!${targetInfo}`);
         } catch (err: any) {
             setResult(`❌ 발송 실패: ${err.message}`);
         } finally {
@@ -82,15 +99,6 @@ export const AdminPushTest: React.FC = () => {
             setResult(`❌ 에러: ${err.message}`);
         } finally {
             setSubscribing(false);
-        }
-    };
-
-    const handleSendLocalNotification = async () => {
-        try {
-            await showTestNotification(title, body);
-            setResult('🔔 즉시 테스트 알림이 트리거되었습니다.');
-        } catch (err: any) {
-            setResult(`❌ 로컬 알림 실패: ${err.message}`);
         }
     };
 
@@ -172,39 +180,55 @@ export const AdminPushTest: React.FC = () => {
                         onChange={e => setBody(e.target.value)}
                         style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', minHeight: '60px' }}
                     />
-                </div>
+                    <div style={{ marginBottom: '16px' }}>
+                        <label style={{ display: 'block', fontSize: '13px', color: '#a1a1aa', marginBottom: '8px' }}>알림 카테고리 (필터링 테스트)</label>
+                        <div style={{ display: 'flex', gap: '12px' }}>
+                            {(['none', 'event', 'lesson'] as const).map((cat) => (
+                                <label key={cat} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '14px' }}>
+                                    <input
+                                        type="radio"
+                                        name="category"
+                                        checked={category === cat}
+                                        onChange={() => setCategory(cat)}
+                                    />
+                                    {cat === 'none' ? '전체' : (cat === 'event' ? '행사' : '강습')}
+                                </label>
+                            ))}
+                        </div>
+                    </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    <button
-                        onClick={handleSendToMe}
-                        disabled={loading}
-                        style={{
-                            padding: '12px',
-                            background: '#2563eb',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '8px',
-                            fontWeight: 600,
-                            cursor: loading ? 'not-allowed' : 'pointer'
-                        }}
-                    >
-                        {loading ? '전송 중...' : '🎯 오직 나에게만 발송 (ID 기반)'}
-                    </button>
-                    <button
-                        onClick={handleSendAdminBroadcast}
-                        disabled={loading}
-                        style={{
-                            padding: '12px',
-                            background: '#6366f1',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '8px',
-                            fontWeight: 600,
-                            cursor: loading ? 'not-allowed' : 'pointer'
-                        }}
-                    >
-                        {loading ? '전송 중...' : '📢 관리자 전체 기기에 발송'}
-                    </button>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <button
+                            onClick={handleSendToMe}
+                            disabled={loading}
+                            style={{
+                                padding: '12px',
+                                background: '#2563eb',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '8px',
+                                fontWeight: 600,
+                                cursor: loading ? 'not-allowed' : 'pointer'
+                            }}
+                        >
+                            {loading ? '전송 중...' : '🎯 오직 나에게만 발송 (ID 기반)'}
+                        </button>
+                        <button
+                            onClick={handleSendAdminBroadcast}
+                            disabled={loading}
+                            style={{
+                                padding: '12px',
+                                background: '#6366f1',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '8px',
+                                fontWeight: 600,
+                                cursor: loading ? 'not-allowed' : 'pointer'
+                            }}
+                        >
+                            {loading ? '전송 중...' : '📢 관리자 전체 기기에 발송'}
+                        </button>
+                    </div>
                 </div>
             </div>
 

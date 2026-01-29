@@ -34,6 +34,12 @@ export const PWAInstallButton = () => {
 
         checkPWA(); // 초기 실행
 
+        // 외부에서 가이드 호출을 위한 리스너
+        const handleForceShowInstructions = () => {
+            setShowInstructions(true);
+        };
+        window.addEventListener('showPWAInstructions', handleForceShowInstructions);
+
         // 모드 변경 감지 리스너 등록
         const mediaQuery = window.matchMedia('(display-mode: standalone)');
         try {
@@ -44,6 +50,7 @@ export const PWAInstallButton = () => {
         }
 
         return () => {
+            window.removeEventListener('showPWAInstructions', handleForceShowInstructions);
             try {
                 mediaQuery.removeEventListener('change', checkPWA);
             } catch (e) {
@@ -313,6 +320,36 @@ export const PWAInstallButton = () => {
                                 </div>
                             </div>
                         </div>
+
+                        {/* 모달 내부 설치 버튼 추가 */}
+                        {!isIOS && promptEvent && (
+                            <div style={{ padding: '0 20px 24px' }}>
+                                <button
+                                    onClick={() => {
+                                        handleInstallClick();
+                                        setShowInstructions(false);
+                                    }}
+                                    style={{
+                                        width: '100%',
+                                        padding: '14px',
+                                        backgroundColor: '#FEE500',
+                                        color: '#000',
+                                        border: 'none',
+                                        borderRadius: '12px',
+                                        fontWeight: 'bold',
+                                        fontSize: '1rem',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: '8px',
+                                        boxShadow: '0 4px 12px rgba(254, 229, 0, 0.3)'
+                                    }}
+                                >
+                                    <i className="ri-download-cloud-line"></i>
+                                    앱 설치하기
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>,
                 document.body

@@ -109,7 +109,7 @@ export async function subscribeToPush(): Promise<PushSubscription | null> {
         console.log('[Push] Creating new subscription with VAPID:', VAPID_PUBLIC_KEY);
         const subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as any
         });
 
         console.log('[Push] New subscription success:', subscription);
@@ -122,48 +122,107 @@ export async function subscribeToPush(): Promise<PushSubscription | null> {
 }
 
 /**
- * Supabase에 구독 정보 저장
+ * Supabase에 구독 정보 저장 (행사/강습 선호도 포함)
  */
-export async function saveSubscriptionToSupabase(subscription: PushSubscription): Promise<void> {
-    console.log('[Push] Saving subscription to Supabase...');
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-        console.warn('[Push] No user logged in, cannot save subscription to Supabase.');
-        return;
-    }
+export async function saveSubscriptionToSupabase(
+    subscription: PushSubscription,
+    options?: { pref_events?: boolean, pref_lessons?: boolean }
+): Promise<boolean> {
+    console.log('[Push] Saving subscription to Supabase...', options);
+    try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+            console.warn('[Push] No user logged in, cannot save subscription to Supabase.');
+            return false;
+        }
 
-    // 관리자 여부를 유저 메타데이터와 이메일로부터 동적으로 로드
-    const isAdmin = user.app_metadata?.role === 'admin' ||
-        user.user_metadata?.role === 'admin' ||
-        user.email === 'clown313@naver.com';
+        // 관리자 여부를 유저 메타데이터와 이메일로부터 동적으로 로드
+        const isAdmin = user.app_metadata?.role === 'admin' ||
+            user.user_metadata?.role === 'admin' ||
+            user.email === 'clown313@naver.com';
 
-    const subJson = subscription.toJSON();
-    const endpoint = subJson.endpoint;
+        const subJson = subscription.toJSON();
+        const endpoint = subJson.endpoint;
 
-    // 1. 단말기 소유권 정리: 동일한 endpoint(기기)를 가진 다른 유저의 구독 정보가 있다면 삭제
-    await supabase
-        .from('user_push_subscriptions')
-        .delete()
-        .neq('user_id', user.id)
-        .filter('subscription->>endpoint', 'eq', endpoint);
+        // 1. 단말기 소유권 정리: 동일한 endpoint(기기)를 가진 다른 유저의 구독 정보가 있다면 삭제
+        await supabase
+            .from('user_push_subscriptions')
+            .delete()
+            .neq('user_id', user.id)
+            .filter('subscription->>endpoint', 'eq', endpoint);
 
-    // 2. 현재 유저의 정보를 저장/갱신
-    const { error } = await supabase
-        .from('user_push_subscriptions')
-        .upsert({
-            user_id: user.id,
-            subscription: subJson,
-            is_admin: isAdmin, // 동적으로 판별된 관리자 상태 저장
-            updated_at: new Date().toISOString()
-        }, {
-            onConflict: 'user_id'
-        });
+        // 2. 현재 유저의 정보를 저장/갱신
+        const { error } = await supabase
+            .from('user_push_subscriptions')
+            .upsert({
+                user_id: user.id,
+                subscription: subJson,
+                is_admin: isAdmin,
+                pref_events: options?.pref_events ?? true,
+                pref_lessons: options?.pref_lessons ?? true,
+                updated_at: new Date().toISOString()
+            }, {
+                onConflict: 'user_id,endpoint' // Update to use both user_id and endpoint
+            });
 
-    if (error) {
+        if (error) throw error;
+        console.log('[Push] Push subscription saved to Supabase');
+        return true;
+    } catch (error) {
         console.error('[Push] Failed to save push subscription to Supabase:', error);
-        throw error;
+        return false;
     }
-    console.log('[Push] Push subscription saved to Supabase');
+}
+
+/**
+ * 알림 세부 설정(행사, 강습)만 업데이트
+ */
+export async function updatePushPreferences(prefs: { pref_events?: boolean, pref_lessons?: boolean }): Promise<boolean> {
+    try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return false;
+
+        const { error } = await supabase
+            .from('user_push_subscriptions')
+            .update({
+                ...prefs,
+                updated_at: new Date().toISOString(),
+            })
+            .eq('user_id', user.id); // Update preferences for ALL devices of this user
+
+        if (error) throw error;
+        console.log('[Push] Preferences updated:', prefs);
+        return true;
+    } catch (error) {
+        console.error('[Push] Failed to update preferences:', error);
+        return false;
+    }
+}
+
+/**
+ * 현재 저장된 알림 설정 가져오기
+ */
+export async function getPushPreferences(): Promise<{ pref_events: boolean, pref_lessons: boolean } | null> {
+    try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return null;
+
+        const { data, error } = await supabase
+            .from('user_push_subscriptions')
+            .select('pref_events, pref_lessons')
+            .eq('user_id', user.id)
+            .limit(1) // Get preferences from any of the user's devices
+            .maybeSingle();
+
+        if (error) {
+            if (error.code === 'PGRST116') return { pref_events: true, pref_lessons: true };
+            throw error;
+        }
+        return data as { pref_events: boolean, pref_lessons: boolean };
+    } catch (error) {
+        console.error('[Push] Failed to fetch preferences:', error);
+        return null;
+    }
 }
 
 /**
