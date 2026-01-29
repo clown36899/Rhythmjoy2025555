@@ -733,6 +733,12 @@ export default memo(function EventRegistrationModal({
               const isLesson = createdEvent.category === 'class' || createdEvent.category === 'regular' || createdEvent.category === 'club';
               const pushCategory = isLesson ? 'lesson' : 'event';
 
+              console.log("[Push] Invoking send-push-notification function...", {
+                title: `[신규 ${pushCategory === 'lesson' ? '강습' : '행사'}] ${createdEvent.title}`,
+                category: pushCategory,
+                url: `${window.location.origin}/calendar?id=${createdEvent.id}`
+              });
+
               supabase.functions.invoke('send-push-notification', {
                 body: {
                   title: `[신규 ${pushCategory === 'lesson' ? '강습' : '행사'}] ${createdEvent.title}`,
@@ -741,7 +747,16 @@ export default memo(function EventRegistrationModal({
                   category: pushCategory,
                   url: `${window.location.origin}/calendar?id=${createdEvent.id}`
                 }
-              }).catch(err => console.error('[Push] Auto-send failed:', err));
+              }).then(({ data, error }) => {
+                if (error) {
+                  console.error('[Push] Auto-send failed (Invocation error):', error);
+                } else {
+                  console.log('[Push] Auto-send result from server:', JSON.stringify(data, null, 2));
+                  if (data?.results?.[0]?.status === 'rejected') {
+                    console.error('[Push] Push was REJECTED by service:', data.results[0].error);
+                  }
+                }
+              }).catch(err => console.error('[Push] Auto-send fatal error:', err));
               // Analytics: Log Create
               logEvent('Event', 'Create', `${title} (ID: ${createdEvent.id})`);
             }

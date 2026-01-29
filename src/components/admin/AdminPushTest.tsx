@@ -11,6 +11,24 @@ export const AdminPushTest: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [subscribing, setSubscribing] = useState(false);
     const [result, setResult] = useState<string | null>(null);
+    const [swStatus, setSwStatus] = useState<string>('Checking...');
+    const [vapidHint, setVapidHint] = useState<string>('');
+
+    React.useEffect(() => {
+        const checkSW = async () => {
+            if ('serviceWorker' in navigator) {
+                const reg = await navigator.serviceWorker.getRegistration();
+                setSwStatus(reg ? `Registered (${reg.active ? 'Active' : 'Not Active'})` : 'Not Registered');
+            } else {
+                setSwStatus('Not Supported');
+            }
+        };
+        checkSW();
+
+        // VAPID Hint
+        const key = import.meta.env.VITE_PUBLIC_VAPID_KEY || 'BKg5c8Ja6Ce_iEtvV4y3KqaCb8mV9f-a2ClJsy8eiBLIfOi1wlAhaidG6jPq9Va0PM10RmOvOIetYs1wSeZRDG0';
+        setVapidHint(`${key.substring(0, 8)}...${key.slice(-8)}`);
+    }, []);
 
     if (!isAdmin && user?.email !== 'clown313@naver.com') return null;
 
@@ -22,10 +40,11 @@ export const AdminPushTest: React.FC = () => {
             // isAdmin 정보를 넘겨서 저장
             const sub = await subscribeToPush();
             if (sub) {
+                // saveSubscriptionToSupabase에서 에러 발생 시 catch 블록으로 감
                 await saveSubscriptionToSupabase(sub);
                 setResult('✅ 수신기 연결 성공! (이제 이 아이디로 알림을 받을 수 있습니다)');
             } else {
-                setResult('❌ 구독 실패. PWA 모드가 아니거나 이미 거절되었을 수 있습니다.');
+                setResult('❌ 구독 실패. PWA 모드가 아니거나 권한이 거절되었습니다.');
             }
         } catch (err: any) {
             setResult(`❌ 에러: ${err.message}`);
@@ -50,13 +69,9 @@ export const AdminPushTest: React.FC = () => {
             });
             if (error) throw error;
 
-            console.log('[Push Success] Response data:', data);
-            const targetInfo = data.targetUsers?.length > 0
-                ? ` (대상 ID: ${data.targetUsers.join(', ')})`
-                : '';
-            setResult(`🚀 모든 관리자 기기에 발송 신호를 보냈습니다.${targetInfo}`);
+            setResult(`🚀 발송 신호 완료: ${JSON.stringify(data, null, 2)}`);
         } catch (err: any) {
-            setResult(`❌ 발송 실패: ${err.message}`);
+            setResult(`❌ 발송 실패: ${err.message}${err.stack ? '\n' + err.stack : ''}`);
         } finally {
             setLoading(false);
         }
@@ -72,13 +87,9 @@ export const AdminPushTest: React.FC = () => {
             });
             if (error) throw error;
 
-            console.log('[Push Success] Response data:', data);
-            const targetInfo = data.targetUsers?.length > 0
-                ? ` (대상 ID: ${data.targetUsers.join(', ')})`
-                : '';
-            setResult(`🎯 사용자님 전용 발송 완료!${targetInfo}`);
+            setResult(`🎯 나에게 발송 완료: ${JSON.stringify(data, null, 2)}`);
         } catch (err: any) {
-            setResult(`❌ 발송 실패: ${err.message}`);
+            setResult(`❌ 발송 실패: ${err.message}${err.stack ? '\n' + err.stack : ''}`);
         } finally {
             setLoading(false);
         }
@@ -112,6 +123,10 @@ export const AdminPushTest: React.FC = () => {
             gap: '20px',
             color: '#1e293b'
         }}>
+            <div style={{ background: '#f1f5f9', padding: '12px', borderRadius: '8px', fontSize: '12px' }}>
+                <div>📡 <b>SW Status:</b> {swStatus}</div>
+                <div>🔑 <b>VAPID Hint:</b> {vapidHint}</div>
+            </div>
             <div>
                 <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: 700 }}>
                     📱 1단계: 수신기 등록 (받는 쪽)

@@ -11,6 +11,8 @@ import { supabase } from './supabase';
 // 실제 키를 생성하려면: npx web-push generate-vapid-keys
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_PUBLIC_VAPID_KEY || 'BKg5c8Ja6Ce_iEtvV4y3KqaCb8mV9f-a2ClJsy8eiBLIfOi1wlAhaidG6jPq9Va0PM10RmOvOIetYs1wSeZRDG0';
 
+console.log(`[Push] Using VAPID Public Key: ${VAPID_PUBLIC_KEY.substring(0, 5)}...${VAPID_PUBLIC_KEY.slice(-5)}`);
+
 /**
  * Service Worker 등록 상태 확인
  */
@@ -99,78 +101,109 @@ export async function subscribeToPush(): Promise<PushSubscription | null> {
         const registration = await navigator.serviceWorker.ready;
         console.log('[Push] SW registration ready:', registration);
 
-        const existingSubscription = await registration.pushManager.getSubscription();
-        if (existingSubscription) {
-            console.log('[Push] Existing subscription found:', existingSubscription);
-            await saveSubscriptionToSupabase(existingSubscription); // Assuming saveSubscriptionToSupabase can handle just subscription
-            return existingSubscription;
+        // 1. 기존 구독 확인
+        let subscription = await registration.pushManager.getSubscription();
+        console.log('[Push] Existing subscription check:', !!subscription);
+
+        // 2. 권한 확인 및 요청
+        let permission = await checkNotificationPermission();
+        if (permission === 'default') {
+            permission = await requestNotificationPermission();
         }
 
-        console.log('[Push] Creating new subscription with VAPID:', VAPID_PUBLIC_KEY);
-        const subscription = await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as any
-        });
+        if (permission !== 'granted') {
+            console.warn('[Push] Notification permission denied');
+            return null;
+        }
 
-        console.log('[Push] New subscription success:', subscription);
-        await saveSubscriptionToSupabase(subscription); // Assuming saveSubscriptionToSupabase can handle just subscription
+        // 3. 구독 안 되어 있으면 새로 생성
+        if (!subscription) {
+            console.log('[Push] Creating new subscription with VAPID key...');
+            subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as any
+            });
+            console.log('[Push] New subscription created successfully');
+        }
+
         return subscription;
     } catch (error) {
-        console.error('[Push] subscribeToPush failed:', error);
+        console.error('[Push] Failed to subscribe to push notifications:', error);
         return null;
     }
 }
 
 /**
- * Supabase에 구독 정보 저장 (행사/강습 선호도 포함)
+ * 현재 기기의 푸시 구독 정보 가져오기
+ */
+export async function getPushSubscription(): Promise<PushSubscription | null> {
+    try {
+        if (!('serviceWorker' in navigator)) return null;
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (!registration) return null;
+        return await registration.pushManager.getSubscription();
+    } catch (error) {
+        console.error('[Push] Failed to get push subscription:', error);
+        return null;
+    }
+}
+
+/**
+ * 푸시 구독 정보를 Supabase에 저장
  */
 export async function saveSubscriptionToSupabase(
     subscription: PushSubscription,
     options?: { pref_events?: boolean, pref_lessons?: boolean }
 ): Promise<boolean> {
-    console.log('[Push] Saving subscription to Supabase...', options);
+    console.log('[Push] Saving subscription to Supabase...');
     try {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-            console.warn('[Push] No user logged in, cannot save subscription to Supabase.');
-            return false;
-        }
+        if (!user) throw new Error('User not logged in');
 
-        // 관리자 여부를 유저 메타데이터와 이메일로부터 동적으로 로드
-        const isAdmin = user.app_metadata?.role === 'admin' ||
-            user.user_metadata?.role === 'admin' ||
-            user.email === 'clown313@naver.com';
+        // isAdmin 판단: (contexts/AuthContext.tsx 로직 참고)
+        const isAdmin = user.email === 'clown313@naver.com' || (user.app_metadata?.is_admin === true);
 
-        const subJson = subscription.toJSON();
-        const endpoint = subJson.endpoint;
+        const subJson = JSON.parse(JSON.stringify(subscription));
+        const endpoint = subscription.endpoint;
 
-        // 1. 단말기 소유권 정리: 동일한 endpoint(기기)를 가진 다른 유저의 구독 정보가 있다면 삭제
+        console.log('[Push] Starting DB save/upsert for user:', user.id, 'endpoint:', endpoint.substring(0, 20) + '...');
+
+        // 1. 중복 엔드포인트 정리 (다른 유저가 이 기기를 썼을 수 있음)
         await supabase
             .from('user_push_subscriptions')
             .delete()
             .neq('user_id', user.id)
-            .filter('subscription->>endpoint', 'eq', endpoint);
+            .filter('endpoint', 'eq', endpoint);
 
         // 2. 현재 유저의 정보를 저장/갱신
         const { error } = await supabase
             .from('user_push_subscriptions')
             .upsert({
                 user_id: user.id,
+                endpoint: endpoint,
                 subscription: subJson,
                 is_admin: isAdmin,
                 pref_events: options?.pref_events ?? true,
                 pref_lessons: options?.pref_lessons ?? true,
                 updated_at: new Date().toISOString()
             }, {
-                onConflict: 'user_id,endpoint' // Update to use both user_id and endpoint
+                onConflict: 'user_id,endpoint'
             });
 
-        if (error) throw error;
-        console.log('[Push] Push subscription saved to Supabase');
+        if (error) {
+            console.error('[Push] Supabase DB Error:', error);
+            // [중요] 에러가 "column does not exist"라면 SQL 실행이 안 된 것임
+            if (error.message?.includes('column') || error.code === '42703' || error.code === 'PGRST204') {
+                alert('DB 에러: endpoint 컬럼이 없습니다. 제공해드린 SQL을 먼저 실행해주세요!');
+            }
+            throw error;
+        }
+
+        console.log('[Push] Push subscription saved to Supabase successfully');
         return true;
-    } catch (error) {
-        console.error('[Push] Failed to save push subscription to Supabase:', error);
-        return false;
+    } catch (error: any) {
+        console.error('[Push] Fatal error in saveSubscriptionToSupabase:', error);
+        throw error;
     }
 }
 
@@ -243,121 +276,26 @@ export async function unsubscribeFromPush(): Promise<boolean> {
             return true;
         }
 
+        const endpoint = subscription.endpoint;
         const successful = await subscription.unsubscribe();
         console.log('[Push] Push subscription removed from browser:', successful);
 
-        // 실제 프로덕션에서는 여기서 서버에서도 구독 정보 삭제
+        // 서버에서도 구독 정보 삭제
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-            await removeSubscriptionFromSupabase(user.id);
+            const { error } = await supabase
+                .from('user_push_subscriptions')
+                .delete()
+                .eq('user_id', user.id)
+                .eq('endpoint', endpoint);
+
+            if (error) console.error('[Push] Failed to delete subscription from server:', error);
+            else console.log('[Push] Push subscription removed from server');
         }
 
         return successful;
     } catch (error) {
-        console.error('[Push] Failed to unsubscribe from push notifications:', error);
+        console.error('[Push] Failed to unsubscribe:', error);
         return false;
-    }
-}
-
-/**
- * Supabase에서 구독 정보 삭제
- */
-export async function removeSubscriptionFromSupabase(userId: string): Promise<void> {
-    console.log(`[Push] Removing subscription for user ${userId} from Supabase...`);
-    const { error } = await supabase
-        .from('user_push_subscriptions')
-        .delete()
-        .eq('user_id', userId);
-
-    if (error) {
-        console.error('[Push] Failed to remove push subscription from Supabase:', error);
-        throw error;
-    }
-    console.log('[Push] Push subscription removed from Supabase');
-}
-
-/**
- * 현재 푸시 구독 상태 확인
- */
-export async function getPushSubscription(): Promise<PushSubscription | null> {
-    console.log('[Push] Getting current push subscription...');
-    try {
-        const registration = await checkServiceWorkerRegistration();
-        if (!registration) {
-            console.warn('[Push] No Service Worker registration found for getting subscription.');
-            return null;
-        }
-
-        const subscription = await registration.pushManager.getSubscription();
-        console.log('[Push] Current push subscription:', subscription);
-        return subscription;
-    } catch (error) {
-        console.error('[Push] Failed to get push subscription:', error);
-        return null;
-    }
-}
-
-/**
- * 앱 배지 설정 (숫자 표시)
- */
-export async function setBadge(count: number): Promise<void> {
-    console.log(`[Push] Attempting to set app badge to ${count}...`);
-    if ('setAppBadge' in navigator) {
-        try {
-            await (navigator as any).setAppBadge(count);
-            console.log('[Push] Badge set to:', count);
-        } catch (error) {
-            console.error('[Push] Failed to set badge:', error);
-        }
-    } else {
-        console.warn('[Push] Badge API not supported');
-    }
-}
-
-/**
- * 앱 배지 제거
- */
-export async function clearBadge(): Promise<void> {
-    console.log('[Push] Attempting to clear app badge...');
-    if ('clearAppBadge' in navigator) {
-        try {
-            await (navigator as any).clearAppBadge();
-            console.log('[Push] Badge cleared');
-        } catch (error) {
-            console.error('[Push] Failed to clear badge:', error);
-        }
-    } else {
-        console.warn('[Push] Badge API not supported');
-    }
-}
-
-/**
- * 테스트용 로컬 알림 표시
- * (실제 푸시 서버 없이 테스트하기 위한 함수)
- */
-export async function showTestNotification(title: string, body: string) {
-    console.log('[Push] showTestNotification called:', { title, body });
-    try {
-        if (Notification.permission === 'granted') {
-            const registration = await navigator.serviceWorker.ready;
-            console.log('[Push] Triggering SW showNotification from registered worker');
-            await registration.showNotification(title, {
-                body,
-                icon: '/icons/icon-192x192.png',
-                badge: '/icons/badge-72x72.png',
-                data: {
-                    dateOfArrival: Date.now(),
-                    primaryKey: 1
-                }
-            });
-        } else {
-            console.warn('[Push] Show notification failed: Permission not granted. Current:', Notification.permission);
-            const perm = await requestNotificationPermission();
-            if (perm === 'granted') {
-                await showTestNotification(title, body);
-            }
-        }
-    } catch (error) {
-        console.error('[Push] showTestNotification error:', error);
     }
 }

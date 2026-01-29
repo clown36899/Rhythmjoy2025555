@@ -18,9 +18,9 @@ Deno.serve(async (req) => {
         const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
 
         const payload = await req.json();
-        const { title, body, url, userId, category } = payload; // category 추가
+        const { title, body, url, userId, category } = payload;
 
-        console.log(`[Push] Payload: userID=${userId}, category=${category}, title=${title}`);
+        console.log(`[Push] Starting process: userID=${userId}, category=${category}, title=${title}`);
 
         // 1. Fetch Subscriptions
         let query = supabaseClient
@@ -28,15 +28,12 @@ Deno.serve(async (req) => {
             .select('subscription, user_id');
 
         if (userId && userId !== 'ALL') {
-            // 특정 유저에게 발송
             console.log(`[Push] Targeted send to userId: ${userId}`);
             query = query.eq('user_id', userId);
         } else {
-            // 관리자 전체(Broadcast) 발송 시 필터링
             console.log(`[Push] Admin broadcast initiated`);
             query = query.eq('is_admin', true);
 
-            // 카테고리에 따른 추가 필터링
             if (category === 'event') {
                 query = query.eq('pref_events', true);
             } else if (category === 'lesson') {
@@ -49,10 +46,10 @@ Deno.serve(async (req) => {
         if (dbError) throw new Error(`DB Error: ${dbError.message}`);
 
         if (!subscriptions || subscriptions.length === 0) {
-            console.log('[Push] No target subscriptions found.');
+            console.log('[Push] No target subscriptions found in DB.');
             return new Response(JSON.stringify({
                 status: 'warning',
-                message: 'No subscriptions found for targeting.'
+                message: 'No subscriptions found in database for the given criteria.'
             }), {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
                 status: 200,
@@ -60,15 +57,18 @@ Deno.serve(async (req) => {
         }
 
         const targetUserIds = [...new Set(subscriptions.map((s: any) => s.user_id))];
-        console.log(`[Push] Sending to ${subscriptions.length} devices for users: ${targetUserIds.join(', ')}`);
+        console.log(`[Push] Found ${subscriptions.length} devices for users: ${targetUserIds.join(', ')}`);
 
         // 2. Configure VAPID
         const vapidPublic = Deno.env.get('VAPID_PUBLIC_KEY');
         const vapidPrivate = Deno.env.get('VAPID_PRIVATE_KEY');
 
         if (!vapidPublic || !vapidPrivate) {
-            throw new Error("Missing VAPID keys in environment");
+            throw new Error("Missing VAPID keys in Supabase secrets (VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY)");
         }
+
+        // Key Hint for debugging
+        console.log(`[Push] Using VAPID Public Key Hint: ${vapidPublic.substring(0, 5)}...${vapidPublic.slice(-5)}`);
 
         webpush.setVapidDetails(
             'mailto:admin@swingenjoy.com',
@@ -83,20 +83,36 @@ Deno.serve(async (req) => {
                 const pushPayload = JSON.stringify({
                     title: `${title} (${timestamp})`,
                     body,
-                    tag: `push-${Date.now()}`, // Unique tag ensures multiple notifications show up
+                    tag: `push-${Date.now()}`,
                     data: { url: url || '/' }
                 });
-                return webpush.sendNotification(subRecord.subscription, pushPayload);
+
+                try {
+                    const res = await webpush.sendNotification(subRecord.subscription, pushPayload);
+                    console.log(`[Push] Device Success: ${subRecord.user_id}`);
+                    return res;
+                } catch (err: any) {
+                    console.error(`[Push] Device Rejection: ${subRecord.user_id} - code: ${err.statusCode}, body: ${err.body}`);
+                    throw err; // Re-throw to be captured by Promise.allSettled
+                }
             })
         );
+
+        const successCount = results.filter(r => r.status === 'fulfilled').length;
+        const failureCount = results.filter(r => r.status === 'rejected').length;
+
+        console.log(`[Push] Batch complete: ${successCount} success, ${failureCount} failure`);
 
         return new Response(JSON.stringify({
             status: 'success',
             targetUsers: targetUserIds,
+            summary: { success: successCount, failure: failureCount },
             results: results.map(r => ({
                 status: r.status,
-                // @ts-ignore: Accessing reason/value safely
-                error: r.status === 'rejected' ? r.reason?.message : null
+                // @ts-ignore
+                statusCode: r.status === 'rejected' ? r.reason?.statusCode : 200,
+                // @ts-ignore
+                error: r.status === 'rejected' ? (r.reason?.body || r.reason?.message) : null
             }))
         }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -111,7 +127,7 @@ Deno.serve(async (req) => {
             stack: err.stack
         }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-            status: 200, // Return 200 to ensure browser can read the JSON error
+            status: 200,
         });
     }
-})
+});
