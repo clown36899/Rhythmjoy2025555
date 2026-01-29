@@ -166,14 +166,15 @@ export async function saveSubscriptionToSupabase(
         const subJson = JSON.parse(JSON.stringify(subscription));
         const endpoint = subscription.endpoint;
 
+        if (!endpoint) {
+            console.error('[Push] Endpoint is missing in subscription object');
+            return false;
+        }
+
         console.log('[Push] Starting DB save/upsert for user:', user.id, 'endpoint:', endpoint.substring(0, 20) + '...');
 
-        // 1. 중복 엔드포인트 정리 (다른 유저가 이 기기를 썼을 수 있음)
-        await supabase
-            .from('user_push_subscriptions')
-            .delete()
-            .neq('user_id', user.id)
-            .filter('endpoint', 'eq', endpoint);
+        // 1. 중복 엔드포인트 정리 로직 제거 (RLS로 인해 타인 데이터 삭제 불가하므로 의미 없음)
+        // clean-up logic removed
 
         // 2. 현재 유저의 정보를 저장/갱신
         const { error } = await supabase
