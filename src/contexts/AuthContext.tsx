@@ -6,6 +6,7 @@ import { initKakaoSDK, loginWithKakao, logoutKakao } from '../utils/kakaoAuth';
 import { authLogger } from '../utils/authLogger';
 
 import { setUserProperties, logEvent, setUserId, setAdminStatus } from '../lib/analytics';
+import { subscribeToPush } from '../lib/pushNotifications';
 
 
 
@@ -497,7 +498,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [user]);
 
-  // 수동 세션 검증 메서드 - useCallback으로 감싸서 리렌더링 시 참조 유지 (무한 루프 방지)
   const validateSession = useCallback(async () => {
     // console.log('[AuthContext] 🕵️‍♂️ Manual session validation requested');
     const validSession = await validateAndRecoverSession();
@@ -508,6 +508,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       console.log('[AuthContext] 🕵️‍♂️ Session is valid');
     }
   }, []);
+
+  // [PWA Push] Admin 전용 자동 구독 로직
+  useEffect(() => {
+    if (user && isAdmin && isStandalone) {
+      const lastSubscribe = localStorage.getItem(`${storagePrefix}last_push_subscribe`);
+      const now = Date.now();
+
+      // 하루에 한 번만 체크 (혹은 구독 정보가 없을 때)
+      if (!lastSubscribe || now - parseInt(lastSubscribe) > 86400000) {
+        console.log('[AuthContext] 🔔 Admin PWA detected - Attempting auto-push subscription for testing');
+        subscribeToPush()
+          .then(() => {
+            localStorage.setItem(`${storagePrefix}last_push_subscribe`, String(now));
+          })
+          .catch(err => {
+            console.warn('[AuthContext] Push subscription attempt failed (expected on some devices):', err);
+          });
+      }
+    }
+  }, [user, isAdmin, isStandalone, storagePrefix]);
 
   // 1. 초기 세션 마운트 시 검증
   useEffect(() => {

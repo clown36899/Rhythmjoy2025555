@@ -25,6 +25,7 @@ import './styles/MyActivitiesPage.css'; // New dedicated styles
 import './styles/RegisteredEvents.css'; // New managed events styles
 import '../social/components/GroupDirectory.css'; // Reuse group styles
 import MyImpactCard from './components/MyImpactCard';
+import { AdminPushTest } from '../../components/admin/AdminPushTest';
 
 type TabType = 'events' | 'classes' | 'groups' | 'posts' | 'stats';
 
@@ -247,6 +248,7 @@ export default function MyActivitiesPage() {
                                     events={events} // Pass all events for aggregation
                                     initialExpanded={true}
                                 />
+                                {isAdmin && <AdminPushTest />}
                             </div>
                         )}
 

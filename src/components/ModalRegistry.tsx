@@ -61,6 +61,7 @@ const AdminFavoritesModal = lazy(() => import('../components/AdminFavoritesModal
 const AdminSecureMembersModal = lazy(() => import('../components/AdminSecureMembersModal'));
 const GenreWeightSettingsModal = lazy(() => import('../components/GenreWeightSettingsModal'));
 const SiteAnalyticsModal = lazy(() => import('../components/SiteAnalyticsModal'));
+const AdminPushTestModal = lazy(() => import('../components/AdminPushTestModal'));
 const OnlineUsersModal = lazy(() => import('../components/OnlineUsersModal').then(module => ({ default: module.OnlineUsersModal })));
 
 /**
@@ -125,6 +126,7 @@ const MODAL_COMPONENTS: Record<string, any> = {
     'genreWeightSettings': GenreWeightSettingsModal,
     'globalNoticeEditor': GlobalNoticeEditor,
     'siteAnalytics': SiteAnalyticsModal,
+    'adminPushTest': AdminPushTestModal,
 };
 
 /**

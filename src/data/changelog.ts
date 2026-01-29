@@ -8,6 +8,16 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '3.8.0',
+        date: '2026-01-29',
+        changes: [
+            '[✨ Feature] PWA 푸시 알림 서버 연동 및 테스트 시스템 구축',
+            '[🛠️ Admin] 관리자 전용 PWA 푸시 테스트 패널 신설 (사이드 메뉴)',
+            '[🚀 Performance] Supabase Edge Function을 이용한 실시간 알림 전송 최적화',
+            '[🔧 Fix] 관리자 자동 구독 로직 및 권한 판별 보강'
+        ]
+    },
+    {
         version: '3.7.15',
         date: '2026-01-25',
         changes: [

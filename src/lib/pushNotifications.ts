@@ -1,3 +1,5 @@
+import { supabase } from './supabase';
+
 /**
  * PWA 푸시 알림 유틸리티 함수들
  * 
@@ -7,7 +9,7 @@
 
 // 테스트용 공개 VAPID 키 (실제 사용 시 환경 변수로 관리)
 // 실제 키를 생성하려면: npx web-push generate-vapid-keys
-const VAPID_PUBLIC_KEY = 'BEl62iUYgUivxIkv69yViEuiBIa-Ib9-SkvMeAtA3LFgDJo3QVsUjWXTSwvSapTfA7p2hnSWzVb8r6rtfCatBdg';
+const VAPID_PUBLIC_KEY = import.meta.env.VITE_PUBLIC_VAPID_KEY || 'BKg5c8Ja6Ce_iEtvV4y3KqaCb8mV9f-a2ClJsy8eiBLIfOi1wlAhaidG6jPq9Va0PM10RmOvOIetYs1wSeZRDG0';
 
 /**
  * Service Worker 등록 상태 확인
@@ -100,13 +102,37 @@ export async function subscribeToPush(): Promise<PushSubscription | null> {
         console.log('Push subscription created:', subscription);
 
         // 실제 프로덕션에서는 여기서 서버에 구독 정보 저장
-        // await saveSubscriptionToServer(subscription);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            await saveSubscriptionToSupabase(user.id, subscription);
+        }
 
         return subscription;
     } catch (error) {
         console.error('Failed to subscribe to push notifications:', error);
         throw error;
     }
+}
+
+/**
+ * Supabase에 구독 정보 저장
+ */
+export async function saveSubscriptionToSupabase(userId: string, subscription: PushSubscription): Promise<void> {
+    const { error } = await supabase
+        .from('user_push_subscriptions')
+        .upsert({
+            user_id: userId,
+            subscription: subscription.toJSON(),
+            updated_at: new Date().toISOString()
+        }, {
+            onConflict: 'user_id'
+        });
+
+    if (error) {
+        console.error('Failed to save push subscription to Supabase:', error);
+        throw error;
+    }
+    console.log('Push subscription saved to Supabase');
 }
 
 /**
@@ -129,13 +155,32 @@ export async function unsubscribeFromPush(): Promise<boolean> {
         console.log('Push subscription removed:', successful);
 
         // 실제 프로덕션에서는 여기서 서버에서도 구독 정보 삭제
-        // await removeSubscriptionFromServer(subscription);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            await removeSubscriptionFromSupabase(user.id);
+        }
 
         return successful;
     } catch (error) {
         console.error('Failed to unsubscribe from push notifications:', error);
         return false;
     }
+}
+
+/**
+ * Supabase에서 구독 정보 삭제
+ */
+export async function removeSubscriptionFromSupabase(userId: string): Promise<void> {
+    const { error } = await supabase
+        .from('user_push_subscriptions')
+        .delete()
+        .eq('user_id', userId);
+
+    if (error) {
+        console.error('Failed to remove push subscription from Supabase:', error);
+        throw error;
+    }
+    console.log('Push subscription removed from Supabase');
 }
 
 /**
