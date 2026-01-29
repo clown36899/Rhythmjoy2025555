@@ -56,6 +56,7 @@ export interface Event {
   location: string;
   location_link?: string;
   category: string;
+  genre?: string | null; // [New] 장르 추가
   price: string;
   image: string;
   image_micro?: string;

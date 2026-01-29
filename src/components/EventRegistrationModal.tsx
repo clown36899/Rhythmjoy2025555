@@ -745,6 +745,7 @@ export default memo(function EventRegistrationModal({
                   body: `${createdEvent.date || createdEvent.start_date || ''} | ${createdEvent.location || '장소 미정'}`,
                   userId: 'ALL',
                   category: pushCategory,
+                  genre: createdEvent.genre, // [New] 장르 태그 전달 (파티, 워크샵 등)
                   url: `${window.location.origin}/calendar?id=${createdEvent.id}`
                 }
               }).then(({ data, error }) => {

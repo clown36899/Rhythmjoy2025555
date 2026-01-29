@@ -230,19 +230,29 @@ export default function CalendarPage() {
                     if (error) throw error;
 
                     if (data) {
-                        // 1. 해당 월로 달력 이동
+                        // 1. 해당 탭(Category)으로 전환
+                        if (data.scope === 'overseas') {
+                            setTabFilter('overseas');
+                        } else if (['class', 'regular', 'club'].includes(data.category)) {
+                            setTabFilter('classes');
+                        } else {
+                            // 기본값은 소셜/행사
+                            setTabFilter('social-events');
+                        }
+
+                        // 2. 해당 월로 달력 이동
                         const eventDate = new Date(data.date || data.start_date || new Date());
                         const targetMonth = new Date(eventDate.getFullYear(), eventDate.getMonth(), 1);
                         handleMonthChange(targetMonth);
 
-                        // 2. 모달 열기
+                        // 3. 모달 열기
                         // 약간의 지연을 두어 데이터가 로드되고 렌더링된 후 열리도록 함
                         setTimeout(() => {
                             eventModal.setSelectedEvent(data);
                             setHighlightedEventId(data.id);
                         }, 500);
 
-                        // 3. 3초 후 하이라이트 제거
+                        // 4. 3초 후 하이라이트 제거
                         setTimeout(() => {
                             setHighlightedEventId(null);
                         }, 3500);

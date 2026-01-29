@@ -151,9 +151,12 @@ export async function getPushSubscription(): Promise<PushSubscription | null> {
 /**
  * 푸시 구독 정보를 Supabase에 저장
  */
+/**
+ * 푸시 구독 정보를 Supabase에 저장
+ */
 export async function saveSubscriptionToSupabase(
     subscription: PushSubscription,
-    options?: { pref_events?: boolean, pref_lessons?: boolean }
+    options?: { pref_events?: boolean, pref_lessons?: boolean, pref_filter_tags?: string[] | null }
 ): Promise<boolean> {
     console.log('[Push] Saving subscription to Supabase...');
     try {
@@ -175,44 +178,33 @@ export async function saveSubscriptionToSupabase(
 
         console.log('[Push] Starting DB save logic for user:', user.id);
 
-        // 1. [Dedup] 같은 기기(브라우저)에서 생성된 기존 '죽은' 구독 정보 삭제
-        // (재설치/캐시삭제 시 endpoint가 바뀌므로, 기존 endpoint는 더 이상 유효하지 않음)
-        // 1-A. 현재 UserAgent와 일치하는 기록 삭제
-        await supabase
-            .from('user_push_subscriptions')
-            .delete()
-            .eq('user_id', user.id)
-            .eq('user_agent', userAgent);
+        // [Updated Logic - Industry Standard]
+        // "One Endpoint = One Active User"
+        // endpoint가 유니크 키입니다.
+        // - 새 기기면: Insert됨.
+        // - 기존 기기인데 유저가 바뀌면: Update됨 (기존 유저는 덮어씌워짐 -> 보안상 안전).
+        // - 내 기기면: Update됨 (정보 갱신).
 
-        // 1-B. [Cleanup] UserAgent가 없는(과거 버그 or 초기 데이터) 기록도 삭제 (중복 방지)
-        await supabase
+        const { error: upsertError } = await supabase
             .from('user_push_subscriptions')
-            .delete()
-            .eq('user_id', user.id)
-            .is('user_agent', null);
-
-        console.log('[Push] Cleaned up old subscriptions for this device.');
-
-        // 2. 새로운 구독 정보 저장
-        const { error: insertError } = await supabase
-            .from('user_push_subscriptions')
-            .insert({
+            .upsert({
+                // id: ... (Optional, 기존 user_id로 찾을 수 없으므로 endpoint 기준 매칭)
                 user_id: user.id,
                 endpoint: endpoint,
                 subscription: subJson,
                 is_admin: isAdmin,
-                user_agent: userAgent, // [New] 기기 식별 정보 저장
+                user_agent: userAgent,
                 pref_events: options?.pref_events ?? true,
                 pref_lessons: options?.pref_lessons ?? true,
+                pref_filter_tags: options?.pref_filter_tags ?? null,
                 updated_at: new Date().toISOString()
+            }, {
+                onConflict: 'endpoint' // [Standard] Endpoint 기준으로 덮어쓰기
             });
 
-        if (insertError) {
-            console.error('[Push] Supabase Insert Error:', insertError);
-            if (insertError.message?.includes('column') || insertError.code === '42703') {
-                alert('DB 스키마 업데이트가 필요합니다. (user_agent, endpoint 컬럼 추가)');
-            }
-            throw insertError;
+        if (upsertError) {
+            console.error('[Push] Supabase Upsert Error:', upsertError);
+            throw upsertError;
         }
 
         console.log('[Push] Push subscription saved to Supabase successfully');
@@ -225,12 +217,19 @@ export async function saveSubscriptionToSupabase(
 }
 
 /**
- * 알림 세부 설정(행사, 강습)만 업데이트
+ * 알림 세부 설정(행사, 강습, 태그)만 업데이트
  */
-export async function updatePushPreferences(prefs: { pref_events?: boolean, pref_lessons?: boolean }): Promise<boolean> {
+export async function updatePushPreferences(prefs: { pref_events?: boolean, pref_lessons?: boolean, pref_filter_tags?: string[] | null }): Promise<boolean> {
     try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return false;
+
+        // [Fix] 현재 기기(endpoint)만 특정해서 업데이트 (다른 기기 설정 덮어쓰기 방지)
+        const sub = await getPushSubscription();
+        if (!sub || !sub.endpoint) {
+            console.error('[Push] Cannot update prefs: No active subscription found on this device.');
+            return false;
+        }
 
         const { error } = await supabase
             .from('user_push_subscriptions')
@@ -238,10 +237,11 @@ export async function updatePushPreferences(prefs: { pref_events?: boolean, pref
                 ...prefs,
                 updated_at: new Date().toISOString(),
             })
-            .eq('user_id', user.id); // Update preferences for ALL devices of this user
+            .eq('user_id', user.id)
+            .eq('endpoint', sub.endpoint); // target only this device
 
         if (error) throw error;
-        console.log('[Push] Preferences updated:', prefs);
+        console.log('[Push] Preferences updated for this device:', prefs);
         return true;
     } catch (error) {
         console.error('[Push] Failed to update preferences:', error);
@@ -252,23 +252,30 @@ export async function updatePushPreferences(prefs: { pref_events?: boolean, pref
 /**
  * 현재 저장된 알림 설정 가져오기
  */
-export async function getPushPreferences(): Promise<{ pref_events: boolean, pref_lessons: boolean } | null> {
+export async function getPushPreferences(): Promise<{ pref_events: boolean, pref_lessons: boolean, pref_filter_tags: string[] | null } | null> {
     try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return null;
 
+        // [Fix] 현재 기기의 구독 정보(Endpoint)를 가져와서 해당 기기의 설정만 조회
+        const sub = await getPushSubscription();
+        if (!sub || !sub.endpoint) {
+            // 구독이 없으면 설정도 없는 것
+            return null;
+        }
+
         const { data, error } = await supabase
             .from('user_push_subscriptions')
-            .select('pref_events, pref_lessons')
+            .select('pref_events, pref_lessons, pref_filter_tags')
             .eq('user_id', user.id)
-            .limit(1) // Get preferences from any of the user's devices
+            .eq('endpoint', sub.endpoint) // [Key] 이 기기의 설정만 조회
             .maybeSingle();
 
         if (error) {
-            if (error.code === 'PGRST116') return { pref_events: true, pref_lessons: true };
+            if (error.code === 'PGRST116') return { pref_events: true, pref_lessons: true, pref_filter_tags: null };
             throw error;
         }
-        return data as { pref_events: boolean, pref_lessons: boolean };
+        return data as { pref_events: boolean, pref_lessons: boolean, pref_filter_tags: string[] | null };
     } catch (error) {
         console.error('[Push] Failed to fetch preferences:', error);
         return null;

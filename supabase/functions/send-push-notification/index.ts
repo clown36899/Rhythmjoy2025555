@@ -56,8 +56,48 @@ Deno.serve(async (req) => {
             });
         }
 
-        const targetUserIds = [...new Set(subscriptions.map((s: any) => s.user_id))];
-        console.log(`[Push] Found ${subscriptions.length} devices for users: ${targetUserIds.join(', ')}`);
+        // [New] Filter by tags (Client-side filtering because Supabase doesn't support complex array intersections easily in one query without RPC)
+        // We fetch all users who want 'events', then filter out those whose tags don't match.
+        // For 'lesson', we just send to all (pref_lessons=true), unless we add logic later.
+
+        let targetSubscriptions = subscriptions;
+
+        if (category === 'event') {
+            // eventGenre를 파싱 (e.g. "파티,워크샵" -> ['파티', '워크샵'])
+            // payload에서 genre를 받아와야 함.
+            const eventGenreBytes = payload.genre || ''; // payload에 genre 추가 필요
+            // 만약 payload에 genre가 없으면 분류 불가 -> 기본적으로 보냄? or 기타?
+            // "기타"로 취급하거나, 모든 태그 구독자에게 보낼 수는 없음.
+            // 작성된 이벤트의 장르 문자열
+            const eventGenreStr = typeof eventGenreBytes === 'string' ? eventGenreBytes : '';
+
+            console.log(`[Push] Event filtering: Genre="${eventGenreStr}"`);
+
+            targetSubscriptions = subscriptions.filter((sub: any) => {
+                // 1. 태그 설정이 없거나 null이면 "전체 수신"
+                if (!sub.pref_filter_tags || sub.pref_filter_tags.length === 0) return true;
+
+                // 2. 태그 설정이 있으면, 이벤트 장르와 교집합이 있는지 확인
+                // 이벤트 장르가 "파티,워크샵" 이면 "파티" 포함 OR "워크샵" 포함 여부 확인
+                const userTags = sub.pref_filter_tags as string[];
+
+                // 이벤트 장르 문자열이 사용자 태그 중 하나라도 포함하는지 확인 (Substring match)
+                // 예: 사용자가 '파티' 구독 -> eventGenre "파티,워크샵" -> 매칭됨
+                // 예: 사용자가 '대회' 구독 -> eventGenre "파티" -> 매칭안됨
+                const isMatch = userTags.some(tag => eventGenreStr.includes(tag));
+
+                // "기타" 태그 처리: 
+                // 사용자가 "기타"를 구독했고, 이벤트 장르가 "기타"이거나, 
+                // 혹은 우리가 정의한 4가지(파티,대회,워크샵,기타) 키워드가 하나도 없는 경우?
+                // -> User Request: "4개 외엔 없음". "팀원모집"은? 
+                // -> Simple logic: Just check explicit string inclusion.
+
+                return isMatch;
+            });
+        }
+
+        const targetUserIds = [...new Set(targetSubscriptions.map((s: any) => s.user_id))];
+        console.log(`[Push] Found ${targetSubscriptions.length} devices for users: ${targetUserIds.join(', ')}`);
 
         // 2. Configure VAPID
         const vapidPublic = Deno.env.get('VAPID_PUBLIC_KEY');
@@ -79,7 +119,7 @@ Deno.serve(async (req) => {
         // 3. Send Notifications
         const timestamp = new Date().toLocaleTimeString('ko-KR');
         const results = await Promise.allSettled(
-            subscriptions.map(async (subRecord: any) => {
+            targetSubscriptions.map(async (subRecord: any) => {
                 const pushPayload = JSON.stringify({
                     title: `${title} (${timestamp})`,
                     body,

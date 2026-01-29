@@ -22,8 +22,9 @@
     top: 0;
     left: 0;
     width: 90%;
+    max-width: 400px;
+    /* [Fix] 데스크탑에서 너무 넓어지지 않도록 제한 */
     height: 100dvh;
-    /* 모바일 주소창 감안한 동적 뷰포트 높이 */
     background-color: var(--bg-color, #1f2937);
     box-shadow: 4px 0 16px rgba(0, 0, 0, 0.3);
     display: flex;
@@ -31,6 +32,64 @@
     transform: translateX(-100%);
     transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ... existing code ... */
+
+/* Push Notification Tags */
+.drawer-push-tags-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 16px 16px 16px;
+    margin-left: 20px;
+    border-left: 2px solid #3f3f46;
+}
+
+.push-tag-chip {
+    font-size: 0.85rem;
+    padding: 6px 12px;
+    border-radius: 20px;
+    background-color: #27272a;
+    /* Inactive: Dark Gray */
+    color: #71717a;
+    /* Inactive: Dimmed Text */
+    border: 1px solid #3f3f46;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.push-tag-chip::before {
+    content: '';
+    display: block;
+    width: 0;
+    height: 0;
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.push-tag-chip.active {
+    background-color: rgba(59, 130, 246, 0.15);
+    /* Active: Blue Tint */
+    color: #60a5fa;
+    /* Active: Blue Text */
+    border-color: #3b82f6;
+    font-weight: 600;
+}
+
+.push-tag-chip.active::before {
+    content: '✓';
+    width: auto;
+    height: auto;
+    margin-right: 2px;
+}
+
+.push-tag-chip:hover {
+    border-color: #71717a;
 }
 
 .drawer-container.open {
@@ -281,160 +340,225 @@
     gap: 12px;
 }
 
-.drawer-push-toggle-btn {
+/* Notification Card Design */
+.drawer-notification-card {
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    margin: 8px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    /* Subtle border */
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.card-header {
+    padding: 14px 16px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 12px 14px;
-    border-radius: 12px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    border: 1px solid transparent;
+    background-color: rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.drawer-push-toggle-btn.guide {
-    background-color: rgba(59, 130, 246, 0.1);
-    border-color: rgba(59, 130, 246, 0.2);
-}
-
-.drawer-push-toggle-btn.active {
-    background-color: rgba(74, 222, 128, 0.1);
-    border-color: rgba(74, 222, 128, 0.2);
-}
-
-.drawer-push-toggle-btn:not(.active):not(.guide) {
-    background-color: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.1);
-}
-
-.drawer-push-info {
+.card-title {
     display: flex;
     align-items: center;
-    gap: 10px;
-}
-
-.drawer-push-info i {
-    font-size: 1.2rem;
-    color: #a1a1aa;
-}
-
-.drawer-push-toggle-btn.active .drawer-push-info i {
-    color: #4ade80;
-}
-
-.drawer-push-toggle-btn.guide .drawer-push-info i {
-    color: #3b82f6;
-}
-
-.drawer-push-text {
-    display: flex;
-    flex-direction: column;
-}
-
-.push-label {
-    font-size: 0.85rem;
+    gap: 8px;
     font-weight: 600;
     color: #fff;
+    font-size: 0.95rem;
 }
 
-.push-status {
-    font-size: 0.7rem;
+.card-title i {
+    color: #fbbf24;
+    /* Amber icon */
+}
+
+/* Master Switch */
+.master-switch-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.switch-status {
+    font-size: 0.75rem;
+    font-weight: 600;
     color: #71717a;
 }
 
-.drawer-push-toggle-btn.active .push-status {
-    color: #4ade80;
-}
-
-.drawer-push-toggle-btn.guide .push-status {
-    color: #60a5fa;
-}
-
-.drawer-toggle-switch {
-    width: 36px;
-    height: 18px;
-    border-radius: 9px;
+.master-toggle {
+    width: 40px;
+    height: 22px;
     background-color: #3f3f46;
+    border-radius: 11px;
     position: relative;
     transition: all 0.3s ease;
 }
 
-.drawer-push-toggle-btn.active .drawer-toggle-switch {
-    background-color: #4ade80;
+.master-toggle.active {
+    background-color: #22c55e;
 }
 
-.drawer-toggle-handle {
-    width: 14px;
-    height: 14px;
+.master-toggle.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.master-toggle-handle {
+    width: 18px;
+    height: 18px;
+    background-color: white;
     border-radius: 50%;
-    background-color: #fff;
     position: absolute;
     top: 2px;
     left: 2px;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition: all 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-.drawer-push-toggle-btn.active .drawer-toggle-handle {
+.master-toggle.active .master-toggle-handle {
     left: 20px;
 }
 
-.guide-arrow {
-    color: #60a5fa;
-}
-/* 세부 알림 설정 스타일 */
-.drawer-push-sub-items {
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 1px solid rgba(255, 255, 255, 0.05);
+/* Card Body */
+.card-body {
+    padding: 12px 16px;
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 12px;
 }
 
-.drawer-push-sub-item {
+.setting-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.setting-label {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 8px 12px;
-    border-radius: 8px;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.85);
     cursor: pointer;
-    transition: background-color 0.2s;
+    padding: 4px 0;
 }
 
-.drawer-push-sub-item:active {
-    background-color: rgba(255, 255, 255, 0.05);
+/* Mini Toggle (Checkbox style) */
+.mini-toggle {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #52525b;
+    border-radius: 4px;
+    position: relative;
+    transition: all 0.2s;
 }
 
-.drawer-push-sub-item span {
+.mini-toggle.active {
+    background-color: #3b82f6;
+    border-color: #3b82f6;
+}
+
+.mini-toggle.active::after {
+    content: '✓';
+    color: white;
+    font-size: 14px;
+    position: absolute;
+    top: -2px;
+    left: 2px;
+    font-weight: 700;
+}
+
+/* Tags Area */
+.tags-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 8px 10px;
+    background-color: rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+    margin-top: -4px;
+}
+
+.tag-chip {
     font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.7);
+    padding: 6px 10px;
+    border-radius: 6px;
+    background-color: #27272a;
+    color: #a1a1aa;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.tag-chip.selected {
+    background-color: rgba(59, 130, 246, 0.2);
+    /* Light Blue */
+    color: #60a5fa;
+    /* Blue Text */
+    border-color: rgba(59, 130, 246, 0.4);
     font-weight: 500;
 }
 
-.sub-toggle {
-    width: 28px;
-    height: 14px;
-    border-radius: 7px;
+.tag-chip:hover {
     background-color: #3f3f46;
-    position: relative;
-    transition: all 0.3s ease;
 }
 
-.sub-toggle.active {
-    background-color: rgba(74, 222, 128, 0.6);
+/* Card Footer (Save Button) */
+.card-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 12px 16px;
+    /* Added matching padding */
+    background-color: rgba(0, 0, 0, 0.1);
+    /* Slightly darker background for footer */
 }
 
-.sub-toggle-handle {
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background-color: #fff;
-    position: absolute;
-    top: 2px;
-    left: 2px;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+.save-btn {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    background-color: #27272a;
+    color: #71717a;
 }
 
-.sub-toggle.active .sub-toggle-handle {
-    left: 16px;
+.save-btn.primary {
+    background-color: #2563eb;
+    color: white;
+    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
+}
+
+.save-btn.primary:active {
+    transform: scale(0.98);
+}
+
+.pwa-guide-msg {
+    padding: 12px;
+    font-size: 0.8rem;
+    color: #ef4444;
+    text-align: center;
+    background-color: rgba(239, 68, 68, 0.1);
+}
+
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    100% {
+        transform: rotate(360deg);
+    }
 }

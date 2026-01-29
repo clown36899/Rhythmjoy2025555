@@ -43,7 +43,10 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
     const [isPushEnabled, setIsPushEnabled] = useState<boolean>(false);
     const [isPushLoading, setIsPushLoading] = useState<boolean>(false);
     const [isRunningInPWA, setIsRunningInPWA] = useState(false);
-    const [pushPrefs, setPushPrefs] = useState({ pref_events: true, pref_lessons: true });
+    const [pushPrefs, setPushPrefs] = useState<{ pref_events: boolean, pref_lessons: boolean, pref_filter_tags: string[] | null }>({ pref_events: true, pref_lessons: true, pref_filter_tags: null });
+    const [originalPrefs, setOriginalPrefs] = useState<{ pref_events: boolean, pref_lessons: boolean, pref_filter_tags: string[] | null } | null>(null);
+    const [originalPushEnabled, setOriginalPushEnabled] = useState<boolean>(false);
+    const [isSaving, setIsSaving] = useState(false);
 
     // Modals
     const boardManagementModal = useModal('boardManagement');
@@ -102,21 +105,29 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
     const checkPushStatus = async () => {
         if (!isPushSupported()) return;
         const sub = await getPushSubscription();
-        setIsPushEnabled(!!sub);
+        const enabled = !!sub;
+
+        setIsPushEnabled(enabled);
+        setOriginalPushEnabled(enabled);
 
         if (sub) {
             const prefs = await getPushPreferences();
-            if (prefs) setPushPrefs(prefs);
+            if (prefs) {
+                setPushPrefs(prefs);
+                setOriginalPrefs(prefs); // 초기 로드 시 원본 저장
+            }
+        } else {
+            setOriginalPrefs(null);
         }
     };
 
-    const handlePreferenceToggle = async (type: 'pref_events' | 'pref_lessons') => {
-        const newPrefs = { ...pushPrefs, [type]: !pushPrefs[type] };
-        setPushPrefs(newPrefs);
-        await updatePushPreferences(newPrefs);
+    const handlePreferenceToggle = (type: 'pref_events' | 'pref_lessons') => {
+        setPushPrefs(prev => ({ ...prev, [type]: !prev[type] }));
     };
 
-    const handlePushToggle = async () => {
+    const handlePushToggle = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+
         if (!user) {
             onLoginClick();
             onClose();
@@ -129,35 +140,73 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
             return;
         }
 
-        // 1. 이미 요청이 진행 중이면 차단 (연타 방지)
-        if (isPushLoading) return;
+        // Just toggle local state. Actual change happens on Save.
+        setIsPushEnabled(!isPushEnabled);
+    };
 
-        // 2. 단시간 내 반복 요청 방지 (2초간 쿨타임)
-        const now = Date.now();
-        const lastClick = Number(sessionStorage.getItem('lastPushClick') || 0);
-        if (now - lastClick < 2000) {
-            console.warn('[SideDrawer] Push toggle throttled - too frequent');
-            return;
-        }
-
-        setIsPushLoading(true);
-        sessionStorage.setItem('lastPushClick', now.toString());
-
+    const handleSaveChanges = async () => {
+        setIsSaving(true);
         try {
-            if (isPushEnabled) {
-                const success = await unsubscribeFromPush();
-                if (success) setIsPushEnabled(false);
-            } else {
-                const sub = await subscribeToPush();
-                if (sub) {
+            // 1. Handle Subscription Status Change
+            if (isPushEnabled !== originalPushEnabled) {
+                if (isPushEnabled) {
+                    // Turn ON (Subscribe)
+                    const sub = await subscribeToPush();
+                    if (!sub) {
+                        alert('알림 권한이 차단되었거나 오류가 발생했습니다.');
+                        setIsPushEnabled(false); // Revert
+                        return;
+                    }
                     await saveSubscriptionToSupabase(sub);
-                    setIsPushEnabled(true);
+                    console.log('Subscribed successfully');
+                } else {
+                    // Turn OFF (Unsubscribe)
+                    await unsubscribeFromPush();
+                    console.log('Unsubscribed successfully');
                 }
+                setOriginalPushEnabled(isPushEnabled);
+            }
+
+            // 2. Handle Preferences Update
+            if (isPushEnabled) {
+                const success = await updatePushPreferences(pushPrefs);
+                if (success) {
+                    setOriginalPrefs(pushPrefs);
+                    alert('알림 설정이 저장되었습니다.');
+                } else {
+                    alert('설정 저장에 실패했습니다.');
+                }
+            } else {
+                // If disabled, just alert success (since we handled unsub)
+                alert('알림 설정이 저장되었습니다.');
+                setOriginalPrefs(null);
             }
         } catch (error) {
-            console.error('[SideDrawer] Push toggle error:', error);
+            console.error('Save failed:', error);
+            alert('오류가 발생했습니다.');
         } finally {
-            setIsPushLoading(false);
+            setIsSaving(false);
+        }
+    };
+
+    // 변경 사항이 있는지 확인
+    const hasUnsavedChanges =
+        (isPushEnabled !== originalPushEnabled) ||
+        (isPushEnabled && JSON.stringify(pushPrefs) !== JSON.stringify(originalPrefs));
+
+    // Custom Close Handler
+    const requestClose = () => {
+        if (hasUnsavedChanges) {
+            if (window.confirm("설정이 저장되지 않았습니다. 저장하시겠습니까?")) {
+                handleSaveChanges().then(() => {
+                    onClose();
+                });
+            } else {
+                // User chose NOT to save (Cancel/No). Discard changes and close.
+                onClose();
+            }
+        } else {
+            onClose();
         }
     };
 
@@ -302,7 +351,7 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                             <i className="ri-arrow-right-s-line"></i>
                         </div>
                     )}
-                    <button className="drawer-close-btn" onClick={onClose}>
+                    <button className="drawer-close-btn" onClick={requestClose}>
                         <i className="ri-close-line"></i>
                     </button>
                 </div>
@@ -315,55 +364,97 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
 
                         {/* 강습, 이벤트 알람 받기 버튼 (관리자 전용 테스트) */}
                         {isAdmin && (
-                            <>
-                                <div
-                                    onClick={handlePushToggle}
-                                    className={`drawer-push-toggle-btn ${isRunningInPWA ? (isPushEnabled ? 'active' : '') : 'guide'}`}
-                                >
-                                    <div className="drawer-push-info">
-                                        <i className={isPushEnabled ? "ri-notification-3-fill" : "ri-notification-3-line"}></i>
-                                        <div className="drawer-push-text">
-                                            <span className="push-label">강습, 이벤트 알람 받기</span>
-                                            <span className="push-status">
-                                                {isRunningInPWA
-                                                    ? (isPushEnabled ? '실시간 알림 활성화됨' : '누르면 알림이 켜집니다')
-                                                    : '위의 [앱 설치] 버튼으로 설치 후 알림 설정이 가능합니다'}
-                                            </span>
+                            <div className="drawer-notification-card">
+                                <div className="card-header">
+                                    <div className="card-title">
+                                        <i className="ri-notification-3-fill"></i>
+                                        <span>알림 설정</span>
+                                    </div>
+                                    <div className="master-switch-container" onClick={handlePushToggle}>
+                                        <span className="switch-status">
+                                            {isRunningInPWA
+                                                ? (isPushEnabled ? 'ON' : 'OFF')
+                                                : 'App Only'}
+                                        </span>
+                                        <div className={`master-toggle ${isPushEnabled ? 'active' : ''} ${!isRunningInPWA ? 'disabled' : ''}`}>
+                                            <div className="master-toggle-handle" />
                                         </div>
                                     </div>
-                                    {isRunningInPWA ? (
-                                        <div className="drawer-toggle-switch">
-                                            <div className="drawer-toggle-handle" />
-                                        </div>
-                                    ) : (
-                                        <i className="ri-arrow-right-s-line guide-arrow"></i>
-                                    )}
                                 </div>
 
                                 {/* 세부 설정 (PWA 모드 & 알림 활성화 시에만 노출) */}
                                 {isRunningInPWA && isPushEnabled && (
-                                    <div className="drawer-push-sub-items">
-                                        <div
-                                            className="drawer-push-sub-item"
-                                            onClick={() => handlePreferenceToggle('pref_events')}
-                                        >
-                                            <span>행사 알림</span>
-                                            <div className={`sub-toggle ${pushPrefs.pref_events ? 'active' : ''}`}>
-                                                <div className="sub-toggle-handle" />
+                                    <div className="card-body">
+                                        {/* 1. 행사 알림 */}
+                                        <div className="setting-row">
+                                            <div className="setting-label" onClick={() => handlePreferenceToggle('pref_events')}>
+                                                <span>행사 알림</span>
+                                                <div className={`mini-toggle ${pushPrefs.pref_events ? 'active' : ''}`}></div>
                                             </div>
+
+                                            {/* 태그 선택 (행사 알림 ON일 때만) */}
+                                            {pushPrefs.pref_events && (
+                                                <div className="tags-wrapper">
+                                                    {['파티', '워크샵', '대회', '기타'].map((tag) => {
+                                                        const currentTags = pushPrefs.pref_filter_tags;
+                                                        const isChecked = currentTags === null || currentTags.includes(tag);
+                                                        return (
+                                                            <div
+                                                                key={tag}
+                                                                className={`tag-chip ${isChecked ? 'selected' : ''}`}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    let newTags = currentTags === null
+                                                                        ? ['파티', '워크샵', '대회', '기타']
+                                                                        : [...currentTags];
+                                                                    if (isChecked) newTags = newTags.filter(t => t !== tag);
+                                                                    else newTags.push(tag);
+                                                                    setPushPrefs({ ...pushPrefs, pref_filter_tags: newTags });
+                                                                }}
+                                                            >
+                                                                {isChecked && <i className="ri-check-line"></i>}
+                                                                {tag}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
                                         </div>
-                                        <div
-                                            className="drawer-push-sub-item"
-                                            onClick={() => handlePreferenceToggle('pref_lessons')}
-                                        >
-                                            <span>강습 알림</span>
-                                            <div className={`sub-toggle ${pushPrefs.pref_lessons ? 'active' : ''}`}>
-                                                <div className="sub-toggle-handle" />
+
+                                        {/* 2. 강습 알림 (일단 숨김 - 시범 적용 기간) */}
+                                        {/* <div className="setting-row">
+                                            <div className="setting-label" onClick={() => handlePreferenceToggle('pref_lessons')}>
+                                                <span>강습 알림</span>
+                                                <div className={`mini-toggle ${pushPrefs.pref_lessons ? 'active' : ''}`}></div>
                                             </div>
-                                        </div>
+                                        </div> */}
                                     </div>
                                 )}
-                            </>
+
+                                {/* 저장 버튼 Footer (PWA 모드이면 항상 노출) */}
+                                {isRunningInPWA && (
+                                    <div className="card-footer">
+                                        <button
+                                            className={`save-btn ${hasUnsavedChanges ? 'primary' : 'disabled'}`}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (hasUnsavedChanges) handleSaveChanges();
+                                            }}
+                                            disabled={!hasUnsavedChanges || isSaving}
+                                        >
+                                            {isSaving
+                                                ? <><i className="ri-loader-4-line spin"></i> 저장 중...</>
+                                                : (hasUnsavedChanges ? '설정 저장하기' : (isPushEnabled ? '최신 설정 적용됨' : '알림 꺼짐'))}
+                                        </button>
+                                    </div>
+                                )}
+
+                                {!isRunningInPWA && (
+                                    <div className="pwa-guide-msg">
+                                        앱 설치 후 이용 가능합니다.
+                                    </div>
+                                )}
+                            </div>
                         )}
                     </div>
                 </div>
