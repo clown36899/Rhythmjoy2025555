@@ -1,7 +1,10 @@
+-- Drop existing table if exists for a clean slate
+DROP TABLE IF EXISTS public.user_push_subscriptions CASCADE;
+
 -- Create user_push_subscriptions table
 CREATE TABLE IF NOT EXISTS public.user_push_subscriptions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE UNIQUE,
     subscription JSONB NOT NULL,
     is_admin BOOLEAN DEFAULT false,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
@@ -44,7 +47,7 @@ CREATE POLICY "Admins can view all subscriptions"
 ON public.user_push_subscriptions
 FOR SELECT
 USING (
-  (SELECT auth.email()) = 'inteyeo@google.com' -- Example admin email or use the metadata check
+  (SELECT auth.email()) = 'clown313@naver.com' -- Admin email
   OR (auth.jwt() -> 'app_metadata' ->> 'is_admin')::boolean = true
 );
 

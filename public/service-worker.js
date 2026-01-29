@@ -21,21 +21,10 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Supabase API 요청은 항상 네트워크 우선 (캐시 사용 안 함)
-  // 이를 통해 로그아웃 후에도 캐시된 인증 정보가 사용되지 않음
+  // Supabase API 요청은 자바스크립트 코드(supabase-js)가 직접 처리하도록 내버려둠
+  // 서비스 워커가 개입하면 CORS나 인증 헤더 처리에 문제가 생길 수 있음
   if (url.hostname.includes('supabase.co')) {
-    event.respondWith(
-      fetch(event.request).catch(err => {
-        console.warn('[SW] Supabase fetch failed (network error):', err.message);
-        // 네트워크 에러 시 적절한 응답 반환 (무한 재시도 방지)
-        return new Response(JSON.stringify({ error: 'Network error' }), {
-          status: 503,
-          statusText: 'Service Unavailable',
-          headers: { 'Content-Type': 'application/json' }
-        });
-      })
-    );
-    return;
+    return; // 개입하지 않음 (브라우저 기본 동작에 맡김)
   }
 
   // 나머지 요청은 기본 동작 (브라우저가 처리)
