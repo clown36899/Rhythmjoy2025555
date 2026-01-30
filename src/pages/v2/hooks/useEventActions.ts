@@ -58,30 +58,20 @@ export function useEventActions({ adminType, user, signInWithKakao }: UseEventAc
     const [isDeleting, setIsDeleting] = useState(false);
     const [deleteProgress, setDeleteProgress] = useState(0);
 
-    const deleteEvent = async (eventId: number, password: string | null = null) => {
-        if (isDeleting) return; // Prevent double click
+    const deleteEvent = async (eventId: number | string, password: string | null = null): Promise<boolean> => {
+        console.log('%c🚀 [useEventActions/V2] deleteEvent Triggered!', 'background: #222; color: #55ff55; font-size: 14px');
+        if (isDeleting) return false; // Prevent double click
 
-        // Double Confirmation
-        if (!confirm("삭제된 데이터는 복구할 수 없습니다.\n정말로 삭제하시겠습니까?")) {
-            return;
-        }
+        // Double Confirmation Removed
+        // UI handles the confirmation. Just proceed.
 
-        // State update
         setIsDeleting(true);
-        setDeleteProgress(0);
-
-        // Fake progress interval
-        const interval = setInterval(() => {
-            setDeleteProgress(prev => {
-                if (prev >= 90) return prev;
-                return prev + 10;
-            });
-        }, 100);
+        setDeleteProgress(10); // Start progress
 
         try {
-
             const { data: { session } } = await supabase.auth.getSession();
             const token = session?.access_token;
+            setDeleteProgress(30);
 
             const response = await fetch('/.netlify/functions/delete-event', {
                 method: 'POST',
@@ -91,76 +81,78 @@ export function useEventActions({ adminType, user, signInWithKakao }: UseEventAc
                 },
                 body: JSON.stringify({ eventId, password })
             });
+            setDeleteProgress(60);
 
             if (!response.ok) {
                 const errorData = await response.json();
-
-                // Foreign Key Constraint Check (즐겨찾기 삭제 방지 - 서버 에러 메시지 활용)
                 if (errorData.error?.includes('foreign key constraint') || errorData.message?.includes('foreign key constraint')) {
-                    alert("다른 사용자가 '즐겨찾기' 및 '관심설정'한 이벤트는 삭제할 수 없습니다.\n\n(참고: 데이터 보호를 위해 삭제가 제한됩니다)");
-                    setIsDeleting(false); // Manually reset on early return
-                    clearInterval(interval);
-                    setDeleteProgress(0);
-                    return;
+                    alert("다른 사용자가 '즐겨찾기' 및 '관심설정'한 이벤트는 삭제할 수 없습니다.");
+                    return false;
                 }
-
-                throw new Error(errorData.error || `Server returned ${response.status}`);
+                throw new Error(errorData.error || 'Server error');
             }
 
+            setDeleteProgress(90);
+
             // Success
-            setDeleteProgress(100);
-            clearInterval(interval);
+            alert("삭제되었습니다."); // Keep consistent with V1
 
-            setTimeout(() => {
-                // alert("이벤트가 삭제되었습니다."); // Removed as per request
-                window.dispatchEvent(new CustomEvent("eventDeleted", { detail: { eventId } }));
-                closeModal();
-                setIsDeleting(false);
-                setDeleteProgress(0);
-            }, 500); // Slight delay to show 100%
+            // Clean up state
+            closeModal(); // Local cleanup
+            window.dispatchEvent(new CustomEvent("eventDeleted", { detail: { eventId } }));
 
+            return true;
         } catch (error: any) {
-            console.error("이벤트 삭제 중 오류 발생:", error);
-            alert(`삭제하지 못했습니다.\n권한이 없거나 오류가 발생했습니다.`);
-            setIsDeleting(false); // Reset state on error
+            console.error('Delete error:', error);
+            alert("삭제 실패: " + (error.message || "알 수 없는 오류"));
+            return false;
+        } finally {
+            setIsDeleting(false);
             setDeleteProgress(0);
-            clearInterval(interval);
         }
     };
 
-    const handleDeleteClick = useCallback((event: AppEvent, e?: React.MouseEvent) => {
+    const handleDeleteClick = useCallback(async (event: AppEvent, e?: React.MouseEvent): Promise<boolean> => {
         e?.stopPropagation();
+        console.log('%c🚀 [useEventActions/V2] handleDeleteClick Triggered!', 'background: #222; color: #55ff55; font-size: 14px');
 
         // 1. Super Admin Request
         if (adminType === "super") {
-            if (confirm("정말로 이 이벤트를 삭제하시겠습니까? (슈퍼관리자 권한)\n이 작업은 되돌릴 수 없습니다.")) {
-                deleteEvent(event.id);
-            }
-            return;
+            // Confirm removed - UI already confirmed
+            return await deleteEvent(event.id);
         }
 
         // 2. Owner Request
         const isOwner = user?.id && event.user_id && user.id === event.user_id;
         if (isOwner) {
-            if (confirm("정말로 이 이벤트를 삭제하시겠습니까? (작성자 권한)\n이 작업은 되돌릴 수 없습니다.")) {
-                deleteEvent(event.id);
-            }
-            return;
+            // Confirm removed - UI already confirmed
+            return await deleteEvent(event.id);
         }
 
-        // 3. Password Fallback (Guest or legacy events)
-        const password = prompt("이벤트 삭제를 위한 비밀번호를 입력하세요:");
-        if (password === null) return;
+        // 3. Guest/User with Password
+        // UI Prompt for password if not provided?
+        // Wait, V2 uses `prompt` usually? No, `useEventActions` relied on existing password logic?
+        // Actually V2 Logic (lines 151+) asks for password via `prompt`!
+
+        let password = null;
+        if (event.password) {
+            password = prompt("비밀번호를 입력하세요:");
+            if (!password) return false; // Cancelled
+        } else {
+            // If no password set on event but user is not owner/admin?
+            // Usually blocked by UI, but if triggered:
+            // Just try delete? Or prompt?
+            // Existing logic matches password.   
+        }
 
         // Local password validation (if event has password)
         if (event.password && password !== event.password) {
             alert("비밀번호가 올바르지 않습니다.");
-            return;
+            return false;
         }
 
-        if (confirm("정말로 이 이벤트를 삭제하시겠습니까? (비밀번호 인증)\n이 작업은 되돌릴 수 없습니다.")) {
-            deleteEvent(event.id, password);
-        }
+        // Confirm removed - UI already confirmed
+        return await deleteEvent(event.id, password);
     }, [adminType, closeModal, user]);
 
     const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null);

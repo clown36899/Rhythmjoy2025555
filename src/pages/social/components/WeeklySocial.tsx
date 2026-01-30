@@ -509,6 +509,7 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                     isOpen={!!eventModal.selectedEvent}
                     onClose={eventModal.closeAllModals}
                     isAdminMode={false}
+                    isDeleting={eventModal.isDeleting}
                     onEdit={(event) => {
                         const idStr = String(event.id);
                         if (idStr.startsWith('social-')) {
@@ -521,9 +522,19 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                             }
                         }
                     }}
-                    onDelete={() => {
-                        eventModal.closeAllModals();
-                        // Refetch or update list? handled by callback usually
+                    onDelete={async (event) => {
+                        // 1. Identify real ID.
+                        const idStr = String(event.id);
+                        const realId = idStr.startsWith('social-') ? idStr.replace('social-', '') : idStr;
+
+                        // 2. Prompt Password (Required for Social Guest Delete)
+                        const password = prompt("이벤트 삭제를 위한 비밀번호를 입력하세요:");
+                        if (!password) return;
+
+                        // 3. Call Hook (API)
+                        await eventModal.handleDeleteEvent(realId, password);
+
+                        // 4. Refresh List
                         onRefresh?.();
                     }}
                 />

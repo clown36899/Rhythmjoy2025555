@@ -81,10 +81,11 @@ export function useEventModal(): UseEventModalReturn {
     }, [eventToEdit, eventPassword]);
 
     // 4. 이벤트 삭제 핸들러
-    const handleDeleteEvent = useCallback(async (eventId: number | string) => {
+    const handleDeleteEvent = useCallback(async (eventId: number | string, password?: string) => {
         // Double confirm removal: The caller (UI) handles confirmation.
-        // if (confirm("정말로 이 이벤트를 삭제하시겠습니까?")) {
-        console.log('[useEventModal] handleDeleteEvent triggered for ID:', eventId);
+        console.log('%c🔥 [useEventModal/Legacy] handleDeleteEvent Triggered!', 'background: #222; color: #ff5555; font-size: 14px');
+        console.log('[useEventModal] ID:', eventId, 'Password Provided:', !!password);
+
         try {
             console.log('[useEventModal] Setting isDeleting to TRUE');
             setIsDeleting(true);
@@ -98,7 +99,7 @@ export function useEventModal(): UseEventModalReturn {
                     'Content-Type': 'application/json',
                     ...(token ? { 'Authorization': `Bearer ${token}` } : {})
                 },
-                body: JSON.stringify({ eventId })
+                body: JSON.stringify({ eventId, password })
             });
 
             console.log('[useEventModal] Fetch returned, status:', response.status);
@@ -135,7 +136,6 @@ export function useEventModal(): UseEventModalReturn {
             console.log('[useEventModal] Setting isDeleting to FALSE');
             setIsDeleting(false);
         }
-        // } // End of confirm block removal
     }, []);
 
     // 5. 모든 모달 닫기

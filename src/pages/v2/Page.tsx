@@ -102,7 +102,12 @@ export default function HomePageV2() {
             openModal('eventDetail', {
                 event: selectedEvent,
                 onEdit: handleEditClick,
-                onDelete: handleDeleteClick,
+                onDelete: async (e: any) => {
+                    const success = await handleDeleteClick(e);
+                    if (success) {
+                        closeModal('eventDetail'); // Explicitly close global modal
+                    }
+                },
                 isAdminMode: effectiveIsAdmin,
                 currentUserId: user?.id,
                 onOpenVenueDetail: handleVenueClick,

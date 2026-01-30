@@ -112,6 +112,8 @@ export default function EventDetailModal({
 
   const [showFullscreenImage, setShowFullscreenImage] = useState(false);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [isInternalDeleting, setIsInternalDeleting] = useState(false); // Internal loading state
+  const [internalProgress, setInternalProgress] = useState(0); // Internal progress for spinner
   const [dateMode, setDateMode] = useState<'single' | 'dates'>('single'); // Track date mode separately
 
   // Draft State for Local Edits
@@ -1882,7 +1884,7 @@ export default function EventDetailModal({
                 )}
 
                 <button
-                  onClick={(e) => {
+                  onClick={async (e) => {
                     e.stopPropagation();
                     console.log('🔴 [EventDetailModal] Bottom Delete button CLICKED');
                     console.log('   - isDeleting prop:', isDeleting);
@@ -1893,17 +1895,39 @@ export default function EventDetailModal({
                     }
                     if (window.confirm('정말로 이 이벤트를 삭제하시겠습니까?')) {
                       console.log('   - User confirmed delete. Calling _onDelete...');
-                      _onDelete(selectedEvent, e);
+                      try {
+                        setIsInternalDeleting(true);
+                        setInternalProgress(10);
+
+                        // Start fake progress simulation
+                        const timer = setInterval(() => {
+                          setInternalProgress(prev => {
+                            if (prev >= 90) return prev;
+                            return prev + 10;
+                          });
+                        }, 200);
+
+                        await _onDelete(selectedEvent, e);
+
+                        clearInterval(timer);
+                        setInternalProgress(100);
+                      } catch (error) {
+                        console.error("Delete failed:", error);
+                        setInternalProgress(0);
+                      } finally {
+                        // Keep 'true' briefly to show 100%? No, modal will close.
+                        setIsInternalDeleting(false);
+                      }
                     } else {
                       console.log('   - User cancelled delete.');
                     }
                   }}
-                  className={`action-button delete ${isDeleting ? 'loading' : ''}`}
+                  className={`action-button delete ${isDeleting || isInternalDeleting ? 'loading' : ''}`}
                   title="이벤트 삭제"
-                  style={{ backgroundColor: '#ef4444', color: 'white', marginRight: '8px', opacity: isDeleting ? 0.7 : 1, cursor: isDeleting ? 'not-allowed' : 'pointer' }}
-                  disabled={isDeleting}
+                  style={{ backgroundColor: '#ef4444', color: 'white', marginRight: '8px', opacity: isDeleting || isInternalDeleting ? 0.7 : 1, cursor: isDeleting || isInternalDeleting ? 'not-allowed' : 'pointer' }}
+                  disabled={isDeleting || isInternalDeleting}
                 >
-                  {isDeleting ? <i className="ri-loader-4-line action-icon spin-animation"></i> : <i className="ri-delete-bin-line action-icon"></i>}
+                  {isDeleting || isInternalDeleting ? <i className="ri-loader-4-line action-icon spin-animation"></i> : <i className="ri-delete-bin-line action-icon"></i>}
                 </button>
 
                 <button
@@ -1921,9 +1945,9 @@ export default function EventDetailModal({
             </div>
           </div>
           <GlobalLoadingOverlay
-            isLoading={isDeleting || isSaving || (isFetchingDetail && !isCropModalOpen)}
-            message={isDeleting ? "삭제 중입니다..." : (isSaving ? "저장 중입니다..." : "이미지 불러오는 중...")}
-            progress={isDeleting ? deleteProgress : undefined}
+            isLoading={isDeleting || isInternalDeleting || isSaving || (isFetchingDetail && !isCropModalOpen)}
+            message={(isDeleting || isInternalDeleting) ? "삭제 중입니다..." : (isSaving ? "저장 중입니다..." : "이미지 불러오는 중...")}
+            progress={(isDeleting || isInternalDeleting) ? (deleteProgress || internalProgress) : undefined}
           />
         </div >
         , document.body
