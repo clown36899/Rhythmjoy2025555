@@ -276,80 +276,102 @@ export const PWAInstallButton = () => {
                 <div className="ios-install-modal-overlay" onClick={() => setShowInstructions(false)}>
                     <div className="ios-install-modal" onClick={(e) => e.stopPropagation()}>
                         <div className="ios-install-header">
-                            <h3>{isIOS ? 'iOS 설치 방법' : '앱 설치 방법'}</h3>
+                            <h3>{isIOS ? 'iOS 앱 설치' : '앱 설치 안내'}</h3>
                             <button className="ios-install-close" onClick={() => setShowInstructions(false)}>
                                 <i className="ri-close-line"></i>
                             </button>
                         </div>
+
                         <div className="ios-install-content">
-                            {isIOS ? (
-                                <>
-                                    <div className="ios-install-step">
-                                        <div className="ios-install-step-number">1</div>
-                                        <div className="ios-install-step-text">
-                                            Safari 하단의 <i className="ri-share-line" style={{ color: '#3b82f6' }}></i> <strong>공유</strong> 버튼을 누르세요
-                                        </div>
+                            {/* 알림 기능 안내 문구 추가 */}
+                            <div className="ios-install-desc" style={{
+                                padding: '0 20px 20px',
+                                textAlign: 'center',
+                                fontSize: '15px',
+                                color: '#e4e4e7',
+                                lineHeight: '1.5'
+                            }}>
+                                <i className="ri-notification-3-fill" style={{ color: '#FEE500', marginRight: '6px' }}></i>
+                                <strong>알림 기능</strong>을 사용하려면<br />앱 설치가 필요합니다.
+                            </div>
+
+                            {/* [Case 1] 자동 설치 가능 (Android/Chrome 등) */}
+                            {!isIOS && promptEvent ? (
+                                <div style={{ padding: '0 20px 20px' }}>
+                                    <div
+                                        onClick={() => {
+                                            handleInstallClick();
+                                            setShowInstructions(false);
+                                        }}
+                                        className="pwa-install-button"
+                                        style={{
+                                            position: 'relative',
+                                            overflow: 'hidden',
+                                            cursor: 'pointer',
+                                            width: '100%',
+                                            maxWidth: 'none',
+                                            margin: '0'
+                                        }}
+                                    >
+                                        <i className="ri-download-cloud-line" style={{ position: 'relative', zIndex: 1 }}></i>
+                                        <span className="manual-label-wrapper" style={{ position: 'relative', zIndex: 1 }}>
+                                            <span className="translated-part">Install App</span>
+                                            <span className="fixed-part ko" translate="no">앱 설치하기</span>
+                                            <span className="fixed-part en" translate="no">Install App</span>
+                                        </span>
                                     </div>
-                                    <div className="ios-install-step">
-                                        <div className="ios-install-step-number">2</div>
-                                        <div className="ios-install-step-text">
-                                            <strong>"홈 화면에 추가"</strong>를 선택하세요
-                                        </div>
-                                    </div>
-                                </>
+                                    <p style={{
+                                        marginTop: '12px',
+                                        fontSize: '13px',
+                                        color: '#a1a1aa',
+                                        textAlign: 'center'
+                                    }}>
+                                        설치 후 다시 로그인하면 알림을 설정할 수 있습니다.
+                                    </p>
+                                </div>
                             ) : (
+                                /* [Case 2] 수동 설치 필요 (iOS / promptEvent 없음) */
                                 <>
+                                    {isIOS ? (
+                                        <>
+                                            <div className="ios-install-step">
+                                                <div className="ios-install-step-number">1</div>
+                                                <div className="ios-install-step-text">
+                                                    Safari 하단의 <i className="ri-share-line" style={{ color: '#3b82f6' }}></i> <strong>공유</strong> 버튼을 누르세요
+                                                </div>
+                                            </div>
+                                            <div className="ios-install-step">
+                                                <div className="ios-install-step-number">2</div>
+                                                <div className="ios-install-step-text">
+                                                    <strong>"홈 화면에 추가"</strong>를 선택하세요
+                                                </div>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className="ios-install-step">
+                                                <div className="ios-install-step-number">1</div>
+                                                <div className="ios-install-step-text">
+                                                    브라우저 우측 상단의 <strong>⋮ (메뉴)</strong> 버튼을 누르세요
+                                                </div>
+                                            </div>
+                                            <div className="ios-install-step">
+                                                <div className="ios-install-step-number">2</div>
+                                                <div className="ios-install-step-text">
+                                                    <strong>"앱 설치"</strong> 또는 <strong>"홈 화면에 추가"</strong>를 누르세요
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
                                     <div className="ios-install-step">
-                                        <div className="ios-install-step-number">1</div>
+                                        <div className="ios-install-step-number">{isIOS ? '3' : '3'}</div>
                                         <div className="ios-install-step-text">
-                                            브라우저 우측 상단의 <strong>⋮ (메뉴)</strong> 버튼을 누르세요
-                                        </div>
-                                    </div>
-                                    <div className="ios-install-step">
-                                        <div className="ios-install-step-number">2</div>
-                                        <div className="ios-install-step-text">
-                                            <strong>"앱 설치"</strong> 또는 <strong>"홈 화면에 추가"</strong>를 누르세요
+                                            안내에 따라 <strong>추가</strong>를 누르면 완료!
                                         </div>
                                     </div>
                                 </>
                             )}
-                            <div className="ios-install-step">
-                                <div className="ios-install-step-number">{isIOS ? '3' : '3'}</div>
-                                <div className="ios-install-step-text">
-                                    안내에 따라 <strong>추가</strong>를 누르면 완료!
-                                </div>
-                            </div>
                         </div>
-
-                        {/* 모달 내부 설치 버튼 추가 */}
-                        {!isIOS && promptEvent && (
-                            <div style={{ padding: '0 20px 24px' }}>
-                                <button
-                                    onClick={() => {
-                                        handleInstallClick();
-                                        setShowInstructions(false);
-                                    }}
-                                    style={{
-                                        width: '100%',
-                                        padding: '14px',
-                                        backgroundColor: '#FEE500',
-                                        color: '#000',
-                                        border: 'none',
-                                        borderRadius: '12px',
-                                        fontWeight: 'bold',
-                                        fontSize: '1rem',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        gap: '8px',
-                                        boxShadow: '0 4px 12px rgba(254, 229, 0, 0.3)'
-                                    }}
-                                >
-                                    <i className="ri-download-cloud-line"></i>
-                                    앱 설치하기
-                                </button>
-                            </div>
-                        )}
                     </div>
                 </div>,
                 document.body

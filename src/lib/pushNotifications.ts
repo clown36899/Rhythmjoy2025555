@@ -18,8 +18,7 @@ console.log(`[Push] Using VAPID Public Key: ${VAPID_PUBLIC_KEY.substring(0, 5)}.
  */
 export async function checkServiceWorkerRegistration(): Promise<ServiceWorkerRegistration | null> {
     if (!('serviceWorker' in navigator)) {
-        console.warn('Service Worker not supported');
-        console.warn('[Push] Service Worker not supported');
+        console.warn('[Push] Service Worker not supported in this browser.');
         return null;
     }
 
@@ -88,151 +87,125 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
 }
 
 /**
- * 푸시 구독 생성
+ * [Updated] Push Preferences Interface
  */
-export async function subscribeToPush(): Promise<PushSubscription | null> {
-    console.log('[Push] subscribeToPush started');
-    try {
-        if (!isPushSupported()) {
-            console.error('[Push] Push not supported');
-            return null;
-        }
+export interface PushPreferences {
+    pref_events: boolean;
+    pref_lessons: boolean; // "Classes" (강습)
+    pref_clubs: boolean;   // "Club Lessons" (동호회 강습)
+    pref_filter_tags: string[] | null; // For Events
+    pref_filter_class_genres: string[] | null; // For Classes
+}
 
+export const getPushSubscription = async (): Promise<PushSubscription | null> => {
+    if (!isPushSupported()) return null;
+    const registration = await navigator.serviceWorker.ready;
+    return await registration.pushManager.getSubscription();
+};
+
+export const subscribeToPush = async (): Promise<PushSubscription | null> => {
+    if (!isPushSupported()) return null;
+
+    try {
         const registration = await navigator.serviceWorker.ready;
-        console.log('[Push] SW registration ready:', registration);
 
-        // 1. 기존 구독 확인
-        let subscription = await registration.pushManager.getSubscription();
-        console.log('[Push] Existing subscription check:', !!subscription);
-
-        // 2. 권한 확인 및 요청
-        let permission = await checkNotificationPermission();
-        if (permission === 'default') {
-            permission = await requestNotificationPermission();
+        // 1. Check existing
+        const existingSub = await registration.pushManager.getSubscription();
+        if (existingSub) {
+            console.log("Existing subscription found:", existingSub);
+            return existingSub;
         }
 
-        if (permission !== 'granted') {
-            console.warn('[Push] Notification permission denied');
-            return null;
-        }
+        // 2. Subscribe (VAPID)
+        const vapidPublicKey = import.meta.env.VITE_PUBLIC_VAPID_KEY || 'BKg5c8Ja6Ce_iEtvV4y3KqaCb8mV9f-a2ClJsy8eiBLIfOi1wlAhaidG6jPq9Va0PM10RmOvOIetYs1wSeZRDG0';
 
-        // 3. 구독 안 되어 있으면 새로 생성
-        if (!subscription) {
-            console.log('[Push] Creating new subscription with VAPID key...');
-            subscription = await registration.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as any
-            });
-            console.log('[Push] New subscription created successfully');
-        }
-
-        return subscription;
-    } catch (error) {
-        console.error('[Push] Failed to subscribe to push notifications:', error);
-        return null;
-    }
-}
-
-/**
- * 현재 기기의 푸시 구독 정보 가져오기
- */
-export async function getPushSubscription(): Promise<PushSubscription | null> {
-    try {
-        if (!('serviceWorker' in navigator)) return null;
-        const registration = await navigator.serviceWorker.getRegistration();
-        if (!registration) return null;
-        return await registration.pushManager.getSubscription();
-    } catch (error) {
-        console.error('[Push] Failed to get push subscription:', error);
-        return null;
-    }
-}
-
-/**
- * 푸시 구독 정보를 Supabase에 저장
- */
-export async function saveSubscriptionToSupabase(
-    subscription: PushSubscription,
-    options?: { pref_events?: boolean, pref_lessons?: boolean, pref_filter_tags?: string[] | null }
-): Promise<boolean> {
-    console.log('[Push] Saving subscription to Supabase (via RPC)...');
-    try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) throw new Error('User not logged in');
-
-        // isAdmin 판단
-        const isAdmin = user.email === 'clown313@naver.com' || (user.app_metadata?.is_admin === true);
-        const subJson = JSON.parse(JSON.stringify(subscription));
-        const endpoint = subscription.endpoint;
-        const userAgent = navigator.userAgent || 'unknown-device';
-
-        if (!endpoint) {
-            console.error('[Push] Endpoint is missing in subscription object');
-            return false;
-        }
-
-        // [RPC Call] RLS와 Unique 제약조건 충돌을 피하기 위해
-        // Security Definer 함수를 통해 안전하게 Upsert(등록/소유권이전) 수행
-        const { error } = await supabase.rpc('handle_push_subscription', {
-            p_endpoint: endpoint,
-            p_subscription: subJson,
-            p_user_agent: userAgent,
-            p_is_admin: isAdmin,
-            p_pref_events: options?.pref_events ?? true,
-            p_pref_lessons: options?.pref_lessons ?? true,
-            p_pref_filter_tags: options?.pref_filter_tags ?? null
+        const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
+        const subscription = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: convertedVapidKey as any
         });
 
-        if (error) {
-            console.error('[Push] RPC save failed:', error);
-            throw error;
-        }
+        console.log("New subscription created:", subscription);
+        return subscription;
 
-        console.log('[Push] Push subscription saved via RPC successfully');
-        return true;
-    } catch (error: any) {
-        console.error('[Push] Fatal error in saveSubscriptionToSupabase:', error);
+    } catch (error) {
+        console.error("Failed to subscribe to push:", error);
+        return null;
+    }
+};
+
+export const saveSubscriptionToSupabase = async (subscription: PushSubscription, prefs?: PushPreferences) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return; // Must be logged in
+
+    // Get Endpoint (Unique Device ID)
+    const endpoint = subscription.endpoint;
+
+    // Prepare Payload
+    const defaultPrefs: PushPreferences = {
+        pref_events: true,
+        pref_lessons: true,
+        pref_clubs: true,
+        pref_filter_tags: null,
+        pref_filter_class_genres: null
+    };
+
+    const finalPrefs = prefs || defaultPrefs;
+
+    // Use RPC to safely upsert based on endpoint
+    const { error } = await supabase.rpc('handle_push_subscription', {
+        p_user_id: user.id,
+        p_subscription: subscription,
+        p_endpoint: endpoint,
+        p_pref_events: finalPrefs.pref_events,
+        p_pref_lessons: finalPrefs.pref_lessons,
+        p_pref_clubs: finalPrefs.pref_clubs,
+        p_pref_filter_tags: finalPrefs.pref_filter_tags,
+        p_pref_filter_class_genres: finalPrefs.pref_filter_class_genres
+    });
+
+    if (error) {
+        console.error("Failed to save subscription to Supabase:", error);
         throw error;
     }
+    console.log('[Push] Subscription saved to Supabase');
+    return true;
 }
 
-/**
- * 알림 세부 설정(행사, 강습, 태그)만 업데이트
- */
-export async function updatePushPreferences(prefs: { pref_events?: boolean, pref_lessons?: boolean, pref_filter_tags?: string[] | null }): Promise<boolean> {
-    try {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return false;
+export const updatePushPreferences = async (prefs: PushPreferences) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
 
-        // [Fix] 현재 기기(endpoint)만 특정해서 업데이트 (다른 기기 설정 덮어쓰기 방지)
-        const sub = await getPushSubscription();
-        if (!sub || !sub.endpoint) {
-            console.error('[Push] Cannot update prefs: No active subscription found on this device.');
-            return false;
-        }
+    const sub = await getPushSubscription();
+    if (!sub || !sub.endpoint) return false;
 
-        const { error } = await supabase
-            .from('user_push_subscriptions')
-            .update({
-                ...prefs,
-                updated_at: new Date().toISOString(),
-            })
-            .eq('user_id', user.id)
-            .eq('endpoint', sub.endpoint); // target only this device
+    const { error } = await supabase
+        .from('user_push_subscriptions')
+        .update({
+            pref_events: prefs.pref_events,
+            pref_lessons: prefs.pref_lessons,
+            pref_clubs: prefs.pref_clubs,
+            pref_filter_tags: prefs.pref_filter_tags,
+            pref_filter_class_genres: prefs.pref_filter_class_genres,
+            updated_at: new Date().toISOString(),
+        })
+        .eq('user_id', user.id)
+        .eq('endpoint', sub.endpoint);
 
-        if (error) throw error;
-        console.log('[Push] Preferences updated for this device:', prefs);
-        return true;
-    } catch (error) {
+    if (error) {
         console.error('[Push] Failed to update preferences:', error);
         return false;
     }
+    return true;
 }
 
 /**
  * 현재 저장된 알림 설정 가져오기
  */
-export async function getPushPreferences(): Promise<{ pref_events: boolean, pref_lessons: boolean, pref_filter_tags: string[] | null } | null> {
+/**
+ * 현재 저장된 알림 설정 가져오기
+ */
+export async function getPushPreferences(): Promise<PushPreferences | null> {
     try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return null;
@@ -246,16 +219,22 @@ export async function getPushPreferences(): Promise<{ pref_events: boolean, pref
 
         const { data, error } = await supabase
             .from('user_push_subscriptions')
-            .select('pref_events, pref_lessons, pref_filter_tags')
+            .select('pref_events, pref_lessons, pref_clubs, pref_filter_tags, pref_filter_class_genres')
             .eq('user_id', user.id)
             .eq('endpoint', sub.endpoint) // [Key] 이 기기의 설정만 조회
             .maybeSingle();
 
         if (error) {
-            if (error.code === 'PGRST116') return { pref_events: true, pref_lessons: true, pref_filter_tags: null };
+            if (error.code === 'PGRST116') return {
+                pref_events: true,
+                pref_lessons: true,
+                pref_clubs: true,
+                pref_filter_tags: null,
+                pref_filter_class_genres: null
+            };
             throw error;
         }
-        return data as { pref_events: boolean, pref_lessons: boolean, pref_filter_tags: string[] | null };
+        return data as PushPreferences;
     } catch (error) {
         console.error('[Push] Failed to fetch preferences:', error);
         return null;

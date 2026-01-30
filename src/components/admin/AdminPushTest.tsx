@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { subscribeToPush, saveSubscriptionToSupabase, unsubscribeFromPush } from '../../lib/pushNotifications';
+import { saveSubscriptionToSupabase, subscribeToPush, unsubscribeFromPush } from '../../lib/pushNotifications';
 
 export const AdminPushTest: React.FC = () => {
     const { user, isAdmin } = useAuth();
@@ -18,7 +18,7 @@ export const AdminPushTest: React.FC = () => {
         const checkSW = async () => {
             if ('serviceWorker' in navigator) {
                 const reg = await navigator.serviceWorker.getRegistration();
-                setSwStatus(reg ? `Registered (${reg.active ? 'Active' : 'Not Active'})` : 'Not Registered');
+                setSwStatus(reg ? `Registered(${reg.active ? 'Active' : 'Not Active'})` : 'Not Registered');
             } else {
                 setSwStatus('Not Supported');
             }
@@ -27,7 +27,7 @@ export const AdminPushTest: React.FC = () => {
 
         // VAPID Hint
         const key = import.meta.env.VITE_PUBLIC_VAPID_KEY || 'BKg5c8Ja6Ce_iEtvV4y3KqaCb8mV9f-a2ClJsy8eiBLIfOi1wlAhaidG6jPq9Va0PM10RmOvOIetYs1wSeZRDG0';
-        setVapidHint(`${key.substring(0, 8)}...${key.slice(-8)}`);
+        setVapidHint(`${key.substring(0, 8)}...${key.slice(-8)} `);
     }, []);
 
     if (!isAdmin && user?.email !== 'clown313@naver.com') return null;
@@ -42,7 +42,7 @@ export const AdminPushTest: React.FC = () => {
             }
             if (event.data && event.data.type === 'PUSH_ERROR') {
                 console.error('❌ [SW 에러] 알림 표시 실패:', event.data.error);
-                setResult(prev => prev + `\n❌ SW 표시 에러: ${event.data.error}`);
+                setResult(prev => prev + `\n❌ SW 표시 에러: ${event.data.error} `);
             }
         };
         navigator.serviceWorker.addEventListener('message', handler);
@@ -63,7 +63,7 @@ export const AdminPushTest: React.FC = () => {
                 setResult('❌ 구독 실패. PWA 모드가 아니거나 권한이 거절되었습니다.');
             }
         } catch (err: any) {
-            setResult(`❌ 에러: ${err.message}`);
+            setResult(`❌ 에러: ${err.message} `);
         } finally {
             setSubscribing(false);
         }
@@ -85,9 +85,9 @@ export const AdminPushTest: React.FC = () => {
             });
             if (error) throw error;
 
-            setResult(`🚀 발송 신호 완료: ${JSON.stringify(data, null, 2)}`);
+            setResult(`🚀 발송 신호 완료: ${JSON.stringify(data, null, 2)} `);
         } catch (err: any) {
-            setResult(`❌ 발송 실패: ${err.message}${err.stack ? '\n' + err.stack : ''}`);
+            setResult(`❌ 발송 실패: ${err.message}${err.stack ? '\n' + err.stack : ''} `);
         } finally {
             setLoading(false);
         }
@@ -103,9 +103,9 @@ export const AdminPushTest: React.FC = () => {
             });
             if (error) throw error;
 
-            setResult(`🎯 나에게 발송 완료: ${JSON.stringify(data, null, 2)}`);
+            setResult(`🎯 나에게 발송 완료: ${JSON.stringify(data, null, 2)} `);
         } catch (err: any) {
-            setResult(`❌ 발송 실패: ${err.message}${err.stack ? '\n' + err.stack : ''}`);
+            setResult(`❌ 발송 실패: ${err.message}${err.stack ? '\n' + err.stack : ''} `);
         } finally {
             setLoading(false);
         }
@@ -123,7 +123,7 @@ export const AdminPushTest: React.FC = () => {
                 setResult('⚠️ 수신 해제 실패. 이미 해제되어 있거나 권한이 없을 수 있습니다.');
             }
         } catch (err: any) {
-            setResult(`❌ 에러: ${err.message}`);
+            setResult(`❌ 에러: ${err.message} `);
         } finally {
             setSubscribing(false);
         }
@@ -158,7 +158,7 @@ export const AdminPushTest: React.FC = () => {
 
             alert("알림을 요청했습니다. 우측 상단을 확인하세요!");
         } catch (e: any) {
-            alert(`테스트 실패: ${e.message}`);
+            alert(`테스트 실패: ${e.message} `);
         }
     };
 
@@ -193,6 +193,20 @@ export const AdminPushTest: React.FC = () => {
                 }}
             >
                 📢 로컬 알림 테스트 (OS Check)
+            </button>
+            <button
+                onClick={() => (window as any).adminTestPwaModal && (window as any).adminTestPwaModal()}
+                style={{
+                    padding: '8px',
+                    background: '#8b5cf6',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontWeight: 600,
+                    cursor: 'pointer'
+                }}
+            >
+                👁️ [Admin] PWA 안내 모달 강제 띄우기
             </button>
 
             <div>

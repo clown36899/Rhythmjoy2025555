@@ -12,6 +12,9 @@ import { useRealtimeSync } from './hooks/useRealtimeSync';
 import { SiteAnalyticsProvider } from './components/SiteAnalyticsProvider';
 import { InAppBrowserGuard } from './components/InAppBrowserGuard';
 import { GlobalPlayerProvider } from './contexts/GlobalPlayerContext';
+import { getPushSubscription, saveSubscriptionToSupabase, subscribeToPush, getPushPreferences } from './lib/pushNotifications';
+import { PwaNotificationModal } from './components/PwaNotificationModal';
+import { useState } from 'react';
 import './styles/devtools.css';
 
 function AppContent() {
@@ -22,6 +25,99 @@ function AppContent() {
 
   // Sync queries with Supabase Realtime
   useRealtimeSync();
+
+  const { user } = useAuth();
+  const [showPwaModal, setShowPwaModal] = useState(false);
+
+  // [PWA Auto-Subscribe] 로그인 후 & 앱 최초 실행 시(PWA) 알림 권한 처리
+  useEffect(() => {
+    const initPwaPush = async () => {
+      if (!user) return;
+
+      // [Test Mode] 일반 유저는 아직 적용하지 않음 (관리자만 테스트)
+      const isAdmin = user.email === 'clown313@naver.com' || user.user_metadata?.is_admin === true || user.app_metadata?.is_admin === true;
+      if (!isAdmin) {
+        // console.log('[App] PWA Logic skipped (Not Admin)');
+        return;
+      }
+
+      // 이미 '안 보기'를 선택했는지 확인
+      const isDismissed = localStorage.getItem('pwa_prompt_dismissed') === 'true';
+      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
+
+      console.log('[App] PWA Check:', { isAdmin, isDismissed, isStandalone });
+
+      if (isDismissed) return;
+
+      if (isStandalone) {
+        try {
+          const existingSub = await getPushSubscription();
+          console.log('[App] Existing Sub:', existingSub);
+
+          if (existingSub) {
+            // [Check DB] 브라우저엔 있어도 DB에 없으면(삭제됨) 모달 띄워야 함
+            const dbPrefs = await getPushPreferences();
+
+            if (dbPrefs) {
+              // [Silent Sync] 이미 구독 중이고 DB에도 데이터가 있음 -> 최신 상태로 갱신
+              console.log('[App] Existing subscription matches DB. Syncing...');
+              await saveSubscriptionToSupabase(existingSub, {
+                pref_events: dbPrefs.pref_events,
+                pref_lessons: dbPrefs.pref_lessons,
+                pref_clubs: dbPrefs.pref_clubs,
+                pref_filter_tags: dbPrefs.pref_filter_tags,
+                pref_filter_class_genres: dbPrefs.pref_filter_class_genres
+              }).catch(err => console.warn('[App] Silent sync failed:', err));
+            } else {
+              // [Zombie Sub] 브라우저엔 있는데 DB엔 없음 -> 모달 띄워서 재등록 유도
+              console.log('[App] Zombie subscription detected (Browser=Yes, DB=No). Showing Modal...');
+              setShowPwaModal(true);
+            }
+          } else {
+            // 구독이 없으면 안내 모달 띄우기
+            console.log('[App] PWA detected & No Subscription. Showing Modal...');
+            setShowPwaModal(true);
+          }
+        } catch (err) {
+          console.error('[App] PWA Init Error:', err);
+        }
+      }
+    };
+
+    initPwaPush();
+  }, [user]);
+
+  // [Admin Test] 관리자용 테스트 트리거
+  useEffect(() => {
+    (window as any).adminTestPwaModal = () => {
+      console.log('[Admin] Forcing PWA Modal...');
+      setShowPwaModal(true);
+    };
+  }, []);
+
+  const handlePwaConfirm = async (prefs: { pref_events: boolean, pref_lessons: boolean, pref_filter_tags: string[] | null }) => {
+    setShowPwaModal(false);
+    console.log('[App] User configured PWA notifications:', prefs);
+    const sub = await subscribeToPush();
+    if (sub) {
+      await saveSubscriptionToSupabase(sub, {
+        ...prefs,
+        pref_clubs: true, // 기본값
+        pref_filter_class_genres: null
+      }); // 사용자가 선택한 설정 적용
+      console.log('[App] PWA Auto-subscribed successfully with custom prefs.');
+    }
+  };
+
+  const handlePwaCancel = (dontShowAgain: boolean) => {
+    setShowPwaModal(false);
+    if (dontShowAgain) {
+      localStorage.setItem('pwa_prompt_dismissed', 'true');
+      console.log('[App] User dismissed PWA prompt (Dont show again).');
+    } else {
+      console.log('[App] User canceled PWA prompt (Show again next time).');
+    }
+  };
 
   // [Feature] 알림 배지 및 센터 청소 통합 함수
   const clearNotifications = async () => {
@@ -78,36 +174,7 @@ function AppContent() {
     };
   }, []);
 
-  // [PWA Auto-Subscribe] 앱 최초 실행 시(PWA 모드) 알림 권한 자동 요청
-  useEffect(() => {
-    const initPwaPush = async () => {
-      // PWA 모드(standalone)인지 확인
-      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
 
-      if (isStandalone) {
-        // 이미 구독되어 있는지 확인
-        const existingSub = await getPushSubscription();
-        if (!existingSub) {
-          // 구독이 없으면 자동으로 권한 요청 및 구독 시도
-          console.log('[App] PWA detected. Attempting auto-subscribe...');
-          const sub = await subscribeToPush();
-          if (sub) {
-            // 기본 설정(전체 수신)으로 저장
-            await saveSubscriptionToSupabase(sub, {
-              pref_events: true,
-              pref_lessons: true,
-              pref_filter_tags: null
-            });
-            // 안내 메시지 (Toast 대신 간단한 alert 혹은 조용한 처리)
-            // alert('알림이 활성화되었습니다. 설정 메뉴에서 변경 가능합니다.'); 
-            console.log('[App] PWA Auto-subscribed successfully.');
-          }
-        }
-      }
-    };
-
-    initPwaPush();
-  }, []);
 
   // 2. 페이지 이동 시에도 청소 (location)
   useEffect(() => {
@@ -121,13 +188,20 @@ function AppContent() {
   }, [location]);
 
   return (
-    <Suspense fallback={
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', backgroundColor: '#000000', color: 'white' }}>
-        {/* Spinner removed for login optimization */}
-      </div>
-    }>
-      <MobileShell />
-    </Suspense>
+    <>
+      <Suspense fallback={
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', backgroundColor: '#000000', color: 'white' }}>
+          {/* Spinner removed for login optimization */}
+        </div>
+      }>
+        <MobileShell />
+      </Suspense>
+      <PwaNotificationModal
+        isOpen={showPwaModal}
+        onConfirm={handlePwaConfirm}
+        onCancel={handlePwaCancel}
+      />
+    </>
   );
 }
 

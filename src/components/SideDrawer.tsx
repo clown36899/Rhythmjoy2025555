@@ -7,7 +7,6 @@ import { useEffect, useState } from 'react';
 import { PWAInstallButton } from './PWAInstallButton';
 import GlobalLoadingOverlay from './GlobalLoadingOverlay';
 import {
-    isPushSupported,
     getPushSubscription,
     subscribeToPush,
     saveSubscriptionToSupabase,
@@ -43,8 +42,26 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
     const [isPushEnabled, setIsPushEnabled] = useState<boolean>(false);
     const [isPushLoading, setIsPushLoading] = useState<boolean>(false);
     const [isRunningInPWA, setIsRunningInPWA] = useState(false);
-    const [pushPrefs, setPushPrefs] = useState<{ pref_events: boolean, pref_lessons: boolean, pref_filter_tags: string[] | null }>({ pref_events: true, pref_lessons: true, pref_filter_tags: null });
-    const [originalPrefs, setOriginalPrefs] = useState<{ pref_events: boolean, pref_lessons: boolean, pref_filter_tags: string[] | null } | null>(null);
+    const [pushPrefs, setPushPrefs] = useState<{
+        pref_events: boolean,
+        pref_lessons: boolean,
+        pref_clubs: boolean,
+        pref_filter_tags: string[] | null,
+        pref_filter_class_genres: string[] | null
+    }>({
+        pref_events: true,
+        pref_lessons: true,
+        pref_clubs: true,
+        pref_filter_tags: null,
+        pref_filter_class_genres: null
+    });
+    const [originalPrefs, setOriginalPrefs] = useState<{
+        pref_events: boolean,
+        pref_lessons: boolean,
+        pref_clubs: boolean,
+        pref_filter_tags: string[] | null,
+        pref_filter_class_genres: string[] | null
+    } | null>(null);
     const [originalPushEnabled, setOriginalPushEnabled] = useState<boolean>(false);
     const [isSaving, setIsSaving] = useState(false);
 
@@ -103,26 +120,47 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
     }, [isOpen]);
 
     const checkPushStatus = async () => {
-        if (!isPushSupported()) return;
-        const sub = await getPushSubscription();
-        const enabled = !!sub;
+        if (!user || !isRunningInPWA) return;
 
-        setIsPushEnabled(enabled);
-        setOriginalPushEnabled(enabled);
+        setIsPushLoading(true);
+        try {
+            const sub = await getPushSubscription();
+            setIsPushEnabled(!!sub);
+            setOriginalPushEnabled(!!sub);
 
-        if (sub) {
-            const prefs = await getPushPreferences();
-            if (prefs) {
-                setPushPrefs(prefs);
-                setOriginalPrefs(prefs); // 초기 로드 시 원본 저장
+            if (sub) {
+                const prefs = await getPushPreferences();
+                if (prefs) {
+                    setPushPrefs(prefs);
+                    setOriginalPrefs({ ...prefs }); // 초기 로드 시 원본 저장
+                }
+            } else {
+                setOriginalPrefs(null);
             }
-        } else {
-            setOriginalPrefs(null);
+        } catch (error) {
+            console.error('[SideDrawer] Failed to check push status:', error);
+        } finally {
+            setIsPushLoading(false);
         }
     };
 
-    const handlePreferenceToggle = (type: 'pref_events' | 'pref_lessons') => {
-        setPushPrefs(prev => ({ ...prev, [type]: !prev[type] }));
+    const handlePreferenceToggle = (type: 'pref_events' | 'pref_lessons' | 'pref_clubs') => {
+        // setHasUnsavedChanges(true); // This state setter is not defined in the component.
+        setPushPrefs(prev => {
+            const nextVal = !prev[type];
+            const updates: any = { [type]: nextVal };
+
+            // [Change] 카테고리 켤 때, 태그가 비어있으면 전체 선택으로 초기화
+            if (nextVal) {
+                if (type === 'pref_events' && (!prev.pref_filter_tags || prev.pref_filter_tags.length === 0)) {
+                    updates.pref_filter_tags = ['워크샵', '파티', '대회', '기타'];
+                }
+                if (type === 'pref_lessons' && (!prev.pref_filter_class_genres || prev.pref_filter_class_genres.length === 0)) {
+                    updates.pref_filter_class_genres = ['린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'];
+                }
+            }
+            return { ...prev, ...updates };
+        });
     };
 
     const handlePushToggle = async (e: React.MouseEvent) => {
@@ -158,7 +196,13 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                         return;
                     }
                     // [Fix] 구독 저장 시 현재 설정(태그 등)도 같이 저장
-                    await saveSubscriptionToSupabase(sub, pushPrefs);
+                    await saveSubscriptionToSupabase(sub, {
+                        pref_events: pushPrefs.pref_events,
+                        pref_lessons: pushPrefs.pref_lessons,
+                        pref_clubs: pushPrefs.pref_clubs,
+                        pref_filter_tags: pushPrefs.pref_filter_tags,
+                        pref_filter_class_genres: pushPrefs.pref_filter_class_genres
+                    });
                     console.log('Subscribed successfully');
                 } else {
                     // Turn OFF (Unsubscribe)
@@ -172,7 +216,7 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
             if (isPushEnabled) {
                 const success = await updatePushPreferences(pushPrefs);
                 if (success) {
-                    setOriginalPrefs(pushPrefs);
+                    setOriginalPrefs({ ...pushPrefs }); // Update with new object shape
                     alert('알림 설정이 저장되었습니다.');
                 } else {
                     alert('설정 저장에 실패했습니다.');
@@ -383,56 +427,123 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                                     </div>
                                 </div>
 
-                                {/* 세부 설정 (PWA 모드 & 알림 활성화 시에만 노출) */}
-                                {isRunningInPWA && isPushEnabled && (
-                                    <div className="card-body">
-                                        {/* 1. 행사 알림 */}
-                                        <div className="setting-row">
-                                            <div className="setting-label" onClick={() => handlePreferenceToggle('pref_events')}>
-                                                <span>행사 알림</span>
-                                                <div className={`mini-toggle ${pushPrefs.pref_events ? 'active' : ''}`}></div>
+                                {/* --- Push Notification Settings --- */}
+                                {isPushEnabled && (
+                                    <div className="push-settings-container">
+
+                                        {/* 1. 행사 알림 (Events) */}
+                                        <div className="push-setting-section">
+                                            <div className="push-setting-row" onClick={() => handlePreferenceToggle('pref_events')}>
+                                                <div className="push-label-group">
+                                                    <span className="push-setting-label">행사 알림</span>
+                                                    <span className="push-setting-sublabel">워크샵, 파티, 대회 등 주요 행사</span>
+                                                </div>
+                                                <div className={`push-toggle-sm ${pushPrefs.pref_events ? 'active' : ''}`}>
+                                                    <div className="push-toggle-thumb-sm"></div>
+                                                </div>
                                             </div>
 
-                                            {/* 태그 선택 (행사 알림 ON일 때만) */}
+                                            {/* Event Tags Filter */}
                                             {pushPrefs.pref_events && (
-                                                <div className="tags-wrapper">
-                                                    {['파티', '워크샵', '대회', '기타'].map((tag) => {
-                                                        const currentTags = pushPrefs.pref_filter_tags;
-                                                        const isChecked = currentTags === null || currentTags.includes(tag);
+                                                <div className="push-tags-container">
+                                                    {['워크샵', '파티', '대회', '기타'].map(tag => {
+                                                        const isActive = !pushPrefs.pref_filter_tags || pushPrefs.pref_filter_tags.includes(tag);
                                                         return (
-                                                            <div
+                                                            <button
                                                                 key={tag}
-                                                                className={`tag-chip ${isChecked ? 'selected' : ''}`}
+                                                                className={`push-tag-btn ${isActive ? 'active' : ''}`}
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
-                                                                    let newTags = currentTags === null
-                                                                        ? ['파티', '워크샵', '대회', '기타']
-                                                                        : [...currentTags];
-                                                                    if (isChecked) newTags = newTags.filter(t => t !== tag);
-                                                                    else newTags.push(tag);
-                                                                    setPushPrefs({ ...pushPrefs, pref_filter_tags: newTags });
+                                                                    setPushPrefs(prev => {
+                                                                        const currentTags = prev.pref_filter_tags || ['워크샵', '파티', '대회', '기타'];
+                                                                        let newTags;
+                                                                        if (currentTags.includes(tag)) {
+                                                                            newTags = currentTags.filter(t => t !== tag);
+                                                                        } else {
+                                                                            newTags = [...currentTags, tag];
+                                                                        }
+
+                                                                        // [Change] 모든 태그 해제 시 카테고리 OFF
+                                                                        if (newTags.length === 0) {
+                                                                            return { ...prev, pref_filter_tags: newTags, pref_events: false };
+                                                                        }
+                                                                        return { ...prev, pref_filter_tags: newTags };
+                                                                    });
                                                                 }}
                                                             >
-                                                                {isChecked && <i className="ri-check-line"></i>}
+                                                                {isActive && <span style={{ marginRight: '4px' }}>✓</span>}
                                                                 {tag}
-                                                            </div>
+                                                            </button>
                                                         );
                                                     })}
                                                 </div>
                                             )}
                                         </div>
 
-                                        {/* 2. 강습 알림 (일단 숨김 - 시범 적용 기간) */}
-                                        {/* <div className="setting-row">
-                                            <div className="setting-label" onClick={() => handlePreferenceToggle('pref_lessons')}>
-                                                <span>강습 알림</span>
-                                                <div className={`mini-toggle ${pushPrefs.pref_lessons ? 'active' : ''}`}></div>
+                                        {/* 2. 강습 알림 (Classes) */}
+                                        <div className="push-setting-section">
+                                            <div className="push-setting-row" onClick={() => handlePreferenceToggle('pref_lessons')}>
+                                                <div className="push-label-group">
+                                                    <span className="push-setting-label">강습 알림</span>
+                                                    <span className="push-setting-sublabel">댄서들의 정규/오픈 강습</span>
+                                                </div>
+                                                <div className={`push-toggle-sm ${pushPrefs.pref_lessons ? 'active' : ''}`}>
+                                                    <div className="push-toggle-thumb-sm"></div>
+                                                </div>
                                             </div>
-                                        </div> */}
-                                    </div>
-                                )}
 
-                                {/* 저장 버튼 Footer (PWA 모드이면 항상 노출) */}
+                                            {/* Class Genre Filter */}
+                                            {pushPrefs.pref_lessons && (
+                                                <div className="push-tags-container">
+                                                    {['린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'].map(genre => {
+                                                        const isActive = !pushPrefs.pref_filter_class_genres || pushPrefs.pref_filter_class_genres.includes(genre);
+                                                        return (
+                                                            <button
+                                                                key={genre}
+                                                                className={`push-tag-btn ${isActive ? 'active' : ''}`}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setPushPrefs(prev => {
+                                                                        const currentGenres = prev.pref_filter_class_genres || ['린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'];
+                                                                        let newGenres;
+                                                                        if (currentGenres.includes(genre)) {
+                                                                            newGenres = currentGenres.filter(g => g !== genre);
+                                                                        } else {
+                                                                            newGenres = [...currentGenres, genre];
+                                                                        }
+
+                                                                        // [Change] 모든 장르 해제 시 카테고리 OFF
+                                                                        if (newGenres.length === 0) {
+                                                                            return { ...prev, pref_filter_class_genres: newGenres, pref_lessons: false };
+                                                                        }
+                                                                        return { ...prev, pref_filter_class_genres: newGenres };
+                                                                    });
+                                                                }}
+                                                            >
+                                                                {isActive && <span style={{ marginRight: '4px' }}>✓</span>}
+                                                                {genre}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* 3. 동호회 강습 알림 (Club Lessons) - Toggle Only */}
+                                        <div className="push-setting-section">
+                                            <div className="push-setting-row" onClick={() => handlePreferenceToggle('pref_clubs')}>
+                                                <div className="push-label-group">
+                                                    <span className="push-setting-label">동호회 강습 알림</span>
+                                                    <span className="push-setting-sublabel">동호회에서 주최하는 정규 강습</span>
+                                                </div>
+                                                <div className={`push-toggle-sm ${pushPrefs.pref_clubs ? 'active' : ''}`}>
+                                                    <div className="push-toggle-thumb-sm"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                    </div>
+                                )}    {/* 저장 버튼 Footer (PWA 모드이면 항상 노출) */}
                                 {isRunningInPWA && (
                                     <div className="card-footer">
                                         <button
