@@ -43,7 +43,7 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
     const [isPushLoading, setIsPushLoading] = useState<boolean>(false);
     const [isRunningInPWA, setIsRunningInPWA] = useState(false);
     const [isMobile, setIsMobile] = useState(false);
-    const [isSettingsExpanded, setIsSettingsExpanded] = useState(true);
+    const [isSettingsExpanded, setIsSettingsExpanded] = useState(false); // [Change] Default to collapsed
 
     const [pushPrefs, setPushPrefs] = useState<{
         pref_events: boolean,
@@ -442,14 +442,14 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
 
                             {/* 강습, 이벤트 알람 받기 버튼 (모든 사용자 대상) */}
                             <div className="drawer-notification-card">
-                                <div className="card-header" onClick={() => isPushEnabled && !isMobile && setIsSettingsExpanded(!isSettingsExpanded)} style={{ cursor: isPushEnabled && !isMobile ? 'pointer' : 'default' }}>
+                                <div className={`card-header ${isPushEnabled ? 'clickable' : ''}`} onClick={() => isPushEnabled && setIsSettingsExpanded((prev) => !prev)}>
                                     <div className="card-title">
                                         <i className="ri-notification-3-fill"></i>
                                         <span>알림 설정</span>
-                                        {isPushEnabled && !isMobile && (
+                                        {isPushEnabled && (
                                             <i
                                                 className={`ri-arrow-${isSettingsExpanded ? 'up' : 'down'}-s-line`}
-                                                style={{ marginLeft: '8px', color: '#a1a1aa' }}
+                                                style={{ marginLeft: '8px', color: '#a1a1aa', transition: 'transform 0.2s' }}
                                             ></i>
                                         )}
                                     </div>
@@ -466,9 +466,8 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                                 </div>
 
                                 {/* --- Push Notification Settings --- */}
-                                {/* [User Request] Hide detail settings on mobile */}
-                                {/* [User Request] Collapsible Notification Settings */}
-                                {isPushEnabled && !isMobile && isSettingsExpanded && (
+                                {/* [User Request] Collapsible Notification Settings (Available on Mobile too) */}
+                                {isPushEnabled && isSettingsExpanded && (
                                     <div className="push-settings-container">
 
                                         {/* 1. 행사 알림 (Events) */}
