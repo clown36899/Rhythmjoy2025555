@@ -17,6 +17,7 @@ export interface UseEventModalReturn {
     setEventPassword: (password: string) => void;
     showEditModal: boolean;
     setShowEditModal: (show: boolean) => void;
+    isDeleting: boolean;
 
     // 핸들러
     handleEditClick: (event: AppEvent, e?: React.MouseEvent) => void;
@@ -56,6 +57,7 @@ export function useEventModal(): UseEventModalReturn {
     const [eventToEdit, setEventToEdit] = useState<AppEvent | null>(null);
     const [eventPassword, setEventPassword] = useState("");
     const [showEditModal, setShowEditModal] = useState(false);
+    const [isDeleting, setIsDeleting] = useState(false);
 
     // 2. 이벤트 편집 클릭 핸들러
     const handleEditClick = useCallback((event: AppEvent, e?: React.MouseEvent) => {
@@ -80,41 +82,60 @@ export function useEventModal(): UseEventModalReturn {
 
     // 4. 이벤트 삭제 핸들러
     const handleDeleteEvent = useCallback(async (eventId: number | string) => {
-        if (confirm("정말로 이 이벤트를 삭제하시겠습니까?")) {
-            try {
-                const { data: { session } } = await supabase.auth.getSession();
-                const token = session?.access_token;
+        // Double confirm removal: The caller (UI) handles confirmation.
+        // if (confirm("정말로 이 이벤트를 삭제하시겠습니까?")) {
+        console.log('[useEventModal] handleDeleteEvent triggered for ID:', eventId);
+        try {
+            console.log('[useEventModal] Setting isDeleting to TRUE');
+            setIsDeleting(true);
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+            console.log('[useEventModal] Got auth token, starting fetch...');
 
-                const response = await fetch('/.netlify/functions/delete-event', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-                    },
-                    body: JSON.stringify({ eventId })
-                });
+            const response = await fetch('/.netlify/functions/delete-event', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
+                body: JSON.stringify({ eventId })
+            });
 
-                if (!response.ok) {
-                    const errorData = await response.json();
+            console.log('[useEventModal] Fetch returned, status:', response.status);
 
-                    // Foreign Key Constraint Check
-                    if (errorData.error?.includes('foreign key constraint') || errorData.message?.includes('foreign key constraint')) {
-                        alert("다른 사용자가 '즐겨찾기' 및 '관심설정'한 이벤트는 삭제할 수 없습니다.");
-                        return;
-                    }
+            if (!response.ok) {
+                const errorData = await response.json();
+                console.error('[useEventModal] Delete failed with data:', errorData);
 
-                    throw new Error(errorData.error || `Server returned ${response.status}`);
+                // Foreign Key Constraint Check
+                if (errorData.error?.includes('foreign key constraint') || errorData.message?.includes('foreign key constraint')) {
+                    alert("다른 사용자가 '즐겨찾기' 및 '관심설정'한 이벤트는 삭제할 수 없습니다.");
+                    return;
                 }
 
-                alert("삭제되었습니다.");
-                setSelectedEvent(null);
-                // 다른 컴포넌트에 삭제 이벤트 알림
-                window.dispatchEvent(new CustomEvent("eventDeleted", { detail: { eventId } }));
-            } catch (error: any) {
-                console.error("이벤트 삭제 중 오류 발생:", error);
-                alert("삭제 실패: " + (error.message || "알 수 없는 오류"));
+                throw new Error(errorData.error || `Server returned ${response.status}`);
             }
+
+            console.log('[useEventModal] Deletion successful');
+            alert("삭제되었습니다.");
+
+            // Clean up state
+            console.log('[useEventModal] Cleaning up state...');
+            setSelectedEvent(null);
+            setShowEditModal(false);
+            setEventToEdit(null);
+
+            // 다른 컴포넌트에 삭제 이벤트 알림
+            console.log('[useEventModal] Dispatching eventDeleted');
+            window.dispatchEvent(new CustomEvent("eventDeleted", { detail: { eventId } }));
+        } catch (error: any) {
+            console.error("이벤트 삭제 중 오류 발생:", error);
+            alert("삭제 실패: " + (error.message || "알 수 없는 오류"));
+        } finally {
+            console.log('[useEventModal] Setting isDeleting to FALSE');
+            setIsDeleting(false);
         }
+        // } // End of confirm block removal
     }, []);
 
     // 5. 모든 모달 닫기
@@ -138,6 +159,7 @@ export function useEventModal(): UseEventModalReturn {
         setEventPassword,
         showEditModal,
         setShowEditModal,
+        isDeleting,
 
         // 핸들러
         handleEditClick,

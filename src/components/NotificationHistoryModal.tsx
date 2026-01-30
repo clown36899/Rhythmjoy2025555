@@ -12,12 +12,12 @@ interface NotificationHistoryModalProps {
     onRefresh: () => void;
 }
 
-export const NotificationHistoryModal: React.FC<NotificationHistoryModalProps> = ({
+export default function NotificationHistoryModal({
     isOpen,
     onClose,
     notifications,
     onRefresh
-}) => {
+}: NotificationHistoryModalProps) {
     console.log('[NotificationHistory] Modal Render:', { isOpen, notificationCount: notifications.length });
     const navigate = useNavigate();
     const { openModal } = useModalActions();
@@ -41,7 +41,6 @@ export const NotificationHistoryModal: React.FC<NotificationHistoryModalProps> =
         if (!targetUrl) {
             console.warn('[NotificationHistory] No URL found, checking for background update...');
             onRefresh();
-            onClose();
             return;
         }
 
@@ -139,8 +138,10 @@ export const NotificationHistoryModal: React.FC<NotificationHistoryModalProps> =
                             // onClose is handled by ModalRegistry
                         });
                     }
+                    if (notifications.length === 1) {
+                        onClose();
+                    }
                     onRefresh();
-                    onClose();
                     return;
                 }
             }
@@ -165,8 +166,10 @@ export const NotificationHistoryModal: React.FC<NotificationHistoryModalProps> =
                         onUpdate: () => { }
                         // onClose is handled by ModalRegistry
                     });
+                    if (notifications.length === 1) {
+                        onClose();
+                    }
                     onRefresh();
-                    onClose();
                     return;
                 }
             }
@@ -186,7 +189,6 @@ export const NotificationHistoryModal: React.FC<NotificationHistoryModalProps> =
         } finally {
             setIsProcessing(false);
             onRefresh();
-            onClose();
         }
     };
 
@@ -213,7 +215,7 @@ export const NotificationHistoryModal: React.FC<NotificationHistoryModalProps> =
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 10001,
+            zIndex: 40,
             padding: '20px'
         }}>
             <div style={{

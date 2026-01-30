@@ -52,6 +52,7 @@ const ColorSettingsModal = lazy(() => import('../components/ColorSettingsModal')
 const DefaultThumbnailSettingsModal = lazy(() => import('../components/DefaultThumbnailSettingsModal'));
 const InvitationManagementModal = lazy(() => import('../components/InvitationManagementModal'));
 const GlobalNoticeEditor = lazy(() => import('../components/GlobalNoticeEditor'));
+const NotificationHistoryModal = lazy(() => import('../components/NotificationHistoryModal'));
 
 // Admin Modals
 const BillboardUserManagementModal = lazy(() => import('../components/BillboardUserManagementModal'));
@@ -116,6 +117,7 @@ const MODAL_COMPONENTS: Record<string, any> = {
     'defaultThumbnailSettings': DefaultThumbnailSettingsModal,
     'invitationManagement': InvitationManagementModal,
     'onlineUsers': OnlineUsersModal,
+    'notificationHistory': NotificationHistoryModal,
 
     // Admin Modals
     'billboardUserManagement': BillboardUserManagementModal,

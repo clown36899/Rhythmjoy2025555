@@ -39,6 +39,7 @@ interface EventRegistrationModalProps {
   editEventData?: AppEvent | null;
   onEventUpdated?: (event: AppEvent) => void;
   onDelete?: (eventId: number | string) => void;
+  isDeleting?: boolean;
 }
 
 const formatDateForInput = (date: Date): string => {
@@ -60,6 +61,7 @@ export default memo(function EventRegistrationModal({
   editEventData,
   onEventUpdated,
   onDelete,
+  isDeleting = false,
 }: EventRegistrationModalProps) {
   const { isAdmin, user } = useAuth();
 
@@ -107,7 +109,7 @@ export default memo(function EventRegistrationModal({
 
   // Loading State
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [loadingMessage, setLoadingMessage] = useState("저장 중...");
+  const [loadingMessage, setLoadingMessage] = useState(isDeleting ? "삭제 중입니다..." : "저장 중...");
   const [uploadProgress, setUploadProgress] = useState<number | undefined>(undefined);
 
   // Genre Suggestions
@@ -115,6 +117,13 @@ export default memo(function EventRegistrationModal({
 
   // Dummy Events State - fetch real events from this month
   const [dummyEvents, setDummyEvents] = useState<ExtendedEvent[]>([]);
+
+  // Sync loading message with isDeleting prop
+  useEffect(() => {
+    if (isDeleting) {
+      setLoadingMessage("삭제 중입니다...");
+    }
+  }, [isDeleting]);
 
   // Fetch real events for dummy cards
   useEffect(() => {
@@ -993,6 +1002,8 @@ export default memo(function EventRegistrationModal({
           onVideoChange={handleVideoChange}
           onExtractThumbnail={handleExtractThumbnail}
           onDelete={onDelete && editEventData ? () => onDelete(editEventData.id) : undefined}
+          isDeleting={isDeleting}
+          progress={uploadProgress}
           onVenueSelectClick={() => {
             console.log('🎯 EventRegistrationModal.onVenueSelectClick called');
             console.log('   - showVenueSelectModal before:', showVenueSelectModal);
@@ -1118,7 +1129,7 @@ export default memo(function EventRegistrationModal({
 
       {/* Blocking Loading Overlay */}
       <GlobalLoadingOverlay
-        isLoading={isSubmitting}
+        isLoading={isSubmitting || isDeleting}
         message={loadingMessage}
         progress={uploadProgress}
       />

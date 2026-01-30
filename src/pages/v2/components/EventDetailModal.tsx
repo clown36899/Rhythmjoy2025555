@@ -91,7 +91,7 @@ export default function EventDetailModal({
   onOpenVenueDetail,
   allGenres = { class: [], event: [] },
   isDeleting = false,
-  deleteProgress = 0,
+  deleteProgress,
 }: EventDetailModalProps) {
   // Safe cast or normalization
   const structuredGenres = Array.isArray(allGenres)
@@ -1815,9 +1815,18 @@ export default function EventDetailModal({
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (isDeleting) return;
+                      console.log('🔴 [EventDetailModal] Delete button CLICKED');
+                      console.log('   - isDeleting prop:', isDeleting);
+                      console.log('   - selectedEvent:', selectedEvent);
+                      if (isDeleting) {
+                        console.log('   - Delete blocked: isDeleting is TRUE');
+                        return;
+                      }
                       if (window.confirm('정말로 이 이벤트를 삭제하시겠습니까?')) {
+                        console.log('   - User confirmed delete. Calling _onDelete...');
                         _onDelete(selectedEvent, e);
+                      } else {
+                        console.log('   - User cancelled delete.');
                       }
                     }}
                     className={`action-button delete ${isDeleting ? 'loading' : ''}`}
@@ -1871,6 +1880,31 @@ export default function EventDetailModal({
                     <i className={`ri-${isSelectionMode ? 'save-3-line' : 'edit-line'} action-icon`}></i>
                   </button>
                 )}
+
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    console.log('🔴 [EventDetailModal] Bottom Delete button CLICKED');
+                    console.log('   - isDeleting prop:', isDeleting);
+                    console.log('   - selectedEvent:', selectedEvent);
+                    if (isDeleting) {
+                      console.log('   - Delete blocked: isDeleting is TRUE');
+                      return;
+                    }
+                    if (window.confirm('정말로 이 이벤트를 삭제하시겠습니까?')) {
+                      console.log('   - User confirmed delete. Calling _onDelete...');
+                      _onDelete(selectedEvent, e);
+                    } else {
+                      console.log('   - User cancelled delete.');
+                    }
+                  }}
+                  className={`action-button delete ${isDeleting ? 'loading' : ''}`}
+                  title="이벤트 삭제"
+                  style={{ backgroundColor: '#ef4444', color: 'white', marginRight: '8px', opacity: isDeleting ? 0.7 : 1, cursor: isDeleting ? 'not-allowed' : 'pointer' }}
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? <i className="ri-loader-4-line action-icon spin-animation"></i> : <i className="ri-delete-bin-line action-icon"></i>}
+                </button>
 
                 <button
                   onClick={(e) => {

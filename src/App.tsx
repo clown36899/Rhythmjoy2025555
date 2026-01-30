@@ -16,8 +16,7 @@ import { getPushSubscription, saveSubscriptionToSupabase, subscribeToPush, getPu
 import { PwaNotificationModal } from './components/PwaNotificationModal';
 import { useState } from 'react';
 import { notificationStore } from './lib/notificationStore';
-import type { NotificationRecord } from './lib/notificationStore';
-import { NotificationHistoryModal } from './components/NotificationHistoryModal';
+import { useModalActions } from './contexts/ModalContext';
 import './styles/devtools.css';
 
 function AppContent() {
@@ -31,16 +30,17 @@ function AppContent() {
 
   const { user } = useAuth();
   const [showPwaModal, setShowPwaModal] = useState(false);
-  const [unreadNotifications, setUnreadNotifications] = useState<NotificationRecord[]>([]);
-  const [showNotificationHistory, setShowNotificationHistory] = useState(false);
+  const { openModal } = useModalActions();
 
   // [History] 읽지 않은 알림 로드
   const loadUnreadNotifications = async () => {
     try {
       const unread = await notificationStore.getUnread();
       if (unread.length > 0) {
-        setUnreadNotifications(unread);
-        setShowNotificationHistory(true);
+        openModal('notificationHistory', {
+          notifications: unread,
+          onRefresh: loadUnreadNotifications
+        });
       }
     } catch (err) {
       console.warn('[App] Failed to load unread notifications:', err);
@@ -219,12 +219,6 @@ function AppContent() {
         isOpen={showPwaModal}
         onConfirm={handlePwaConfirm}
         onCancel={handlePwaCancel}
-      />
-      <NotificationHistoryModal
-        isOpen={showNotificationHistory}
-        notifications={unreadNotifications}
-        onClose={() => setShowNotificationHistory(false)}
-        onRefresh={loadUnreadNotifications}
       />
     </>
   );

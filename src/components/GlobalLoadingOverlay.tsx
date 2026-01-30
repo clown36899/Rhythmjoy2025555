@@ -26,7 +26,9 @@ const GlobalLoadingOverlay: FC<GlobalLoadingOverlayProps> = ({ isLoading, messag
                             style={{ width: `${Math.max(0, Math.min(100, progress))}%` }}
                         />
                     </div>
-                    <p className="global-loading-percentage">{Math.round(Math.max(0, Math.min(100, progress)))}%</p>
+                    {typeof progress === 'number' && (
+                        <p className="global-loading-percentage">{Math.round(Math.max(0, Math.min(100, progress)))}%</p>
+                    )}
                 </>
             )}
 

@@ -527,6 +527,7 @@ export default function CalendarPage() {
                     adminType={adminType}
                     onDelete={(id: any) => eventModal.handleDeleteEvent(typeof id === 'number' ? id : id.id)}
                     onEdit={(event: any) => eventModal.handleEditClick(event)}
+                    isDeleting={eventModal.isDeleting}
                     isFavorite={favoriteEventIds.has(eventModal.selectedEvent.id)}
                     onToggleFavorite={(e: any) => {
                         e?.stopPropagation();
@@ -601,6 +602,7 @@ export default function CalendarPage() {
                         // @ts-ignore - editEventData prop check pending
                         editEventData={eventModal.eventToEdit}
                         onEventCreated={() => { }} // Edit mode doesn't use this but it's required by interface
+                        isDeleting={eventModal.isDeleting}
                         onEventUpdated={(updatedEvent: any) => {
                             eventModal.setShowEditModal(false);
                             window.dispatchEvent(new CustomEvent("eventUpdated", { detail: updatedEvent }));
@@ -608,7 +610,6 @@ export default function CalendarPage() {
                         onDelete={() => {
                             if (eventModal.eventToEdit) {
                                 eventModal.handleDeleteEvent(eventModal.eventToEdit.id);
-                                eventModal.setShowEditModal(false);
                             }
                         }}
                     />
