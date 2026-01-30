@@ -447,10 +447,19 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                                         <i className="ri-notification-3-fill"></i>
                                         <span>알림 설정</span>
                                         {isPushEnabled && (
-                                            <i
-                                                className={`ri-arrow-${isSettingsExpanded ? 'up' : 'down'}-s-line`}
-                                                style={{ marginLeft: '8px', color: '#a1a1aa', transition: 'transform 0.2s' }}
-                                            ></i>
+                                            <div
+                                                className="detail-toggle-btn"
+                                                onClick={(e) => {
+                                                    e.stopPropagation(); // Parent click prevention
+                                                    setIsSettingsExpanded((prev) => !prev);
+                                                }}
+                                            >
+                                                <span>상세설정</span>
+                                                <i
+                                                    className={`ri-arrow-${isSettingsExpanded ? 'up' : 'down'}-s-line`}
+                                                    style={{ fontSize: '14px' }}
+                                                ></i>
+                                            </div>
                                         )}
                                     </div>
                                     <div className="master-switch-container" onClick={(e) => handlePushToggle(e)}>

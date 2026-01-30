@@ -479,6 +479,27 @@
     /* Amber icon */
 }
 
+.detail-toggle-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    color: #a1a1aa;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 4px 8px;
+    border-radius: 12px;
+    margin-left: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.detail-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
 /* Master Switch */
 .master-switch-container {
     display: flex;
