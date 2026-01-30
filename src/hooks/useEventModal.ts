@@ -22,7 +22,7 @@ export interface UseEventModalReturn {
     // 핸들러
     handleEditClick: (event: AppEvent, e?: React.MouseEvent) => void;
     handlePasswordSubmit: () => Promise<void>;
-    handleDeleteEvent: (eventId: number | string) => Promise<void>;
+    handleDeleteEvent: (eventId: number | string, password?: string) => Promise<void>;
     closeAllModals: () => void;
 }
 

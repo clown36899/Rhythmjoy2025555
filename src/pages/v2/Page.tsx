@@ -29,6 +29,7 @@ export default function HomePageV2() {
     // 1. Core Hooks & Context
     // --------------------------------------------------------------------------------
     const [searchParams, setSearchParams] = useSearchParams();
+    const view = searchParams.get('view');
     const { isAdmin, user, signInWithKakao } = useAuth();
     const { openPlayer } = useGlobalPlayer();
     const { openModal, closeModal } = useModalActions();
@@ -266,11 +267,13 @@ export default function HomePageV2() {
                     <span className="stats-side-tab-text">게시물 통계</span>
                 </div>
 
-                <VideoThumbnailSection
-                    onVideoClick={(videoId) => {
-                        openPlayer({ id: videoId, type: 'video', title: 'Video Player' });
-                    }}
-                />
+                {view !== 'favorites' && (
+                    <VideoThumbnailSection
+                        onVideoClick={(videoId) => {
+                            openPlayer({ id: videoId, type: 'video', title: 'Video Player' });
+                        }}
+                    />
+                )}
 
                 {qrLoading ? (
                     <div className="home-loading-container"><div className="home-loading-text">이벤트 로딩 중...</div></div>

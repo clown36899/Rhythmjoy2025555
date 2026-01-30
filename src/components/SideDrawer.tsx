@@ -43,7 +43,7 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
     const [isPushEnabled, setIsPushEnabled] = useState<boolean>(false);
     const [isPushLoading, setIsPushLoading] = useState<boolean>(false);
     const [isRunningInPWA, setIsRunningInPWA] = useState(false);
-    const [isMobile, setIsMobile] = useState(false);
+
     const [isSettingsExpanded, setIsSettingsExpanded] = useState(false); // [Change] Default to collapsed
 
     const [pushPrefs, setPushPrefs] = useState<{
@@ -83,7 +83,7 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
     const genreWeightSettingsModal = useModal('genreWeightSettings');
     const noticeModal = useModal('globalNoticeEditor');
     const siteAnalyticsModal = useModal('siteAnalytics');
-    const adminPushTestModal = useModal('adminPushTest');
+
 
     // Derive display values from userProfile or fallback to user metadata
     const nickname = userProfile?.nickname || billboardUserName || user?.user_metadata?.name || user?.email?.split('@')[0] || 'Guest';
@@ -124,8 +124,7 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
         const isPwa = checkPWA();
         checkPushStatus(isPwa); // Pass pwa status explicitly to avoid state race condition
 
-        // Check Mobile
-        setIsMobile(window.innerWidth <= 768);
+
     }, [isOpen]);
 
     const checkPushStatus = async (forcePwa?: boolean) => {
@@ -796,13 +795,7 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                                         <i className="ri-bar-chart-box-line"></i>
                                         <span style={{ fontWeight: 'bold', color: '#3b82f6' }}>운영 통합 통계</span>
                                     </div>
-                                    <div className="drawer-submenu-item"
-                                        onClick={() => { adminPushTestModal.open(); }}
-                                        style={{ color: '#ec4899', fontWeight: 'bold' }}
-                                    >
-                                        <i className="ri-notification-3-line"></i>
-                                        <span>PWA 푸시 테스트</span>
-                                    </div>
+
                                     <div className="drawer-submenu-item" onClick={() => {
                                         const newValue = !showDevTools;
                                         setShowDevTools(newValue);
