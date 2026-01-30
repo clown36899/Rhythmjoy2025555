@@ -105,6 +105,16 @@
     background-color: rgba(0, 0, 0, 0.1);
 }
 
+/* [iOS PWA Fix] Only apply safe-area padding on iOS + Standalone Mode */
+@supports (-webkit-touch-callout: none) {
+    @media all and (display-mode: standalone) {
+        .drawer-header {
+            padding-top: calc(24px + env(safe-area-inset-top));
+            height: auto;
+        }
+    }
+}
+
 .drawer-user-profile {
     display: flex;
     align-items: center;
