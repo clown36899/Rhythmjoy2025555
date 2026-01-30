@@ -12,7 +12,8 @@ import {
     saveSubscriptionToSupabase,
     unsubscribeFromPush,
     getPushPreferences,
-    updatePushPreferences
+    updatePushPreferences,
+    verifySubscriptionOwnership
 } from '../lib/pushNotifications';
 import '../styles/components/SideDrawer.css';
 
@@ -140,12 +141,21 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
 
         setIsPushLoading(true);
         try {
-            const sub = await getPushSubscription();
-            console.log('[SideDrawer] Subscription found:', sub ? 'YES' : 'NO', sub);
-            setIsPushEnabled(!!sub);
-            setOriginalPushEnabled(!!sub);
+            // [Fix] 브라우저엔 구독이 있어도, 현재 유저 DB에 없으면 '미구독'으로 간주해야 함 (멀티 계정 이슈 해결)
+            const browserSub = await getPushSubscription();
 
-            if (sub) {
+            let isVerified = false;
+            if (browserSub) {
+                isVerified = await verifySubscriptionOwnership();
+            }
+
+            console.log('[SideDrawer] Subscription found:', browserSub ? 'YES' : 'NO');
+            console.log('[SideDrawer] Ownership verified:', isVerified ? 'YES' : 'NO');
+
+            setIsPushEnabled(isVerified);
+            setOriginalPushEnabled(isVerified);
+
+            if (isVerified) {
                 const prefs = await getPushPreferences();
                 console.log('[SideDrawer] Preferences fetched:', prefs);
                 if (prefs) {
@@ -442,11 +452,11 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
 
                             {/* 강습, 이벤트 알람 받기 버튼 (모든 사용자 대상) */}
                             <div className="drawer-notification-card">
-                                <div className={`card-header ${isPushEnabled ? 'clickable' : ''}`} onClick={() => isPushEnabled && setIsSettingsExpanded((prev) => !prev)}>
+                                <div className={`card-header ${isPushEnabled && isRunningInPWA ? 'clickable' : ''}`} onClick={() => isPushEnabled && isRunningInPWA && setIsSettingsExpanded((prev) => !prev)}>
                                     <div className="card-title">
                                         <i className="ri-notification-3-fill"></i>
                                         <span>알림 설정</span>
-                                        {isPushEnabled && (
+                                        {isPushEnabled && isRunningInPWA && (
                                             <div
                                                 className="detail-toggle-btn"
                                                 onClick={(e) => {

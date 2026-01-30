@@ -103,6 +103,30 @@ export const getPushSubscription = async (): Promise<PushSubscription | null> =>
     return await registration.pushManager.getSubscription();
 };
 
+/**
+ * [New] 서버에 해당 유저의 구독 정보가 실제로 존재하는지 확인
+ */
+export const verifySubscriptionOwnership = async (): Promise<boolean> => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+
+    const sub = await getPushSubscription();
+    if (!sub || !sub.endpoint) return false;
+
+    const { count, error } = await supabase
+        .from('user_push_subscriptions')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('endpoint', sub.endpoint);
+
+    if (error) {
+        console.error('[Push] Verification failed:', error);
+        return false;
+    }
+
+    return (count || 0) > 0;
+};
+
 export const subscribeToPush = async (): Promise<PushSubscription | null> => {
     if (!isPushSupported()) return null;
 
