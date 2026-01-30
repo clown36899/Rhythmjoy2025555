@@ -395,10 +395,10 @@
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         // 배포 시마다 버전을 바꿔주면 브라우저가 새 파일을 즉시 인식합니다.
-        const swUrl = '/service-worker.js?v=20260130_v29';
+        const swUrl = '/service-worker.js?v=20260131_v30';
         navigator.serviceWorker.register(swUrl)
           .then(reg => {
-            console.log('[PWA] Service Worker registered (v23)');
+            console.log('[PWA] Service Worker registered (v30)');
             // 새 버전 발견 시 백그라운드 업데이트 자동 실행
             reg.update();
           })
