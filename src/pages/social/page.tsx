@@ -293,8 +293,9 @@ const SocialPage: React.FC = () => {
     label: '소셜 등록',
     requireAuth: true,
     onClick: () => {
-      setEditGroup(null);
-      setIsGroupModalOpen(true);
+      // 기존: Group Modal Open
+      // 변경: week-grid-add-btn(상단 +버튼)과 동일하게 Registration Modal Open
+      setIsRegistrationModalOpen(true);
     }
   });
 

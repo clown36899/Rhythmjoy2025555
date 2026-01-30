@@ -1,5 +1,5 @@
-// 빌보드 PWA 서비스 워커 (Version: 20260131-1 - V30/iOS Notch Fix)
-const CACHE_NAME = 'rhythmjoy-cache-v30';
+// 빌보드 PWA 서비스 워커 (Version: 20260131-2 - V31/Social FAB Fix & Cleanup)
+const CACHE_NAME = 'rhythmjoy-cache-v31';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

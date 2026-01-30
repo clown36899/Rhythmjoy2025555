@@ -170,13 +170,13 @@
 /* ===== 게시글 카드 ===== */
 
 .standard-view .board-post-card {
-  padding: 14px 16px;
-  margin: 0 8px 12px 8px;
+  padding: 14px 11px;
+  /* margin: 0 8px 12px 8px; */
   transition: all 0.3s ease;
   cursor: pointer;
   border: 1px solid rgba(255, 255, 255, 0.06);
   display: flex;
-  border-radius: 12px;
+  /* border-radius: 12px; */
   flex-direction: column;
   overflow: hidden;
   background: linear-gradient(135deg, #1f1f1f 0%, #1a1a1a 100%);
@@ -243,7 +243,7 @@
   justify-content: flex-start;
   /* Align content to top */
   min-width: 0;
-  padding: 5px 5px 5px 5px;
+  /* padding: 5px 5px 5px 5px; */
   /* Critical for text truncation in flex items */
   gap: 4px;
 }
