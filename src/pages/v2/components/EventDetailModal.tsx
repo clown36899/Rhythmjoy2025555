@@ -245,7 +245,7 @@ export default function EventDetailModal({
     // 1. Open Modal Immediately
     setIsCropModalOpen(true);
     // 2. Start Loading State (Passed to modal)
-    setIsImageLoading(true);
+    setIsFetchingDetail(true);
 
     // Yield to UI to ensure modal opens
 
@@ -268,7 +268,7 @@ export default function EventDetailModal({
       console.error('Failed to prepare image for edit:', e);
       setTempImageSrc(null);
     } finally {
-      setIsImageLoading(false);
+      setIsFetchingDetail(false);
     }
   };
 
@@ -278,7 +278,7 @@ export default function EventDetailModal({
 
       // Ensure modal is open immediately
       setIsCropModalOpen(true);
-      setIsImageLoading(true);
+      setIsFetchingDetail(true);
 
       await new Promise(resolve => setTimeout(resolve, 0));
 
@@ -290,7 +290,7 @@ export default function EventDetailModal({
         console.error("Failed to load image:", error);
         alert("이미지를 불러오는데 실패했습니다.");
       } finally {
-        setIsImageLoading(false);
+        setIsFetchingDetail(false);
       }
       e.target.value = ''; // Reset input
     }
@@ -340,7 +340,6 @@ export default function EventDetailModal({
     link3: '', link_name3: ''
   });
   const [isSaving, setIsSaving] = useState(false);
-  const [isImageLoading, setIsImageLoading] = useState(false);
   const [authorNickname, setAuthorNickname] = useState<string | null>(null);
 
   // Extract authorNickname from board_users if already present
@@ -350,6 +349,14 @@ export default function EventDetailModal({
       setAuthorNickname(nickname);
     }
   }, [event, authorNickname]);
+
+  console.log('[EventDetailModal] Render:', { isOpen, eventId: event?.id, hasEvent: !!event });
+
+  useEffect(() => {
+    if (isOpen) {
+      console.log('[EventDetailModal] Modal opened with event:', event);
+    }
+  }, [isOpen, event]);
 
   // Moved fetching logic here to access authorNickname
   useEffect(() => {
@@ -367,32 +374,31 @@ export default function EventDetailModal({
         try {
           setIsFetchingDetail(true);
 
-          let isSocialIntegrated = String(event.id).startsWith('social-');
-          let originalId = isSocialIntegrated ? String(event.id).replace('social-', '') : event.id;
+          let isSocialIntegrated = String(event!.id).startsWith('social-');
+          let originalId = isSocialIntegrated ? String(event!.id).replace('social-', '') : event!.id;
 
           // [FIX] FullCalendar Offset Handling (ID > 10,000,000)
-          // FullEventCalendar adds 10,000,000 to social event IDs to avoid collision
-          // We must reverse this to get the real DB ID for social_schedules
-          if (Number(event.id) > 10000000) {
+          if (Number(event!.id) > 10000000) {
             isSocialIntegrated = true;
-            originalId = String(Number(event.id) - 10000000);
-            console.log('[EventDetailModal] Detected FullCalendar Social Event. Decoded ID:', originalId);
+            originalId = String(Number(event!.id) - 10000000);
           }
 
+          console.log('[EventDetailModal] Fetching detail for:', { originalId, isSocialIntegrated });
+
           if (isSocialIntegrated) {
-            // [소셜 일정 연동] social_schedules 테이블 조회
             const { data, error } = await supabase
               .from('social_schedules')
               .select('*, board_users(nickname), social_groups(name)')
               .eq('id', originalId)
               .maybeSingle();
 
-            if (!error && data) {
-              // useEvents.ts와 동일한 매핑 로직 적용
+            if (error) throw error;
+            console.log('[EventDetailModal] Social Fetch Result:', data);
+            if (data) {
               const mappedSocial: any = {
                 ...event,
                 ...data,
-                id: event.id, // Keep prefixed ID
+                id: event!.id,
                 location: data.place_name || '',
                 organizer: (Array.isArray(data.social_groups) ? (data.social_groups[0] as any)?.name : (data.social_groups as any)?.name) ||
                   (Array.isArray(data.board_users) ? (data.board_users[0] as any)?.nickname : (data.board_users as any)?.nickname) ||
@@ -406,19 +412,19 @@ export default function EventDetailModal({
               };
               setDraftEvent(mappedSocial);
               setOriginalEvent(mappedSocial);
-
               const nickname = Array.isArray(data.board_users) ? (data.board_users[0] as any)?.nickname : (data.board_users as any)?.nickname;
               if (nickname) setAuthorNickname(nickname);
             }
           } else {
-            // [일반 이벤트] 기존 events 테이블 조회
             const { data, error } = await supabase
               .from('events')
               .select('*, board_users(nickname)')
-              .eq('id', event.id)
+              .eq('id', originalId)
               .maybeSingle();
 
-            if (!error && data) {
+            if (error) throw error;
+            console.log('[EventDetailModal] Event Fetch Result:', data);
+            if (data) {
               const fullEvent = { ...event, ...(data as any) } as Event;
               setDraftEvent(fullEvent);
               setOriginalEvent(fullEvent);
@@ -427,14 +433,14 @@ export default function EventDetailModal({
             }
           }
         } catch (err) {
-          console.error('Failed to fetch event detail:', err);
+          console.error('[EventDetailModal] Fetch error:', err);
         } finally {
           setIsFetchingDetail(false);
         }
       };
       fetchDetail();
     }
-  }, [event, isAdminMode, user, authorNickname]);
+  }, [event, isAdminMode, user, authorNickname, isOpen]);
 
   // Genre Management State (Moved down to access editCategory/editValue)
   const [allHistoricalGenres, setAllHistoricalGenres] = useState<string[]>([]);
@@ -1881,7 +1887,7 @@ export default function EventDetailModal({
             </div>
           </div>
           <GlobalLoadingOverlay
-            isLoading={isDeleting || isSaving || (isImageLoading && !isCropModalOpen)}
+            isLoading={isDeleting || isSaving || (isFetchingDetail && !isCropModalOpen)}
             message={isDeleting ? "삭제 중입니다..." : (isSaving ? "저장 중입니다..." : "이미지 불러오는 중...")}
             progress={isDeleting ? deleteProgress : undefined}
           />
@@ -2263,7 +2269,7 @@ export default function EventDetailModal({
         onChangeImage={() => fileInputRef.current?.click()}
         originalImageUrl={originalImageUrl}
         onImageUpdate={handleImageUpdate}
-        isLoading={isImageLoading}
+        isLoading={isFetchingDetail}
       />
       <input
         ref={fileInputRef}

@@ -55,6 +55,7 @@ const KakaoCallbackPage = lazy(() => import('./pages/auth/kakao-callback/page'))
 const SiteMapPage = lazy(() => import('./pages/sitemap/SiteMapPage'));
 const MainV2TestPage = lazy(() => import('./pages/test/MainV2TestPage'));
 const SurveyTestPage = lazy(() => import('./pages/test/SurveyTestPage'));
+const AdminPushTestPage = lazy(() => import('./components/admin/AdminPushTest').then(m => ({ default: m.AdminPushTest })));
 
 const BillboardFallback = () => (
   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', backgroundColor: '#000000', color: 'white' }}>
@@ -142,6 +143,7 @@ const router = createBrowserRouter([
       { path: "/my-activities", element: <MyActivitiesPage /> },
       { path: "/auth/kakao-callback", element: <KakaoCallbackPage /> },
       { path: "/map", element: <SiteMapPage /> },
+      { path: "/admin/push-test", element: <Suspense fallback={null}><AdminPushTestPage /></Suspense> },
 
       // 댄스 라이브러리 (Archive) Routes - MobileShell 내부에 중첩
       {

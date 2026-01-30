@@ -1,37 +1,69 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 
-interface PwaNotificationModalProps {
-    isOpen: boolean;
-    onConfirm: (prefs: {
-        pref_events: boolean;
-        pref_lessons: boolean;
-        pref_clubs: boolean;
-        pref_filter_tags: string[] | null;
-        pref_filter_class_genres: string[] | null;
-    }) => void;
-    onCancel: (dontShowAgain: boolean) => void;
+// Define types locally if not imported
+interface PushPreferences {
+    pref_events: boolean;
+    pref_class: boolean;
+    pref_clubs: boolean;
+    pref_filter_tags: string[] | null;
+    pref_filter_class_genres: string[] | null;
 }
 
-export const PwaNotificationModal: React.FC<PwaNotificationModalProps> = ({ isOpen, onConfirm, onCancel }) => {
+interface PwaNotificationModalProps {
+    isOpen: boolean;
+    onConfirm: (prefs: PushPreferences) => void;
+    onCancel: (dontShowAgain: boolean) => void;
+    initialPrefs?: PushPreferences | null;
+}
+
+export const PwaNotificationModal: React.FC<PwaNotificationModalProps> = ({ isOpen, onConfirm, onCancel, initialPrefs }) => {
     const [dontShowAgain, setDontShowAgain] = useState(false);
 
-    // Unified state
-    const [prefs, setPrefs] = useState({
-        pref_events: false,
-        pref_lessons: false,
-        pref_clubs: false,
-        pref_filter_tags: ['파티', '워크샵', '대회', '기타'], // Default all selected (explicit list) or clean start? 
-        // Previous I used null for all, but UI shows selected.
-        // Let's use array for granular control.
-        pref_filter_class_genres: ['린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타']
+    // Initial Defaults
+    const defaultTags = ['파티', '워크샵', '대회', '기타'];
+    const defaultGenres = ['린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'];
+
+    // Initialize state from props or defaults
+    const [prefs, setPrefs] = useState<PushPreferences>(() => {
+        if (initialPrefs) {
+            return {
+                pref_events: initialPrefs.pref_events,
+                pref_class: initialPrefs.pref_class,
+                pref_clubs: initialPrefs.pref_clubs,
+                // DB의 null은 '전체 선택'을 의미하므로 UI에서는 풀 리스트로 보여줌
+                pref_filter_tags: initialPrefs.pref_filter_tags || defaultTags,
+                pref_filter_class_genres: initialPrefs.pref_filter_class_genres || defaultGenres
+            };
+        }
+        return {
+            pref_events: false,
+            pref_class: false,
+            pref_clubs: false,
+            pref_filter_tags: defaultTags,
+            pref_filter_class_genres: defaultGenres
+        };
     });
+
+    // Reset state when isOpen becomes true (if needed to sync with fresh props)
+    // However, usually component remounts or we can use useEffect
+    React.useEffect(() => {
+        if (isOpen && initialPrefs) {
+            setPrefs({
+                pref_events: initialPrefs.pref_events,
+                pref_class: initialPrefs.pref_class,
+                pref_clubs: initialPrefs.pref_clubs,
+                pref_filter_tags: initialPrefs.pref_filter_tags || defaultTags,
+                pref_filter_class_genres: initialPrefs.pref_filter_class_genres || defaultGenres
+            });
+        }
+    }, [isOpen, initialPrefs]);
 
     if (!isOpen) return null;
 
     console.log('[PwaModal] Rendering... zIndex max');
 
-    const togglePref = (key: 'pref_events' | 'pref_lessons' | 'pref_clubs') => {
+    const togglePref = (key: 'pref_events' | 'pref_class' | 'pref_clubs') => {
         setPrefs(prev => {
             const nextVal = !prev[key];
             const updates: any = { [key]: nextVal };
@@ -41,7 +73,7 @@ export const PwaNotificationModal: React.FC<PwaNotificationModalProps> = ({ isOp
                 if (key === 'pref_events' && (!prev.pref_filter_tags || prev.pref_filter_tags.length === 0)) {
                     updates.pref_filter_tags = ['워크샵', '파티', '대회', '기타'];
                 }
-                if (key === 'pref_lessons' && (!prev.pref_filter_class_genres || prev.pref_filter_class_genres.length === 0)) {
+                if (key === 'pref_class' && (!prev.pref_filter_class_genres || prev.pref_filter_class_genres.length === 0)) {
                     updates.pref_filter_class_genres = ['린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'];
                 }
             }
@@ -79,7 +111,7 @@ export const PwaNotificationModal: React.FC<PwaNotificationModalProps> = ({ isOp
 
             // [Change] 만약 모든 장르가 해제되면 카테고리 자체를 OFF
             if (nextGenres.length === 0) {
-                return { ...prev, pref_filter_class_genres: nextGenres, pref_lessons: false };
+                return { ...prev, pref_filter_class_genres: nextGenres, pref_class: false };
             }
             return { ...prev, pref_filter_class_genres: nextGenres };
         });
@@ -90,7 +122,7 @@ export const PwaNotificationModal: React.FC<PwaNotificationModalProps> = ({ isOp
         // The implementation_plan suggests arrays for filters.
         onConfirm({
             pref_events: prefs.pref_events,
-            pref_lessons: prefs.pref_lessons,
+            pref_class: prefs.pref_class,
             pref_clubs: prefs.pref_clubs,
             pref_filter_tags: prefs.pref_filter_tags,
             pref_filter_class_genres: prefs.pref_filter_class_genres
@@ -175,17 +207,17 @@ export const PwaNotificationModal: React.FC<PwaNotificationModalProps> = ({ isOp
 
                     {/* 2. 강습 알림 (Classes) */}
                     <div className="pwa-option-group">
-                        <div className="pwa-option-row" onClick={() => togglePref('pref_lessons')}>
+                        <div className="pwa-option-row" onClick={() => togglePref('pref_class')}>
                             <div className="pwa-option-label">
                                 <span className="pwa-main-label">강습 알림</span>
                                 <span className="pwa-sub-label">댄서들의 정규/오픈 강습</span>
                             </div>
-                            <div className={`pwa-toggle ${prefs.pref_lessons ? 'active' : ''}`}>
+                            <div className={`pwa-toggle ${prefs.pref_class ? 'active' : ''}`}>
                                 <div className="pwa-toggle-thumb"></div>
                             </div>
                         </div>
 
-                        {prefs.pref_lessons && (
+                        {prefs.pref_class && (
                             <div className="pwa-tags-row">
                                 {['린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'].map(genre => (
                                     <button

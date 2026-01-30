@@ -54,7 +54,7 @@ async function diagnose() {
             p_user_agent: 'diagnostic-script',
             p_is_admin: false,
             p_pref_events: true,
-            p_pref_lessons: true,
+            p_pref_class: true,
             p_pref_filter_tags: null
         });
 

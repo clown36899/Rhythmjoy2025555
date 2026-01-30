@@ -221,11 +221,27 @@ export default function CalendarPage() {
         if (eventId) {
             const fetchEvent = async () => {
                 try {
-                    const { data, error } = await supabase
+                    // Try events table first
+                    let { data, error } = await supabase
                         .from('events')
                         .select('*')
                         .eq('id', eventId)
                         .maybeSingle();
+
+                    let isSocial = false;
+
+                    // If not found, try social_schedules
+                    if (!data && !error) {
+                        const socialRes = await supabase
+                            .from('social_schedules')
+                            .select('*')
+                            .eq('id', eventId)
+                            .maybeSingle();
+                        if (socialRes.data) {
+                            data = socialRes.data;
+                            isSocial = true;
+                        }
+                    }
 
                     if (error) throw error;
 
@@ -233,10 +249,9 @@ export default function CalendarPage() {
                         // 1. 해당 탭(Category)으로 전환
                         if (data.scope === 'overseas') {
                             setTabFilter('overseas');
-                        } else if (['class', 'regular', 'club'].includes(data.category)) {
-                            setTabFilter('classes');
+                        } else if (isSocial || ['class', 'regular', 'club'].includes(data.category)) {
+                            setTabFilter(isSocial ? 'social-events' : 'classes');
                         } else {
-                            // 기본값은 소셜/행사
                             setTabFilter('social-events');
                         }
 
@@ -246,10 +261,14 @@ export default function CalendarPage() {
                         handleMonthChange(targetMonth);
 
                         // 3. 모달 열기
-                        // 약간의 지연을 두어 데이터가 로드되고 렌더링된 후 열리도록 함
                         setTimeout(() => {
-                            eventModal.setSelectedEvent(data);
-                            setHighlightedEventId(data.id);
+                            const eventToSet = isSocial ? {
+                                ...data,
+                                id: `social-${data.id}`,
+                                is_social_integrated: true
+                            } : data;
+                            eventModal.setSelectedEvent(eventToSet);
+                            setHighlightedEventId(eventToSet.id);
                         }, 500);
 
                         // 4. 3초 후 하이라이트 제거

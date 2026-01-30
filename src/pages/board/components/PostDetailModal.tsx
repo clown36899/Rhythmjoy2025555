@@ -1,7 +1,7 @@
 import { createPortal } from 'react-dom';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
-import type { BoardPost } from '../page';
+import type { StandardBoardPost as BoardPost } from '../../../types/board';
 import './PostDetailModal.css';
 
 interface PostDetailModalProps {
@@ -21,7 +21,8 @@ export default function PostDetailModal({
   onDelete,
   onUpdate: _onUpdate
 }: PostDetailModalProps) {
-  const { isAdmin, user } = useAuth();
+  console.log('[PostDetailModal] Render:', { isOpen, postId: post?.id, hasPost: !!post });
+  const { user, isAdmin } = useAuth();
 
   // Debugging permissions removed
 

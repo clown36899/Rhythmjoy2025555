@@ -91,7 +91,7 @@ function urlBase64ToUint8Array(base64String: string): Uint8Array {
  */
 export interface PushPreferences {
     pref_events: boolean;
-    pref_lessons: boolean; // "Classes" (강습)
+    pref_class: boolean; // "Classes" (강습)
     pref_clubs: boolean;   // "Club Lessons" (동호회 강습)
     pref_filter_tags: string[] | null; // For Events
     pref_filter_class_genres: string[] | null; // For Classes
@@ -144,7 +144,7 @@ export const saveSubscriptionToSupabase = async (subscription: PushSubscription,
     // Prepare Payload
     const defaultPrefs: PushPreferences = {
         pref_events: true,
-        pref_lessons: true,
+        pref_class: true,
         pref_clubs: true,
         pref_filter_tags: null,
         pref_filter_class_genres: null
@@ -152,13 +152,23 @@ export const saveSubscriptionToSupabase = async (subscription: PushSubscription,
 
     const finalPrefs = prefs || defaultPrefs;
 
+    // Check if user is admin
+    const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
+    const isAdmin = user.email === adminEmail ||
+        user.user_metadata?.role === 'admin' ||
+        user.app_metadata?.role === 'admin' ||
+        false;
+
+    console.log('[Push] Saving subscription. Is Admin?', isAdmin);
+
     // Use RPC to safely upsert based on endpoint
     const { error } = await supabase.rpc('handle_push_subscription', {
-        p_user_id: user.id,
-        p_subscription: subscription,
         p_endpoint: endpoint,
+        p_subscription: subscription,
+        p_user_agent: navigator.userAgent,
+        p_is_admin: isAdmin,
         p_pref_events: finalPrefs.pref_events,
-        p_pref_lessons: finalPrefs.pref_lessons,
+        p_pref_class: finalPrefs.pref_class, // Match DB parameter name
         p_pref_clubs: finalPrefs.pref_clubs,
         p_pref_filter_tags: finalPrefs.pref_filter_tags,
         p_pref_filter_class_genres: finalPrefs.pref_filter_class_genres
@@ -183,7 +193,7 @@ export const updatePushPreferences = async (prefs: PushPreferences) => {
         .from('user_push_subscriptions')
         .update({
             pref_events: prefs.pref_events,
-            pref_lessons: prefs.pref_lessons,
+            pref_class: prefs.pref_class,
             pref_clubs: prefs.pref_clubs,
             pref_filter_tags: prefs.pref_filter_tags,
             pref_filter_class_genres: prefs.pref_filter_class_genres,
@@ -202,39 +212,43 @@ export const updatePushPreferences = async (prefs: PushPreferences) => {
 /**
  * 현재 저장된 알림 설정 가져오기
  */
-/**
- * 현재 저장된 알림 설정 가져오기
- */
 export async function getPushPreferences(): Promise<PushPreferences | null> {
     try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return null;
 
-        // [Fix] 현재 기기의 구독 정보(Endpoint)를 가져와서 해당 기기의 설정만 조회
         const sub = await getPushSubscription();
         if (!sub || !sub.endpoint) {
-            // 구독이 없으면 설정도 없는 것
             return null;
         }
 
         const { data, error } = await supabase
             .from('user_push_subscriptions')
-            .select('pref_events, pref_lessons, pref_clubs, pref_filter_tags, pref_filter_class_genres')
+            .select('pref_events, pref_class, pref_clubs, pref_filter_tags, pref_filter_class_genres')
             .eq('user_id', user.id)
-            .eq('endpoint', sub.endpoint) // [Key] 이 기기의 설정만 조회
+            .eq('endpoint', sub.endpoint)
             .maybeSingle();
 
         if (error) {
             if (error.code === 'PGRST116') return {
                 pref_events: true,
-                pref_lessons: true,
+                pref_class: true,
                 pref_clubs: true,
                 pref_filter_tags: null,
                 pref_filter_class_genres: null
             };
             throw error;
         }
-        return data as PushPreferences;
+
+        if (!data) return null;
+
+        return {
+            pref_events: data.pref_events,
+            pref_class: data.pref_class,
+            pref_clubs: data.pref_clubs,
+            pref_filter_tags: data.pref_filter_tags,
+            pref_filter_class_genres: data.pref_filter_class_genres
+        };
     } catch (error) {
         console.error('[Push] Failed to fetch preferences:', error);
         return null;

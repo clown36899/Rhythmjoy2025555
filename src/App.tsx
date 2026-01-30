@@ -15,6 +15,9 @@ import { GlobalPlayerProvider } from './contexts/GlobalPlayerContext';
 import { getPushSubscription, saveSubscriptionToSupabase, subscribeToPush, getPushPreferences } from './lib/pushNotifications';
 import { PwaNotificationModal } from './components/PwaNotificationModal';
 import { useState } from 'react';
+import { notificationStore } from './lib/notificationStore';
+import type { NotificationRecord } from './lib/notificationStore';
+import { NotificationHistoryModal } from './components/NotificationHistoryModal';
 import './styles/devtools.css';
 
 function AppContent() {
@@ -28,6 +31,21 @@ function AppContent() {
 
   const { user } = useAuth();
   const [showPwaModal, setShowPwaModal] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState<NotificationRecord[]>([]);
+  const [showNotificationHistory, setShowNotificationHistory] = useState(false);
+
+  // [History] 읽지 않은 알림 로드
+  const loadUnreadNotifications = async () => {
+    try {
+      const unread = await notificationStore.getUnread();
+      if (unread.length > 0) {
+        setUnreadNotifications(unread);
+        setShowNotificationHistory(true);
+      }
+    } catch (err) {
+      console.warn('[App] Failed to load unread notifications:', err);
+    }
+  };
 
   // [PWA Auto-Subscribe] 로그인 후 & 앱 최초 실행 시(PWA) 알림 권한 처리
   useEffect(() => {
@@ -63,7 +81,7 @@ function AppContent() {
               console.log('[App] Existing subscription matches DB. Syncing...');
               await saveSubscriptionToSupabase(existingSub, {
                 pref_events: dbPrefs.pref_events,
-                pref_lessons: dbPrefs.pref_lessons,
+                pref_class: dbPrefs.pref_class,
                 pref_clubs: dbPrefs.pref_clubs,
                 pref_filter_tags: dbPrefs.pref_filter_tags,
                 pref_filter_class_genres: dbPrefs.pref_filter_class_genres
@@ -78,7 +96,7 @@ function AppContent() {
             console.log('[App] PWA detected & No Subscription. Showing Modal...');
             setShowPwaModal(true);
           }
-        } catch (err) {
+        } catch (err: any) {
           console.error('[App] PWA Init Error:', err);
         }
       }
@@ -95,16 +113,12 @@ function AppContent() {
     };
   }, []);
 
-  const handlePwaConfirm = async (prefs: { pref_events: boolean, pref_lessons: boolean, pref_filter_tags: string[] | null }) => {
+  const handlePwaConfirm = async (prefs: { pref_events: boolean, pref_class: boolean, pref_clubs: boolean, pref_filter_tags: string[] | null, pref_filter_class_genres: string[] | null }) => {
     setShowPwaModal(false);
     console.log('[App] User configured PWA notifications:', prefs);
     const sub = await subscribeToPush();
     if (sub) {
-      await saveSubscriptionToSupabase(sub, {
-        ...prefs,
-        pref_clubs: true, // 기본값
-        pref_filter_class_genres: null
-      }); // 사용자가 선택한 설정 적용
+      await saveSubscriptionToSupabase(sub, prefs); // 사용자가 선택한 설정 적용 (그대로 전달)
       console.log('[App] PWA Auto-subscribed successfully with custom prefs.');
     }
   };
@@ -147,6 +161,7 @@ function AppContent() {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         clearNotifications();
+        loadUnreadNotifications();
       }
     };
 
@@ -165,6 +180,10 @@ function AppContent() {
     window.addEventListener('focus', handleVisibilityChange); // 데스크탑 포커스 대응
     window.addEventListener('click', handleInteraction);      // 클릭 대응
     window.addEventListener('touchstart', handleInteraction); // 모바일 터치 대응
+
+    // D. 초기 로드 시 알림 확인 및 정리
+    loadUnreadNotifications();
+    notificationStore.deleteOld(); // 1주일 지난 알림 자동 삭제
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
@@ -200,6 +219,12 @@ function AppContent() {
         isOpen={showPwaModal}
         onConfirm={handlePwaConfirm}
         onCancel={handlePwaCancel}
+      />
+      <NotificationHistoryModal
+        isOpen={showNotificationHistory}
+        notifications={unreadNotifications}
+        onClose={() => setShowNotificationHistory(false)}
+        onRefresh={loadUnreadNotifications}
       />
     </>
   );

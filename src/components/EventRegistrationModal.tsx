@@ -731,17 +731,17 @@ export default memo(function EventRegistrationModal({
 
               // [NEW] 관리자에게 자동 푸시 알림 발송 (행사/강습 구분)
               const isLesson = createdEvent.category === 'class' || createdEvent.category === 'regular' || createdEvent.category === 'club';
-              const pushCategory = isLesson ? 'lesson' : 'event';
+              const pushCategory = isLesson ? 'class' : 'event';
 
               console.log("[Push] Invoking send-push-notification function...", {
-                title: `[신규 ${pushCategory === 'lesson' ? '강습' : '행사'}] ${createdEvent.title}`,
+                title: `[신규 ${pushCategory === 'class' ? '강습' : '행사'}] ${createdEvent.title}`,
                 category: pushCategory,
                 url: `${window.location.origin}/calendar?id=${createdEvent.id}`
               });
 
               supabase.functions.invoke('send-push-notification', {
                 body: {
-                  title: `[신규 ${pushCategory === 'lesson' ? '강습' : '행사'}] ${createdEvent.title}`,
+                  title: `[신규 ${pushCategory === 'class' ? '강습' : '행사'}] ${createdEvent.title}`,
                   body: `${createdEvent.date || createdEvent.start_date || ''} | ${createdEvent.location || '장소 미정'}`,
                   userId: 'ALL',
                   category: pushCategory,

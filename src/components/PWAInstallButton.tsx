@@ -283,7 +283,7 @@ export const PWAInstallButton = () => {
                         </div>
 
                         <div className="ios-install-content">
-                            {/* 알림 기능 안내 문구 추가 */}
+                            {/* 알림 기능 안내 문구 */}
                             <div className="ios-install-desc" style={{
                                 padding: '0 20px 20px',
                                 textAlign: 'center',
@@ -295,42 +295,81 @@ export const PWAInstallButton = () => {
                                 <strong>알림 기능</strong>을 사용하려면<br />앱 설치가 필요합니다.
                             </div>
 
-                            {/* [Case 1] 자동 설치 가능 (Android/Chrome 등) */}
-                            {!isIOS && promptEvent ? (
+                            {/* [버튼 영역] Android/PC는 버튼 무조건 표시 (앱 열기 대응) */}
+                            {!isIOS && (
                                 <div style={{ padding: '0 20px 20px' }}>
                                     <div
                                         onClick={() => {
+                                            // 설치된 상태면 열기 (handleInstallClick 내부 로직)
+                                            // 설치 가능한 상태면 프롬프트 실행
                                             handleInstallClick();
-                                            setShowInstructions(false);
+                                            // 프롬프트가 실행되면 모달 닫기
+                                            if (promptEvent || isInstalled) setShowInstructions(false);
                                         }}
-                                        className="pwa-install-button"
+                                        className={`pwa-install-button ${isInstalling ? 'installing' : ''}`}
                                         style={{
                                             position: 'relative',
                                             overflow: 'hidden',
                                             cursor: 'pointer',
                                             width: '100%',
                                             maxWidth: 'none',
-                                            margin: '0'
+                                            margin: '0',
+                                            padding: '12px', // 기본 패딩 확인
+                                            borderRadius: '12px',
+                                            backgroundColor: isInstalled ? '#3b82f6' : '#22c55e' // 구분감 살짝? 아니면 기존 CSS 사용
                                         }}
                                     >
-                                        <i className="ri-download-cloud-line" style={{ position: 'relative', zIndex: 1 }}></i>
+                                        {/* CSS 클래스 스타일 상속을 위해 추가 스타일 최소화 */}
+                                        {isInstalling && (
+                                            <div
+                                                className="pwa-install-progress"
+                                                style={{
+                                                    position: 'absolute',
+                                                    left: 0,
+                                                    top: 0,
+                                                    bottom: 0,
+                                                    width: `${installProgress}%`,
+                                                    background: 'linear-gradient(90deg, #667eea, #764ba2)',
+                                                    transition: 'width 0.3s ease',
+                                                    zIndex: 0
+                                                }}
+                                            />
+                                        )}
+                                        <i className={isInstalled ? "ri-external-link-line" : "ri-download-cloud-line"} style={{ position: 'relative', zIndex: 1 }}></i>
                                         <span className="manual-label-wrapper" style={{ position: 'relative', zIndex: 1 }}>
-                                            <span className="translated-part">Install App</span>
-                                            <span className="fixed-part ko" translate="no">앱 설치하기</span>
-                                            <span className="fixed-part en" translate="no">Install App</span>
+                                            {isInstalling ? (
+                                                <>
+                                                    <span className="translated-part">Installing... {installProgress}%</span>
+                                                    <span className="fixed-part ko" translate="no">설치 중... {installProgress}%</span>
+                                                    <span className="fixed-part en" translate="no">Installing... {installProgress}%</span>
+                                                </>
+                                            ) : isInstalled ? (
+                                                <>
+                                                    <span className="translated-part">Open App</span>
+                                                    <span className="fixed-part ko" translate="no">앱 열기</span>
+                                                    <span className="fixed-part en" translate="no">Open App</span>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <span className="translated-part">Install App</span>
+                                                    <span className="fixed-part ko" translate="no">앱 설치하기</span>
+                                                    <span className="fixed-part en" translate="no">Install App</span>
+                                                </>
+                                            )}
                                         </span>
                                     </div>
-                                    <p style={{
-                                        marginTop: '12px',
-                                        fontSize: '13px',
-                                        color: '#a1a1aa',
-                                        textAlign: 'center'
-                                    }}>
-                                        설치 후 다시 로그인하면 알림을 설정할 수 있습니다.
-                                    </p>
+
+                                    {/* 설치 프롬프트가 없을 때만 수동 안내 유도 메시지 */}
+                                    {!isInstalled && !promptEvent && (
+                                        <p style={{ marginTop: '12px', fontSize: '13px', color: '#fb7185', textAlign: 'center' }}>
+                                            * 자동 설치가 지원되지 않는 환경입니다.<br />아래 수동 설치 방법을 참고해주세요.
+                                        </p>
+                                    )}
                                 </div>
-                            ) : (
-                                /* [Case 2] 수동 설치 필요 (iOS / promptEvent 없음) */
+                            )}
+
+                            {/* [수동 설치 안내] iOS이거나, Android인데 프롬프트가 없을 때 */}
+                            {(isIOS || (!promptEvent && !isInstalled)) && (
                                 <>
                                     {isIOS ? (
                                         <>

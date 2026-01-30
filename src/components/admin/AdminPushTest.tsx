@@ -7,7 +7,7 @@ export const AdminPushTest: React.FC = () => {
     const { user, isAdmin } = useAuth();
     const [title, setTitle] = useState('테스트 알림');
     const [body, setBody] = useState('이것은 PWA 푸시 알림 테스트입니다.');
-    const [category, setCategory] = useState<'none' | 'event' | 'lesson'>('none');
+    const [category, setCategory] = useState<'none' | 'event' | 'class'>('none');
     const [loading, setLoading] = useState(false);
     const [subscribing, setSubscribing] = useState(false);
     const [result, setResult] = useState<string | null>(null);
@@ -174,6 +174,16 @@ export const AdminPushTest: React.FC = () => {
             gap: '20px',
             color: '#1e293b'
         }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h2 style={{ margin: 0 }}>Push Test Admin</h2>
+                <button
+                    onClick={() => window.location.href = '/'}
+                    style={{ padding: '6px 12px', background: '#e2e8f0', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
+                >
+                    홈으로
+                </button>
+            </div>
+
             <div style={{ background: '#f1f5f9', padding: '12px', borderRadius: '8px', fontSize: '12px' }}>
                 <div>📡 <b>SW Status:</b> {swStatus}</div>
                 <div>🔑 <b>VAPID Hint:</b> {vapidHint}</div>
@@ -280,7 +290,7 @@ export const AdminPushTest: React.FC = () => {
                     <div style={{ marginBottom: '16px' }}>
                         <label style={{ display: 'block', fontSize: '13px', color: '#a1a1aa', marginBottom: '8px' }}>알림 카테고리 (필터링 테스트)</label>
                         <div style={{ display: 'flex', gap: '12px' }}>
-                            {(['none', 'event', 'lesson'] as const).map((cat) => (
+                            {(['none', 'event', 'class'] as const).map((cat) => (
                                 <label key={cat} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '14px' }}>
                                     <input
                                         type="radio"

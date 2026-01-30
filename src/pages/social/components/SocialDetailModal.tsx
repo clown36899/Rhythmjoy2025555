@@ -27,6 +27,7 @@ const SocialDetailModal: React.FC<SocialDetailModalProps> = ({
     isAdmin,
     showCopyButton = false
 }) => {
+    console.log('[SocialDetailModal] Render:', { isOpen, scheduleId: schedule?.id, hasSchedule: !!schedule });
     const { user, isAdmin: isActualAdmin } = useAuth();
     // Enable mobile back gesture to close modal
     useModalHistory(isOpen, onClose);

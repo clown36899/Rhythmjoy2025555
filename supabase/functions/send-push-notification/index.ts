@@ -20,26 +20,48 @@ Deno.serve(async (req) => {
         const payload = await req.json();
         const { title, body, url, userId, category } = payload;
 
-        console.log(`[Push] Starting process: userID=${userId}, category=${category}, title=${title}`);
+        // [Fix] setVapidDetails must be called before sendNotification
+        const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY') || '';
+        const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY') || '';
+
+        if (vapidPublicKey && vapidPrivateKey) {
+            webpush.setVapidDetails(
+                'mailto:clown313@naver.com',
+                vapidPublicKey,
+                vapidPrivateKey
+            );
+        } else {
+            console.warn('[Push] VAPID keys are missing in environment variables.');
+        }
+
+        console.log(`[Push] Starting process: userID=${userId}, category=${category}`);
+
+        // [Debug] Check total rows visible to this function
+        const { count: totalCount, error: countError } = await supabaseClient
+            .from('user_push_subscriptions')
+            .select('*', { count: 'exact', head: true });
+
+        console.log(`[Push] Total subscriptions in DB (visible to admin): ${totalCount}, Error: ${countError?.message}`);
 
         // 1. Fetch Subscriptions
         let query = supabaseClient
             .from('user_push_subscriptions')
-            .select('id, subscription, user_id, pref_events, pref_lessons, pref_clubs, pref_filter_tags, pref_filter_class_genres');
+            .select('id, subscription, user_id, pref_events, pref_class, pref_clubs, pref_filter_tags, pref_filter_class_genres');
 
         if (userId && userId !== 'ALL') {
             console.log(`[Push] Targeted send to userId: ${userId}`);
             query = query.eq('user_id', userId);
         } else {
-            console.log(`[Push] Admin broadcast initiated`);
-            query = query.eq('is_admin', true); // Test Mode
+            console.log(`[Push] Broadcast initiated`);
 
-            // Basic Category Filtering at DB Level (Optimization)
             if (category === 'event') {
+                console.log('[Push] Filtering by pref_events=true');
                 query = query.eq('pref_events', true);
             } else if (category === 'class') {
-                query = query.eq('pref_lessons', true);
+                console.log('[Push] Filtering by pref_class=true');
+                query = query.eq('pref_class', true);
             } else if (category === 'club') {
+                console.log('[Push] Filtering by pref_clubs=true');
                 query = query.eq('pref_clubs', true);
             }
         }
@@ -48,11 +70,13 @@ Deno.serve(async (req) => {
 
         if (dbError) throw new Error(`DB Error: ${dbError.message}`);
 
+        console.log(`[Push] Query returned ${subscriptions?.length || 0} subscriptions.`);
+
         if (!subscriptions || subscriptions.length === 0) {
             console.log('[Push] No target subscriptions found in DB.');
             return new Response(JSON.stringify({
                 status: 'warning',
-                message: 'No subscriptions found in database for the given criteria.'
+                message: `No subscriptions found. Total in DB: ${totalCount}. Criteria: category=${category}`
             }), {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
                 status: 200,
