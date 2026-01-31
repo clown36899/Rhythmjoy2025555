@@ -519,14 +519,13 @@
   background: none;
   border: none;
   color: white;
-  font-size: min(4.5vw, 1.5rem);
-  /* rem -> vw */
+  font-size: 1.5rem;
   cursor: pointer;
-  padding: min(1vw, 4px);
+  padding: 8px;
   display: flex;
   align-items: center;
   transition: opacity 0.2s;
-  flex-shrink: 1;
+  flex-shrink: 0;
 }
 
 .header-hamburger-btn:hover {
