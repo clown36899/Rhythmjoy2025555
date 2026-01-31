@@ -4,6 +4,8 @@
     left: 0;
     right: 0;
     bottom: 0;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
     background-color: rgba(0, 0, 0, 0.7);
     display: flex;
     justify-content: center;

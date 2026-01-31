@@ -42,6 +42,8 @@
   justify-content: center;
   z-index: 9999;
   padding: var(--spacing-4);
+  padding-top: calc(var(--spacing-4) + env(safe-area-inset-top));
+  padding-bottom: calc(var(--spacing-4) + env(safe-area-inset-bottom));
   /* padding-top: 2.5rem; */
   /* Removed to ensure vertical centering */
   overflow-y: auto;
@@ -191,7 +193,7 @@
 /* ===== Ceiling Switcher ===== */
 .ceiling-switcher-container {
   position: absolute;
-  top: 0.5rem;
+  top: calc(0.5rem + env(safe-area-inset-top));
   left: 50%;
   transform: translateX(-50%);
   z-index: var(--z-modal-base);

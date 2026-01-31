@@ -77,6 +77,8 @@ const MonthlyLogDetailModal: React.FC<MonthlyLogDetailModalProps> = ({ isOpen, o
                     .analytics-modal-overlay {
                         position: fixed; top: 0; left: 0; right: 0; bottom: 0;
                         background: rgba(0,0,0,0.85); backdrop-filter: blur(12px);
+                        padding-top: env(safe-area-inset-top);
+                        padding-bottom: env(safe-area-inset-bottom);
                         z-index: 10001; /* Higher than StatsModal (1000) */
                         display: flex; align-items: center; justify-content: center;
                         animation: fadeIn 0.3s ease;

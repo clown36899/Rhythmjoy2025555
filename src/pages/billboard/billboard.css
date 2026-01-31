@@ -210,6 +210,7 @@
   flex-direction: column;
   justify-content: flex-end;
   z-index: var(--z-10);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .info-background {

@@ -49,6 +49,8 @@
     justify-content: center;
     z-index: 99999;
     padding: 1.5rem;
+    padding-top: calc(1.5rem + env(safe-area-inset-top));
+    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
 }

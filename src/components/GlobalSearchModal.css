@@ -19,7 +19,7 @@
     width: 100%;
     max-width: 500px;
     min-height: 400px;
-    max-height: calc(100vh - 80px);
+    max-height: calc(100vh - 80px - env(safe-area-inset-bottom));
     border-radius: 12px;
     overflow: hidden;
     display: flex;

@@ -697,6 +697,8 @@ export default function SwingSceneStats() {
                     left: 0;
                     right: 0;
                     bottom: 0;
+                    padding-top: env(safe-area-inset-top);
+                    padding-bottom: env(safe-area-inset-bottom);
                     z-index: 9999;
                     display: flex;
                     align-items: center;

@@ -11,7 +11,7 @@
     align-items: flex-start;
     justify-content: center;
     z-index: 49;
-    padding-top: 60px;
+    padding-top: calc(60px + env(safe-area-inset-top));
 }
 
 .cal-search-modal {

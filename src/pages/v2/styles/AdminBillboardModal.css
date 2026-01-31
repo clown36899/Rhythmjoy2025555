@@ -36,6 +36,8 @@
   align-items: center;
   justify-content: center;
   padding: 1rem;
+  padding-top: calc(1rem + env(safe-area-inset-top));
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
 }
 
 /* ===== 서브 관리자 모달 컨테이너 ===== */

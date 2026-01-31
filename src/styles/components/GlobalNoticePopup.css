@@ -10,6 +10,8 @@
     justify-content: center;
     z-index: 1000000;
     padding: 16px;
+    padding-top: calc(16px + env(safe-area-inset-top));
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
     backdrop-filter: blur(5px);
     animation: fadeIn 0.4s ease-out;
 }

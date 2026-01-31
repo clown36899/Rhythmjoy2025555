@@ -61,7 +61,7 @@ export const GlobalNotificationToast = () => {
             onClick={handleClick}
             style={{
                 position: 'fixed',
-                top: visible ? '20px' : '-100px',
+                top: visible ? 'calc(12px + env(safe-area-inset-top))' : '-100px',
                 left: '50%',
                 transform: 'translateX(-50%)',
                 zIndex: 9999,

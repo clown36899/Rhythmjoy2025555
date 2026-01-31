@@ -14,6 +14,8 @@ const modalStyles = `
                     right: 0;
                     bottom: 0;
                     background: rgba(0, 0, 0, 0.7);
+                    padding-top: env(safe-area-inset-top);
+                    padding-bottom: env(safe-area-inset-bottom);
                     backdrop-filter: blur(8px);
                     -webkit-backdrop-filter: blur(8px);
                     z-index: 1000;
@@ -30,7 +32,7 @@ const modalStyles = `
                     width: 95%;
                     max-width: 450px;
                     height: auto;
-                    max-height: 92dvh; /* Use dynamic viewport height and leave safe margin */
+                    max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 32px); /* Use dynamic viewport height and leave safe margin */
                     background: rgba(15, 15, 15, 0.98);
                     border-radius: 20px;
                     border: 1px solid rgba(255, 255, 255, 0.08);

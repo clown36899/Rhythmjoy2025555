@@ -158,6 +158,7 @@
 .wall-hud-footer {
     position: absolute;
     bottom: 0;
+    padding-bottom: env(safe-area-inset-bottom);
     left: 0;
     right: 0;
     z-index: 100;

@@ -13,7 +13,7 @@
 }
 
 .archive-layout-container.has-sub-header {
-    padding-top: 110px;
+    padding-top: calc(110px + env(safe-area-inset-top));
     /* Header(60px) + SubHeader(50px) offset + safety margin */
     overflow: hidden;
     /* Added: Prevent layout scroll when sub-header (canvas) is active */

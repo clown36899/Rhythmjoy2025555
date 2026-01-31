@@ -64,7 +64,7 @@
   padding-right: var(--spacing-4);
   padding-top: 40px;
   /* Increased to match GroupDirectory tabs height */
-  padding-bottom: calc(var(--spacing-6) + 180px);
+  padding-bottom: calc(var(--spacing-6) + 180px + env(safe-area-inset-bottom));
   /* Extra space for mobile bottom nav */
 }
 

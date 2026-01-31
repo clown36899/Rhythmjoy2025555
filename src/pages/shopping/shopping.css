@@ -4,8 +4,8 @@
 .shop-page-container {
   min-height: 100vh;
   padding-bottom: 8rem;
-  margin-top: 60px;
-  padding-bottom: 142px;
+  margin-top: calc(60px + env(safe-area-inset-top));
+  padding-bottom: calc(142px + env(safe-area-inset-bottom));
   /* background-color: rgb(39 39 39); */
 }
 

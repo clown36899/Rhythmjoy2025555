@@ -3,7 +3,7 @@
 .my-activities-container {
     min-height: 100vh;
     background-color: #000;
-    padding-bottom: 80px;
+    padding-bottom: calc(80px + env(safe-area-inset-bottom));
 }
 
 /* Header is handled by MobileShell.css classes */
