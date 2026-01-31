@@ -5,7 +5,7 @@
     align-items: center;
     justify-content: space-around;
     padding: 0rem 0.5rem 0.5rem;
-    /* padding-bottom: env(safe-area-inset-bottom, 0.5rem); */
+    padding-bottom: env(safe-area-inset-bottom, 0.5rem);
     position: relative;
     z-index: 50;
     /* border-top: 1px solid rgba(255, 255, 255, 0.08); */
@@ -41,16 +41,16 @@
 
 /* Icon Styles */
 .bottom-nav-icon {
-    font-size: clamp(1rem, 4vw, 1.5rem);
-    /* Scales down from 24px only when screen is narrow */
+    font-size: 1.5rem;
+    /* Fixed 24px */
     margin-bottom: 0.25rem;
     transition: color 0.2s ease, transform 0.2s ease;
 }
 
 /* Label Styles */
 .bottom-nav-label {
-    font-size: clamp(0.5rem, 3.5vw, 0.8125rem);
-    /* Scales down from 13px only when screen is narrow */
+    font-size: 0.75rem;
+    /* Fixed 12px */
     font-weight: 500;
     line-height: 1.25;
     transition: color 0.2s ease;

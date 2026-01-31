@@ -160,22 +160,22 @@ export function BottomNavigation({ pageAction, onPageActionClick }: BottomNaviga
                             style={{
                                 backgroundColor: '#3b82f6', // Blue
                                 borderRadius: '50%',
-                                width: '40px',
-                                height: '40px',
-                                minWidth: '40px', // Prevent shrink
-                                minHeight: '40px', // Prevent shrink
+                                width: '45px',
+                                height: '45px',
+                                minWidth: '45px', // Prevent shrink
+                                minHeight: '45px', // Prevent shrink
                                 flexShrink: 0,    // Prevent flex shrink
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                marginTop: '-17px', // Pop out a bit
+                                marginTop: '-22.5px', // Pop out a bit (half of 45px)
                                 boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)',
                                 border: '2px solid #111'
                             }}
                         >
                             <i
                                 className={`${pageAction.icon} bottom-nav-icon fab-icon-only`}
-                                style={{ color: 'white', fontSize: '20px', margin: 0 }}
+                                style={{ color: 'white', fontSize: '24px', margin: 0 }}
                             ></i>
                         </button>
                     );
