@@ -267,7 +267,8 @@ export default function HomePageV2() {
                     <span className="stats-side-tab-text">게시물 통계</span>
                 </div>
 
-                {view !== 'favorites' && (
+                {/* Library Section Hidden as per request */}
+                {false && view !== 'favorites' && (
                     <VideoThumbnailSection
                         onVideoClick={(videoId) => {
                             openPlayer({ id: videoId, type: 'video', title: 'Video Player' });

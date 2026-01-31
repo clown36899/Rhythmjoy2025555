@@ -787,17 +787,25 @@
 .calendar-date-number-today {
   opacity: 1;
 
+  /* Bold Badge Style for Today */
+  background-color: #3b82f6;
+  /* Red badge */
+  color: white;
+  border-radius: 4px;
+  padding: 2px 6px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+
   font-size: 12px;
-  font-weight: 700;
-  /* width: 20px; */
-  width: fit-content;
+  font-weight: 800;
+  width: auto;
   min-width: 20px;
-  max-width: calc(100% - 8px);
-  /* Ensure it doesn't overflow cell */
+  max-width: 100%;
   white-space: nowrap;
 
-  /* Responsive sizing */
-  padding: 1px clamp(4px, 1.5vw, 10px);
+  /* Center text in badge */
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 
