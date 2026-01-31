@@ -798,125 +798,65 @@
 
   /* Responsive sizing */
   padding: 1px clamp(4px, 1.5vw, 10px);
-  font-size: clamp(10px, 2.5vw, 12px);
-
-  height: auto;
-  min-height: 20px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  /* Center content when shrunk */
-  border-radius: 9999px;
-  background-color: #3b82f6;
-  color: white;
-  overflow: hidden;
-  /* Hide overflow if it gets too small */
-}
-
-/* 요일별 색상 */
-.calendar-date-sunday {
-  color: var(--color-red-500, #ef4444);
-}
-
-.calendar-date-saturday {
-  color: var(--color-blue-500, #3b82f6);
 }
 
 
-.calendar-event-count {
-  position: absolute;
-  top: 1px;
-  right: 0;
-  border-radius: 9999px;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: 500;
-  font-size: 7px;
-  line-height: 14px;
-  min-width: 14px;
-  height: 14px;
-  transition: all 0.2s ease;
-  z-index: 30;
-}
+/* Clean up previous Zebra styling */
 
-/* ===== Calendar Header Styles ===== */
-.calendar-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1.5rem;
-  /* 24px */
-}
-
-.calendar-header-title {
-  font-size: 1.5rem;
-  /* 24px */
-  font-weight: 700;
-  color: white;
-}
-
-.calendar-nav-button {
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  transition: color 0.2s;
-}
-
-.calendar-nav-button:hover {
-  color: #60a5fa;
-  /* blue-400 */
-}
-
-.calendar-month-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  margin-top: 0.5rem;
-  background-color: #374151;
-  /* gray-700 */
-  border-radius: 0.5rem;
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
-  z-index: 10;
-  min-width: 120px;
-  max-height: 300px;
-  overflow-y: auto;
-}
-
-.calendar-month-option {
-  width: 100%;
-  text-align: left;
-  padding: 0.5rem 1rem;
-  transition: background-color 0.2s;
-  cursor: pointer;
-}
-
-.calendar-month-option:hover {
-  background-color: #4b5563;
-  /* gray-600 */
-}
-
-.calendar-month-option.selected {
-  background-color: #2563eb;
-  /* blue-600 */
-  color: white;
-}
-
-/* ===== Calendar Grid Styles ===== */
+/* Week Card Design Implementation */
 .calendar-grid-container {
   display: grid;
   border-radius: 0 0 0.9rem 0.9rem;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 0;
-  /* Match weekday header gap for perfect border alignment */
-  /* background-color: #3d3d3d; */
-  /* border: 1px solid var(--calendar-cell-border); */
-  border-top: none;
+  padding: 5px;
+  /* Week Separation: Gap between rows */
+  column-gap: 0;
+  row-gap: 6px;
 
+  border-top: none;
   overflow: hidden;
+  padding-bottom: 6px;
+  /* Bottom padding for last row */
+  background-color: #000;
+  /* Gap color */
 }
+
+/* Individual Cell Styling for Card Look */
+.calendar-cell-fullscreen {
+  background-color: #1a1a1a;
+  /* Card Background */
+  border-bottom: 1px solid #2a2a2a;
+  /* Internal row separation? No, continuous */
+  border-right: 1px solid #2a2a2a;
+  /* Vertical dividers */
+}
+
+/* Remove bottom border for Card look consistency */
+.calendar-cell-fullscreen {
+  border-bottom: none;
+}
+
+/* First Column: Rounded Left */
+.calendar-cell-fullscreen:nth-child(7n+1) {
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+  border-left: 1px solid #2a2a2a;
+  /* Left border */
+}
+
+/* Last Column: Rounded Right, No Right Border */
+.calendar-cell-fullscreen:nth-child(7n) {
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+  border-right: 1px solid #2a2a2a;
+  /* Right border */
+}
+
+/* Remove default background from base if strictly enforcing card look */
+.calendar-cell-base {
+  background-color: transparent;
+}
+
 
 
 
@@ -1650,6 +1590,7 @@
   background-color: #171717;
   border-right: 1px solid var(--calendar-vertical-border);
   border-bottom: 1px solid var(--calendar-week-border);
+  border-top: 1px solid var(--calendar-week-border);
   /* overflow: hidden; Removed to allow expansion */
   position: relative;
   /* Include border in width calculation to match weekday header */

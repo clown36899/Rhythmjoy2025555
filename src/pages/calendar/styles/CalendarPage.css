@@ -12,7 +12,7 @@ html {
     /* overflow: hidden; - Removed to allow pull-to-refresh */
     user-select: none;
     -webkit-user-select: none;
-    background-color: #171717;
+    background-color: #000000;
     padding-bottom: 60px;
     /* 웹 기본값 */
 }
@@ -98,7 +98,7 @@ html {
     margin: 0 auto;
     padding-top: calc(62px + env(safe-area-inset-top));
     /* 글로벌 헤더(60px) + 요일 헤더(42px) */
-    padding-bottom: calc(130px + env(safe-area-inset-bottom));
+    padding-bottom: calc(56px + env(safe-area-inset-bottom));
     /* 탭 메뉴 + 바텀 내비게이션 공간 확보 */
 }
 
