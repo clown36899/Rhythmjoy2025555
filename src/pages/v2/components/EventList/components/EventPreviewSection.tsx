@@ -3,20 +3,21 @@ import React, { useMemo } from "react";
 import "../../../styles/EventListSections.css";
 import "../../../styles/HorizontalScrollNav.css";
 
-import TodaySocial from "../../../../social/components/TodaySocial";
-import AllSocialSchedules from "../../../../social/components/AllSocialSchedules";
 import { HorizontalScrollNav } from "../../HorizontalScrollNav";
 import PracticeRoomBanner from "../../PracticeRoomBanner";
 import ShoppingBanner from "../../ShoppingBanner";
 import type { Event } from "../../../utils/eventListUtils";
 import { EventCard } from "../../EventCard";
 import type { SocialSchedule } from "../../../../social/types";
+import { UnifiedScheduleSection } from "../../UnifiedScheduleSection";
+
 
 interface EventPreviewSectionProps {
     isSocialSchedulesLoading: boolean;
     todaySocialSchedules: SocialSchedule[];
     thisWeekSocialSchedules: SocialSchedule[];
     refreshSocialSchedules: () => Promise<void>;
+    socialSchedules?: SocialSchedule[]; // 👈 전체 원본 리스트 추가 (통합 섹션용)
     futureEvents: Event[];
     regularClasses: Event[];
     clubLessons: Event[];
@@ -132,22 +133,16 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
 
     return (
         <div className="evt-preview-section">
-            {/* 2. Today Social */}
-            <TodaySocial
-                schedules={todaySocialSchedules}
-                onViewAll={() => window.location.href = '/social'}
-                onEventClick={onEventClick as any}
+            {/* 1. New Unified Schedule Section (Test Mode) */}
+            <UnifiedScheduleSection
+                todaySchedules={todaySocialSchedules || []}
+                futureSchedules={thisWeekSocialSchedules || []}
+                onEventClick={onEventClick}
                 onRefresh={refreshSocialSchedules}
             />
 
-            {/* 3. All Social Schedules (Moved to 2nd position) */}
-            <AllSocialSchedules
-                schedules={thisWeekSocialSchedules}
-                onEventClick={onEventClick as any}
-                onRefresh={refreshSocialSchedules}
-            />
 
-            {/* 3.5. Beginner Section - Starting Swing Dance */}
+            {/* 3.5. Beginner Section - Starting Swing Dance (Hidden as requested)
             <div className="evt-v2-section evt-v2-section-beginner" style={{ margin: '20px 16px' }}>
                 <div
                     onClick={() => window.location.href = '/social?scrollTo=practice-section'}
@@ -167,7 +162,6 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                         e.currentTarget.style.transform = 'translateY(0)';
                     }}
                 >
-                    {/* Decorative background elements */}
                     <div style={{
                         position: 'absolute',
                         top: '-50px',
@@ -228,6 +222,7 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                     </div>
                 </div>
             </div>
+            */}
 
             {/* 4. Slot A: Random Banner (Practice Room or Shopping) */}
             {isBannerSwapped ? (

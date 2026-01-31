@@ -137,11 +137,6 @@
   font-size: 1.125rem;
 }
 
-/* ===== 슬라이드 컨테이너 ===== */
-.portrait-container {
-  /* 스타일은 인라인으로 동적 설정 */
-}
-
 /* ===== 이미지 스타일 ===== */
 .billboard-image {
   width: 100%;
@@ -247,6 +242,7 @@
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 3;
+  line-clamp: 3;
   -webkit-box-orient: vertical;
   margin: 0;
   /* Remove default h3 margin */

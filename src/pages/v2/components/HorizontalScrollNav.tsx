@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, useCallback, cloneElement, isValidElement } from 'react';
+import { useRef, useState, useEffect, useCallback, cloneElement, isValidElement, forwardRef, useImperativeHandle } from 'react';
 import '../styles/HorizontalScrollNav.css';
 
 interface HorizontalScrollNavProps {
@@ -7,14 +7,17 @@ interface HorizontalScrollNavProps {
     scrollAmount?: number;
 }
 
-export const HorizontalScrollNav = ({
+export const HorizontalScrollNav = forwardRef<HTMLDivElement, HorizontalScrollNavProps>(({
     children,
     className = '',
     scrollAmount = 300
-}: HorizontalScrollNavProps) => {
+}, ref) => {
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const [canScrollLeft, setCanScrollLeft] = useState(false);
     const [canScrollRight, setCanScrollRight] = useState(false);
+
+    // Expose the internal container ref to the parent
+    useImperativeHandle(ref, () => scrollContainerRef.current as HTMLDivElement);
 
     const checkScrollability = useCallback(() => {
         const container = scrollContainerRef.current;
@@ -84,4 +87,4 @@ export const HorizontalScrollNav = ({
             </button>
         </div>
     );
-};
+});

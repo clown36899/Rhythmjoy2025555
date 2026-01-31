@@ -30,7 +30,6 @@ export default function CalendarPage() {
     const [currentMonth, setCurrentMonth] = useState(new Date());
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [viewMode, setViewMode] = useState<"month" | "year">("month");
-    const [selectedWeekday, setSelectedWeekday] = useState<number | null>(null);
 
     // URL 파라미터에서 category 읽기
     const initialTabFilter = useMemo(() => {
@@ -210,7 +209,6 @@ export default function CalendarPage() {
     const handleMonthChange = useCallback((newMonth: Date) => {
         setCurrentMonth(newMonth);
         setSelectedDate(null);
-        setSelectedWeekday(null);
     }, []);
 
     // URL 파라미터에서 'id' 읽어서 이벤트 상세 모달 열기 (Deep Link)
@@ -297,7 +295,6 @@ export default function CalendarPage() {
 
     const handleDateSelect = useCallback((date: Date | null) => {
         setSelectedDate(date);
-        if (date) setSelectedWeekday(null);
     }, []);
 
 
