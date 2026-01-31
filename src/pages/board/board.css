@@ -1,9 +1,10 @@
 /* board.css - BoardPage 컴포넌트 전용 스타일 */
 
 /* ===== 페이지 컨테이너 ===== */
+/* ===== 페이지 컨테이너 ===== */
 .board-page-container {
-  padding-top: 60px;
-  /* Safe Area for Header (60px) */
+  padding-top: calc(60px + env(safe-area-inset-top));
+  /* Safe Area for Header (60px + Notch) */
   position: relative;
   min-height: 100vh;
   /* Mobile Address Bar Fix */
@@ -21,7 +22,7 @@
   height: 100dvh;
   /* Use dynamic viewport height */
   overflow: hidden;
-  padding-top: 60px !important;
+  padding-top: calc(60px + env(safe-area-inset-top)) !important;
   /* Always keep header space */
 }
 
@@ -33,8 +34,8 @@
 }
 
 .board-page-container.is-history-mode .board-prefix-tab-outer {
-  top: 108px !important;
-  /* Header (60) + Tab (48) */
+  top: calc(108px + env(safe-area-inset-top)) !important;
+  /* Header (60) + Tab (48) + Notch */
   z-index: 46;
 }
 

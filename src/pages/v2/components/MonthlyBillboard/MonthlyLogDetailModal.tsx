@@ -143,7 +143,7 @@ const MonthlyLogDetailModal: React.FC<MonthlyLogDetailModalProps> = ({ isOpen, o
  
                     .close-btn {
                         position: fixed; 
-                        top: 24px; 
+                        top: calc(24px + env(safe-area-inset-top)); 
                         right: 24px; 
                         width: 44px; height: 44px;
                         border-radius: 50%; background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.1);

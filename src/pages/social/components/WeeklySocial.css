@@ -34,7 +34,7 @@
 
     /* Fixed Positioning Logic */
     position: fixed;
-    top: 60px;
+    top: calc(60px + env(safe-area-inset-top));
     /* Header Height */
     left: 50%;
     transform: translateX(-50%);

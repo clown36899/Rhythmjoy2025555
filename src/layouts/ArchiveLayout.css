@@ -5,7 +5,7 @@
     background-color: #09090b;
     color: #fafafa;
     overflow: auto;
-    padding-top: 60px;
+    padding-top: calc(60px + env(safe-area-inset-top));
     /* MobileShell Header offset */
     padding-bottom: calc(70px + env(safe-area-inset-bottom));
     /* Bottom Nav offset + safety margin */
@@ -21,7 +21,7 @@
 
 .archive-sub-header {
     position: fixed;
-    top: 60px;
+    top: calc(60px + env(safe-area-inset-top));
     left: 0;
     /* Right below MobileShell header */
     display: flex;

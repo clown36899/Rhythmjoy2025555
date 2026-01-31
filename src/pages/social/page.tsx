@@ -438,7 +438,7 @@ const SocialPage: React.FC = () => {
   }, [initialTab]);
 
   return (
-    <div className="social-page-new-v5" style={{ paddingTop: '110px', paddingBottom: '120px' }}>
+    <div className="social-page-new-v5">
 
       {/* Sticky Tab Menu (Lifted) */}
       <div className="view-tab-menu-v3">

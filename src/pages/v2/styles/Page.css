@@ -14,7 +14,7 @@
 
   /* height: 100vh; */
   /* overflow-y: auto; */
-  padding-top: 60px;
+  padding-top: calc(60px + env(safe-area-inset-top));
   padding-bottom: 142px;
 
 }

@@ -20,7 +20,7 @@ html {
 /* Tab Menu */
 .calendar-tab-menu {
     position: fixed;
-    top: 60px;
+    top: calc(60px + env(safe-area-inset-top));
     left: 50%;
     transform: translateX(-50%);
     width: 100%;
@@ -71,7 +71,7 @@ html {
 /* Sticky Weekday Header */
 .calendar-page-weekday-header {
     position: fixed;
-    top: 100px;
+    top: calc(100px + env(safe-area-inset-top));
     /* 글로벌 헤더(60px) + 탭 메뉴(50px) */
     left: 50%;
     transform: translateX(-50%);
@@ -95,7 +95,7 @@ html {
     width: 100%;
     max-width: 650px;
     margin: 0 auto;
-    padding-top: 144px;
+    padding-top: calc(144px + env(safe-area-inset-top));
     /* 글로벌 헤더(60px) + 탭 메뉴(50px) + 요일 헤더(60px) */
 }
 
