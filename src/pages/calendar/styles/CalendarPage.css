@@ -20,7 +20,8 @@ html {
 /* Tab Menu */
 .calendar-tab-menu {
     position: fixed;
-    top: calc(60px + env(safe-area-inset-top));
+    top: auto;
+    bottom: calc(56px + env(safe-area-inset-bottom));
     left: 50%;
     transform: translateX(-50%);
     width: 100%;
@@ -29,8 +30,9 @@ html {
     background-color: #171717;
     display: flex;
     gap: 8px;
-    padding: 5px 16px;
-    /* border-bottom: 1px solid #222; */
+    padding: 10px 16px;
+    /* border-top: 1px solid #222; */
+    box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.3);
 }
 
 .calendar-tab-btn {
@@ -71,8 +73,7 @@ html {
 /* Sticky Weekday Header */
 .calendar-page-weekday-header {
     position: fixed;
-    top: calc(100px + env(safe-area-inset-top));
-    /* 글로벌 헤더(60px) + 탭 메뉴(50px) */
+    top: calc(60px + env(safe-area-inset-top));
     left: 50%;
     transform: translateX(-50%);
     width: 100%;
@@ -95,8 +96,10 @@ html {
     width: 100%;
     max-width: 650px;
     margin: 0 auto;
-    padding-top: calc(144px + env(safe-area-inset-top));
-    /* 글로벌 헤더(60px) + 탭 메뉴(50px) + 요일 헤더(60px) */
+    padding-top: calc(62px + env(safe-area-inset-top));
+    /* 글로벌 헤더(60px) + 요일 헤더(42px) */
+    padding-bottom: calc(130px + env(safe-area-inset-bottom));
+    /* 탭 메뉴 + 바텀 내비게이션 공간 확보 */
 }
 
 /* 요일 헤더 레이아웃 스타일 */

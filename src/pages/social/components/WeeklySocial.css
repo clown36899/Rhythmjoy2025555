@@ -331,7 +331,7 @@
     justify-content: center;
 }
 
-.calendar-date-number-fullscreen {
+.weekly-social-container .calendar-date-number-fullscreen {
     position: absolute;
     top: 0;
     display: flex;
@@ -340,23 +340,23 @@
     /* Responsive Font Sizing */
 }
 
-.weekday-wrapper {
+.weekly-social-container .weekday-wrapper {
     font-size: clamp(8px, 2.5vw, 10px);
     color: #ffffffff;
     margin-bottom: 2px;
 }
 
-.day-number {
+.weekly-social-container .day-number {
     font-size: clamp(10px, 3.5vw, 14px);
     font-weight: bold;
     color: #d1d5db;
 }
 
-.calendar-date-number-today .day-number {
+.weekly-social-container .calendar-date-number-today .day-number {
     color: #fff;
 }
 
-.week-view-cell-body {
+.weekly-social-container .week-view-cell-body {
     padding: 0 2px 8px 2px;
     flex: 1;
     display: flex;
@@ -365,7 +365,7 @@
     min-width: 0;
 }
 
-.calendar-fullscreen-event-card {
+.weekly-social-container .calendar-fullscreen-event-card {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -379,7 +379,7 @@
     min-width: 0;
 }
 
-.event-card-img-wrapper {
+.weekly-social-container .event-card-img-wrapper {
     width: 100%;
     aspect-ratio: 1/1;
     border-radius: 4px;
@@ -387,13 +387,13 @@
     margin-bottom: 2px;
 }
 
-.event-card-img-wrapper img {
+.weekly-social-container .event-card-img-wrapper img {
     width: 100%;
     height: 100%;
     object-fit: cover;
 }
 
-.event-card-placeholder {
+.weekly-social-container .event-card-placeholder {
     width: 100%;
     aspect-ratio: 1/1;
     border-radius: 4px;
@@ -403,13 +403,13 @@
     justify-content: center;
 }
 
-.event-card-placeholder span {
+.weekly-social-container .event-card-placeholder span {
     font-size: clamp(8px, 2.5vw, 10px);
     color: white;
     font-weight: bold;
 }
 
-.event-card-title {
+.weekly-social-container .event-card-title {
     font-size: clamp(8px, 2.5vw, 10px);
     line-height: 1.1;
     overflow: hidden;
@@ -452,20 +452,13 @@
     font-size: clamp(14px, 5vw, 20px);
 }
 
-/* Calendar / Week Grid Date Color Styles (Existing) */
-.calendar-date-number-today {
-    background-color: #ef4444;
-    color: white;
-    padding: 2px 8px;
-    /* Consider responsive padding? */
-    border-radius: 12px;
-}
 
-.calendar-date-sunday {
+
+.weekly-social-container .calendar-date-sunday {
     color: #ef4444;
 }
 
-.calendar-date-saturday {
+.weekly-social-container .calendar-date-saturday {
     color: #3b82f6;
 }
 

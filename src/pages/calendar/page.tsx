@@ -428,7 +428,6 @@ export default function CalendarPage() {
                     className={`calendar-tab-btn ${tabFilter === 'social-events' ? 'active' : ''}`}
                     onClick={() => setTabFilter('social-events')}
                 >
-                    <span style={{ fontSize: '1.25rem', lineHeight: 1 }}>🇰🇷</span>
                     <div className="tab-label-wrapper">
                         <span className="translated-part">{t('socialEvents')}</span>
                         <span className="fixed-part ko" translate="no">소셜&행사</span>
@@ -460,43 +459,6 @@ export default function CalendarPage() {
             </div>
 
             {/* Sticky Weekday Header */}
-            <div className="calendar-page-weekday-header">
-                <div className="calendar-weekday-header no-select">
-                    {['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'].map((dayKey, index) => (
-                        <div
-                            key={dayKey}
-                            className={`calendar-weekday-item ${selectedWeekday === index ? 'selected' : ''}`}
-                            style={{
-                                cursor: 'pointer'
-                            }}
-                            onClick={() => {
-                                if (selectedWeekday === index) {
-                                    setSelectedWeekday(null);
-                                } else {
-                                    setSelectedWeekday(index);
-                                    setSelectedDate(null);
-                                }
-                            }}
-                        >
-                            <div className="weekday-wrapper">
-                                <span className="translated-part">
-                                    {t(`weekdays.${dayKey}`)}
-                                </span>
-                                {/* User defined short forms for each language */}
-                                <span className="fixed-part ko" translate="no">
-                                    {{ sun: '일', mon: '월', tue: '화', wed: '수', thu: '목', fri: '금', sat: '토' }[dayKey as 'sun' | 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat']}
-                                </span>
-                                <span className="fixed-part en" translate="no">
-                                    {{ sun: 'Sun', mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat' }[dayKey as 'sun' | 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat']}
-                                </span>
-                            </div>
-                            {selectedWeekday === index && (
-                                <i className="ri-close-line absolute-icon"></i>
-                            )}
-                        </div>
-                    ))}
-                </div>
-            </div>
 
             <div className="calendar-page-main">
                 <FullEventCalendar
