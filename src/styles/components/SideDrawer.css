@@ -299,6 +299,41 @@
     /* padding: 20px 0; */
 }
 
+.notification-entry {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    margin-top: 8px;
+    justify-content: flex-start !important;
+}
+
+.menu-label-with-status {
+    flex: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-right: 8px;
+}
+
+.status-dot {
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: #334155;
+    color: #94a3b8;
+}
+
+.status-dot.active {
+    background: #2563eb;
+    color: white;
+}
+
+.drawer-admin-stats-text {
+    font-weight: 700;
+    color: #3b82f6;
+    text-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
+}
+
 /* Section Title */
 .drawer-section-title {
     padding: 8px 24px;

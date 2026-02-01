@@ -11,8 +11,6 @@ import {
     subscribeToPush,
     saveSubscriptionToSupabase,
     unsubscribeFromPush,
-    getPushPreferences,
-    updatePushPreferences,
     verifySubscriptionOwnership
 } from '../lib/pushNotifications';
 import '../styles/components/SideDrawer.css';
@@ -40,34 +38,23 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
     const [showDevTools, setShowDevTools] = useState(() => {
         return localStorage.getItem('showDevTools') === 'true';
     });
+    const [boardCategories, setBoardCategories] = useState<any[]>([]);
     const [isPushEnabled, setIsPushEnabled] = useState<boolean>(false);
-    const [isPushLoading, setIsPushLoading] = useState<boolean>(false);
-    const [isRunningInPWA, setIsRunningInPWA] = useState(false);
-
-    const [isSettingsExpanded, setIsSettingsExpanded] = useState(false); // [Change] Default to collapsed
-
-    const [pushPrefs, setPushPrefs] = useState<{
-        pref_events: boolean,
-        pref_class: boolean,
-        pref_clubs: boolean,
-        pref_filter_tags: string[] | null,
-        pref_filter_class_genres: string[] | null
-    }>({
-        pref_events: true,
-        pref_class: true,
-        pref_clubs: true,
-        pref_filter_tags: null,
-        pref_filter_class_genres: null
-    });
-    const [originalPrefs, setOriginalPrefs] = useState<{
-        pref_events: boolean,
-        pref_class: boolean,
-        pref_clubs: boolean,
-        pref_filter_tags: string[] | null,
-        pref_filter_class_genres: string[] | null
-    } | null>(null);
-    const [originalPushEnabled, setOriginalPushEnabled] = useState<boolean>(false);
-    const [isSaving, setIsSaving] = useState(false);
+    // [New] Push Notification Status check for mini label
+    useEffect(() => {
+        if (!isOpen) return;
+        const checkStatus = async () => {
+            if (!user) return;
+            try {
+                const sub = await getPushSubscription();
+                if (sub) {
+                    const verified = await verifySubscriptionOwnership();
+                    setIsPushEnabled(verified);
+                }
+            } catch (e) { console.error(e); }
+        };
+        checkStatus();
+    }, [isOpen, user]);
 
     // Modals
     const boardManagementModal = useModal('boardManagement');
@@ -83,6 +70,7 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
     const genreWeightSettingsModal = useModal('genreWeightSettings');
     const noticeModal = useModal('globalNoticeEditor');
     const siteAnalyticsModal = useModal('siteAnalytics');
+    const notificationSettingsModal = useModal('notificationSettings');
 
 
     // Derive display values from userProfile or fallback to user metadata
@@ -101,198 +89,6 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
         window.addEventListener('refreshBoardCategories', handleRefresh);
         return () => window.removeEventListener('refreshBoardCategories', handleRefresh);
     }, []);
-
-    // PWA 모드 및 푸시 상태 확인
-    useEffect(() => {
-        if (!isOpen) return;
-
-        const checkPWA = () => {
-            const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
-                window.matchMedia('(display-mode: fullscreen)').matches ||
-                window.matchMedia('(display-mode: minimal-ui)').matches ||
-                (window.navigator as any).standalone === true ||
-                new URLSearchParams(window.location.search).get('utm_source') === 'pwa';
-
-            console.log('[SideDrawer] PWA Check:', { isStandalone, mode: 'standalone' });
-            setIsRunningInPWA(isStandalone);
-
-            // [Debug] 강제로 PWA 모드라고 가정하고 테스트 (개발 환경)
-            // setIsRunningInPWA(true); 
-            return isStandalone;
-        };
-
-        const isPwa = checkPWA();
-        checkPushStatus(isPwa); // Pass pwa status explicitly to avoid state race condition
-
-
-    }, [isOpen]);
-
-    const checkPushStatus = async (forcePwa?: boolean) => {
-        const pwaState = forcePwa ?? isRunningInPWA;
-        console.log('[SideDrawer] Checking Push Status...', { user: user?.id, isRunningInPWA: pwaState });
-
-        if (!user) return;
-        // if (!pwaState) {
-        //    console.log('[SideDrawer] Not in PWA mode, skipping push check.');
-        // return;
-        // } 
-        // [Debug] PWA 모드가 아니더라도 체크하도록 임시 허용 (테스트용)
-
-        setIsPushLoading(true);
-        try {
-            // [Fix] 브라우저엔 구독이 있어도, 현재 유저 DB에 없으면 '미구독'으로 간주해야 함 (멀티 계정 이슈 해결)
-            const browserSub = await getPushSubscription();
-
-            let isVerified = false;
-            if (browserSub) {
-                isVerified = await verifySubscriptionOwnership();
-            }
-
-            console.log('[SideDrawer] Subscription found:', browserSub ? 'YES' : 'NO');
-            console.log('[SideDrawer] Ownership verified:', isVerified ? 'YES' : 'NO');
-
-            setIsPushEnabled(isVerified);
-            setOriginalPushEnabled(isVerified);
-
-            if (isVerified) {
-                const prefs = await getPushPreferences();
-                console.log('[SideDrawer] Preferences fetched:', prefs);
-                if (prefs) {
-                    // [Fix] DB의 null 값은 '전체 선택'이므로 UI 상태에는 전체 리스트를 넣어줘야 함
-                    const uiPrefs = {
-                        ...prefs,
-                        pref_filter_tags: prefs.pref_filter_tags || ['파티', '워크샵', '대회', '기타'],
-                        pref_filter_class_genres: prefs.pref_filter_class_genres || ['린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타']
-                    };
-                    setPushPrefs(uiPrefs);
-                    setOriginalPrefs({ ...uiPrefs }); // 초기 로드 시 원본 저장
-                }
-            } else {
-                setOriginalPrefs(null);
-            }
-        } catch (error) {
-            console.error('[SideDrawer] Error checking push status:', error);
-        } finally {
-            setIsPushLoading(false);
-        }
-    };
-
-
-    const handlePreferenceToggle = (type: 'pref_events' | 'pref_class' | 'pref_clubs') => {
-        // setHasUnsavedChanges(true); // This state setter is not defined in the component.
-        setPushPrefs(prev => {
-            const nextVal = !prev[type];
-            const updates: any = { [type]: nextVal };
-
-            // [Change] 카테고리 켤 때, 태그가 비어있으면 전체 선택으로 초기화
-            if (nextVal) {
-                if (type === 'pref_events' && (!prev.pref_filter_tags || prev.pref_filter_tags.length === 0)) {
-                    updates.pref_filter_tags = ['워크샵', '파티', '대회', '기타'];
-                }
-                if (type === 'pref_class' && (!prev.pref_filter_class_genres || prev.pref_filter_class_genres.length === 0)) {
-                    updates.pref_filter_class_genres = ['린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'];
-                }
-            }
-            return { ...prev, ...updates };
-        });
-    };
-
-    const handlePushToggle = async (e: React.MouseEvent) => {
-        e.stopPropagation();
-
-        if (!isRunningInPWA) {
-            // 브라우저 모드: PWA 설치 안내 트리거
-            window.dispatchEvent(new CustomEvent('showPWAInstructions'));
-            return;
-        }
-
-        if (!user) {
-            onLoginClick();
-            onClose();
-            return;
-        }
-
-        const nextState = !isPushEnabled;
-        if (nextState) {
-            setIsSettingsExpanded(true); // Turn ON -> Auto Expand
-        }
-
-        // Just toggle local state. Actual change happens on Save.
-        setIsPushEnabled(nextState);
-    };
-
-    const handleSaveChanges = async () => {
-        setIsSaving(true);
-        try {
-            // 1. Handle Subscription Status Change
-            if (isPushEnabled !== originalPushEnabled) {
-                if (isPushEnabled) {
-                    // Turn ON (Subscribe)
-                    const sub = await subscribeToPush();
-                    if (!sub) {
-                        alert('알림 권한이 차단되었거나 오류가 발생했습니다.');
-                        setIsPushEnabled(false); // Revert
-                        return;
-                    }
-                    // [Fix] 구독 저장 시 현재 설정(태그 등)도 같이 저장
-                    await saveSubscriptionToSupabase(sub, {
-                        pref_events: pushPrefs.pref_events,
-                        pref_class: pushPrefs.pref_class,
-                        pref_clubs: pushPrefs.pref_clubs,
-                        pref_filter_tags: pushPrefs.pref_filter_tags,
-                        pref_filter_class_genres: pushPrefs.pref_filter_class_genres
-                    });
-                    console.log('Subscribed successfully');
-                } else {
-                    // Turn OFF (Unsubscribe)
-                    await unsubscribeFromPush();
-                    console.log('Unsubscribed successfully');
-                }
-                setOriginalPushEnabled(isPushEnabled);
-            }
-
-            // 2. Handle Preferences Update
-            if (isPushEnabled) {
-                const success = await updatePushPreferences(pushPrefs);
-                if (success) {
-                    setOriginalPrefs({ ...pushPrefs }); // Update with new object shape
-                    alert('알림 설정이 저장되었습니다.');
-                } else {
-                    alert('설정 저장에 실패했습니다.');
-                }
-            } else {
-                // If disabled, just alert success (since we handled unsub)
-                alert('알림 설정이 저장되었습니다.');
-                setOriginalPrefs(null);
-            }
-        } catch (error) {
-            console.error('Save failed:', error);
-            alert('오류가 발생했습니다.');
-        } finally {
-            setIsSaving(false);
-        }
-    };
-
-    // 변경 사항이 있는지 확인
-    const hasUnsavedChanges =
-        (isPushEnabled !== originalPushEnabled) ||
-        (isPushEnabled && JSON.stringify(pushPrefs) !== JSON.stringify(originalPrefs));
-
-    // Custom Close Handler
-    const requestClose = () => {
-        if (hasUnsavedChanges) {
-            if (window.confirm("설정이 저장되지 않았습니다. 저장하시겠습니까?")) {
-                handleSaveChanges().then(() => {
-                    onClose();
-                });
-            } else {
-                // User chose NOT to save (Cancel/No). Discard changes and close.
-                onClose();
-            }
-        } else {
-            onClose();
-        }
-    };
 
     const loadBoardCategories = async () => {
         try {
@@ -435,7 +231,7 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                             <i className="ri-arrow-right-s-line"></i>
                         </div>
                     )}
-                    <button className="drawer-close-btn" onClick={requestClose}>
+                    <button className="drawer-close-btn" onClick={onClose}>
                         <i className="ri-close-line"></i>
                     </button>
                 </div>
@@ -443,192 +239,32 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
 
 
                 <nav className="drawer-nav">
-                    {/* PWA 전용 섹션 */}
+                    {/* PWA 전용 섹션 - 간소화 */}
                     <div className="drawer-pwa-section">
                         <div className="drawer-section-title">APP 전용 기능</div>
                         <div className="drawer-pwa-container">
                             <PWAInstallButton />
 
-                            {/* 강습, 이벤트 알람 받기 버튼 (모든 사용자 대상) */}
-                            <div className="drawer-notification-card">
-                                <div className={`card-header clickable`} onClick={(e) => {
-                                    if (!isRunningInPWA) {
-                                        handlePushToggle(e);
-                                    } else if (isPushEnabled) {
-                                        setIsSettingsExpanded((prev) => !prev);
+                            {/* 알림 설정 진입 버튼 */}
+                            <div
+                                className="drawer-menu-item notification-entry"
+                                onClick={() => {
+                                    if (user) {
+                                        notificationSettingsModal.open();
+                                    } else {
+                                        onLoginClick();
                                     }
-                                }}>
-                                    <div className="card-title">
-                                        <i className="ri-notification-3-fill"></i>
-                                        <span>알림 설정</span>
-                                        {isPushEnabled && isRunningInPWA && (
-                                            <div
-                                                className="detail-toggle-btn"
-                                                onClick={(e) => {
-                                                    e.stopPropagation(); // Parent click prevention
-                                                    setIsSettingsExpanded((prev) => !prev);
-                                                }}
-                                            >
-                                                <span>상세설정</span>
-                                                <i
-                                                    className={`ri-arrow-${isSettingsExpanded ? 'up' : 'down'}-s-line`}
-                                                    style={{ fontSize: '14px' }}
-                                                ></i>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="master-switch-container" onClick={(e) => handlePushToggle(e)}>
-                                        <span className="switch-status">
-                                            {isRunningInPWA
-                                                ? (isPushEnabled ? 'ON' : 'OFF')
-                                                : 'App Only'}
-                                        </span>
-                                        <div className={`master-toggle ${isPushEnabled ? 'active' : ''} ${!isRunningInPWA ? 'disabled' : ''}`}>
-                                            <div className="master-toggle-handle" />
-                                        </div>
-                                    </div>
+                                    onClose();
+                                }}
+                            >
+                                <i className="ri-notification-3-fill"></i>
+                                <div className="menu-label-with-status">
+                                    <span>알림 설정</span>
+                                    <span className={`status-dot ${isPushEnabled ? 'active' : ''}`}>
+                                        {isPushEnabled ? 'ON' : 'OFF'}
+                                    </span>
                                 </div>
-
-                                {/* --- Push Notification Settings --- */}
-                                {/* [User Request] Collapsible Notification Settings (Available on Mobile too) */}
-                                {isPushEnabled && isSettingsExpanded && (
-                                    <div className="push-settings-container">
-
-                                        {/* 1. 행사 알림 (Events) */}
-                                        <div className="push-setting-section">
-                                            <div className="push-setting-row" onClick={() => handlePreferenceToggle('pref_events')}>
-                                                <div className="push-label-group">
-                                                    <span className="push-setting-label">행사 알림</span>
-                                                    <span className="push-setting-sublabel">워크샵, 파티, 대회 등 주요 행사</span>
-                                                </div>
-                                                <div className={`push-toggle-sm ${pushPrefs.pref_events ? 'active' : ''}`}>
-                                                    <div className="push-toggle-thumb-sm"></div>
-                                                </div>
-                                            </div>
-
-                                            {/* Event Tags Filter */}
-                                            {pushPrefs.pref_events && (
-                                                <div className="push-tags-container">
-                                                    {['워크샵', '파티', '대회', '기타'].map(tag => {
-                                                        const isActive = !pushPrefs.pref_filter_tags || pushPrefs.pref_filter_tags.includes(tag);
-                                                        return (
-                                                            <button
-                                                                key={tag}
-                                                                className={`push-tag-btn ${isActive ? 'active' : ''}`}
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setPushPrefs(prev => {
-                                                                        const currentTags = prev.pref_filter_tags || ['워크샵', '파티', '대회', '기타'];
-                                                                        let newTags;
-                                                                        if (currentTags.includes(tag)) {
-                                                                            newTags = currentTags.filter(t => t !== tag);
-                                                                        } else {
-                                                                            newTags = [...currentTags, tag];
-                                                                        }
-
-                                                                        // [Change] 모든 태그 해제 시 카테고리 OFF
-                                                                        if (newTags.length === 0) {
-                                                                            return { ...prev, pref_filter_tags: newTags, pref_events: false };
-                                                                        }
-                                                                        return { ...prev, pref_filter_tags: newTags };
-                                                                    });
-                                                                }}
-                                                            >
-                                                                {isActive && <span style={{ marginRight: '4px' }}>✓</span>}
-                                                                {tag}
-                                                            </button>
-                                                        );
-                                                    })}
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* 2. 강습 알림 (Classes) */}
-                                        <div className="push-setting-section">
-                                            <div className="push-setting-row" onClick={() => handlePreferenceToggle('pref_class')}>
-                                                <div className="push-label-group">
-                                                    <span className="push-setting-label">강습 알림</span>
-                                                    <span className="push-setting-sublabel">댄서들의 정규/오픈 강습</span>
-                                                </div>
-                                                <div className={`push-toggle-sm ${pushPrefs.pref_class ? 'active' : ''}`}>
-                                                    <div className="push-toggle-thumb-sm"></div>
-                                                </div>
-                                            </div>
-
-                                            {/* Class Genre Filter */}
-                                            {pushPrefs.pref_class && (
-                                                <div className="push-tags-container">
-                                                    {['린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'].map(genre => {
-                                                        const isActive = !pushPrefs.pref_filter_class_genres || pushPrefs.pref_filter_class_genres.includes(genre);
-                                                        return (
-                                                            <button
-                                                                key={genre}
-                                                                className={`push-tag-btn ${isActive ? 'active' : ''}`}
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setPushPrefs(prev => {
-                                                                        const currentGenres = prev.pref_filter_class_genres || ['린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'];
-                                                                        let newGenres;
-                                                                        if (currentGenres.includes(genre)) {
-                                                                            newGenres = currentGenres.filter(g => g !== genre);
-                                                                        } else {
-                                                                            newGenres = [...currentGenres, genre];
-                                                                        }
-
-                                                                        // [Change] 모든 장르 해제 시 카테고리 OFF
-                                                                        if (newGenres.length === 0) {
-                                                                            return { ...prev, pref_filter_class_genres: newGenres, pref_class: false };
-                                                                        }
-                                                                        return { ...prev, pref_filter_class_genres: newGenres };
-                                                                    });
-                                                                }}
-                                                            >
-                                                                {isActive && <span style={{ marginRight: '4px' }}>✓</span>}
-                                                                {genre}
-                                                            </button>
-                                                        );
-                                                    })}
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {/* 3. 동호회 강습 알림 (Club Lessons) - Toggle Only */}
-                                        <div className="push-setting-section">
-                                            <div className="push-setting-row" onClick={() => handlePreferenceToggle('pref_clubs')}>
-                                                <div className="push-label-group">
-                                                    <span className="push-setting-label">동호회 강습 알림</span>
-                                                    <span className="push-setting-sublabel">동호회에서 주최하는 정규 강습</span>
-                                                </div>
-                                                <div className={`push-toggle-sm ${pushPrefs.pref_clubs ? 'active' : ''}`}>
-                                                    <div className="push-toggle-thumb-sm"></div>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                    </div>
-                                )}    {/* 저장 버튼 Footer (PWA 모드이면 항상 노출) */}
-                                {isRunningInPWA && (
-                                    <div className="card-footer">
-                                        <button
-                                            className={`save-btn ${hasUnsavedChanges ? 'primary' : 'disabled'}`}
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                if (hasUnsavedChanges) handleSaveChanges();
-                                            }}
-                                            disabled={!hasUnsavedChanges || isSaving}
-                                        >
-                                            {isSaving
-                                                ? <><i className="ri-loader-4-line spin"></i> 저장 중...</>
-                                                : (hasUnsavedChanges ? '설정 저장하기' : (isPushEnabled ? '최신 설정 적용됨' : '알림 꺼짐'))}
-                                        </button>
-                                    </div>
-                                )}
-
-                                {!isRunningInPWA && (
-                                    <div className="pwa-guide-msg">
-                                        앱 설치 후 이용 가능합니다.
-                                    </div>
-                                )}
+                                <i className="ri-arrow-right-s-line"></i>
                             </div>
                         </div>
                     </div>
@@ -799,7 +435,7 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                                         data-analytics-section="side_drawer_admin"
                                     >
                                         <i className="ri-bar-chart-box-line"></i>
-                                        <span style={{ fontWeight: 'bold', color: '#3b82f6' }}>운영 통합 통계</span>
+                                        <span className="drawer-admin-stats-text">운영 통합 통계</span>
                                     </div>
 
                                     <div className="drawer-submenu-item" onClick={() => {

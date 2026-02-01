@@ -14,6 +14,7 @@ import GlobalNoticePopup from '../components/GlobalNoticePopup';
 import { useGlobalPlayer } from '../contexts/GlobalPlayerContext';
 import { PlaylistModal } from '../pages/learning/components/PlaylistModal';
 import LoginModal from '../components/LoginModal';
+import NotificationSettingsModal from '../components/NotificationSettingsModal';
 import '../styles/components/MobileShell.css';
 
 interface MobileShellProps {
@@ -38,6 +39,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
   const siteAnalyticsModal = useModal('siteAnalytics');
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
+  const notificationSettingsModal = useModal('notificationSettings');
   const [calendarMode, setCalendarMode] = useState<'collapsed' | 'fullscreen'>('collapsed');
   const [calendarView, setCalendarView] = useState({ year: new Date().getFullYear(), month: new Date().getMonth() });
   // unused state removed
@@ -544,6 +546,11 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
             message: '댄스빌보드 로그인'
           });
         }}
+      />
+
+      <NotificationSettingsModal
+        isOpen={notificationSettingsModal.isOpen}
+        onClose={notificationSettingsModal.close}
       />
 
       {/* Global Playlist Player */}
