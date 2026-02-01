@@ -469,6 +469,8 @@
         position: relative;
         width: 100%;
         min-height: 200px;
+        max-height: 400px;
+        /* Prevent over-tall posters on mobile */
         display: flex;
         justify-content: center;
         align-items: center;
@@ -658,10 +660,10 @@
     .EDM-header {
         position: sticky;
         top: 0;
-        padding: 12px 20px;
+        padding: 12px 18px;
         z-index: 40;
         background-color: rgb(0, 0, 0);
-        border-bottom: 3px solid rgba(255, 255, 255, 0.1);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         backdrop-filter: blur(12px);
         transition: background-color 0.2s ease;
     }
@@ -709,7 +711,9 @@
         display: flex;
         flex-direction: column;
         gap: 16px;
-        padding: 1rem;
+        padding: 12px 18px;
+        background-color: transparent;
+        overflow-x: hidden;
     }
 
     .EDM-infoItem {
