@@ -2,10 +2,9 @@ import React, { memo, useMemo } from "react";
 import { getEventThumbnail, getCardThumbnail } from "../../../utils/getEventThumbnail";
 import { getLocalDateString, formatEventDate } from "../../../utils/dateUtils";
 import { getGenreColorClass } from "../../../constants/genreColors";
-import "../styles/EventCard.css";
+// import "../styles/EventCard.css"; // Styles integrated into events.css
 
 import type { Event } from "../../../pages/v2/utils/eventListUtils";
-
 
 interface EventCardProps {
   event: Event;
@@ -43,18 +42,9 @@ export const EventCard = memo(({
   const highlightBorderColor =
     event.category === "class" ? "#9333ea" : "#2563eb";
 
-  // 이벤트에 가장 적합한 썸네일 URL을 가져옵니다.
-  // 신규 이미지는 WebP 형식으로 업로드되므로, 이 함수는 자동으로 최적화된 이미지 URL을 반환합니다.
-  // 이벤트 List Card용 썸네일 (Prioritize Thumbnail/Medium for better resolution than Micro)
-  // getEventThumbnail prioritizes Micro (100px) which is too small for cards.
-  // 이벤트 List Card용 썸네일 (Prioritize Thumbnail/Medium for better resolution than Micro)
-  // getEventThumbnail prioritizes Micro (100px) which is too small for cards.
-
   // 1. Try explicit thumbnail
   // 2. Use optimized card thumbnail helper
   const explicitThumbnail = event.image_thumbnail;
-
-  // Use the new getCardThumbnail helper which handles resizing params
   const optimizedUrl = getCardThumbnail(event);
 
   const thumbnailUrl =
@@ -125,13 +115,12 @@ export const EventCard = memo(({
     if (isPast) return null; // 완전히 지난 이벤트는 D-day 표시 안 함
 
     // 1. 오늘이 행사 날짜 목록(개별 일정)에 포함되는지 확인 -> 'D-Day' 표시
-    // "연속 날짜(기간) 개념 없음" -> 개별 등록 일자 중 하나와 일치해야 함.
     if (event.event_dates && event.event_dates.length > 0) {
       if (event.event_dates.includes(todayString)) {
         return 'D-Day';
       }
     } else {
-      // event_dates가 없는 경우(단일 일정 등): 시작일이나 종료일이 오늘과 정확히 일치하는지 확인
+      // event_dates가 없는 경우
       const startDateStr = event.start_date || event.date;
       const endDateStr = event.end_date || event.date;
       if (startDateStr === todayString || endDateStr === todayString) {
@@ -143,16 +132,11 @@ export const EventCard = memo(({
     const today = new Date(todayString);
     let targetDate: Date | null = null;
 
-    // 이벤트 시작일 결정
     if (event.event_dates && event.event_dates.length > 0) {
-      // 다중 날짜 중 가장 빠른 날짜 (이미 위에서 오늘 포함 여부는 체크했으므로, 미래의 날짜만 남음 or 과거)
-      // 하지만 여기서 단순 정렬 후 가장 빠른 날짜를 잡으면, 이미 지난 첫날을 잡을 수도 있음.
-      // D-Day는 "앞으로 남은 날짜"를 보여주는 것이므로, "오늘 이후의 날짜 중 가장 빠른 날"을 찾아야 정확함.
       const futureDates = event.event_dates.filter(d => d >= todayString).sort();
       if (futureDates.length > 0) {
         targetDate = new Date(futureDates[0] + 'T00:00:00');
       } else if (event.event_dates.length > 0) {
-        // 모든 날짜가 과거인 경우 (isPast체크에 걸려야 하지만 혹시 모르니)
         const sortedDates = [...event.event_dates].sort();
         targetDate = new Date(sortedDates[0] + 'T00:00:00');
       }
@@ -165,19 +149,20 @@ export const EventCard = memo(({
 
     if (!targetDate) return null;
 
-    // 날짜 차이 계산 (밀리초 -> 일)
     const diffTime = targetDate.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-    if (diffDays < 0) return null; // 이미 시작한 이벤트 (위의 기간 체크에 안 걸리고 start가 과거면 null)
+    if (diffDays < 0) return null;
     if (diffDays === 0) return 'D-Day';
     return `D-${diffDays}일`;
-  }, [todayString, isPast, event.event_dates, event.start_date, event.date, event.end_date]); // event.end_date added check
-
-  // category 기반 클래스 추가
-  const categoryClass = event.category === 'class' ? 'card-category-class' : 'card-category-event';
+  }, [todayString, isPast, event.event_dates, event.start_date, event.date, event.end_date]);
 
 
+  // Determine modifiers
+  const catModifier = event.category === 'class' ? 'ECARD-cat-class' : 'ECARD-cat-event';
+  const pastModifier = isPast ? 'is-past' : '';
+  const highlightModifier = isHighlighted ? 'is-highlighted' : '';
+  const favoriteVariantClass = variant === 'favorite' ? 'is-variant-favorite' : '';
 
   return (
     <div
@@ -188,26 +173,26 @@ export const EventCard = memo(({
       data-analytics-title={event.title}
       data-analytics-section={variant === 'favorite' ? 'favorites' : (variant === 'sliding' ? 'upcoming_events' : 'filtered_grid')}
       data-analytics-category={event.category}
-      className={`card-container ${isPast ? 'card-container-past' : ''} ${variant === 'favorite' ? 'evt-card-favorite' : categoryClass} ${isHighlighted ? 'qr-highlighted' : ''} ${className}`}
+      className={`ECARD-container ${catModifier} ${pastModifier} ${highlightModifier} ${favoriteVariantClass} ${className}`}
       onClick={onClick}
       onMouseEnter={() => onMouseEnter?.(event.id)}
       onMouseLeave={onMouseLeave}
       style={{
         ...(isHighlighted ? { '--highlight-color': highlightBorderColor } as React.CSSProperties : {}),
       }}
-    >  <div
-      className={`card-image-wrapper ${event.category === 'class' ? 'card-image-wrapper-class' : 'card-image-wrapper-event'
-        } ${isHighlighted ? "card-image-wrapper-highlighted" : ""}`}
-      style={{
-        "--highlight-color": isHighlighted ? highlightBorderColor : "transparent"
-      } as React.CSSProperties}
     >
+      <div
+        className={`ECARD-imageWrapper ${isHighlighted ? "is-active-qr" : ""}`}
+        style={{
+          "--highlight-color": isHighlighted ? highlightBorderColor : "transparent"
+        } as React.CSSProperties}
+      >
         {thumbnailUrl ? (
           <>
             <img
               src={thumbnailUrl}
               alt={event.title}
-              className="card-image"
+              className="ECARD-image"
               loading="lazy"
               decoding="async"
               onError={(e) => {
@@ -218,8 +203,8 @@ export const EventCard = memo(({
               }}
             />
             {variant === "sliding" && !event?.image && !event?.image_thumbnail && (
-              <div className="card-overlay-center">
-                <span className="card-overlay-text-semi manual-label-wrapper">
+              <div className="ECARD-overlayCenter">
+                <span className="ECARD-overlayText-semi manual-label-wrapper">
                   {event.category === "class" ? (
                     <>
                       <span className="translated-part">Class</span>
@@ -233,18 +218,18 @@ export const EventCard = memo(({
           </>
         ) : (
           <div
-            className="card-placeholder-bg"
+            className="ECARD-placeholderBg"
             style={{
               backgroundImage: "url(/grunge.png)",
             }}
           >
             <div
-              className={`card-absolute-inset-0 ${event.category === "class"
-                ? "card-bg-overlay-purple"
-                : "card-bg-overlay-blue"
+              className={`ECARD-absoluteInset0 ${event.category === "class"
+                ? "ECARD-bgOverlay-purple"
+                : "ECARD-bgOverlay-blue"
                 }`}
             ></div>
-            <span className="card-overlay-text-faint manual-label-wrapper">
+            <span className="ECARD-overlayText-faint manual-label-wrapper">
               {event.category === "class" ? (
                 <>
                   <span className="translated-part">Class</span>
@@ -257,11 +242,11 @@ export const EventCard = memo(({
         )}
 
         <div
-          className={`card-badge manual-label-wrapper ${isPast
-            ? "card-badge-past"
+          className={`ECARD-badge manual-label-wrapper ${isPast
+            ? "is-past"
             : event.category === "class"
-              ? "card-badge-class"
-              : "card-badge-event"
+              ? "is-class"
+              : "is-event"
             }`}
         >
           {isPast ? "종료" : event.category === "class" ? (
@@ -275,7 +260,7 @@ export const EventCard = memo(({
 
         {onToggleFavorite && (
           <button
-            className={`card-favorite-btn ${isFavorite ? 'is-active' : ''}`}
+            className={`ECARD-favoriteBtn ${isFavorite ? 'is-active' : ''}`}
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();
@@ -285,35 +270,31 @@ export const EventCard = memo(({
             onTouchEnd={(e) => e.stopPropagation()}
             title={isFavorite ? "즐겨찾기 해제" : "즐겨찾기 추가"}
           >
-            <i className={`card-favorite-icon ${isFavorite ? "ri-star-fill" : "ri-star-line"}`}></i>
+            <i className={`ECARD-favoriteIcon ${isFavorite ? "ri-star-fill" : "ri-star-line"}`}></i>
           </button>
         )}
 
       </div>
 
       {dDay && (
-        <div className={`card-dday-badge ${dDay === 'D-Day' ? 'card-dday-today' : ''}`}>
+        <div className={`ECARD-ddayBadge ${dDay === 'D-Day' ? 'is-today' : ''}`}>
           {dDay}
         </div>
       )}
 
-      <div className={`card-text-container ${event.category === 'class' ? 'card-text-container-class' : 'card-text-container-event'
-        }`}>
+      <div className="ECARD-textContainer">
         {event.genre && !hideGenre && (
-          <p className={`card-genre-text ${event.category === 'class' ? 'card-genre-text-class' : 'card-genre-text-event'
-            } ${getGenreColorClass(event.genre, 'card-genre')}`}>
+          <p className={`ECARD-genre ${getGenreColorClass(event.genre, 'ECARD-genre')}`}>
             {event.genre}
           </p>
         )}
-        <h3 className={`card-title-text ${event.category === 'class' ? 'card-title-text-class' : 'card-title-text-event'
-          }`}>{event.title}</h3>
+        <h3 className="ECARD-title">{event.title}</h3>
         {!hideDate && (
-          <div className="card-date-container">
+          <div className="ECARD-dateContainer">
             {isOnSelectedDate && (
-              <span className="card-date-indicator"></span>
+              <span className="ECARD-dateIndicator"></span>
             )}
-            <span className={`card-date-text ${event.category === 'class' ? 'card-date-text-class' : 'card-date-text-event'
-              }`}>{dateText}</span>
+            <span className="ECARD-date">{dateText}</span>
           </div>
         )}
       </div>

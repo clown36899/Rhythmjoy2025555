@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { ko } from "date-fns/locale/ko";
+import "../../../../../styles/domains/events.css";
 import {
     formatDateForInput,
     parseVideoUrl,
@@ -23,7 +24,7 @@ interface EventEditModalProps {
 }
 
 const CustomDateInput = React.forwardRef(({ value, onClick, placeholder }: any, ref: any) => (
-    <button type="button" onClick={onClick} ref={ref} className="evt-form-input evt-text-left">
+    <button type="button" onClick={onClick} ref={ref} className="ERM-input" style={{ textAlign: 'left' }}>
         {value || placeholder || "날짜 선택"}
     </button>
 ));
@@ -36,18 +37,18 @@ const CustomDatePickerHeader = ({
     nextMonthButtonDisabled,
     onTodayClick
 }: any) => (
-    <div className="evt-calendar-header">
-        <button type="button" onClick={decreaseMonth} disabled={prevMonthButtonDisabled} className="evt-calendar-nav-btn">
+    <div className="evt-calendar-header" style={{ display: 'flex', justifyContent: 'space-between', padding: '10px', alignItems: 'center', background: '#374151', borderRadius: '8px', marginBottom: '8px' }}>
+        <button type="button" onClick={decreaseMonth} disabled={prevMonthButtonDisabled} className="ERM-footerBtn ERM-footerBtn-cancel" style={{ padding: '4px 8px', flex: 'none' }}>
             <i className="ri-arrow-left-s-line"></i>
         </button>
-        <div className="evt-calendar-title">
+        <div style={{ color: 'white', fontWeight: 'bold' }}>
             {date.getFullYear()}년 {date.getMonth() + 1}월
         </div>
-        <button type="button" onClick={increaseMonth} disabled={nextMonthButtonDisabled} className="evt-calendar-nav-btn">
+        <button type="button" onClick={increaseMonth} disabled={nextMonthButtonDisabled} className="ERM-footerBtn ERM-footerBtn-cancel" style={{ padding: '4px 8px', flex: 'none' }}>
             <i className="ri-arrow-right-s-line"></i>
         </button>
         {onTodayClick && (
-            <button type="button" onClick={onTodayClick} className="evt-calendar-today-btn">오늘</button>
+            <button type="button" onClick={onTodayClick} className="ERM-footerBtn ERM-footerBtn-submit" style={{ padding: '4px 8px', fontSize: '12px', flex: 'none' }}>오늘</button>
         )}
     </div>
 );
@@ -164,93 +165,93 @@ export const EventEditModal: React.FC<EventEditModalProps> = ({
     };
 
     return createPortal(
-        <div className={`evt-fixed-inset-edit-modal ${editPreviewMode === 'billboard' ? 'billboard-mode' : ''}`}>
+        <div className={`EventEditModal ERM-overlay ${editPreviewMode === 'billboard' ? 'is-billboard' : ''}`}>
             {editPreviewMode === 'billboard' ? (
-                <div className="billboard-content-card">
-                    <div className="billboard-media-area">
+                <div className="ERM-billboardCard">
+                    <div className="ERM-billboardMedia">
                         {formData.videoUrl && isValidVideoUrl(formData.videoUrl) ? (
                             <iframe
                                 width="100%" height="100%"
                                 src={`${videoPreview.embedUrl}?autoplay=1&mute=1&controls=0&loop=1`}
                                 title="billboard" frameBorder="0" allowFullScreen
-                                className="w-full h-full object-cover"
+                                className="ERM-billboardVideo"
                             />
                         ) : imagePreview ? (
-                            <img src={imagePreview} alt="preview" className="billboard-media-image" />
+                            <img src={imagePreview} alt="preview" className="ERM-billboardImage" />
                         ) : (
-                            <div className="billboard-media-placeholder"><i className="ri-image-line"></i></div>
+                            <div className="ERM-billboardPlaceholder"><i className="ri-image-line"></i></div>
                         )}
                     </div>
-                    <div className="billboard-info-overlay">
-                        <h3 className="billboard-info-title">{formData.title || "제목"}</h3>
-                        <p className="billboard-info-date">{formData.start_date || "날짜"}</p>
-                        <button onClick={() => setEditPreviewMode('normal')} className="evt-btn-normal-abs">수정으로 돌아가기</button>
+                    <div className="ERM-billboardInfo">
+                        <h3 className="ERM-billboardTitle">{formData.title || "제목"}</h3>
+                        <p className="ERM-billboardDate">{formData.start_date || "날짜"}</p>
+                        <button onClick={() => setEditPreviewMode('normal')} className="ERM-footerBtn ERM-footerBtn-cancel" style={{ marginTop: '12px' }}>수정으로 돌아가기</button>
                     </div>
                 </div>
             ) : (
-                <div className="evt-modal-container-lg">
-                    <div className="evt-modal-header">
-                        <div className="evt-modal-header-content">
-                            <h2 className="evt-modal-title">이벤트 수정</h2>
-                            <div className="evt-flex evt-gap-2">
-                                <button type="button" onClick={() => setEditPreviewMode('billboard')} className="evt-btn-ghost-sm">빌보드 미리보기</button>
-                                <button onClick={onClose} className="evt-modal-close-btn">
-                                    <i className="ri-close-line evt-icon-xl"></i>
+                <div className="ERM-container">
+                    <div className="ERM-header">
+                        <div className="ERM-headerContent">
+                            <h2 className="ERM-title">이벤트 수정</h2>
+                            <div style={{ display: 'flex', gap: '8px' }}>
+                                <button type="button" onClick={() => setEditPreviewMode('billboard')} className="ERM-switcherBtn" style={{ color: '#fff', border: '1px solid #555' }}>미리보기</button>
+                                <button onClick={onClose} className="ERM-closeBtn">
+                                    <i className="ri-close-line" style={{ fontSize: '24px' }}></i>
                                 </button>
                             </div>
                         </div>
                     </div>
 
-                    <div className="evt-modal-body-scroll">
-                        <form id="edit-event-form" onSubmit={handleSubmit} className="evt-space-y-3">
-                            <div>
-                                <label className="evt-form-label">이벤트 제목</label>
+                    <div className="ERM-body">
+                        <form id="edit-event-form" onSubmit={handleSubmit} className="ERM-formGroup" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            <div className="ERM-formGroup">
+                                <label className="ERM-label">이벤트 제목</label>
                                 <input
                                     type="text"
                                     value={formData.title}
                                     onChange={(e) => setFormData((prev: any) => ({ ...prev, title: e.target.value }))}
-                                    className="evt-form-input"
+                                    className="ERM-input"
                                     required
                                 />
                             </div>
 
-                            <div className="evt-relative">
-                                <label className="evt-form-label">장르 (7자 이내)</label>
+                            <div className="ERM-formGroup" style={{ position: 'relative' }}>
+                                <label className="ERM-label">장르 (7자 이내)</label>
                                 <input
                                     type="text"
                                     value={formData.genre}
                                     onChange={(e) => setFormData((prev: any) => ({ ...prev, genre: e.target.value }))}
                                     onFocus={handleGenreFocus}
                                     onBlur={() => setTimeout(() => setIsGenreInputFocused(false), 150)}
-                                    className="evt-form-input"
+                                    className="ERM-input"
                                     maxLength={7}
                                 />
                                 {isGenreInputFocused && genreSuggestions.length > 0 && (
-                                    <div className="evt-autocomplete-dropdown">
+                                    <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#374151', border: '1px solid #4b5563', borderRadius: '8px', maxHeight: '150px', overflowY: 'auto', zIndex: 10 }}>
                                         {genreSuggestions.map(g => (
-                                            <div key={g} onMouseDown={() => handleGenreSuggestionClick(g)} className="evt-autocomplete-genre-item">{g}</div>
+                                            <div key={g} onMouseDown={() => handleGenreSuggestionClick(g)} style={{ padding: '8px 12px', cursor: 'pointer', color: '#d1d5db' }} className="hover:bg-gray-600">{g}</div>
                                         ))}
                                     </div>
                                 )}
                             </div>
 
-                            <div>
-                                <label className="evt-form-label">카테고리</label>
+                            <div className="ERM-formGroup">
+                                <label className="ERM-label">카테고리</label>
                                 <select
                                     value={formData.category}
                                     onChange={(e) => setFormData((prev: any) => ({ ...prev, category: e.target.value }))}
-                                    className="evt-form-select"
+                                    className="ERM-select"
                                 >
                                     <option value="class">강습</option>
                                     <option value="event">행사</option>
                                 </select>
                             </div>
 
-                            <div className="evt-grid-cols-2 evt-gap-3">
+                            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                 <div>
-                                    <label className="evt-form-label evt-flex evt-justify-between evt-items-center">
+                                    <label className="ERM-label" style={{ display: 'flex', justifyContent: 'space-between' }}>
                                         <span>장소 이름</span>
-                                        <button type="button" onClick={onOpenVenueModal} className="evt-text-xs evt-text-blue-400 evt-underline">
+                                        <button type="button" onClick={onOpenVenueModal} style={{ color: '#60a5fa', fontSize: '0.75rem', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer' }}>
                                             <i className="ri-search-line"></i> 장소 검색
                                         </button>
                                     </label>
@@ -258,40 +259,40 @@ export const EventEditModal: React.FC<EventEditModalProps> = ({
                                         type="text"
                                         value={formData.location}
                                         onChange={(e) => setFormData((prev: any) => ({ ...prev, location: e.target.value }))}
-                                        className="evt-form-input"
+                                        className="ERM-input"
                                     />
                                 </div>
                                 <div>
-                                    <label className="evt-form-label">주소 링크 (지도)</label>
+                                    <label className="ERM-label">주소 링크 (지도)</label>
                                     <input
                                         type="text"
                                         value={formData.locationLink}
                                         onChange={(e) => setFormData((prev: any) => ({ ...prev, locationLink: e.target.value }))}
-                                        className="evt-form-input"
+                                        className="ERM-input"
                                         placeholder="https://map.naver.com/..."
                                     />
                                 </div>
                             </div>
 
-                            <div>
-                                <label className="evt-form-label">신청/상세 페이지 링크</label>
+                            <div className="ERM-formGroup">
+                                <label className="ERM-label">신청/상세 페이지 링크</label>
                                 <input
                                     type="text"
                                     value={formData.link1}
                                     onChange={(e) => setFormData((prev: any) => ({ ...prev, link1: e.target.value }))}
-                                    className="evt-form-input"
+                                    className="ERM-input"
                                     placeholder="https://..."
                                 />
                             </div>
 
-                            <div className="evt-billboard-option-box evt-space-y-3">
-                                <div className="event-list-form-flex-gap">
+                            <div className="ERM-formGroup">
+                                <div style={{ display: 'flex', gap: '12px', marginBottom: '8px', color: '#d1d5db', fontSize: '0.9rem' }}>
                                     <label><input type="radio" checked={formData.dateMode === 'range'} onChange={() => setFormData((prev: any) => ({ ...prev, dateMode: 'range' }))} /> 연속 기간</label>
                                     <label><input type="radio" checked={formData.dateMode === 'specific'} onChange={() => setFormData((prev: any) => ({ ...prev, dateMode: 'specific' }))} /> 특정 날짜</label>
                                 </div>
 
                                 {formData.dateMode === 'range' ? (
-                                    <div className="evt-grid-cols-2 evt-gap-3">
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                                         <DatePicker
                                             selected={formData.start_date ? new Date(formData.start_date) : null}
                                             onChange={(d) => setFormData((prev: any) => ({ ...prev, start_date: d ? formatDateForInput(d) : "" }))}
@@ -309,32 +310,32 @@ export const EventEditModal: React.FC<EventEditModalProps> = ({
                                     </div>
                                 ) : (
                                     <div>
-                                        <div className="evt-flex-wrap evt-gap-1">
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginBottom: '8px' }}>
                                             {formData.event_dates.map((d: string, i: number) => (
-                                                <div key={i} className="evt-date-badge">
-                                                    {d} <button type="button" onClick={() => setFormData((prev: any) => ({ ...prev, event_dates: prev.event_dates.filter((_: any, idx: number) => idx !== i) }))}>x</button>
+                                                <div key={i} style={{ background: '#374151', padding: '2px 8px', borderRadius: '12px', fontSize: '0.8rem', color: 'white', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    {d} <button type="button" onClick={() => setFormData((prev: any) => ({ ...prev, event_dates: prev.event_dates.filter((_: any, idx: number) => idx !== i) }))} style={{ background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer' }}>x</button>
                                                 </div>
                                             ))}
                                         </div>
-                                        <input type="date" value={tempDateInput} onChange={(e) => setTempDateInput(e.target.value)} className="evt-form-input evt-mt-2" />
-                                        <button type="button" onClick={() => { if (tempDateInput) { setFormData((prev: any) => ({ ...prev, event_dates: [...new Set([...prev.event_dates, tempDateInput])] })); setTempDateInput(""); } }} className="evt-btn-ghost-sm evt-mt-1">추가</button>
+                                        <input type="date" value={tempDateInput} onChange={(e) => setTempDateInput(e.target.value)} className="ERM-input" style={{ marginBottom: '4px' }} />
+                                        <button type="button" onClick={() => { if (tempDateInput) { setFormData((prev: any) => ({ ...prev, event_dates: [...new Set([...prev.event_dates, tempDateInput])] })); setTempDateInput(""); } }} className="ERM-switcherBtn" style={{ border: '1px solid #555', padding: '4px 8px' }}>추가</button>
                                     </div>
                                 )}
                             </div>
 
-                            <div>
-                                <label className="evt-form-label">문의</label>
-                                <input type="text" value={formData.contact} onChange={(e) => setFormData((prev: any) => ({ ...prev, contact: e.target.value }))} className="evt-form-input" />
+                            <div className="ERM-formGroup">
+                                <label className="ERM-label">문의</label>
+                                <input type="text" value={formData.contact} onChange={(e) => setFormData((prev: any) => ({ ...prev, contact: e.target.value }))} className="ERM-input" />
                             </div>
 
-                            <div>
-                                <label className="evt-form-label">내용</label>
+                            <div className="ERM-formGroup">
+                                <label className="ERM-label">내용</label>
                                 <div
                                     onClick={() => {
                                         setTempDescription(formData.description);
                                         setShowDescriptionModal(true);
                                     }}
-                                    className="evt-form-input"
+                                    className="ERM-textarea"
                                     style={{
                                         minHeight: '80px',
                                         cursor: 'pointer',
@@ -346,14 +347,14 @@ export const EventEditModal: React.FC<EventEditModalProps> = ({
                                 </div>
                             </div>
 
-                            <div>
-                                <label className="evt-form-label">이벤트 이미지</label>
-                                {imagePreview && <img src={imagePreview} className="evt-img-full-h48 evt-mb-2" />}
-                                <input type="file" onChange={handleImageChange} className="evt-file-input" />
+                            <div className="ERM-formGroup">
+                                <label className="ERM-label">이벤트 이미지</label>
+                                {imagePreview && <img src={imagePreview} style={{ width: '100%', height: '192px', objectFit: 'cover', borderRadius: '8px', marginBottom: '8px' }} />}
+                                <input type="file" onChange={handleImageChange} className="ERM-input" style={{ padding: '8px' }} />
                             </div>
 
-                            <div>
-                                <label className="evt-form-label">영상 URL (유튜브)</label>
+                            <div className="ERM-formGroup">
+                                <label className="ERM-label">영상 URL (유튜브)</label>
                                 <input
                                     type="url"
                                     value={formData.videoUrl}
@@ -363,24 +364,22 @@ export const EventEditModal: React.FC<EventEditModalProps> = ({
                                         const info = parseVideoUrl(val);
                                         setVideoPreview({ provider: info.provider, embedUrl: info.embedUrl });
                                     }}
-                                    className="evt-form-input"
+                                    className="ERM-input"
                                 />
                             </div>
 
-                            <div className="evt-registrant-box">
-                                <label className="evt-registrant-label">등록자 이름 *</label>
-                                <input type="text" value={formData.organizerName} onChange={(e) => setFormData((prev: any) => ({ ...prev, organizerName: e.target.value }))} className="evt-form-input" required />
-                                <label className="evt-registrant-label">등록자 번호 *</label>
-                                <input type="tel" value={formData.organizerPhone} onChange={(e) => setFormData((prev: any) => ({ ...prev, organizerPhone: e.target.value }))} className="evt-form-input" required />
+                            <div style={{ background: '#1f2937', padding: '12px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)' }}>
+                                <label className="ERM-label">등록자 이름 *</label>
+                                <input type="text" value={formData.organizerName} onChange={(e) => setFormData((prev: any) => ({ ...prev, organizerName: e.target.value }))} className="ERM-input" required style={{ marginBottom: '12px' }} />
+                                <label className="ERM-label">등록자 번호 *</label>
+                                <input type="tel" value={formData.organizerPhone} onChange={(e) => setFormData((prev: any) => ({ ...prev, organizerPhone: e.target.value }))} className="ERM-input" required />
                             </div>
                         </form>
                     </div>
 
-                    <div className="evt-footer-sticky">
-                        <div className="event-list-button-group">
-                            <button type="submit" form="edit-event-form" className="evt-btn-primary evt-flex-1">수정 완료</button>
-                            <button type="button" onClick={() => onDelete(event!.id)} className="evt-btn-red">삭제</button>
-                        </div>
+                    <div className="ERM-footer">
+                        <button type="submit" form="edit-event-form" className="ERM-footerBtn ERM-footerBtn-submit">수정 완료</button>
+                        <button type="button" onClick={() => onDelete(event!.id)} className="ERM-footerBtn" style={{ background: '#ef4444', color: 'white' }}>삭제</button>
                     </div>
                 </div>
             )}
@@ -388,12 +387,12 @@ export const EventEditModal: React.FC<EventEditModalProps> = ({
             {/* Description Editor Modal */}
             {showDescriptionModal && (
                 <div
-                    className="evt-fixed-inset-edit-modal"
+                    className="ERM-overlay"
                     style={{ zIndex: 10001 }}
                     onClick={() => setShowDescriptionModal(false)}
                 >
                     <div
-                        className="evt-modal-container-lg"
+                        className="ERM-container"
                         style={{
                             position: 'fixed',
                             bottom: 0,
@@ -401,40 +400,44 @@ export const EventEditModal: React.FC<EventEditModalProps> = ({
                             right: 0,
                             top: '10%',
                             borderRadius: '20px 20px 0 0',
-                            animation: 'slideUp 0.3s ease-out'
+                            animation: 'slideUp 0.3s ease-out',
+                            maxWidth: 'none',
+                            width: '100%',
+                            height: 'auto'
                         }}
                         onClick={(e) => e.stopPropagation()}
                     >
-                        <div className="evt-modal-header">
-                            <div className="evt-modal-header-content">
-                                <h2 className="evt-modal-title">내용</h2>
-                                <button onClick={() => setShowDescriptionModal(false)} className="evt-modal-close-btn">
-                                    <i className="ri-close-line evt-icon-xl"></i>
+                        <div className="ERM-header">
+                            <div className="ERM-headerContent">
+                                <h2 className="ERM-title">내용</h2>
+                                <button onClick={() => setShowDescriptionModal(false)} className="ERM-closeBtn">
+                                    <i className="ri-close-line" style={{ fontSize: '24px' }}></i>
                                 </button>
                             </div>
                         </div>
 
-                        <div className="evt-modal-body-scroll" style={{ padding: '20px' }}>
+                        <div className="ERM-body">
                             <textarea
                                 value={tempDescription}
                                 onChange={(e) => setTempDescription(e.target.value)}
-                                className="evt-form-input"
+                                className="ERM-textarea"
                                 style={{
+                                    height: '100%',
                                     minHeight: '400px',
-                                    resize: 'vertical'
+                                    resize: 'none'
                                 }}
                                 placeholder="내용을 입력해주세요..."
                                 autoFocus
                             />
                         </div>
 
-                        <div className="evt-footer-sticky">
+                        <div className="ERM-footer">
                             <button
                                 onClick={() => {
                                     setFormData((prev: any) => ({ ...prev, description: tempDescription }));
                                     setShowDescriptionModal(false);
                                 }}
-                                className="evt-btn-primary"
+                                className="ERM-footerBtn ERM-footerBtn-submit"
                                 style={{ width: '100%' }}
                             >
                                 완료

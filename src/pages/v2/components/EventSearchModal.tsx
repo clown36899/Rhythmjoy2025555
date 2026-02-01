@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, memo } from "react";
 import { createPortal } from "react-dom";
 import type { Event } from "../utils/eventListUtils";
-import "../../../styles/components/EventSearchModal.css";
+// import "../../../styles/components/EventSearchModal.css"; // Styles integrated into events.css
+import "../../../styles/domains/events.css";
 
 interface EventSearchModalProps {
     isOpen: boolean;
@@ -132,19 +133,19 @@ function EventSearchModal({
     if (!isOpen) return null;
 
     return createPortal(
-        <div className="evt-modal-overlay">
-            <div className="evt-modal-container">
-                <div className="evt-modal-body">
-                    <div className="search-modal-header">
-                        <h3 className="evt-modal-title">이벤트 검색</h3>
-                        <button onClick={onClose} className="evt-modal-close-btn">
+        <div className="ESSM-overlay">
+            <div className="ESSM-container">
+                <div className="ESSM-body">
+                    <div className="ESSM-header">
+                        <h3 className="ESSM-title">이벤트 검색</h3>
+                        <button onClick={onClose} className="ESSM-closeBtn">
                             <i className="ri-close-line evt-icon-xl"></i>
                         </button>
                     </div>
 
-                    <div className="search-modal-body-content">
+                    <div className="ESSM-bodyContent">
                         {/* 검색 입력창 */}
-                        <div className="search-input-container">
+                        <div className="ESSM-inputContainer">
                             <input
                                 type="text"
                                 value={searchQuery}
@@ -154,25 +155,25 @@ function EventSearchModal({
                                         handleSearchSubmit();
                                     }
                                 }}
-                                className="evt-form-input-with-icon"
+                                className="ESSM-input"
                                 placeholder="이벤트 제목, 장소, 주최자로 검색..."
                                 autoFocus
                             />
-                            <i className="ri-search-line evt-icon-absolute-left"></i>
+                            <i className="ri-search-line ESSM-inputIcon"></i>
                         </div>
 
                         {/* 자동완성 제안 */}
                         {searchSuggestions.length > 0 && (
-                            <div className="search-suggestions-container">
-                                <p className="evt-info-text-xs evt-mb-2">추천 검색어</p>
-                                <div className="search-suggestions-list">
+                            <div className="ESSM-suggestionsContainer">
+                                <p className="ESSM-suggestionsLabel">추천 검색어</p>
+                                <div className="ESSM-suggestionsList">
                                     {searchSuggestions.map((suggestion, index) => (
                                         <button
                                             key={index}
                                             onClick={() => handleSuggestionClick(suggestion)}
-                                            className="evt-search-suggestion-item"
+                                            className="ESSM-suggestionItem"
                                         >
-                                            <i className="ri-search-line evt-icon-text-xs evt-icon-mr-2 evt-text-gray-400"></i>
+                                            <i className="ri-search-line ESSM-suggestionIcon"></i>
                                             {suggestion}
                                         </button>
                                     ))}
@@ -181,16 +182,16 @@ function EventSearchModal({
                         )}
 
                         {/* 검색 버튼 */}
-                        <div className="search-modal-footer">
+                        <div className="ESSM-footer">
                             <button
                                 onClick={onClose}
-                                className="search-modal-btn-cancel evt-btn-base evt-btn-gray"
+                                className="ESSM-btnCancel"
                             >
                                 취소
                             </button>
                             <button
                                 onClick={handleSearchSubmit}
-                                className="search-modal-btn-confirm evt-btn-base evt-btn-blue"
+                                className="ESSM-btnConfirm"
                             >
                                 검색
                             </button>

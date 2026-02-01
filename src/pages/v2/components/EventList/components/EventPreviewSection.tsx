@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 // Styles
-import "../../../styles/EventListSections.css";
+// Styles
+// import "../../../styles/EventListSections.css"; // Migrated to events.css
 
 import PracticeRoomBanner from "../../PracticeRoomBanner";
 import ShoppingBanner from "../../ShoppingBanner";
@@ -130,7 +131,7 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
     };
 
     return (
-        <div className="evt-preview-section">
+        <div className="ELS-section">
             {/* 1. New Unified Schedule Section (Test Mode) */}
             <UnifiedScheduleSection
                 todaySchedules={todaySocialSchedules || []}
@@ -140,11 +141,11 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
             />
 
             {/* 2. Global Scope Switcher */}
-            <div className="evt-scope-switcher-container">
-                <div className="evt-scope-switcher" data-scope={showGlobal ? "overseas" : "domestic"}>
-                    <div className="evt-scope-indicator" />
+            <div className="ELS-scopeSwitcherContainer">
+                <div className="ELS-scopeSwitcher" data-scope={showGlobal ? "overseas" : "domestic"}>
+                    <div className="ELS-scopeIndicator" />
                     <button
-                        className={`evt-scope-btn manual-label-wrapper ${!showGlobal ? 'active' : ''}`}
+                        className={`ELS-scopeBtn manual-label-wrapper ${!showGlobal ? 'is-active' : ''}`}
                         onClick={() => setShowGlobal(false)}
                     >
                         <i className="ri-map-pin-2-line"></i>
@@ -153,7 +154,7 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                         <span className="fixed-part en" translate="no">Domestic</span>
                     </button>
                     <button
-                        className={`evt-scope-btn manual-label-wrapper ${showGlobal ? 'active' : ''}`}
+                        className={`ELS-scopeBtn manual-label-wrapper ${showGlobal ? 'is-active' : ''}`}
                         onClick={() => setShowGlobal(true)}
                     >
                         <i className="ri-earth-line"></i>

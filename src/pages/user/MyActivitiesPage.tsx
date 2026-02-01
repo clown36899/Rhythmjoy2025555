@@ -19,7 +19,8 @@ import GroupCalendarModal from '../social/components/GroupCalendarModal';
 import type { SocialGroup, SocialSchedule } from '../social/types';
 
 import '../../pages/board/board.css'; // Reuse board styles
-import '../v2/styles/EventListSections.css'; // Reuse event list styles
+// import '../v2/styles/EventListSections.css'; // Reuse event list styles
+import '../../styles/domains/events.css';
 import '../../styles/components/MobileShell.css'; // Import MobileShell styles
 import './styles/MyActivitiesPage.css'; // New dedicated styles
 import './styles/RegisteredEvents.css'; // New managed events styles
@@ -254,8 +255,8 @@ export default function MyActivitiesPage() {
 
                         {(currentTab === 'events' || currentTab === 'classes') && (
                             <div className="activity-tab-content">
-                                <div className="evt-favorites-section" style={{ marginTop: '0' }}>
-                                    <div className="evt-v2-section-title" style={{ padding: '0 16px', marginBottom: '12px' }}>
+                                <div className="ELS-section" style={{ marginTop: '0' }}>
+                                    <div className="ELS-header" style={{ padding: '0 16px', marginBottom: '12px' }}>
                                         <i className={currentTab === 'events' ? "ri-calendar-event-fill" : "ri-book-open-fill"} style={{ color: '#00ddff', marginRight: '6px' }}></i>
                                         <span>{currentTab === 'events' ? '등록한 행사' : '등록한 강습'}</span>
                                     </div>
@@ -294,8 +295,8 @@ export default function MyActivitiesPage() {
                         {currentTab === 'groups' && (
                             <div className="activity-tab-content managed-groups-tab">
                                 {/* 1. My Groups (Top) */}
-                                <div className="evt-favorites-section" style={{ marginTop: '0', marginBottom: '24px' }}>
-                                    <div className="evt-v2-section-title" style={{ padding: '0 16px', marginBottom: '12px' }}>
+                                <div className="ELS-section" style={{ marginTop: '0', marginBottom: '24px' }}>
+                                    <div className="ELS-header" style={{ padding: '0 16px', marginBottom: '12px' }}>
                                         <i className="ri-team-fill" style={{ color: '#a855f7', marginRight: '6px' }}></i>
                                         <span>내 단체</span>
                                     </div>
@@ -333,8 +334,8 @@ export default function MyActivitiesPage() {
                                 </div>
 
                                 {/* 2. My Schedules (Bottom) */}
-                                <div className="evt-favorites-section" style={{ marginTop: '24px' }}>
-                                    <div className="evt-v2-section-title" style={{ padding: '0 16px', marginBottom: '12px' }}>
+                                <div className="ELS-section" style={{ marginTop: '24px' }}>
+                                    <div className="ELS-header" style={{ padding: '0 16px', marginBottom: '12px' }}>
                                         <i className="ri-calendar-check-fill" style={{ color: '#10b981', marginRight: '6px' }}></i>
                                         <span>내가 등록한 일정</span>
                                     </div>
@@ -388,8 +389,8 @@ export default function MyActivitiesPage() {
                                 {/* My Impact Dashboard */}
                                 {/* My Impact Dashboard MOVED TO STATS TAB */}
 
-                                <div className="evt-favorites-section" style={{ marginTop: '0' }}>
-                                    <div className="evt-v2-section-title" style={{ padding: '0 16px', marginBottom: '12px' }}>
+                                <div className="ELS-section" style={{ marginTop: '0' }}>
+                                    <div className="ELS-header" style={{ padding: '0 16px', marginBottom: '12px' }}>
                                         <i className="ri-chat-3-fill" style={{ color: '#ffaa00', marginRight: '6px' }}></i>
                                         <span>내가 쓴 글</span>
                                     </div>

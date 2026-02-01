@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, memo, useCallback } from "react";
 import { supabase } from "../../../lib/supabase";
 import type { Event } from "../../../lib/supabase";
 import EventRegistrationModal from "../../../components/EventRegistrationModal";
-import "../../../styles/components/EventCalendar.css";
+import "../../../styles/domains/events.css";
 import { getEventThumbnail } from "../../../utils/getEventThumbnail";
 import { useDefaultThumbnail } from "../../../hooks/useDefaultThumbnail";
 
@@ -99,14 +99,14 @@ export default memo(function EventCalendar({
     }
 
     const colors = [
-      'cal-bg-red-500', 'cal-bg-orange-500', 'cal-bg-amber-500', 'cal-bg-yellow-500',
-      'cal-bg-lime-500', 'cal-bg-green-500', 'cal-bg-emerald-500', 'cal-bg-teal-500',
-      'cal-bg-cyan-500', 'cal-bg-sky-500', 'cal-bg-blue-500', 'cal-bg-indigo-500',
-      'cal-bg-violet-500', 'cal-bg-purple-500', 'cal-bg-fuchsia-500', 'cal-bg-pink-500',
-      'cal-bg-rose-500', 'cal-bg-red-600', 'cal-bg-orange-600', 'cal-bg-amber-600',
-      'cal-bg-yellow-600', 'cal-bg-lime-600', 'cal-bg-green-600', 'cal-bg-emerald-600',
-      'cal-bg-teal-600', 'cal-bg-cyan-600', 'cal-bg-sky-600', 'cal-bg-indigo-600',
-      'cal-bg-violet-600', 'cal-bg-purple-600', 'cal-bg-fuchsia-600', 'cal-bg-pink-600'
+      'ECAL-bg-red-500', 'ECAL-bg-orange-500', 'ECAL-bg-amber-500', 'ECAL-bg-yellow-500',
+      'ECAL-bg-lime-500', 'ECAL-bg-green-500', 'ECAL-bg-emerald-500', 'ECAL-bg-teal-500',
+      'ECAL-bg-cyan-500', 'ECAL-bg-sky-500', 'ECAL-bg-blue-500', 'ECAL-bg-indigo-500',
+      'ECAL-bg-violet-500', 'ECAL-bg-purple-500', 'ECAL-bg-fuchsia-500', 'ECAL-bg-pink-500',
+      'ECAL-bg-rose-500', 'ECAL-bg-red-600', 'ECAL-bg-orange-600', 'ECAL-bg-amber-600',
+      'ECAL-bg-yellow-600', 'ECAL-bg-lime-600', 'ECAL-bg-green-600', 'ECAL-bg-emerald-600',
+      'ECAL-bg-teal-600', 'ECAL-bg-cyan-600', 'ECAL-bg-sky-600', 'ECAL-bg-indigo-600',
+      'ECAL-bg-violet-600', 'ECAL-bg-purple-600', 'ECAL-bg-fuchsia-600', 'ECAL-bg-pink-600'
     ];
 
     const map = new Map<number, string>();
@@ -148,11 +148,11 @@ export default memo(function EventCalendar({
   const getEventColor = (eventId: number, category: string) => {
     if (!isFullscreen) {
       // 일반 모드: 카테고리별 색상
-      return category === 'class' ? 'cal-bg-green-500' : 'cal-bg-blue-500';
+      return category === 'class' ? 'ECAL-bg-green-500' : 'ECAL-bg-blue-500';
     }
 
     // 전체화면 모드: 맵에서 색상 가져오기
-    return eventColorMap.get(eventId) || 'cal-bg-gray-500';
+    return eventColorMap.get(eventId) || 'ECAL-bg-gray-500';
   };
 
   // 외부 currentMonth가 변경되면 내부 상태도 업데이트
@@ -390,18 +390,18 @@ export default memo(function EventCalendar({
           // 강습: 보라색 계열
           colorBg =
             assignedLane === 0
-              ? "cal-bg-purple-500"
+              ? "ECAL-bg-purple-500"
               : assignedLane === 1
-                ? "cal-bg-purple-600"
-                : "cal-bg-purple-400";
+                ? "ECAL-bg-purple-600"
+                : "ECAL-bg-purple-400";
         } else {
           // 행사: 파란색 계열
           colorBg =
             assignedLane === 0
-              ? "cal-bg-blue-500"
+              ? "ECAL-bg-blue-500"
               : assignedLane === 1
-                ? "cal-bg-blue-600"
-                : "cal-bg-blue-400";
+                ? "ECAL-bg-blue-600"
+                : "ECAL-bg-blue-400";
         }
       }
 
@@ -506,7 +506,7 @@ export default memo(function EventCalendar({
       if (hasEvents && window.innerWidth < 1024) {
         // 이벤트 리스트 영역으로 스크롤 (헤더와 달력 아래)
         const scrollableArea = document.querySelector(
-          ".cal-flex-1.cal-overflow-y-auto",
+          ".ECAL-flex-1.ECAL-overflow-y-auto",
         );
         if (scrollableArea) {
           scrollableArea.scrollTo({
@@ -656,7 +656,7 @@ export default memo(function EventCalendar({
 
     return (
       <div
-        className="calendar-overlay-container"
+        className="ECAL-overlay-container"
       >
         {titleSegments.map((segment, idx) => {
           const barHeight = segment.isHovered ? 20 : 14;
@@ -665,7 +665,7 @@ export default memo(function EventCalendar({
           return (
             <div
               key={`${segment.eventId}-${segment.weekRow}-${idx}`}
-              className="calendar-overlay-item"
+              className="ECAL-overlay-item"
               style={{
                 gridColumn: `${segment.startCol + 1} / span ${segment.span}`,
                 gridRow: segment.weekRow + 1,
@@ -681,7 +681,7 @@ export default memo(function EventCalendar({
               }}
             >
               <span
-                className="calendar-overlay-title"
+                className="ECAL-overlay-title"
                 style={{
                   lineHeight: `${barHeight}px`,
                 }}
@@ -715,7 +715,7 @@ export default memo(function EventCalendar({
         <div
           key={dateString}
           onClick={(e) => handleDateClick(day, e.nativeEvent as PointerEvent)}
-          className="calendar-cell-fullscreen"
+          className="ECAL-cell-fullscreen"
           style={{
 
             minHeight: `${cellHeight}px`, // Restore min-height for expansion
@@ -725,9 +725,9 @@ export default memo(function EventCalendar({
           }}
         >
           {/* 헤더: 날짜 숫자 */}
-          <div className="calendar-cell-fullscreen-header">
+          <div className="ECAL-cell-fullscreen-header">
             <span
-              className={`calendar-date-number-fullscreen ${todayFlag ? "calendar-date-number-today" : ""}`}
+              className={`ECAL-date-number-fullscreen ${todayFlag ? "ECAL-date-number-today" : ""}`}
               style={{
                 opacity: isOtherMonth ? 0.3 : 1,
                 color: isOtherMonth ? '#6b7280' : '#e5e7eb', // gray-500 vs gray-200
@@ -745,7 +745,7 @@ export default memo(function EventCalendar({
           </div>
 
           {/* 바디: 이벤트 리스트 */}
-          <div className="calendar-cell-fullscreen-body">
+          <div className="ECAL-cell-fullscreen-body">
             {dayEvents.map((event) => {
               const categoryColor = getEventColor(Number(event.id), event.category);
               const thumbnailUrl = getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
@@ -759,7 +759,7 @@ export default memo(function EventCalendar({
               return (
                 <div
                   key={event.id}
-                  className="calendar-fullscreen-event-card"
+                  className="ECAL-fullscreen-event-card"
                   data-event-id={event.id}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -772,17 +772,17 @@ export default memo(function EventCalendar({
                   <div style={{ position: 'relative', width: '100%' }}>
                     {/* 이미지 (있으면 표시) */}
                     {thumbnailUrl ? (
-                      <div className={`calendar-fullscreen-image-container ${highlightedEventId === Number(event.id) ? 'calendar-event-highlighted' : ''}`}>
+                      <div className={`ECAL-fullscreen-image-container ${highlightedEventId === Number(event.id) ? 'ECAL-event-highlighted' : ''}`}>
                         <img
                           src={thumbnailUrl}
                           alt=""
-                          className="calendar-fullscreen-image"
+                          className="ECAL-fullscreen-image"
                           loading="lazy"
                           decoding="async"
                         />
                       </div>
                     ) : (
-                      <div className={`calendar-fullscreen-placeholder ${categoryColor} ${highlightedEventId === Number(event.id) ? 'calendar-event-highlighted' : ''}`}>
+                      <div className={`ECAL-fullscreen-placeholder ${categoryColor} ${highlightedEventId === Number(event.id) ? 'ECAL-event-highlighted' : ''}`}>
                         <span style={{ fontSize: '10px', color: 'white', fontWeight: 'bold' }}>
                           {event.title.charAt(0)}
                         </span>
@@ -791,15 +791,15 @@ export default memo(function EventCalendar({
 
                     {/* 순번 배지 - 개별 날짜가 여러 개일 때만 표시 */}
                     {dateIndex >= 0 && (
-                      <div className="calendar-event-sequence-badge">
+                      <div className="ECAL-event-sequence-badge">
                         {dateIndex + 1}주차
                       </div>
                     )}
                   </div>
 
                   {/* 제목 */}
-                  <div className="calendar-fullscreen-title-container">
-                    <div className="calendar-fullscreen-title">
+                  <div className="ECAL-fullscreen-title-container">
+                    <div className="ECAL-fullscreen-title">
                       {event.title}
                     </div>
                   </div>
@@ -892,16 +892,16 @@ export default memo(function EventCalendar({
         <div
           key={dateString}
           onClick={(e) => handleDateClick(day, e.nativeEvent as PointerEvent)}
-          className={`calendar-cell-base ${!isOtherMonth && !isSelected ? 'calendar-cell-hoverable' : ''}`}
+          className={`ECAL-cell-base ${!isOtherMonth && !isSelected ? 'ECAL-cell-hoverable' : ''}`}
           style={{
-            minHeight: 'var(--calendar-cell-height, 100px)',
+            minHeight: 'var(--ECAL-cell-height, 100px)',
             height: '100%',
             backgroundColor: bgColor
           }}
         >
-          <div className={`calendar-cell-content ${isSelected ? "calendar-cell-selected" : "calendar-cell-default"}`}>
+          <div className={`ECAL-cell-content ${isSelected ? "ECAL-cell-selected" : "ECAL-cell-default"}`}>
             <span
-              className={`calendar-date-number ${todayFlag ? "calendar-date-number-today" : ""}`}
+              className={`ECAL-date-number ${todayFlag ? "ECAL-date-number-today" : ""}`}
               style={{
                 opacity: isOtherMonth ? 0.15 : undefined,
                 fontSize: todayFlag ? '11px' : `${dateFontSize}px`,
@@ -919,7 +919,7 @@ export default memo(function EventCalendar({
 
               if (!showAsBars) {
                 return (
-                  <span className={`calendar-event-count ${isHoveredSingle ? "calendar-event-count-hovered" : "calendar-event-count-default"}`}>
+                  <span className={`ECAL-event-count ${isHoveredSingle ? "ECAL-event-count-hovered" : "ECAL-event-count-default"}`}>
                     +{singleDayEvents.length}
                   </span>
                 );
@@ -932,7 +932,7 @@ export default memo(function EventCalendar({
           {/* 단일 이벤트 바 표시 - 셀이 클 때만 */}
           {cellHeight > 55 && singleDayEvents.length > 0 && (
             <div
-              className="calendar-event-container-normal"
+              className="ECAL-event-container-normal"
               style={{ top: '28px', pointerEvents: 'none' }}
             >
               {singleDayEvents.slice(0, Math.floor((cellHeight - 30) / 16)).map((event) => {
@@ -941,7 +941,7 @@ export default memo(function EventCalendar({
                 return (
                   <div
                     key={event.id}
-                    className={`calendar-event-chip ${categoryColor} ${isHovered ? "hovered" : "default"}`}
+                    className={`ECAL-event-chip ${categoryColor} ${isHovered ? "hovered" : "default"}`}
                   >
                     {event.title}
                   </div>
@@ -952,7 +952,7 @@ export default memo(function EventCalendar({
 
           {/* 연속 이벤트 바 표시 (일반 모드에서만) */}
           {calendarMode !== 'fullscreen' && (
-            <div className="calendar-event-bar-container">
+            <div className="ECAL-event-bar-container">
               {eventBarsData.map((bar, index) => {
                 if (!bar) return null;
                 const isHovered =
@@ -964,7 +964,7 @@ export default memo(function EventCalendar({
                 return (
                   <div
                     key={`${dateString}-bar-${index}`}
-                    className={`calendar-event-bar-segment ${bar.categoryColor} ${bar.isFaded ? "faded" : isHovered ? "hovered" : "default"
+                    className={`ECAL-event-bar-segment ${bar.categoryColor} ${bar.isFaded ? "faded" : isHovered ? "hovered" : "default"
                       } ${bar.isStart ? "rounded-l" : ""} ${bar.isEnd ? "rounded-r" : ""
                       }`}
                     style={{
@@ -997,8 +997,8 @@ export default memo(function EventCalendar({
     const selectedYear = currentMonth.getFullYear();
 
     return (
-      <div className="calendar-year-view-container">
-        <div className="calendar-year-grid">
+      <div className="ECAL-year-view-container">
+        <div className="ECAL-year-grid">
           {years.map((year) => {
             const isSelected = selectedYear === year;
 
@@ -1018,7 +1018,7 @@ export default memo(function EventCalendar({
                   onDateSelect(null);
                   // viewMode는 "year"로 유지되어 해당 년도의 모든 이벤트 표시
                 }}
-                className={`calendar-year-button ${isSelected ? "selected" : "default"}`}
+                className={`ECAL-year-button ${isSelected ? "selected" : "default"}`}
               >
                 {year}년
               </button>
@@ -1033,39 +1033,39 @@ export default memo(function EventCalendar({
     <>
       <div
         data-calendar
-        className="calendar-main-container"
+        className="EventCalendar ECAL-main-container"
 
       >
         {/* Desktop Header */}
         {/* Desktop Header */}
         {showHeader && (
-          <div className="calendar-header">
-            <h2 className="calendar-header-title">
+          <div className="ECAL-header">
+            <h2 className="ECAL-header-title">
               {viewMode === "year" ? (
                 `${currentMonth.getFullYear()}년`
               ) : (
                 <>
                   {currentMonth.getFullYear()}년{" "}
-                  <div className="calendar-month-dropdown-wrapper">
+                  <div className="ECAL-month-dropdown-wrapper">
                     <button
                       onClick={toggleMonthDropdown}
-                      className="calendar-nav-button"
+                      className="ECAL-nav-button"
                     >
                       <span>{monthNames[currentMonth.getMonth()]}</span>
                       <i
-                        className={`ri-arrow-down-s-line calendar-month-dropdown-icon ${showMonthDropdown ? "rotated" : ""}`}
+                        className={`ri-arrow-down-s-line ECAL-month-dropdown-icon ${showMonthDropdown ? "rotated" : ""}`}
                       ></i>
                     </button>
 
                     {showMonthDropdown && (
-                      <div className="calendar-month-dropdown">
+                      <div className="ECAL-month-dropdown">
                         {monthNames.map((month, index) => (
                           <button
                             key={index}
                             onClick={() => navigateToMonth(index)}
-                            className={`calendar-month-option ${index === currentMonth.getMonth()
+                            className={`ECAL-month-option ${index === currentMonth.getMonth()
                               ? "selected"
-                              : "cal-text-gray-300"
+                              : "ECAL-text-gray-300"
                               }`}
                           >
                             {month}
@@ -1077,18 +1077,18 @@ export default memo(function EventCalendar({
                 </>
               )}
             </h2>
-            <div className="calendar-nav-group">
+            <div className="ECAL-nav-group">
               <button
                 onClick={() => navigateMonth("prev")}
-                className="calendar-nav-button"
+                className="ECAL-nav-button"
               >
-                <i className="ri-arrow-left-s-line calendar-nav-icon"></i>
+                <i className="ri-arrow-left-s-line ECAL-nav-icon"></i>
               </button>
               <button
                 onClick={() => navigateMonth("next")}
-                className="calendar-nav-button"
+                className="ECAL-nav-button"
               >
-                <i className="ri-arrow-right-s-line calendar-nav-icon"></i>
+                <i className="ri-arrow-right-s-line ECAL-nav-icon"></i>
               </button>
             </div>
           </div>
@@ -1096,7 +1096,7 @@ export default memo(function EventCalendar({
         {
           viewMode === "year" ? (
             // 연간 보기
-            <div className="cal-flex-1 cal-overflow-y-auto">{renderYearView()}</div>
+            <div className="ECAL-flex-1 ECAL-overflow-y-auto">{renderYearView()}</div>
           ) : (
             // 월간 보기
             <>
@@ -1105,9 +1105,9 @@ export default memo(function EventCalendar({
 
 
               {/* Calendar grid - 3개 달력 캐러셀 */}
-              <div className={`calendar-carousel-container ${calendarMode === 'fullscreen' ? 'calendar-mode-fullscreen' : 'calendar-mode-normal'} ${isTransitioning ? 'calendar-transitioning' : ''}`}>
+              <div className={`ECAL-carousel-container ${calendarMode === 'fullscreen' ? 'ECAL-mode-fullscreen' : 'ECAL-mode-normal'} ${isTransitioning ? 'ECAL-transitioning' : ''}`}>
                 <div
-                  className="calendar-carousel-track"
+                  className="ECAL-carousel-track"
                   style={{
                     width: '300%',
                     display: 'flex',
@@ -1122,11 +1122,11 @@ export default memo(function EventCalendar({
                   {/* 이전 달 */}
                   <div
                     key={`${prevMonth.getFullYear()}-${prevMonth.getMonth()}`}
-                    className="calendar-month-slide"
+                    className="ECAL-month-slide"
                     style={{ width: "33.3333%" }}
                   >
                     <div
-                      className="calendar-grid-container"
+                      className="ECAL-grid-container"
                       style={{
                         gridTemplateRows: (calendarMode === 'fullscreen' && !isTransitioning)
                           ? `repeat(${getActualWeeksCount(prevMonth)}, auto)`
@@ -1144,11 +1144,11 @@ export default memo(function EventCalendar({
                   {/* 현재 달 */}
                   <div
                     key={`${currentMonth.getFullYear()}-${currentMonth.getMonth()}`}
-                    className="calendar-month-slide"
+                    className="ECAL-month-slide"
                     style={{ width: "33.3333%" }}
                   >
                     <div
-                      className="calendar-grid-container"
+                      className="ECAL-grid-container"
                       style={{
                         gridTemplateRows: (calendarMode === 'fullscreen' && !isTransitioning)
                           ? `repeat(${getActualWeeksCount(currentMonth)}, auto)`
@@ -1166,11 +1166,11 @@ export default memo(function EventCalendar({
                   {/* 다음 달 */}
                   <div
                     key={`${nextMonth.getFullYear()}-${nextMonth.getMonth()}`}
-                    className="calendar-month-slide"
+                    className="ECAL-month-slide"
                     style={{ width: "33.3333%" }}
                   >
                     <div
-                      className="calendar-grid-container"
+                      className="ECAL-grid-container"
                       style={{
                         gridTemplateRows: (calendarMode === 'fullscreen' && !isTransitioning)
                           ? `repeat(${getActualWeeksCount(nextMonth)}, auto)`

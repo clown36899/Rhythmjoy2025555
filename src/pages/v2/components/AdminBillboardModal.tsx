@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "../../../lib/supabase";
 import type { BillboardSettings } from "../../../hooks/useBillboardSettings";
 import { useBillboardSettings } from "../../../hooks/useBillboardSettings";
-import "../styles/AdminBillboardModal.css";
+import "../../../styles/domains/events.css";
 
 interface AdminBillboardModalProps {
   isOpen: boolean;
@@ -364,8 +364,8 @@ export default function AdminBillboardModal({
   if (adminType === "sub") {
     if (loading) {
       return createPortal(
-        <div className="abm-loading-overlay">
-          <div className="abm-loading-text">로딩 중...</div>
+        <div className="AdminBillboardModal ABM-loading-overlay">
+          <div className="ABM-loading-text">로딩 중...</div>
         </div>,
         document.body
       );
@@ -384,23 +384,23 @@ export default function AdminBillboardModal({
     ];
 
     return createPortal(
-      <div className="abm-sub-overlay">
-        <div className="abm-sub-container">
+      <div className="AdminBillboardModal ABM-sub-overlay">
+        <div className="ABM-sub-container">
           {/* Header - 상단 고정 */}
-          <div className="abm-sub-header">
-            <h2 className="abm-sub-title">
+          <div className="ABM-sub-header">
+            <h2 className="ABM-sub-title">
               <i className="ri-settings-3-line"></i>
               {billboardUserName} 빌보드 설정
             </h2>
           </div>
 
           {/* Content - 스크롤 가능 */}
-          <div className="abm-sub-content"><div className="abm-sub-content-inner">
+          <div className="ABM-sub-content"><div className="ABM-sub-content-inner">
             {/* 제외 요일 */}
-            <div className="abm-section-box">
-              <label className="abm-section-label">제외 요일</label>
-              <p className="abm-section-desc">선택한 요일의 이벤트는 표시되지 않습니다</p>
-              <div className="abm-weekday-grid">
+            <div className="ABM-section-box">
+              <label className="ABM-section-label">제외 요일</label>
+              <p className="ABM-section-desc">선택한 요일의 이벤트는 표시되지 않습니다</p>
+              <div className="ABM-weekday-grid">
                 {weekDays.map((day) => (
                   <button
                     key={day.value}
@@ -411,9 +411,9 @@ export default function AdminBillboardModal({
                         : [...excluded, day.value];
                       updateLocalSettings({ excluded_weekdays: newExcluded });
                     }}
-                    className={`abm-weekday-btn ${(userSettings.excluded_weekdays || []).includes(day.value)
-                      ? "abm-weekday-btn-excluded"
-                      : "abm-weekday-btn-normal"
+                    className={`ABM-weekday-btn ${(userSettings.excluded_weekdays || []).includes(day.value)
+                      ? "ABM-weekday-btn-excluded"
+                      : "ABM-weekday-btn-normal"
                       }`}
                   >
                     {day.label.substring(0, 1)}
@@ -423,24 +423,24 @@ export default function AdminBillboardModal({
             </div>
 
             {/* 자동 슬라이드 시간 */}
-            <div className="abm-section-box">
-              <label className="abm-section-label">자동 슬라이드 시간</label>
-              <div className="abm-slide-control">
-                <span className="abm-slide-time">
+            <div className="ABM-section-box">
+              <label className="ABM-section-label">자동 슬라이드 시간</label>
+              <div className="ABM-slide-control">
+                <span className="ABM-slide-time">
                   {formatTime(userSettings.auto_slide_interval)}
                 </span>
-                <div className="abm-slide-buttons">
+                <div className="ABM-slide-buttons">
                   <button
                     type="button"
                     onClick={() => updateLocalSettings({ auto_slide_interval: Math.min(30000, userSettings.auto_slide_interval + 500) })}
-                    className="abm-slide-btn-up"
+                    className="ABM-slide-btn-up"
                   >
                     ▲
                   </button>
                   <button
                     type="button"
                     onClick={() => updateLocalSettings({ auto_slide_interval: Math.max(1000, userSettings.auto_slide_interval - 500) })}
-                    className="abm-slide-btn-down"
+                    className="ABM-slide-btn-down"
                   >
                     ▼
                   </button>
@@ -449,41 +449,41 @@ export default function AdminBillboardModal({
             </div>
 
             {/* 재생 순서 */}
-            <div className="abm-play-order-hidden">
-              <label className="abm-section-label">재생 순서</label>
-              <div className="abm-play-order-grid">
+            <div className="ABM-play-order-hidden">
+              <label className="ABM-section-label">재생 순서</label>
+              <div className="ABM-play-order-grid">
                 <button
                   onClick={() => updateLocalSettings({ play_order: 'sequential' })}
-                  className={`abm-play-order-btn ${userSettings.play_order === 'sequential'
-                    ? "abm-play-order-btn-active"
-                    : "abm-play-order-btn-inactive"
+                  className={`ABM-play-order-btn ${userSettings.play_order === 'sequential'
+                    ? "ABM-play-order-btn-active"
+                    : "ABM-play-order-btn-inactive"
                     }`}
                 >
-                  <div className="abm-play-order-title">순차 재생</div>
-                  <div className="abm-play-order-subtitle">등록 순서대로</div>
+                  <div className="ABM-play-order-title">순차 재생</div>
+                  <div className="ABM-play-order-subtitle">등록 순서대로</div>
                 </button>
                 <button
                   onClick={() => updateLocalSettings({ play_order: 'random' })}
-                  className={`abm-play-order-btn ${userSettings.play_order === 'random'
-                    ? "abm-play-order-btn-active"
-                    : "abm-play-order-btn-inactive"
+                  className={`ABM-play-order-btn ${userSettings.play_order === 'random'
+                    ? "ABM-play-order-btn-active"
+                    : "ABM-play-order-btn-inactive"
                     }`}
                 >
-                  <div className="abm-play-order-title">30분 랜덤</div>
-                  <div className="abm-play-order-subtitle">30분마다 재배열</div>
+                  <div className="ABM-play-order-title">30분 랜덤</div>
+                  <div className="ABM-play-order-subtitle">30분마다 재배열</div>
                 </button>
               </div>
             </div>
 
             {/* 날짜 범위 필터 */}
-            <div className="abm-section-box">
-              <label className="abm-section-label">날짜 범위 필터</label>
-              <p className="abm-section-desc">특정 기간의 이벤트만 표시합니다</p>
-              <div className="abm-date-filter-group">
-                <div className="abm-date-filter-group">
-                  <label className="abm-date-filter-label">시작 날짜</label>
-                  <div className="abm-date-filter-row">
-                    <div className="abm-date-input-wrapper">
+            <div className="ABM-section-box">
+              <label className="ABM-section-label">날짜 범위 필터</label>
+              <p className="ABM-section-desc">특정 기간의 이벤트만 표시합니다</p>
+              <div className="ABM-date-filter-group">
+                <div className="ABM-date-filter-group">
+                  <label className="ABM-date-filter-label">시작 날짜</label>
+                  <div className="ABM-date-filter-row">
+                    <div className="ABM-date-input-wrapper">
                       <input
                         type="date"
                         value={userSettings.date_filter_start || todayKST}
@@ -491,19 +491,19 @@ export default function AdminBillboardModal({
                         onChange={(e) =>
                           updateLocalSettings({ date_filter_start: e.target.value || null })
                         }
-                        className="abm-date-input"
+                        className="ABM-date-input"
                       />
                       {!userSettings.date_filter_start && (
-                        <span className="abm-date-placeholder">
+                        <span className="ABM-date-placeholder">
                           지정안함
                         </span>
                       )}
                     </div>
                     <button
                       onClick={() => updateLocalSettings({ date_filter_start: null })}
-                      className={`abm-date-clear-btn ${!userSettings.date_filter_start
-                        ? 'abm-date-clear-btn-active'
-                        : 'abm-date-clear-btn-normal'
+                      className={`ABM-date-clear-btn ${!userSettings.date_filter_start
+                        ? 'ABM-date-clear-btn-active'
+                        : 'ABM-date-clear-btn-normal'
                         }`}
                       title="시작 날짜 제한 없음"
                     >
@@ -511,10 +511,10 @@ export default function AdminBillboardModal({
                     </button>
                   </div>
                 </div>
-                <div className="abm-date-filter-group">
-                  <label className="abm-date-filter-label">종료 날짜</label>
-                  <div className="abm-date-filter-row">
-                    <div className="abm-date-input-wrapper">
+                <div className="ABM-date-filter-group">
+                  <label className="ABM-date-filter-label">종료 날짜</label>
+                  <div className="ABM-date-filter-row">
+                    <div className="ABM-date-input-wrapper">
                       <input
                         type="date"
                         value={userSettings.date_filter_end || ""}
@@ -522,20 +522,20 @@ export default function AdminBillboardModal({
                         onChange={(e) =>
                           updateLocalSettings({ date_filter_end: e.target.value || null })
                         }
-                        className="abm-date-input"
+                        className="ABM-date-input"
                         style={!userSettings.date_filter_end ? { color: 'transparent' } : {}}
                       />
                       {!userSettings.date_filter_end && (
-                        <span className="abm-date-placeholder">
+                        <span className="ABM-date-placeholder">
                           지정안함
                         </span>
                       )}
                     </div>
                     <button
                       onClick={() => updateLocalSettings({ date_filter_end: null })}
-                      className={`abm-date-clear-btn ${!userSettings.date_filter_end
-                        ? 'abm-date-clear-btn-active'
-                        : 'abm-date-clear-btn-normal'
+                      className={`ABM-date-clear-btn ${!userSettings.date_filter_end
+                        ? 'ABM-date-clear-btn-active'
+                        : 'ABM-date-clear-btn-normal'
                         }`}
                       title="종료 날짜 제한 없음"
                     >
@@ -547,12 +547,12 @@ export default function AdminBillboardModal({
             </div>
 
             {/* 특정 이벤트 제외 */}
-            <div className="abm-section-box">
-              <div className="abm-event-exclude-header">
-                <label className="abm-event-exclude-label">
+            <div className="ABM-section-box">
+              <div className="ABM-event-exclude-header">
+                <label className="ABM-event-exclude-label">
                   🚫 제외할 이벤트
                 </label>
-                <div className="abm-event-exclude-actions">
+                <div className="ABM-event-exclude-actions">
                   <button
                     type="button"
                     onClick={() => {
@@ -560,23 +560,23 @@ export default function AdminBillboardModal({
                       const allIds = mediaEvents.map(e => e.id);
                       updateLocalSettings({ excluded_event_ids: allIds });
                     }}
-                    className="abm-event-exclude-btn-all"
+                    className="ABM-event-exclude-btn-all"
                   >
                     전체 제외
                   </button>
                   <button
                     type="button"
                     onClick={() => updateLocalSettings({ excluded_event_ids: [] })}
-                    className="abm-event-exclude-btn-clear"
+                    className="ABM-event-exclude-btn-clear"
                   >
                     전체 해제
                   </button>
                 </div>
               </div>
-              <p className="abm-section-desc">선택한 이벤트는 빌보드에 표시되지 않습니다 (당일 포함 이후 이벤트만 표시)</p>
-              <div className="abm-event-list"><div className="abm-event-list-inner">
+              <p className="ABM-section-desc">선택한 이벤트는 빌보드에 표시되지 않습니다 (당일 포함 이후 이벤트만 표시)</p>
+              <div className="ABM-event-list"><div className="ABM-event-list-inner">
                 {events.length === 0 ? (
-                  <p className="abm-event-empty">표시할 이벤트가 없습니다.</p>
+                  <p className="ABM-event-empty">표시할 이벤트가 없습니다.</p>
                 ) : (
                   events.map((event) => {
                     const eventDate = new Date(event?.start_date);
@@ -588,11 +588,11 @@ export default function AdminBillboardModal({
                     return (
                       <label
                         key={event.id}
-                        className={`abm-event-item ${hasMedia
+                        className={`ABM-event-item ${hasMedia
                           ? (isExcluded
-                            ? 'abm-event-item-excluded'
-                            : 'abm-event-item-media')
-                          : 'abm-event-item-no-media'
+                            ? 'ABM-event-item-excluded'
+                            : 'ABM-event-item-media')
+                          : 'ABM-event-item-no-media'
                           }`}
                       >
                         <input
@@ -600,23 +600,23 @@ export default function AdminBillboardModal({
                           checked={isExcluded}
                           onChange={() => toggleEventExclusion(event.id)}
                           disabled={!hasMedia}
-                          className="abm-event-checkbox"
+                          className="ABM-event-checkbox"
                         />
-                        <span className={`abm-event-text ${hasMedia
-                          ? (isExcluded ? 'abm-event-text-excluded' : 'abm-event-text-media')
-                          : 'abm-event-text-no-media'
+                        <span className={`ABM-event-text ${hasMedia
+                          ? (isExcluded ? 'ABM-event-text-excluded' : 'ABM-event-text-media')
+                          : 'ABM-event-text-no-media'
                           }`}>
                           {event.title}
-                          <span className="abm-event-date">
+                          <span className="ABM-event-date">
                             ({event.start_date} {weekday})
                           </span>
                           {isExcluded && hasMedia && (
-                            <span className="abm-event-excluded-badge">
+                            <span className="ABM-event-excluded-badge">
                               [제외됨]
                             </span>
                           )}
                           {!hasMedia && (
-                            <span className="abm-event-no-media-badge">
+                            <span className="ABM-event-no-media-badge">
                               [이미지 없음 - 댄스빌보드 미노출]
                             </span>
                           )}
@@ -630,16 +630,16 @@ export default function AdminBillboardModal({
           </div></div>
 
           {/* 저장 및 닫기 버튼 - 하단 고정 */}
-          <div className="abm-sub-footer">
+          <div className="ABM-sub-footer">
             <button
               onClick={handleClose}
-              className="abm-sub-footer-btn-cancel"
+              className="ABM-sub-footer-btn-cancel"
             >
               닫기
             </button>
             <button
               onClick={saveUserSettings}
-              className="abm-sub-footer-btn-save"
+              className="ABM-sub-footer-btn-save"
             >
               저장
             </button>
@@ -648,15 +648,15 @@ export default function AdminBillboardModal({
 
         {/* 성공 알림 모달 */}
         {showSuccessModal && (
-          <div className="abm-success-overlay">
-            <div className="abm-success-container">
-              <div className="abm-success-content">
-                <div className="abm-success-icon-wrapper">
-                  <div className="abm-success-icon">
-                    <i className="abm-success-icon-text ri-check-line"></i>
+          <div className="AdminBillboardModal ABM-success-overlay">
+            <div className="ABM-success-container">
+              <div className="ABM-success-content">
+                <div className="ABM-success-icon-wrapper">
+                  <div className="ABM-success-icon">
+                    <i className="ABM-success-icon-text ri-check-line"></i>
                   </div>
                 </div>
-                <p className="abm-success-message">
+                <p className="ABM-success-message">
                   {successMessage}
                 </p>
               </div>
@@ -672,49 +672,49 @@ export default function AdminBillboardModal({
   return createPortal(
     <>
       <div
-        className="abm-super-overlay"
+        className="AdminBillboardModal ABM-super-overlay"
         onClick={handleBackdropClick}
       >
-        <div className="abm-super-container">
+        <div className="ABM-super-container">
           {/* Header - 상단 고정 */}
-          <div className="abm-super-header">
-            <h2 className="abm-super-title">
+          <div className="ABM-super-header">
+            <h2 className="ABM-super-title">
               <i className="ri-image-2-line"></i>
               메인 댄스빌보드 설정
             </h2>
           </div>
 
           {/* Content - 스크롤 가능 */}
-          <div className="abm-super-content"><div className="abm-super-content-inner">
+          <div className="ABM-super-content"><div className="ABM-super-content-inner">
             {/* 댄스빌보드 활성화/비활성화 */}
-            <div className="abm-toggle-container">
-              <div className="abm-toggle-content">
-                <label className="abm-toggle-label">댄스빌보드 활성화</label>
-                <p className="abm-toggle-desc">
+            <div className="ABM-toggle-container">
+              <div className="ABM-toggle-content">
+                <label className="ABM-toggle-label">댄스빌보드 활성화</label>
+                <p className="ABM-toggle-desc">
                   댄스빌보드 기능을 전체적으로 켜거나 끕니다
                 </p>
               </div>
               <button
                 onClick={() => onUpdateSettings({ enabled: !settings.enabled })}
-                className={`abm-toggle-switch ${settings.enabled ? "abm-toggle-switch-on" : "abm-toggle-switch-off"
+                className={`ABM-toggle-switch ${settings.enabled ? "ABM-toggle-switch-on" : "ABM-toggle-switch-off"
                   }`}
               >
                 <span
-                  className={`abm-toggle-thumb ${settings.enabled ? "abm-toggle-thumb-on" : "abm-toggle-thumb-off"
+                  className={`ABM-toggle-thumb ${settings.enabled ? "ABM-toggle-thumb-on" : "ABM-toggle-thumb-off"
                     }`}
                 />
               </button>
             </div>
 
             {/* 자동 슬라이드 시간 (슬라이더) */}
-            <div className="abm-slider-section">
-              <div className="abm-slider-header">
-                <label className="abm-slider-label">자동 슬라이드 시간</label>
-                <span className="abm-slider-value">
+            <div className="ABM-slider-section">
+              <div className="ABM-slider-header">
+                <label className="ABM-slider-label">자동 슬라이드 시간</label>
+                <span className="ABM-slider-value">
                   {formatTime(settings.autoSlideInterval)}
                 </span>
               </div>
-              <p className="abm-slider-desc">
+              <p className="ABM-slider-desc">
                 댄스빌보드 이미지가 자동으로 넘어가는 시간 간격 (1초 ~ 30초)
               </p>
               <input
@@ -726,9 +726,9 @@ export default function AdminBillboardModal({
                 onChange={(e) =>
                   onUpdateSettings({ autoSlideInterval: parseInt(e.target.value) })
                 }
-                className="abm-slider-input slider-purple"
+                className="ABM-slider-input slider-purple"
               />
-              <div className="abm-slider-marks">
+              <div className="ABM-slider-marks">
                 <span>1초</span>
                 <span>15초</span>
                 <span>30초</span>
@@ -736,14 +736,14 @@ export default function AdminBillboardModal({
             </div>
 
             {/* 비활동 타이머 (슬라이더) */}
-            <div className="abm-slider-section">
-              <div className="abm-slider-header">
-                <label className="abm-slider-label">비활동 후 자동 표시</label>
-                <span className="abm-slider-value">
+            <div className="ABM-slider-section">
+              <div className="ABM-slider-header">
+                <label className="ABM-slider-label">비활동 후 자동 표시</label>
+                <span className="ABM-slider-value">
                   {formatTime(settings.inactivityTimeout)}
                 </span>
               </div>
-              <p className="abm-slider-desc">
+              <p className="ABM-slider-desc">
                 사용자 활동이 없을 때 댄스빌보드을 자동으로 표시하는 시간 (0분 = 비활성 ~ 60분)
               </p>
               <input
@@ -755,9 +755,9 @@ export default function AdminBillboardModal({
                 onChange={(e) =>
                   onUpdateSettings({ inactivityTimeout: parseInt(e.target.value) })
                 }
-                className="abm-slider-input slider-purple"
+                className="ABM-slider-input slider-purple"
               />
-              <div className="abm-slider-marks">
+              <div className="ABM-slider-marks">
                 <span>비활성</span>
                 <span>30분</span>
                 <span>60분</span>
@@ -765,10 +765,10 @@ export default function AdminBillboardModal({
             </div>
 
             {/* 첫 방문 시 자동 표시 */}
-            <div className="abm-toggle-container">
-              <div className="abm-toggle-content">
-                <label className="abm-toggle-label">첫 방문 시 자동 표시</label>
-                <p className="abm-toggle-desc">
+            <div className="ABM-toggle-container">
+              <div className="ABM-toggle-content">
+                <label className="ABM-toggle-label">첫 방문 시 자동 표시</label>
+                <p className="ABM-toggle-desc">
                   페이지를 처음 열 때 댄스빌보드을 자동으로 표시합니다
                 </p>
               </div>
@@ -776,25 +776,25 @@ export default function AdminBillboardModal({
                 onClick={() =>
                   onUpdateSettings({ autoOpenOnLoad: !settings.autoOpenOnLoad })
                 }
-                className={`abm-toggle-switch ${settings.autoOpenOnLoad ? "abm-toggle-switch-on" : "abm-toggle-switch-off"
+                className={`ABM-toggle-switch ${settings.autoOpenOnLoad ? "ABM-toggle-switch-on" : "ABM-toggle-switch-off"
                   }`}
               >
                 <span
-                  className={`abm-toggle-thumb ${settings.autoOpenOnLoad ? "abm-toggle-thumb-on" : "abm-toggle-thumb-off"
+                  className={`ABM-toggle-thumb ${settings.autoOpenOnLoad ? "ABM-toggle-thumb-on" : "ABM-toggle-thumb-off"
                     }`}
                 />
               </button>
             </div>
 
             {/* 전환 효과 속도 (슬라이더) */}
-            <div className="abm-slider-section">
-              <div className="abm-slider-header">
-                <label className="abm-slider-label">전환 효과 속도</label>
-                <span className="abm-slider-value">
+            <div className="ABM-slider-section">
+              <div className="ABM-slider-header">
+                <label className="ABM-slider-label">전환 효과 속도</label>
+                <span className="ABM-slider-value">
                   {formatTime(settings.transitionDuration)}
                 </span>
               </div>
-              <p className="abm-slider-desc">
+              <p className="ABM-slider-desc">
                 이미지가 전환될 때 페이드 인/아웃 효과의 속도 (0.1초 ~ 2초)
               </p>
               <input
@@ -806,9 +806,9 @@ export default function AdminBillboardModal({
                 onChange={(e) =>
                   onUpdateSettings({ transitionDuration: parseInt(e.target.value) })
                 }
-                className="abm-slider-input slider-purple"
+                className="ABM-slider-input slider-purple"
               />
-              <div className="abm-slider-marks">
+              <div className="ABM-slider-marks">
                 <span>0.1초</span>
                 <span>1초</span>
                 <span>2초</span>
@@ -816,109 +816,109 @@ export default function AdminBillboardModal({
             </div>
 
             {/* 재생 순서 */}
-            <div className="abm-playorder-section">
-              <label className="abm-playorder-label">재생 순서</label>
-              <p className="abm-playorder-desc">
+            <div className="ABM-playorder-section">
+              <label className="ABM-playorder-label">재생 순서</label>
+              <p className="ABM-playorder-desc">
                 댄스빌보드 이미지를 표시하는 순서를 설정합니다
               </p>
-              <div className="abm-playorder-grid">
+              <div className="ABM-playorder-grid">
                 <button
                   onClick={() => handlePlayOrderChange('sequential')}
-                  className={`abm-playorder-btn ${settings.playOrder === 'sequential'
-                    ? 'abm-playorder-btn-active'
-                    : 'abm-playorder-btn-inactive'
+                  className={`ABM-playorder-btn ${settings.playOrder === 'sequential'
+                    ? 'ABM-playorder-btn-active'
+                    : 'ABM-playorder-btn-inactive'
                     }`}
                 >
-                  <div className="abm-playorder-btn-content">
-                    <i className="abm-playorder-btn-icon ri-sort-asc"></i>
-                    <span className="abm-playorder-btn-title">순차 재생</span>
+                  <div className="ABM-playorder-btn-content">
+                    <i className="ABM-playorder-btn-icon ri-sort-asc"></i>
+                    <span className="ABM-playorder-btn-title">순차 재생</span>
                   </div>
-                  <p className="abm-playorder-btn-subtitle">등록 순서대로</p>
+                  <p className="ABM-playorder-btn-subtitle">등록 순서대로</p>
                 </button>
                 <button
                   onClick={() => handlePlayOrderChange('random')}
-                  className={`abm-playorder-btn ${settings.playOrder === 'random'
-                    ? 'abm-playorder-btn-active'
-                    : 'abm-playorder-btn-inactive'
+                  className={`ABM-playorder-btn ${settings.playOrder === 'random'
+                    ? 'ABM-playorder-btn-active'
+                    : 'ABM-playorder-btn-inactive'
                     }`}
                 >
-                  <div className="abm-playorder-btn-content">
-                    <i className="abm-playorder-btn-icon ri-shuffle-line"></i>
-                    <span className="abm-playorder-btn-title">30분 랜덤</span>
+                  <div className="ABM-playorder-btn-content">
+                    <i className="ABM-playorder-btn-icon ri-shuffle-line"></i>
+                    <span className="ABM-playorder-btn-title">30분 랜덤</span>
                   </div>
-                  <p className="abm-playorder-btn-subtitle">30분마다 재배열</p>
+                  <p className="ABM-playorder-btn-subtitle">30분마다 재배열</p>
                 </button>
               </div>
             </div>
 
             {/* 날짜 범위 필터 */}
-            <div className="abm-daterange-section">
-              <label className="abm-daterange-label">일정 날짜 범위</label>
-              <p className="abm-daterange-desc">
+            <div className="ABM-daterange-section">
+              <label className="ABM-daterange-label">일정 날짜 범위</label>
+              <p className="ABM-daterange-desc">
                 특정 기간의 일정만 댄스빌보드에 표시합니다 (미설정 시 전체 표시)
               </p>
-              <div className="abm-daterange-inputs">
-                <div className="abm-daterange-input-group">
-                  <label className="abm-daterange-input-label">시작 날짜</label>
-                  <div className="abm-daterange-input-row">
-                    <div className="abm-daterange-input-wrapper">
+              <div className="ABM-daterange-inputs">
+                <div className="ABM-daterange-input-group">
+                  <label className="ABM-daterange-input-label">시작 날짜</label>
+                  <div className="ABM-daterange-input-row">
+                    <div className="ABM-daterange-input-wrapper">
                       <input
                         type="date"
                         value={settings.dateRangeStart || todayKST}
                         min={todayKST}
                         onChange={(e) => onUpdateSettings({ dateRangeStart: e.target.value || null })}
-                        className="abm-daterange-input"
+                        className="ABM-daterange-input"
                       />
                     </div>
                     <button
                       onClick={() => onUpdateSettings({ dateRangeStart: null })}
-                      className={`abm-daterange-clear-btn ${!settings.dateRangeStart
-                        ? 'abm-daterange-clear-btn-active'
-                        : 'abm-daterange-clear-btn-inactive'
+                      className={`ABM-daterange-clear-btn ${!settings.dateRangeStart
+                        ? 'ABM-daterange-clear-btn-active'
+                        : 'ABM-daterange-clear-btn-inactive'
                         }`}
                       title="시작 날짜 초기화"
                     >
-                      <i className="abm-daterange-clear-icon ri-close-line"></i>
+                      <i className="ABM-daterange-clear-icon ri-close-line"></i>
                     </button>
                   </div>
                 </div>
-                <div className="abm-daterange-input-group">
-                  <label className="abm-daterange-input-label">종료 날짜</label>
-                  <div className="abm-daterange-input-row">
-                    <div className="abm-daterange-input-wrapper">
+                <div className="ABM-daterange-input-group">
+                  <label className="ABM-daterange-input-label">종료 날짜</label>
+                  <div className="ABM-daterange-input-row">
+                    <div className="ABM-daterange-input-wrapper">
                       <input
                         type="date"
                         value={settings.dateRangeEnd || ''}
                         min={settings.dateRangeStart || undefined}
                         onChange={(e) => onUpdateSettings({ dateRangeEnd: e.target.value || null })}
-                        className="abm-daterange-input"
+                        className="ABM-daterange-input"
                         style={!settings.dateRangeEnd ? { color: 'transparent' } : {}}
                       />
                       {!settings.dateRangeEnd && (
-                        <span className="abm-daterange-placeholder">
+                        <span className="ABM-daterange-placeholder">
                           지정안함
                         </span>
                       )}
                     </div>
                     <button
                       onClick={() => onUpdateSettings({ dateRangeEnd: null })}
-                      className={`abm-daterange-clear-btn ${!settings.dateRangeEnd
-                        ? 'abm-daterange-clear-btn-active'
-                        : 'abm-daterange-clear-btn-inactive'
+                      className={`ABM-daterange-clear-btn ${!settings.dateRangeEnd
+                        ? 'ABM-daterange-clear-btn-active'
+                        : 'ABM-daterange-clear-btn-inactive'
                         }`}
                       title="종료 날짜 초기화"
                     >
-                      <i className="abm-daterange-clear-icon ri-close-line"></i>
+                      <i className="ABM-daterange-clear-icon ri-close-line"></i>
                     </button>
                   </div>
                 </div>
               </div>
 
               {/* 날짜 범위 표시 여부 */}
-              <div className="abm-daterange-toggle-container">
-                <div className="abm-daterange-toggle-content">
-                  <label className="abm-daterange-toggle-label">날짜 범위 표시</label>
-                  <p className="abm-daterange-toggle-desc">
+              <div className="ABM-daterange-toggle-container">
+                <div className="ABM-daterange-toggle-content">
+                  <label className="ABM-daterange-toggle-label">날짜 범위 표시</label>
+                  <p className="ABM-daterange-toggle-desc">
                     댄스빌보드에 날짜 범위를 표시합니다
                   </p>
                 </div>
@@ -926,11 +926,11 @@ export default function AdminBillboardModal({
                   onClick={() =>
                     onUpdateSettings({ showDateRange: !settings.showDateRange })
                   }
-                  className={`abm-toggle-switch ${settings.showDateRange ? "abm-toggle-switch-on" : "abm-toggle-switch-off"
+                  className={`ABM-toggle-switch ${settings.showDateRange ? "ABM-toggle-switch-on" : "ABM-toggle-switch-off"
                     }`}
                 >
                   <span
-                    className={`abm-toggle-thumb ${settings.showDateRange ? "abm-toggle-thumb-on" : "abm-toggle-thumb-off"
+                    className={`ABM-toggle-thumb ${settings.showDateRange ? "ABM-toggle-thumb-on" : "ABM-toggle-thumb-off"
                       }`}
                   />
                 </button>
@@ -938,10 +938,10 @@ export default function AdminBillboardModal({
             </div>
 
             {/* 제외 요일 */}
-            <div className="abm-weekdays-section">
-              <label className="abm-weekdays-label">제외 요일</label>
-              <p className="abm-weekdays-desc">선택한 요일의 이벤트는 표시되지 않습니다</p>
-              <div className="abm-weekdays-grid">
+            <div className="ABM-weekdays-section">
+              <label className="ABM-weekdays-label">제외 요일</label>
+              <p className="ABM-weekdays-desc">선택한 요일의 이벤트는 표시되지 않습니다</p>
+              <div className="ABM-weekdays-grid">
                 {[
                   { value: 0, label: "일요일" },
                   { value: 1, label: "월요일" },
@@ -960,9 +960,9 @@ export default function AdminBillboardModal({
                         : [...excluded, day.value];
                       onUpdateSettings({ excludedWeekdays: newExcluded });
                     }}
-                    className={`abm-weekdays-btn ${(settings.excludedWeekdays || []).includes(day.value)
-                      ? "abm-weekdays-btn-excluded"
-                      : "abm-weekdays-btn-normal"
+                    className={`ABM-weekdays-btn ${(settings.excludedWeekdays || []).includes(day.value)
+                      ? "ABM-weekdays-btn-excluded"
+                      : "ABM-weekdays-btn-normal"
                       }`}
                   >
                     {day.label.substring(0, 1)}
@@ -972,14 +972,14 @@ export default function AdminBillboardModal({
             </div>
 
             {/* 특정 이벤트 제외 */}
-            <div className="abm-events-section">
-              <label className="abm-events-label">
+            <div className="ABM-events-section">
+              <label className="ABM-events-label">
                 🚫 제외할 이벤트
               </label>
-              <p className="abm-events-desc">선택한 이벤트는 빌보드에 표시되지 않습니다 (당일 포함 이후 이벤트만 표시)</p>
-              <div className="abm-events-list"><div className="abm-events-list-inner">
+              <p className="ABM-events-desc">선택한 이벤트는 빌보드에 표시되지 않습니다 (당일 포함 이후 이벤트만 표시)</p>
+              <div className="ABM-events-list"><div className="ABM-events-list-inner">
                 {mainBillboardEvents.length === 0 ? (
-                  <p className="abm-events-empty">표시할 이벤트가 없습니다.</p>
+                  <p className="ABM-events-empty">표시할 이벤트가 없습니다.</p>
                 ) : (
                   mainBillboardEvents.map((event) => {
                     const eventDate = new Date(event?.start_date);
@@ -990,7 +990,7 @@ export default function AdminBillboardModal({
                     return (
                       <label
                         key={event.id}
-                        className={`abm-events-item ${hasMedia ? 'abm-events-item-media' : 'abm-events-item-no-media'
+                        className={`ABM-events-item ${hasMedia ? 'ABM-events-item-media' : 'ABM-events-item-no-media'
                           }`}
                       >
                         <input
@@ -1004,15 +1004,15 @@ export default function AdminBillboardModal({
                             onUpdateSettings({ excludedEventIds: newExcluded });
                           }}
                           disabled={!hasMedia}
-                          className="abm-events-checkbox"
+                          className="ABM-events-checkbox"
                         />
-                        <span className={`abm-events-text ${hasMedia ? 'abm-events-text-white' : 'abm-events-text-gray'}`}>
+                        <span className={`ABM-events-text ${hasMedia ? 'ABM-events-text-white' : 'ABM-events-text-gray'}`}>
                           {event.title}
-                          <span className="abm-events-date">
+                          <span className="ABM-events-date">
                             ({event.start_date} {weekday})
                           </span>
                           {!hasMedia && (
-                            <span className="abm-events-badge">
+                            <span className="ABM-events-badge">
                               [이미지 없음 - 댄스빌보드 미노출]
                             </span>
                           )}
@@ -1025,12 +1025,12 @@ export default function AdminBillboardModal({
             </div>
 
             {/* 기본 썸네일 설정 */}
-            <div className="abm-section-box" style={{ marginTop: '20px', marginBottom: '20px' }}>
-              <h4 className="abm-summary-header">
+            <div className="ABM-section-box" style={{ marginTop: '20px', marginBottom: '20px' }}>
+              <h4 className="ABM-summary-header">
                 <i className="ri-image-edit-line"></i>
                 기본 썸네일 설정
               </h4>
-              <p className="abm-section-desc">
+              <p className="ABM-section-desc">
                 이미지가 없는 이벤트에 표시될 기본 이미지를 설정합니다. (자동 최적화 적용됨)
               </p>
 
@@ -1098,53 +1098,53 @@ export default function AdminBillboardModal({
             </div>
 
             {/* 현재 설정 요약 */}
-            <div className="abm-summary-section">
-              <h4 className="abm-summary-header">
+            <div className="ABM-summary-section">
+              <h4 className="ABM-summary-header">
                 <i className="ri-information-line"></i>
                 현재 설정
               </h4>
-              <div className="abm-summary-list">
-                <div className="abm-summary-row">
+              <div className="ABM-summary-list">
+                <div className="ABM-summary-row">
                   <span>댄스빌보드:</span>
-                  <span className={settings.enabled ? "abm-summary-value-green" : "abm-summary-value-red"}>
+                  <span className={settings.enabled ? "ABM-summary-value-green" : "ABM-summary-value-red"}>
                     {settings.enabled ? "활성화" : "비활성화"}
                   </span>
                 </div>
-                <div className="abm-summary-row">
+                <div className="ABM-summary-row">
                   <span>슬라이드 간격:</span>
-                  <span className="abm-summary-value-purple">{formatTime(settings.autoSlideInterval)}</span>
+                  <span className="ABM-summary-value-purple">{formatTime(settings.autoSlideInterval)}</span>
                 </div>
-                <div className="abm-summary-row">
+                <div className="ABM-summary-row">
                   <span>비활동 타이머:</span>
-                  <span className="abm-summary-value-purple">{formatTime(settings.inactivityTimeout)}</span>
+                  <span className="ABM-summary-value-purple">{formatTime(settings.inactivityTimeout)}</span>
                 </div>
-                <div className="abm-summary-row">
+                <div className="ABM-summary-row">
                   <span>자동 표시:</span>
-                  <span className={settings.autoOpenOnLoad ? "abm-summary-value-green" : "abm-summary-value-gray"}>
+                  <span className={settings.autoOpenOnLoad ? "ABM-summary-value-green" : "ABM-summary-value-gray"}>
                     {settings.autoOpenOnLoad ? "켜짐" : "꺼짐"}
                   </span>
                 </div>
-                <div className="abm-summary-row">
+                <div className="ABM-summary-row">
                   <span>전환 속도:</span>
-                  <span className="abm-summary-value-purple">{formatTime(settings.transitionDuration)}</span>
+                  <span className="ABM-summary-value-purple">{formatTime(settings.transitionDuration)}</span>
                 </div>
-                <div className="abm-summary-row">
+                <div className="ABM-summary-row">
                   <span>재생 순서:</span>
-                  <span className="abm-summary-value-purple">
+                  <span className="ABM-summary-value-purple">
                     {settings.playOrder === 'random' ? '랜덤' : '순차'}
                   </span>
                 </div>
-                <div className="abm-summary-row">
+                <div className="ABM-summary-row">
                   <span>날짜 범위:</span>
-                  <span className="abm-summary-value-purple">
+                  <span className="ABM-summary-value-purple">
                     {settings.dateRangeStart && settings.dateRangeEnd
                       ? `${settings.dateRangeStart} ~ ${settings.dateRangeEnd}`
                       : '전체'}
                   </span>
                 </div>
-                <div className="abm-summary-row">
+                <div className="ABM-summary-row">
                   <span>날짜 표시:</span>
-                  <span className={settings.showDateRange ? "abm-summary-value-green" : "abm-summary-value-gray"}>
+                  <span className={settings.showDateRange ? "ABM-summary-value-green" : "ABM-summary-value-gray"}>
                     {settings.showDateRange ? "켜짐" : "꺼짐"}
                   </span>
                 </div>
@@ -1153,17 +1153,17 @@ export default function AdminBillboardModal({
           </div></div>
 
           {/* Footer - 하단 고정 */}
-          <div className="abm-super-footer">
+          <div className="ABM-super-footer">
             <button
               onClick={onResetSettings}
-              className="abm-super-reset-btn"
+              className="ABM-super-reset-btn"
             >
               <i className="ri-refresh-line"></i>
               기본값으로 초기화
             </button>
             <button
               onClick={onClose}
-              className="abm-super-close-btn"
+              className="ABM-super-close-btn"
             >
               완료
             </button>
@@ -1213,15 +1213,15 @@ function DefaultThumbnailUploader({
   };
 
   return (
-    <div className="abm-thumbnail-uploader">
-      <label className="abm-thumbnail-label">{label}</label>
-      <div className="abm-thumbnail-preview-area">
+    <div className="ABM-thumbnail-uploader">
+      <label className="ABM-thumbnail-label">{label}</label>
+      <div className="ABM-thumbnail-preview-area">
         {currentUrl ? (
-          <img src={currentUrl} alt={label} className="abm-thumbnail-preview" />
+          <img src={currentUrl} alt={label} className="ABM-thumbnail-preview" />
         ) : (
-          <div className="abm-thumbnail-placeholder">이미지 없음</div>
+          <div className="ABM-thumbnail-placeholder">이미지 없음</div>
         )}
-        <div className="abm-thumbnail-actions">
+        <div className="ABM-thumbnail-actions">
           <input
             type="file"
             ref={fileInputRef}
@@ -1232,11 +1232,11 @@ function DefaultThumbnailUploader({
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading}
-            className="abm-thumbnail-upload-btn"
+            className="ABM-thumbnail-upload-btn"
           >
             {uploading ? '업로드 중...' : '변경하기'}
           </button>
-          <p className="abm-thumbnail-desc">
+          <p className="ABM-thumbnail-desc">
             * 업로드 시 자동으로 20KB 내외로 최적화됩니다.
           </p>
         </div>

@@ -28,7 +28,7 @@ export function useDeepLinkLogic({ setCurrentMonth }: UseDeepLinkLogicProps) {
                 // Then, wait a bit and do horizontal scroll
                 setTimeout(() => {
                     // Find the horizontal scroll container (correct class name)
-                    const slideContainer = eventCard.closest('.evt-v2-horizontal-scroll');
+                    const slideContainer = eventCard.closest('.ELS-scroller, .USS-scroller, .EHLV-list');
 
                     if (slideContainer) {
                         // Get fresh positions after vertical scroll

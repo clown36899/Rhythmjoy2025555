@@ -1,6 +1,7 @@
 import React from 'react';
-import '../pages/v2/styles/EventCard.css';
-import '../styles/components/InteractivePreview.css';
+// import '../pages/v2/styles/EventCard.css'; // MIGRATED to events.css
+import '../styles/domains/events.css';
+
 
 interface EditablePreviewCardProps {
     event: {
@@ -78,10 +79,10 @@ export const EditablePreviewCard: React.FC<EditablePreviewCardProps> = ({
     }
 
     return (
-        <div className={`card-container card-category-${event.category} editable-preview-card`}>
+        <div className={`ECARD-container ECARD-cat-${event.category} editable-preview-card`}>
             {/* Image Section - Clickable */}
             <div
-                className={`card-image-wrapper card-image-wrapper-${event.category} ${!readOnly ? 'editable-section' : ''}`}
+                className={`ECARD-imageWrapper ECARD-imageWrapper-${event.category} ${!readOnly ? 'EPC-editableSection' : ''}`}
                 onClick={() => !readOnly && onEditImage?.()}
                 title={!readOnly ? "이미지 편집" : undefined}
             >
@@ -89,11 +90,11 @@ export const EditablePreviewCard: React.FC<EditablePreviewCardProps> = ({
                     <img
                         src={event.image}
                         alt={event.title}
-                        className="card-image"
+                        className="ECARD-image"
                     />
                 ) : (
-                    <div className="card-placeholder-bg">
-                        <div className={`card-absolute-inset-0 ${event.category === "class" ? "card-bg-overlay-purple" : "card-bg-overlay-blue"
+                    <div className="ECARD-placeholderBg">
+                        <div className={`ECARD-absoluteInset0 ${event.category === "class" ? "ECARD-bgOverlay-purple" : "ECARD-bgOverlay-blue"
                             }`}>
                             {/* Show "미리보기" text only if showPlaceholders is true or not readOnly */}
                             {(showPlaceholders || !readOnly) && (
@@ -117,7 +118,7 @@ export const EditablePreviewCard: React.FC<EditablePreviewCardProps> = ({
 
                 {/* Category Badge - Clickable */}
                 <div
-                    className={`card-badge ${!readOnly ? 'editable-section' : ''} ${event.category === "class" ? "card-badge-class" : "card-badge-event"
+                    className={`ECARD-badge ${!readOnly ? 'EPC-editableSection' : ''} ${event.category === "class" ? "is-class" : "is-event"
                         }`}
                     onClick={(e) => {
                         e.stopPropagation();
@@ -128,16 +129,16 @@ export const EditablePreviewCard: React.FC<EditablePreviewCardProps> = ({
                     {event.category === "class" ? "강습" : "행사"}
                 </div>
 
-                {/* Edit Icon Overlay */}
+                {/* EEPC-overlayIcon */}
                 {!readOnly && (
-                    <div className="edit-icon-overlay">
+                    <div className="EPC-overlayIcon">
                         <i className="ri-edit-line"></i>
                     </div>
                 )}
             </div>
 
             {/* Text Content */}
-            <div className={`card-text-container card-text-container-${event.category}`}>
+            <div className={`ECARD-textContainer EPC-textContainer ECARD-textContainer-${event.category}`}>
                 {/* Genre - Inline Edit */}
                 {editingField === 'genre' ? (
                     <div style={{ position: 'relative', width: '100%' }}>
@@ -156,7 +157,7 @@ export const EditablePreviewCard: React.FC<EditablePreviewCardProps> = ({
                                 if (e.key === 'Enter') onEditEnd?.();
                             }}
                             placeholder="장르 (직접 입력/선택)"
-                            className={`card-genre-text ${getGenreColor(event.genre || '')}`}
+                            className={`ECARD-genre ${getGenreColor(event.genre || '').replace('card-genre-', 'ECARD-genre-')}`}
                             style={{
                                 width: '100%',
                                 background: 'transparent',
@@ -218,7 +219,7 @@ export const EditablePreviewCard: React.FC<EditablePreviewCardProps> = ({
                     // Only render genre element if it exists OR if in edit mode OR showPlaceholders is true
                     (event.genre || !readOnly || showPlaceholders) && (
                         <p
-                            className={`card-genre-text card-genre-text-${event.category} ${getGenreColor(event.genre || '')} ${!readOnly ? 'editable-section' : ''}`}
+                            className={`ECARD-genre ECARD-genre-${event.category} ${getGenreColor(event.genre || '').replace('card-genre-', 'ECARD-genre-')} ${!readOnly ? 'EPC-editableSection' : ''}`}
                             onClick={(e) => {
                                 e.stopPropagation();
                                 !readOnly && onEditStart?.('genre');
@@ -242,7 +243,7 @@ export const EditablePreviewCard: React.FC<EditablePreviewCardProps> = ({
                             if (e.key === 'Enter') onEditEnd?.();
                         }}
                         placeholder="제목을 입력하세요"
-                        className="card-title-text"
+                        className="ECARD-title"
                         style={{
                             width: '100%',
                             background: 'transparent',
@@ -259,13 +260,13 @@ export const EditablePreviewCard: React.FC<EditablePreviewCardProps> = ({
                     // Only render title if it exists OR if in edit mode OR showPlaceholders is true
                     (event.title || !readOnly || showPlaceholders) && (
                         <h3
-                            className={`card-title-text card-title-text-${event.category} ${!readOnly ? 'editable-section' : ''}`}
+                            className={`ECARD-title ECARD-title-${event.category} ${!readOnly ? 'EPC-editableSection' : ''}`}
                             onClick={() => !readOnly && onEditStart?.('title')}
                             title={!readOnly ? "제목 편집" : undefined}
                             style={{ minHeight: '1em', cursor: !readOnly ? 'text' : 'default' }}
                         >
                             {event.title || ((!readOnly || showPlaceholders) && <span style={{ opacity: 0.5 }}>제목</span>)}
-                            {!readOnly && <i className="ri-edit-line edit-inline-icon"></i>}
+                            {!readOnly && <i className="ri-edit-line EPC-inlineIcon"></i>}
                         </h3>
                     )
                 )}
@@ -273,12 +274,12 @@ export const EditablePreviewCard: React.FC<EditablePreviewCardProps> = ({
                 {/* Date - Clickable */}
                 {(startDate || !readOnly || showPlaceholders) && (
                     <div
-                        className={`card-date-container card-date-container-${event.category} ${!readOnly ? 'editable-section' : ''}`}
+                        className={`ECARD-dateContainer ECARD-dateContainer-${event.category} ${!readOnly ? 'EPC-editableSection' : ''}`}
                         onClick={() => !readOnly && onEditDate?.()}
                         title={!readOnly ? "날짜 편집" : undefined}
                     >
                         <span>{(!startDate && showPlaceholders) ? <span style={{ opacity: 0.5 }}>{dateText}</span> : dateText}</span>
-                        {!readOnly && <i className="ri-edit-line edit-inline-icon"></i>}
+                        {!readOnly && <i className="ri-edit-line EPC-inlineIcon"></i>}
                     </div>
                 )}
             </div>

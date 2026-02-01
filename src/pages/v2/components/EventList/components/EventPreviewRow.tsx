@@ -50,19 +50,19 @@ export const EventPreviewRow: React.FC<EventPreviewRowProps> = ({
     rightElement
 }) => {
     return (
-        <div className={`evt-v2-section ${className}`}>
-            <div className="evt-v2-section-title">
-                <div className="evt-v2-title-main">
-                    {icon && <i className={icon} style={{ color: iconColor }}></i>}
-                    <span>{title}</span>
-                    {count !== undefined && <span className="evt-v2-count-badge">{count}</span>}
+        <div className={`ELS-section ${className}`}>
+            <div className="ELS-header">
+                <div className="ELS-titleGroup">
+                    {icon && <i className={`${icon} ELS-icon`} style={{ color: iconColor }}></i>}
+                    <span className="ELS-title">{title}</span>
+                    {count !== undefined && <span className="ELS-countBadge">{count}</span>}
                     {rightElement}
                 </div>
 
                 {viewAllUrl && (
                     <button
                         onClick={() => window.location.href = viewAllUrl}
-                        className="evt-view-all-btn manual-label-wrapper"
+                        className="ELS-viewAllBtn manual-label-wrapper"
                     >
                         <i className="ri-calendar-event-line"></i>
                         <span className="translated-part">{viewAllLabel}</span>
@@ -74,12 +74,12 @@ export const EventPreviewRow: React.FC<EventPreviewRowProps> = ({
             </div>
 
             {genres && genres.length > 0 && (
-                <div className="evt-v2-genre-container">
-                    <div className="evt-v2-genre-grid">
+                <div className="ELS-genreContainer">
+                    <div className="ELS-genreGrid">
                         {genres.map(g => (
                             <button
                                 key={g}
-                                className={`evt-genre-btn-v3 ${((selectedGenre || '전체') === g) ? 'active' : ''}`}
+                                className={`ELS-genreBtn ${((selectedGenre || '전체') === g) ? 'is-active' : ''}`}
                                 onClick={() => onGenreChange?.(g === '전체' ? null : g)}
                             >
                                 {renderGenreLabel ? renderGenreLabel(g) : g}
@@ -90,25 +90,24 @@ export const EventPreviewRow: React.FC<EventPreviewRowProps> = ({
             )}
 
             <HorizontalScrollNav>
-                <div className="evt-v2-horizontal-scroll">
+                <div className="ELS-scroller">
                     {events.length > 0 ? (
                         events.map(e => (
-                            <div key={e.id} className="card-container">
-                                <EventCard
-                                    event={e}
-                                    onClick={() => onEventClick(e)}
-                                    defaultThumbnailClass={defaultThumbnailClass}
-                                    defaultThumbnailEvent={defaultThumbnailEvent}
-                                    onMouseEnter={(id) => onEventHover?.(id)}
-                                    onMouseLeave={() => onEventHover?.(null)}
-                                    isFavorite={effectiveFavoriteIds.has(e.id)}
-                                    onToggleFavorite={(ev: React.MouseEvent) => handleToggleFavorite(e.id, ev)}
-                                    isHighlighted={highlightEventId === e.id}
-                                />
-                            </div>
+                            <EventCard
+                                key={e.id}
+                                event={e}
+                                onClick={() => onEventClick(e)}
+                                defaultThumbnailClass={defaultThumbnailClass}
+                                defaultThumbnailEvent={defaultThumbnailEvent}
+                                onMouseEnter={(id) => onEventHover?.(id)}
+                                onMouseLeave={() => onEventHover?.(null)}
+                                isFavorite={effectiveFavoriteIds.has(e.id)}
+                                onToggleFavorite={(ev: React.MouseEvent) => handleToggleFavorite(e.id, ev)}
+                                isHighlighted={highlightEventId === e.id}
+                            />
                         ))
                     ) : (
-                        <div className="evt-v2-empty" style={{ padding: '20px', width: '100%', textAlign: 'center' }}>
+                        <div className="ELS-empty">
                             표시할 항목이 없습니다.
                         </div>
                     )}

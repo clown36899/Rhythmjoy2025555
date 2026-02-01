@@ -18,8 +18,9 @@ import { useRandomizedEvents } from "./EventList/hooks/useRandomizedEvents";
 import { useEffect } from "react";
 
 // Styles
-import "../styles/EventListSections.css";
-import "../styles/EventCard.css";
+import "../../../styles/domains/events.css";
+// import "../styles/EventListSections.css"; // Migrated to events.css
+// import "../styles/EventCard.css"; // Will be migrated next
 
 // Sub-components
 import { EventFavoritesView } from "./EventList/components/EventFavoritesView";

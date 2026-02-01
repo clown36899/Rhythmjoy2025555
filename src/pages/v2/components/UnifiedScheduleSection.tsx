@@ -1,6 +1,5 @@
 import React, { useMemo, useRef, useState, useCallback } from 'react';
 import type { SocialSchedule } from '../../social/types';
-import '../styles/UnifiedScheduleSection.css';
 import { getLocalDateString, getKSTDay } from '../utils/eventListUtils';
 import { HorizontalScrollNav } from './HorizontalScrollNav';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -134,17 +133,17 @@ export const UnifiedScheduleSection: React.FC<UnifiedScheduleSectionProps> = ({
     if (combinedList.length === 0) return null;
 
     return (
-        <section className="unified-schedule-section">
-            <div className="unified-schedule-header">
-                <div className="unified-tab-group">
+        <section className="USS-container">
+            <div className="USS-header">
+                <div className="USS-tabGroup">
                     <div
-                        className={`unified-tab-item ${activeTab === 'today' ? 'active' : ''}`}
+                        className={`USS-tabItem ${activeTab === 'today' ? 'is-active' : ''}`}
                         onClick={() => scrollToGroup('today')}
                         style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
                     >
                         오늘 소셜 ({partitionedData.today.length})
                         {partitionedData.today.length > 0 && (
-                            <span className="live-badge manual-label-wrapper" style={{ fontSize: '9px', padding: '1px 4px' }}>
+                            <span className="USS-liveBadge manual-label-wrapper" style={{ fontSize: '9px', padding: '1px 4px' }}>
                                 <span className="translated-part">LIVE {partitionedData.today.length}</span>
                                 <span className="fixed-part ko" translate="no">LIVE {partitionedData.today.length}</span>
                                 <span className="fixed-part en" translate="no">LIVE {partitionedData.today.length}</span>
@@ -154,9 +153,9 @@ export const UnifiedScheduleSection: React.FC<UnifiedScheduleSectionProps> = ({
 
                     {!isSunday && partitionedData.thisWeekRest.length > 0 && (
                         <>
-                            <div className="menu-sep">|</div>
+                            <div className="USS-separator">|</div>
                             <div
-                                className={`unified-tab-item ${activeTab === 'thisWeek' ? 'active' : ''}`}
+                                className={`USS-tabItem ${activeTab === 'thisWeek' ? 'is-active' : ''}`}
                                 onClick={() => scrollToGroup('thisWeek')}
                             >
                                 이번주 ({partitionedData.thisWeekRest.length})
@@ -166,9 +165,9 @@ export const UnifiedScheduleSection: React.FC<UnifiedScheduleSectionProps> = ({
 
                     {partitionedData.nextWeek.length > 0 && (
                         <>
-                            <div className="menu-sep">|</div>
+                            <div className="USS-separator">|</div>
                             <div
-                                className={`unified-tab-item ${activeTab === 'nextWeek' ? 'active' : ''}`}
+                                className={`USS-tabItem ${activeTab === 'nextWeek' ? 'is-active' : ''}`}
                                 onClick={() => scrollToGroup('nextWeek')}
                             >
                                 다음주 ({partitionedData.nextWeek.length})
@@ -177,9 +176,17 @@ export const UnifiedScheduleSection: React.FC<UnifiedScheduleSectionProps> = ({
                     )}
                 </div>
                 <button
-                    className="evt-view-all-btn manual-label-wrapper"
+                    className="manual-label-wrapper"
                     onClick={() => window.location.href = '/calendar'}
-                    style={{ marginLeft: 'auto' }}
+                    style={{
+                        marginLeft: 'auto',
+                        background: 'transparent',
+                        border: 'none',
+                        color: 'rgba(255, 255, 255, 0.5)',
+                        fontSize: '0.8rem',
+                        cursor: 'pointer',
+                        padding: '4px'
+                    }}
                 >
                     <span className="translated-part">View All</span>
                     <span className="fixed-part ko" translate="no">전체보기</span>
@@ -189,7 +196,7 @@ export const UnifiedScheduleSection: React.FC<UnifiedScheduleSectionProps> = ({
             </div>
 
             <HorizontalScrollNav ref={scrollerRef}>
-                <div className="unified-scroller">
+                <div className="USS-scroller">
                     {combinedList.map((item, idx) => {
                         // Find first index of each group for anchor identification
                         const isFirstInGroup = combinedList.findIndex(x => x.group === item.group) === idx;
@@ -197,11 +204,11 @@ export const UnifiedScheduleSection: React.FC<UnifiedScheduleSectionProps> = ({
                         return (
                             <div
                                 key={item.id}
-                                className={`today-card ${isFirstInGroup ? 'unified-anchor-item' : ''}`}
+                                className={`USS-card ${isFirstInGroup ? 'USS-anchorItem' : ''}`}
                                 data-group={isFirstInGroup ? item.group : undefined}
                                 onClick={(e) => handleScheduleClick(e, item)}
                             >
-                                <div className="today-card-image">
+                                <div className="USS-cardImage">
                                     {(item.image_thumbnail || item.image_medium || item.image_url) ? (
                                         <img
                                             src={item.image_thumbnail || item.image_medium || item.image_url || ''}
@@ -209,48 +216,48 @@ export const UnifiedScheduleSection: React.FC<UnifiedScheduleSectionProps> = ({
                                             loading="lazy"
                                         />
                                     ) : (
-                                        <div className="today-placeholder">
+                                        <div className="USS-placeholder">
                                             <i className="ri-calendar-event-line"></i>
                                         </div>
                                     )}
                                     {item.start_time && (
-                                        <div className="today-card-overlay">
-                                            <span className="today-time">{item.start_time.substring(0, 5)}</span>
+                                        <div className="USS-cardOverlay">
+                                            <span className="USS-time">{item.start_time.substring(0, 5)}</span>
                                         </div>
                                     )}
                                     {item.group !== 'today' && item.date && (
-                                        <div className="today-card-date-line">
+                                        <div className="USS-dateLine">
                                             {new Date(item.date + 'T00:00:00').toLocaleDateString('ko-KR', { weekday: 'short' })} {new Date(item.date + 'T00:00:00').getDate()}일
                                         </div>
                                     )}
                                 </div>
-                                <div className="today-card-info">
-                                    <h3 className="today-card-title">{item.title}</h3>
-                                    <p className="today-card-place">
+                                <div className="USS-cardInfo">
+                                    <h3 className="USS-title">{item.title}</h3>
+                                    <p className="USS-place">
                                         <i className="ri-map-pin-line"></i>
-                                        <span className="today-card-place-text">{item.place_name || '장소 미정'}</span>
+                                        <span>{item.place_name || '장소 미정'}</span>
                                     </p>
                                 </div>
 
                                 {item.group === 'today' && (
-                                    <div className="all-social-dday-badge all-social-dday-today">
+                                    <div className="USS-ddayBadge is-today">
                                         D-Day
                                     </div>
                                 )}
                                 {item.group === 'thisWeek' && (
-                                    <div className="all-social-dday-badge">
+                                    <div className="USS-ddayBadge">
                                         이번주
                                     </div>
                                 )}
                                 {item.group === 'nextWeek' && (
-                                    <div className="all-social-dday-badge all-social-dday-next">
+                                    <div className="USS-ddayBadge is-next">
                                         다음주
                                     </div>
                                 )}
                             </div>
                         );
                     })}
-                    <div className="scroller-spacer"></div>
+                    <div className="USS-scrollerSpacer"></div>
                 </div>
             </HorizontalScrollNav>
         </section>

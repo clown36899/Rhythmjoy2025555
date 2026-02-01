@@ -62,7 +62,7 @@ export function useCalendarGesture({
     const bottomNavHeight = bottomNav ? bottomNav.offsetHeight : FOOTER_HEIGHT;
 
     // 2. Filter Bar Height
-    const filterBarSelector = '.evt-sticky-header';
+    const filterBarSelector = '.USS-header, .ELS-scopeSwitcherContainer';
     const filterBar = document.querySelector<HTMLElement>(filterBarSelector);
     const filterBarHeight = filterBar ? filterBar.offsetHeight : 34; // Fallback 34
 

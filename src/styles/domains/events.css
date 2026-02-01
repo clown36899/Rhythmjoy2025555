@@ -1570,11 +1570,11 @@
 /* ==========================================================================
    EventRegistrationModal Scope (ERM-)
    ========================================================================== */
-@scope (.EventRegistrationModal) {
+@scope (:is(.EventRegistrationModal, .EventEditModal)) {
     :scope {
         position: fixed;
         inset: 0;
-        background-color: rgba(0, 0, 0, 0.8);
+        background: rgba(0, 0, 0, 0.5);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -3168,6 +3168,4932 @@
             padding: 40px;
             max-height: 100%;
             overflow-y: auto;
+        }
+    }
+}
+
+/* ==========================================================================
+   EventListSections Scope (ELS-)
+   ========================================================================== */
+@scope (.ELS-section) {
+    :scope {
+        margin: 20px 0;
+        position: relative;
+    }
+
+    .ELS-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        padding: 0 16px;
+        margin-bottom: 8px;
+        width: 100%;
+    }
+
+    .ELS-titleGroup {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        min-width: 0;
+        flex: 1;
+    }
+
+    .ELS-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #fff;
+        white-space: nowrap;
+    }
+
+    .ELS-icon {
+        font-size: 1.2rem;
+        color: #9ca3af;
+    }
+
+    .ELS-countBadge {
+        background: rgba(255, 255, 255, 0.1);
+        color: #9ca3af;
+        padding: 2px 8px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 500;
+    }
+
+    .ELS-viewAllBtn {
+        margin-left: 6px;
+        padding: 4px 10px;
+        color: #d0d3d6;
+        background: transparent;
+        border-radius: 1rem;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        font-size: 12px;
+        white-space: nowrap;
+        flex-shrink: 1;
+        min-width: 0;
+    }
+
+    .ELS-scroller {
+        display: flex;
+        gap: 12px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding: 10px 16px 20px 16px;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+        scroll-behavior: smooth;
+        overscroll-behavior-x: contain;
+        will-change: scroll-position;
+        touch-action: pan-x pan-y;
+    }
+
+    .ELS-cardCompact {
+        flex: 0 0 auto;
+        width: 25%;
+        max-width: 105px;
+    }
+
+    .ELS-cardCompact .card-image-wrapper {
+        aspect-ratio: 1 / 1 !important;
+        height: auto !important;
+    }
+
+    .ELS-cardCompact .card-title-text {
+        font-size: 0.8rem;
+        margin-bottom: 2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .ELS-cardCompact .card-text-container {
+        padding: 6px 4px !important;
+    }
+
+    .ELS-cardCompact .card-favorite-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 14px;
+    }
+
+    /* Genre Scroller */
+    .ELS-genreContainer {
+        padding: 0 16px 12px 16px;
+    }
+
+    .ELS-genreScroller {
+        display: flex;
+        gap: 6px;
+        overflow-x: auto;
+        padding: 0 16px 12px 16px;
+        scrollbar-width: none;
+    }
+
+    .ELS-genreGrid {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .ELS-genreBtn {
+        padding: 6px 12px;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.03);
+        color: #a1a1aa;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+
+    .ELS-genreBtn:hover {
+        background: rgba(255, 255, 255, 0.08);
+        color: #fff;
+        transform: translateY(-1px);
+    }
+
+    .ELS-genreBtn.is-active {
+        background: #fff;
+        color: #000;
+        border-color: #fff;
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
+    }
+
+    /* Global Scope Switcher */
+    .ELS-scopeSwitcherContainer {
+        padding: 20px 16px 10px;
+        display: flex;
+        justify-content: center;
+    }
+
+    .ELS-scopeSwitcher {
+        display: flex;
+        background: #1a1a1a;
+        padding: 4px;
+        border-radius: 12px;
+        width: 100%;
+        max-width: 400px;
+        position: relative;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .ELS-scopeBtn {
+        flex: 1;
+        padding: 10px;
+        border: none;
+        background: transparent;
+        color: #71717a;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        z-index: 2;
+        transition: color 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
+
+    .ELS-scopeBtn.is-active {
+        color: #fff;
+    }
+
+    .ELS-scopeIndicator {
+        position: absolute;
+        top: 4px;
+        left: 4px;
+        width: calc(50% - 4px);
+        height: calc(100% - 8px);
+        background: #27272a;
+        border-radius: 8px;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .ELS-scopeSwitcher[data-scope="overseas"] .ELS-scopeIndicator {
+        transform: translateX(100%);
+    }
+
+    .ELS-empty {
+        padding: 2rem;
+        text-align: center;
+        color: #9ca3af;
+        font-size: 0.875rem;
+        width: 100%;
+    }
+
+    .ELS-subSection {
+        margin-top: 1rem;
+        padding-bottom: 1rem;
+    }
+
+    .ELS-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        padding: 0 8px;
+    }
+}
+
+/* ==========================================================================
+   EventHorizontalListView Scope (EHLV-)
+   ========================================================================== */
+@scope (.EHLV-container) {
+    :scope {
+        padding: 0 0 100px 0;
+        min-height: 100vh;
+        background-color: #000000;
+    }
+
+    .EHLV-group {
+        padding: 20px 0 0 0;
+    }
+
+    .EHLV-header {
+        display: flex;
+        align-items: baseline;
+        gap: 8px;
+        padding: 0 16px 15px 16px;
+    }
+
+    .EHLV-year {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #9ca3af;
+    }
+
+    .EHLV-month {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: #ffffff;
+    }
+
+    .EHLV-list {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 0 14px;
+    }
+
+    .EHLV-card {
+        display: flex;
+        background: #252525;
+        border-radius: 12px;
+        overflow: hidden;
+        height: 110px;
+        cursor: pointer;
+        transition: transform 0.2s ease, background-color 0.2s ease;
+        border: 1px solid #333;
+    }
+
+    .EHLV-card:active {
+        transform: scale(0.98);
+        background: #2a2a2a;
+    }
+
+    .EHLV-cardImage {
+        width: 110px;
+        height: 110px;
+        flex-shrink: 0;
+    }
+
+    .EHLV-cardImage img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .EHLV-cardContent {
+        flex: 1;
+        padding: 12px 14px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-width: 0;
+    }
+
+    .EHLV-cardTitle {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #ffffff;
+        margin: 0 0 6px 0;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        line-height: 1.3;
+    }
+
+    .EHLV-cardDate {
+        font-size: 0.85rem;
+        color: #10b981;
+        font-weight: 600;
+        margin: 0 0 4px 0;
+    }
+
+    .EHLV-cardLocation {
+        font-size: 0.85rem;
+        color: #9ca3af;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+}
+
+/* ==========================================================================
+   EventCard Scope (ECARD-)
+   ========================================================================== */
+@scope (.ECARD-container) {
+    :scope {
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        max-width: 100%;
+        min-width: 0;
+        position: relative;
+    }
+
+    /* Variant Overrides */
+    :scope.is-variant-favorite {
+        width: 100% !important;
+        max-width: none !important;
+        flex: 0 0 auto !important;
+    }
+
+    :scope.is-variant-favorite .ECARD-imageWrapper {
+        width: 100% !important;
+        max-width: none !important;
+    }
+
+    /* Modifiers */
+    /* :scope.is-past { } - Reserved for future use */
+
+    /* :scope.is-highlighted { } - Reserved for future use */
+
+    :scope.ECARD-cat-event {
+        flex: 0 0 auto !important;
+        width: 120px;
+    }
+
+    :scope.ECARD-cat-class {
+        flex: 0 0 auto !important;
+        width: 120px;
+    }
+
+    /* Favorites View Overrides - handled via parent selector usually, or scoped overrides */
+    /* If we are inside .evt-favorites-view-container, scope matching handles it if we structured correctly.
+       But @scope assumes .ECARD-container is the root.
+    */
+
+    /* Image Wrapper */
+    .ECARD-imageWrapper {
+        position: relative;
+        width: 100%;
+        overflow: hidden;
+        aspect-ratio: 13 / 16;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 12px;
+    }
+
+    .ECARD-imageWrapper.is-highlighted {
+        box-shadow: 0 0 0 3px var(--highlight-color, transparent);
+    }
+
+    /* Image */
+    .ECARD-image {
+        height: 100%;
+        width: 100%;
+        object-fit: cover;
+        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Overlays */
+    .ECARD-overlayCenter {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+    }
+
+    .ECARD-overlayText-semi {
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 2.25rem;
+        font-weight: 700;
+    }
+
+    .ECARD-overlayText-faint {
+        color: rgba(255, 255, 255, 0.1);
+        font-size: 2.25rem;
+        font-weight: 700;
+        position: relative;
+    }
+
+    .ECARD-placeholderBg {
+        height: 100%;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-size: cover;
+        background-position: center;
+    }
+
+    .ECARD-bgOverlay-purple {
+        position: absolute;
+        inset: 0;
+        background-color: rgba(168, 85, 247, 0.3);
+    }
+
+    .ECARD-bgOverlay-blue {
+        position: absolute;
+        inset: 0;
+        background-color: rgba(59, 130, 246, 0.3);
+    }
+
+    /* Badges */
+    .ECARD-badge {
+        position: absolute;
+        top: 4px;
+        right: 2px;
+        display: none;
+        /* Default hidden? referenced code says display: none */
+        padding: 2px 5px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        z-index: 2;
+        transition: all 0.3s ease;
+    }
+
+    .ECARD-badge.is-event {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(37, 99, 235, 0.9));
+        color: white;
+    }
+
+    .ECARD-badge.is-class {
+        background: linear-gradient(135deg, rgba(147, 51, 234, 0.9), rgba(126, 34, 206, 0.9));
+        color: white;
+    }
+
+    .ECARD-badge.is-past {
+        /* Defined in code but no specific style provided in reference except maybe generic?
+           Using event style as fallback or neutral? Reference says .card-badge-past but style block was empty/missing in snippet or just generic.
+           Let's assume it needs visibility + generic color if not specified.
+           Wait, snippet showed .card-badge logic in jsx but CSS for .card-badge-past was missing or defined elsewhere?
+           Ah, existing CSS has .card-badge-past logic potentially mixed or missing. 
+           Will use a neutral gray for past.
+        */
+        background: rgba(100, 100, 100, 0.9);
+        color: #ddd;
+    }
+
+    .ECARD-ddayBadge {
+        position: absolute;
+        top: -6px;
+        left: -6px;
+        padding: 3px 8px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.3px;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.95), rgba(37, 99, 235, 0.95));
+        color: white;
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        z-index: 3;
+        transition: all 0.3s ease;
+    }
+
+    .ECARD-ddayBadge.is-today {
+        background: linear-gradient(135deg, rgba(239, 68, 68, 0.95), rgba(220, 38, 38, 0.95));
+        animation: ecard-ddayPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes ecard-ddayPulse {
+
+        0%,
+        100% {
+            transform: scale(1);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        50% {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.5);
+        }
+    }
+
+    /* Favorite Button */
+    .ECARD-favoriteBtn {
+        position: absolute;
+        top: 1px;
+        right: 1px;
+        background: #00000070;
+        border: none;
+        width: 27px;
+        height: 27px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        border-radius: 7rem;
+        z-index: 10;
+        color: #ffffff;
+        transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .ECARD-favoriteBtn:hover {
+        transform: scale(1.15);
+    }
+
+    .ECARD-favoriteBtn:active {
+        transform: scale(0.9);
+    }
+
+    .ECARD-favoriteBtn.is-active {
+        color: #ffffff;
+    }
+
+    .ECARD-favoriteIcon {
+        font-size: 24px;
+        transition: all 0.2s ease;
+    }
+
+    .ECARD-favoriteBtn.is-active .ECARD-favoriteIcon {
+        animation: ecard-heartPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes ecard-heartPop {
+        0% {
+            transform: scale(0.5);
+        }
+
+        50% {
+            transform: scale(1.3);
+        }
+
+        100% {
+            transform: scale(1);
+        }
+    }
+
+    /* Text Container */
+    .ECARD-textContainer {
+        padding: 0.4rem 0;
+    }
+
+    /* Genre */
+    .ECARD-genre {
+        font-size: 0.75rem;
+        font-weight: 900;
+        margin: 0;
+        letter-spacing: 0.05em;
+    }
+
+    /* Genre Colors (Scoped map) - Prefix: ECARD-genre- */
+    .ECARD-genre-red {
+        color: var(--color-red-400);
+    }
+
+    .ECARD-genre-orange {
+        color: var(--color-orange-400);
+    }
+
+    .ECARD-genre-amber {
+        color: var(--color-amber-400);
+    }
+
+    .ECARD-genre-yellow {
+        color: var(--color-yellow-400);
+    }
+
+    .ECARD-genre-lime {
+        color: var(--color-lime-400);
+    }
+
+    .ECARD-genre-green {
+        color: var(--color-green-400);
+    }
+
+    .ECARD-genre-emerald {
+        color: var(--color-emerald-400);
+    }
+
+    .ECARD-genre-teal {
+        color: var(--color-teal-400);
+    }
+
+    .ECARD-genre-cyan {
+        color: var(--color-cyan-400);
+    }
+
+    .ECARD-genre-sky {
+        color: var(--color-sky-400);
+    }
+
+    .ECARD-genre-blue {
+        color: var(--color-blue-400);
+    }
+
+    .ECARD-genre-indigo {
+        color: var(--color-indigo-400);
+    }
+
+    .ECARD-genre-violet {
+        color: var(--color-violet-400);
+    }
+
+    .ECARD-genre-purple {
+        color: var(--color-purple-400);
+    }
+
+    .ECARD-genre-fuchsia {
+        color: var(--color-fuchsia-400);
+    }
+
+    .ECARD-genre-pink {
+        color: var(--color-pink-400);
+    }
+
+    .ECARD-genre-rose {
+        color: var(--color-rose-400);
+    }
+
+    .ECARD-genre-gray {
+        color: var(--color-gray-400);
+    }
+
+    /* Title */
+    .ECARD-title {
+        font-size: 14px;
+        /* ~15px */
+        font-weight: 500;
+        line-height: 1.3;
+        color: #e6e6e6;
+        margin: 0 0 0.3rem 0;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    :scope.ECARD-cat-class .ECARD-title {
+        font-size: 0.8375rem;
+        font-weight: 800;
+        color: #ffffff;
+    }
+
+    /* Date */
+    .ECARD-dateContainer {
+        margin-top: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        font-size: 0.75rem;
+        color: #9ca3af;
+        letter-spacing: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-weight: 500;
+    }
+
+    .ECARD-dateIndicator {
+        width: var(--spacing-1-5);
+        height: var(--spacing-1-5);
+        border-radius: var(--radius-full);
+        background-color: var(--color-blue-500);
+        flex-shrink: 0;
+    }
+
+    .ECARD-date {
+        font-size: 12px;
+        color: #c3c3c5;
+        font-weight: 400;
+        border-radius: 1rem;
+        padding: 2px 6px;
+        background-color: #2b2b2b9e;
+    }
+
+    /* QR/Highlight Animation */
+    @keyframes ecard-qrHighlight {
+
+        0%,
+        100% {
+            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+        }
+
+        50% {
+            box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.6), 0 0 0 16px rgba(59, 130, 246, 0.3);
+        }
+    }
+
+    /* This class might be applied on container or wrapper, usually wrapper in code
+       But here we scoped to ECARD-container, so if we want to animate wrapper, we select wrapper */
+    .ECARD-imageWrapper.is-active-qr {
+        animation: ecard-qrHighlight 2s ease-in-out 3;
+        position: relative;
+        z-index: 10;
+    }
+}
+
+/* ==========================================================================
+   ELS Grid Extensions (EventFavoritesView)
+   ========================================================================== */
+@scope (.ELS-section) {
+    .ELS-grid-5 {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 6px;
+    }
+
+    .ELS-grid-2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+}
+
+/* ELS Grid Responsive Overrides */
+@media (max-width: 768px) {
+    .ELS-grid-5 {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 6px;
+    }
+}
+
+@media (max-width: 480px) {
+    .ELS-grid-5 {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 4px;
+    }
+
+    .ELS-grid-2 {
+        gap: 6px;
+    }
+}
+
+/* ==========================================================================
+   Event Search Modal Scope (ESSM-)
+   ========================================================================== */
+/* We will attach the scope to the overlay or a specific container. 
+   Since the component uses a portal, we can wrap the content in a specific class.
+   In the TSX, we'll strip the generic 'evt-modal-overlay' if it is specific to this, 
+   or add 'ESSM-overlay' to it.
+*/
+
+@scope (.ESSM-overlay) {
+    :scope {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        background-color: rgba(0, 0, 0, 0.75);
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        z-index: 1000;
+        padding: 1rem;
+        padding-top: 5rem;
+        backdrop-filter: blur(4px);
+    }
+
+    .ESSM-container {
+        background-color: #1f2937;
+        border-radius: 1rem;
+        width: 100%;
+        max-width: 28rem;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .ESSM-body {
+        padding: 1.5rem;
+    }
+
+    .ESSM-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .ESSM-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: white;
+        margin: 0;
+    }
+
+    .ESSM-closeBtn {
+        background: transparent;
+        border: none;
+        color: #9ca3af;
+        cursor: pointer;
+        padding: 0.25rem;
+        transition: color 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .ESSM-closeBtn:hover {
+        color: white;
+    }
+
+    .ESSM-bodyContent {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .ESSM-inputContainer {
+        position: relative;
+    }
+
+    .ESSM-input {
+        width: 100%;
+        background-color: #374151;
+        border: 1px solid #4b5563;
+        border-radius: 0.75rem;
+        padding: 0.875rem 1rem 0.875rem 2.75rem;
+        color: white;
+        font-size: 1rem;
+        transition: all 0.2s;
+        outline: none;
+    }
+
+    .ESSM-input:focus {
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+    }
+
+    .ESSM-inputIcon {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9ca3af;
+        font-size: 1.25rem;
+        pointer-events: none;
+    }
+
+    .ESSM-suggestionsContainer {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .ESSM-suggestionsLabel {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #6b7280;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.25rem;
+    }
+
+    .ESSM-suggestionsList {
+        max-height: 15rem;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    /* Missing style in legacy file, adding it here based on usage */
+    .ESSM-suggestionItem {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        padding: 0.75rem 1rem;
+        background-color: #283142;
+        border: none;
+        border-radius: 0.5rem;
+        color: #d1d5db;
+        text-align: left;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-size: 0.9375rem;
+    }
+
+    .ESSM-suggestionItem:hover {
+        background-color: #374151;
+        color: white;
+    }
+
+    .ESSM-suggestionIcon {
+        margin-right: 0.75rem;
+        color: #6b7280;
+        font-size: 1rem;
+    }
+
+    .ESSM-footer {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 0.5rem;
+    }
+
+    .ESSM-btnCancel {
+        flex: 1;
+        padding: 0.75rem;
+        border-radius: 0.75rem;
+        font-weight: 600;
+        background-color: #374151;
+        color: #d1d5db;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .ESSM-btnCancel:hover {
+        background-color: #4b5563;
+        color: white;
+    }
+
+    .ESSM-btnConfirm {
+        flex: 1;
+        padding: 0.75rem;
+        border-radius: 0.75rem;
+        font-weight: 600;
+        background-color: #2563eb;
+        color: white;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .ESSM-btnConfirm:hover {
+        background-color: #1d4ed8;
+    }
+}
+
+/* ==========================================================================
+   Event Sort Modal Scope (ESOM-)
+   ========================================================================== */
+
+@scope (.ESOM-overlay) {
+    :scope {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 50;
+        padding: 1rem;
+        backdrop-filter: blur(2px);
+    }
+
+    .ESOM-container {
+        background-color: #1f2937;
+        border-radius: 1rem;
+        width: 100%;
+        max-width: 28rem;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        overflow: hidden;
+    }
+
+    .ESOM-body {
+        padding: 1.5rem;
+    }
+
+    .ESOM-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .ESOM-title {
+        font-size: 1.125rem;
+        font-weight: 700;
+        color: white;
+        margin: 0;
+    }
+
+    .ESOM-closeBtn {
+        color: #9ca3af;
+        transition: color 0.2s ease;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0.25rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .ESOM-closeBtn:hover {
+        color: white;
+    }
+
+    .ESOM-closeIcon {
+        font-size: 1.25rem;
+    }
+
+    .ESOM-optionsList {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .ESOM-optionBtn {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        padding: 0.75rem 1rem;
+        border-radius: 0.75rem;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        background-color: #374151;
+        color: #d1d5db;
+        border: none;
+        text-align: left;
+    }
+
+    .ESOM-optionBtn:hover {
+        background-color: #4b5563;
+        color: white;
+    }
+
+    .ESOM-optionBtn.is-active {
+        background-color: #2563eb;
+        color: white;
+    }
+
+    .ESOM-optionIcon {
+        font-size: 1.125rem;
+        color: inherit;
+    }
+
+    .ESOM-optionText {
+        font-weight: 500;
+        flex: 1;
+        color: inherit;
+        font-size: 0.9375rem;
+    }
+
+    .ESOM-checkIcon {
+        font-size: 1.125rem;
+        margin-left: auto;
+        color: inherit;
+    }
+}
+
+/* ==========================================================================
+   Event Password Modal Scope (EPM-)
+   ========================================================================== */
+
+@scope (.EPM-overlay) {
+    :scope {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: flex-start;
+        justify-content: center;
+        z-index: 50;
+        padding: 1rem;
+        padding-top: 5rem;
+        overflow-y: auto;
+    }
+
+    .EPM-container {
+        background-color: #1f2937;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        width: 100%;
+        max-width: 28rem;
+    }
+
+    .EPM-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: white;
+        margin-bottom: 1rem;
+    }
+
+    .EPM-description {
+        color: #d1d5db;
+        margin-bottom: 1rem;
+    }
+
+    .EPM-input {
+        width: 100%;
+        background-color: #374151;
+        color: white;
+        border-radius: 0.5rem;
+        padding: 0.75rem 1rem;
+        margin-bottom: 1rem;
+        outline: none;
+        border: none;
+    }
+
+    .EPM-input:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px #3b82f6;
+    }
+
+    .EPM-input::placeholder {
+        color: #9ca3af;
+    }
+
+    .EPM-buttonContainer {
+        display: flex;
+        gap: 0.75rem;
+    }
+
+    .EPM-button {
+        flex: 1;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        transition: background-color 0.2s ease, color 0.2s ease;
+        cursor: pointer;
+        border: none;
+        white-space: nowrap;
+    }
+
+    .EPM-cancelBtn {
+        background-color: #374151;
+        color: #d1d5db;
+    }
+
+    .EPM-cancelBtn:hover {
+        background-color: #4b5563;
+    }
+
+    .EPM-confirmBtn {
+        background-color: #2563eb;
+        color: white;
+    }
+
+    .EPM-confirmBtn:hover {
+        background-color: #1d4ed8;
+    }
+}
+
+/* ==========================================================================
+   AdminBillboardModal Scope (ABM-)
+   ========================================================================== */
+@scope (.AdminBillboardModal) {
+    /* AdminBillboardModal.css - AdminBillboardModal 컴포넌트 전용 스타일 */
+
+    /* ===== CSS 변수 정의 ===== */
+    /* ===== 로딩 오버레이 ===== */
+    :scope.ABM-loading-overlay {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 12000;
+        background-color: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .ABM-loading-text {
+        color: white;
+        font-size: 1.25rem;
+        line-height: 1.75rem;
+    }
+
+    /* ===== 서브 관리자 모달 오버레이 ===== */
+    :scope.ABM-sub-overlay {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 12000;
+        background-color: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        padding-top: calc(1rem + env(safe-area-inset-top));
+        padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+    }
+
+    /* ===== 서브 관리자 모달 컨테이너 ===== */
+    .ABM-sub-container {
+        background-color: #1f2937;
+        border-radius: 0.75rem;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        max-width: 42rem;
+        width: 100%;
+        max-height: 90svh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    /* ===== 서브 관리자 헤더 ===== */
+    .ABM-sub-header {
+        background: linear-gradient(to right, #2563eb, #9333ea);
+        padding: 1.5rem 1.5rem 1rem;
+        flex-shrink: 0;
+    }
+
+    .ABM-sub-title {
+        font-size: 1.5rem;
+        line-height: 2rem;
+        font-weight: 700;
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    /* ===== 서브 관리자 컨텐츠 ===== */
+    .ABM-sub-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.5rem;
+    }
+
+    .ABM-sub-content-inner {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    /* ===== 설정 섹션 박스 ===== */
+    .ABM-section-box {
+        padding: 1rem;
+        background-color: rgba(55, 65, 81, 0.5);
+        border-radius: 0.5rem;
+    }
+
+    .ABM-section-label {
+        color: white;
+        font-weight: 500;
+        display: block;
+        margin-bottom: 0.75rem;
+    }
+
+    .ABM-section-desc {
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        color: #9ca3af;
+        margin-bottom: 0.75rem;
+    }
+
+    /* ===== 요일 그리드 ===== */
+    .ABM-weekday-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 0.5rem;
+    }
+
+    .ABM-weekday-btn {
+        padding: 0.5rem 0.25rem;
+        font-size: 0.75rem;
+        line-height: 1rem;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+        border: none;
+        cursor: pointer;
+    }
+
+    .ABM-weekday-btn-excluded {
+        background-color: #ef4444;
+        color: white;
+    }
+
+    .ABM-weekday-btn-normal {
+        background-color: #4b5563;
+        color: #d1d5db;
+    }
+
+    .ABM-weekday-btn-normal:hover {
+        background-color: #6b7280;
+    }
+
+    /* ===== 슬라이드 시간 컨트롤 ===== */
+    .ABM-slide-control {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        background-color: #4b5563;
+        border-radius: 0.5rem;
+        padding: 0.75rem 1rem;
+    }
+
+    .ABM-slide-time {
+        color: white;
+        font-size: 1.5rem;
+        line-height: 2rem;
+        font-weight: 700;
+        flex: 1;
+        text-align: center;
+    }
+
+    .ABM-slide-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .ABM-slide-btn-up {
+        background-color: #2563eb;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+        font-weight: 700;
+        font-size: 1.125rem;
+        line-height: 1.75rem;
+        border: none;
+        cursor: pointer;
+    }
+
+    .ABM-slide-btn-up:hover {
+        background-color: #1d4ed8;
+    }
+
+    .ABM-slide-btn-down {
+        background-color: #2563eb;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+        font-weight: 700;
+        font-size: 1.125rem;
+        line-height: 1.75rem;
+        border: none;
+        cursor: pointer;
+    }
+
+    .ABM-slide-btn-down:hover {
+        background-color: #1d4ed8;
+    }
+
+    /* ===== 재생 순서 (숨김) ===== */
+    .ABM-play-order-hidden {
+        display: none;
+        padding: 1rem;
+        background-color: rgba(55, 65, 81, 0.5);
+        border-radius: 0.5rem;
+    }
+
+    .ABM-play-order-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+
+    .ABM-play-order-btn {
+        padding: 0.75rem 1rem;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+        border: none;
+        cursor: pointer;
+    }
+
+    .ABM-play-order-btn-active {
+        background-color: #3b82f6;
+        color: white;
+    }
+
+    .ABM-play-order-btn-inactive {
+        background-color: #4b5563;
+        color: #d1d5db;
+    }
+
+    .ABM-play-order-btn-inactive:hover {
+        background-color: #6b7280;
+    }
+
+    .ABM-play-order-title {
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        font-weight: 600;
+    }
+
+    .ABM-play-order-subtitle {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: #d1d5db;
+        margin-top: 0.25rem;
+    }
+
+    /* ===== 날짜 범위 필터 ===== */
+    .ABM-date-filter-group {
+        margin-bottom: 0.75rem;
+    }
+
+    .ABM-date-filter-label {
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        color: #9ca3af;
+        display: block;
+        margin-bottom: 0.25rem;
+    }
+
+    .ABM-date-filter-row {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .ABM-date-input-wrapper {
+        flex: 1;
+        position: relative;
+    }
+
+    .ABM-date-input {
+        width: 100%;
+        background-color: #4b5563;
+        color: white;
+        border-radius: 0.5rem;
+        padding: 0.5rem 0.75rem;
+        border: none;
+        outline: none;
+    }
+
+    .ABM-date-input:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px #3b82f6;
+    }
+
+    .ABM-date-placeholder {
+        position: absolute;
+        left: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9ca3af;
+        pointer-events: none;
+    }
+
+    .ABM-date-clear-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+        white-space: nowrap;
+        border: none;
+        cursor: pointer;
+    }
+
+    .ABM-date-clear-btn-active {
+        background-color: #c2410c;
+        color: white;
+    }
+
+    .ABM-date-clear-btn-normal {
+        background-color: #ea580c;
+        color: white;
+    }
+
+    .ABM-date-clear-btn-normal:hover {
+        background-color: #c2410c;
+    }
+
+    /* ===== 이벤트 제외 목록 ===== */
+    .ABM-event-exclude-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+    }
+
+    .ABM-event-exclude-label {
+        color: white;
+        font-weight: 500;
+    }
+
+    .ABM-event-exclude-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .ABM-event-exclude-btn-all {
+        padding: 0.25rem 0.75rem;
+        padding-top: 0.375rem;
+        padding-bottom: 0.375rem;
+        background-color: #dc2626;
+        color: white;
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        font-weight: 500;
+        border-radius: 0.5rem;
+        transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+        border: none;
+        cursor: pointer;
+    }
+
+    .ABM-event-exclude-btn-all:hover {
+        background-color: #f87171;
+    }
+
+    .ABM-event-exclude-btn-clear {
+        padding: 0.25rem 0.75rem;
+        padding-top: 0.375rem;
+        padding-bottom: 0.375rem;
+        background-color: #16a34a;
+        color: white;
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        font-weight: 500;
+        border-radius: 0.5rem;
+        transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+        border: none;
+        cursor: pointer;
+    }
+
+    .ABM-event-exclude-btn-clear:hover {
+        background-color: #15803d;
+    }
+
+    .ABM-event-list {
+        max-height: 15rem;
+        overflow-y: auto;
+        background-color: #374151;
+        border-radius: 0.5rem;
+        padding: 0.75rem;
+    }
+
+    .ABM-event-list-inner {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .ABM-event-empty {
+        color: #9ca3af;
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+    }
+
+    .ABM-event-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem;
+        border-radius: 0.5rem;
+        transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+    }
+
+    .ABM-event-item-media {
+        cursor: pointer;
+    }
+
+    .ABM-event-item-media:hover {
+        background-color: #4b5563;
+    }
+
+    .ABM-event-item-excluded {
+        cursor: pointer;
+        background-color: rgba(220, 38, 38, 0.3);
+        border: 1px solid rgba(239, 68, 68, 0.5);
+    }
+
+    .ABM-event-item-excluded:hover {
+        background-color: rgba(220, 38, 38, 0.4);
+    }
+
+    .ABM-event-item-no-media {
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+    .ABM-event-checkbox {
+        width: 1rem;
+        height: 1rem;
+    }
+
+    .ABM-event-text {
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        flex: 1;
+    }
+
+    .ABM-event-text-media {
+        color: white;
+    }
+
+    .ABM-event-text-excluded {
+        color: #fca5a5;
+        text-decoration: line-through;
+    }
+
+    .ABM-event-text-no-media {
+        color: #6b7280;
+    }
+
+    .ABM-event-date {
+        color: #9ca3af;
+        font-size: 0.75rem;
+        line-height: 1rem;
+        margin-left: 0.5rem;
+    }
+
+    .ABM-event-excluded-badge {
+        color: #f87171;
+        font-size: 0.75rem;
+        line-height: 1rem;
+        margin-left: 0.5rem;
+        font-weight: 700;
+    }
+
+    .ABM-event-no-media-badge {
+        color: #f87171;
+        font-size: 0.75rem;
+        line-height: 1rem;
+        margin-left: 0.5rem;
+    }
+
+    /* ===== 서브 관리자 푸터 ===== */
+    .ABM-sub-footer {
+        background-color: #1f2937;
+        border-top: 1px solid #374151;
+        padding: 1rem 1.5rem;
+        display: flex;
+        gap: 0.75rem;
+        flex-shrink: 0;
+    }
+
+    .ABM-sub-footer-btn-cancel {
+        flex: 1;
+        background-color: #374151;
+        color: white;
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+        border: none;
+        cursor: pointer;
+    }
+
+    .ABM-sub-footer-btn-cancel:hover {
+        background-color: #4b5563;
+    }
+
+    .ABM-sub-footer-btn-save {
+        flex: 1;
+        background-color: #2563eb;
+        color: white;
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+        border: none;
+        cursor: pointer;
+    }
+
+    .ABM-sub-footer-btn-save:hover {
+        background-color: #1d4ed8;
+    }
+
+    /* ===== 슬라이더 커스텀 스타일 ===== */
+    .slider-purple {
+        width: 100%;
+        height: 0.5rem;
+        background: linear-gradient(to right, #4b5563, #a855f7);
+        border-radius: 9999px;
+        outline: none;
+        appearance: none;
+    }
+
+    .slider-purple::-webkit-slider-thumb {
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        background: #a855f7;
+        border-radius: 50%;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .slider-purple::-webkit-slider-thumb:hover {
+        background: #9333ea;
+        transform: scale(1.1);
+    }
+
+    .slider-purple::-moz-range-thumb {
+        width: 20px;
+        height: 20px;
+        background: #a855f7;
+        border-radius: 50%;
+        cursor: pointer;
+        border: none;
+        transition: all 0.2s;
+    }
+
+    .slider-purple::-moz-range-thumb:hover {
+        background: #9333ea;
+        transform: scale(1.1);
+    }
+
+    /* ===== 슈퍼 관리자 모달 (메인 빌보드) ===== */
+    :scope.ABM-super-overlay {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 12000;
+        background-color: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+    }
+
+    .ABM-super-container {
+        background-color: #1f2937;
+        border-radius: 0.75rem;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        max-width: 42rem;
+        width: 100%;
+        max-height: 90svh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .ABM-super-header {
+        background: linear-gradient(to right, #2563eb, #9333ea);
+        padding: 1.5rem 1.5rem 1rem;
+        flex-shrink: 0;
+    }
+
+    .ABM-super-title {
+        font-size: 1.5rem;
+        line-height: 2rem;
+        font-weight: 700;
+        color: white;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .ABM-super-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.5rem;
+    }
+
+    .ABM-super-content-inner {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    /* ===== 현재 설정 요약 박스 ===== */
+    .ABM-summary-box {
+        padding: 1rem;
+        background-color: rgba(168, 85, 247, 0.1);
+        border: 1px solid rgba(168, 85, 247, 0.3);
+        border-radius: 0.5rem;
+    }
+
+    .ABM-summary-title {
+        color: white;
+        font-weight: 500;
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .ABM-summary-title-text {
+        font-size: 1rem;
+        line-height: 1.5rem;
+    }
+
+    .ABM-summary-content {
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        color: #d1d5db;
+    }
+
+    .ABM-summary-content-inner {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .ABM-summary-row {
+        display: flex;
+        justify-content: space-between;
+    }
+
+    .ABM-summary-value-green {
+        color: #4ade80;
+        font-weight: 500;
+    }
+
+    .ABM-summary-value-red {
+        color: #f87171;
+        font-weight: 500;
+    }
+
+    .ABM-summary-value-purple {
+        color: #c084fc;
+        font-weight: 500;
+    }
+
+    .ABM-summary-value-gray {
+        color: #9ca3af;
+        font-weight: 500;
+    }
+
+    /* ===== 슈퍼 관리자 푸터 ===== */
+    .ABM-super-footer {
+        background-color: #1f2937;
+        border-top: 1px solid #374151;
+        padding: 1rem 1.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-shrink: 0;
+    }
+
+    .ABM-super-reset-btn {
+        padding: 0.5rem 1rem;
+        background-color: #374151;
+        color: white;
+        border-radius: 0.5rem;
+        transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        border: none;
+        cursor: pointer;
+    }
+
+    .ABM-super-reset-btn:hover {
+        background-color: #4b5563;
+    }
+
+    .ABM-super-close-btn {
+        padding: 0.5rem 1.5rem;
+        background-color: #9333ea;
+        color: white;
+        border-radius: 0.5rem;
+        transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+        font-weight: 500;
+        border: none;
+        cursor: pointer;
+    }
+
+    .ABM-super-close-btn:hover {
+        background-color: #7e22ce;
+    }
+
+    /* ===== 성공 알림 모달 ===== */
+    :scope.ABM-success-overlay {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 12000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+    }
+
+    .ABM-success-container {
+        background-color: #1f2937;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        max-width: 24rem;
+        width: 100%;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    }
+
+    .ABM-success-content {
+        text-align: center;
+    }
+
+    .ABM-success-icon-wrapper {
+        margin-bottom: 1rem;
+        display: flex;
+        justify-content: center;
+    }
+
+    .ABM-success-icon {
+        width: 4rem;
+        height: 4rem;
+        background: linear-gradient(to bottom right, #22c55e, #10b981);
+        border-radius: 9999px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .ABM-success-icon-text {
+        font-size: 1.875rem;
+        line-height: 2.25rem;
+        color: white;
+    }
+
+    .ABM-success-message {
+        color: white;
+        font-size: 1.125rem;
+        line-height: 1.75rem;
+        font-weight: 600;
+    }
+
+    /* ===== 메인 관리자 모달 - 컨텐츠 섹션 ===== */
+
+    /* 토글 스위치 컨테이너 */
+    .ABM-toggle-container {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1rem;
+        background-color: rgba(55, 65, 81, 0.5);
+        border-radius: 0.5rem;
+    }
+
+    .ABM-toggle-content {
+        flex: 1;
+    }
+
+    .ABM-toggle-label {
+        color: white;
+        font-weight: 500;
+        display: block;
+    }
+
+    .ABM-toggle-desc {
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        color: #9ca3af;
+        margin-top: 0.25rem;
+    }
+
+    .ABM-toggle-switch {
+        position: relative;
+        display: inline-flex;
+        height: 2rem;
+        width: 3.5rem;
+        align-items: center;
+        border-radius: 9999px;
+        transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+        border: none;
+        cursor: pointer;
+    }
+
+    .ABM-toggle-switch-on {
+        background-color: #a855f7;
+    }
+
+    .ABM-toggle-switch-off {
+        background-color: #4b5563;
+    }
+
+    .ABM-toggle-thumb {
+        display: inline-block;
+        height: 1.5rem;
+        width: 1.5rem;
+        transform: translateX(0);
+        border-radius: 9999px;
+        background-color: white;
+        transition: transform 0.2s ease;
+    }
+
+    .ABM-toggle-thumb-on {
+        transform: translateX(1.75rem);
+    }
+
+    .ABM-toggle-thumb-off {
+        transform: translateX(0.25rem);
+    }
+
+    /* 슬라이더 섹션 */
+    .ABM-slider-section {
+        padding: 1rem;
+        background-color: rgba(55, 65, 81, 0.5);
+        border-radius: 0.5rem;
+    }
+
+    .ABM-slider-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 0.75rem;
+    }
+
+    .ABM-slider-label {
+        color: white;
+        font-weight: 500;
+    }
+
+    .ABM-slider-value {
+        color: #c084fc;
+        font-weight: 700;
+    }
+
+    .ABM-slider-desc {
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        color: #9ca3af;
+        margin-bottom: 1rem;
+    }
+
+    .ABM-slider-input {
+        width: 100%;
+        height: 0.5rem;
+        background-color: #4b5563;
+        border-radius: 0.5rem;
+        appearance: none;
+        cursor: pointer;
+    }
+
+    .ABM-slider-marks {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: #6b7280;
+        margin-top: 0.5rem;
+    }
+
+    /* 재생 순서 버튼 */
+    .ABM-playorder-section {
+        padding: 1rem;
+        background-color: rgba(55, 65, 81, 0.5);
+        border-radius: 0.5rem;
+    }
+
+    .ABM-playorder-label {
+        color: white;
+        font-weight: 500;
+        display: block;
+        margin-bottom: 0.75rem;
+    }
+
+    .ABM-playorder-desc {
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        color: #9ca3af;
+        margin-bottom: 1rem;
+    }
+
+    .ABM-playorder-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+    }
+
+    .ABM-playorder-btn {
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        border: 2px solid;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        background: none;
+    }
+
+    .ABM-playorder-btn-active {
+        border-color: #a855f7;
+        background-color: rgba(168, 85, 247, 0.2);
+        color: white;
+    }
+
+    .ABM-playorder-btn-inactive {
+        border-color: #4b5563;
+        background-color: rgba(55, 65, 81, 0.3);
+        color: #d1d5db;
+    }
+
+    .ABM-playorder-btn-inactive:hover {
+        border-color: #6b7280;
+    }
+
+    .ABM-playorder-btn-content {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .ABM-playorder-btn-icon {
+        font-size: 1.25rem;
+        line-height: 1.75rem;
+    }
+
+    .ABM-playorder-btn-title {
+        font-weight: 500;
+    }
+
+    .ABM-playorder-btn-subtitle {
+        font-size: 0.75rem;
+        line-height: 1rem;
+        color: #9ca3af;
+    }
+
+    /* 날짜 범위 섹션 */
+    .ABM-daterange-section {
+        padding: 1rem;
+        background-color: rgba(55, 65, 81, 0.5);
+        border-radius: 0.5rem;
+    }
+
+    .ABM-daterange-label {
+        color: white;
+        font-weight: 500;
+        display: block;
+        margin-bottom: 0.75rem;
+    }
+
+    .ABM-daterange-desc {
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        color: #9ca3af;
+        margin-bottom: 1rem;
+    }
+
+    .ABM-daterange-inputs {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        margin-bottom: 1rem;
+    }
+
+    .ABM-daterange-input-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .ABM-daterange-input-label {
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        color: #9ca3af;
+        margin-bottom: 0.25rem;
+        display: block;
+    }
+
+    .ABM-daterange-input-row {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .ABM-daterange-input-wrapper {
+        flex: 1;
+        position: relative;
+    }
+
+    .ABM-daterange-input {
+        width: 100%;
+        padding: 0.5rem 0.75rem;
+        background-color: #4b5563;
+        color: white;
+        border-radius: 0.5rem;
+        border: 1px solid #6b7280;
+        outline: none;
+    }
+
+    .ABM-daterange-input:focus {
+        border-color: #a855f7;
+        outline: none;
+    }
+
+    .ABM-daterange-placeholder {
+        position: absolute;
+        left: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9ca3af;
+        pointer-events: none;
+    }
+
+    .ABM-daterange-clear-btn {
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.5rem;
+        transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+        border: none;
+        cursor: pointer;
+    }
+
+    .ABM-daterange-clear-btn-active {
+        background-color: #ea580c;
+        color: white;
+    }
+
+    .ABM-daterange-clear-btn-inactive {
+        background-color: #f97316;
+        color: white;
+    }
+
+    .ABM-daterange-clear-btn-inactive:hover {
+        background-color: #ea580c;
+    }
+
+    .ABM-daterange-clear-icon {
+        font-size: 1.125rem;
+        line-height: 1.75rem;
+    }
+
+    .ABM-daterange-toggle-container {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0.75rem;
+        background-color: rgba(75, 85, 99, 0.5);
+        border-radius: 0.5rem;
+    }
+
+    .ABM-daterange-toggle-content {
+        flex: 1;
+    }
+
+    .ABM-daterange-toggle-label {
+        color: white;
+        font-weight: 500;
+        display: block;
+    }
+
+    .ABM-daterange-toggle-desc {
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        color: #9ca3af;
+        margin-top: 0.25rem;
+    }
+
+    /* 제외 요일 섹션 */
+    .ABM-weekdays-section {
+        padding: 1rem;
+        background-color: rgba(55, 65, 81, 0.5);
+        border-radius: 0.5rem;
+    }
+
+    .ABM-weekdays-label {
+        color: white;
+        font-weight: 500;
+        display: block;
+        margin-bottom: 0.75rem;
+    }
+
+    .ABM-weekdays-desc {
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        color: #9ca3af;
+        margin-bottom: 0.75rem;
+    }
+
+    .ABM-weekdays-grid {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 0.5rem;
+    }
+
+    .ABM-weekdays-btn {
+        padding: 0.5rem 0.25rem;
+        font-size: 0.75rem;
+        line-height: 1rem;
+        border-radius: 0.5rem;
+        font-weight: 500;
+        transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+        border: none;
+        cursor: pointer;
+    }
+
+    .ABM-weekdays-btn-excluded {
+        background-color: #ef4444;
+        color: white;
+    }
+
+    .ABM-weekdays-btn-normal {
+        background-color: #4b5563;
+        color: #d1d5db;
+    }
+
+    .ABM-weekdays-btn-normal:hover {
+        background-color: #6b7280;
+    }
+
+    /* 특정 이벤트 제외 섹션 */
+    .ABM-events-section {
+        padding: 1rem;
+        background-color: rgba(55, 65, 81, 0.5);
+        border-radius: 0.5rem;
+    }
+
+    .ABM-events-label {
+        color: white;
+        font-weight: 500;
+        display: block;
+        margin-bottom: 0.75rem;
+    }
+
+    .ABM-events-desc {
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        color: #9ca3af;
+        margin-bottom: 0.75rem;
+    }
+
+    .ABM-events-list {
+        max-height: 15rem;
+        overflow-y: auto;
+        background-color: #374151;
+        border-radius: 0.5rem;
+        padding: 0.75rem;
+    }
+
+    .ABM-events-list-inner {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .ABM-events-empty {
+        color: #9ca3af;
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+    }
+
+    .ABM-events-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem;
+        border-radius: 0.5rem;
+    }
+
+    .ABM-events-item-media {
+        cursor: pointer;
+    }
+
+    .ABM-events-item-media:hover {
+        background-color: #4b5563;
+    }
+
+    .ABM-events-item-no-media {
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+
+    .ABM-events-checkbox {
+        width: 1rem;
+        height: 1rem;
+    }
+
+    .ABM-events-text {
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        flex: 1;
+    }
+
+    .ABM-events-text-white {
+        color: white;
+    }
+
+    .ABM-events-text-gray {
+        color: #6b7280;
+    }
+
+    .ABM-events-date {
+        color: #9ca3af;
+        font-size: 0.75rem;
+        line-height: 1rem;
+        margin-left: 0.5rem;
+    }
+
+    .ABM-events-badge {
+        color: #f87171;
+        font-size: 0.75rem;
+        line-height: 1rem;
+        margin-left: 0.5rem;
+    }
+
+    /* 현재 설정 요약 (메인 관리자) */
+    .ABM-summary-section {
+        padding: 1rem;
+        background-color: rgba(168, 85, 247, 0.1);
+        border: 1px solid rgba(168, 85, 247, 0.3);
+        border-radius: 0.5rem;
+    }
+
+    .ABM-summary-header {
+        color: white;
+        font-weight: 500;
+        margin-bottom: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .ABM-summary-list {
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        color: #d1d5db;
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}
+
+/* ==========================================================================
+   EventCalendar Scope (ECAL-)
+   ========================================================================== */
+@scope (.EventCalendar) {
+    /* EventCalendar.css - 이벤트 달력 전용 스타일 */
+
+    /* ===== CSS 변수 정의 ===== */
+    /* ===== 기본 리셋 및 유틸리티 ===== */
+    :scope {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ===== 컨테이너 클래스 ===== */
+    .ECAL-container {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        background-color: var(--calendar-bg);
+        border-radius: 0;
+        padding: 0;
+    }
+
+    .ECAL-wrapper {
+        width: 100%;
+        touch-action: pan-y;
+
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 5;
+        /* 글로벌 헤더보다 낮게 설정 */
+    }
+
+    /* ===== 레이아웃 클래스 ===== */
+
+    /* Flexbox */
+    .ECAL-flex {
+        display: flex;
+    }
+
+    .ECAL-flex-col {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .ECAL-flex-1 {
+        flex: 1;
+    }
+
+    .ECAL-flex-shrink-0 {
+        flex-shrink: 0;
+    }
+
+    .ECAL-items-center {
+        align-items: center;
+    }
+
+    .ECAL-justify-center {
+        justify-content: center;
+    }
+
+    .ECAL-justify-between {
+        justify-content: space-between;
+    }
+
+    /* Grid */
+    .ECAL-grid {
+        display: grid;
+    }
+
+    .ECAL-grid-cols-7 {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+    }
+
+    .ECAL-gap-0 {
+        gap: 0;
+    }
+
+    .ECAL-gap-1 {
+        gap: 0.25rem;
+    }
+
+    .ECAL-gap-2 {
+        gap: 0.5rem;
+    }
+
+    /* Overflow */
+    .ECAL-overflow-hidden {
+        overflow: hidden;
+    }
+
+    .ECAL-overflow-y-auto {
+        overflow-y: auto;
+    }
+
+    .ECAL-overflow-visible {
+        overflow: visible;
+    }
+
+    /* Display */
+    .ECAL-block {
+        display: block;
+    }
+
+    .ECAL-inline-block {
+        display: inline-block;
+    }
+
+    /* Width & Height */
+    .ECAL-w-full {
+        width: 100%;
+    }
+
+    .ECAL-h-full {
+        height: 100%;
+    }
+
+    .ECAL-h-4 {
+        height: 1rem;
+    }
+
+    .ECAL-h-5 {
+        height: 1.25rem;
+    }
+
+    .ECAL-h-6 {
+        height: 1.5rem;
+    }
+
+    /* ===== 색상 클래스 ===== */
+
+    /* 텍스트 색상 */
+    .ECAL-text-white {
+        color: var(--text-primary);
+    }
+
+    .ECAL-text-gray-300 {
+        color: var(--text-secondary);
+    }
+
+    .ECAL-text-gray-400 {
+        color: var(--text-muted);
+    }
+
+    .ECAL-text-gray-600 {
+        color: var(--text-dark);
+    }
+
+    .ECAL-text-blue-500 {
+        color: var(--color-blue-500);
+    }
+
+    /* 배경 색상 - 그레이 계열 */
+    .ECAL-bg-gray-600 {
+        background-color: #4b5563;
+    }
+
+    .ECAL-bg-gray-700 {
+        background-color: #374151;
+    }
+
+    .ECAL-bg-gray-800 {
+        background-color: #1f2937;
+    }
+
+    /* 배경 색상 - 이벤트 카테고리별 */
+    .ECAL-bg-blue-500 {
+        background-color: var(--event-event-primary);
+    }
+
+    .ECAL-bg-blue-600 {
+        background-color: var(--event-event-secondary);
+    }
+
+    .ECAL-bg-blue-400 {
+        background-color: var(--event-event-tertiary);
+    }
+
+    .ECAL-bg-green-500 {
+        background-color: #22c55e;
+    }
+
+    .ECAL-bg-purple-500 {
+        background-color: var(--event-class-primary);
+    }
+
+    .ECAL-bg-purple-600 {
+        background-color: var(--event-class-secondary);
+    }
+
+    .ECAL-bg-purple-400 {
+        background-color: var(--event-class-tertiary);
+    }
+
+    /* 배경 색상 - 전체화면 모드 색상 팔레트 */
+    .ECAL-bg-red-500 {
+        background-color: var(--color-red-500);
+    }
+
+    .ECAL-bg-red-600 {
+        background-color: #dc2626;
+    }
+
+    .ECAL-bg-orange-500 {
+        background-color: var(--color-orange-500);
+    }
+
+    .ECAL-bg-orange-600 {
+        background-color: #ea580c;
+    }
+
+    .ECAL-bg-amber-500 {
+        background-color: var(--color-amber-500);
+    }
+
+    .ECAL-bg-amber-600 {
+        background-color: #d97706;
+    }
+
+    .ECAL-bg-yellow-500 {
+        background-color: var(--color-yellow-500);
+    }
+
+    .ECAL-bg-yellow-600 {
+        background-color: #ca8a04;
+    }
+
+    .ECAL-bg-lime-500 {
+        background-color: var(--color-lime-500);
+    }
+
+    .ECAL-bg-lime-600 {
+        background-color: #65a30d;
+    }
+
+    .ECAL-bg-green-600 {
+        background-color: #16a34a;
+    }
+
+    .ECAL-bg-emerald-500 {
+        background-color: var(--color-emerald-500);
+    }
+
+    .ECAL-bg-emerald-600 {
+        background-color: #059669;
+    }
+
+    .ECAL-bg-teal-500 {
+        background-color: var(--color-teal-500);
+    }
+
+    .ECAL-bg-teal-600 {
+        background-color: #0d9488;
+    }
+
+    .ECAL-bg-cyan-500 {
+        background-color: var(--color-cyan-500);
+    }
+
+    .ECAL-bg-cyan-600 {
+        background-color: #0891b2;
+    }
+
+    .ECAL-bg-sky-500 {
+        background-color: var(--color-sky-500);
+    }
+
+    .ECAL-bg-sky-600 {
+        background-color: #0284c7;
+    }
+
+    .ECAL-bg-indigo-500 {
+        background-color: var(--color-indigo-500);
+    }
+
+    .ECAL-bg-indigo-600 {
+        background-color: #4f46e5;
+    }
+
+    .ECAL-bg-violet-500 {
+        background-color: var(--color-violet-500);
+    }
+
+    .ECAL-bg-violet-600 {
+        background-color: #7c3aed;
+    }
+
+    .ECAL-bg-fuchsia-500 {
+        background-color: var(--color-fuchsia-500);
+    }
+
+    .ECAL-bg-fuchsia-600 {
+        background-color: #c026d3;
+    }
+
+    .ECAL-bg-pink-500 {
+        background-color: var(--color-pink-500);
+    }
+
+    .ECAL-bg-pink-600 {
+        background-color: #db2777;
+    }
+
+    .ECAL-bg-rose-500 {
+        background-color: var(--color-rose-500);
+    }
+
+    .ECAL-bg-rose-600 {
+        background-color: #e11d48;
+    }
+
+    .ECAL-bg-gray-500 {
+        background-color: #6b7280;
+    }
+
+    /* ===== 간격 클래스 (Spacing) ===== */
+
+    /* Padding */
+    .ECAL-p-0 {
+        padding: 0;
+    }
+
+    .ECAL-p-1 {
+        padding: 0.25rem;
+    }
+
+    .ECAL-p-2 {
+        padding: 0.5rem;
+    }
+
+    .ECAL-p-4 {
+        padding: 1rem;
+    }
+
+    .ECAL-px-1 {
+        padding-left: 0.25rem;
+        padding-right: 0.25rem;
+    }
+
+    .ECAL-px-2 {
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+    }
+
+    .ECAL-py-0 {
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
+    .ECAL-pb-0 {
+        padding-bottom: 0;
+    }
+
+    /* ===== 테두리 및 모서리 ===== */
+    .ECAL-rounded-none {
+        border-radius: 0;
+    }
+
+    .ECAL-rounded-full {
+        border-radius: 9999px;
+    }
+
+    .ECAL-border {
+        border-width: 1px;
+    }
+
+    /* ===== 폰트 관련 ===== */
+    .ECAL-font-bold {
+        font-weight: 700;
+    }
+
+    .ECAL-font-semibold {
+        font-weight: 600;
+    }
+
+    .ECAL-font-medium {
+        font-weight: 500;
+    }
+
+    .ECAL-text-xs {
+        font-size: 0.75rem;
+        line-height: 1rem;
+    }
+
+    .ECAL-text-sm {
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+    }
+
+    .ECAL-text-xl {
+        font-size: 1.25rem;
+        line-height: 1.75rem;
+    }
+
+    .ECAL-text-9px {
+        font-size: 9px;
+    }
+
+    .ECAL-text-10px {
+        font-size: 10px;
+    }
+
+    .ECAL-text-center {
+        text-align: center;
+    }
+
+    .ECAL-truncate {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    /* ===== 커서 ===== */
+    .ECAL-cursor-pointer {
+        cursor: pointer;
+    }
+
+    /* ===== 트랜지션 효과 ===== */
+    .ECAL-transition-all {
+        transition-property: all;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 150ms;
+    }
+
+    .ECAL-transition-colors {
+        transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 150ms;
+    }
+
+    .ECAL-duration-200 {
+        transition-duration: 200ms;
+    }
+
+    .ECAL-duration-300 {
+        transition-duration: 300ms;
+    }
+
+    /* ===== 변환 효과 ===== */
+    .ECAL-scale-110 {
+        transform: scale(1.1);
+    }
+
+    /* ===== 호버 효과 (Hover States) ===== */
+    .ECAL-hover-bg-gray-700:hover {
+        background-color: #374151;
+    }
+
+    .ECAL-hover-text-white:hover {
+        color: var(--text-primary);
+    }
+
+    /* ===== 위치 (Position) ===== */
+    .ECAL-relative {
+        position: relative;
+    }
+
+    .ECAL-absolute {
+        position: absolute;
+    }
+
+    .ECAL-inset-0 {
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+    }
+
+    /* Top */
+    .ECAL-top-0 {
+        top: 0;
+    }
+
+    .ECAL-top-px {
+        top: 1px;
+    }
+
+    .ECAL-top-0-5 {
+        top: 0.125rem;
+    }
+
+    .ECAL-top-1 {
+        top: 0.25rem;
+    }
+
+    /* Left */
+    .ECAL-left-0 {
+        left: 0;
+    }
+
+    .ECAL-left-0-5 {
+        left: 0.125rem;
+    }
+
+    .ECAL-left-2 {
+        left: 0.5rem;
+    }
+
+    /* Right */
+    .ECAL-right-0 {
+        right: 0;
+    }
+
+    .ECAL-right-0-5 {
+        right: 0.125rem;
+    }
+
+    /* ===== Z-Index ===== */
+    .ECAL-z-10 {
+        z-index: 10;
+    }
+
+    .ECAL-z-20 {
+        z-index: 20;
+    }
+
+    .ECAL-z-30 {
+        z-index: 30;
+    }
+
+    /* ===== 포인터 이벤트 ===== */
+    .ECAL-pointer-events-none {
+        pointer-events: none;
+    }
+
+    /* ===== 정렬 ===== */
+    .ECAL-self-end {
+        align-self: end;
+    }
+
+    /* ===== 연간 보기 (Year View) ===== */
+    .ECAL-grid-cols-3 {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .ECAL-py-2 {
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+    }
+
+    .ECAL-px-3 {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+
+    .ECAL-rounded-lg {
+        border-radius: 0.5rem;
+    }
+
+    .ECAL-text-2xl {
+        font-size: 1.5rem;
+        line-height: 2rem;
+    }
+
+    .ECAL-bg-blue-600 {
+        background-color: #2563eb;
+    }
+
+    .ECAL-hover-bg-gray-600:hover {
+        background-color: #4b5563;
+    }
+
+    /* ===== 추가 레이아웃 클래스 ===== */
+    .ECAL-space-x-1>*+* {
+        margin-left: 0.25rem;
+    }
+
+    .ECAL-space-x-2>*+* {
+        margin-left: 0.5rem;
+    }
+
+    .ECAL-inline-block {
+        display: inline-block;
+    }
+
+    .ECAL-hidden {
+        display: none;
+    }
+
+    .ECAL-mb-6 {
+        margin-bottom: 1.5rem;
+    }
+
+    /* ===== 투명도 (Opacity) ===== */
+    .ECAL-opacity-20 {
+        opacity: 0.2;
+    }
+
+    .ECAL-opacity-60 {
+        opacity: 0.6;
+    }
+
+    .ECAL-opacity-80 {
+        opacity: 0.8;
+    }
+
+    .ECAL-opacity-100 {
+        opacity: 1;
+    }
+
+    /* ===== 높이 클래스 추가 ===== */
+    .ECAL-h-1-5 {
+        height: 0.375rem;
+    }
+
+    .ECAL-h-3-5 {
+        height: 0.875rem;
+    }
+
+    .ECAL-h-5 {
+        height: 1.25rem;
+    }
+
+    /* ===== 모서리 라운드 추가 ===== */
+    .ECAL-rounded-l-full {
+        border-top-left-radius: 9999px;
+        border-bottom-left-radius: 9999px;
+    }
+
+    .ECAL-rounded-r-full {
+        border-top-right-radius: 9999px;
+        border-bottom-right-radius: 9999px;
+    }
+
+    .ECAL-rounded-t-lg {
+        border-top-left-radius: 0.5rem;
+        border-top-right-radius: 0.5rem;
+    }
+
+    .ECAL-rounded-b-lg {
+        border-bottom-left-radius: 0.5rem;
+        border-bottom-right-radius: 0.5rem;
+    }
+
+    /* ===== Bottom 위치 ===== */
+    .ECAL-bottom-0 {
+        bottom: 0;
+    }
+
+    /* ===== 최소 너비 ===== */
+    .ECAL-min-w-120 {
+        min-width: 120px;
+    }
+
+    /* ===== 버튼 스타일 ===== */
+    .ECAL-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: none;
+        background: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .ECAL-text-left {
+        text-align: left;
+    }
+
+    /* ===== 변환 및 회전 ===== */
+    .ECAL-rotate-180 {
+        transform: rotate(180deg);
+    }
+
+    .ECAL-transition-transform {
+        transition-property: transform;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 150ms;
+    }
+
+    /* ===== 그림자 효과 ===== */
+    .ECAL-shadow-lg {
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    /* ===== Multi-day Event Visuals ===== */
+    .ECAL-event-continue-left {
+        border-top-left-radius: 0 !important;
+        border-bottom-left-radius: 0 !important;
+        /* margin-left: -4px !important; Removed for consistent size */
+        /* width: calc(100% + 4px) !important; Removed for consistent size */
+        /* mask-image: linear-gradient(to right, transparent, black 4px); Removed */
+    }
+
+    .ECAL-event-continue-right {
+        border-top-right-radius: 0 !important;
+        border-bottom-right-radius: 0 !important;
+        /* margin-right: -4px !important; Removed for consistent size */
+        /* width: calc(100% + 4px) !important; Removed for consistent size */
+    }
+
+    /* If both left and right continue (middle days) */
+    .ECAL-event-continue-left.ECAL-event-continue-right {
+        /* margin-left: -4px !important; */
+        /* margin-right: -4px !important; */
+        /* width: calc(100% + 8px) !important; */
+        border-radius: 0 !important;
+    }
+
+    /* ===== Pseudo 클래스 ===== */
+    .ECAL-first-rounded-t-lg:first-child {
+        border-top-left-radius: 0.5rem;
+        border-top-right-radius: 0.5rem;
+    }
+
+    .ECAL-last-rounded-b-lg:last-child {
+        border-bottom-left-radius: 0.5rem;
+        border-bottom-right-radius: 0.5rem;
+    }
+
+    /* ===== Top Full 위치 ===== */
+    .ECAL-top-full {
+        top: 100%;
+    }
+
+    /* ===== Margin Top ===== */
+    .ECAL-mt-2 {
+        margin-top: 0.5rem;
+    }
+
+    .ECAL-px-4 {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    /* ===== 특수 클래스 결합 ===== */
+    .ECAL-year-btn {
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 700;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+
+    .ECAL-year-btn-selected {
+        background-color: #2563eb;
+        color: white;
+    }
+
+    .ECAL-year-btn-default {
+        background-color: #374151;
+        color: #d1d5db;
+    }
+
+    .ECAL-year-btn-default:hover {
+        background-color: #4b5563;
+        color: white;
+    }
+
+    .ECAL-nav-btn {
+        padding: 0.5rem;
+        color: #9ca3af;
+        transition: color 0.15s ease;
+        cursor: pointer;
+    }
+
+    .ECAL-nav-btn:hover {
+        color: white;
+    }
+
+    /* ===== 달력 날짜 셀 특수 스타일 ===== */
+    .ECAL-date-number {
+        font-weight: 700;
+        z-index: 30;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+
+    .ECAL-date-number-fullscreen {
+        position: absolute;
+        top: 4px;
+        left: 4px;
+        z-index: 30;
+        font-weight: 700;
+        color: #d1d5dbcf;
+        /* Default text color for dark background */
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: baseline !important;
+        white-space: nowrap !important;
+        gap: 2px;
+    }
+
+    .ECAL-date-number-today {
+        opacity: 1;
+
+        /* Bold Badge Style for Today */
+        background-color: #3b82f6;
+        /* Red badge */
+        color: white;
+        border-radius: 4px;
+        padding: 2px 6px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+
+        font-size: 12px;
+        font-weight: 800;
+        width: auto;
+        min-width: 20px;
+        max-width: 100%;
+        white-space: nowrap;
+
+        /* Center text in badge */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+
+    /* Clean up previous Zebra styling */
+
+    /* Week Card Design Implementation */
+    .ECAL-grid-container {
+        display: grid;
+        border-radius: 0 0 0.9rem 0.9rem;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        padding: 5px;
+        /* Week Separation: Gap between rows */
+        column-gap: 0;
+        row-gap: 6px;
+
+        border-top: none;
+        overflow: hidden;
+        padding-bottom: 6px;
+        /* Bottom padding for last row */
+        background-color: #000;
+        /* Gap color */
+    }
+
+    /* Individual Cell Styling for Card Look */
+    .ECAL-cell-fullscreen {
+        background-color: #1a1a1a;
+        /* Card Background */
+        border-bottom: 1px solid #2a2a2a;
+        /* Internal row separation? No, continuous */
+        border-right: 1px solid #2a2a2a;
+        /* Vertical dividers */
+    }
+
+    /* Remove bottom border for Card look consistency */
+    .ECAL-cell-fullscreen {
+        border-bottom: none;
+    }
+
+    /* First Column: Rounded Left */
+    .ECAL-cell-fullscreen:nth-child(7n+1) {
+        border-top-left-radius: 8px;
+        border-bottom-left-radius: 8px;
+        border-left: 1px solid #2a2a2a;
+        /* Left border */
+    }
+
+    /* Last Column: Rounded Right, No Right Border */
+    .ECAL-cell-fullscreen:nth-child(7n) {
+        border-top-right-radius: 8px;
+        border-bottom-right-radius: 8px;
+        border-right: 1px solid #2a2a2a;
+        /* Right border */
+    }
+
+    /* Remove default background from base if strictly enforcing card look */
+    .ECAL-cell-base {
+        background-color: transparent;
+    }
+
+
+
+
+    .ECAL-weekday-item {
+        position: relative;
+        text-align: center;
+        color: #c7c7c7;
+        /* gray-400 */
+        font-size: 0.875rem;
+        /* 14px */
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        /* Use solid border-right to match calendar-cell-fullscreen for perfect alignment */
+        /* border-right: 1px solid var(--calendar-vertical-border); */
+        /* Include border in width calculation to prevent misalignment */
+        box-sizing: border-box;
+    }
+
+    /* Gradient overlay on top of solid border for fade effect */
+    .ECAL-weekday-item::after {
+        content: '';
+        position: absolute;
+        right: 0;
+        top: 0;
+        width: 1px;
+        height: 100%;
+        background: linear-gradient(to top, var(--calendar-vertical-border) 0%, transparent 100%);
+        pointer-events: none;
+        z-index: 1;
+        /* Ensure gradient appears above border */
+    }
+
+    /* Remove border and gradient from last weekday item */
+    .ECAL-weekday-item:nth-child(7) {
+        border-right: none;
+    }
+
+    .ECAL-weekday-item:nth-child(7)::after {
+        display: none;
+    }
+
+    .ECAL-cell-base {
+        position: relative;
+        user-select: none;
+        transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+        background-color: var(--calendar-bg-color, #000000);
+        /* Ensure cells have a background so gaps show as borders */
+    }
+
+
+
+    .ECAL-cell-hoverable:hover {
+        background-color: var(--bg-hover);
+        /* gray-700 */
+    }
+
+    .ECAL-cell-content {
+        width: 100%;
+        height: 100%;
+        cursor: pointer;
+        position: relative;
+        overflow: visible;
+        user-select: none;
+    }
+
+    .ECAL-cell-selected {
+        color: white;
+        z-index: 10;
+    }
+
+    .ECAL-cell-default {
+        color: #d1d5db;
+        /* gray-300 */
+    }
+
+    /* ===== Event Bar Styles (Month View) ===== */
+    .ECAL-event-bar {
+        position: absolute;
+        left: 0;
+        right: 0;
+        transition: all 0.2s;
+    }
+
+    .ECAL-event-bar-inner {
+        display: flex;
+        align-items: center;
+        padding-left: 6px;
+        padding-right: 6px;
+        overflow: hidden;
+        transition: all 0.2s;
+    }
+
+    .ECAL-event-bar-title {
+        font-size: 10px;
+        font-weight: 500;
+        color: white;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: inherit;
+    }
+
+    .ECAL-fullscreen-title {
+        font-size: clamp(0rem, 2.4vw, 0.9rem);
+        font-weight: 500;
+        color: white;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        line-clamp: 2;
+        word-break: break-word;
+        line-height: 1.2;
+        text-align: left;
+    }
+
+    /* Carousel Styles */
+    .ECAL-carousel-container {
+        flex: 1;
+        display: flex;
+        overflow-x: hidden;
+        /* Critical: Hide horizontal overflow from 300% track */
+        width: 100%;
+        /* Ensure container itself doesn't expand */
+        position: relative;
+    }
+
+    .ECAL-mode-fullscreen {
+        overflow-y: hidden;
+        /* Disable container scroll */
+        overflow-x: hidden;
+    }
+
+    .ECAL-mode-normal {
+        overflow: hidden;
+    }
+
+    .ECAL-carousel-track {
+        display: flex;
+        /* height: 100%; Removed to allow growth */
+        /* min-height: 100%; Removed to allow shrinking */
+        /* min-height: 100%; Removed to allow shrinking */
+        flex-shrink: 0;
+        /* Critical: Prevent track from shrinking to container width */
+        touch-action: pan-y;
+        height: inherit;
+        align-items: flex-start !important;
+        /* Force items to top and allow independent height */
+    }
+
+    .ECAL-month-slide {
+        padding-bottom: 0;
+        flex-shrink: 0;
+        position: relative;
+        /* background-color: #161616; */
+        position: relative;
+        /* min-height: 100%; Removed to fix dynamic height */
+        height: auto !important;
+        /* Force auto height */
+        min-height: 0 !important;
+        /* Prevent min-height inheritance */
+        /* Match container height */
+        /* overflow-y: auto; Removed for strict height */
+        /* -webkit-overflow-scrolling: touch; Removed */
+        touch-action: pan-y;
+        /* Explicitly allow vertical pan, let JS handle horizontal */
+    }
+
+    .full-calendar-container {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow-y: auto;
+        overflow-x: hidden;
+        background-color: #000000;
+        z-index: 5;
+        /* 글로벌 헤더(z-index: 1000)보다 낮게 설정하여 헤더 버튼 클릭 가능하도록 */
+        -webkit-overflow-scrolling: touch;
+    }
+
+
+    /* Multi-Day Titles Overlay */
+    .ECAL-overlay-container {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        pointer-events: none;
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        grid-template-rows: repeat(6, 1fr);
+    }
+
+    .ECAL-overlay-item {
+        display: flex;
+        align-items: center;
+    }
+
+    .ECAL-overlay-title {
+        font-size: 10px;
+        font-weight: 500;
+        color: white;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Year View Styles */
+    .ECAL-year-view-container {
+        padding: 0.5rem;
+    }
+
+    .ECAL-year-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.5rem;
+    }
+
+    .ECAL-year-button {
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 700;
+        transition: all 0.2s;
+        cursor: pointer;
+        width: 100%;
+    }
+
+    .ECAL-year-button.selected {
+        background-color: #2563eb;
+        /* blue-600 */
+        color: white;
+    }
+
+    .ECAL-year-button.default {
+        background-color: var(--bg-secondary);
+        /* gray-700 */
+        color: var(--text-secondary);
+        /* gray-300 */
+    }
+
+    .ECAL-year-button.default:hover {
+        background-color: #4b5563;
+        /* gray-600 */
+        color: white;
+    }
+
+    /* Event Chip Styles (Single Day) */
+    .ECAL-event-chip {
+        border-radius: 9999px;
+        font-size: 10px;
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        transition: all 0.2s;
+        padding-left: 0.375rem;
+        /* 1.5 * 0.25rem */
+        padding-right: 0.375rem;
+        color: white;
+        height: 14px;
+        line-height: 14px;
+    }
+
+    .ECAL-event-chip.hovered {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+
+    .ECAL-event-chip.default {
+        opacity: 0.8;
+    }
+
+    /* Event Bar Segment Styles (Multi Day) */
+    .ECAL-event-bar-container {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 1.25rem;
+        /* 5 * 0.25rem = 20px */
+        pointer-events: none;
+    }
+
+    .ECAL-event-bar-segment {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        transition: all 0.2s;
+    }
+
+    .ECAL-event-bar-segment.rounded-full {
+        border-radius: 9999px;
+    }
+
+    .ECAL-event-bar-segment.rounded-l {
+        border-top-left-radius: 9999px;
+        border-bottom-left-radius: 9999px;
+    }
+
+    .ECAL-event-bar-segment.rounded-r {
+        border-top-right-radius: 9999px;
+        border-bottom-right-radius: 9999px;
+    }
+
+    .ECAL-event-bar-segment.faded {
+        opacity: 0.2;
+        height: 0.375rem;
+        /* 1.5 * 0.25rem */
+        z-index: 0;
+    }
+
+    .ECAL-event-bar-segment.hovered {
+        opacity: 1;
+        height: 1.25rem;
+        /* 5 * 0.25rem */
+        z-index: 10;
+    }
+
+    .ECAL-event-bar-segment.default {
+        opacity: 0.8;
+        height: 0.875rem;
+        /* 3.5 * 0.25rem */
+        z-index: 0;
+    }
+
+    /* Main Container Styles */
+    .ECAL-main-container {
+        border-radius: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        /* height: 100%; Removed to allow shrinking */
+        /* Ensure it fills the parent */
+        overflow: hidden;
+        /* Prevent container scroll */
+    }
+
+    /* Navigation Icons */
+    .ECAL-nav-icon {
+        font-size: 1.25rem;
+        /* text-xl */
+    }
+
+    /* Event Container (Normal Mode) */
+    .ECAL-event-container {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-height: 18px;
+    }
+
+    /* Weekday Header */
+    .ECAL-weekday-header {
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        gap: 0;
+        /* Ensure no gaps between columns for perfect border alignment */
+        text-align: center;
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        /* border-bottom: 1px solid #000; */
+        flex-shrink: 0;
+        background-color: #171717;
+        z-index: 35;
+    }
+
+    .ECAL-weekday-item.selected {
+        color: #fff !important;
+        font-weight: bold;
+        background-color: #3b82f6;
+    }
+
+    .ECAL-event-container-normal {
+        position: absolute;
+        display: flex;
+        flex-direction: column;
+        gap: 0.125rem;
+        /* 0.5 * 0.25rem */
+        pointer-events: none;
+        left: 0.25rem;
+        /* 1 * 0.25rem */
+        right: 0.25rem;
+    }
+
+    .ECAL-month-dropdown-icon {
+        transition: transform 0.2s;
+    }
+
+    .ECAL-month-dropdown-icon.rotated {
+        transform: rotate(180deg);
+    }
+
+    .ECAL-nav-group {
+        display: flex;
+        gap: 0.5rem;
+        /* space-x-2 */
+    }
+
+    .ECAL-month-dropdown-wrapper {
+        position: relative;
+        display: inline-block;
+    }
+
+    /* ===== Utility Classes Replacement ===== */
+    .ECAL-hidden {
+        display: none;
+    }
+
+    .ECAL-flex {
+        display: flex;
+    }
+
+    .ECAL-flex-col {
+        flex-direction: column;
+    }
+
+    .ECAL-items-center {
+        align-items: center;
+    }
+
+    .ECAL-justify-between {
+        justify-content: space-between;
+    }
+
+    .ECAL-justify-center {
+        justify-content: center;
+    }
+
+    .ECAL-relative {
+        position: relative;
+    }
+
+    .ECAL-absolute {
+        position: absolute;
+    }
+
+    .ECAL-inset-0 {
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+    }
+
+    .ECAL-w-full {
+        width: 100%;
+    }
+
+    .ECAL-h-full {
+        height: 100%;
+    }
+
+    .ECAL-cursor-pointer {
+        cursor: pointer;
+    }
+
+    .ECAL-pointer-events-none {
+        pointer-events: none;
+    }
+
+    .ECAL-z-10 {
+        z-index: 10;
+    }
+
+    .ECAL-z-20 {
+        z-index: 20;
+    }
+
+    .ECAL-z-30 {
+        z-index: 30;
+    }
+
+    /* Color Utilities (for dynamic classes) */
+    .ECAL-bg-gray-700 {
+        background-color: #374151;
+    }
+
+    .ECAL-bg-gray-800 {
+        background-color: #1f2937;
+    }
+
+    .ECAL-text-white {
+        color: white;
+    }
+
+    .ECAL-text-gray-300 {
+        color: #d1d5db;
+    }
+
+    .ECAL-text-gray-400 {
+        color: #9ca3af;
+    }
+
+    /* Event Colors */
+    .ECAL-bg-red-500 {
+        background-color: #ef4444;
+    }
+
+    .ECAL-bg-orange-500 {
+        background-color: #f97316;
+    }
+
+    .ECAL-bg-amber-500 {
+        background-color: #f59e0b;
+    }
+
+    .ECAL-bg-yellow-500 {
+        background-color: #eab308;
+    }
+
+    .ECAL-bg-lime-500 {
+        background-color: #84cc16;
+    }
+
+    .ECAL-bg-green-500 {
+        background-color: #22c55e;
+    }
+
+    .ECAL-bg-emerald-500 {
+        background-color: #10b981;
+    }
+
+    .ECAL-bg-teal-500 {
+        background-color: #14b8a6;
+    }
+
+    .ECAL-bg-cyan-500 {
+        background-color: #06b6d4;
+    }
+
+    .ECAL-bg-sky-500 {
+        background-color: #0ea5e9;
+    }
+
+    .ECAL-bg-blue-500 {
+        background-color: #3b82f6;
+    }
+
+    .ECAL-bg-indigo-500 {
+        background-color: #6366f1;
+    }
+
+    .ECAL-bg-violet-500 {
+        background-color: #8b5cf6;
+    }
+
+    .ECAL-bg-purple-500 {
+        background-color: #a855f7;
+    }
+
+    .ECAL-bg-fuchsia-500 {
+        background-color: #d946ef;
+    }
+
+    .ECAL-bg-pink-500 {
+        background-color: #ec4899;
+    }
+
+    .ECAL-bg-rose-500 {
+        background-color: #f43f5e;
+    }
+
+    .ECAL-bg-red-600 {
+        background-color: #dc2626;
+    }
+
+    .ECAL-bg-orange-600 {
+        background-color: #ea580c;
+    }
+
+    .ECAL-bg-amber-600 {
+        background-color: #d97706;
+    }
+
+    .ECAL-bg-yellow-600 {
+        background-color: #ca8a04;
+    }
+
+    .ECAL-bg-lime-600 {
+        background-color: #65a30d;
+    }
+
+    .ECAL-bg-green-600 {
+        background-color: #16a34a;
+    }
+
+    .ECAL-bg-emerald-600 {
+        background-color: #059669;
+    }
+
+    .ECAL-bg-teal-600 {
+        background-color: #0d9488;
+    }
+
+    .ECAL-bg-cyan-600 {
+        background-color: #0891b2;
+    }
+
+    .ECAL-bg-sky-600 {
+        background-color: #0284c7;
+    }
+
+    .ECAL-bg-blue-600 {
+        background-color: #2563eb;
+    }
+
+    .ECAL-bg-indigo-600 {
+        background-color: #4f46e5;
+    }
+
+    .ECAL-bg-violet-600 {
+        background-color: #7c3aed;
+    }
+
+    .ECAL-bg-purple-600 {
+        background-color: #9333ea;
+    }
+
+    .ECAL-bg-fuchsia-600 {
+        background-color: #c026d3;
+    }
+
+    .ECAL-bg-pink-600 {
+        background-color: #db2777;
+    }
+
+    .ECAL-bg-rose-600 {
+        background-color: #e11d48;
+    }
+
+    .ECAL-bg-purple-400 {
+        background-color: #c084fc;
+    }
+
+    .ECAL-bg-blue-400 {
+        background-color: #60a5fa;
+    }
+
+    .ECAL-hover-bg-gray-600:hover {
+        background-color: #4b5563;
+    }
+
+    .ECAL-hover-bg-gray-700:hover {
+        background-color: #374151;
+    }
+
+    .ECAL-hover-text-white:hover {
+        color: white;
+    }
+
+    .ECAL-hover-text-blue-400:hover {
+        color: #60a5fa;
+    }
+
+    .ECAL-transition-colors {
+        transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 150ms;
+    }
+
+    .ECAL-transition-transform {
+        transition-property: transform;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 150ms;
+    }
+
+    .ECAL-rotate-180 {
+        transform: rotate(180deg);
+    }
+
+    .ECAL-rounded-lg {
+        border-radius: 0.5rem;
+    }
+
+    .ECAL-rounded-full {
+        border-radius: 9999px;
+    }
+
+    .ECAL-rounded-l-full {
+        border-top-left-radius: 9999px;
+        border-bottom-left-radius: 9999px;
+    }
+
+    .ECAL-rounded-r-full {
+        border-top-right-radius: 9999px;
+        border-bottom-right-radius: 9999px;
+    }
+
+    .ECAL-shadow-lg {
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    .ECAL-min-w-120 {
+        min-width: 120px;
+    }
+
+    .ECAL-first-rounded-t-lg:first-child {
+        border-top-left-radius: 0.5rem;
+        border-top-right-radius: 0.5rem;
+    }
+
+    .ECAL-last-rounded-b-lg:last-child {
+        border-bottom-left-radius: 0.5rem;
+        border-bottom-right-radius: 0.5rem;
+    }
+
+    .ECAL-space-x-1> :not([hidden])~ :not([hidden]) {
+        --tw-space-x-reverse: 0;
+        margin-right: calc(0.25rem * var(--tw-space-x-reverse));
+        margin-left: calc(0.25rem * (1 - var(--tw-space-x-reverse)));
+    }
+
+    .ECAL-space-x-2> :not([hidden])~ :not([hidden]) {
+        --tw-space-x-reverse: 0;
+        margin-right: calc(0.5rem * var(--tw-space-x-reverse));
+        margin-left: calc(0.5rem * (1 - var(--tw-space-x-reverse)));
+    }
+
+    /* Fullscreen Calendar Styles */
+    /* Fullscreen Calendar Styles */
+    .ECAL-cell-fullscreen {
+        display: flex;
+        flex-direction: column;
+        /* height: 100%; Removed to allow expansion */
+        /* min-height: 100px; Removed to allow shrinking */
+        min-height: auto;
+        /* Minimum height for fullscreen cells */
+        background-color: #171717;
+        border-right: 1px solid var(--calendar-vertical-border);
+        border-bottom: 1px solid var(--calendar-week-border);
+        border-top: 1px solid var(--calendar-week-border);
+        /* overflow: hidden; Removed to allow expansion */
+        position: relative;
+        /* Include border in width calculation to match weekday header */
+        box-sizing: border-box;
+    }
+
+    /* Remove bottom border from last row cells */
+    .ECAL-grid-container>.ECAL-cell-fullscreen:nth-last-child(-n+7) {
+        border-bottom: none;
+    }
+
+    /* Transitioning state overrides */
+    .ECAL-transitioning .ECAL-cell-fullscreen {
+        min-height: 0 !important;
+        overflow: hidden !important;
+    }
+
+    .ECAL-cell-fullscreen-header {
+        padding: 4px;
+        display: flex;
+        justify-content: flex-start;
+        /* Align date to top-left */
+        align-items: center;
+        height: 30px;
+        flex-shrink: 0;
+    }
+
+    .ECAL-cell-fullscreen-body {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0px;
+        /* padding: 2px 4px 4px 4px; */
+        /* overflow-y: auto; Removed to allow expansion */
+        /* Allow scrolling within the cell if needed */
+    }
+
+    .ECAL-fullscreen-event-container {
+        /* Legacy class kept for compatibility if needed, but new structure uses body */
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .ECAL-fullscreen-event-card {
+        display: flex;
+        flex-direction: column;
+        /* gap: 4px; */
+        /* background-color: #000; */
+        border-radius: 4px;
+        padding: 0px 2px;
+        margin-bottom: 10px;
+        cursor: pointer;
+        scroll-margin-top: 150px;
+        /* Removed hover effect for instant modal display */
+    }
+
+    .ECAL-fullscreen-image-container {
+        /* width: 78%; */
+        aspect-ratio: 5 / 5;
+        border-radius: 0.3rem;
+        overflow: hidden;
+        background-color: var(--bg-secondary);
+        /* gray-700 */
+    }
+
+    .ECAL-fullscreen-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+        transform: translateZ(0);
+        -webkit-transform: translateZ(0);
+    }
+
+    .ECAL-fullscreen-placeholder {
+        width: 100%;
+        aspect-ratio: 5 / 6;
+        border-radius: 0.3rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 12px;
+    }
+
+    .ECAL-fullscreen-title-container {
+        width: 100%;
+        min-height: 24px;
+        /* 2줄 높이 확보 */
+    }
+
+    /* Event Sequence Badge */
+    .ECAL-event-sequence-badge {
+        position: absolute;
+        top: -4px;
+        right: -4px;
+        min-width: 14px;
+        height: 14px;
+        padding: 0 3px;
+        border-radius: 10px;
+        background-color: #a9a9a9;
+        color: #000;
+        font-size: 9px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        z-index: 10;
+        white-space: nowrap;
+    }
+
+    /* Highlighted Event (from search) */
+    .ECAL-event-highlighted {
+        animation: highlightBlink 3s ease-out;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.8), 0 0 20px rgba(59, 130, 246, 0.6) !important;
+    }
+
+    @keyframes highlightBlink {
+
+        0%,
+        100% {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0), 0 0 0 rgba(59, 130, 246, 0);
+            opacity: 1;
+        }
+
+        5%,
+        15%,
+        25%,
+        35%,
+        45%,
+        55%,
+        65%,
+        75%,
+        85%,
+        95% {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.9), 0 0 25px rgba(59, 130, 246, 0.7);
+            opacity: 1;
+        }
+
+        10%,
+        20%,
+        30%,
+        40%,
+        50%,
+        60%,
+        70%,
+        80%,
+        90% {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3), 0 0 10px rgba(59, 130, 246, 0.2);
+            opacity: 0.7;
+        }
+    }
+
+
+    .ECAL-event-count-default {
+        /* background-color: #4b5563; */
+        color: #d1d5db;
+    }
+
+    .ECAL-event-count-hovered {
+        background-color: #3b82f6;
+        color: white;
+        transform: scale(1.1);
+    }
+
+    /* ===== 추가 유틸리티 클래스 ===== */
+
+    /* Opacity */
+    .ECAL-opacity-15 {
+        opacity: 0.15;
+    }
+
+    .ECAL-opacity-20 {
+        opacity: 0.2;
+    }
+
+    .ECAL-opacity-60 {
+        opacity: 0.6;
+    }
+
+    .ECAL-opacity-80 {
+        opacity: 0.8;
+    }
+
+    .ECAL-opacity-100 {
+        opacity: 1;
+    }
+
+    /* Z-Index */
+    .ECAL-z-0 {
+        z-index: 0;
+    }
+
+    .ECAL-z-10 {
+        z-index: 10;
+    }
+
+    .ECAL-z-30 {
+        z-index: 30;
+    }
+
+    /* 인터랙션 */
+    .ECAL-pointer-events-none {
+        pointer-events: none;
+    }
+
+    .ECAL-cursor-pointer {
+        cursor: pointer;
+    }
+
+    /* Display */
+    .ECAL-hidden {
+        display: none;
+    }
+
+    .ECAL-inline-block {
+        display: inline-block;
+    }
+
+    /* Overflow */
+    .ECAL-overflow-hidden {
+        overflow: hidden;
+    }
+
+    .ECAL-overflow-y-auto {
+        overflow-y: auto;
+    }
+
+    .ECAL-overflow-visible {
+        overflow: visible;
+    }
+
+    /* Text */
+    .ECAL-truncate {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .ECAL-font-bold {
+        font-weight: 700;
+    }
+
+    .ECAL-font-medium {
+        font-weight: 500;
+    }
+
+    .ECAL-font-semibold {
+        font-weight: 600;
+    }
+
+    .ECAL-text-center {
+        text-align: center;
+    }
+
+    /* Space Between */
+    .ECAL-space-x-1>*+* {
+        margin-left: 0.25rem;
+    }
+
+    .ECAL-space-x-2>*+* {
+        margin-left: 0.5rem;
+    }
+
+    /* 임의 값 클래스 */
+    .ECAL-text-\[10px\] {
+        font-size: 10px;
+    }
+
+    .ECAL-text-\[9px\] {
+        font-size: 9px;
+    }
+
+    .ECAL-text-xl {
+        font-size: 1.25rem;
+        line-height: 1.75rem;
+    }
+
+    /* 위치 */
+    .ECAL-inset-0 {
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+    }
+
+    .ECAL-top-px {
+        top: 1px;
+    }
+
+    .ECAL-left-0\.5 {
+        left: 0.125rem;
+    }
+
+    .ECAL-right-0\.5 {
+        right: 0.125rem;
+    }
+
+    .ECAL-top-0\.5 {
+        top: 0.125rem;
+    }
+
+    .ECAL-bottom-0 {
+        bottom: 0;
+    }
+
+    .ECAL-left-0 {
+        left: 0;
+    }
+
+    .ECAL-right-0 {
+        right: 0;
+    }
+
+    .ECAL-left-1 {
+        left: 0.25rem;
+    }
+
+    .ECAL-right-1 {
+        right: 0.25rem;
+    }
+
+    .ECAL-top-1 {
+        top: 0.25rem;
+    }
+
+    .ECAL-left-2 {
+        left: 0.5rem;
+    }
+
+    /* Padding */
+    .ECAL-px-1 {
+        padding-left: 0.25rem;
+        padding-right: 0.25rem;
+    }
+
+    .ECAL-px-1\.5 {
+        padding-left: 0.375rem;
+        padding-right: 0.375rem;
+    }
+
+    .ECAL-py-0 {
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+
+    /* Gap */
+    .ECAL-gap-0\.5 {
+        gap: 0.125rem;
+    }
+
+    .ECAL-gap-0 {
+        gap: 0;
+    }
+
+    /* Height */
+    .ECAL-h-1\.5 {
+        height: 0.375rem;
+    }
+
+    .ECAL-h-3\.5 {
+        height: 0.875rem;
+    }
+
+    .ECAL-h-4 {
+        height: 1rem;
+    }
+
+    .ECAL-h-5 {
+        height: 1.25rem;
+    }
+
+    .ECAL-h-full {
+        height: 100%;
+    }
+
+    /* Border Radius */
+    .ECAL-rounded-full {
+        border-radius: 9999px;
+    }
+
+    .ECAL-rounded-l-full {
+        border-top-left-radius: 9999px;
+        border-bottom-left-radius: 9999px;
+    }
+
+    .ECAL-rounded-r-full {
+        border-top-right-radius: 9999px;
+        border-bottom-right-radius: 9999px;
+    }
+
+    .ECAL-rounded-none {
+        border-radius: 0;
+    }
+
+    /* Transform */
+    .ECAL-scale-105 {
+        transform: scale(1.05);
+    }
+
+    .ECAL-rotate-180 {
+        transform: rotate(180deg);
+    }
+
+    /* Transitions */
+    .ECAL-transition-colors {
+        transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        transition-duration: 150ms;
+    }
+
+    .ECAL-duration-200 {
+        transition-duration: 200ms;
+    }
+
+    /* Hover States */
+    .ECAL-hover-bg-gray-700:hover {
+        background-color: #374151;
+    }
+
+    .ECAL-hover-bg-gray-600:hover {
+        background-color: #4b5563;
+    }
+
+    .ECAL-hover-text-white:hover {
+        color: white;
+    }
+
+    .ECAL-hover-text-blue-400:hover {
+        color: #60a5fa;
+    }
+
+    /* ===== Aspect Ratio & Object Fit ===== */
+    .ECAL-aspect-square {
+        aspect-ratio: 1 / 1;
+    }
+
+    .ECAL-object-cover {
+        object-fit: cover;
+    }
+
+    /* ===== Margin Utilities ===== */
+    .ECAL-mt-4 {
+        margin-top: 1rem;
+    }
+
+    .ECAL-mt-5 {
+        margin-top: 1.25rem;
+    }
+
+    .ECAL-mt-6 {
+        margin-top: 1.5rem;
+    }
+
+    .ECAL-mx-0\.5 {
+        margin-left: 0.125rem;
+        margin-right: 0.125rem;
+    }
+
+    /* ===== Padding Utilities ===== */
+    .ECAL-pb-20 {
+        padding-bottom: 5rem;
+    }
+
+    .ECAL-pb-40 {
+        padding-bottom: 10rem;
+    }
+
+    .ECAL-h-20 {
+        height: 5rem;
+    }
+
+    /* Highlight animation for newly created events */
+    @keyframes highlightPulse {
+
+        0%,
+        100% {
+            box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7);
+            transform: scale(1);
+        }
+
+        50% {
+            box-shadow: 0 0 0 8px rgba(59, 130, 246, 0);
+            transform: scale(1.05);
+        }
+    }
+
+    .ECAL-event-highlighted {
+        animation: highlightPulse 1s ease-in-out 3;
+        border: 2px solid rgba(59, 130, 246, 0.8) !important;
+    }
+}
+
+/* ==========================================================================
+   EditablePreviewCard Scope (EPC-)
+   ========================================================================== */
+@scope (.EditablePreviewCard) {
+
+    /* Preview Toggle Container */
+    .EPC-toggleContainer {
+        display: flex;
+        gap: 4px;
+        background-color: rgba(55, 65, 81, 0.9);
+        border-radius: 8px;
+        padding: 4px;
+        border: 1px solid rgb(75, 85, 99);
+    }
+
+    /* Preview Toggle Button */
+    .EPC-toggleBtn {
+        padding: 6px 16px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        border-radius: 6px;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s;
+        background-color: transparent;
+        color: rgb(156, 163, 175);
+    }
+
+    .EPC-toggleBtn.is-active {
+        background-color: rgb(59, 130, 246);
+        color: white;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    .EPC-toggleBtn:hover:not(.is-active) {
+        color: white;
+        background-color: rgba(75, 85, 99, 0.5);
+    }
+
+    /* Image Upload Button */
+    .EPC-uploadBox {
+        width: 100%;
+        aspect-ratio: 3/4;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background-color: rgba(31, 41, 55, 0.4);
+        cursor: pointer;
+        border-radius: 12px;
+        border: 2px dashed rgba(75, 85, 99, 0.6);
+        transition: all 0.2s;
+    }
+
+    .EPC-uploadBox:hover {
+        background-color: rgba(31, 41, 55, 0.6);
+        border-color: rgba(59, 130, 246, 0.6);
+    }
+
+    .EPC-uploadIcon {
+        font-size: 3.75rem;
+        color: rgb(107, 114, 128);
+        margin-bottom: 0.75rem;
+    }
+
+    .EPC-uploadText {
+        color: rgb(156, 163, 175);
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    /* Edit Overlay */
+    .EPC-editOverlay {
+        position: absolute;
+        padding: 8px;
+        cursor: pointer;
+        border-radius: 6px;
+        transition: background-color 0.2s;
+    }
+
+    .EPC-editOverlay:hover {
+        background-color: rgba(0, 0, 0, 0.1);
+    }
+
+    .EPC-editIcon {
+        position: absolute;
+        right: 8px;
+        top: 8px;
+        font-size: 1rem;
+        color: #3b82f6;
+        opacity: 0.7;
+    }
+
+    /* Title Edit Overlay */
+    .EPC-titleEditOverlay {
+        top: 200px;
+        left: 12px;
+        right: 12px;
+    }
+
+    .EPC-titleEditOverlay-noImage {
+        top: 20px;
+        left: 12px;
+        right: 12px;
+    }
+
+    /* Image Edit Button */
+    .EPC-imageEditBtn {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        background-color: rgba(0, 0, 0, 0.6);
+        color: white;
+        padding: 8px;
+        border-radius: 50%;
+        border: none;
+        cursor: pointer;
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+
+    .EPC-imageEditBtn:hover {
+        opacity: 1 !important;
+    }
+
+    /* Inline Edit Modal */
+    .EPC-inlineModal {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background-color: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        z-index: 1000;
+        min-width: 300px;
+        max-width: 90vw;
+    }
+
+    .EPC-inlineModalTitle {
+        margin-bottom: 1rem;
+        font-weight: 600;
+        font-size: 1.1rem;
+        color: #1f2937;
+    }
+
+    .EPC-inlineInput {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .EPC-inlineInput:focus {
+        outline: none;
+        border-color: #3b82f6;
+    }
+
+    .EPC-inlineActions {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: flex-end;
+    }
+
+    .EPC-inlineBtn {
+        padding: 0.5rem 1rem;
+        background-color: #3b82f6;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: background-color 0.2s;
+    }
+
+    .EPC-inlineBtn:hover {
+        background-color: #2563eb;
+    }
+
+    /* Modal Backdrop */
+    .EPC-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: 999;
+    }
+
+    /* Editable Sections */
+    .EPC-editableSection {
+        cursor: pointer;
+        position: relative;
+        transition: all 0.2s;
+        border-radius: 4px;
+    }
+
+    .EPC-editableSection:hover {
+        opacity: 1;
+    }
+
+    /* Visual hint for editable text sections */
+    .EPC-textContainer .EPC-editableSection {
+        border: 1px dashed rgba(255, 255, 255, 0.15);
+        background-color: rgba(255, 255, 255, 0.02);
+        padding: 2px 4px;
+        margin: -2px -4px;
+    }
+
+    .EPC-textContainer .EPC-editableSection:hover {
+        border-color: rgba(59, 130, 246, 0.5);
+        background-color: rgba(59, 130, 246, 0.1);
+    }
+
+    /* Input styling */
+    .EPC-textContainer input {
+        background-color: rgba(255, 255, 255, 0.1) !important;
+        border-radius: 4px;
+        box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5);
+        padding: 2px 4px !important;
+        margin: -2px -4px !important;
+        width: calc(100% + 8px) !important;
+    }
+
+    .EPC-inlineIcon {
+        font-size: 0.875rem;
+        color: #3b82f6;
+        opacity: 0;
+        transition: opacity 0.2s;
+    }
+
+    .EPC-editableSection:hover .EPC-inlineIcon {
+        opacity: 1;
+    }
+
+    .EPC-overlayIcon {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 2rem;
+        color: white;
+        opacity: 0;
+        transition: all 0.2s;
+        pointer-events: none;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--radius-md);
+    }
+
+    .ECARD-imageWrapper.EPC-editableSection:hover .EPC-overlayIcon {
+        opacity: 1;
+        background-color: rgba(0, 0, 0, 0.3);
+    }
+
+    /* Date Mode Tabs */
+    .EPC-dateTabs {
+        display: flex;
+        background-color: #f3f4f6;
+        padding: 4px;
+        border-radius: 8px;
+        margin-bottom: 1rem;
+    }
+
+    .EPC-dateTab {
+        flex: 1;
+        padding: 8px;
+        border: none;
+        background-color: transparent;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: #6b7280;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .EPC-dateTab.is-active {
+        background-color: white;
+        color: #3b82f6;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Specific Date Tags */
+    .EPC-dateList {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+    }
+
+    .EPC-dateTag {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 4px 8px;
+        background-color: #eff6ff;
+        border: 1px solid #bfdbfe;
+        border-radius: 9999px;
+        font-size: 0.75rem;
+        color: #1e40af;
+    }
+
+    .EPC-dateRemove {
+        border: none;
+        background: none;
+        cursor: pointer;
+        color: #3b82f6;
+        padding: 0;
+        display: flex;
+        align-items: center;
+    }
+
+    .EPC-dateRemove:hover {
+        color: #1e3a8a;
+    }
+
+    /* Preview Mode Notice */
+    .EPC-previewNotice {
+        position: absolute;
+        top: 1rem;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 20px;
+        font-size: 0.875rem;
+        z-index: 20;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        pointer-events: none;
+        white-space: nowrap;
+        backdrop-filter: blur(4px);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        animation: EPC-fadeIn 0.3s ease-out;
+    }
+
+    @keyframes EPC-fadeIn {
+        from {
+            opacity: 0;
+            transform: translate(-50%, -10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translate(-50%, 0);
         }
     }
 }

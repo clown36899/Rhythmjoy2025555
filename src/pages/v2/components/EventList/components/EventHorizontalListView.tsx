@@ -1,6 +1,6 @@
 import Footer from "../../Footer";
 import type { Event } from "../../../utils/eventListUtils";
-import "../../../styles/EventHorizontalListView.css";
+// import "../../../styles/EventHorizontalListView.css"; // Migrated to events.css
 
 interface EventHorizontalListViewProps {
     events: Event[];
@@ -42,30 +42,30 @@ export function EventHorizontalListView({
     };
 
     return (
-        <div className="event-list-search-container evt-single-view-scroll evt-list-bg-container evt-single-view-container">
+        <div className="EHLV-container event-list-search-container">
             {/* 년도/월별 그룹화된 가로 카드 레이아웃 - 사용자 제공 DOM 구조 기준 */}
             {sortedKeys.map(yearMonth => {
                 const [year, month] = yearMonth.split('-');
                 const monthEvents = groupedByYearMonth[yearMonth];
 
                 return (
-                    <div key={yearMonth} className="evt-year-month-group">
+                    <div key={yearMonth} className="EHLV-group">
                         {/* 년도/월 헤더 */}
-                        <div className="evt-year-month-header">
-                            <span className="evt-year">{year}년</span>
-                            <span className="evt-month">{parseInt(month)}월</span>
+                        <div className="EHLV-header">
+                            <span className="EHLV-year">{year}년</span>
+                            <span className="EHLV-month">{parseInt(month)}월</span>
                         </div>
 
                         {/* 가로 카드 리스트 */}
-                        <div className="evt-horizontal-card-list">
+                        <div className="EHLV-list">
                             {monthEvents.map((event) => (
                                 <div
                                     key={event.id}
-                                    className="evt-horizontal-card"
+                                    className="EHLV-card"
                                     onClick={() => onEventClick(event)}
                                 >
                                     {/* 왼쪽: 이미지 (최적화: 썸네일 사용 및 지연 로딩) */}
-                                    <div className="evt-horizontal-card-image">
+                                    <div className="EHLV-cardImage">
                                         {event.image_thumbnail || event.image_medium || event.image ? (
                                             <img
                                                 src={event.image_thumbnail || event.image_medium || event.image}
@@ -78,16 +78,16 @@ export function EventHorizontalListView({
                                     </div>
 
                                     {/* 오른쪽: 정보 */}
-                                    <div className="evt-horizontal-card-content">
-                                        <h3 className="evt-horizontal-card-title">{event.title}</h3>
-                                        <p className="evt-horizontal-card-date">
+                                    <div className="EHLV-cardContent">
+                                        <h3 className="EHLV-cardTitle">{event.title}</h3>
+                                        <p className="EHLV-cardDate">
                                             {event.start_date === event.end_date || !event.end_date
                                                 ? formatDate(event.start_date || event.date || "")
                                                 : `${formatDate(event.start_date || "")} - ${formatDate(event.end_date || "")}`
                                             }
                                         </p>
                                         {event.location && (
-                                            <p className="evt-horizontal-card-location">
+                                            <p className="EHLV-cardLocation">
                                                 <i className="ri-map-pin-line"></i>
                                                 {event.location}
                                             </p>
