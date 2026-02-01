@@ -187,13 +187,25 @@ export default function CalendarPage() {
         };
 
         // 즉시 실행 시도
-        doScroll();
+        if (shouldScrollToToday) {
+            doScroll();
+        }
+
+        // 외부 강제 스크롤 이벤트 리스너
+        const handleForceScroll = () => {
+            attempts = 0;
+            stableCount = 0;
+            doScroll();
+        };
+
+        window.addEventListener('forceScrollToToday', handleForceScroll);
 
         return () => {
             if (scrollTimer) clearTimeout(scrollTimer);
             window.removeEventListener('wheel', handleUserInteraction);
             window.removeEventListener('touchmove', handleUserInteraction);
             window.removeEventListener('keydown', handleUserInteraction);
+            window.removeEventListener('forceScrollToToday', handleForceScroll);
         };
     }, []); // Mount 시 1회 실행, handleMonthChange 의존성
 
@@ -336,6 +348,10 @@ export default function CalendarPage() {
 
         const handleGoToToday = () => {
             handleMonthChange(new Date());
+            // [Fix] 월 변경 후 렌더링 대기 후 스크롤 트리거
+            setTimeout(() => {
+                window.dispatchEvent(new CustomEvent('forceScrollToToday'));
+            }, 150);
         };
 
         window.addEventListener('setFullscreenMode', handleSetFullscreenMode);

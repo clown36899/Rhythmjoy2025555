@@ -688,15 +688,34 @@
   transform: scale(0.95);
 }
 
-.calendar-month-btn i {
-  font-size: 1.1rem;
-}
-
 .calendar-month-label {
   color: white;
   font-weight: 600;
-  font-size: clamp(0rem, 6vw, 1.5rem);
-  min-width: 70px;
+  font-size: clamp(0.9rem, 4.5vw, 1.3rem);
+  min-width: 60px;
+  text-align: center;
+}
+
+.calendar-today-header-btn {
+  background: white;
+  color: black;
+  border: none;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-left: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.calendar-today-header-btn:hover {
+  background: #f3f4f6;
+  transform: translateY(-1px);
+}
+
+.calendar-today-header-btn:active {
+  transform: translateY(0);
 }
 
 /* FAB styles moved to BottomNavigation */
