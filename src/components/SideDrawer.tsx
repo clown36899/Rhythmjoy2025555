@@ -200,15 +200,15 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
     const handlePushToggle = async (e: React.MouseEvent) => {
         e.stopPropagation();
 
-        if (!user) {
-            onLoginClick();
-            onClose();
-            return;
-        }
-
         if (!isRunningInPWA) {
             // 브라우저 모드: PWA 설치 안내 트리거
             window.dispatchEvent(new CustomEvent('showPWAInstructions'));
+            return;
+        }
+
+        if (!user) {
+            onLoginClick();
+            onClose();
             return;
         }
 
@@ -451,7 +451,13 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
 
                             {/* 강습, 이벤트 알람 받기 버튼 (모든 사용자 대상) */}
                             <div className="drawer-notification-card">
-                                <div className={`card-header ${isPushEnabled && isRunningInPWA ? 'clickable' : ''}`} onClick={() => isPushEnabled && isRunningInPWA && setIsSettingsExpanded((prev) => !prev)}>
+                                <div className={`card-header clickable`} onClick={(e) => {
+                                    if (!isRunningInPWA) {
+                                        handlePushToggle(e);
+                                    } else if (isPushEnabled) {
+                                        setIsSettingsExpanded((prev) => !prev);
+                                    }
+                                }}>
                                     <div className="card-title">
                                         <i className="ri-notification-3-fill"></i>
                                         <span>알림 설정</span>
