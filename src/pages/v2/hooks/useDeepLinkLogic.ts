@@ -12,7 +12,7 @@ export function useDeepLinkLogic({ setCurrentMonth }: UseDeepLinkLogicProps) {
     const [sharedEventId, setSharedEventId] = useState<number | string | null>(null);
 
     // Scroll to event in preview mode with horizontal scroll support
-    const scrollToEventInPreview = useCallback((eventId: number | string, category: string) => {
+    const scrollToEventInPreview = useCallback((eventId: number | string) => {
         const scrollToEvent = (retries = 10) => {
             const eventCard = document.querySelector(`[data-event-id="${eventId}"]`);
 
@@ -45,7 +45,7 @@ export function useDeepLinkLogic({ setCurrentMonth }: UseDeepLinkLogicProps) {
                             behavior: 'smooth'
                         });
                     }
-                }, 500); // Wait for vertical scroll to settle
+                }, 200); // [Optimization] Reduced from 500ms
 
                 // Highlight animation
                 eventCard.classList.add('qr-highlighted');
@@ -98,15 +98,14 @@ export function useDeepLinkLogic({ setCurrentMonth }: UseDeepLinkLogicProps) {
 
                             if (source === "qr" || source === "edit") {
                                 // QR/Edit: Scroll to event in preview mode with horizontal scroll
-                                const categoryParam = params.get("category");
-                                scrollToEventInPreview(id, categoryParam || event.category);
+                                scrollToEventInPreview(id);
                             } else {
                                 // Regular deep link: Just highlight
                                 setTimeout(() => {
                                     setHighlightEvent({ id: event.id, nonce: Date.now() });
-                                }, 500);
+                                }, 100); // [Optimization] Reduced from 500ms
                             }
-                        }, 1200); // Increased delay for DOM rendering
+                        }, 400); // [Optimization] Reduced from 1200ms - DOM should be ready faster
                     } else {
                         setQrLoading(false);
                     }

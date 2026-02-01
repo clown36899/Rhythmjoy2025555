@@ -13,10 +13,8 @@ export function useEventActions({ adminType, user, signInWithKakao }: UseEventAc
     const [selectedEvent, setSelectedEvent] = useState<AppEvent | null>(null);
 
     const handleDailyModalEventClick = useCallback((event: AppEvent) => {
-        // 약간의 딜레이 후 상세 모달을 열어 애니메이션이 겹치지 않게 함
-        setTimeout(() => {
-            setSelectedEvent(event);
-        }, 100);
+        // [Optimization] Removed artificial 100ms delay
+        setSelectedEvent(event);
     }, []);
 
     const closeModal = useCallback(() => {

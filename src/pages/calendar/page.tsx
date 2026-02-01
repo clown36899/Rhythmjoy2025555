@@ -143,6 +143,8 @@ export default function CalendarPage() {
         const maxAttempts = 20; // 2초간 끈질기게 추적
         let stableCount = 0;
 
+        let scrollTimer: NodeJS.Timeout | null = null;
+
         const doScroll = () => {
             // 사용자가 개입했다면 즉시 중단 (싸움 방지)
             if (userInteracted.current) {
@@ -153,17 +155,13 @@ export default function CalendarPage() {
             const headerEl = document.querySelector('.calendar-page-weekday-header') as HTMLElement;
 
             if (todayEl && headerEl) {
-                // Window 전체 좌표 기준 계산
                 const todayRect = todayEl.getBoundingClientRect();
                 const headerRect = headerEl.getBoundingClientRect();
                 const currentScrollY = window.pageYOffset || document.documentElement.scrollTop;
 
-                // 오차: 오늘 날짜 상단 - 요일 헤더 하단
-                // (오늘 날짜 요소가 요일 헤더 바로 아래에 딱 붙도록 정교하게 계산)
                 const offsetError = todayRect.top - headerRect.bottom;
 
                 if (Math.abs(offsetError) > 0.5) {
-                    // Window 강제 즉시 스크롤 (behavior: 'auto'는 브라우저 기본 즉시 이동)
                     window.scrollTo({
                         top: currentScrollY + offsetError,
                         behavior: 'auto'
@@ -173,12 +171,7 @@ export default function CalendarPage() {
                     stableCount++;
                 }
 
-                // 로깅 제거
-
-
-                // 안정화 조건 (5회 연속 오차 범위 내 고정)
                 if (stableCount >= 5 && attempts > 8) {
-                    // console.log('✅ [ScrollLog] Final Alignment Stabilized.');
                     if (shouldScrollToToday) {
                         const newUrl = window.location.pathname;
                         window.history.replaceState({}, '', newUrl);
@@ -189,15 +182,15 @@ export default function CalendarPage() {
 
             attempts++;
             if (attempts < maxAttempts) {
-                // 사용자가 효과를 본 500ms, 800ms, 1100ms 타이밍을 모두 커버하는 100ms 정밀 루프
-                setTimeout(doScroll, 100);
+                scrollTimer = setTimeout(doScroll, 30);
             }
         };
 
-        // 지연 시간 최적화 (사용자의 500ms 제안 반영하여 400ms에 첫 시도)
-        const timer = setTimeout(doScroll, 400);
+        // 즉시 실행 시도
+        doScroll();
+
         return () => {
-            clearTimeout(timer);
+            if (scrollTimer) clearTimeout(scrollTimer);
             window.removeEventListener('wheel', handleUserInteraction);
             window.removeEventListener('touchmove', handleUserInteraction);
             window.removeEventListener('keydown', handleUserInteraction);
@@ -270,7 +263,7 @@ export default function CalendarPage() {
                             } : data;
                             eventModal.setSelectedEvent(eventToSet);
                             setHighlightedEventId(eventToSet.id);
-                        }, 500);
+                        }, 100); // [Optimization] Reduced from 500ms
 
                         // 4. 3초 후 하이라이트 제거
                         setTimeout(() => {

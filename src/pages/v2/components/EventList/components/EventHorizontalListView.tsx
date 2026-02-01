@@ -64,12 +64,16 @@ export function EventHorizontalListView({
                                     className="evt-horizontal-card"
                                     onClick={() => onEventClick(event)}
                                 >
-                                    {/* 왼쪽: 이미지 */}
+                                    {/* 왼쪽: 이미지 (최적화: 썸네일 사용 및 지연 로딩) */}
                                     <div className="evt-horizontal-card-image">
-                                        {event.image ? (
-                                            <img src={event.image} alt={event.title} />
+                                        {event.image_thumbnail || event.image_medium || event.image ? (
+                                            <img
+                                                src={event.image_thumbnail || event.image_medium || event.image}
+                                                alt={event.title}
+                                                loading="lazy"
+                                            />
                                         ) : (
-                                            <img src={defaultThumbnailEvent} alt={event.title} />
+                                            <img src={defaultThumbnailEvent} alt={event.title} loading="lazy" />
                                         )}
                                     </div>
 

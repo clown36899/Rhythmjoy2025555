@@ -1945,8 +1945,8 @@ export default function EventDetailModal({
             </div>
           </div>
           <GlobalLoadingOverlay
-            isLoading={isDeleting || isInternalDeleting || isSaving || (isFetchingDetail && !isCropModalOpen)}
-            message={(isDeleting || isInternalDeleting) ? "삭제 중입니다..." : (isSaving ? "저장 중입니다..." : "이미지 불러오는 중...")}
+            isLoading={isDeleting || isInternalDeleting || isSaving}
+            message={(isDeleting || isInternalDeleting) ? "삭제 중입니다..." : "저장 중입니다..."}
             progress={(isDeleting || isInternalDeleting) ? (deleteProgress || internalProgress) : undefined}
           />
         </div >

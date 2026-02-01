@@ -162,8 +162,8 @@ export function useCalendarGesture({
         const absX = Math.abs(diffX);
         const absY = Math.abs(diffY);
 
-        // Reduced deadzone (5 -> 3) for even faster response
-        if (absX > 3 || absY > 3) {
+        // 임계값 상향 (3 -> 10)으로 클릭 미스 방지 및 반응서 확보
+        if (absX > 10 || absY > 10) {
           // Reduced threshold (1.2 -> 1.0) for easier horizontal swipe detection
           // 프리뷰 모드(collapsed)에서는 가로 스와이프 비활성화
           if (absX > absY && latestStateRef.current.calendarMode !== 'collapsed') {
@@ -291,12 +291,11 @@ export function useCalendarGesture({
       gestureRef.current.isActive = false;
     };
 
-    const options = { passive: false };
-    container.addEventListener('touchstart', handleGestureStart, options);
-    container.addEventListener('touchmove', handleGestureMove, options);
-    container.addEventListener('touchend', handleGestureEnd, options);
-    container.addEventListener('touchcancel', handleGestureEnd, options);
-    container.addEventListener('mousedown', handleGestureStart, options);
+    container.addEventListener('touchstart', handleGestureStart, { passive: true });
+    container.addEventListener('touchmove', handleGestureMove, { passive: false });
+    container.addEventListener('touchend', handleGestureEnd, { passive: true });
+    container.addEventListener('touchcancel', handleGestureEnd, { passive: true });
+    container.addEventListener('mousedown', handleGestureStart, { passive: true });
 
     return () => {
       container.removeEventListener('touchstart', handleGestureStart);

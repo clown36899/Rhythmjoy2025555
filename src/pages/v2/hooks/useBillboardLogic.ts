@@ -121,9 +121,8 @@ export function useBillboardLogic({ settings, fromQR, setCurrentMonth, setHighli
         if (event && event.id) {
             const eventDate = event.start_date || event.date;
             if (eventDate) setCurrentMonth(new Date(eventDate));
-            setTimeout(() => {
-                setHighlightEvent({ id: event.id, nonce: Date.now() });
-            }, 100);
+            // [Optimization] Removed artificial 100ms delay
+            setHighlightEvent({ id: event.id, nonce: Date.now() });
         }
     }, [setCurrentMonth, setHighlightEvent]);
 
