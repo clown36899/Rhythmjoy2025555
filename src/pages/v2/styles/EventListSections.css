@@ -2,7 +2,7 @@
 
 /* Section Container */
 .evt-v2-section {
-    padding: 0 15px 18px 14px;
+    padding: 0 0px 18px 14px;
     /* margin-bottom: 13px; */
     /* border-bottom: 1px solid #313131; */
     /* box-shadow: 0px 6px 25px -5px rgb(0 0 0 / 15%), 0 0 0 1px rgb(87 110 148 / 0%); */
@@ -47,30 +47,39 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: min(0.8vw, 6px);
-    padding: min(1vw, 6px) min(2.5vw, 15px);
-    font-size: min(4.5vw, 1.45rem);
-    font-weight: 600;
-    color: #fff;
+    gap: 12px;
+    padding: 12px 16px;
     width: 100%;
-    min-width: 0;
-    overflow: hidden;
 }
 
-.evt-v2-section-title>div {
+.evt-v2-title-main {
     display: flex;
     align-items: center;
-    gap: min(1vw, 6px);
+    gap: 8px;
     min-width: 0;
-    overflow: hidden;
     flex: 1;
-    flex-shrink: 1;
 }
 
-.evt-v2-section-title i {
-    font-size: min(4.2vw, 19px);
-    color: #d1d1d1ce;
-    flex-shrink: 1;
+.evt-v2-title-main span {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #fff;
+    white-space: nowrap;
+}
+
+.evt-v2-title-main i {
+    font-size: 1.4rem;
+    color: #9ca3af;
+}
+
+/* Badge Style */
+.evt-v2-count-badge {
+    background: rgba(255, 255, 255, 0.1);
+    color: #9ca3af;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 500;
 }
 
 .evt-v2-count {
@@ -619,55 +628,102 @@
     color: #ffffff !important;
 }
 
-/* Secondary Menu - Wrapping & Button Style Restore */
-.evt-v2-genre-wrap {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    padding: 0 14px 10px 14px;
+/* Genre Filter V3 - Better Discoverability */
+.evt-v2-genre-container {
+    padding: 0 16px 12px 16px;
 }
 
-.evt-genre-btn {
-    padding: min(1.5vw, 6px) min(3.5vw, 14px);
-    border-radius: 20px;
-    background-color: #27272a;
-    /* Dark gray background */
+.evt-v2-genre-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.evt-genre-btn-v3 {
+    padding: 6px 12px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
     color: #a1a1aa;
-    /* Light gray text */
-    border: 1px solid #3f3f46;
-    font-size: min(3.5vw, 13px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    font-size: 13px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s ease;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     white-space: nowrap;
 }
 
-.evt-genre-btn:hover {
-    background-color: #3f3f46;
-    color: #e4e4e7;
+.evt-genre-btn-v3:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    transform: translateY(-1px);
 }
 
-.evt-genre-btn.active {
-    background-color: #fafafa;
-    color: #000000;
-    border-color: #fafafa;
+.evt-genre-btn-v3.active {
+    background: #fff;
+    color: #000;
+    border-color: #fff;
     font-weight: 600;
+    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
 }
 
-/* Global Button Chevron Icon */
-.evt-global-chevron {
+/* Global Scope Switcher */
+.evt-scope-switcher-container {
+    padding: 20px 16px 10px;
+    display: flex;
+    justify-content: center;
+}
+
+.evt-scope-switcher {
+    display: flex;
+    background: #1a1a1a;
+    padding: 4px;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 400px;
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.evt-scope-btn {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    background: transparent;
+    color: #71717a;
     font-size: 14px;
-    margin-left: 2px;
-    transition: transform 0.2s ease, color 0.2s ease;
-    /* Default color (inactive) - slightly lighter than text */
-    color: #0000005c !important;
+    font-weight: 600;
+    cursor: pointer;
+    z-index: 2;
+    transition: color 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
 }
 
-.evt-genre-btn.active .evt-global-chevron {
-    /* Active color */
-    color: #ffffff;
+.evt-scope-btn.active {
+    color: #fff;
 }
 
-.evt-global-chevron.open {
-    transform: rotate(180deg);
+.evt-scope-indicator {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: calc(50% - 4px);
+    height: calc(100% - 8px);
+    background: #27272a;
+    border-radius: 8px;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.evt-scope-switcher[data-scope="overseas"] .evt-scope-indicator {
+    transform: translateX(100%);
+}
+
+@media (max-width: 480px) {
+    .evt-v2-title-main span {
+        font-size: 1.15rem;
+    }
 }
