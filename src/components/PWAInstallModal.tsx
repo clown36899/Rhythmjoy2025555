@@ -79,7 +79,7 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClos
                             <ol className="pwa-install-steps">
                                 <li>
                                     <div className="step-icon">
-                                        <i className="ri-share-line"></i>
+                                        <i className="ri-upload-2-line"></i>
                                     </div>
                                     <div className="step-content">
                                         <strong>공유 버튼 탭</strong>

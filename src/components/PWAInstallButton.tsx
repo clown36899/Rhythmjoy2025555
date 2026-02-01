@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useInstallPrompt } from '../contexts/InstallPromptContext';
-import { useAuth } from '../contexts/AuthContext';
 import './PWAInstallButton.css';
 
 export const PWAInstallButton = () => {
     const { promptEvent, setPromptEvent, isInstalled } = useInstallPrompt();
-    const { user } = useAuth();
     const [showInstructions, setShowInstructions] = useState(false);
     const [isInstalling, setIsInstalling] = useState(false);
     const [installProgress, setInstallProgress] = useState(0);
@@ -88,14 +86,6 @@ export const PWAInstallButton = () => {
             return;
         }
 
-        // ✅ [Auth Check] 설치 전 로그인 필수 확인
-        if (!user) {
-            // 로그인 모달 트리거 (MobileShell에서 수신)
-            window.dispatchEvent(new CustomEvent('openLoginModal', {
-                detail: { message: '앱을 설치하려면 먼저 로그인이 필요합니다.\n로그인 후 설치를 진행해주세요.' }
-            }));
-            return;
-        }
 
         // 1. React Context의 promptEvent 확인
         // 2. 전역 window.deferredPrompt 확인 (최후의 수단 fallback)
@@ -376,7 +366,7 @@ export const PWAInstallButton = () => {
                                             <div className="ios-install-step">
                                                 <div className="ios-install-step-number">1</div>
                                                 <div className="ios-install-step-text">
-                                                    Safari 하단의 <i className="ri-share-line" style={{ color: '#3b82f6' }}></i> <strong>공유</strong> 버튼을 누르세요
+                                                    Safari 하단의 <i className="ri-upload-2-line" style={{ color: '#3b82f6' }}></i> <strong>공유</strong> 버튼을 누르세요
                                                 </div>
                                             </div>
                                             <div className="ios-install-step">
@@ -405,7 +395,8 @@ export const PWAInstallButton = () => {
                                     <div className="ios-install-step">
                                         <div className="ios-install-step-number">{isIOS ? '3' : '3'}</div>
                                         <div className="ios-install-step-text">
-                                            안내에 따라 <strong>추가</strong>를 누르면 완료!
+                                            안내에 따라 <strong>추가</strong>를 누르면 완료!<br />
+                                            홈화면에 추가된 아이콘을 통해 실행해주세요.
                                         </div>
                                     </div>
                                 </>
