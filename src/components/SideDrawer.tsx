@@ -5,12 +5,8 @@ import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { useEffect, useState } from 'react';
 import { PWAInstallButton } from './PWAInstallButton';
-import GlobalLoadingOverlay from './GlobalLoadingOverlay';
 import {
     getPushSubscription,
-    subscribeToPush,
-    saveSubscriptionToSupabase,
-    unsubscribeFromPush,
     verifySubscriptionOwnership
 } from '../lib/pushNotifications';
 import '../styles/components/SideDrawer.css';
@@ -38,7 +34,6 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
     const [showDevTools, setShowDevTools] = useState(() => {
         return localStorage.getItem('showDevTools') === 'true';
     });
-    const [boardCategories, setBoardCategories] = useState<any[]>([]);
     const [isPushEnabled, setIsPushEnabled] = useState<boolean>(false);
     // [New] Push Notification Status check for mini label
     useEffect(() => {
@@ -179,11 +174,6 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                 className={`drawer-container ${isOpen ? 'open' : ''}`}
                 onClick={(e) => e.stopPropagation()}
             >
-                {/* 푸시 로딩 오버레이 */}
-                <GlobalLoadingOverlay
-                    isLoading={isPushLoading}
-                    message="알림 설정을 구성 중입니다..."
-                />
                 <div className="drawer-header">
                     {user ? (
                         <div className="drawer-user-profile">

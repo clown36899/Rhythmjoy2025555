@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
     getPushSubscription,
     subscribeToPush,
@@ -52,7 +52,7 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
             return isStandalone;
         };
 
-        const isPwa = checkPWA();
+        checkPWA();
         loadSettings();
     }, [isOpen]);
 
