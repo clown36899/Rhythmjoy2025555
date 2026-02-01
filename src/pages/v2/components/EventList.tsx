@@ -33,6 +33,7 @@ import VenueSelectModal from "./VenueSelectModal";
 import {
   getLocalDateString,
   getKSTDay,
+  sortEvents
 } from "../utils/eventListUtils";
 import type { Event } from "../utils/eventListUtils";
 
@@ -62,6 +63,9 @@ const EventList: React.FC<EventListProps> = ({
 }) => {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
+
+  // [Fix] 랜덤 시드 고정 - 사이트 진입/새로고침 시에만 한 번 생성되도록 변경
+  const [randomSeed] = useState(() => Math.floor(Math.random() * 1000000));
 
   // 1. Data Fetching Hook (TanStack Query)
   const { data: events = [], isLoading: loading, refetch: refetchEvents } = useEventsQuery();
@@ -206,7 +210,8 @@ const EventList: React.FC<EventListProps> = ({
     selectedGenre,
     searchTerm,
     selectedWeekday,
-    sortBy
+    sortBy,
+    seed: randomSeed
   });
 
   // Venue Modal State
@@ -367,7 +372,14 @@ const EventList: React.FC<EventListProps> = ({
       ) : (view === 'viewAll-events' || view === 'viewAll-classes' || searchTerm.trim() || selectedDate || (selectedCategory !== 'all' && selectedCategory !== 'none')) ? (
         <EventHorizontalListView
           events={view?.startsWith('viewAll')
-            ? events.filter(e => e.category === (view === 'viewAll-events' ? 'event' : 'class') && (e.end_date || e.date || "") >= getLocalDateString())
+            ? sortEvents(
+              events.filter(e => e.category === (view === 'viewAll-events' ? 'event' : 'class') && (e.end_date || e.date || "") >= getLocalDateString()),
+              'random',
+              false,
+              null,
+              false,
+              randomSeed
+            )
             : sortedEvents}
           onEventClick={(e: Event) => onEventClick?.(e)}
           defaultThumbnailEvent="default-event"

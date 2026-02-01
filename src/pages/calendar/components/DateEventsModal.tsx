@@ -1,4 +1,4 @@
-import React, { useMemo, useEffect } from 'react';
+import { useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import type { Event as AppEvent } from '../../../lib/supabase';
 import '../styles/DateEventsModal.css';
@@ -9,6 +9,7 @@ interface DateEventsModalProps {
     date: Date | null;
     events: AppEvent[];
     onEventClick: (event: AppEvent) => void;
+    seed?: number;
 }
 
 export default function DateEventsModal({
@@ -16,7 +17,8 @@ export default function DateEventsModal({
     onClose,
     date,
     events,
-    onEventClick
+    onEventClick,
+    seed
 }: DateEventsModalProps) {
     // Prevent background scrolling when modal is open
     useEffect(() => {
@@ -30,18 +32,40 @@ export default function DateEventsModal({
         };
     }, [isOpen]);
 
-    // Sort events: Duration desc, then StartTime asc
+    // Sort events: Random using seed
     const sortedEvents = useMemo(() => {
         if (!events) return [];
-        return [...events].sort((a, b) => {
-            // 1. Duration (Longer first - somewhat arbitrary but often main events are longer/bigger)
-            // Actually, for a list view, Time ascending is usually better.
-            // Let's stick to Time ascending for clarity.
-            const startA = a.start_date || a.date || '';
-            const startB = b.start_date || b.date || '';
-            return startA.localeCompare(startB);
-        });
-    }, [events]);
+
+        const seededRandom = (s: number) => {
+            const mask = 0xffffffff;
+            let m_w = (123456789 + s) & mask;
+            let m_z = (987654321 - s) & mask;
+            return () => {
+                m_z = (36969 * (m_z & 65535) + (m_z >> 16)) & mask;
+                m_w = (18000 * (m_w & 65535) + (m_w >> 16)) & mask;
+                let result = ((m_z << 16) + (m_w & 65535)) >>> 0;
+                return result / 4294967296;
+            };
+        };
+        const randomHelper = seededRandom(seed || 42);
+
+        // [Fix] 기간 우선 정렬 + 동일 기간 내 랜덤 셔플
+        return events
+            .map(event => {
+                const start = new Date(event.start_date || event.date || '').getTime();
+                const end = new Date(event.end_date || event.date || '').getTime();
+                return {
+                    event,
+                    weight: randomHelper(),
+                    duration: end - start
+                };
+            })
+            .sort((a, b) => {
+                if (b.duration !== a.duration) return b.duration - a.duration;
+                return a.weight - b.weight;
+            })
+            .map(({ event }) => event);
+    }, [events, seed]);
 
     const weekDayNames = ['일', '월', '화', '수', '목', '금', '토'];
 

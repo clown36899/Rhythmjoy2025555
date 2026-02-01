@@ -31,6 +31,9 @@ export default function CalendarPage() {
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [viewMode, setViewMode] = useState<"month" | "year">("month");
 
+    // [Fix] 랜덤 시드 고정 - 사이트 진입/새로고침 시에만 한 번 생성되도록 변경
+    const [randomSeed] = useState(() => Math.floor(Math.random() * 1000000));
+
     // URL 파라미터에서 category 읽기
     const initialTabFilter = useMemo(() => {
         const urlParams = new URLSearchParams(window.location.search);
@@ -472,6 +475,7 @@ export default function CalendarPage() {
                     onEventClick={(event: any) => eventModal.setSelectedEvent(event)}
                     highlightedEventId={highlightedEventId}
                     tabFilter={tabFilter}
+                    seed={randomSeed}
                 />
             </div>
 

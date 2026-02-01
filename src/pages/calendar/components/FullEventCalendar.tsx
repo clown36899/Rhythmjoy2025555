@@ -26,6 +26,7 @@ interface FullEventCalendarProps {
   highlightedEventId?: number | string | null;
   hoveredEventId?: number | string | null;
   tabFilter?: 'all' | 'social-events' | 'classes' | 'overseas';
+  seed?: number;
 }
 
 export default memo(function FullEventCalendar({
@@ -44,6 +45,7 @@ export default memo(function FullEventCalendar({
   selectedCategory = "all",
   highlightedEventId = null,
   tabFilter = 'all',
+  seed = 42,
 }: FullEventCalendarProps) {
   const { t } = useTranslation();
   const [events, setEvents] = useState<AppEvent[]>([]);
@@ -517,71 +519,90 @@ export default memo(function FullEventCalendar({
 
           {/* 바디: 이벤트 리스트 */}
           <div className="calendar-cell-fullscreen-body">
-            {dayEvents
-              .sort((a, b) => {
-                // 1. Duration (Longer first)
-                const durA = (new Date(a.end_date || a.date || '').getTime() - new Date(a.start_date || a.date || '').getTime());
-                const durB = (new Date(b.end_date || b.date || '').getTime() - new Date(b.start_date || b.date || '').getTime());
-                if (durB !== durA) return durB - durA;
+            {(() => {
+              // 랜덤 정렬 시드 기반 헬퍼
+              const seededRandom = (s: number) => {
+                const mask = 0xffffffff;
+                let m_w = (123456789 + s) & mask;
+                let m_z = (987654321 - s) & mask;
+                return () => {
+                  m_z = (36969 * (m_z & 65535) + (m_z >> 16)) & mask;
+                  m_w = (18000 * (m_w & 65535) + (m_w >> 16)) & mask;
+                  let result = ((m_z << 16) + (m_w & 65535)) >>> 0;
+                  return result / 4294967296;
+                };
+              };
 
-                // 2. Start Date
-                const startA = a.start_date || a.date || '';
-                const startB = b.start_date || b.date || '';
-                if (startA !== startB) return startA.localeCompare(startB);
+              // 각 날짜별 + 세션 시드 조합하여 고유하지만 세션 내에서는 고정된 시드 생성
+              const daySeed = day.getTime() + seed;
+              const randomHelper = seededRandom(daySeed);
 
-                // 3. Title
-                return a.title.localeCompare(b.title);
-              })
-              .map((event) => {
-                const categoryColor = getEventColor(event.id);
-                const thumbnailUrl = event.image_medium || event.image_micro;
+              // [Fix] 기간이 긴 일정을 우선순위로 두고, 나머지는 안정적인 랜덤 가중치로 정렬
+              return dayEvents
+                .map(event => {
+                  const start = new Date(event.start_date || event.date || '').getTime();
+                  const end = new Date(event.end_date || event.date || '').getTime();
+                  return {
+                    event,
+                    weight: randomHelper(),
+                    duration: end - start
+                  };
+                })
+                .sort((a, b) => {
+                  if (b.duration !== a.duration) return b.duration - a.duration;
+                  return a.weight - b.weight;
+                })
+                .map(({ event }) => {
+                  const categoryColor = getEventColor(event.id);
+                  const thumbnailUrl = event.image_medium || event.image_micro;
 
-                const eStart = (event.start_date || event.date || '').substring(0, 10);
-                const eEnd = (event.end_date || event.date || '').substring(0, 10);
-                const currDate = dateString;
+                  const eStart = (event.start_date || event.date || '').substring(0, 10);
+                  const eEnd = (event.end_date || event.date || '').substring(0, 10);
+                  const currDate = dateString;
 
-                const isContinueLeft = eStart < currDate;
-                const isContinueRight = eEnd > currDate;
+                  const isContinueLeft = eStart < currDate;
+                  const isContinueRight = eEnd > currDate;
 
-                return (
-                  <div
-                    key={event.id}
-                    className={`calendar-fullscreen-event-card ${isContinueLeft ? 'cal-event-continue-left' : ''} ${isContinueRight ? 'cal-event-continue-right' : ''}`}
-                    data-event-id={event.id}
-                    role="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (onEventClick) onEventClick(event);
-                    }}
-                  >
-                    <div style={{ position: 'relative', width: '100%' }}>
-                      {thumbnailUrl ? (
-                        <div className={`calendar-fullscreen-image-container ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
-                          <img
-                            src={thumbnailUrl}
-                            alt=""
-                            className="calendar-fullscreen-image"
-                            loading="lazy"
-                            decoding="async"
-                          />
+                  return (
+                    <div
+                      key={event.id}
+                      className={`calendar-fullscreen-event-card ${isContinueLeft ? 'cal-event-continue-left' : ''} ${isContinueRight ? 'cal-event-continue-right' : ''}`}
+                      data-event-id={event.id}
+                      role="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onEventClick) onEventClick(event);
+                      }}
+                    >
+                      <div style={{ position: 'relative', width: '100%' }}>
+                        {thumbnailUrl ? (
+                          <div className={`calendar-fullscreen-image-container ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
+                            <img
+                              src={thumbnailUrl}
+                              alt=""
+                              className="calendar-fullscreen-image"
+                              loading="lazy"
+                              decoding="async"
+                            />
+                          </div>
+                        ) : (
+                          <div className={`calendar-fullscreen-placeholder ${categoryColor} ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
+                            <span style={{ fontSize: '10px', color: 'white', fontWeight: 'bold' }}>
+                              {event.title.charAt(0)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="calendar-fullscreen-title-container">
+                        <div className="calendar-fullscreen-title">
+                          {event.title}
                         </div>
-                      ) : (
-                        <div className={`calendar-fullscreen-placeholder ${categoryColor} ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
-                          <span style={{ fontSize: '10px', color: 'white', fontWeight: 'bold' }}>
-                            {event.title.charAt(0)}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="calendar-fullscreen-title-container">
-                      <div className="calendar-fullscreen-title">
-                        {event.title}
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                });
+            })()}
           </div>
         </div>
       );

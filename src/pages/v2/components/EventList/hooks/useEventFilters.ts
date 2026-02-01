@@ -13,6 +13,7 @@ interface UseEventFiltersProps {
     selectedWeekday: number | null;
     sortBy: 'random' | 'time' | 'title';
     isPartialUpdate?: boolean;
+    seed?: number;
 }
 
 export function useEventFilters({
@@ -25,7 +26,8 @@ export function useEventFilters({
     searchTerm,
     selectedWeekday,
     sortBy,
-    isPartialUpdate = false
+    isPartialUpdate = false,
+    seed
 }: UseEventFiltersProps) {
 
     // 1. Basic Filtering (Category, Genre, Search)
@@ -56,8 +58,8 @@ export function useEventFilters({
                 selectedWeekday
             })
         );
-        return sortEvents(matchingEvents, sortBy, viewMode === 'year');
-    }, [events, currentMonth, viewMode, selectedCategory, selectedGenre, searchTerm, selectedWeekday, sortBy]);
+        return sortEvents(matchingEvents, sortBy, viewMode === 'year', null, false, seed);
+    }, [events, currentMonth, viewMode, selectedCategory, selectedGenre, searchTerm, selectedWeekday, sortBy, seed]);
 
     // 3. Final Sorted Events (Prioritizing selected date if applicable)
     const sortedEvents = useMemo(() => {
@@ -93,9 +95,9 @@ export function useEventFilters({
         // Current Events logic (if it was from sortedCurrentEvents we use it to maintain order for others)
         return [
             ...sortEvents(eventsOnSelectedDate, 'time'),
-            ...sortEvents(eventsNotOnSelectedDate, sortBy, viewMode === 'year')
+            ...sortEvents(eventsNotOnSelectedDate, sortBy, viewMode === 'year', null, false, seed)
         ];
-    }, [filteredEvents, sortedCurrentEvents, selectedDate, sortBy, viewMode]);
+    }, [filteredEvents, sortedCurrentEvents, selectedDate, sortBy, viewMode, seed]);
 
     return {
         filteredEvents,
