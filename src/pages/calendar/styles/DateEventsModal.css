@@ -114,37 +114,36 @@
 
 /* Body / Grid */
 .date-events-body {
-    padding: 16px;
+    padding: 12px;
     overflow-y: auto;
-    /* Hide scrollbar for cleaner look but allow scroll */
+    /* Hide scrollbar for cleaner look */
     scrollbar-width: thin;
-    scrollbar-color: #4b5563 #1a1a1a;
+    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+    display: flex;
+    flex-direction: column;
 }
 
 .events-grid {
     display: grid;
-    gap: 8px;
-    /* Default to 2 columns on mobile */
-    grid-template-columns: repeat(2, 1fr);
-}
-
-/* If there are many events, use 3 columns on slightly larger screens or even mobile if very crowded */
-.events-grid.dense {
-    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    /* Dynamic columns from JS */
+    grid-template-columns: repeat(var(--grid-cols, 2), 1fr);
+    align-content: start;
 }
 
 /* Event Card Item */
 .event-grid-item {
     background: #262626;
-    border-radius: 12px;
-    padding: 10px;
+    border-radius: 10px;
+    padding: 8px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
     cursor: pointer;
-    border: 1px solid transparent;
-    transition: transform 0.2s, border-color 0.2s;
-    height: 100%;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: transform 0.2s, background 0.2s;
+    height: fit-content;
+    min-width: 0;
 }
 
 .event-grid-item:active {
@@ -154,10 +153,11 @@
 .event-item-thumbnail {
     width: 100%;
     aspect-ratio: 3/4;
-    border-radius: 8px;
+    border-radius: 6px;
     overflow: hidden;
     background: #333;
     position: relative;
+    transition: aspect-ratio 0.3s ease;
 }
 
 .event-item-thumbnail img {
@@ -210,11 +210,10 @@
 }
 
 .event-item-time {
-    font-size: 0.75rem;
+    font-size: 0.7rem;
     color: #fbbf24;
     font-weight: 600;
-    margin-top: auto;
-    padding-top: 4px;
+    margin-top: 2px;
 }
 
 .empty-events-state {
@@ -240,6 +239,85 @@
 
 .cat-bg-default {
     background-color: #4b5563;
+}
+
+/* Density Scaling Logic */
+
+/* Medium (5-9 events) */
+.density-medium .event-item-title {
+    font-size: 0.75rem;
+}
+
+/* High (10-15 events) */
+.density-high .event-grid-item {
+    padding: 6px;
+    gap: 4px;
+}
+
+.density-high .event-item-thumbnail {
+    aspect-ratio: 1/1;
+    /* Shrink vertically */
+}
+
+.density-high .event-item-title {
+    font-size: 0.7rem;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+}
+
+.density-high .event-item-category {
+    font-size: 0.55rem;
+    padding: 1px 4px;
+}
+
+.density-high .event-item-time {
+    display: none;
+    /* Hide time to save space */
+}
+
+/* Ultra (16+ events) */
+.density-ultra .date-events-body {
+    padding: 8px;
+}
+
+.density-ultra .events-grid {
+    gap: 4px;
+}
+
+.density-ultra .event-grid-item {
+    padding: 4px;
+    gap: 2px;
+}
+
+.density-ultra .event-item-thumbnail {
+    aspect-ratio: 4/3;
+    /* Very flat to fit more rows */
+}
+
+.density-ultra .event-item-title {
+    font-size: 0.65rem;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+}
+
+.density-ultra .event-item-category {
+    display: none;
+    /* Hide category label */
+}
+
+.density-ultra .event-item-time {
+    display: none;
+}
+
+/* Modal Height optimization for mobile */
+@media (max-height: 600px) {
+    .date-events-modal-container {
+        max-height: 95vh;
+    }
+
+    .date-info .weekday {
+        font-size: 1.2rem;
+    }
 }
 
 /* Responsive adjustments */

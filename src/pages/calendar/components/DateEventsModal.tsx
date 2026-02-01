@@ -71,9 +71,24 @@ export default function DateEventsModal({
 
     if (!isOpen || !date) return null;
 
-    // Determine grid density based on event count
-    // If more than 6 events, use 3 columns to try to fit them all
-    const useDenseGrid = sortedEvents.length > 6;
+    // Determine grid density and columns based on event count
+    const eventCount = sortedEvents.length;
+    let gridCols = 2;
+    let density: 'low' | 'medium' | 'high' | 'ultra' = 'low';
+
+    if (eventCount > 15) {
+        gridCols = 5;
+        density = 'ultra';
+    } else if (eventCount > 9) {
+        gridCols = 4;
+        density = 'high';
+    } else if (eventCount > 4) {
+        gridCols = 3;
+        density = 'medium';
+    } else {
+        gridCols = 2;
+        density = 'low';
+    }
 
     const getCategoryColor = (category?: string) => {
         const cat = category?.toLowerCase();
@@ -114,9 +129,12 @@ export default function DateEventsModal({
                 </div>
 
                 {/* Body */}
-                <div className="date-events-body">
+                <div className={`date-events-body density-${density}`}>
                     {sortedEvents.length > 0 ? (
-                        <div className={`events-grid ${useDenseGrid ? 'dense' : ''}`}>
+                        <div
+                            className="events-grid"
+                            style={{ '--grid-cols': gridCols } as React.CSSProperties}
+                        >
                             {sortedEvents.map(event => {
                                 // User requested 300px (thumbnail) size, not micro.
                                 const imageUrl = event.image_thumbnail || event.image_medium || event.image_micro;
