@@ -8,6 +8,7 @@ export const PWAInstallButton = () => {
     const [showInstructions, setShowInstructions] = useState(false);
     const [isInstalling, setIsInstalling] = useState(false);
     const [installProgress, setInstallProgress] = useState(0);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
 
     // PWA 앱 내에서 실행 중인지 실시간 확인
     const [isRunningInPWA, setIsRunningInPWA] = useState(false);
@@ -141,13 +142,11 @@ export const PWAInstallButton = () => {
                                 if (prev >= 100) {
                                     clearInterval(finalInterval);
 
-                                    // 100% 도달 후 0.5초 뒤에 "앱 열기" 상태로 전환
+                                    // 100% 도달 후 0.5초 뒤에 완료 모달 표시
                                     setTimeout(() => {
                                         setIsInstalling(false);
                                         setInstallProgress(0);
-
-                                        // PWA 상태 갱신을 위해 새로고침
-                                        window.location.reload();
+                                        setShowSuccessModal(true);
                                     }, 500);
                                     return 100;
                                 }
@@ -190,8 +189,9 @@ export const PWAInstallButton = () => {
                             clearInterval(verifyInterval);
                             window.removeEventListener('appinstalled', handleAppInstalled);
 
-                            alert('설치 완료 확인 시간이 초과되었습니다.\n새로고침 해주세요.');
-                            window.location.reload();
+                            // 타임아웃 시에도 새로고침 대신 안내 모달 시도
+                            setIsInstalling(false);
+                            setShowSuccessModal(true);
                         }
                     }, 60000);
 
@@ -401,6 +401,50 @@ export const PWAInstallButton = () => {
                                     </div>
                                 </>
                             )}
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* 설치 완료 성공 모달 */}
+            {showSuccessModal && createPortal(
+                <div className="ios-install-modal-overlay" onClick={() => setShowSuccessModal(false)}>
+                    <div className="ios-install-modal success-modal" onClick={(e) => e.stopPropagation()}>
+                        <div className="ios-install-header">
+                            <h3>설치 완료</h3>
+                            <button className="ios-install-close" onClick={() => setShowSuccessModal(false)}>
+                                <i className="ri-close-line"></i>
+                            </button>
+                        </div>
+
+                        <div className="ios-install-content">
+                            <div className="success-icon-wrapper">
+                                <i className="ri-checkbox-circle-fill"></i>
+                            </div>
+
+                            <div className="success-message">
+                                <strong>앱 설치가 완료되었습니다!</strong>
+                                <p>이제 홈 화면에서 아이콘을 클릭하여<br />더 빠르고 쾌적하게 이용하실 수 있습니다.</p>
+                            </div>
+
+                            <div className="success-actions">
+                                <button
+                                    className="pwa-install-button primary"
+                                    onClick={() => {
+                                        handleOpenApp();
+                                        setShowSuccessModal(false);
+                                    }}
+                                >
+                                    <i className="ri-external-link-line"></i>
+                                    <span>앱 열기 / 실행하기</span>
+                                </button>
+
+                                <p className="success-hint">
+                                    * 앱 실행이 안 된다면 홈 화면에 생성된<br />
+                                    <strong>'댄스빌보드'</strong> 아이콘을 눌러주세요.
+                                </p>
+                            </div>
                         </div>
                     </div>
                 </div>,
