@@ -309,6 +309,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUserId(null);
     setBillboardUserId(null);
     setBillboardUserName(null);
+    setIsAuthProcessing(false); // 🔥 로딩 상태 강제 해제 추가
   };
 
   // 만료되거나 손상된 세션 정리 (좀비 토큰 제거)
@@ -582,6 +583,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       .finally(() => {
         setIsAuthCheckComplete(true);
+        // 🔥 [Critical] 초기 인증 체크가 끝나면 무조건 로딩 상태 해제 (Safety net)
+        setIsAuthProcessing(false);
+        sessionStorage.removeItem('kakao_login_in_progress');
       });
 
     return () => {
@@ -643,6 +647,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           setUserId(null);
         }
+        setIsAuthProcessing(false); // 🔥 기타 모든 상태 변경 시에도 로딩 해제
       }
     });
 

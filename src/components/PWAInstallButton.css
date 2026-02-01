@@ -4,8 +4,16 @@
     justify-content: center;
     gap: 0.6rem;
     padding: 0.8rem 1rem;
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.2) 100%);
-    /* color: #60a5fa; */
+
+    /* iOS Compatibility & Fallbacks */
+    background-color: #27272a;
+    /* Solid fallback */
+    background-image: -webkit-linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.2) 100%);
+    background-image: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.2) 100%);
+
+    -webkit-appearance: none;
+    -webkit-tap-highlight-color: transparent;
+
     border: 1px solid rgba(59, 130, 246, 0.3);
     border-radius: 12px;
     font-size: 0.9rem;
@@ -19,17 +27,35 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
+/* 설치됨 (Open App) 상태에서의 스타일 강조 */
+.pwa-install-button.installed {
+    background-color: #3b82f6;
+    /* Solid fallback */
+    background-image: -webkit-linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    background-image: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    border-color: #2563eb;
+    color: #ffffff;
+}
+
 .pwa-install-button.installing {
+    background-color: #4f46e5;
     color: white;
     border-color: rgba(102, 126, 234, 0.3);
 }
 
 .pwa-install-button:hover:not(.installing) {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.3) 100%);
+    background-image: -webkit-linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.3) 100%);
+    background-image: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.3) 100%);
     color: #fff;
     border-color: rgba(59, 130, 246, 0.5);
     transform: translateY(-1px);
     box-shadow: 0 6px 16px rgba(37, 99, 235, 0.2);
+}
+
+.pwa-install-button.installed:hover:not(.installing) {
+    background-image: -webkit-linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    background-image: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    border-color: #1d4ed8;
 }
 
 .pwa-install-button:active:not(.installing) {

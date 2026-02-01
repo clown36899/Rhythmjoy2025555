@@ -219,7 +219,7 @@ export const PWAInstallButton = () => {
         <>
             <div
                 onClick={isInstalling ? undefined : (isInstalled ? handleOpenApp : handleInstallClick)}
-                className={`pwa-install-button ${isInstalling ? 'installing' : ''}`}
+                className={`pwa-install-button ${isInstalling ? 'installing' : ''} ${isInstalled ? 'installed' : ''}`}
                 style={{ position: 'relative', overflow: 'hidden', cursor: isInstalling ? 'default' : 'pointer' }}
             >
                 {isInstalling && (
@@ -296,7 +296,7 @@ export const PWAInstallButton = () => {
                                             // 프롬프트가 실행되면 모달 닫기
                                             if (promptEvent || isInstalled) setShowInstructions(false);
                                         }}
-                                        className={`pwa-install-button ${isInstalling ? 'installing' : ''}`}
+                                        className={`pwa-install-button ${isInstalling ? 'installing' : ''} ${isInstalled ? 'installed' : ''}`}
                                         style={{
                                             position: 'relative',
                                             overflow: 'hidden',
@@ -306,7 +306,6 @@ export const PWAInstallButton = () => {
                                             margin: '0',
                                             padding: '12px', // 기본 패딩 확인
                                             borderRadius: '12px',
-                                            backgroundColor: isInstalled ? '#3b82f6' : '#22c55e' // 구분감 살짝? 아니면 기존 CSS 사용
                                         }}
                                     >
                                         {/* CSS 클래스 스타일 상속을 위해 추가 스타일 최소화 */}
