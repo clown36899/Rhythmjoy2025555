@@ -3,7 +3,7 @@ import { createPortal } from "react-dom";
 import { supabase } from "../lib/supabase";
 import type { Event as AppEvent } from "../lib/supabase";
 import { useModalHistory } from "../hooks/useModalHistory";
-import "./FullscreenDateEventsModal.css";
+import "../styles/domains/events.css"; // 2026 Pure Semantic CSS: Events Domain
 
 interface FullscreenDateEventsModalProps {
   isOpen: boolean;
@@ -12,15 +12,17 @@ interface FullscreenDateEventsModalProps {
   clickPosition?: { x: number; y: number };
   onEventClick: (event: AppEvent) => void;
   selectedCategory?: string;
+  density?: 'low' | 'medium' | 'high' | 'ultra';
 }
 
 export default function FullscreenDateEventsModal({
   isOpen,
   onClose,
   selectedDate,
-  clickPosition,
+  clickPosition: _clickPosition,
   onEventClick,
   selectedCategory = "all",
+  density = 'medium',
 }: FullscreenDateEventsModalProps) {
   const [events, setEvents] = useState<AppEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,18 +32,14 @@ export default function FullscreenDateEventsModal({
     if (!isOpen) return;
 
     const fetchEvents = async () => {
-      setLoading(true);
+      setLoading(false);
       try {
-        // 로컬 시간대로 날짜 문자열 생성 (UTC 변환 방지)
         const year = selectedDate.getFullYear();
         const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
         const day = String(selectedDate.getDate()).padStart(2, '0');
-        const dateStr = `${year} -${month} -${day} `;
+        const dateStr = `${year}-${month}-${day}`;
 
-        console.log(`[Modal] Fetching events for: ${dateStr} (Original: ${selectedDate.toString()})`);
-        console.log(`[Modal] Selected Category: ${selectedCategory} `);
-
-        // 모든 이벤트를 가져온 후 클라이언트에서 필터링
+        setLoading(true);
         const { data, error } = await supabase
           .from("events")
           .select("*")
@@ -49,41 +47,18 @@ export default function FullscreenDateEventsModal({
 
         if (error) throw error;
 
-        // 클라이언트에서 정확하게 필터링
         const filteredEvents = (data || []).filter((event: any) => {
-          // 카테고리 필터링
           if (selectedCategory && selectedCategory !== "all" && event.category !== selectedCategory) {
             return false;
           }
-
-          // event_dates 배열로 정의된 이벤트 체크
           if (event.event_dates && event.event_dates.length > 0) {
             return event.event_dates.includes(dateStr);
           }
-
-          // start_date/end_date 범위로 정의된 이벤트 체크
           const startDate = event.start_date || event.date;
           const endDate = event.end_date || event.start_date || event.date;
-
-          return (
-            startDate &&
-            endDate &&
-            dateStr >= startDate &&
-            dateStr <= endDate
-          );
+          return (startDate && endDate && dateStr >= startDate && dateStr <= endDate);
         });
 
-        console.log(`[Modal] Filtered events count: ${filteredEvents.length} `);
-        if (filteredEvents.length > 0) {
-          console.log(`[Modal] First event match: `, {
-            title: filteredEvents[0].title,
-            start_date: filteredEvents[0].start_date,
-            end_date: filteredEvents[0].end_date,
-            date: filteredEvents[0].date,
-            event_dates: filteredEvents[0].event_dates,
-            dateStr_used: dateStr
-          });
-        }
         setEvents(filteredEvents);
       } catch (error) {
         console.error("Error fetching events:", error);
@@ -96,7 +71,6 @@ export default function FullscreenDateEventsModal({
     fetchEvents();
   }, [isOpen, selectedDate, selectedCategory]);
 
-  // Enable mobile back gesture to close modal
   useModalHistory(isOpen, onClose);
 
   useEffect(() => {
@@ -117,62 +91,51 @@ export default function FullscreenDateEventsModal({
 
   if (!isOpen) return null;
 
-  const formatDate = (date: Date) => {
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
-    const weekday = weekdays[date.getDay()];
-    return `${month}월 ${day} 일(${weekday})`;
+  const getDayInfo = (date: Date) => {
+    const weekdays = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
+    return {
+      weekday: weekdays[date.getDay()],
+      dayNum: `${date.getDate()}일`,
+      monthStr: `${date.getMonth() + 1}월`
+    };
   };
 
-  const animationOrigin = clickPosition
-    ? {
-      transformOrigin: `${clickPosition.x}px ${clickPosition.y} px`,
-    }
-    : {
-      transformOrigin: "center center",
-    };
+  const { weekday, dayNum, monthStr } = getDayInfo(selectedDate);
 
   return createPortal(
     <div
-      className="fsde-overlay"
+      className={`DateEventsModal density-${density}`}
       onClick={onClose}
     >
       <div
         ref={modalRef}
-        className="fsde-modal fsde-w-full fsde-flex fsde-flex-col"
-        style={animationOrigin}
+        className="DEM-container"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="fsde-header">
-          <div className="fsde-header-title-wrapper">
-            <i className="ri-calendar-line fsde-header-icon"></i>
-            <h2 className="fsde-header-title">
-              {formatDate(selectedDate)}
-            </h2>
+        <div className="DEM-header">
+          <div className="DEM-dateInfo">
+            <div style={{ display: 'flex', alignItems: 'baseline' }}>
+              <span className="DEM-weekday">{weekday}</span>
+              <span className="DEM-dayNum">{dayNum}</span>
+            </div>
+            <span className="DEM-subtitle">{monthStr} 소셜/이벤트</span>
           </div>
-          <button
-            onClick={onClose}
-            className="fsde-close-btn"
-          >
-            <i className="ri-close-line fsde-close-icon"></i>
+          <button onClick={onClose} className="DEM-closeBtn">
+            <i className="ri-close-line"></i>
           </button>
         </div>
 
-        {/* Content */}
-        <div className="fsde-content fsde-flex-1">
+        <div className="DEM-body">
           {loading ? (
-            <div className="fsde-loading fsde-flex-center">
-              <i className="ri-loader-4-line fsde-loading-icon"></i>
+            <div className="DEM-empty">
+              <i className="ri-loader-4-line is-spin" style={{ fontSize: '2rem' }}></i>
             </div>
           ) : events.length === 0 ? (
-            <div className="fsde-empty">
-              <i className="ri-calendar-close-line fsde-empty-icon"></i>
-              <p className="fsde-empty-text">이 날짜에 등록된 이벤트가 없습니다.</p>
+            <div className="DEM-empty">
+              <p>이 날짜에 등록된 이벤트가 없습니다.</p>
             </div>
           ) : (
-            <div className="fsde-event-list">
+            <div className="DEM-grid">
               {events.map((event) => {
                 const thumbnail =
                   event.image_thumbnail ||
@@ -187,66 +150,28 @@ export default function FullscreenDateEventsModal({
                       onEventClick(event);
                       onClose();
                     }}
-                    className="fsde-event-item"
+                    className="DEM-item"
                   >
-                    {/* Thumbnail */}
-                    {thumbnail && (
-                      <div className="fsde-thumbnail">
-                        <img
-                          src={thumbnail}
-                          alt={event.title}
-                          className="fsde-thumbnail-img"
-                        />
-                      </div>
-                    )}
-
-                    {/* Content */}
-                    <div className="fsde-event-content">
-                      <div className="fsde-event-meta">
-                        <span
-                          className={`fsde - badge ${event.category === "class"
-                            ? "fsde-badge-class"
-                            : "fsde-badge-event"
-                            } `}
-                        >
-                          {event.category === "class" ? "강습" : "행사"}
-                        </span>
-                        {event.time && (
-                          <span className="fsde-event-time">
-                            {event.time}
-                          </span>
-                        )}
-                      </div>
-                      <h3 className="fsde-event-title truncate">
-                        {event.title}
-                      </h3>
-                      {event.location && (
-                        <p className="fsde-event-location truncate">
-                          <i className="ri-map-pin-line fsde-location-icon"></i>
-                          {event.location}
-                        </p>
+                    <div className="DEM-thumbnail">
+                      {thumbnail ? (
+                        <img src={thumbnail} alt={event.title} loading="lazy" />
+                      ) : (
+                        <div className="DEM-fallback">
+                          {event.title.charAt(0)}
+                        </div>
                       )}
                     </div>
-
-                    {/* Arrow */}
-                    <div className="fsde-arrow">
-                      <i className="ri-arrow-right-s-line fsde-arrow-icon"></i>
-                    </div>
+                    <span className={`DEM-category ${event.category === 'class' ? 'cat-bg-class' : 'cat-bg-social'}`}>
+                      {event.category === 'class' ? '강습' : '소셜'}
+                    </span>
+                    <h3 className="DEM-title">{event.title}</h3>
+                    {event.time && <span className="DEM-time">{event.time}</span>}
                   </div>
                 );
               })}
             </div>
           )}
         </div>
-
-        {/* Footer */}
-        {events.length > 0 && (
-          <div className="fsde-footer">
-            <p className="fsde-footer-text">
-              총 {events.length}개의 이벤트
-            </p>
-          </div>
-        )}
       </div>
     </div>,
     document.body

@@ -1,7 +1,7 @@
 import { useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import type { Event as AppEvent } from '../../../lib/supabase';
-import '../styles/DateEventsModal.css';
+import '../../../styles/domains/events.css';
 
 interface DateEventsModalProps {
     isOpen: boolean;
@@ -115,28 +115,29 @@ export default function DateEventsModal({
     };
 
     return createPortal(
-        <div className="date-events-modal-overlay" onClick={onClose}>
-            <div className="date-events-modal-container" onClick={e => e.stopPropagation()}>
+        <div className={`DateEventsModal density-${density}`} onClick={onClose}>
+            <div className="DEM-container" onClick={e => e.stopPropagation()}>
                 {/* Header */}
-                <div className="date-events-header">
-                    <div className="date-info">
-                        <span className="weekday">{weekDayNames[date.getDay()]}요일 <span className="day-num">{date.getDate()}일</span></span>
-                        <span className="subtitle">소셜/이벤트</span>
+                <div className="DEM-header">
+                    <div className="DEM-dateInfo">
+                        <span className="DEM-weekday">
+                            {weekDayNames[date.getDay()]}요일 <span className="DEM-dayNum">{date.getDate()}일</span>
+                        </span>
+                        <span className="DEM-subtitle">소셜/이벤트</span>
                     </div>
-                    <button className="close-btn" onClick={onClose}>
+                    <button className="DEM-closeBtn" onClick={onClose}>
                         <i className="ri-close-line"></i>
                     </button>
                 </div>
 
                 {/* Body */}
-                <div className={`date-events-body density-${density}`}>
+                <div className="DEM-body">
                     {sortedEvents.length > 0 ? (
                         <div
-                            className="events-grid"
+                            className="DEM-grid"
                             style={{ '--grid-cols': gridCols } as React.CSSProperties}
                         >
                             {sortedEvents.map(event => {
-                                // User requested 300px (thumbnail) size, not micro.
                                 const imageUrl = event.image_thumbnail || event.image_medium || event.image_micro;
                                 const categoryClass = getCategoryColor(event.category);
                                 const categoryName = getCategoryName(event.category);
@@ -145,34 +146,31 @@ export default function DateEventsModal({
                                 return (
                                     <div
                                         key={event.id}
-                                        className="event-grid-item"
+                                        className="DEM-item"
                                         onClick={() => onEventClick(event)}
                                     >
-                                        <div className="event-item-thumbnail">
+                                        <div className="DEM-thumbnail">
                                             {imageUrl ? (
                                                 <img src={imageUrl} alt={event.title} loading="lazy" />
                                             ) : (
-                                                <div className="event-item-fallback">
-                                                    {event.title.charAt(0)}
+                                                <div className="DEM-fallback">
+                                                    <i className="ri-calendar-event-line"></i>
                                                 </div>
                                             )}
                                         </div>
-
-                                        <div className="event-item-info">
-                                            <span className={`event-item-category ${categoryClass}`}>
+                                        <div className="DEM-info">
+                                            <span className={`DEM-category ${categoryClass}`}>
                                                 {categoryName}
                                             </span>
-                                            <div className="event-item-title">{event.title}</div>
-                                            {timeStr && <div className="event-item-time">{timeStr}</div>}
+                                            <span className="DEM-title">{event.title}</span>
+                                            {timeStr && <span className="DEM-time">{timeStr}</span>}
                                         </div>
                                     </div>
                                 );
                             })}
                         </div>
                     ) : (
-                        <div className="empty-events-state">
-                            등록된 일정이 없습니다.
-                        </div>
+                        <div className="DEM-empty">등록된 이벤트가 없습니다.</div>
                     )}
                 </div>
             </div>

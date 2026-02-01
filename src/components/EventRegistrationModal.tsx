@@ -11,8 +11,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { logEvent } from "../lib/analytics";
 import ImageCropModal from "./ImageCropModal";
 import VenueSelectModal from "../pages/v2/components/VenueSelectModal";
-import "../styles/components/InteractivePreview.css";
-import "./EventRegistrationModal.css";
+import "../styles/domains/events.css"; // 2026 Pure Semantic CSS: Events Domain
 import { EditablePreviewCard } from "./EditablePreviewCard";
 import EditableEventDetail, { type EditableEventDetailRef } from './EditableEventDetail';
 import type { Event as AppEvent } from "../lib/supabase";
@@ -942,28 +941,23 @@ export default memo(function EventRegistrationModal({
 
 
   return createPortal(
-    <div className={`reg-modal-overlay ${previewMode === 'billboard' ? 'billboard-mode' : ''}`}>
-      {/* Login Requirement Overlay */}
-
-
-      {/* Ceiling Switcher - Detached */}
-      {/* Ceiling Switcher - Detached */}
-      <div className="ceiling-switcher-container">
-        <div className="ceiling-switcher-wrapper">
+    <div className={`EventRegistrationModal ERM-overlay ${previewMode === 'billboard' ? 'is-billboard' : ''}`}>
+      <div className="ERM-switcher">
+        <div className="ERM-switcherWrapper">
           <button
             onClick={() => setPreviewMode('detail')}
-            className={`switcher-btn ${previewMode === 'detail' ? 'active' : 'inactive'} `}
+            className={`ERM-switcherBtn ${previewMode === 'detail' ? 'is-active' : ''}`}
           >
             <i className="ri-file-list-line"></i>
-            <span className="switcher-label">상세</span>
+            <span className="ERM-switcherLabel">상세</span>
           </button>
 
           <button
             onClick={() => setPreviewMode('billboard')}
-            className={`switcher-btn ${previewMode === 'billboard' ? 'active' : 'inactive'} `}
+            className={`ERM-switcherBtn ${previewMode === 'billboard' ? 'is-active' : ''}`}
           >
             <i className="ri-billboard-line"></i>
-            <span className="switcher-label">전광판</span>
+            <span className="ERM-switcherLabel">전광판</span>
           </button>
         </div>
       </div>
@@ -1012,12 +1006,10 @@ export default memo(function EventRegistrationModal({
           }}
         />
       ) : previewMode === 'billboard' ? (
-        /* Billboard mode: Direct card with no container */
-        <div className="billboard-content-card">
-          {/* Video/Image Area */}
-          <div className="billboard-media-area">
+        <div className="ERM-billboardCard">
+          <div className="ERM-billboardMedia">
             {isValidVideo && videoId ? (
-              <div className="billboard-media-video-wrapper w-full h-full">
+              <div className="ERM-billboardVideo">
                 <iframe
                   width="100%"
                   height="100%"
@@ -1026,43 +1018,37 @@ export default memo(function EventRegistrationModal({
                   frameBorder="0"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
-                  className="w-full h-full object-cover"
                 ></iframe>
               </div>
             ) : previewEvent.image ? (
               <img
                 src={previewEvent.image}
                 alt="preview"
-                className="billboard-media-image cursor-pointer"
+                className="ERM-billboardImage"
                 onClick={handleReEditImage}
               />
             ) : (
-              <div className="billboard-media-placeholder">
-                <i className="ri-image-line billboard-empty-icon"></i>
+              <div className="ERM-billboardPlaceholder">
+                <i className="ri-image-line"></i>
               </div>
             )}
 
-            {/* QR Code Placeholder */}
-            <div className="billboard-qr-placeholder">
-              <i className="ri-qr-code-line billboard-qr-icon"></i>
+            <div className="ERM-billboardQR">
+              <i className="ri-qr-code-line"></i>
             </div>
           </div>
 
-          {/* Bottom Info */}
-          <div className="billboard-info-overlay">
-            <h3 className="billboard-info-title">{title || "제목"}</h3>
-            <p className="billboard-info-date">{date ? formatDateForInput(date) : "날짜"}</p>
+          <div className="ERM-billboardInfo">
+            <h3 className="ERM-billboardTitle">{title || "제목"}</h3>
+            <p className="ERM-billboardDate">{date ? formatDateForInput(date) : "날짜"}</p>
           </div>
         </div>
       ) : (
-        <div className="reg-modal-container">
-          {/* Main Content Area */}
-          <div className="reg-main-content">
-            {/* Mode: Card Preview */}
-            <div className="card-preview-container">
-              <div className="card-preview-grid">
-                {/* Event Preview Card */}
-                <div key="event-preview" className="active-card-wrapper">
+        <div className="ERM-container">
+          <div className="ERM-main">
+            <div className="ERM-previewContainer">
+              <div className="ERM-previewGrid">
+                <div key="event-preview" className="ERM-activeWrapper">
                   <EditablePreviewCard
                     event={{
                       ...previewEvent,
@@ -1073,8 +1059,7 @@ export default memo(function EventRegistrationModal({
                   />
                 </div>
 
-                {/* Class Preview Card */}
-                <div key="class-preview" className="active-card-wrapper">
+                <div key="class-preview" className="ERM-activeWrapper">
                   <EditablePreviewCard
                     event={{
                       ...previewEvent,
@@ -1085,9 +1070,8 @@ export default memo(function EventRegistrationModal({
                   />
                 </div>
 
-                {/* Dummy Cards - Only render if real events exist */}
                 {dummyEvents.slice(0, 4).map((realEvent, idx) => (
-                  <div key={`dummy-${idx}`} className="dummy-card-wrapper">
+                  <div key={`dummy-${idx}`} className="ERM-dummyWrapper">
                     <EditablePreviewCard
                       event={{
                         ...realEvent,

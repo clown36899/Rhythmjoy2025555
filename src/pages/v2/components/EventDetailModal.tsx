@@ -6,8 +6,7 @@ import { useDefaultThumbnail } from '../../../hooks/useDefaultThumbnail';
 import { getEventThumbnail } from '../../../utils/getEventThumbnail';
 import { parseMultipleContacts, copyToClipboard } from '../../../utils/contactLink';
 import { logEvent, logPageView } from '../../../lib/analytics';
-import "../../../styles/components/EventDetailModal.css";
-import "../../../pages/v2/styles/components/EventDetailModal.css"; // Ensure V2 styles are imported
+import "../../../styles/domains/events.css"; // 2026 Pure Semantic CSS: Events Domain
 import { useAuth } from '../../../contexts/AuthContext';
 import VenueSelectModal from './VenueSelectModal';
 import ImageCropModal from '../../../components/ImageCropModal';
@@ -112,8 +111,6 @@ export default function EventDetailModal({
 
   const [showFullscreenImage, setShowFullscreenImage] = useState(false);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
-  const [isInternalDeleting, setIsInternalDeleting] = useState(false); // Internal loading state
-  const [internalProgress, setInternalProgress] = useState(0); // Internal progress for spinner
   const [dateMode, setDateMode] = useState<'single' | 'dates'>('single'); // Track date mode separately
 
   // Draft State for Local Edits
@@ -982,14 +979,8 @@ export default function EventDetailModal({
     <>
       {createPortal(
         <div
-          className="event-detail-modal-overlay"
+          className="EventDetailModal EDM-overlay"
           onTouchMove={(e) => {
-            // Prevent background scrolling when dragging on the overlay itself
-            if (e.target === e.currentTarget) {
-              e.preventDefault();
-            }
-          }}
-          onTouchStart={(e) => {
             if (e.target === e.currentTarget) {
               e.preventDefault();
             }
@@ -997,80 +988,32 @@ export default function EventDetailModal({
           onClick={onClose}
         >
           <div
-            className="event-detail-modal-container"
-            style={{ borderColor: "rgb(89, 89, 89)", position: 'relative' }} // relative for login overlay
+            className="EDM-container"
             onClick={(e) => e.stopPropagation()}
           >
             {/* 데이터 로딩 인디케이터 (상세 데이터 없을 때) */}
             {isFetchingDetail && (
-              <div style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
-                height: '4px',
-                background: 'linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.5), transparent)',
-                zIndex: 50,
-                animation: 'pulse 1.5s infinite'
-              }} />
+              <div className="EDM-loadingBar" />
             )}
 
             {/* 로그인 유도 오버레이 */}
             {showLoginPrompt && (
-              <div style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: 'rgba(30, 41, 59, 0.95)',
-                zIndex: 100,
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '2rem',
-                textAlign: 'center',
-                borderRadius: 'inherit'
-              }}>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white', marginBottom: '1rem' }}>로그인 필요</h2>
-                <p style={{ color: '#cbd5e1', marginBottom: '1.5rem', lineHeight: '1.5' }}>
+              <div className="EDM-loginOverlay">
+                <h2 className="EDM-loginTitle">로그인 필요</h2>
+                <p className="EDM-loginDesc">
                   수정/삭제하려면 로그인이 필요합니다.<br />
                   간편하게 로그인하고 계속하세요!
                 </p>
                 <button
                   onClick={handleLogin}
-                  style={{
-                    width: '100%',
-                    padding: '1rem',
-                    background: '#FEE500',
-                    color: '#000000',
-                    border: 'none',
-                    borderRadius: '0.5rem',
-                    fontSize: '1rem',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.5rem',
-                    marginBottom: '1rem'
-                  }}
+                  className="EDM-btn-kakao"
                 >
-                  <i className="ri-kakao-talk-fill" style={{ fontSize: '1.5rem' }}></i>
+                  <i className="ri-kakao-talk-fill"></i>
                   카카오로 로그인
                 </button>
                 <button
                   onClick={() => setShowLoginPrompt(false)}
-                  style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    background: 'transparent',
-                    color: '#9ca3af',
-                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                    borderRadius: '0.5rem',
-                    cursor: 'pointer'
-                  }}
+                  className="EDM-btn-close"
                 >
                   취소
                 </button>
@@ -1079,612 +1022,567 @@ export default function EventDetailModal({
 
             {/* 스크롤 가능한 전체 영역 */}
             <div
-              className={`modal-scroll-container ${isSelectionMode ? 'selection-mode' : ''}`}
+              className={`EDM-scrollContainer ${isSelectionMode ? 'is-selection-mode' : ''}`}
               style={{
                 overscrollBehavior: 'contain',
                 WebkitOverflowScrolling: 'touch'
               }}
             >
-              {/* 이미지 영역 (스크롤과 함께 사라짐) */}
-              {/* 이미지 영역 (스크롤과 함께 사라짐) */}
-              {(() => {
-                // Progressive Loading: thumbnail priority logic removed here as it is handled by state above
-                // We will render up to two images: Thumbnail (Base) and HighRes (Overlay)
+              <div className="EDM-content">
+                {/* 이미지 영역 (스크롤과 함께 사라짐) */}
+                {(() => {
+                  // Progressive Loading: thumbnail priority logic handled by state
+                  const hasImage = !!(thumbnailSrc || highResSrc);
+                  const isDefaultThumbnail = !selectedEvent.image_thumbnail && !highResSrc && !!thumbnailSrc;
 
-                const hasImage = !!(thumbnailSrc || highResSrc);
-                const isDefaultThumbnail = !selectedEvent.image_thumbnail && !highResSrc && !!thumbnailSrc;
+                  // Transform style (shared)
+                  const imageStyle = {
+                    transform: `translate3d(${(selectedEvent as any).image_position_x || 0}%, ${(selectedEvent as any).image_position_y || 0}%, 0)`
+                  };
 
-                // Transform style (shared)
-                const imageStyle = {
-                  transform: `translate3d(${(selectedEvent as any).image_position_x || 0}%, ${(selectedEvent as any).image_position_y || 0}%, 0)`
-                };
-
-                return (
-                  <div
-                    className={`image-area ${hasImage ? "bg-black" : "bg-pattern"}`}
-                    style={{
-                      ...(!hasImage
-                        ? { backgroundImage: "url(/grunge.png)" }
-                        : {}),
-                      // Ensure relative positioning for absolute children
-                      position: 'relative',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      display: 'flex'
-                    }}
-                  >
-                    {hasImage ? (
-                      <>
-
-                        <div className="detail-image-wrapper">
-                          {/* 1. Base Layer: Thumbnail */}
-                          {thumbnailSrc && (
-                            <img
-                              src={thumbnailSrc}
-                              alt={selectedEvent.title}
-                              className="detail-image-content"
-                              loading="eager"
-                              draggable={false}
-                              style={{
-                                ...imageStyle,
-                                zIndex: 1,
-                                opacity: 1,
-                              }}
-                            />
-                          )}
-
-                          {/* 2. Overlay Layer: HighRes (Cross-fade) */}
-                          {highResSrc && highResSrc !== thumbnailSrc && (
-                            <img
-                              src={highResSrc}
-                              alt={selectedEvent.title}
-                              className="detail-image-content"
-                              loading="eager"
-                              decoding="async"
-                              draggable={false}
-                              style={{
-                                ...imageStyle,
-                                zIndex: 2,
-                                opacity: isHighResLoaded ? 1 : 0,
-                                transition: "opacity 0.4s ease-in-out",
-                              }}
-                            />
-                          )}
-
-                          {/* Fallback if only HighRes exists and no thumbnail (Rare) */}
-                          {!thumbnailSrc && highResSrc && (
-                            <img
-                              src={highResSrc}
-                              alt={selectedEvent.title}
-                              className="detail-image-content"
-                              loading="eager"
-                              style={{ ...imageStyle, zIndex: 1 }}
-                            />
-                          )}
-                        </div>
-
-                        {/* Gradient Overlay */}
-                        <div className="image-gradient-overlay" style={{ zIndex: 10 }} />
-
-                        {isDefaultThumbnail && (
-                          <div className="default-thumbnail-overlay">
-                            <span className="default-thumbnail-text manual-label-wrapper">
-                              {selectedEvent.category === "class" ? (
-                                <>
-                                  <span className="translated-part">Class</span>
-                                  <span className="fixed-part ko" translate="no">강습</span>
-                                  <span className="fixed-part en" translate="no">Class</span>
-                                </>
-                              ) : "행사"}
-                            </span>
-                          </div>
-                        )}
-
-                        {isSelectionMode && (
-                          <div
-                            className="image-edit-overlay-btn"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleImageClick();
-                            }}
-                            style={{
-                              position: 'absolute',
-                              top: 0,
-                              left: 0,
-                              width: '100%',
-                              height: '100%',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              backgroundColor: 'rgba(0,0,0,0.5)',
-                              color: 'white',
-                              zIndex: 20,
-                              cursor: 'pointer'
-                            }}
-                          >
-                            <i className="ri-image-edit-line" style={{ fontSize: '48px', marginBottom: '8px' }}></i>
-                            <span className="manual-label-wrapper" style={{ fontSize: '16px', fontWeight: 600 }}>
-                              <span className="translated-part">Edit Image</span>
-                              <span className="fixed-part ko" translate="no">이미지 수정</span>
-                              <span className="fixed-part en" translate="no">Edit Image</span>
-                            </span>
-                          </div>
-                        )}
-                        {/* 크게보기 버튼 */}
-                        <button
-                          onClick={() => setShowFullscreenImage(true)}
-                          className="fullscreen-button"
-                        >
-                          <span className="manual-label-wrapper">
-                            <span className="translated-part">Full View</span>
-                            <span className="fixed-part ko" translate="no">크게 보기</span>
-                            <span className="fixed-part en" translate="no">Full View</span>
-                          </span>
-                        </button>
-
-                        {/* 즐겨찾기 버튼 (이미지 좌측 하단) */}
-                        {onToggleFavorite && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onToggleFavorite(e);
-                            }}
-                            className={`card-favorite-btn ${isFavorite ? 'is-active' : ''}`}
-                            title={isFavorite ? "즐겨찾기 해제" : "즐겨찾기 추가"}
-                            style={{
-                              top: 'auto',
-                              bottom: '-14px',
-                              left: '0px',
-                              right: 'auto',
-                              width: '72px',
-                              height: '72px'
-                            }}
-                          >
-                            <i className={`card-favorite-icon ${isFavorite ? "ri-star-fill" : "ri-star-line"}`} style={{ fontSize: '40px' }}></i>
-                          </button>
-                        )}
-                      </>
-                    ) : (
-                      <>
-                        <div
-                          className={`category-bg-overlay ${selectedEvent.category === "class" ? "class" : "event"}`}
-                        ></div>
-                        <span className="category-bg-text manual-label-wrapper">
-                          {selectedEvent.category === "class" ? (
-                            <>
-                              <span className="translated-part">Class</span>
-                              <span className="fixed-part ko" translate="no">강습</span>
-                              <span className="fixed-part en" translate="no">Class</span>
-                            </>
-                          ) : "행사"}
-                        </span>
-                      </>
-                    )}
-
-                    {/* 카테고리 배지 - 좌측 하단 */}
+                  return (
                     <div
-                      className={`category-badge manual-label-wrapper ${selectedEvent.category === "class" ? "class" : "event"}`}
+                      className={`EDM-imageArea ${hasImage ? "has-image" : "has-pattern"}`}
                     >
-                      {selectedEvent.category === "class" ? (
+                      {hasImage ? (
                         <>
-                          <span className="translated-part">Class</span>
-                          <span className="fixed-part ko" translate="no">강습</span>
-                          <span className="fixed-part en" translate="no">Class</span>
-                        </>
-                      ) : "행사"}
-                    </div>
-                  </div>
-                );
-              })()}
+                          <div className="EDM-imageWrapper">
+                            {/* 1. Base Layer: Thumbnail */}
+                            {thumbnailSrc && (
+                              <img
+                                src={thumbnailSrc}
+                                alt={selectedEvent.title}
+                                className="EDM-imageContent"
+                                loading="eager"
+                                draggable={false}
+                                style={{
+                                  ...imageStyle,
+                                  zIndex: 1,
+                                  opacity: 1,
+                                }}
+                              />
+                            )}
 
-              {/* Right Column: Header + Info */}
-              <div className="info-column">
-                {/* 제목 - Sticky Header */}
-                <div
-                  className="sticky-header"
-                >
-                  {/* 장르 표시 */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <h2 className="modal-title">
-                      {selectedEvent.title}
-                    </h2>
+                            {/* 2. Overlay Layer: HighRes (Cross-fade) */}
+                            {highResSrc && highResSrc !== thumbnailSrc && (
+                              <img
+                                src={highResSrc}
+                                alt={selectedEvent.title}
+                                className="EDM-imageContent"
+                                loading="eager"
+                                decoding="async"
+                                draggable={false}
+                                style={{
+                                  ...imageStyle,
+                                  zIndex: 2,
+                                  opacity: isHighResLoaded ? 1 : 0,
+                                  transition: "opacity 0.4s ease-in-out",
+                                }}
+                              />
+                            )}
 
-                    {isSelectionMode && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setActiveEditField('title');
-                        }}
-                        className="edm-edit-trigger-btn"
-                        style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', border: '1px solid #3b82f6', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
-                        title="제목 수정"
-                      >
-                        <i className="ri-pencil-line" style={{ fontSize: '14px' }}></i>
-                      </button>
-                    )}
-                  </div>
+                            {/* Fallback if only HighRes exists and no thumbnail */}
+                            {!thumbnailSrc && highResSrc && (
+                              <img
+                                src={highResSrc}
+                                alt={selectedEvent.title}
+                                className="EDM-imageContent"
+                                loading="eager"
+                                style={{ ...imageStyle, zIndex: 1 }}
+                              />
+                            )}
+                          </div>
 
-                  {/* 장르 표시 */}
-                  {(selectedEvent.genre || isSelectionMode) && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '8px' }}>
-                      {selectedEvent.genre ? (
-                        <p className={`genre-text ${getGenreColor(selectedEvent.genre)}`}>
-                          {selectedEvent.genre}
-                        </p>
-                      ) : (
-                        <span style={{ color: '#9ca3af', fontSize: '14px' }}>장르 미지정</span>
-                      )}
-                      {isSelectionMode && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setActiveEditField('genre');
-                          }}
-                          className="edm-edit-trigger-btn"
-                          style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', border: '1px solid #3b82f6', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
-                          title="장르 수정"
-                        >
-                          <i className="ri-pencil-line" style={{ fontSize: '12px' }}></i>
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
+                          {/* Gradient Overlay */}
+                          <div className="EDM-imageGradient" />
 
-                {/* 세부 정보 */}
-                <div className="info-section">
-                  <div className="info-item">
-                    <i className="ri-calendar-line info-icon"></i>
-                    <div className="info-flex-gap-1" style={{ flex: 1, alignItems: 'center', display: 'flex' }}>
-                      <span>
-                        {(() => {
-                          // Helper for safe date parsing
-                          const safeDate = (d: string | null | undefined) => {
-                            if (!d) return null;
-                            const date = new Date(d);
-                            return isNaN(date.getTime()) ? null : date;
-                          };
+                          {isDefaultThumbnail && (
+                            <div className="EDM-defaultThumb">
+                              <span className="EDM-thumbText manual-label-wrapper">
+                                {selectedEvent.category === "class" ? (
+                                  <>
+                                    <span className="translated-part">Class</span>
+                                    <span className="fixed-part ko" translate="no">강습</span>
+                                    <span className="fixed-part en" translate="no">Class</span>
+                                  </>
+                                ) : "행사"}
+                              </span>
+                            </div>
+                          )}
 
-                          // 특정 날짜 모드: event_dates 배열이 있으면 개별 날짜 표시
-                          if (
-                            selectedEvent.event_dates &&
-                            selectedEvent.event_dates.length > 0
-                          ) {
-                            const dates = selectedEvent.event_dates
-                              .map(d => safeDate(d))
-                              .filter((d): d is Date => d !== null);
-
-                            if (dates.length === 0) return "날짜 정보 없음";
-
-                            const firstDate = dates[0];
-                            const year = firstDate.getFullYear();
-                            const month = firstDate.toLocaleDateString("ko-KR", {
-                              month: "long",
-                            });
-
-                            // 같은 년월인지 확인
-                            const sameYearMonth = dates.every(
-                              (d) =>
-                                d.getFullYear() === year &&
-                                d.toLocaleDateString("ko-KR", { month: "long" }) ===
-                                month,
-                            );
-
-                            if (sameYearMonth) {
-                              // 같은 년월: "2025년 10월 11일, 25일, 31일"
-                              const days = dates
-                                .map((d) => d.getDate())
-                                .join("일, ");
-                              return `${year}년 ${month} ${days}일`;
-                            } else {
-                              // 다른 년월: "10/11, 11/25, 12/31"
-                              return dates
-                                .map((d) => `${d.getMonth() + 1}/${d.getDate()}`)
-                                .join(", ");
-                            }
-                          }
-
-                          // 연속 기간 모드
-                          const startDate =
-                            selectedEvent.start_date || selectedEvent.date;
-                          const endDate = selectedEvent.end_date;
-
-                          if (!startDate) return "날짜 미정";
-
-                          const start = safeDate(startDate);
-                          if (!start) return "날짜 형식 오류";
-
-                          const startYear = start.getFullYear();
-                          const startMonth = start.toLocaleDateString("ko-KR", {
-                            month: "long",
-                          });
-                          const startDay = start.getDate();
-
-                          if (endDate && endDate !== startDate) {
-                            const end = safeDate(endDate);
-                            if (end) {
-                              const endYear = end.getFullYear();
-                              const endMonth = end.toLocaleDateString("ko-KR", {
-                                month: "long",
-                              });
-                              const endDay = end.getDate();
-
-                              if (startYear === endYear && startMonth === endMonth) {
-                                return `${startYear}년 ${startMonth} ${startDay}~${endDay}일`;
-                              } else if (startYear === endYear) {
-                                return `${startYear}년 ${startMonth} ${startDay}일~${endMonth} ${endDay}일`;
-                              } else {
-                                return `${startYear}년 ${startMonth} ${startDay}일~${endYear}년 ${endMonth} ${endDay}일`;
-                              }
-                            }
-                          }
-
-                          return `${startYear}년 ${startMonth} ${startDay}일`;
-                        })()}
-                      </span>
-                      {isSelectionMode && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            // Initialize editValue and dateMode based on current date mode
-                            if (selectedEvent.event_dates && selectedEvent.event_dates.length > 0) {
-                              setDateMode('dates');
-                              setEditValue(selectedEvent.event_dates.join(','));
-                            } else {
-                              setDateMode('single');
-                              const startDate = selectedEvent.start_date || selectedEvent.date;
-                              setEditValue(startDate || '');
-                            }
-                            setActiveEditField('date');
-                          }}
-                          style={{ marginLeft: 'auto', background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', border: '1px solid #3b82f6', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                          title="날짜 수정"
-                        >
-                          <i className="ri-pencil-line" style={{ fontSize: '14px' }}></i>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* 조회수 표시 */}
-                  {selectedEvent.views !== undefined && selectedEvent.views !== null && (
-                    <div className="info-item" style={{ marginTop: '8px', opacity: 0.7 }}>
-                      <i className="ri-eye-line info-icon"></i>
-                      <span style={{ fontSize: '14px' }}>
-                        조회 {selectedEvent.views.toLocaleString()}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* {selectedEvent.organizer && (
-                    <div className="info-item">
-                      <i className="ri-user-line info-icon"></i>
-                      <span>{selectedEvent.organizer}</span>
-                    </div>
-                  )} */}
-
-                  {(selectedEvent.location || isSelectionMode) && (
-                    <div className="info-item">
-                      <i className="ri-map-pin-line info-icon"></i>
-                      <div className="info-flex-gap-1" style={{ flex: 1, alignItems: 'center', display: 'flex' }}>
-                        {(selectedEvent as any).venue_id ? (
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              const venueId = (selectedEvent as any).venue_id;
-                              onOpenVenueDetail?.(venueId);
-                            }}
-                            className="venue-link-button"
-                          >
-                            <span>{selectedEvent.location}</span>
-                            <i className="ri-arrow-right-s-line" style={{ fontSize: '1.1em' }}></i>
-                          </button>
-                        ) : (
-                          <span>{selectedEvent.location || "장소 미정"}</span>
-                        )}
-                        {!(selectedEvent as any).venue_id && (selectedEvent.location_link || (selectedEvent as any).venue_custom_link) && (
-                          <a
-                            href={(selectedEvent as any).venue_custom_link || selectedEvent.location_link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="location-link"
-                            title="지도 보기"
-                          >
-                            <i className="ri-external-link-line location-link-icon"></i>
-                          </a>
-                        )}
-                        {isSelectionMode && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setShowVenueSelect(true);
-                            }}
-                            style={{ marginLeft: 'auto', background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', border: '1px solid #3b82f6', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
-                            title="장소 수정"
-                          >
-                            <i className="ri-pencil-line" style={{ fontSize: '14px' }}></i>
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {(selectedEvent.description || isSelectionMode) && (
-                    <div className="info-divider">
-                      <div className="info-item">
-                        <i className="ri-file-text-line info-icon"></i>
-                        <div className="info-item-content" style={{ width: '100%' }}>
-                          <div style={{ position: 'relative' }}>
-                            {isSelectionMode && <button
+                          {isSelectionMode && (
+                            <div
+                              className="EDM-imageEditOverlay"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                setActiveEditField('description');
+                                handleImageClick();
                               }}
-                              style={{ position: 'absolute', right: 0, top: 0, background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', border: '1px solid #3b82f6', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10 }}
-                              title="내용 수정"
                             >
-                              <i className="ri-pencil-line" style={{ fontSize: '14px' }}></i>
+                              <i className="ri-image-edit-line"></i>
+                              <span className="manual-label-wrapper">
+                                <span className="translated-part">Edit Image</span>
+                                <span className="fixed-part ko" translate="no">이미지 수정</span>
+                                <span className="fixed-part en" translate="no">Edit Image</span>
+                              </span>
+                            </div>
+                          )}
+                          {/* 크게보기 버튼 */}
+                          <button
+                            onClick={() => setShowFullscreenImage(true)}
+                            className="EDM-fullscreenBtn"
+                          >
+                            <span className="manual-label-wrapper">
+                              <span className="translated-part">Full View</span>
+                              <span className="fixed-part ko" translate="no">크게 보기</span>
+                              <span className="fixed-part en" translate="no">Full View</span>
+                            </span>
+                          </button>
+
+                          {/* 즐겨찾기 버튼 (이미지 좌측 하단) */}
+                          {onToggleFavorite && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onToggleFavorite(e);
+                              }}
+                              className={`EDM-favoriteBtn ${isFavorite ? 'is-active' : ''}`}
+                              title={isFavorite ? "즐겨찾기 해제" : "즐겨찾기 추가"}
+                            >
+                              <i className={isFavorite ? "ri-star-fill" : "ri-star-line"}></i>
                             </button>
-                            }
-                            <p>
-                              {selectedEvent.description ? (
-                                selectedEvent.description
-                                  .split(/(\bhttps?:\/\/[^\s]+)/g)
-                                  .map((part, idx) => {
-                                    if (part.match(/^https?:\/\//)) {
-                                      return (
-                                        <a
-                                          key={idx}
-                                          href={part}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="info-link"
-                                          onClick={(e) => e.stopPropagation()}
-                                          data-analytics-id={selectedEvent.id}
-                                          data-analytics-type="bio_link"
-                                          data-analytics-title={part}
-                                          data-analytics-section="event_detail_bio"
-                                        >
-                                          {part}
-                                        </a>
-                                      );
-                                    }
-                                    return <span key={idx}>{part}</span>;
-                                  })
-                              ) : (
-                                <span style={{ color: '#9ca3af' }}>내용 없음</span>
-                              )}
-                            </p>
-                          </div>
-                        </div>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <div
+                            className={`EDM-categoryArea ${selectedEvent.category === "class" ? "is-class" : "is-event"}`}
+                          ></div>
+                          <span className="EDM-categoryAreaText manual-label-wrapper">
+                            {selectedEvent.category === "class" ? (
+                              <>
+                                <span className="translated-part">Class</span>
+                                <span className="fixed-part ko" translate="no">강습</span>
+                                <span className="fixed-part en" translate="no">Class</span>
+                              </>
+                            ) : "행사"}
+                          </span>
+                        </>
+                      )}
+
+                      {/* 카테고리 배지 - 좌측 하단 (Mobile only behavior handles in CSS) */}
+                      <div
+                        className={`EDM-categoryBadge manual-label-wrapper ${selectedEvent.category === "class" ? "is-class" : "is-event"}`}
+                      >
+                        {selectedEvent.category === "class" ? (
+                          <>
+                            <span className="translated-part">Class</span>
+                            <span className="fixed-part ko" translate="no">강습</span>
+                            <span className="fixed-part en" translate="no">Class</span>
+                          </>
+                        ) : "행사"}
                       </div>
                     </div>
-                  )}
+                  );
+                })()}
 
-                  {selectedEvent.contact &&
-                    (() => {
-                      const contactInfos = parseMultipleContacts(
-                        selectedEvent.contact,
-                      );
+                {/* Right Column: Header + Info */}
+                <div className="EDM-infoColumn">
+                  {/* 제목 - Sticky Header */}
+                  <div
+                    className="EDM-header"
+                  >
+                    <div className="EDM-titleGroup">
+                      <h2 className="EDM-title">
+                        {selectedEvent.title}
+                      </h2>
 
-                      return (
-                        <div className="edm-space-y-2">
-                          <span className="contact-label">
-                            문의
-                          </span>
-                          <div className="contact-buttons-container">
-                            {contactInfos.map((contactInfo, index) => {
-                              const handleContactClick = async () => {
-                                if (contactInfo.link) {
-                                  window.open(contactInfo.link, "_blank");
-                                } else {
-                                  try {
-                                    await copyToClipboard(contactInfo.value);
-                                    alert(`복사되었습니다: ${contactInfo.value}`);
-                                  } catch (err) {
-                                    console.error("복사 실패:", err);
-                                    alert("복사에 실패했습니다.");
-                                  }
-                                }
-                              };
+                      {isSelectionMode && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveEditField('title');
+                          }}
+                          className="EDM-editTrigger"
+                          title="제목 수정"
+                        >
+                          <i className="ri-pencil-line"></i>
+                        </button>
+                      )}
+                    </div>
 
-                              return (
-                                <button
-                                  key={index}
-                                  onClick={handleContactClick}
-                                  className="contact-button"
-                                  data-analytics-id={selectedEvent.id}
-                                  data-analytics-type="contact_click"
-                                  data-analytics-title={contactInfo.displayText}
-                                  data-analytics-section="event_detail_body"
-                                >
-                                  <i
-                                    className={`${contactInfo.icon} contact-icon`}
-                                  ></i>
-                                  <div className="edm-text-left">
-                                    <div className="contact-text">
-                                      {contactInfo.displayText}
-                                    </div>
-                                    <div className="contact-subtext">
-                                      {contactInfo.link
-                                        ? "탭하여 열기"
-                                        : "탭하여 복사"}
-                                    </div>
-                                  </div>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      );
-                    })()}
-
-
-                  {(isAdminMode || ((currentUserId || user?.id) && selectedEvent.user_id === (currentUserId || user?.id))) &&
-                    (selectedEvent.organizer_name ||
-                      selectedEvent.organizer_phone) && (
-                      <div className="admin-info-section">
-                        <div className="admin-info-header">
-                          <i className="ri-admin-line"></i>
-                          <span>등록자 정보 (관리자 전용)</span>
-                        </div>
-                        {selectedEvent.organizer_name && (
-                          <div className="admin-info-item">
-                            <i className="ri-user-star-line"></i>
-                            <span>{selectedEvent.organizer_name}</span>
-                          </div>
+                    {/* 장르 표시 */}
+                    {(selectedEvent.genre || isSelectionMode) && (
+                      <div className="EDM-genreGroup">
+                        {selectedEvent.genre ? (
+                          <p className={`EDM-genreText ${getGenreColor(selectedEvent.genre)}`}>
+                            {selectedEvent.genre}
+                          </p>
+                        ) : (
+                          <span className="EDM-noInfo">장르 미지정</span>
                         )}
-                        {selectedEvent.organizer_phone && (
-                          <div className="admin-info-item">
-                            <i className="ri-phone-line"></i>
-                            <span>{selectedEvent.organizer_phone}</span>
-                          </div>
+                        {isSelectionMode && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setActiveEditField('genre');
+                            }}
+                            className="EDM-editTrigger-sm"
+                            title="장르 수정"
+                          >
+                            <i className="ri-pencil-line"></i>
+                          </button>
                         )}
                       </div>
                     )}
+                  </div>
 
-                  {/* Link section removed as per user request */}
+                  {/* 세부 정보 */}
+                  <div className="EDM-infoSection">
+                    <div className="EDM-infoItem">
+                      <i className="ri-calendar-line EDM-infoIcon"></i>
+                      <div className="EDM-infoContent-flex">
+                        <span>
+                          {(() => {
+                            // Helper for safe date parsing
+                            const safeDate = (d: string | null | undefined) => {
+                              if (!d) return null;
+                              const date = new Date(d);
+                              return isNaN(date.getTime()) ? null : date;
+                            };
 
-                  {(isActualAdmin || ((currentUserId || user?.id) && selectedEvent.user_id === (currentUserId || user?.id))) && selectedEvent.created_at && (
-                    <div className="created-at-text">
-                      <span>
-                        등록:{" "}
-                        {new Date(selectedEvent.created_at).toLocaleDateString(
-                          "ko-KR",
-                          {
-                            year: "numeric",
-                            month: "2-digit",
-                            day: "2-digit",
-                            hour: "2-digit",
-                            minute: "2-digit",
-                          },
+                            // 특정 날짜 모드: event_dates 배열이 있으면 개별 날짜 표시
+                            if (
+                              selectedEvent.event_dates &&
+                              selectedEvent.event_dates.length > 0
+                            ) {
+                              const dates = selectedEvent.event_dates
+                                .map(d => safeDate(d))
+                                .filter((d): d is Date => d !== null);
+
+                              if (dates.length === 0) return "날짜 정보 없음";
+
+                              const firstDate = dates[0];
+                              const year = firstDate.getFullYear();
+                              const month = firstDate.toLocaleDateString("ko-KR", {
+                                month: "long",
+                              });
+
+                              // 같은 년월인지 확인
+                              const sameYearMonth = dates.every(
+                                (d) =>
+                                  d.getFullYear() === year &&
+                                  d.toLocaleDateString("ko-KR", { month: "long" }) ===
+                                  month,
+                              );
+
+                              if (sameYearMonth) {
+                                // 같은 년월: "2025년 10월 11일, 25일, 31일"
+                                const days = dates
+                                  .map((d) => d.getDate())
+                                  .join("일, ");
+                                return `${year}년 ${month} ${days}일`;
+                              } else {
+                                // 다른 년월: "10/11, 11/25, 12/31"
+                                return dates
+                                  .map((d) => `${d.getMonth() + 1}/${d.getDate()}`)
+                                  .join(", ");
+                              }
+                            }
+
+                            // 연속 기간 모드
+                            const startDate =
+                              selectedEvent.start_date || selectedEvent.date;
+                            const endDate = selectedEvent.end_date;
+
+                            if (!startDate) return "날짜 미정";
+
+                            const start = safeDate(startDate);
+                            if (!start) return "날짜 형식 오류";
+
+                            const startYear = start.getFullYear();
+                            const startMonth = start.toLocaleDateString("ko-KR", {
+                              month: "long",
+                            });
+                            const startDay = start.getDate();
+
+                            if (endDate && endDate !== startDate) {
+                              const end = safeDate(endDate);
+                              if (end) {
+                                const endYear = end.getFullYear();
+                                const endMonth = end.toLocaleDateString("ko-KR", {
+                                  month: "long",
+                                });
+                                const endDay = end.getDate();
+
+                                if (startYear === endYear && startMonth === endMonth) {
+                                  return `${startYear}년 ${startMonth} ${startDay}~${endDay}일`;
+                                } else if (startYear === endYear) {
+                                  return `${startYear}년 ${startMonth} ${startDay}일~${endMonth} ${endDay}일`;
+                                } else {
+                                  return `${startYear}년 ${startMonth} ${startDay}일~${endYear}년 ${endMonth} ${endDay}일`;
+                                }
+                              }
+                            }
+
+                            return `${startYear}년 ${startMonth} ${startDay}일`;
+                          })()}
+                        </span>
+                        {isSelectionMode && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // Initialize editValue and dateMode based on current date mode
+                              if (selectedEvent.event_dates && selectedEvent.event_dates.length > 0) {
+                                setDateMode('dates');
+                                setEditValue(selectedEvent.event_dates.join(','));
+                              } else {
+                                setDateMode('single');
+                                const startDate = selectedEvent.start_date || selectedEvent.date;
+                                setEditValue(startDate || '');
+                              }
+                              setActiveEditField('date');
+                            }}
+                            className="EDM-editTrigger"
+                            title="날짜 수정"
+                          >
+                            <i className="ri-pencil-line"></i>
+                          </button>
                         )}
-                        {authorNickname && ` | 계정: ${authorNickname}`}
-                      </span>
+                      </div>
                     </div>
-                  )}
-                </div>
-              </div> {/* End of info-column */}
-            </div>
 
-            <div className="modal-footer">
-              <div className="footer-links-container">
+                    {/* 조회수 표시 */}
+                    {selectedEvent.views !== undefined && selectedEvent.views !== null && (
+                      <div className="EDM-infoItem views-row">
+                        <i className="ri-eye-line EDM-infoIcon"></i>
+                        <span className="EDM-viewsText">
+                          조회 {selectedEvent.views.toLocaleString()}
+                        </span>
+                      </div>
+                    )}
+
+                    {(selectedEvent.location || isSelectionMode) && (
+                      <div className="EDM-infoItem">
+                        <i className="ri-map-pin-line EDM-infoIcon"></i>
+                        <div className="EDM-infoContent-flex">
+                          {(selectedEvent as any).venue_id ? (
+                            <button
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                const venueId = (selectedEvent as any).venue_id;
+                                onOpenVenueDetail?.(venueId);
+                              }}
+                              className="EDM-venueLink"
+                            >
+                              <span>{selectedEvent.location}</span>
+                              <i className="ri-arrow-right-s-line"></i>
+                            </button>
+                          ) : (
+                            <span>{selectedEvent.location || "장소 미정"}</span>
+                          )}
+                          {!(selectedEvent as any).venue_id && (selectedEvent.location_link || (selectedEvent as any).venue_custom_link) && (
+                            <a
+                              href={(selectedEvent as any).venue_custom_link || selectedEvent.location_link}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="EDM-locationLink"
+                              title="지도 보기"
+                            >
+                              <i className="ri-external-link-line"></i>
+                            </a>
+                          )}
+                          {isSelectionMode && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setShowVenueSelect(true);
+                              }}
+                              className="EDM-editTrigger"
+                              title="장소 수정"
+                            >
+                              <i className="ri-pencil-line"></i>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {(selectedEvent.description || isSelectionMode) && (
+                      <div className="EDM-divider">
+                        <div className="EDM-infoItem">
+                          <i className="ri-file-text-line EDM-infoIcon"></i>
+                          <div className="EDM-infoItemContent">
+                            <div className="EDM-descWrapper">
+                              {isSelectionMode && <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setActiveEditField('description');
+                                }}
+                                className="EDM-editTrigger-abs"
+                                title="내용 수정"
+                              >
+                                <i className="ri-pencil-line"></i>
+                              </button>
+                              }
+                              <p>
+                                {selectedEvent.description ? (
+                                  selectedEvent.description
+                                    .split(/(\bhttps?:\/\/[^\s]+)/g)
+                                    .map((part, idx) => {
+                                      if (part.match(/^https?:\/\//)) {
+                                        return (
+                                          <a
+                                            key={idx}
+                                            href={part}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="EDM-link"
+                                            onClick={(e) => e.stopPropagation()}
+                                            data-analytics-id={selectedEvent.id}
+                                            data-analytics-type="bio_link"
+                                            data-analytics-title={part}
+                                            data-analytics-section="event_detail_bio"
+                                          >
+                                            {part}
+                                          </a>
+                                        );
+                                      }
+                                      return <span key={idx}>{part}</span>;
+                                    })
+                                ) : (
+                                  <span className="EDM-noInfo">내용 없음</span>
+                                )}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedEvent.contact &&
+                      (() => {
+                        const contactInfos = parseMultipleContacts(
+                          selectedEvent.contact,
+                        );
+
+                        return (
+                          <div className="EDM-contactSection">
+                            <span className="EDM-contactLabel">
+                              문의
+                            </span>
+                            <div className="EDM-contactGroup">
+                              {contactInfos.map((contactInfo, index) => {
+                                const handleContactClick = async () => {
+                                  if (contactInfo.link) {
+                                    window.open(contactInfo.link, "_blank");
+                                  } else {
+                                    try {
+                                      await copyToClipboard(contactInfo.value);
+                                      alert(`복사되었습니다: ${contactInfo.value}`);
+                                    } catch (err) {
+                                      console.error("복사 실패:", err);
+                                      alert("복사에 실패했습니다.");
+                                    }
+                                  }
+                                };
+
+                                return (
+                                  <button
+                                    key={index}
+                                    onClick={handleContactClick}
+                                    className="EDM-contactBtn"
+                                    data-analytics-id={selectedEvent.id}
+                                    data-analytics-type="contact_click"
+                                    data-analytics-title={contactInfo.displayText}
+                                    data-analytics-section="event_detail_body"
+                                  >
+                                    <i
+                                      className={`${contactInfo.icon} EDM-contactIcon`}
+                                    ></i>
+                                    <div className="EDM-contactTextGroup">
+                                      <div className="EDM-contactValue">
+                                        {contactInfo.displayText}
+                                      </div>
+                                      <div className="EDM-contactHint">
+                                        {contactInfo.link
+                                          ? "탭하여 열기"
+                                          : "탭하여 복사"}
+                                      </div>
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })()}
+
+
+                    {(isAdminMode || ((currentUserId || user?.id) && selectedEvent.user_id === (currentUserId || user?.id))) &&
+                      (selectedEvent.organizer_name ||
+                        selectedEvent.organizer_phone) && (
+                        <div className="EDM-adminSection">
+                          <div className="EDM-adminHeader">
+                            <i className="ri-admin-line"></i>
+                            <span>등록자 정보 (관리자 전용)</span>
+                          </div>
+                          {selectedEvent.organizer_name && (
+                            <div className="EDM-adminItem">
+                              <i className="ri-user-star-line"></i>
+                              <span>{selectedEvent.organizer_name}</span>
+                            </div>
+                          )}
+                          {selectedEvent.organizer_phone && (
+                            <div className="EDM-adminItem">
+                              <i className="ri-phone-line"></i>
+                              <span>{selectedEvent.organizer_phone}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                    {/* Link section removed as per user request */}
+
+                    {(isActualAdmin || ((currentUserId || user?.id) && selectedEvent.user_id === (currentUserId || user?.id))) && selectedEvent.created_at && (
+                      <div className="EDM-createdAt">
+                        <span>
+                          등록:{" "}
+                          {new Date(selectedEvent.created_at).toLocaleDateString(
+                            "ko-KR",
+                            {
+                              year: "numeric",
+                              month: "2-digit",
+                              day: "2-digit",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            },
+                          )}
+                          {authorNickname && ` | 계정: ${authorNickname}`}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div> {/* End of EDM-infoColumn */}
+              </div> {/* End of EDM-content */}
+            </div> {/* End of EDM-scrollContainer */}
+
+            <div className="EDM-footer">
+              <div className="EDM-footerLinks">
                 {selectedEvent.link1 && (
                   <a
                     href={selectedEvent.link1}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="footer-link"
+                    className="EDM-footerLink"
                     title={selectedEvent.link_name1 || "바로가기 1"}
                     data-analytics-id={selectedEvent.id}
                     data-analytics-type="external_link"
                     data-analytics-title={selectedEvent.link_name1 || "링크1"}
                     data-analytics-section="event_detail_footer"
                   >
-                    <i className="ri-external-link-line footer-link-icon"></i>
-                    <span className="footer-link-text">
+                    <i className="ri-external-link-line EDM-footerLinkIcon"></i>
+                    <span className="EDM-footerLinkText">
                       {selectedEvent.link_name1 || "링크1"}
                     </span>
                   </a>
@@ -1694,15 +1592,15 @@ export default function EventDetailModal({
                     href={selectedEvent.link2}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="footer-link"
+                    className="EDM-footerLink"
                     title={selectedEvent.link_name2 || "바로가기 2"}
                     data-analytics-id={selectedEvent.id}
                     data-analytics-type="external_link"
                     data-analytics-title={selectedEvent.link_name2 || "링크2"}
                     data-analytics-section="event_detail_footer"
                   >
-                    <i className="ri-external-link-line footer-link-icon"></i>
-                    <span className="footer-link-text">
+                    <i className="ri-external-link-line EDM-footerLinkIcon"></i>
+                    <span className="EDM-footerLinkText">
                       {selectedEvent.link_name2 || "링크2"}
                     </span>
                   </a>
@@ -1712,15 +1610,15 @@ export default function EventDetailModal({
                     href={selectedEvent.link3}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="footer-link"
+                    className="EDM-footerLink"
                     title={selectedEvent.link_name3 || "바로가기 3"}
                     data-analytics-id={selectedEvent.id}
                     data-analytics-type="external_link"
                     data-analytics-title={selectedEvent.link_name3 || "링크3"}
                     data-analytics-section="event_detail_footer"
                   >
-                    <i className="ri-external-link-line footer-link-icon"></i>
-                    <span className="footer-link-text">
+                    <i className="ri-external-link-line EDM-footerLinkIcon"></i>
+                    <span className="EDM-footerLinkText">
                       {selectedEvent.link_name3 || "링크3"}
                     </span>
                   </a>
@@ -1731,33 +1629,18 @@ export default function EventDetailModal({
                       e.stopPropagation();
                       setActiveEditField('links');
                     }}
-                    className="edm-edit-trigger-btn"
-                    style={{
-                      background: 'rgba(59, 130, 246, 0.2)',
-                      color: '#3b82f6',
-                      border: '1px solid #3b82f6',
-                      borderRadius: !selectedEvent.link1 ? '4px' : '50%',
-                      width: !selectedEvent.link1 ? 'auto' : '24px',
-                      height: '24px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      cursor: 'pointer',
-                      flexShrink: 0,
-                      marginLeft: '-5px',
-                      padding: !selectedEvent.link1 ? '0 8px' : '0'
-                    }}
+                    className={`EDM-editTrigger ${!selectedEvent.link1 ? 'is-pill' : ''}`}
                     title="링크 수정"
                   >
                     {!selectedEvent.link1 && (
-                      <span style={{ fontSize: '12px', marginRight: '4px', fontWeight: 600 }}>링크 추가</span>
+                      <span className="EDM-addLabel">링크 추가</span>
                     )}
-                    <i className="ri-pencil-line" style={{ fontSize: '14px' }}></i>
+                    <i className="ri-pencil-line"></i>
                   </button>
                 )}
               </div>
 
-              <div className="footer-actions-container">
+              <div className="EDM-actionGroup">
                 {!isSelectionMode && (
                   <button
                     onClick={async (e) => {
@@ -1801,14 +1684,14 @@ export default function EventDetailModal({
                         }
                       }
                     }}
-                    className="action-button share"
+                    className="EDM-actionBtn is-share"
                     title="공유하기"
                     data-analytics-id={selectedEvent.id}
                     data-analytics-type="share"
                     data-analytics-title={selectedEvent.title}
                     data-analytics-section="event_detail_footer"
                   >
-                    <i className="ri-share-line action-icon"></i>
+                    <i className="ri-share-line EDM-actionIcon"></i>
                   </button>
                 )}
 
@@ -1817,26 +1700,16 @@ export default function EventDetailModal({
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      console.log('🔴 [EventDetailModal] Delete button CLICKED');
-                      console.log('   - isDeleting prop:', isDeleting);
-                      console.log('   - selectedEvent:', selectedEvent);
-                      if (isDeleting) {
-                        console.log('   - Delete blocked: isDeleting is TRUE');
-                        return;
-                      }
+                      if (isDeleting) return;
                       if (window.confirm('정말로 이 이벤트를 삭제하시겠습니까?')) {
-                        console.log('   - User confirmed delete. Calling _onDelete...');
                         _onDelete(selectedEvent, e);
-                      } else {
-                        console.log('   - User cancelled delete.');
                       }
                     }}
-                    className={`action-button delete ${isDeleting ? 'loading' : ''}`}
+                    className={`EDM-actionBtn is-delete ${isDeleting ? 'is-loading' : ''}`}
                     title="삭제하기"
-                    style={{ backgroundColor: '#ef4444', color: 'white', marginRight: '8px', opacity: isDeleting ? 0.7 : 1, cursor: isDeleting ? 'not-allowed' : 'pointer' }}
                     disabled={isDeleting}
                   >
-                    {isDeleting ? <i className="ri-loader-4-line action-icon spin-animation"></i> : <i className="ri-delete-bin-line action-icon"></i>}
+                    {isDeleting ? <i className="ri-loader-4-line EDM-actionIcon is-spin"></i> : <i className="ri-delete-bin-line EDM-actionIcon"></i>}
                   </button>
                 )}
 
@@ -1875,60 +1748,12 @@ export default function EventDetailModal({
                         setIsSelectionMode(true);
                       }
                     }}
-                    className={`action-button ${isSelectionMode ? 'save active-mode' : 'edit'}`}
+                    className={`EDM-actionBtn ${isSelectionMode ? 'is-save is-active' : 'is-edit'}`}
                     title={isSelectionMode ? "변경사항 저장" : "이벤트 수정"}
-                    style={isSelectionMode ? { backgroundColor: '#3b82f6', color: 'white' } : {}}
                   >
-                    <i className={`ri-${isSelectionMode ? 'save-3-line' : 'edit-line'} action-icon`}></i>
+                    <i className={`ri-${isSelectionMode ? 'save-3-line' : 'edit-line'} EDM-actionIcon`}></i>
                   </button>
                 )}
-
-                <button
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    console.log('🔴 [EventDetailModal] Bottom Delete button CLICKED');
-                    console.log('   - isDeleting prop:', isDeleting);
-                    console.log('   - selectedEvent:', selectedEvent);
-                    if (isDeleting) {
-                      console.log('   - Delete blocked: isDeleting is TRUE');
-                      return;
-                    }
-                    if (window.confirm('정말로 이 이벤트를 삭제하시겠습니까?')) {
-                      console.log('   - User confirmed delete. Calling _onDelete...');
-                      try {
-                        setIsInternalDeleting(true);
-                        setInternalProgress(10);
-
-                        // Start fake progress simulation
-                        const timer = setInterval(() => {
-                          setInternalProgress(prev => {
-                            if (prev >= 90) return prev;
-                            return prev + 10;
-                          });
-                        }, 200);
-
-                        await _onDelete(selectedEvent, e);
-
-                        clearInterval(timer);
-                        setInternalProgress(100);
-                      } catch (error) {
-                        console.error("Delete failed:", error);
-                        setInternalProgress(0);
-                      } finally {
-                        // Keep 'true' briefly to show 100%? No, modal will close.
-                        setIsInternalDeleting(false);
-                      }
-                    } else {
-                      console.log('   - User cancelled delete.');
-                    }
-                  }}
-                  className={`action-button delete ${isDeleting || isInternalDeleting ? 'loading' : ''}`}
-                  title="이벤트 삭제"
-                  style={{ backgroundColor: '#ef4444', color: 'white', marginRight: '8px', opacity: isDeleting || isInternalDeleting ? 0.7 : 1, cursor: isDeleting || isInternalDeleting ? 'not-allowed' : 'pointer' }}
-                  disabled={isDeleting || isInternalDeleting}
-                >
-                  {isDeleting || isInternalDeleting ? <i className="ri-loader-4-line action-icon spin-animation"></i> : <i className="ri-delete-bin-line action-icon"></i>}
-                </button>
 
                 <button
                   onClick={(e) => {
@@ -1936,26 +1761,24 @@ export default function EventDetailModal({
                     e.stopPropagation();
                     onClose();
                   }}
-                  className="close-button"
+                  className="EDM-closeBtn"
                   title="닫기"
                 >
-                  <i className="ri-close-line action-icon"></i>
+                  <i className="ri-close-line EDM-actionIcon"></i>
                 </button>
               </div>
             </div>
           </div>
           <GlobalLoadingOverlay
-            isLoading={isDeleting || isInternalDeleting || isSaving}
-            message={(isDeleting || isInternalDeleting) ? "삭제 중입니다..." : "저장 중입니다..."}
-            progress={(isDeleting || isInternalDeleting) ? (deleteProgress || internalProgress) : undefined}
+            isLoading={isDeleting || isSaving}
+            message={isDeleting ? "삭제 중입니다..." : "저장 중입니다..."}
+            progress={isDeleting ? deleteProgress : undefined}
           />
-        </div >
-        , document.body
-      )
-      }
+        </div>,
+        document.body
+      )}
 
-      {
-        showFullscreenImage &&
+      {showFullscreenImage &&
         (selectedEvent.image_medium ||
           selectedEvent.image ||
           getEventThumbnail(
@@ -1965,22 +1788,14 @@ export default function EventDetailModal({
           )) && (
           createPortal(
             <div
-              className="fullscreen-overlay"
+              className="EDM-fullscreenOverlay"
               onClick={() => setShowFullscreenImage(false)}
-              onTouchStartCapture={(e) => e.stopPropagation()}
-              onTouchMoveCapture={(e) => {
-                if (e.target === e.currentTarget) {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }
-              }}
-              onTouchEndCapture={(e) => e.stopPropagation()}
             >
               <button
                 onClick={() => setShowFullscreenImage(false)}
-                className="fullscreen-close-button"
+                className="EDM-fullscreenCloseBtn"
               >
-                <i className="ri-close-line action-icon"></i>
+                <i className="ri-close-line"></i>
               </button>
               <img
                 src={
@@ -1994,12 +1809,13 @@ export default function EventDetailModal({
                 }
                 alt={selectedEvent.title}
                 loading="lazy"
-                className="fullscreen-image"
+                className="EDM-fullscreenImage"
                 onClick={(e) => e.stopPropagation()}
               />
-            </div>, document.body
-          ))
-      }
+            </div>,
+            document.body
+          )
+        )}
       {/* Venue Select Modal */}
       <VenueSelectModal
         isOpen={showVenueSelect}
@@ -2009,316 +1825,200 @@ export default function EventDetailModal({
       />
 
       {/* Bottom Sheets Portal */}
-      {
-        activeEditField && createPortal(
-          <div className="bottom-sheet-portal">
-            <div
-              className="bottom-sheet-backdrop"
-              onClick={() => setActiveEditField(null)}
-            />
-            <div className="bottom-sheet-content">
-              <div className="bottom-sheet-handle"></div>
-              <h3 className="bottom-sheet-header">
-                {activeEditField === 'title' && <><i className="ri-text"></i>제목 수정</>}
-                {activeEditField === 'genre' && <><i className="ri-price-tag-3-line"></i>장르 수정</>}
-                {activeEditField === 'description' && <><i className="ri-file-text-line"></i>오픈톡방/내용 수정</>}
-                {activeEditField === 'links' && <><i className="ri-link"></i>링크 수정</>}
-                {activeEditField === 'date' && <><i className="ri-calendar-check-line"></i>날짜 선택</>}
-              </h3>
+      {activeEditField && createPortal(
+        <div className="EDM-bottomSheetPortal">
+          <div
+            className="EDM-bottomSheetBackdrop"
+            onClick={() => setActiveEditField(null)}
+          />
+          <div className="EDM-bottomSheetContent">
+            <div className="EDM-bottomSheetHandle"></div>
+            <h3 className="EDM-bottomSheetHeader">
+              {activeEditField === 'title' && <><i className="ri-text"></i>제목 수정</>}
+              {activeEditField === 'genre' && <><i className="ri-price-tag-3-line"></i>장르 수정</>}
+              {activeEditField === 'description' && <><i className="ri-file-text-line"></i>오픈톡방/내용 수정</>}
+              {activeEditField === 'links' && <><i className="ri-link"></i>링크 수정</>}
+              {activeEditField === 'date' && <><i className="ri-calendar-check-line"></i>날짜 선택</>}
+            </h3>
 
-              <div className="bottom-sheet-body">
-                <div className="bottom-sheet-input-group">
-                  {activeEditField === 'date' ? (
-                    <div className="flex flex-col items-center pb-8">
-                      <div className="date-mode-toggle" style={{ marginBottom: '1rem', display: 'flex', gap: '8px' }}>
-                        <button
-                          onClick={() => {
-                            console.log('[Date Mode] Switching to single mode');
-                            setDateMode('single');
-                            setEditValue(''); // Clear edit value when switching modes
-                          }}
-                          className={`date-mode-btn ${dateMode === 'single' ? 'active' : ''}`}
-                          style={{
-                            padding: '8px 16px',
-                            borderRadius: '8px',
-                            background: dateMode === 'single' ? '#3b82f6' : 'rgba(255,255,255,0.05)',
-                            border: dateMode === 'single' ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
-                            color: 'white',
-                            cursor: 'pointer',
-                            fontWeight: 600
-                          }}
-                        >
-                          하루
-                        </button>
-                        <button
-                          onClick={() => {
-                            console.log('[Date Mode] Switching to dates mode');
-                            setDateMode('dates');
-                            setEditValue(''); // Clear edit value when switching modes
-                          }}
-                          className={`date-mode-btn ${dateMode === 'dates' ? 'active' : ''}`}
-                          style={{
-                            padding: '8px 16px',
-                            borderRadius: '8px',
-                            background: dateMode === 'dates' ? '#3b82f6' : 'rgba(255,255,255,0.05)',
-                            border: dateMode === 'dates' ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
-                            color: 'white',
-                            cursor: 'pointer',
-                            fontWeight: 600
-                          }}
-                        >
-                          개별
-                        </button>
-                      </div>
-                      {/* Selected Dates Display */}
-                      {dateMode === 'dates' && (
-                        <div className="selected-dates-container">
-                          <div className="selected-dates-list">
-                            {editValue.split(',').filter(Boolean).length > 0 ? (
-                              editValue.split(',').filter(Boolean).map(d => (
-                                <div key={d} className="selected-date-chip">
-                                  <span>{d.substring(5)}</span>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      const currentDates = editValue.split(',').filter(Boolean);
-                                      const newDates = currentDates.filter(ed => ed !== d);
-                                      setEditValue(newDates.join(','));
-                                    }}
-                                    className="remove-date-btn"
-                                  >
-                                    <i className="ri-close-line"></i>
-                                  </button>
-                                </div>
-                              ))
-                            ) : (
-                              <span className="no-dates-text">날짜를 선택해주세요</span>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                      <div className="calendar-wrapper" style={{ minHeight: '340px' }}>
-                        <DatePicker
-                          selected={dateMode === 'single' && editValue ? new Date(editValue) : null}
-                          onChange={(d: Date | null) => {
-                            if (!d) return;
-                            // Use local date to avoid timezone offset
-                            const year = d.getFullYear();
-                            const month = String(d.getMonth() + 1).padStart(2, '0');
-                            const day = String(d.getDate()).padStart(2, '0');
-                            const dateStr = `${year}-${month}-${day}`;
-                            console.log('[DatePicker] Date selected:', dateStr, 'Mode:', dateMode);
-                            if (dateMode === 'single') {
-                              setEditValue(dateStr);
-                            } else {
-                              // Handle multiple dates
-                              const currentDates = editValue.split(',').filter(Boolean);
-                              const newDates = currentDates.includes(dateStr)
-                                ? currentDates.filter(ed => ed !== dateStr)
-                                : [...currentDates, dateStr].sort();
-                              setEditValue(newDates.join(','));
-                            }
-                          }}
-                          highlightDates={dateMode === 'dates' ? editValue.split(',').filter(Boolean).map(d => new Date(d)) : []}
-                          locale={ko}
-                          inline
-                          monthsShown={1}
-                          shouldCloseOnSelect={dateMode === 'single'}
-                        />
-                      </div>
+            <div className="EDM-bottomSheetBody">
+              <div className="EDM-bottomSheetInputGroup">
+                {activeEditField === 'date' ? (
+                  <div className="EDM-dateEditContainer">
+                    <div className="EDM-dateModeToggle">
+                      <button
+                        onClick={() => {
+                          setDateMode('single');
+                          setEditValue('');
+                        }}
+                        className={`EDM-dateModeBtn ${dateMode === 'single' ? 'is-active' : ''}`}
+                      >
+                        하루
+                      </button>
+                      <button
+                        onClick={() => {
+                          setDateMode('dates');
+                          setEditValue('');
+                        }}
+                        className={`EDM-dateModeBtn ${dateMode === 'dates' ? 'is-active' : ''}`}
+                      >
+                        개별
+                      </button>
                     </div>
-                  ) : activeEditField === 'links' ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                        <label style={{ fontSize: '0.9rem', fontWeight: 600, color: '#e2e8f0' }}>링크</label>
-                        <input
-                          type="text"
-                          className="bottom-sheet-input"
-                          value={linkEditValues.link_name1}
-                          onChange={(e) => setLinkEditValues({ ...linkEditValues, link_name1: e.target.value })}
-                          placeholder="링크 이름 (예: 신청하기)"
-                          style={{ minHeight: '40px', marginBottom: '0.25rem' }}
-                        />
-                        <input
-                          type="text"
-                          className="bottom-sheet-input"
-                          value={linkEditValues.link1}
-                          onChange={(e) => setLinkEditValues({ ...linkEditValues, link1: e.target.value })}
-                          placeholder="URL (https://...)"
-                          style={{ minHeight: '40px' }}
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      {activeEditField === 'genre' ? (
-                        <div className="genre-edit-container">
-                          {/* 1. Category Selection */}
-                          <div className="genre-category-toggle" style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
-                            <button
-                              onClick={() => {
-                                setEditCategory('event');
-                                setEditValue(''); // Reset genre when switching category
-                              }}
-                              className={`category-toggle-btn ${editCategory === 'event' ? 'active' : ''}`}
-                              style={{
-                                flex: 1,
-                                padding: '12px',
-                                background: editCategory === 'event' ? '#3b82f6' : 'rgba(255,255,255,0.05)',
-                                border: editCategory === 'event' ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
-                                color: 'white',
-                                borderRadius: '8px',
-                                cursor: 'pointer',
-                                fontWeight: 600
-                              }}
-                            >
-                              행사
-                            </button>
-                            <button
-                              onClick={() => {
-                                setEditCategory('class');
-                                setEditValue(''); // Reset genre when switching category
-                              }}
-                              className={`category-toggle-btn ${editCategory === 'class' ? 'active' : ''}`}
-                              style={{
-                                flex: 1,
-                                padding: '12px',
-                                background: editCategory === 'class' ? '#3b82f6' : 'rgba(255,255,255,0.05)',
-                                border: editCategory === 'class' ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
-                                color: 'white',
-                                borderRadius: '8px',
-                                cursor: 'pointer',
-                                fontWeight: 600
-                              }}
-                            >
-                              <span className="manual-label-wrapper">
-                                <span className="translated-part">Class</span>
-                                <span className="fixed-part ko" translate="no">강습</span>
-                                <span className="fixed-part en" translate="no">Class</span>
-                              </span>
-                            </button>
-                            <button
-                              onClick={() => {
-                                setEditCategory('club');
-                                setEditValue(''); // Reset genre when switching category
-                              }}
-                              className={`category-toggle-btn ${editCategory === 'club' ? 'active' : ''}`}
-                              style={{
-                                flex: 1,
-                                padding: '12px',
-                                background: editCategory === 'club' ? '#10b981' : 'rgba(255,255,255,0.05)',
-                                border: editCategory === 'club' ? '1px solid #10b981' : '1px solid rgba(255,255,255,0.1)',
-                                color: 'white',
-                                borderRadius: '8px',
-                                cursor: 'pointer',
-                                fontWeight: 600
-                              }}
-                            >
-                              동호회
-                            </button>
-                          </div>
 
-                          {/* 2. Genre Chips */}
-                          <div className="genre-chips-container" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
-                            {/* Fixed Club Lesson Option removed from separate button and added to list below */}
-
-                            {uniqueGenres
-                              .map(genre => (
+                    {dateMode === 'dates' && (
+                      <div className="EDM-selectedDatesContainer">
+                        <div className="EDM-selectedDatesList">
+                          {editValue.split(',').filter(Boolean).length > 0 ? (
+                            editValue.split(',').filter(Boolean).map(d => (
+                              <div key={d} className="EDM-dateChip">
+                                <span>{d.substring(5)}</span>
                                 <button
-                                  key={genre}
                                   onClick={(e) => {
-                                    e.preventDefault();
                                     e.stopPropagation();
-                                    console.log(`[EventDetailModal] Genre Click: ${genre}`);
-
-                                    const current = editValue ? editValue.split(',').map(s => s.trim()).filter(Boolean) : [];
-
-                                    // LOGIC:
-                                    // 1. Class/Club: Single Selection Only
-                                    // 2. Event: Mutual Exclusivity (Party vs Competition)
-
-                                    let newGenres: string[];
-
-                                    if (editCategory === 'class' || editCategory === 'club') {
-                                      // FORCE SINGLE SELECT for Class/Club
-                                      // If clicking the already selected one, allow toggle off (or keep? usually toggle off is fine)
-                                      // User said "Class is not multi-selectable".
-                                      if (current.includes(genre)) {
-                                        newGenres = []; // Toggle off
-                                      } else {
-                                        newGenres = [genre]; // Replace
-                                      }
-                                    } else {
-                                      // EVENT logic (Multi-select with constraints)
-                                      if (current.includes(genre)) {
-                                        newGenres = current.filter(g => g !== genre);
-                                      } else {
-                                        let temp = [...current];
-                                        // Mutual Exclusivity: '파티' vs '대회'
-                                        if (genre === '파티') {
-                                          temp = temp.filter(g => g !== '대회');
-                                        } else if (genre === '대회') {
-                                          temp = temp.filter(g => g !== '파티');
-                                        }
-                                        newGenres = [...temp, genre];
-                                      }
-                                    }
-
-                                    const newValue = newGenres.join(',');
-                                    console.log(`[EventDetailModal] New Value: ${newValue}`);
-
-                                    setEditValue(newValue);
-                                    // setUseDirectInput(false); // Removed
+                                    const currentDates = editValue.split(',').filter(Boolean);
+                                    const newDates = currentDates.filter(ed => ed !== d);
+                                    setEditValue(newDates.join(','));
                                   }}
-                                  className={`genre-chip ${editValue.split(',').map(s => s.trim()).includes(genre) ? 'active' : ''}`}
-                                  style={{
-                                    padding: '8px 16px',
-                                    borderRadius: '9999px',
-                                    background: editValue.split(',').map(s => s.trim()).includes(genre) ? '#3b82f6' : 'rgba(255,255,255,0.05)',
-                                    border: editValue.split(',').map(s => s.trim()).includes(genre) ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
-                                    color: 'white',
-                                    cursor: 'pointer',
-                                    fontSize: '14px'
-                                  }}
+                                  className="EDM-dateChipRemove"
                                 >
-                                  {genre}
+                                  <i className="ri-close-line"></i>
                                 </button>
-                              ))}
-                            {/* Direct Input Removed */}
-                          </div>
-
-                          {/* 3. Direct Input Field (Conditional) - REMOVED to avoid confusion */}
+                              </div>
+                            ))
+                          ) : (
+                            <span className="EDM-emptyDatesHint">날짜를 선택해주세요</span>
+                          )}
                         </div>
-                      ) : (
-                        // Normal text input for other fields
-                        <textarea
-                          className="bottom-sheet-input"
+                      </div>
+                    )}
+                    <div className="EDM-calendarWrapper">
+                      <DatePicker
+                        selected={dateMode === 'single' && editValue ? new Date(editValue) : null}
+                        onChange={(d: Date | null) => {
+                          if (!d) return;
+                          const year = d.getFullYear();
+                          const month = String(d.getMonth() + 1).padStart(2, '0');
+                          const day = String(d.getDate()).padStart(2, '0');
+                          const dateStr = `${year}-${month}-${day}`;
+                          if (dateMode === 'single') {
+                            setEditValue(dateStr);
+                          } else {
+                            const currentDates = editValue.split(',').filter(Boolean);
+                            const newDates = currentDates.includes(dateStr)
+                              ? currentDates.filter(ed => ed !== dateStr)
+                              : [...currentDates, dateStr].sort();
+                            setEditValue(newDates.join(','));
+                          }
+                        }}
+                        highlightDates={dateMode === 'dates' ? editValue.split(',').filter(Boolean).map(d => new Date(d)) : []}
+                        locale={ko}
+                        inline
+                        monthsShown={1}
+                        shouldCloseOnSelect={dateMode === 'single'}
+                      />
+                    </div>
+                  </div>
+                ) : activeEditField === 'links' ? (
+                  <div className="EDM-linksEditContainer">
+                    <div className="EDM-inputGroup-v">
+                      <label className="EDM-inputLabel">링크</label>
+                      <input
+                        type="text"
+                        className="EDM-bottomSheetInput"
+                        value={linkEditValues.link_name1}
+                        onChange={(e) => setLinkEditValues({ ...linkEditValues, link_name1: e.target.value })}
+                        placeholder="링크 이름 (예: 신청하기)"
+                      />
+                      <input
+                        type="text"
+                        className="EDM-bottomSheetInput"
+                        value={linkEditValues.link1}
+                        onChange={(e) => setLinkEditValues({ ...linkEditValues, link1: e.target.value })}
+                        placeholder="URL (https://...)"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {activeEditField === 'genre' ? (
+                      <div className="EDM-genreEditContainer">
+                        <div className="EDM-categoryToggle">
+                          <button
+                            onClick={() => {
+                              setEditCategory('event');
+                              setEditValue('');
+                            }}
+                            className={`EDM-categoryToggleBtn ${editCategory === 'event' ? 'is-active' : ''}`}
+                          >
+                            이벤트
+                          </button>
+                          <button
+                            onClick={() => {
+                              setEditCategory('class');
+                              setEditValue('');
+                            }}
+                            className={`EDM-categoryToggleBtn ${editCategory === 'class' ? 'is-active' : ''}`}
+                          >
+                            강습
+                          </button>
+                        </div>
+
+                        <div className="EDM-genreChipList">
+                          {uniqueGenres.map((genre: string) => (
+                            <button
+                              key={genre}
+                              onClick={() => setEditValue(genre)}
+                              className={`EDM-genreChip ${editValue === genre ? 'is-active' : ''}`}
+                            >
+                              {genre}
+                            </button>
+                          ))}
+                        </div>
+                        <input
+                          type="text"
+                          className="EDM-bottomSheetInput"
                           value={editValue}
                           onChange={(e) => setEditValue(e.target.value)}
-                          placeholder={activeEditField === 'title' ? "행사 제목을 입력하세요" : "내용을 입력하세요"}
-                          rows={activeEditField === 'title' ? 3 : 8}
-                          style={{ resize: 'none', minHeight: activeEditField === 'title' ? '80px' : '200px' }}
-                          autoFocus
+                          placeholder="또는 직접 입력"
                         />
-                      )}
-                    </>
-                  )}
-                </div>
-                <div className="bottom-sheet-actions">
-                  <button
-                    onClick={handleSaveField}
-                    className="bottom-sheet-button"
-                    disabled={isSaving}
-                  >
-                    {isSaving ? '저장 중...' : '저장'}
-                  </button>
-                </div>
+                      </div>
+                    ) : (
+                      <textarea
+                        className="EDM-bottomSheetTextarea"
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        placeholder={activeEditField === 'title' ? "행사 제목을 입력하세요" : "내용을 입력하세요"}
+                        rows={activeEditField === 'title' ? 3 : 8}
+                        autoFocus
+                      />
+                    )}
+                  </>
+                )}
               </div>
             </div>
-          </div >,
-          document.body
-        )
-      }
+
+            <div className="EDM-bottomSheetFooter">
+              <button
+                onClick={() => setActiveEditField(null)}
+                className="EDM-btn-cancel"
+              >
+                취소
+              </button>
+              <button
+                onClick={() => {
+                  handleSaveField();
+                  setActiveEditField(null);
+                }}
+                className="EDM-btn-confirm"
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
       <ImageCropModal
         isOpen={isCropModalOpen}
         imageUrl={tempImageSrc}

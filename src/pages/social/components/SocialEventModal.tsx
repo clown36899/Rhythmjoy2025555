@@ -4,7 +4,8 @@ import { resizeImage } from '../../../utils/imageResize';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useModal } from '../../../hooks/useModal';
 import { useModalHistory } from '../../../hooks/useModalHistory';
-import './SocialEventModal.css';
+import VenueSelectModal from '../../v2/components/VenueSelectModal';
+import '../../../../styles/domains/events.css';
 
 interface SocialEventModalProps {
   onClose: () => void;
@@ -98,153 +99,153 @@ export default function SocialEventModal({ onClose, onEventCreated, preselectedD
 
   return (
     <>
-      <div className="sem-modal-overlay" onClick={onClose}>
-        <div className="sem-modal-container" onClick={(e) => e.stopPropagation()}>
+      <div className="SocialEventModal" onClick={onClose}>
+        <div className="SEM-container" onClick={(e) => e.stopPropagation()}>
           {!user ? (
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '2rem',
-              textAlign: 'center',
-              height: '100%',
-              backgroundColor: 'rgba(30, 41, 59, 1)', // Background matching the theme
-              borderRadius: 'inherit'
-            }}>
-              <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white', marginBottom: '1rem' }}>로그인 필요</h2>
-              <p style={{ color: '#cbd5e1', marginBottom: '1.5rem', lineHeight: '1.5' }}>
+            <div className="SEM-loginPrompt">
+              <h2 className="SEM-title">로그인 필요</h2>
+              <p className="SEM-description">
                 일정을 등록하려면 로그인이 필요합니다.<br />
                 간편하게 로그인하고 계속하세요!
               </p>
-              <button
-                onClick={handleLogin}
-                style={{
-                  width: '100%',
-                  padding: '1rem',
-                  background: '#FEE500',
-                  color: '#000000',
-                  border: 'none',
-                  borderRadius: '0.5rem',
-                  fontSize: '1rem',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                  marginBottom: '1rem'
-                }}
-              >
-                <i className="ri-kakao-talk-fill" style={{ fontSize: '1.5rem' }}></i>
+              <button onClick={handleLogin} className="SEM-btn-kakao">
+                <i className="ri-kakao-talk-fill"></i>
                 카카오로 로그인
               </button>
-              <button
-                onClick={onClose}
-                style={{
-                  width: '100%',
-                  padding: '0.75rem',
-                  background: 'transparent',
-                  color: '#9ca3af',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  borderRadius: '0.5rem',
-                  cursor: 'pointer'
-                }}
-              >
-                취소
+              <button onClick={onClose} className="SEM-btn-cancel">
+                닫기
               </button>
             </div>
           ) : (
-            <form onSubmit={handleSubmit} className="sem-modal-form">
-              <h2 className="sem-modal-title">정기 스케줄 등록</h2>
+            <form onSubmit={handleSubmit} className="SEM-form">
+              <h2 className="SEM-title">요일별 스케줄 등록</h2>
 
-              <input type="text" placeholder="제목 (동호회/모임명) *" value={title} onChange={(e) => setTitle(e.target.value)} required className="sem-form-input" />
-
-              <select
-                value={dayOfWeek}
-                onChange={(e) => setDayOfWeek(Number(e.target.value))}
-                required
-                className="sem-form-select"
-                disabled={preselectedDay !== undefined}
-              >
-                <option value="" disabled>요일 선택 *</option>
-                <option value="1">월요일</option>
-                <option value="2">화요일</option>
-                <option value="3">수요일</option>
-                <option value="4">목요일</option>
-                <option value="5">금요일</option>
-                <option value="6">토요일</option>
-                <option value="0">일요일</option>
-              </select>
-
-              {/* Venue Selection Button */}
-              <button
-                type="button"
-                onClick={() => venueSelectModal.open({
-                  onSelect: handleVenueSelect,
-                  onManualInput: (venueName: string) => {
-                    setVenueId(null);
-                    setPlaceName(venueName);
-                    setAddress('');
-                  }
-                })}
-                className="sem-form-input"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  cursor: 'pointer',
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)'
-                }}
-              >
-                <span style={{ color: placeName ? '#fff' : '#888' }}>
-                  {placeName || '장소 선택 *'}
-                </span>
-                <i className="ri-map-pin-line" style={{ fontSize: '1.2rem', color: '#3b82f6' }}></i>
-              </button>
-
-              {address && (
-                <div style={{ fontSize: '0.85rem', color: '#9ca3af', marginTop: '-0.5rem', paddingLeft: '0.5rem' }}>
-                  {address}
-                </div>
-              )}
-
-              <select value={category} onChange={(e) => setCategory(e.target.value as 'club' | 'swing-bar' | '')} className="sem-form-select">
-                <option value="">카테고리 선택 (선택사항)</option>
-                <option value="club">클럽</option>
-                <option value="swing-bar">스윙바</option>
-              </select>
-
-              <textarea placeholder="간단한 설명" value={description} onChange={(e) => setDescription(e.target.value)} className="sem-form-textarea" rows={2}></textarea>
-
-              <input type="text" placeholder="문의 연락처" value={inquiryContact} onChange={(e) => setInquiryContact(e.target.value)} className="sem-form-input" />
-
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
+              <div className="SEM-formGroup">
+                <label className="SEM-label">제목 (동호회/모임명) *</label>
                 <input
                   type="text"
-                  placeholder="링크 이름 (예: 신청하기)"
-                  value={linkName}
-                  onChange={(e) => setLinkName(e.target.value)}
-                  className="sem-form-input"
-                  style={{ flex: 1 }}
-                />
-                <input
-                  type="text"
-                  placeholder="링크 URL (https://...)"
-                  value={linkUrl}
-                  onChange={(e) => setLinkUrl(e.target.value)}
-                  className="sem-form-input"
-                  style={{ flex: 2 }}
+                  placeholder="예: 강남 텐덤 정모"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  required
+                  className="SEM-input"
                 />
               </div>
 
+              <div className="SEM-formGroup">
+                <label className="SEM-label">요일 선택 *</label>
+                <select
+                  value={dayOfWeek}
+                  onChange={(e) => setDayOfWeek(e.target.value === '' ? '' : Number(e.target.value))}
+                  required
+                  className="SEM-select"
+                  disabled={preselectedDay !== undefined}
+                >
+                  <option value="">요일 선택 *</option>
+                  <option value="1">월요일</option>
+                  <option value="2">화요일</option>
+                  <option value="3">수요일</option>
+                  <option value="4">목요일</option>
+                  <option value="5">금요일</option>
+                  <option value="6">토요일</option>
+                  <option value="0">일요일</option>
+                </select>
+              </div>
 
+              <div className="SEM-formGroup">
+                <label className="SEM-label">장소 *</label>
+                <div className="SEM-inputGroup">
+                  <input
+                    type="text"
+                    value={placeName}
+                    readOnly
+                    placeholder="장소 선택 *"
+                    className="SEM-input"
+                    onClick={() => venueSelectModal.open({
+                      onSelect: handleVenueSelect,
+                      onManualInput: (venueName: string) => {
+                        setVenueId(null);
+                        setPlaceName(venueName);
+                        setAddress('');
+                      }
+                    })}
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => venueSelectModal.open({
+                      onSelect: handleVenueSelect,
+                      onManualInput: (venueName: string) => {
+                        setVenueId(null);
+                        setPlaceName(venueName);
+                        setAddress('');
+                      }
+                    })}
+                    className="SEM-btn-search"
+                  >
+                    <i className="ri-map-pin-line"></i>
+                  </button>
+                </div>
+                {address && <div className="SEM-infoText-sm">{address}</div>}
+              </div>
 
-              <div style={{ marginBottom: '10px' }}>
-                <label className="sem-form-label" style={{ display: 'block', marginBottom: '5px', fontSize: '0.9rem', color: '#ccc' }}>
-                  대표 이미지 (선택)
-                </label>
+              <div className="SEM-formGroup">
+                <label className="SEM-label">카테고리</label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value as 'club' | 'swing-bar' | '')}
+                  className="SEM-select"
+                >
+                  <option value="">카테고리 선택 (선택사항)</option>
+                  <option value="club">클럽</option>
+                  <option value="swing-bar">스윙바</option>
+                </select>
+              </div>
+
+              <div className="SEM-formGroup">
+                <label className="SEM-label">간단한 설명</label>
+                <textarea
+                  placeholder="설명을 입력하세요"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="SEM-textarea"
+                  rows={2}
+                />
+              </div>
+
+              <div className="SEM-formGroup">
+                <label className="SEM-label">문의 연락처</label>
+                <input
+                  type="text"
+                  placeholder="연락처 또는 카톡ID"
+                  value={inquiryContact}
+                  onChange={(e) => setInquiryContact(e.target.value)}
+                  className="SEM-input"
+                />
+              </div>
+
+              <div className="SEM-formGroup">
+                <label className="SEM-label">관련 링크</label>
+                <div className="SEM-inputGroup">
+                  <input
+                    type="text"
+                    placeholder="링크 이름 (예: 신청하기)"
+                    value={linkName}
+                    onChange={(e) => setLinkName(e.target.value)}
+                    className="SEM-input"
+                  />
+                  <input
+                    type="text"
+                    placeholder="URL (https://...)"
+                    value={linkUrl}
+                    onChange={(e) => setLinkUrl(e.target.value)}
+                    className="SEM-input"
+                  />
+                </div>
+              </div>
+
+              <div className="SEM-formGroup">
+                <label className="SEM-label">대표 이미지 (선택)</label>
                 <input
                   type="file"
                   accept="image/*"
@@ -254,7 +255,6 @@ export default function SocialEventModal({ onClose, onEventCreated, preselectedD
 
                     setImageUploading(true);
                     try {
-                      // Generate 2 sizes: Full (500px, Q:0.75) and Thumbnail (100px, Q:0.75)
                       const fullImage = await resizeImage(file, 500, 0.75, 'image.webp', 'width');
                       const thumbImage = await resizeImage(file, 100, 0.75, 'thumb.webp', 'min');
 
@@ -263,31 +263,10 @@ export default function SocialEventModal({ onClose, onEventCreated, preselectedD
                       const fileName = `${timestamp}-${randomStr}.webp`;
                       const basePath = `social`;
 
-                      // Upload Full
-                      const { error: fullError } = await supabase.storage
-                        .from('images')
-                        .upload(`${basePath}/full/${fileName}`, fullImage, {
-                          contentType: 'image/webp',
-                          upsert: true
-                        });
+                      await supabase.storage.from('images').upload(`${basePath}/full/${fileName}`, fullImage, { contentType: 'image/webp', upsert: true });
+                      await supabase.storage.from('images').upload(`${basePath}/thumbnail/${fileName}`, thumbImage, { contentType: 'image/webp', upsert: true });
 
-                      if (fullError) throw fullError;
-
-                      // Upload Thumbnail (32px)
-                      const { error: thumbError } = await supabase.storage
-                        .from('images')
-                        .upload(`${basePath}/thumbnail/${fileName}`, thumbImage, {
-                          contentType: 'image/webp',
-                          upsert: true
-                        });
-
-                      if (thumbError) throw thumbError;
-
-                      // Get Public URL for Full image
-                      const { data: { publicUrl } } = supabase.storage
-                        .from('images')
-                        .getPublicUrl(`${basePath}/full/${fileName}`);
-
+                      const { data: { publicUrl } } = supabase.storage.from('images').getPublicUrl(`${basePath}/full/${fileName}`);
                       setImageUrl(publicUrl);
                     } catch (error) {
                       console.error('Image upload failed:', error);
@@ -299,23 +278,29 @@ export default function SocialEventModal({ onClose, onEventCreated, preselectedD
                   style={{ display: 'none' }}
                   id="social-image-upload"
                 />
-                <label htmlFor="social-image-upload" className="sem-form-input" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: imageUploading ? 'wait' : 'pointer', minHeight: '100px', border: '1px dashed #555', opacity: imageUploading ? 0.6 : 1 }}>
+                <label
+                  htmlFor="social-image-upload"
+                  className={`SEM-imageUploadLabel ${imageUploading ? 'is-uploading' : ''}`}
+                >
                   {imageUploading ? (
-                    <span style={{ color: '#3b82f6' }}>업로드 중...</span>
+                    <span className="SEM-infoText">업로드 중...</span>
                   ) : imageUrl ? (
-                    <img src={imageUrl} alt="Preview" style={{ maxHeight: '100px', objectFit: 'contain' }} />
+                    <img src={imageUrl} alt="Preview" className="SEM-imagePreview-rect" />
                   ) : (
-                    <span style={{ color: '#888' }}>+ 이미지 추가</span>
+                    <span className="SEM-infoText-gray">+ 이미지 추가</span>
                   )}
                 </label>
               </div>
 
+              {error && <p className="SEM-error">{error}</p>}
 
-              {error && <p className="sem-error-message">{error}</p>}
-
-              <div className="sem-button-group">
-                <button type="button" onClick={onClose} className="sem-cancel-button">취소</button>
-                <button type="submit" disabled={loading || imageUploading} className="sem-submit-button">
+              <div className="SEM-buttonGroup">
+                <button type="button" onClick={onClose} className="SEM-btn-cancel">취소</button>
+                <button
+                  type="submit"
+                  disabled={loading || imageUploading}
+                  className="SEM-btn-submit"
+                >
                   {imageUploading ? '이미지 업로드 중...' : loading ? '등록 중...' : '등록'}
                 </button>
               </div>
@@ -323,6 +308,11 @@ export default function SocialEventModal({ onClose, onEventCreated, preselectedD
           )}
         </div>
       </div>
+      <VenueSelectModal
+        isOpen={venueSelectModal.isOpen}
+        onClose={venueSelectModal.close}
+        onSelect={handleVenueSelect}
+      />
     </>
   );
 }
