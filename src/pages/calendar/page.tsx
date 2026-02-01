@@ -41,7 +41,7 @@ export default function CalendarPage() {
         if (category === 'social') return 'social-events';
         if (category === 'classes') return 'classes';
         if (category === 'all') return 'all';
-        return 'social-events'; // 기본값을 행사 탭으로 변경
+        return 'all'; // 기본값을 전체 탭으로 변경
     }, []);
 
     const [tabFilter, setTabFilter] = useState<'all' | 'social-events' | 'classes' | 'overseas'>(initialTabFilter as any);

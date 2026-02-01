@@ -196,7 +196,7 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                 icon="ri-fire-fill"
                 iconColor={showGlobal ? "#3b82f6" : "#f97316"}
                 count={showGlobal ? overseasEvents.length : domesticEvents.length}
-                viewAllUrl={!showGlobal ? "/calendar?category=social" : undefined}
+                viewAllUrl={!showGlobal ? "/calendar" : undefined}
                 viewAllLabel="달력보기"
                 genres={!showGlobal ? ['전체', ...allGenresStructured.event] : undefined}
                 selectedGenre={selectedEventGenre}
