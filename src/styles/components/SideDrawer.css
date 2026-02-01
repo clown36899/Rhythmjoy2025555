@@ -445,26 +445,33 @@
 
 /* PWA Section Styling */
 .drawer-pwa-section {
-    padding: 12px 16px;
-    background-color: rgba(0, 0, 0, 0.15);
+    padding: 20px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0) 100%);
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .drawer-pwa-container {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 16px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 16px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 /* Notification Card Design */
 .drawer-notification-card {
-    background-color: rgba(0, 0, 0, 0.2);
+    background-color: rgba(255, 255, 255, 0.03);
     border-radius: 12px;
-    margin: 8px 16px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    /* Subtle border */
+    border: 1px solid rgba(255, 255, 255, 0.05);
     overflow: hidden;
-    transition: all 0.2s ease;
+    transition: all 0.3s ease;
+}
+
+.drawer-notification-card:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
 }
 
 .card-header {
@@ -520,9 +527,14 @@
 }
 
 .switch-status {
-    font-size: 0.75rem;
-    font-weight: 600;
-    color: #71717a;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #60a5fa;
+    background: rgba(59, 130, 246, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
 }
 
 .master-toggle {
@@ -683,11 +695,22 @@
 }
 
 .pwa-guide-msg {
-    padding: 12px;
-    font-size: 0.8rem;
-    color: #ef4444;
-    text-align: center;
-    background-color: rgba(239, 68, 68, 0.1);
+    padding: 10px 16px;
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.4);
+    text-align: left;
+    background-color: rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.pwa-guide-msg::before {
+    content: '\eb26';
+    /* ri-information-line */
+    font-family: 'remixicon';
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.3);
 }
 
 .spin {

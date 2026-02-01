@@ -4,7 +4,7 @@
     -webkit-backdrop-filter: blur(20px);
     /* border-bottom: 1px solid rgba(255, 255, 255, 0.08); */
     position: fixed;
-    top: 89px;
+    top: calc(108px + env(safe-area-inset-top));
     left: 0;
     right: 0;
     z-index: 44;
