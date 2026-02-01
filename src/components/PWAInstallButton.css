@@ -12,6 +12,7 @@
     background-image: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.2) 100%);
 
     -webkit-appearance: none;
+    appearance: none;
     -webkit-tap-highlight-color: transparent;
 
     border: 1px solid rgba(59, 130, 246, 0.3);
@@ -228,9 +229,4 @@
     line-height: 1.5;
 }
 
-/* 다크 모드 */
-@media (prefers-color-scheme: dark) {
-    .pwa-install-button {
-        background: linear-gradient(135deg, #818cf8 0%, #a78bfa 100%);
-    }
-}
+/* 다크 모드 오버라이드 제거 - 브랜드 색상 유지를 위해 삭제됨 */
