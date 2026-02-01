@@ -1,0 +1,666 @@
+/* ==========================================================================
+   EventCalendar Scope (ECAL-)
+   ========================================================================== */
+@scope (.EventCalendar) {
+    /* EventCalendar.css - 이벤트 달력 전용 스타일 */
+
+    /* ===== CSS 변수 정의 ===== */
+    /* ===== 기본 리셋 및 유틸리티 ===== */
+    :scope {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ===== 컨테이너 클래스 ===== */
+    .ECAL-container {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        background-color: var(--calendar-bg);
+        border-radius: 0;
+        padding: 0;
+    }
+
+    .ECAL-wrapper {
+        width: 100%;
+        touch-action: pan-y;
+
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 5;
+        /* 글로벌 헤더보다 낮게 설정 */
+    }
+
+    /* ===== 달력 날짜 셀 특수 스타일 ===== */
+    .ECAL-date-number {
+        font-weight: 700;
+        z-index: 30;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+
+    .ECAL-date-number-fullscreen {
+        position: absolute;
+        top: 4px;
+        left: 4px;
+        z-index: 30;
+        font-weight: 700;
+        color: #d1d5dbcf;
+        /* Default text color for dark background */
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: baseline !important;
+        white-space: nowrap !important;
+        gap: 2px;
+    }
+
+    .ECAL-date-number-today {
+        opacity: 1;
+
+        /* Bold Badge Style for Today */
+        background-color: #3b82f6;
+        /* Red badge */
+        color: white;
+        border-radius: 4px;
+        padding: 2px 6px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+
+        font-size: 12px;
+        font-weight: 800;
+        width: auto;
+        min-width: 20px;
+        max-width: 100%;
+        white-space: nowrap;
+
+        /* Center text in badge */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+
+    /* Clean up previous Zebra styling */
+
+    /* Week Card Design Implementation */
+    .ECAL-grid-container {
+        display: grid;
+        border-radius: 0 0 0.9rem 0.9rem;
+        grid-template-columns: repeat(7, minmax(0, 1fr));
+        padding: 5px;
+        /* Week Separation: Gap between rows */
+        column-gap: 0;
+        row-gap: 6px;
+
+        border-top: none;
+        overflow: hidden;
+        padding-bottom: 6px;
+        /* Bottom padding for last row */
+        background-color: #000;
+        /* Gap color */
+    }
+
+    /* Individual Cell Styling for Card Look */
+    .ECAL-cell-fullscreen {
+        background-color: #1a1a1a;
+        /* Card Background */
+        border-bottom: 1px solid #2a2a2a;
+        /* Internal row separation? No, continuous */
+        border-right: 1px solid #2a2a2a;
+        /* Vertical dividers */
+    }
+
+    /* Remove bottom border for Card look consistency */
+    .ECAL-cell-fullscreen {
+        border-bottom: none;
+    }
+
+    /* First Column: Rounded Left */
+    .ECAL-cell-fullscreen:nth-child(7n+1) {
+        border-top-left-radius: 8px;
+        border-bottom-left-radius: 8px;
+        border-left: 1px solid #2a2a2a;
+        /* Left border */
+    }
+
+    /* Last Column: Rounded Right, No Right Border */
+    .ECAL-cell-fullscreen:nth-child(7n) {
+        border-top-right-radius: 8px;
+        border-bottom-right-radius: 8px;
+        border-right: 1px solid #2a2a2a;
+        /* Right border */
+    }
+
+    /* Remove default background from base if strictly enforcing card look */
+    .ECAL-cell-base {
+        background-color: transparent;
+    }
+
+
+
+
+    .ECAL-weekday-item {
+        position: relative;
+        text-align: center;
+        color: #c7c7c7;
+        /* gray-400 */
+        font-size: 0.875rem;
+        /* 14px */
+        padding-top: 0.5rem;
+        padding-bottom: 0.5rem;
+        /* Use solid border-right to match calendar-cell-fullscreen for perfect alignment */
+        /* border-right: 1px solid var(--calendar-vertical-border); */
+        /* Include border in width calculation to prevent misalignment */
+        box-sizing: border-box;
+    }
+
+    /* Gradient overlay on top of solid border for fade effect */
+    .ECAL-weekday-item::after {
+        content: '';
+        position: absolute;
+        right: 0;
+        top: 0;
+        width: 1px;
+        height: 100%;
+        background: linear-gradient(to top, var(--calendar-vertical-border) 0%, transparent 100%);
+        pointer-events: none;
+        z-index: 1;
+        /* Ensure gradient appears above border */
+    }
+
+    /* Remove border and gradient from last weekday item */
+    .ECAL-weekday-item:nth-child(7) {
+        border-right: none;
+    }
+
+    .ECAL-weekday-item:nth-child(7)::after {
+        display: none;
+    }
+
+    .ECAL-cell-base {
+        position: relative;
+        user-select: none;
+        transition: background-color 0.3s, color 0.3s, border-color 0.3s;
+        background-color: var(--calendar-bg-color, #000000);
+        /* Ensure cells have a background so gaps show as borders */
+    }
+
+
+
+    .ECAL-cell-hoverable:hover {
+        background-color: var(--bg-hover);
+        /* gray-700 */
+    }
+
+    .ECAL-cell-content {
+        width: 100%;
+        height: 100%;
+        cursor: pointer;
+        position: relative;
+        overflow: visible;
+        user-select: none;
+    }
+
+    .ECAL-cell-selected {
+        color: white;
+        z-index: 10;
+    }
+
+    .ECAL-cell-default {
+        color: #d1d5db;
+        /* gray-300 */
+    }
+
+    /* ===== Event Bar Styles (Month View) ===== */
+    .ECAL-event-bar {
+        position: absolute;
+        left: 0;
+        right: 0;
+        transition: all 0.2s;
+    }
+
+    .ECAL-event-bar-inner {
+        display: flex;
+        align-items: center;
+        padding-left: 6px;
+        padding-right: 6px;
+        overflow: hidden;
+        transition: all 0.2s;
+    }
+
+    .ECAL-event-bar-title {
+        font-size: 10px;
+        font-weight: 500;
+        color: white;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        line-height: inherit;
+    }
+
+    .ECAL-fullscreen-title {
+        font-size: clamp(0rem, 2.4vw, 0.9rem);
+        font-weight: 500;
+        color: white;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        line-clamp: 2;
+        word-break: break-word;
+        line-height: 1.2;
+        text-align: left;
+    }
+
+    /* Carousel Styles */
+    .ECAL-carousel-container {
+        flex: 1;
+        display: flex;
+        overflow-x: hidden;
+        /* Critical: Hide horizontal overflow from 300% track */
+        width: 100%;
+        /* Ensure container itself doesn't expand */
+        position: relative;
+    }
+
+    .ECAL-mode-fullscreen {
+        overflow-y: hidden;
+        /* Disable container scroll */
+        overflow-x: hidden;
+    }
+
+    .ECAL-mode-normal {
+        overflow: hidden;
+    }
+
+    .ECAL-carousel-track {
+        display: flex;
+        /* height: 100%; Removed to allow growth */
+        /* min-height: 100%; Removed to allow shrinking */
+        /* min-height: 100%; Removed to allow shrinking */
+        flex-shrink: 0;
+        /* Critical: Prevent track from shrinking to container width */
+        touch-action: pan-y;
+        height: inherit;
+        align-items: flex-start !important;
+        /* Force items to top and allow independent height */
+    }
+
+    .ECAL-month-slide {
+        padding-bottom: 0;
+        flex-shrink: 0;
+        position: relative;
+        /* background-color: #161616; */
+        position: relative;
+        /* min-height: 100%; Removed to fix dynamic height */
+        height: auto !important;
+        /* Force auto height */
+        min-height: 0 !important;
+        /* Prevent min-height inheritance */
+        /* Match container height */
+        /* overflow-y: auto; Removed for strict height */
+        /* -webkit-overflow-scrolling: touch; Removed */
+        touch-action: pan-y;
+        /* Explicitly allow vertical pan, let JS handle horizontal */
+    }
+
+    .full-calendar-container {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow-y: auto;
+        overflow-x: hidden;
+        background-color: #000000;
+        z-index: 5;
+        /* 글로벌 헤더(z-index: 1000)보다 낮게 설정하여 헤더 버튼 클릭 가능하도록 */
+        -webkit-overflow-scrolling: touch;
+    }
+
+
+    /* Multi-Day Titles Overlay */
+    .ECAL-overlay-container {
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        pointer-events: none;
+        display: grid;
+        grid-template-columns: repeat(7, 1fr);
+        grid-template-rows: repeat(6, 1fr);
+    }
+
+    .ECAL-overlay-item {
+        display: flex;
+        align-items: center;
+    }
+
+    .ECAL-overlay-title {
+        font-size: 10px;
+        font-weight: 500;
+        color: white;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* Year View Styles */
+    .ECAL-year-view-container {
+        padding: 0.5rem;
+    }
+
+    .ECAL-year-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 0.5rem;
+    }
+
+    .ECAL-year-button {
+        padding: 0.5rem 0.75rem;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        font-weight: 700;
+        transition: all 0.2s;
+        cursor: pointer;
+        width: 100%;
+    }
+
+    .ECAL-year-button.selected {
+        background-color: #2563eb;
+        /* blue-600 */
+        color: white;
+    }
+
+    .ECAL-year-button.default {
+        background-color: var(--bg-secondary);
+        /* gray-700 */
+        color: var(--text-secondary);
+        /* gray-300 */
+    }
+
+    .ECAL-year-button.default:hover {
+        background-color: #4b5563;
+        /* gray-600 */
+        color: white;
+    }
+
+    /* Event Chip Styles (Single Day) */
+    .ECAL-event-chip {
+        border-radius: 9999px;
+        font-size: 10px;
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        transition: all 0.2s;
+        padding-left: 0.375rem;
+        /* 1.5 * 0.25rem */
+        padding-right: 0.375rem;
+        color: white;
+        height: 14px;
+        line-height: 14px;
+    }
+
+    .ECAL-event-chip.hovered {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+
+    .ECAL-event-chip.default {
+        opacity: 0.8;
+    }
+
+    /* Event Bar Segment Styles (Multi Day) */
+    .ECAL-event-bar-container {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 1.25rem;
+        /* 5 * 0.25rem = 20px */
+        pointer-events: none;
+    }
+
+    .ECAL-event-bar-segment {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        transition: all 0.2s;
+    }
+
+    .ECAL-event-bar-segment.rounded-full {
+        border-radius: 9999px;
+    }
+
+    .ECAL-event-bar-segment.rounded-l {
+        border-top-left-radius: 9999px;
+        border-bottom-left-radius: 9999px;
+    }
+
+    .ECAL-event-bar-segment.rounded-r {
+        border-top-right-radius: 9999px;
+        border-bottom-right-radius: 9999px;
+    }
+
+    .ECAL-event-bar-segment.faded {
+        opacity: 0.2;
+        height: 0.375rem;
+/* ===== Semantic Layouts (Refactored) ===== */
+.ECAL-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.ECAL-header-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.ECAL-nav-group {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.ECAL-nav-button {
+    padding: 0.5rem;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    color: #9ca3af;
+    /* text-gray-400 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9999px;
+    transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.ECAL-nav-button:hover {
+    color: white;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.ECAL-nav-icon {
+    font-size: 1.25rem;
+}
+
+.ECAL-grid-wrapper {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+}
+
+.ECAL-state-hidden {
+    display: none !important;
+}
+
+.ECAL-text-secondary {
+    color: #d1d5db;
+}
+
+.ECAL-text-muted {
+    color: #9ca3af;
+}
+
+.ECAL-text-primary {
+    color: white;
+}
+
+/* ===== Semantic Event Colors ===== */
+.ECAL-event-bg-red-500 {
+    background-color: #ef4444;
+}
+
+.ECAL-event-bg-orange-500 {
+    background-color: #f97316;
+}
+
+.ECAL-event-bg-amber-500 {
+    background-color: #f59e0b;
+}
+
+.ECAL-event-bg-yellow-500 {
+    background-color: #eab308;
+}
+
+.ECAL-event-bg-lime-500 {
+    background-color: #84cc16;
+}
+
+.ECAL-event-bg-green-500 {
+    background-color: #22c55e;
+}
+
+.ECAL-event-bg-emerald-500 {
+    background-color: #10b981;
+}
+
+.ECAL-event-bg-teal-500 {
+    background-color: #14b8a6;
+}
+
+.ECAL-event-bg-cyan-500 {
+    background-color: #06b6d4;
+}
+
+.ECAL-event-bg-sky-500 {
+    background-color: #0ea5e9;
+}
+
+.ECAL-event-bg-blue-500 {
+    background-color: #3b82f6;
+}
+
+.ECAL-event-bg-indigo-500 {
+    background-color: #6366f1;
+}
+
+.ECAL-event-bg-violet-500 {
+    background-color: #8b5cf6;
+}
+
+.ECAL-event-bg-purple-500 {
+    background-color: #a855f7;
+}
+
+.ECAL-event-bg-fuchsia-500 {
+    background-color: #d946ef;
+}
+
+.ECAL-event-bg-pink-500 {
+    background-color: #ec4899;
+}
+
+.ECAL-event-bg-rose-500 {
+    background-color: #f43f5e;
+}
+
+.ECAL-event-bg-red-600 {
+    background-color: #dc2626;
+}
+
+.ECAL-event-bg-orange-600 {
+    background-color: #ea580c;
+}
+
+.ECAL-event-bg-amber-600 {
+    background-color: #d97706;
+}
+
+.ECAL-event-bg-yellow-600 {
+    background-color: #ca8a04;
+}
+
+.ECAL-event-bg-lime-600 {
+    background-color: #65a30d;
+}
+
+.ECAL-event-bg-green-600 {
+    background-color: #16a34a;
+}
+
+.ECAL-event-bg-emerald-600 {
+    background-color: #059669;
+}
+
+.ECAL-event-bg-teal-600 {
+    background-color: #0d9488;
+}
+
+.ECAL-event-bg-cyan-600 {
+    background-color: #0891b2;
+}
+
+.ECAL-event-bg-sky-600 {
+    background-color: #0284c7;
+}
+
+.ECAL-event-bg-blue-600 {
+    background-color: #2563eb;
+}
+
+.ECAL-event-bg-indigo-600 {
+    background-color: #4f46e5;
+}
+
+.ECAL-event-bg-violet-600 {
+    background-color: #7c3aed;
+}
+
+.ECAL-event-bg-purple-600 {
+    background-color: #9333ea;
+}
+
+.ECAL-event-bg-fuchsia-600 {
+    background-color: #c026d3;
+}
+
+.ECAL-event-bg-pink-600 {
+    background-color: #db2777;
+}
+
+.ECAL-event-bg-rose-600 {
+    background-color: #e11d48;
+}
+
+.ECAL-event-bg-purple-400 {
+    background-color: #c084fc;
+}
+
+.ECAL-event-bg-blue-400 {
+    background-color: #60a5fa;
+}
+
+.ECAL-event-bg-gray-500 {
+    background-color: #6b7280;
+}}

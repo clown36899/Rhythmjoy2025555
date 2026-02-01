@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, memo, useCallback } from "react";
 import { supabase } from "../../../lib/supabase";
 import type { Event } from "../../../lib/supabase";
 import EventRegistrationModal from "../../../components/EventRegistrationModal";
-import "../../../styles/domains/events.css";
+import "../../../styles/components/EventCalendar.css";
 import { getEventThumbnail } from "../../../utils/getEventThumbnail";
 import { useDefaultThumbnail } from "../../../hooks/useDefaultThumbnail";
 
@@ -99,14 +99,14 @@ export default memo(function EventCalendar({
     }
 
     const colors = [
-      'ECAL-bg-red-500', 'ECAL-bg-orange-500', 'ECAL-bg-amber-500', 'ECAL-bg-yellow-500',
-      'ECAL-bg-lime-500', 'ECAL-bg-green-500', 'ECAL-bg-emerald-500', 'ECAL-bg-teal-500',
-      'ECAL-bg-cyan-500', 'ECAL-bg-sky-500', 'ECAL-bg-blue-500', 'ECAL-bg-indigo-500',
-      'ECAL-bg-violet-500', 'ECAL-bg-purple-500', 'ECAL-bg-fuchsia-500', 'ECAL-bg-pink-500',
-      'ECAL-bg-rose-500', 'ECAL-bg-red-600', 'ECAL-bg-orange-600', 'ECAL-bg-amber-600',
-      'ECAL-bg-yellow-600', 'ECAL-bg-lime-600', 'ECAL-bg-green-600', 'ECAL-bg-emerald-600',
-      'ECAL-bg-teal-600', 'ECAL-bg-cyan-600', 'ECAL-bg-sky-600', 'ECAL-bg-indigo-600',
-      'ECAL-bg-violet-600', 'ECAL-bg-purple-600', 'ECAL-bg-fuchsia-600', 'ECAL-bg-pink-600'
+      'ECAL-event-bg-red-500', 'ECAL-event-bg-orange-500', 'ECAL-event-bg-amber-500', 'ECAL-event-bg-yellow-500',
+      'ECAL-event-bg-lime-500', 'ECAL-event-bg-green-500', 'ECAL-event-bg-emerald-500', 'ECAL-event-bg-teal-500',
+      'ECAL-event-bg-cyan-500', 'ECAL-event-bg-sky-500', 'ECAL-event-bg-blue-500', 'ECAL-event-bg-indigo-500',
+      'ECAL-event-bg-violet-500', 'ECAL-event-bg-purple-500', 'ECAL-event-bg-fuchsia-500', 'ECAL-event-bg-pink-500',
+      'ECAL-event-bg-rose-500', 'ECAL-event-bg-red-600', 'ECAL-event-bg-orange-600', 'ECAL-event-bg-amber-600',
+      'ECAL-event-bg-yellow-600', 'ECAL-event-bg-lime-600', 'ECAL-event-bg-green-600', 'ECAL-event-bg-emerald-600',
+      'ECAL-event-bg-teal-600', 'ECAL-event-bg-cyan-600', 'ECAL-event-bg-sky-600', 'ECAL-event-bg-indigo-600',
+      'ECAL-event-bg-violet-600', 'ECAL-event-bg-purple-600', 'ECAL-event-bg-fuchsia-600', 'ECAL-event-bg-pink-600'
     ];
 
     const map = new Map<number, string>();
@@ -148,11 +148,11 @@ export default memo(function EventCalendar({
   const getEventColor = (eventId: number, category: string) => {
     if (!isFullscreen) {
       // 일반 모드: 카테고리별 색상
-      return category === 'class' ? 'ECAL-bg-green-500' : 'ECAL-bg-blue-500';
+      return category === 'class' ? 'ECAL-event-bg-green-500' : 'ECAL-event-bg-blue-500';
     }
 
     // 전체화면 모드: 맵에서 색상 가져오기
-    return eventColorMap.get(eventId) || 'ECAL-bg-gray-500';
+    return eventColorMap.get(eventId) || 'ECAL-event-bg-gray-500';
   };
 
   // 외부 currentMonth가 변경되면 내부 상태도 업데이트
@@ -390,18 +390,18 @@ export default memo(function EventCalendar({
           // 강습: 보라색 계열
           colorBg =
             assignedLane === 0
-              ? "ECAL-bg-purple-500"
+              ? "ECAL-event-bg-purple-500"
               : assignedLane === 1
-                ? "ECAL-bg-purple-600"
-                : "ECAL-bg-purple-400";
+                ? "ECAL-event-bg-purple-600"
+                : "ECAL-event-bg-purple-400";
         } else {
           // 행사: 파란색 계열
           colorBg =
             assignedLane === 0
-              ? "ECAL-bg-blue-500"
+              ? "ECAL-event-bg-blue-500"
               : assignedLane === 1
-                ? "ECAL-bg-blue-600"
-                : "ECAL-bg-blue-400";
+                ? "ECAL-event-bg-blue-600"
+                : "ECAL-event-bg-blue-400";
         }
       }
 
@@ -506,7 +506,7 @@ export default memo(function EventCalendar({
       if (hasEvents && window.innerWidth < 1024) {
         // 이벤트 리스트 영역으로 스크롤 (헤더와 달력 아래)
         const scrollableArea = document.querySelector(
-          ".ECAL-flex-1.ECAL-overflow-y-auto",
+          ".ECAL-grid-wrapper",
         );
         if (scrollableArea) {
           scrollableArea.scrollTo({
@@ -1065,7 +1065,7 @@ export default memo(function EventCalendar({
                             onClick={() => navigateToMonth(index)}
                             className={`ECAL-month-option ${index === currentMonth.getMonth()
                               ? "selected"
-                              : "ECAL-text-gray-300"
+                              : "ECAL-text-secondary"
                               }`}
                           >
                             {month}
@@ -1096,7 +1096,7 @@ export default memo(function EventCalendar({
         {
           viewMode === "year" ? (
             // 연간 보기
-            <div className="ECAL-flex-1 ECAL-overflow-y-auto">{renderYearView()}</div>
+            <div className="ECAL-grid-wrapper">{renderYearView()}</div>
           ) : (
             // 월간 보기
             <>
