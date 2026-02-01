@@ -1,6 +1,6 @@
-import React from 'react';
-// import '../pages/v2/styles/EventCard.css'; // MIGRATED to events.css
 import '../styles/domains/events.css';
+import '../styles/components/EventCard.css';
+import '../styles/components/EditablePreviewCard.css';
 
 
 interface EditablePreviewCardProps {

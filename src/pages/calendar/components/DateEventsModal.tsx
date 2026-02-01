@@ -2,6 +2,7 @@ import { useMemo, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import type { Event as AppEvent } from '../../../lib/supabase';
 import '../../../styles/domains/events.css';
+import '../../../styles/components/DateEventsModal.css';
 
 interface DateEventsModalProps {
     isOpen: boolean;

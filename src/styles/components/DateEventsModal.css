@@ -1,0 +1,283 @@
+/* DateEventsModal.css - DateEventsModal 컴포넌트 전용 스타일 */
+
+@scope (.DateEventsModal) {
+    :scope {
+        position: fixed;
+        inset: 0;
+        background-color: rgba(0, 0, 0, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: var(--z-modal-stack-3);
+        backdrop-filter: blur(var(--blur-glass));
+        -webkit-backdrop-filter: blur(var(--blur-glass));
+        padding: var(--spacing-4);
+        animation: dem-fadeIn 0.2s ease-out;
+    }
+
+    .DEM-container {
+        background: var(--bg-surface-1);
+        width: 100%;
+        max-width: 600px;
+        max-height: 85vh;
+        border-radius: var(--radius-3xl);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-shadow: var(--shadow-premium);
+        border: 1px solid var(--border-glass);
+        animation: dem-slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .DEM-header {
+        padding: var(--spacing-4) var(--spacing-5);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid var(--border-glass-subtle);
+        background: rgba(255, 255, 255, 0.02);
+    }
+
+    .DEM-dateInfo {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .DEM-weekday {
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: var(--text-primary);
+    }
+
+    .DEM-dayNum {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        margin-left: var(--spacing-1);
+    }
+
+    .DEM-subtitle {
+        font-size: 0.8rem;
+        color: var(--text-tertiary);
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .DEM-closeBtn {
+        background: var(--border-glass);
+        border: none;
+        color: var(--text-primary);
+        width: var(--spacing-8);
+        height: var(--spacing-8);
+        border-radius: var(--radius-full);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+
+    .DEM-closeBtn:hover {
+        background: var(--border-glass-strong);
+    }
+
+    .DEM-body {
+        padding: var(--spacing-3);
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: var(--border-glass) transparent;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .DEM-grid {
+        display: grid;
+        gap: var(--spacing-1-5);
+        grid-template-columns: repeat(var(--grid-cols, 2), 1fr);
+        align-content: start;
+    }
+
+    .DEM-item {
+        background: var(--bg-surface-2);
+        border-radius: var(--radius-xl);
+        padding: var(--spacing-2);
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-1-5);
+        cursor: pointer;
+        border: 1px solid var(--border-glass-subtle);
+        transition: transform 0.2s, background 0.2s;
+        height: fit-content;
+        min-width: 0;
+    }
+
+    .DEM-item:active {
+        transform: scale(0.98);
+    }
+
+    .DEM-thumbnail {
+        width: 100%;
+        aspect-ratio: 3/4;
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        background: var(--bg-surface-3);
+        position: relative;
+        transition: aspect-ratio 0.3s ease;
+    }
+
+    .DEM-thumbnail img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .DEM-fallback {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, var(--bg-surface-3) 0%, var(--bg-surface-1) 100%);
+        color: var(--text-muted);
+        font-size: 1.5rem;
+        font-weight: 800;
+    }
+
+    .DEM-category {
+        font-size: 0.65rem;
+        font-weight: 700;
+        padding: var(--spacing-0-5) var(--spacing-1-5);
+        border-radius: var(--radius-sm);
+        align-self: flex-start;
+        color: var(--text-primary);
+        margin-bottom: var(--spacing-0-5);
+    }
+
+    .DEM-title {
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        line-height: 1.3;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        word-break: break-all;
+    }
+
+    .DEM-time {
+        font-size: 0.7rem;
+        color: var(--color-amber-400);
+        font-weight: 600;
+        margin-top: var(--spacing-0-5);
+    }
+
+    .DEM-empty {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: var(--spacing-10) 0;
+        color: var(--text-muted);
+        font-size: 0.9rem;
+    }
+
+    /* Density Scaling */
+    :scope.density-medium .DEM-title {
+        font-size: 0.75rem;
+    }
+
+    :scope.density-high .DEM-item {
+        padding: var(--spacing-1-5);
+        gap: var(--spacing-1);
+    }
+
+    :scope.density-high .DEM-thumbnail {
+        aspect-ratio: 1/1;
+    }
+
+    :scope.density-high .DEM-title {
+        font-size: 0.7rem;
+        -webkit-line-clamp: 1;
+        line-clamp: 1;
+    }
+
+    :scope.density-high .DEM-category {
+        font-size: 0.55rem;
+        padding: var(--spacing-px) var(--spacing-1);
+    }
+
+    :scope.density-high .DEM-time {
+        display: none;
+    }
+
+    :scope.density-ultra .DEM-body {
+        padding: var(--spacing-2);
+    }
+
+    :scope.density-ultra .DEM-grid {
+        gap: var(--spacing-1);
+    }
+
+    :scope.density-ultra .DEM-item {
+        padding: var(--spacing-1);
+        gap: var(--spacing-0-5);
+    }
+
+    :scope.density-ultra .DEM-thumbnail {
+        aspect-ratio: 4/3;
+    }
+
+    :scope.density-ultra .DEM-title {
+        font-size: 0.65rem;
+        -webkit-line-clamp: 1;
+        line-clamp: 1;
+    }
+
+    :scope.density-ultra .DEM-category,
+    :scope.density-ultra .DEM-time {
+        display: none;
+    }
+
+    @keyframes dem-fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    @keyframes dem-slideUp {
+        from {
+            transform: translateY(20px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    @media (max-height: 600px) {
+        .DEM-container {
+            max-height: 95vh;
+        }
+
+        .DEM-weekday {
+            font-size: 1.2rem;
+        }
+    }
+
+    @media (min-width: 600px) {
+        .DEM-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .DEM-grid.is-dense {
+            grid-template-columns: repeat(4, 1fr);
+        }
+    }
+}

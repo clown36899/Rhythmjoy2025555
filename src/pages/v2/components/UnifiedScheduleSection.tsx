@@ -4,6 +4,7 @@ import { getLocalDateString, getKSTDay } from '../utils/eventListUtils';
 import { HorizontalScrollNav } from './HorizontalScrollNav';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useModalActions } from '../../../contexts/ModalContext';
+import "../../../styles/components/UnifiedScheduleSection.css";
 
 interface UnifiedScheduleSectionProps {
     todaySchedules: SocialSchedule[];

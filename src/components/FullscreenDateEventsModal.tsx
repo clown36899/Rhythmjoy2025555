@@ -3,7 +3,8 @@ import { createPortal } from "react-dom";
 import { supabase } from "../lib/supabase";
 import type { Event as AppEvent } from "../lib/supabase";
 import { useModalHistory } from "../hooks/useModalHistory";
-import "../styles/domains/events.css"; // 2026 Pure Semantic CSS: Events Domain
+import "../styles/domains/events.css";
+import "../styles/components/DateEventsModal.css";
 
 interface FullscreenDateEventsModalProps {
   isOpen: boolean;

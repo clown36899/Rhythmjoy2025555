@@ -1,0 +1,731 @@
+/* EditableEventDetail.css - EditableEventDetail 컴포넌트 전용 스타일 */
+
+/* Main Container */
+.EED-container {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(var(--blur-glass-subtle, 3px));
+    z-index: var(--z-modal-stack-1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    animation: eed-fadeIn 0.3s ease-out;
+}
+
+.EED-modalWrapper {
+    background-color: var(--bg-surface-1);
+    backdrop-filter: blur(var(--blur-glass-heavy)) saturate(180%);
+    -webkit-backdrop-filter: blur(var(--blur-glass-heavy)) saturate(180%);
+    max-width: 325px;
+    width: 100%;
+    border-radius: 1.5rem;
+    max-height: 90vh;
+    overflow: hidden;
+    box-shadow: var(--shadow-premium);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border-glass);
+    animation: eed-modalEnter 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+@media (min-width: 768px) {
+    .EED-modalWrapper {
+        max-width: 1100px;
+        height: 85vh;
+        max-height: 850px;
+        flex-direction: row;
+        border-radius: 28px;
+        border: 1px solid var(--border-glass-strong);
+    }
+}
+
+@keyframes eed-modalEnter {
+    from {
+        transform: scale(1.02) translateY(20px);
+        opacity: 0;
+        filter: blur(10px);
+    }
+}
+
+.EED-scrollArea {
+    flex: 1;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Image Area */
+.EED-imageArea {
+    width: 100%;
+    aspect-ratio: 1/1;
+    background: #000;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 200px;
+}
+
+.EED-container.is-uploadMode .EED-imageArea {
+    aspect-ratio: auto;
+    height: 280px;
+    min-height: 280px;
+}
+
+.EED-imageBlur {
+    position: absolute;
+    inset: -10%;
+    background-size: cover;
+    background-position: center;
+    filter: blur(60px);
+    opacity: 0.4;
+    transform: scale(1.1);
+    z-index: 1;
+    pointer-events: none;
+}
+
+.EED-image {
+    position: relative;
+    z-index: 2;
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    cursor: default;
+}
+
+.EED-image.is-moving {
+    cursor: move;
+    transition: none !important;
+}
+
+.EED-imageGradient {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(15, 23, 42, 0.95), transparent 60%);
+    z-index: 3;
+    pointer-events: none;
+}
+
+/* Image Controls */
+.EED-imageControls {
+    position: absolute;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    z-index: 10;
+    display: flex;
+    justify-content: center;
+    padding: 0 20px;
+}
+
+.EED-imageControlGroup {
+    background: rgba(15, 23, 42, 0.8);
+    backdrop-filter: blur(var(--blur-glass));
+    padding: 6px;
+    border-radius: 16px;
+    display: flex;
+    gap: 6px;
+    border: 1px solid var(--border-glass);
+}
+
+.EED-imageControlBtn {
+    padding: 8px 12px;
+    border-radius: 10px;
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.EED-imageControlBtn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.EED-imageControlBtn.is-active {
+    background: var(--color-blue-600);
+    color: white;
+}
+
+.EED-repositionOverlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: var(--z-elevate);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+
+.EED-repositionBtn {
+    padding: 10px 24px;
+    background: var(--color-blue-600);
+    color: white;
+    border: none;
+    border-radius: var(--radius-full);
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: var(--shadow-glow-blue);
+}
+
+.EED-repositionHint {
+    color: white;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* Upload Container */
+.EED-uploadContainer {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: center;
+    background: var(--bg-premium-dark);
+    gap: 0;
+    padding: 0;
+}
+
+.EED-uploadOption {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 10px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    text-align: center;
+    position: relative;
+}
+
+.EED-uploadOption:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.EED-uploadOption:active {
+    transform: scale(0.96);
+}
+
+.EED-uploadIcon {
+    width: 54px;
+    height: 54px;
+    background: rgba(37, 99, 235, 0.15);
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-blue-400);
+    font-size: 1.6rem;
+    margin-bottom: 10px;
+    transition: all 0.3s ease;
+}
+
+.EED-uploadOption:hover .EED-uploadIcon {
+    background: var(--color-blue-600);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-glow-blue);
+}
+
+.EED-uploadTitle {
+    color: white;
+    font-weight: 800;
+    font-size: 0.95rem;
+    margin-bottom: 4px;
+}
+
+.EED-uploadSubtitle {
+    color: var(--text-tertiary);
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.EED-uploadDivider {
+    width: 1px;
+    height: 80px;
+    background: linear-gradient(to bottom, transparent, var(--border-glass), transparent);
+    align-self: center;
+}
+
+/* Info Column */
+.EED-infoColumn {
+    flex: 1;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.EED-stickyHeader {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.EED-headerContent {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* Classification & Genre */
+.EED-classification {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px;
+    border-radius: 12px;
+    transition: background 0.2s;
+    cursor: pointer;
+    position: relative;
+}
+
+.EED-classification:hover {
+    background: var(--bg-surface-2);
+}
+
+.EED-category {
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 800;
+    color: white;
+    text-transform: uppercase;
+}
+
+.EED-category.is-event {
+    background: linear-gradient(135deg, var(--color-blue-500) 0%, var(--color-blue-700) 100%);
+}
+
+.EED-category.is-class {
+    background: linear-gradient(135deg, var(--color-purple-500) 0%, var(--color-purple-700) 100%);
+}
+
+.EED-category.is-club {
+    background: var(--color-purple-600);
+}
+
+.EED-category.is-default {
+    background: var(--color-gray-600);
+}
+
+.EED-genre {
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 4px 8px;
+    border-radius: 6px;
+    color: white;
+}
+
+.EED-placeholder {
+    color: var(--text-muted);
+    font-weight: 400;
+}
+
+/* Title Section */
+.EED-titleSection {
+    position: relative;
+    padding: 4px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.EED-titleSection:hover {
+    background: var(--bg-surface-2);
+}
+
+.EED-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: white;
+    line-height: 1.3;
+    margin: 0;
+    word-break: keep-all;
+}
+
+.EED-title.is-placeholder {
+    color: var(--text-muted);
+}
+
+/* Info Items */
+.EED-infoSection {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.EED-infoItem {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 12px;
+    border-radius: 16px;
+    background: var(--border-glass-subtle);
+    border: 1px solid var(--border-glass-subtle);
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+}
+
+.EED-infoItem:hover {
+    background: var(--bg-surface-2);
+    border-color: var(--border-glass);
+    transform: translateX(4px);
+}
+
+.EED-infoIcon {
+    font-size: 1.25rem;
+    color: var(--color-blue-400);
+    margin-top: 2px;
+}
+
+.EED-infoValue {
+    flex: 1;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.EED-badge {
+    padding: 2px 6px;
+    background: rgba(96, 165, 250, 0.15);
+    color: var(--color-blue-400);
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+/* Tags */
+.EED-tagGroup {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.EED-tag {
+    background: var(--color-blue-600);
+    color: white;
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    font-size: 0.8rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.EED-tagRemove {
+    background: transparent;
+    border: none;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    font-size: 1rem;
+}
+
+.EED-tagRemove:hover {
+    color: white;
+}
+
+/* Description */
+.EED-infoItem.is-description {
+    min-height: 100px;
+    align-items: flex-start;
+}
+
+.EED-descriptionPreview {
+    font-size: 0.95rem;
+    color: var(--text-tertiary);
+    line-height: 1.6;
+    white-space: pre-wrap;
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Edit Badge */
+.EED-editBadge {
+    width: 22px;
+    height: 22px;
+    background: var(--color-blue-600);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    box-shadow: var(--shadow-md);
+    opacity: 0;
+    transition: opacity 0.2s, transform 0.2s;
+}
+
+.EED-infoItem:hover .EED-editBadge,
+.EED-classification:hover .EED-editBadge,
+.EED-titleSection:hover .EED-editBadge {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+/* Footer */
+.EED-footer {
+    padding: 16px 20px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+    background: var(--bg-premium-dark);
+    backdrop-filter: blur(var(--blur-glass));
+    border-top: 1px solid var(--border-glass);
+    z-index: var(--z-header);
+}
+
+.EED-footerActions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.EED-actionBtn {
+    height: 48px;
+    border-radius: 14px;
+    border: 1px solid var(--border-glass-strong);
+    background: var(--bg-surface-2);
+    color: white;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.EED-actionBtn:hover {
+    background: var(--bg-surface-3);
+    transform: translateY(-2px);
+}
+
+.EED-actionBtn.is-delete {
+    width: 48px;
+    flex-shrink: 0;
+    color: var(--color-red-500);
+    background: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.2);
+}
+
+.EED-actionBtn.is-delete:hover {
+    background: var(--color-red-600);
+    color: white;
+}
+
+.EED-actionBtn.is-link {
+    flex: 1;
+    gap: 8px;
+    font-size: 0.9rem;
+}
+
+.EED-actionBtn.is-register {
+    flex: 1.5;
+    background: linear-gradient(135deg, var(--color-blue-500) 0%, var(--color-blue-700) 100%);
+    border: none;
+    color: white;
+    box-shadow: var(--shadow-glow-blue);
+}
+
+/* Form Elements */
+.EED-inputGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.EED-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-tertiary);
+}
+
+.EED-input {
+    width: 100%;
+    background: var(--bg-surface-2);
+    border: 1px solid var(--border-glass);
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: white;
+    font-size: 1rem;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.EED-input:focus {
+    border-color: var(--color-blue-500);
+    background: var(--bg-surface-3);
+}
+
+.EED-input.is-textarea {
+    resize: none;
+    min-height: 100px;
+}
+
+.EED-inputWrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.EED-inputIcon {
+    position: absolute;
+    left: 14px;
+    color: var(--text-tertiary);
+    font-size: 1.1rem;
+}
+
+.EED-inputWrapper .EED-input {
+    padding-left: 44px;
+}
+
+/* Tab Toggle */
+.EED-tabToggle {
+    display: flex;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 4px;
+    border-radius: 10px;
+    gap: 4px;
+}
+
+.EED-tabBtn {
+    padding: 6px 14px;
+    border-radius: 7px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    border: none;
+    background: transparent;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.EED-tabBtn.is-active {
+    background: var(--bg-surface-3);
+    color: white;
+}
+
+/* Genre Grid */
+.EED-genreGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+}
+
+.EED-genreGrid.is-columns {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.EED-genreBtn {
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid var(--border-glass-subtle);
+    background: var(--bg-surface-2);
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.EED-genreBtn:hover {
+    background: var(--bg-surface-3);
+}
+
+.EED-genreBtn.is-active {
+    background: var(--color-blue-600);
+    border-color: var(--color-blue-500);
+    color: white;
+}
+
+/* Animations */
+@keyframes eed-fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes eed-slideUp {
+    from {
+        transform: translateY(100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
+}
+
+.EED-spin {
+    animation: eed-spin 1s linear infinite;
+}
+
+@keyframes eed-spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Desktop Adjustments */
+@media (min-width: 768px) {
+    .EED-container {
+        border-radius: 24px;
+        max-width: 900px;
+        height: 90vh;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        box-shadow: var(--shadow-premium);
+        border: 1px solid var(--border-glass-strong);
+    }
+
+    .EED-scrollArea {
+        flex-direction: row;
+    }
+
+    .EED-imageArea {
+        width: 45%;
+        height: 100%;
+        aspect-ratio: auto;
+    }
+
+    .EED-infoColumn {
+        padding: 40px;
+        max-height: 100%;
+        overflow-y: auto;
+    }
+}

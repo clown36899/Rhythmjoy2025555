@@ -11,7 +11,8 @@ import { useAuth } from "../contexts/AuthContext";
 import { logEvent } from "../lib/analytics";
 import ImageCropModal from "./ImageCropModal";
 import VenueSelectModal from "../pages/v2/components/VenueSelectModal";
-import "../styles/domains/events.css"; // 2026 Pure Semantic CSS: Events Domain
+import "../styles/domains/events.css";
+import "../styles/components/EventRegistrationModal.css";
 import { EditablePreviewCard } from "./EditablePreviewCard";
 import EditableEventDetail, { type EditableEventDetailRef } from './EditableEventDetail';
 import type { Event as AppEvent } from "../lib/supabase";

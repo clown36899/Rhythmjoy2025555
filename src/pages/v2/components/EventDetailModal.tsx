@@ -6,7 +6,8 @@ import { useDefaultThumbnail } from '../../../hooks/useDefaultThumbnail';
 import { getEventThumbnail } from '../../../utils/getEventThumbnail';
 import { parseMultipleContacts, copyToClipboard } from '../../../utils/contactLink';
 import { logEvent, logPageView } from '../../../lib/analytics';
-import "../../../styles/domains/events.css"; // 2026 Pure Semantic CSS: Events Domain
+import "../../../styles/domains/events.css";
+import "../../../styles/components/EventDetailModal.css";
 import { useAuth } from '../../../contexts/AuthContext';
 import VenueSelectModal from './VenueSelectModal';
 import ImageCropModal from '../../../components/ImageCropModal';

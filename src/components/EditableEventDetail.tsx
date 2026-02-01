@@ -9,6 +9,7 @@ import DatePicker, { registerLocale } from "react-datepicker";
 import { ko } from "date-fns/locale/ko";
 import "react-datepicker/dist/react-datepicker.css";
 import "../styles/domains/events.css"; // 2026 Pure Semantic CSS: Events Domain
+import "../styles/components/EditableEventDetail.css";
 import GlobalLoadingOverlay from './GlobalLoadingOverlay';
 
 // Register locale

@@ -1,0 +1,206 @@
+/* SocialEventModal.css - SocialEventModal 컴포넌트 전용 스타일 */
+
+@scope (.SocialEventModal) {
+    :scope {
+        position: fixed;
+        inset: 0;
+        background-color: var(--bg-overlay-heavy, rgba(0, 0, 0, 0.5));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: var(--z-modal-stack-3);
+        padding: var(--spacing-4);
+    }
+
+    .SEM-container {
+        background-color: var(--color-gray-800);
+        border-radius: var(--radius-lg);
+        max-width: 28rem;
+        width: 100%;
+        max-height: 90vh;
+        overflow-y: auto;
+    }
+
+    .SEM-form {
+        padding: 1.5rem;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .SEM-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+        text-align: center;
+    }
+
+    .SEM-loginPrompt {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        text-align: center;
+        background-color: var(--bg-surface-2);
+        border-radius: inherit;
+    }
+
+    .SEM-description {
+        color: var(--text-secondary);
+        margin-bottom: 1.5rem;
+        line-height: 1.5;
+        font-size: 1rem;
+    }
+
+    .SEM-input,
+    .SEM-select,
+    .SEM-textarea {
+        width: 100%;
+        background-color: var(--color-gray-700);
+        color: var(--text-primary);
+        border-radius: var(--radius-lg);
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+        outline: none;
+        border: 1px solid var(--border-glass);
+    }
+
+    .SEM-inputGroup {
+        display: flex;
+        gap: 0.5rem;
+        width: 100%;
+    }
+
+    .SEM-formGroup {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .SEM-label {
+        display: block;
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+    }
+
+    .SEM-imagePreview {
+        margin-top: var(--spacing-2);
+        width: 6rem;
+        height: 6rem;
+        object-fit: cover;
+        border-radius: var(--radius-lg);
+    }
+
+    .SEM-buttonGroup {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: flex-end;
+        margin-top: 0.5rem;
+    }
+
+    .SEM-btn-cancel {
+        background-color: var(--color-gray-700);
+        color: var(--text-primary);
+        padding: 0.5rem 1.5rem;
+        border-radius: var(--radius-lg);
+        cursor: pointer;
+        border: none;
+        font-size: 0.875rem;
+    }
+
+    .SEM-btn-submit {
+        background-color: var(--color-green-600);
+        color: var(--text-primary);
+        padding: 0.5rem 1.5rem;
+        border-radius: var(--radius-lg);
+        cursor: pointer;
+        border: none;
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+
+    .SEM-btn-kakao {
+        width: 100%;
+        padding: 1rem;
+        background: var(--color-kakao-bg);
+        color: var(--color-kakao-text);
+        border: none;
+        border-radius: 0.5rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        cursor: pointer;
+    }
+
+    .SEM-btn-search {
+        background: var(--color-gray-700);
+        color: var(--text-primary);
+        padding: 0.5rem 1rem;
+        border-radius: 0.5rem;
+        border: none;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+
+    .SEM-error {
+        color: var(--color-red-300);
+        font-size: 0.875rem;
+        background: rgba(220, 38, 38, 0.1);
+        padding: 0.5rem;
+        border-radius: var(--radius-lg);
+        border: 1px solid rgba(220, 38, 38, 0.3);
+    }
+
+    .SEM-imageUploadLabel {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        min-height: 100px;
+        border: 1px dashed var(--border-glass-heavy);
+        border-radius: var(--radius-lg);
+        background: rgba(255, 255, 255, 0.02);
+        transition: all 0.2s;
+    }
+
+    .SEM-imageUploadLabel.is-uploading {
+        cursor: wait;
+        opacity: 0.6;
+    }
+
+    .SEM-imageUploadLabel:hover {
+        border-color: var(--color-blue-500);
+        background: rgba(59, 130, 246, 0.05);
+    }
+
+    .SEM-imagePreview-rect {
+        max-height: 100px;
+        max-width: 100%;
+        object-fit: contain;
+    }
+
+    .SEM-infoText-sm {
+        font-size: 0.8rem;
+        color: var(--text-tertiary);
+        margin-top: 4px;
+        padding-left: 8px;
+    }
+
+    .SEM-infoText-gray {
+        color: var(--text-tertiary);
+        font-size: 0.9rem;
+    }
+
+    .SEM-infoText {
+        color: var(--color-blue-400);
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+}

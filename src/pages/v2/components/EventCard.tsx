@@ -2,7 +2,7 @@ import React, { memo, useMemo } from "react";
 import { getEventThumbnail, getCardThumbnail } from "../../../utils/getEventThumbnail";
 import { getLocalDateString, formatEventDate } from "../../../utils/dateUtils";
 import { getGenreColorClass } from "../../../constants/genreColors";
-// import "../styles/EventCard.css"; // Styles integrated into events.css
+import "../../../styles/components/EventCard.css";
 
 import type { Event } from "../../../pages/v2/utils/eventListUtils";
 
