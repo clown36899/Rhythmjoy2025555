@@ -1,37 +1,27 @@
-import { useMemo, useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import { sortEvents, getLocalDateString, type Event } from '../../../utils/eventListUtils';
 
 interface UseRandomizedEventsProps {
     events: Event[];
     genreWeights: Record<string, number> | null;
-    eventGenre: string | null;
-    classGenre: string | null;
-    clubGenre: string | null;
 }
 
 export function useRandomizedEvents({
     events,
-    genreWeights,
-    eventGenre,
-    classGenre,
-    clubGenre
+    genreWeights
 }: UseRandomizedEventsProps) {
     const today = getLocalDateString();
 
-    // 랜덤 시드 저장 (장르 변경 시에만 재생성)
-    const [randomSeed, setRandomSeed] = useState(() => Math.random());
-
-    // 장르가 변경될 때만 시드 재생성
-    useEffect(() => {
-        setRandomSeed(Math.random());
-    }, [eventGenre, classGenre, clubGenre]);
+    // [Fix] 랜덤 시드 고정 - 사이트 진입/새로고침 시에만 한 번 생성되도록 변경
+    // 기존의 useEffect(setRandomSeed, [genres]) 로직을 삭제하여 필터 변경 시 순서가 바뀌지 않게 함
+    const [randomSeed] = useState(() => Math.random() * 1000000);
 
     const randomizedFutureEvents = useMemo(() => {
         const filtered = events.filter(e =>
             e.category === 'event' &&
             (e.end_date || e.date || "") >= today
         );
-        return sortEvents(filtered, 'random');
+        return sortEvents(filtered, 'random', false, null, false, randomSeed);
     }, [events, today, randomSeed]);
 
     const randomizedRegularClasses = useMemo(() => {
@@ -39,7 +29,7 @@ export function useRandomizedEvents({
             e.category === 'class' &&
             (e.end_date || e.date || "") >= today
         );
-        return sortEvents(filtered, 'random', false, genreWeights, true);
+        return sortEvents(filtered, 'random', false, genreWeights, true, randomSeed);
     }, [events, genreWeights, today, randomSeed]);
 
     const randomizedClubLessons = useMemo(() => {
@@ -48,7 +38,7 @@ export function useRandomizedEvents({
             !e.genre?.includes('정규강습') &&
             (e.end_date || e.date || "") >= today
         );
-        return sortEvents(filtered, 'random', false, genreWeights, true);
+        return sortEvents(filtered, 'random', false, genreWeights, true, randomSeed);
     }, [events, genreWeights, today, randomSeed]);
 
     const randomizedClubRegularClasses = useMemo(() => {
@@ -56,7 +46,7 @@ export function useRandomizedEvents({
             e.category === 'club' &&
             e.genre?.includes('정규강습')
         );
-        return sortEvents(filtered, 'random', false, genreWeights, true);
+        return sortEvents(filtered, 'random', false, genreWeights, true, randomSeed);
     }, [events, genreWeights, randomSeed]);
 
     return {

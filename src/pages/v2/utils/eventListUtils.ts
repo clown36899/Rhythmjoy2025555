@@ -100,7 +100,8 @@ export const sortEvents = (
     sortType: string,
     isYearView: boolean = false,
     genreWeights: GenreWeightSettings | null = null, // Optional weights
-    applyGenreWeights: boolean = false
+    applyGenreWeights: boolean = false,
+    seed?: number // Optional seed for stable randomization
 ) => {
     const eventsCopy = [...eventsToSort];
     const today = getLocalDateString();
@@ -136,9 +137,9 @@ export const sortEvents = (
     const sortGroup = (group: Event[]) => {
         switch (sortType) {
             case "random": {
-                // 랜덤 정렬 - 새로고침할 때마다 변하도록 고정 시드 제거 및 순수 셔플 적용
-                const seed = Date.now() + Math.floor(Math.random() * 1000000);
-                const random = seededRandom(seed);
+                // 랜덤 정렬 - 시드가 있으면 사용하고, 없으면 새로고침할 때마다 변하도록 생성
+                const finalSeed = seed ?? (Date.now() + Math.floor(Math.random() * 1000000));
+                const random = seededRandom(finalSeed);
 
                 if (applyGenreWeights && genreWeights) {
                     // Weighted Shuffle (Efraimidis-Spirakis)

@@ -102,10 +102,7 @@ const EventList: React.FC<EventListProps> = ({
     randomizedClubRegularClasses
   } = useRandomizedEvents({
     events,
-    genreWeights,
-    eventGenre: searchParams.get('event_genre'),
-    classGenre: searchParams.get('class_genre'),
-    clubGenre: searchParams.get('club_genre')
+    genreWeights
   });
 
   // 3.7 Realtime Subscription to sync data immediately
