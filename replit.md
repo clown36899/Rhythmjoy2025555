@@ -73,7 +73,7 @@ Preferred communication style: Simple, everyday language.
 ## System Architecture
 
 ### Frontend
-The frontend is built with React 19.1.0, TypeScript, and Vite 7.0.3, utilizing React Router DOM v7 for navigation. Tailwind CSS 3.4 is used for responsive, mobile-first styling. The application employs React hooks for state management, custom window events for inter-component communication, and i18next with react-i18next for internationalization, primarily in Korean. Key components include `EventCalendar`, `EventList`, and modals for CRUD operations using React Portals.
+The frontend is built with React 19.1.0, TypeScript, and Vite 7.0.3, utilizing React Router DOM v7 for navigation. Pure Semantic CSS with @scope and Design Tokens is used for responsive styling. The application employs React hooks for state management, custom window events for inter-component communication, and i18next with react-i18next for internationalization, primarily in Korean. Key components include `EventCalendar`, `EventList`, and modals for CRUD operations using React Portals.
 
 ### Authentication & Authorization
 The platform uses Supabase Auth for a unified super admin authentication system, determined by the `VITE_ADMIN_EMAIL` environment variable. This grants full CRUD access. A two-tier admin system supports Super Admins and Billboard Sub-Admins. Supabase Row-Level Security (RLS) enforces database-level access control, and the frontend conditionally renders UI based on an `isAdmin` flag. All users have public read access to event data. Session management includes comprehensive logout procedures (Kakao SDK, Supabase, localStorage/sessionStorage, Service Worker cache) followed by a hard page reload to ensure complete state reset, particularly for mobile devices.

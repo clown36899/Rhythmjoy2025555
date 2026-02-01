@@ -28,19 +28,19 @@
     :scope {
         position: fixed;
         inset: 0;
-        background-color: rgba(0, 0, 0, 0.7);
+        background-color: rgba(0, 0, 0, 0.8);
         display: flex;
         align-items: center;
         justify-content: center;
-        z-index: var(--z-modal-ultra, 10000);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
+        z-index: var(--z-modal-stack-3);
+        backdrop-filter: blur(var(--blur-glass));
+        -webkit-backdrop-filter: blur(var(--blur-glass));
         padding: 16px;
         animation: dem-fadeIn 0.2s ease-out;
     }
 
     .DEM-container {
-        background: #1a1a1a;
+        background: var(--bg-surface-1);
         width: 100%;
         max-width: 600px;
         max-height: 85vh;
@@ -48,8 +48,8 @@
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: var(--shadow-premium);
+        border: 1px solid var(--border-glass);
         animation: dem-slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
@@ -58,7 +58,7 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        border-bottom: 1px solid var(--border-glass-subtle);
         background: rgba(255, 255, 255, 0.02);
     }
 
@@ -123,14 +123,14 @@
     }
 
     .DEM-item {
-        background: #262626;
+        background: var(--bg-surface-2);
         border-radius: 10px;
         padding: 8px;
         display: flex;
         flex-direction: column;
         gap: 6px;
         cursor: pointer;
-        border: 1px solid rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border-glass-subtle);
         transition: transform 0.2s, background 0.2s;
         height: fit-content;
         min-width: 0;
@@ -145,7 +145,7 @@
         aspect-ratio: 3/4;
         border-radius: 6px;
         overflow: hidden;
-        background: #333;
+        background: var(--bg-surface-3);
         position: relative;
         transition: aspect-ratio 0.3s ease;
     }
@@ -162,8 +162,8 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(135deg, #333 0%, #222 100%);
-        color: #666;
+        background: linear-gradient(135deg, var(--bg-surface-3) 0%, var(--bg-surface-1) 100%);
+        color: var(--text-muted);
         font-size: 1.5rem;
         font-weight: 800;
     }
@@ -313,12 +313,12 @@
     :scope {
         position: fixed;
         inset: 0;
-        background-color: rgb(0 0 0 / 53%);
+        background-color: rgba(0, 0, 0, 0.6);
         display: flex;
-        backdrop-filter: blur(3px);
+        backdrop-filter: blur(var(--blur-glass-subtle, 3px));
         align-items: center;
         justify-content: center;
-        z-index: 5000;
+        z-index: var(--z-modal-stack-1);
         /* Layer 1: Main Overlays (Matching EED) */
         will-change: opacity;
         animation: edm-fadeInOverlay 0.2s ease-out;
@@ -335,21 +335,21 @@
     }
 
     .EDM-container {
-        background-color: rgb(10, 10, 10);
-        backdrop-filter: blur(32px) saturate(180%);
-        -webkit-backdrop-filter: blur(32px) saturate(180%);
+        background-color: var(--page-bg-color);
+        backdrop-filter: blur(var(--blur-glass-heavy)) saturate(180%);
+        -webkit-backdrop-filter: blur(var(--blur-glass-heavy)) saturate(180%);
         max-width: 325px;
         width: 100%;
         border-radius: 2rem;
         height: 80svh;
         max-height: 80svh;
         overflow: hidden;
-        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        box-shadow: var(--shadow-premium);
         position: relative;
         display: flex;
         flex-direction: column;
         will-change: transform, opacity;
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border: 1px solid var(--border-glass);
         animation: edm-modalEnter 0.5s cubic-bezier(0.19, 1, 0.22, 1);
     }
 
@@ -368,9 +368,9 @@
         left: 0;
         right: 0;
         height: 3px;
-        background: linear-gradient(90deg, #3b82f6, #60a5fa, #3b82f6);
+        background: linear-gradient(90deg, var(--color-blue-500), var(--color-blue-400), var(--color-blue-500));
         background-size: 200% 100%;
-        z-index: 1000;
+        z-index: var(--z-elevate);
         animation: edm-loadingMove 1.5s infinite linear;
     }
 
@@ -388,7 +388,7 @@
     .EDM-loginOverlay {
         position: absolute;
         inset: 0;
-        z-index: 500;
+        z-index: var(--z-sticky);
         background: rgba(15, 23, 26, 0.95);
         backdrop-filter: blur(8px);
         display: flex;
@@ -417,8 +417,8 @@
     .EDM-btn-kakao {
         width: 100%;
         max-width: 280px;
-        background: #fee500;
-        color: #000;
+        background: var(--color-kakao-bg);
+        color: var(--color-kakao-text);
         padding: 14px;
         border-radius: 12px;
         font-weight: 700;
@@ -476,7 +476,7 @@
         justify-content: center;
         align-items: center;
         overflow: hidden;
-        background-color: #050505;
+        background-color: var(--page-bg-color);
     }
 
     .EDM-imageArea.has-pattern {
@@ -539,11 +539,11 @@
     }
 
     .EDM-categoryArea.is-class {
-        background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+        background: linear-gradient(135deg, var(--color-purple-500), var(--color-purple-700));
     }
 
     .EDM-categoryArea.is-event {
-        background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+        background: linear-gradient(135deg, var(--color-blue-500), var(--color-blue-700));
     }
 
     .EDM-categoryAreaText {
@@ -572,11 +572,11 @@
     }
 
     .EDM-categoryBadge.is-class {
-        background: linear-gradient(135deg, #a855f7, #7c3aed);
+        background: linear-gradient(135deg, var(--color-purple-400), var(--color-purple-600));
     }
 
     .EDM-categoryBadge.is-event {
-        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        background: linear-gradient(135deg, var(--color-blue-400), var(--color-blue-600));
     }
 
     .EDM-defaultThumb {
@@ -604,7 +604,7 @@
         justify-content: center;
         gap: 8px;
         color: white;
-        z-index: 20;
+        z-index: var(--z-elevate);
         cursor: pointer;
         backdrop-filter: blur(2px);
     }
@@ -625,7 +625,7 @@
         font-size: 0.75rem;
         font-weight: 600;
         cursor: pointer;
-        z-index: 10;
+        z-index: var(--z-elevate);
         backdrop-filter: blur(4px);
     }
 
@@ -633,7 +633,7 @@
         position: absolute;
         top: 1px;
         right: 1px;
-        background: #00000070;
+        background: rgba(0, 0, 0, 0.4);
         border: none;
         width: 27px;
         height: 27px;
@@ -641,9 +641,9 @@
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        border-radius: 7rem;
-        z-index: 10;
-        color: #ffffff;
+        border-radius: var(--radius-full);
+        z-index: var(--z-elevate);
+        color: var(--text-primary);
         transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
@@ -662,10 +662,10 @@
         position: sticky;
         top: 0;
         padding: 12px 18px;
-        z-index: 40;
-        background-color: rgb(0, 0, 0);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(12px);
+        z-index: var(--z-modal);
+        background-color: var(--bg-color);
+        border-bottom: 1px solid var(--border-glass);
+        backdrop-filter: blur(var(--blur-glass));
         transition: background-color 0.2s ease;
     }
 
@@ -677,7 +677,7 @@
     .EDM-title {
         font-size: 28px;
         font-weight: 800;
-        color: #fff;
+        color: var(--text-primary);
         line-height: 1.2;
         word-break: keep-all;
         margin-bottom: 8px;
@@ -727,7 +727,7 @@
 
     .EDM-infoIcon {
         font-size: 1.2rem;
-        color: #60a5fa;
+        color: var(--color-blue-400);
         flex-shrink: 0;
         margin-top: 2px;
     }
@@ -741,7 +741,7 @@
     }
 
     .EDM-venueLink {
-        color: #60a5fa;
+        color: var(--color-blue-400);
         font-weight: 700;
         display: flex;
         align-items: center;
@@ -749,7 +749,7 @@
         background: rgba(59, 130, 246, 0.1);
         border: 1px solid rgba(59, 130, 246, 0.2);
         padding: 4px 10px;
-        border-radius: 9999px;
+        border-radius: var(--radius-full);
         cursor: pointer;
     }
 
@@ -779,8 +779,8 @@
         height: 28px;
         border-radius: 6px;
         background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        color: #facc15;
+        border: 1px solid var(--border-glass);
+        color: var(--color-amber-400);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -789,7 +789,7 @@
 
     .EDM-editTrigger-sm {
         font-size: 1rem;
-        color: #facc15;
+        color: var(--color-amber-400);
         background: none;
         border: none;
         cursor: pointer;
@@ -1015,7 +1015,7 @@
     .EDM-fullscreenOverlay {
         position: fixed;
         inset: 0;
-        z-index: 100000;
+        z-index: var(--z-max);
         background: rgba(0, 0, 0, 0.95);
         display: flex;
         align-items: center;
@@ -1075,7 +1075,7 @@
     }
 
     .EDM-dateModeBtn.is-active {
-        background: #2563eb;
+        background: var(--color-blue-600);
         color: white;
     }
 
@@ -1097,8 +1097,8 @@
         padding: 4px 10px;
         background: rgba(59, 130, 246, 0.2);
         border: 1px solid rgba(59, 130, 246, 0.3);
-        border-radius: 9999px;
-        color: #93c5fd;
+        border-radius: var(--radius-full);
+        color: var(--color-blue-300);
         font-size: 0.8rem;
         font-weight: 700;
         display: flex;
@@ -1191,8 +1191,8 @@
     }
 
     .EDM-genreChip.is-active {
-        background: #3b82f6;
-        border-color: #60a5fa;
+        background: var(--color-blue-500);
+        border-color: var(--color-blue-400);
     }
 
     .EDM-bottomSheetTextarea {
@@ -1317,7 +1317,7 @@
             padding: 0 32px 20px 32px;
             height: 100px;
             align-items: flex-end;
-            z-index: 60;
+            z-index: var(--z-sticky);
         }
     }
 
@@ -1371,7 +1371,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        z-index: 200000;
+        z-index: var(--z-modal-stack-3);
         padding: 1rem;
     }
 
@@ -1476,7 +1476,7 @@
     }
 
     .SEM-btn-submit {
-        background-color: #16a34a;
+        background-color: var(--color-green-600);
         color: white;
         padding: 0.5rem 1.5rem;
         border-radius: var(--radius-lg);
@@ -1489,8 +1489,8 @@
     .SEM-btn-kakao {
         width: 100%;
         padding: 1rem;
-        background: #FEE500;
-        color: #000;
+        background: var(--color-kakao-bg);
+        color: var(--color-kakao-text);
         border: none;
         border-radius: 0.5rem;
         font-weight: 600;
@@ -1576,12 +1576,10 @@
         position: fixed;
         inset: 0;
         background: rgba(0, 0, 0, 0.75);
-        /* Darker backdrop for registration */
         display: flex;
         align-items: center;
         justify-content: center;
-        z-index: 11000;
-        /* Higher than EED Layer 1 */
+        z-index: var(--z-modal-stack-1);
         padding: var(--spacing-4);
         padding-top: calc(var(--spacing-4) + env(safe-area-inset-top));
         padding-bottom: calc(var(--spacing-4) + env(safe-area-inset-bottom));
@@ -1663,7 +1661,7 @@
         border-radius: var(--radius-lg);
         padding: 0.5rem 0.75rem;
         font-size: 0.875rem;
-        border: 1px solid #555;
+        border: 1px solid var(--border-primary);
         outline: none;
     }
 
@@ -1704,7 +1702,7 @@
         top: calc(0.5rem + env(safe-area-inset-top));
         left: 50%;
         transform: translateX(-50%);
-        z-index: 1000;
+        z-index: var(--z-elevate);
         display: flex;
         justify-content: center;
         pointer-events: none;
@@ -1739,7 +1737,7 @@
     }
 
     .ERM-switcherBtn.is-active {
-        background: linear-gradient(135deg, #2563eb, #9333ea);
+        background: linear-gradient(135deg, var(--color-blue-600), var(--color-purple-600));
         color: white;
     }
 
@@ -1811,7 +1809,7 @@
 
     .ERM-billboardInfo {
         padding: 24px;
-        background: #111827;
+        background: var(--bg-surface-1);
         text-align: center;
     }
 
@@ -1856,8 +1854,8 @@
 
     .ERM-activeWrapper {
         position: relative;
-        z-index: 5;
-        border: 2px solid #3b82f6;
+        z-index: var(--z-base);
+        border: 2px solid var(--color-blue-500);
         border-radius: 12px;
         padding: 2px;
         background: rgba(59, 130, 246, 0.1);
@@ -2012,9 +2010,9 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        color: #525252;
+        color: var(--text-muted);
         font-size: 2.5rem;
-        background: linear-gradient(45deg, #1f1f1f, #2a2a2a);
+        background: linear-gradient(45deg, var(--bg-surface-1), var(--bg-surface-2));
     }
 
     .USS-cardOverlay {
@@ -2028,12 +2026,12 @@
         background: rgba(0, 0, 0, 0.7);
         backdrop-filter: blur(4px);
         -webkit-backdrop-filter: blur(4px);
-        color: #ffd700;
+        color: var(--color-yellow-400);
         font-size: 0.65rem;
         font-weight: 700;
         padding: 2px 6px;
         border-radius: 4px;
-        border: 1px solid rgba(255, 215, 0, 0.15);
+        border: 1px solid var(--border-glass);
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
     }
 
@@ -2046,7 +2044,7 @@
         display: flex;
         flex-direction: column;
         justify-content: flex-start;
-        background: #1e1e1e;
+        background: var(--bg-surface-1);
         z-index: 2;
         gap: 4px;
     }
@@ -2183,23 +2181,23 @@
 
 /* Category Colors (Global within events.css scope) */
 .cat-bg-social {
-    background-color: #e11d48 !important;
+    background-color: var(--color-rose-500) !important;
 }
 
 .cat-bg-party {
-    background-color: #f43f5e !important;
+    background-color: var(--color-rose-400) !important;
 }
 
 .cat-bg-regular {
-    background-color: #2563eb !important;
+    background-color: var(--color-blue-500) !important;
 }
 
 .cat-bg-club {
-    background-color: #7c3aed !important;
+    background-color: var(--color-purple-600) !important;
 }
 
 .cat-bg-class {
-    background-color: #16a34a !important;
+    background-color: var(--color-green-600) !important;
 }
 
 .cat-bg-default {
@@ -2214,12 +2212,9 @@
 .EED-container {
     position: fixed;
     inset: 0;
-    background: rgba(10, 10, 10, 0.53);
-    /* Match legacy overlay color */
-    backdrop-filter: blur(3px);
-    /* Match legacy overlay blur */
-    z-index: 5000;
-    /* Layer 1: Main Overlays */
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(var(--blur-glass-subtle, 3px));
+    z-index: var(--z-modal-stack-1);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2228,20 +2223,19 @@
 }
 
 .EED-modalWrapper {
-    background-color: rgb(10, 10, 10);
-    backdrop-filter: blur(32px) saturate(180%);
-    -webkit-backdrop-filter: blur(32px) saturate(180%);
+    background-color: var(--bg-surface-1);
+    backdrop-filter: blur(var(--blur-glass-heavy)) saturate(180%);
+    -webkit-backdrop-filter: blur(var(--blur-glass-heavy)) saturate(180%);
     max-width: 325px;
     width: 100%;
     border-radius: 1.5rem;
     max-height: 90vh;
-    /* Restored legacy height */
     overflow: hidden;
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    box-shadow: var(--shadow-premium);
     position: relative;
     display: flex;
     flex-direction: column;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-glass);
     animation: eed-modalEnter 0.5s cubic-bezier(0.19, 1, 0.22, 1);
 }
 
@@ -2252,7 +2246,7 @@
         max-height: 850px;
         flex-direction: row;
         border-radius: 28px;
-        border: 1px solid rgba(255, 255, 255, 0.15);
+        border: 1px solid var(--border-glass-strong);
     }
 }
 
@@ -2343,12 +2337,12 @@
 
 .EED-imageControlGroup {
     background: rgba(15, 23, 42, 0.8);
-    backdrop-filter: blur(8px);
+    backdrop-filter: blur(var(--blur-glass));
     padding: 6px;
     border-radius: 16px;
     display: flex;
     gap: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-glass);
 }
 
 .EED-imageControlBtn {
@@ -2372,7 +2366,7 @@
 }
 
 .EED-imageControlBtn.is-active {
-    background: #2563eb;
+    background: var(--color-blue-600);
     color: white;
 }
 
@@ -2380,7 +2374,7 @@
     position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.3);
-    z-index: 20;
+    z-index: var(--z-elevate);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -2390,13 +2384,13 @@
 
 .EED-repositionBtn {
     padding: 10px 24px;
-    background: #2563eb;
+    background: var(--color-blue-600);
     color: white;
     border: none;
-    border-radius: 9999px;
+    border-radius: var(--radius-full);
     font-weight: 700;
     cursor: pointer;
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+    box-shadow: var(--shadow-glow-blue);
 }
 
 .EED-repositionHint {
@@ -2412,11 +2406,9 @@
     height: 100%;
     display: flex;
     flex-direction: row;
-    /* Switched to horizontal to prevent clipping */
     align-items: stretch;
     justify-content: center;
-    background: #0f172a;
-    /* Premium darker navy */
+    background: var(--bg-premium-dark);
     gap: 0;
     padding: 0;
 }
@@ -2458,10 +2450,10 @@
 }
 
 .EED-uploadOption:hover .EED-uploadIcon {
-    background: #2563eb;
+    background: var(--color-blue-600);
     color: white;
     transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);
+    box-shadow: var(--shadow-glow-blue);
 }
 
 .EED-uploadTitle {
@@ -2480,7 +2472,7 @@
 .EED-uploadDivider {
     width: 1px;
     height: 80px;
-    background: linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.1), transparent);
+    background: linear-gradient(to bottom, transparent, var(--border-glass), transparent);
     align-self: center;
 }
 
@@ -2540,11 +2532,11 @@
 }
 
 .EED-category.is-event {
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    background: linear-gradient(135deg, var(--color-blue-500) 0%, var(--color-blue-700) 100%);
 }
 
 .EED-category.is-class {
-    background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+    background: linear-gradient(135deg, var(--color-purple-500) 0%, var(--color-purple-700) 100%);
 }
 
 .EED-category.is-club {
@@ -2607,8 +2599,8 @@
     gap: 14px;
     padding: 12px;
     border-radius: 16px;
-    background: rgba(255, 255, 255, 0.02);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: var(--border-glass-subtle);
+    border: 1px solid var(--border-glass-subtle);
     cursor: pointer;
     transition: all 0.2s;
     position: relative;
@@ -2622,7 +2614,7 @@
 
 .EED-infoIcon {
     font-size: 1.25rem;
-    color: #60a5fa;
+    color: var(--color-blue-400);
     margin-top: 2px;
 }
 
@@ -2640,7 +2632,7 @@
 .EED-badge {
     padding: 2px 6px;
     background: rgba(96, 165, 250, 0.15);
-    color: #60a5fa;
+    color: var(--color-blue-400);
     border-radius: 4px;
     font-size: 0.7rem;
     font-weight: 700;
@@ -2654,10 +2646,10 @@
 }
 
 .EED-tag {
-    background: #2563eb;
+    background: var(--color-blue-600);
     color: white;
     padding: 4px 10px;
-    border-radius: 9999px;
+    border-radius: var(--radius-full);
     font-size: 0.8rem;
     font-weight: 700;
     display: flex;
@@ -2702,7 +2694,7 @@
 .EED-editBadge {
     width: 22px;
     height: 22px;
-    background: #2563eb;
+    background: var(--color-blue-600);
     color: white;
     border-radius: 50%;
     display: flex;
@@ -2731,10 +2723,10 @@
 .EED-footer {
     padding: 16px 20px;
     padding-bottom: calc(16px + env(safe-area-inset-bottom));
-    background: rgba(15, 23, 42, 0.95);
-    backdrop-filter: blur(12px);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    z-index: 100;
+    background: var(--bg-premium-dark);
+    backdrop-filter: blur(var(--blur-glass));
+    border-top: 1px solid var(--border-glass);
+    z-index: var(--z-header);
 }
 
 .EED-footerActions {
@@ -2765,7 +2757,7 @@
 .EED-actionBtn.is-delete {
     width: 48px;
     flex-shrink: 0;
-    color: #ef4444;
+    color: var(--color-red-500);
     background: rgba(239, 68, 68, 0.1);
     border-color: rgba(239, 68, 68, 0.2);
 }
@@ -2794,10 +2786,10 @@
 
 .EED-actionBtn.is-register {
     flex: 1.5;
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    background: linear-gradient(135deg, var(--color-blue-500) 0%, var(--color-blue-700) 100%);
     border: none;
     color: white;
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    box-shadow: var(--shadow-glow-blue);
 }
 
 .EED-actionBtn.is-register:disabled {
@@ -2811,7 +2803,7 @@
 .EED-portal {
     position: fixed;
     inset: 0;
-    z-index: 15000;
+    z-index: var(--z-modal-stack-2);
     /* Layer 2: Sub Sheets/Portals */
     display: flex;
     align-items: flex-end;
@@ -2822,16 +2814,15 @@
     position: absolute;
     inset: 0;
     background: rgba(0, 0, 0, 0.6);
-    backdrop-filter: blur(4px);
-    -webkit-backdrop-filter: blur(4px);
+    backdrop-filter: blur(var(--blur-glass-subtle, 4px));
+    -webkit-backdrop-filter: blur(var(--blur-glass-subtle, 4px));
 }
 
 .EED-sheet {
     position: relative;
     width: 100%;
     max-width: 500px;
-    background: #111827;
-    /* Gray-900 for premium feel */
+    background: var(--bg-surface-1);
     border-radius: 24px 24px 0 0;
     padding: 24px;
     padding-bottom: calc(24px + env(safe-area-inset-bottom));
@@ -2840,7 +2831,7 @@
     display: flex;
     flex-direction: column;
     gap: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-glass);
     border-bottom: none;
 }
 
@@ -2875,7 +2866,7 @@
 .EED-dateDisplay {
     background: rgba(0, 0, 0, 0.2);
     padding: 16px;
-    border-radius: 16px;
+    border-radius: var(--radius-lg);
     margin-bottom: 8px;
 }
 
@@ -2914,7 +2905,7 @@
 }
 
 .EED-sheetHint .is-error {
-    color: #fca5a5;
+    color: var(--color-red-300);
     font-weight: 600;
 }
 
@@ -2927,8 +2918,8 @@
     flex: 1;
     height: 48px;
     border-radius: 12px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--border-glass-subtle);
+    border: 1px solid var(--border-glass);
     color: white;
     font-weight: 700;
     cursor: pointer;
@@ -2945,9 +2936,9 @@
 
 .EED-sheetBtn.is-primary,
 .EED-sheetBtn.is-active {
-    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    background: linear-gradient(135deg, var(--color-blue-500) 0%, var(--color-blue-700) 100%);
     border: none;
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+    box-shadow: var(--shadow-glow-blue);
 }
 
 @keyframes eed-slideUp {
@@ -2965,18 +2956,18 @@
 /* DatePicker Core Overrides (Inside EED scope for isolation) */
 .react-datepicker {
     font-family: inherit;
-    background-color: #1a1a1a !important;
-    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    background-color: var(--bg-surface-1) !important;
+    border: 1px solid var(--border-glass) !important;
     border-radius: 1.5rem !important;
-    color: #e5e7eb !important;
+    color: var(--text-secondary) !important;
     overflow: hidden;
     z-index: 20000 !important;
     /* Layer 3: Top-level Overlays */
 }
 
 .react-datepicker__header {
-    background-color: #1a1a1a !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+    background-color: var(--bg-surface-1) !important;
+    border-bottom: 1px solid var(--border-glass) !important;
     padding-top: 1rem !important;
 }
 
@@ -2987,7 +2978,7 @@
 
 .react-datepicker__day-name,
 .react-datepicker__day {
-    color: #9ca3af !important;
+    color: var(--text-tertiary) !important;
     width: 2.25rem !important;
     line-height: 2.25rem !important;
 }
@@ -3744,7 +3735,7 @@
         backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-        z-index: 3;
+
         transition: all 0.3s ease;
     }
 
@@ -3781,7 +3772,7 @@
         justify-content: center;
         cursor: pointer;
         border-radius: 7rem;
-        z-index: 10;
+
         color: #ffffff;
         transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         -webkit-tap-highlight-color: transparent;

@@ -180,23 +180,45 @@
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
     --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
 
-    /* Z-index 레벨 */
+    /* Z-index Stack System */
+    --z-negative: -1;
     --z-base: 1;
-    --z-10: 10;
-    --z-20: 20;
-    --z-30: 30;
-    --z-40: 40;
-    --z-50: 50;
-    --z-modal: 1000;
-    --z-modal-base: 1000;
-    --z-modal-upload: 1100;
-    --z-crop-modal: 1200;
-    --z-modal-high: 2000;
-    --z-modal-ultra: 3000;
-    --z-modal-super: 4000;
-    --z-header: 999;
+    --z-elevate: 10;
     --z-dropdown: 200;
     --z-tooltip: 300;
+    --z-sticky: 500;
+    --z-header: 1000;
+    --z-overlay: 2000;
+    --z-modal-base: 10000;
+    --z-modal-stack-1: 11000;
+    /* Main Modal (EED, ERM) */
+    --z-modal-stack-2: 12000;
+    /* Sub Sheets / Portals */
+    --z-modal-stack-3: 13000;
+    /* Top Overlays / DatePicker */
+    --z-toast: 20000;
+    --z-max: 2147483647;
+
+    /* Semantic Backgrounds & Surfaces */
+    --bg-premium-dark: #0f172a;
+    --bg-surface-1: #1a1a1a;
+    --bg-surface-2: #262626;
+    --bg-surface-3: #333333;
+
+    /* Semantic Borders & Dividers */
+    --border-glass: rgba(255, 255, 255, 0.1);
+    --border-glass-strong: rgba(255, 255, 255, 0.15);
+    --border-glass-subtle: rgba(255, 255, 255, 0.05);
+
+    /* Semantic Effects */
+    --blur-glass: 12px;
+    --blur-glass-heavy: 32px;
+    --shadow-premium: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    --shadow-glow-blue: 0 8px 20px rgba(37, 99, 235, 0.3);
+
+    /* Branding & Integration */
+    --color-kakao-bg: #fee500;
+    --color-kakao-text: #000000;
   }
 
   /* ===== 글로벌 리셋 ===== */

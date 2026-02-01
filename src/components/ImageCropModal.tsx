@@ -590,7 +590,7 @@ export default memo(function ImageCropModal({
 
             <div className="crop-footer-content">
               {/* Source Selection */}
-              <div className="grid grid-cols-2 gap-2" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+              <div className="crop-footer-grid">
                 <button
                   onClick={() => {
                     console.log('[ImageCropModal] Upload button clicked');
@@ -621,7 +621,7 @@ export default memo(function ImageCropModal({
               </div>
 
               {/* Apply Action */}
-              <div className="crop-button-row">
+              <div className="crop-action-row">
                 {/* 되돌리기 버튼 - 원본 이미지 복원 가능할 때 표시 */}
                 {(hasOriginal || originalImageUrlForRestore) && (
                   <button

@@ -1,6 +1,6 @@
 import React, { useState, useRef } from 'react';
-import type * as FaceApiTypes from 'face-api.js';
 import { FaceModel } from '../utils/faceModel';
+import './FaceRegisterStep.css';
 
 interface FaceRegisterStepProps {
     onComplete: (faceVector: Float32Array[]) => void;
@@ -36,18 +36,14 @@ export const FaceRegisterStep: React.FC<FaceRegisterStepProps> = ({ onComplete }
 
         setIsAnalyzing(true);
         try {
-            // Load model if not ready (should be preloaded really)
             const model = FaceModel.getInstance();
             if (!model.isReady()) {
                 await model.loadModels();
             }
 
             const faceapi = model.getApi();
-
-            // Convert file to image element
             const img = await faceapi.bufferToImage(file);
 
-            // Detect Face
             const detection = await faceapi
                 .detectSingleFace(img)
                 .withFaceLandmarks()
@@ -58,15 +54,12 @@ export const FaceRegisterStep: React.FC<FaceRegisterStepProps> = ({ onComplete }
                 return;
             }
 
-            // TODO: Add angle validation logic here (checking landmarks)
-
             const newFaces = [...faces, detection.descriptor];
             setFaces(newFaces);
 
             if (currentStep < 2) {
                 setCurrentStep(prev => prev + 1);
             } else {
-                // Complete
                 onComplete(newFaces);
             }
 
@@ -75,7 +68,6 @@ export const FaceRegisterStep: React.FC<FaceRegisterStepProps> = ({ onComplete }
             alert('분석 중 오류가 발생했습니다.');
         } finally {
             setIsAnalyzing(false);
-            // Reset input
             if (fileInputRef.current) fileInputRef.current.value = '';
         }
     };
@@ -83,51 +75,49 @@ export const FaceRegisterStep: React.FC<FaceRegisterStepProps> = ({ onComplete }
     const stepInfo = STEPS[currentStep];
 
     return (
-        <div className="space-y-6">
+        <div className="FaceRegisterStep">
             {/* Progress Bar */}
-            <div className="flex gap-1 mb-8">
+            <div className="frs-progress-container">
                 {[0, 1, 2].map((i) => (
                     <div
                         key={i}
-                        className={`h-1.5 flex-1 rounded-full ${i <= currentStep ? 'bg-blue-500' : 'bg-gray-700'
-                            }`}
+                        className={`frs-progress-bar ${i <= currentStep ? 'is-active' : ''}`}
                     />
                 ))}
             </div>
 
-            <div className="text-center space-y-2">
-                <div className="text-4xl mb-4 animate-bounce">
+            <div className="frs-content">
+                <div className="frs-icon">
                     {currentStep === 0 ? '📸' : currentStep === 1 ? '👈' : '👉'}
                 </div>
-                <h2 className="text-2xl font-bold">{stepInfo.title}</h2>
-                <p className="text-gray-400">{stepInfo.desc}</p>
-                <p className="text-sm text-blue-400 font-medium bg-blue-900/20 py-2 rounded-lg">
+                <h2 className="frs-title">{stepInfo.title}</h2>
+                <p className="frs-desc">{stepInfo.desc}</p>
+                <p className="frs-tip">
                     {stepInfo.angleDesc}
                 </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 pt-4">
+            <div className="frs-action-area">
                 <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="col-span-2 py-4 bg-gray-700 hover:bg-gray-600 rounded-xl font-bold flex flex-col items-center justify-center gap-2 border border-gray-600 transition-all active:scale-95"
+                    className="frs-upload-btn"
                     disabled={isAnalyzing}
                 >
                     {isAnalyzing ? (
-                        <span className="animate-pulse">분석 중...</span>
+                        <span className="is-analyzing">분석 중...</span>
                     ) : (
                         <>
-                            <span className="text-2xl">📁</span>
+                            <span className="frs-upload-icon">📁</span>
                             사진 업로드
                         </>
                     )}
                 </button>
 
-                {/* Hidden File Input */}
                 <input
                     ref={fileInputRef}
                     type="file"
                     accept="image/*"
-                    className="hidden"
+                    style={{ display: 'none' }}
                     onChange={handleFileSelect}
                 />
             </div>

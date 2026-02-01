@@ -81,17 +81,7 @@ export default function AdminSecureMembersModal({ isOpen, onClose }: AdminSecure
     return (
         <div className="boum-overlay">
             {/* Reuse boum-container style with overrides for sizing */}
-            <div className="boum-container secure-container-override" translate="no" style={{
-                maxWidth: '1000px',
-                width: '95%',
-                height: '85vh',
-                backgroundColor: 'var(--bg-color)',
-                borderRadius: '12px',
-                display: 'flex',
-                flexDirection: 'column',
-                position: 'relative',
-                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
-            }}>
+            <div className="secure-members-container" translate="no">
                 <div className="boum-header">
                     <div className="boum-header-top">
                         <h2 className="boum-title">🛡️ 관리자 보안 조회 시스템</h2>
@@ -117,7 +107,7 @@ export default function AdminSecureMembersModal({ isOpen, onClose }: AdminSecure
                     </div>
                 </div>
 
-                <div className="boum-content" style={{ flex: 1, overflow: 'auto' }}>
+                <div className="boum-content">
                     {loading ? (
                         <div className="boum-loading"><div className="prl-spinner"></div></div>
                     ) : (
@@ -135,17 +125,17 @@ export default function AdminSecureMembersModal({ isOpen, onClose }: AdminSecure
                                 <tbody>
                                     {filteredUsers.map((user) => (
                                         <tr key={user.id} className="boum-table-row">
-                                            <td className="boum-table-cell" style={{ textAlign: 'center' }}>
+                                            <td className="boum-table-cell boum-text-center">
                                                 {user.provider === 'kakao' ? (
-                                                    <div title="카카오 가입" style={{ background: '#FEE500', color: '#3C1E1E', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto', fontSize: '16px' }}>
+                                                    <div title="카카오 가입" className="secure-provider-badge secure-provider-kakao">
                                                         <i className="ri-kakao-talk-fill"></i>
                                                     </div>
                                                 ) : user.provider === 'google' ? (
-                                                    <div title="구글 가입" style={{ background: '#fff', color: '#4285F4', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto', fontSize: '16px', border: '1px solid #eee' }}>
+                                                    <div title="구글 가입" className="secure-provider-badge secure-provider-google">
                                                         <i className="ri-google-fill"></i>
                                                     </div>
                                                 ) : (
-                                                    <span style={{ fontSize: '12px', color: '#666' }}>{user.provider || '-'}</span>
+                                                    <span className="secure-cell-email">{user.provider || '-'}</span>
                                                 )}
                                             </td>
                                             <td className="boum-table-cell">
@@ -162,16 +152,16 @@ export default function AdminSecureMembersModal({ isOpen, onClose }: AdminSecure
                                                             user.nickname.charAt(0)
                                                         )}
                                                     </div>
-                                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                    <div className="secure-nickname-group">
                                                         <span className="boum-nickname">{user.nickname}</span>
-                                                        <span style={{ fontSize: '11px', color: '#666' }}>{user.real_name || '-'}</span>
+                                                        <span className="secure-realname">{user.real_name || '-'}</span>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="boum-table-cell" style={{ fontSize: '13px' }}>
+                                            <td className="boum-table-cell secure-cell-phone">
                                                 {user.phone_number || '-'}
                                             </td>
-                                            <td className="boum-table-cell" style={{ fontSize: '12px', color: '#666' }}>
+                                            <td className="boum-table-cell secure-cell-email">
                                                 {user.email || '-'}
                                             </td>
                                             <td className="boum-table-cell boum-date-text">
