@@ -1,342 +1,346 @@
+/* 2026 Pure Semantic CSS Layers Definition */
+@layer base, components, utilities;
+
 /* CSS 기본 스타일 및 유틸리티 시스템 - @import는 맨 위에 와야 함 */
-@import './styles/base.css';
-@import './styles/utilities.css';
+@import './styles/base.css' layer(base);
+@import './styles/utilities.css' layer(utilities);
 
+@layer components {
 
-
-/* 모바일 전용: 650px 고정 - 가로 스크롤 방지 */
-html,
-body {
-  background-color: #000000;
-  max-width: 650px;
-  /* !important removed to allow media query override */
-  margin: 0 auto;
-  overflow-x: hidden !important;
-  width: 100% !important;
-  /* 수직 스크롤만 허용, 수평 슬라이드는 JS로 제어 */
-  touch-action: pan-y;
-}
-
-#root {
-  max-width: 650px;
-  margin: 0 auto;
-  width: 100% !important;
-  min-height: 100svh;
-}
-
-/* 🖥️ Desktop Support: 650px fixed width (Base rule applies) */
-/* @media (min-width: 769px) removed to enforce 650px */
-
-/* 🎓 Learning/Archive Route: Full Width (Structural Isolation) */
-html.layout-wide-mode,
-html.layout-wide-mode body,
-html.layout-wide-mode #root {
-  max-width: none !important;
-  margin: 0 !important;
-  width: 100% !important;
-  height: 100svh !important;
-  overflow: hidden !important;
-}
-
-/* 📱 Mobile PWA Portrait Lock (Fallback for iOS) */
-@media screen and (orientation: landscape) {
-  body.mobile-pwa {
-    transform: rotate(-90deg);
-    transform-origin: left top;
-    width: 100vh;
-    height: 100vw;
-    overflow-x: hidden;
-    position: absolute;
-    top: 100%;
-    left: 0;
+  /* 모바일 전용: 650px 고정 - 가로 스크롤 방지 */
+  html,
+  body {
+    background-color: #000000;
+    max-width: 650px;
+    /* !important removed to allow media query override */
+    margin: 0 auto;
+    overflow-x: hidden !important;
+    width: 100% !important;
+    /* 수직 스크롤만 허용, 수평 슬라이드는 JS로 제어 */
+    touch-action: pan-y;
   }
-}
 
-body,
-html {
-  background-color: var(--bg-color);
-}
+  #root {
+    max-width: 650px;
+    margin: 0 auto;
+    width: 100% !important;
+    min-height: 100svh;
+  }
 
-/* ===== Global Header Styles ===== */
-.global-header {
-  /* position: sticky;
-  top: 0; */
-  /* left: 0; */
-  display: flex;
-  width: 100%;
-  margin: 0 auto;
-  backdrop-filter: blur(10px);
-  /* height: 61px; */
-  /* background-color: #000000; */
-  /* border-bottom: 1px solid #2b2b2b; */
-  z-index: 19;
-  /* box-shadow: -1px 4px 25px -5px rgb(0 0 0 / 33%); */
-  flex-direction: column;
-  justify-content: center;
-}
+  /* 🖥️ Desktop Support: 650px fixed width (Base rule applies) */
+  /* @media (min-width: 769px) removed to enforce 650px */
 
-@keyframes fadeIn {
-  from {
+  /* 🎓 Learning/Archive Route: Full Width (Structural Isolation) */
+  html.layout-wide-mode,
+  html.layout-wide-mode body,
+  html.layout-wide-mode #root {
+    max-width: none !important;
+    margin: 0 !important;
+    width: 100% !important;
+    height: 100svh !important;
+    overflow: hidden !important;
+  }
+
+  /* 📱 Mobile PWA Portrait Lock (Fallback for iOS) */
+  @media screen and (orientation: landscape) {
+    body.mobile-pwa {
+      transform: rotate(-90deg);
+      transform-origin: left top;
+      width: 100vh;
+      height: 100vw;
+      overflow-x: hidden;
+      position: absolute;
+      top: 100%;
+      left: 0;
+    }
+  }
+
+  body,
+  html {
+    background-color: var(--bg-color);
+  }
+
+  /* ===== Global Header Styles ===== */
+  .global-header {
+    /* position: sticky;
+    top: 0; */
+    /* left: 0; */
+    display: flex;
+    width: 100%;
+    margin: 0 auto;
+    backdrop-filter: blur(10px);
+    /* height: 61px; */
+    /* background-color: #000000; */
+    /* border-bottom: 1px solid #2b2b2b; */
+    z-index: 19;
+    /* box-shadow: -1px 4px 25px -5px rgb(0 0 0 / 33%); */
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fadeIn {
+    animation: fadeIn 0.4s ease-out forwards;
     opacity: 0;
-    transform: translateY(10px);
   }
 
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.9);
+    }
 
-.animate-fadeIn {
-  animation: fadeIn 0.4s ease-out forwards;
-  opacity: 0;
-}
-
-@keyframes scale-in {
-  from {
-    opacity: 0;
-    transform: scale(0.9);
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
   }
 
-  to {
-    opacity: 1;
-    transform: scale(1);
+  /* 텍스트/이미지 선택 방지 - 달력, 이벤트, 바텀메뉴 */
+  .no-select {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
-}
 
-/* 텍스트/이미지 선택 방지 - 달력, 이벤트, 바텀메뉴 */
-.no-select {
-  -webkit-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
-  -webkit-touch-callout: none;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-}
+  /* 이미지 드래그 방지 */
+  .no-select img {
+    pointer-events: none;
+    -webkit-user-drag: none;
+    -khtml-user-drag: none;
+    -moz-user-drag: none;
+    -o-user-drag: none;
 
-/* 이미지 드래그 방지 */
-.no-select img {
-  pointer-events: none;
-  -webkit-user-drag: none;
-  -khtml-user-drag: none;
-  -moz-user-drag: none;
-  -o-user-drag: none;
+  }
 
-}
-
-/* 달력 날짜 칸 - 동적 높이 (grid-auto-rows로 제어) */
-.calendar-day-cell {
-  /* height는 grid-auto-rows로 제어됨 */
-  min-height: 30px;
-  padding: 1px 2px;
-  border-right: 1px solid #15151575;
-  border-bottom: 1px solid #15151575;
-}
-
-/* 태블릿 이상에서는 패딩만 조정 */
-@media (min-width: 650px) {
+  /* 달력 날짜 칸 - 동적 높이 (grid-auto-rows로 제어) */
   .calendar-day-cell {
     /* height는 grid-auto-rows로 제어됨 */
     min-height: 30px;
-    padding: 1px;
+    padding: 1px 2px;
     border-right: 1px solid #15151575;
     border-bottom: 1px solid #15151575;
   }
-}
 
-/* 요일 헤더 셀 - 날짜와 동일한 border 스타일 */
-.calendar-day-header {
-  border-right: 1px solid #15151575;
-  border-bottom: 1px solid #15151575;
-  background-color: #252525;
-}
-
-/* react-datepicker 모바일 터치 반응성 개선 */
-.react-datepicker__day:active,
-.react-datepicker__day:focus {
-  background-color: #2563eb !important;
-  color: white !important;
-  outline: none;
-}
-
-.react-datepicker__day--keyboard-selected:active {
-  background-color: #2563eb !important;
-}
-
-/* 터치 하이라이트 제거 - 우리가 직접 제어 */
-.react-datepicker__day {
-  -webkit-tap-highlight-color: transparent;
-  transition: background-color 0.05s ease, color 0.05s ease;
-  border: none !important;
-  border-radius: 0 !important;
-  margin-left: 0 !important;
-  margin-right: 0 !important;
-}
-
-/* 선택된 날짜 - 채도 낮춤 */
-.react-datepicker__day--selected {
-  background-color: #4169aa !important;
-  color: white !important;
-  font-weight: 600 !important;
-  border-radius: 0 !important;
-}
-
-/* 범위 내 날짜 - 애벌레 모양 (위아래 간격, 좌우 붙음) */
-.react-datepicker__day--in-range {
-  background-color: #6b8bc3 !important;
-  color: white !important;
-  border-radius: 0 !important;
-  margin-top: 2px !important;
-  margin-bottom: 2px !important;
-  margin-left: 0 !important;
-  margin-right: 0 !important;
-}
-
-/* 범위 시작 - 왼쪽 라운드 */
-.react-datepicker__day--range-start {
-  background-color: #4169aa !important;
-  color: white !important;
-  font-weight: 600 !important;
-  border-top-left-radius: 8px !important;
-  border-bottom-left-radius: 8px !important;
-  border-top-right-radius: 0 !important;
-  border-bottom-right-radius: 0 !important;
-  margin-top: 2px !important;
-  margin-bottom: 2px !important;
-  margin-left: 0 !important;
-  margin-right: 0 !important;
-}
-
-/* 범위 종료 - 오른쪽 라운드 */
-.react-datepicker__day--range-end {
-  background-color: #4169aa !important;
-  color: white !important;
-  font-weight: 600 !important;
-  border-top-left-radius: 0 !important;
-  border-bottom-left-radius: 0 !important;
-  border-top-right-radius: 8px !important;
-  border-bottom-right-radius: 8px !important;
-  margin-top: 2px !important;
-  margin-bottom: 2px !important;
-  margin-left: 0 !important;
-  margin-right: 0 !important;
-}
-
-/* hover 반응 */
-.react-datepicker__day:hover {
-  background-color: #60a5fa !important;
-  color: white !important;
-  font-weight: 600 !important;
-  border-radius: 0 !important;
-}
-
-/* 달력 크기 조정 (모바일) */
-.react-datepicker {
-  font-size: 0.85rem !important;
-  border: none !important;
-}
-
-.react-datepicker__month-container {
-  width: 280px !important;
-}
-
-.react-datepicker__day-name,
-.react-datepicker__day {
-  flex: 1 !important;
-  line-height: 2.2rem !important;
-  margin: 0.15rem 0 !important;
-  padding: 0 !important;
-}
-
-.react-datepicker__week {
-  display: flex !important;
-  gap: 0 !important;
-  margin-bottom: 0 !important;
-}
-
-.react-datepicker__current-month {
-  font-size: 0.9rem !important;
-  padding: 0.5rem !important;
-}
-
-.react-datepicker__header {
-  padding-top: 0 !important;
-  padding-bottom: 0.25rem !important;
-  border: none !important;
-}
-
-/* 2개월 표시 시 간격 조정 */
-.react-datepicker__month-container+.react-datepicker__month-container {
-  margin-left: 0.5rem !important;
-}
-
-/* 요일 헤더 - 위아래 마진 제거 */
-.react-datepicker__day-names {
-  text-align: center;
-  white-space: nowrap;
-  background-color: #2d2d2d !important;
-  margin-top: 0 !important;
-  margin-bottom: 0 !important;
-  padding: 0 0.5rem !important;
-}
-
-/* ===== 전역 로딩 오버레이 ===== */
-.global-loading-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100svh;
-  background-color: rgba(0, 0, 0, 0.7);
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
-  backdrop-filter: blur(2px);
-  -webkit-backdrop-filter: blur(2px);
-}
-
-.global-loading-spinner {
-  font-size: 3rem;
-  color: var(--color-blue-500);
-  animation: spin 1s linear infinite;
-  margin-bottom: 1rem;
-}
-
-.global-loading-text {
-  color: white;
-  font-size: 1.125rem;
-  font-weight: 500;
-}
-
-@keyframes spin {
-  from {
-    transform: rotate(0deg);
+  /* 태블릿 이상에서는 패딩만 조정 */
+  @media (min-width: 650px) {
+    .calendar-day-cell {
+      /* height는 grid-auto-rows로 제어됨 */
+      min-height: 30px;
+      padding: 1px;
+      border-right: 1px solid #15151575;
+      border-bottom: 1px solid #15151575;
+    }
   }
 
-  to {
-    transform: rotate(360deg);
+  /* 요일 헤더 셀 - 날짜와 동일한 border 스타일 */
+  .calendar-day-header {
+    border-right: 1px solid #15151575;
+    border-bottom: 1px solid #15151575;
+    background-color: #252525;
   }
-}
 
-/* [Standard Fix] 전역 모달 오픈 시 배경 제스처 간섭 원천 차단 */
-html.modal-open,
-html.modal-open body {
-  overflow: hidden !important;
-  /* height: 100svh !important; // Removed to prevent scroll reset */
-  touch-action: auto;
-}
+  /* react-datepicker 모바일 터치 반응성 개선 */
+  .react-datepicker__day:active,
+  .react-datepicker__day:focus {
+    background-color: #2563eb !important;
+    color: white !important;
+    outline: none;
+  }
 
-/* 모달 내부의 스크롤은 허용 */
-.modal-open .modal-content-area,
-.modal-open .content-area,
-.modal-open .scroll-list,
-.modal-open .custom-scrollbar,
-.modal-open [class*="content"],
-.modal-open [class*="scroll"] {
-  touch-action: auto !important;
-  overscroll-behavior: contain !important;
-  pointer-events: auto !important;
+  .react-datepicker__day--keyboard-selected:active {
+    background-color: #2563eb !important;
+  }
+
+  /* 터치 하이라이트 제거 - 우리가 직접 제어 */
+  .react-datepicker__day {
+    -webkit-tap-highlight-color: transparent;
+    transition: background-color 0.05s ease, color 0.05s ease;
+    border: none !important;
+    border-radius: 0 !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  /* 선택된 날짜 - 채도 낮춤 */
+  .react-datepicker__day--selected {
+    background-color: #4169aa !important;
+    color: white !important;
+    font-weight: 600 !important;
+    border-radius: 0 !important;
+  }
+
+  /* 범위 내 날짜 - 애벌레 모양 (위아래 간격, 좌우 붙음) */
+  .react-datepicker__day--in-range {
+    background-color: #6b8bc3 !important;
+    color: white !important;
+    border-radius: 0 !important;
+    margin-top: 2px !important;
+    margin-bottom: 2px !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  /* 범위 시작 - 왼쪽 라운드 */
+  .react-datepicker__day--range-start {
+    background-color: #4169aa !important;
+    color: white !important;
+    font-weight: 600 !important;
+    border-top-left-radius: 8px !important;
+    border-bottom-left-radius: 8px !important;
+    border-top-right-radius: 0 !important;
+    border-bottom-right-radius: 0 !important;
+    margin-top: 2px !important;
+    margin-bottom: 2px !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  /* 범위 종료 - 오른쪽 라운드 */
+  .react-datepicker__day--range-end {
+    background-color: #4169aa !important;
+    color: white !important;
+    font-weight: 600 !important;
+    border-top-left-radius: 0 !important;
+    border-bottom-left-radius: 0 !important;
+    border-top-right-radius: 8px !important;
+    border-bottom-right-radius: 8px !important;
+    margin-top: 2px !important;
+    margin-bottom: 2px !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  /* hover 반응 */
+  .react-datepicker__day:hover {
+    background-color: #60a5fa !important;
+    color: white !important;
+    font-weight: 600 !important;
+    border-radius: 0 !important;
+  }
+
+  /* 달력 크기 조정 (모바일) */
+  .react-datepicker {
+    font-size: 0.85rem !important;
+    border: none !important;
+  }
+
+  .react-datepicker__month-container {
+    width: 280px !important;
+  }
+
+  .react-datepicker__day-name,
+  .react-datepicker__day {
+    flex: 1 !important;
+    line-height: 2.2rem !important;
+    margin: 0.15rem 0 !important;
+    padding: 0 !important;
+  }
+
+  .react-datepicker__week {
+    display: flex !important;
+    gap: 0 !important;
+    margin-bottom: 0 !important;
+  }
+
+  .react-datepicker__current-month {
+    font-size: 0.9rem !important;
+    padding: 0.5rem !important;
+  }
+
+  .react-datepicker__header {
+    padding-top: 0 !important;
+    padding-bottom: 0.25rem !important;
+    border: none !important;
+  }
+
+  /* 2개월 표시 시 간격 조정 */
+  .react-datepicker__month-container+.react-datepicker__month-container {
+    margin-left: 0.5rem !important;
+  }
+
+  /* 요일 헤더 - 위아래 마진 제거 */
+  .react-datepicker__day-names {
+    text-align: center;
+    white-space: nowrap;
+    background-color: #2d2d2d !important;
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding: 0 0.5rem !important;
+  }
+
+  /* ===== 전역 로딩 오버레이 ===== */
+  .global-loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100svh;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+  }
+
+  .global-loading-spinner {
+    font-size: 3rem;
+    color: var(--color-blue-500);
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+  }
+
+  .global-loading-text {
+    color: white;
+    font-size: 1.125rem;
+    font-weight: 500;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* [Standard Fix] 전역 모달 오픈 시 배경 제스처 간섭 원천 차단 */
+  html.modal-open,
+  html.modal-open body {
+    overflow: hidden !important;
+    /* height: 100svh !important; // Removed to prevent scroll reset */
+    touch-action: auto;
+  }
+
+  /* 모달 내부의 스크롤은 허용 */
+  .modal-open .modal-content-area,
+  .modal-open .content-area,
+  .modal-open .scroll-list,
+  .modal-open .custom-scrollbar,
+  .modal-open [class*="content"],
+  .modal-open [class*="scroll"] {
+    touch-action: auto !important;
+    overscroll-behavior: contain !important;
+    pointer-events: auto !important;
+  }
 }

@@ -1,7 +1,6 @@
-// Import useEffect
 import { useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import './LoginModal.css';
+import '../styles/domains/overlays.css';
 
 interface LoginModalProps {
     isOpen: boolean;
@@ -12,7 +11,6 @@ interface LoginModalProps {
 export default function LoginModal({ isOpen, onClose, message }: LoginModalProps) {
     const { signInWithKakao, signInWithGoogle, isAuthProcessing, user } = useAuth();
 
-    // Auto-close if user is logged in
     useEffect(() => {
         if (user && isOpen) {
             onClose();
@@ -22,36 +20,31 @@ export default function LoginModal({ isOpen, onClose, message }: LoginModalProps
     if (!isOpen) return null;
 
     return (
-        <div className="login-modal-overlay" onClick={onClose}>
-            <div className="login-modal-content" onClick={e => e.stopPropagation()}>
-                <div className="login-modal-header">
-
-                    <button className="login-modal-close" onClick={onClose}>
+        <div className="LoginModal" onClick={onClose}>
+            <div className="LM-container" onClick={e => e.stopPropagation()}>
+                <div className="LM-header">
+                    <button className="LM-closeBtn" onClick={onClose}>
                         <i className="ri-close-line"></i>
                     </button>
                 </div>
 
-                <div className="login-modal-message">
+                <div className="LM-message">
                     {message || '댄스빌보드 로그인.\n간편하게 로그인하고 이용해보세요.'}
                 </div>
 
-                <div className="login-actions">
+                <div className="LM-actions">
                     <button
-                        className="login-btn login-btn-kakao"
-                        onClick={() => {
-                            signInWithKakao();
-                        }}
+                        className="LM-btn LM-btn-kakao"
+                        onClick={() => signInWithKakao()}
                         disabled={isAuthProcessing}
                     >
-                        <i className="ri-kakao-talk-fill" ></i>
+                        <i className="ri-kakao-talk-fill"></i>
                         카카오로 로그인
                     </button>
 
                     <button
-                        className="login-btn login-btn-google"
-                        onClick={() => {
-                            signInWithGoogle();
-                        }}
+                        className="LM-btn LM-btn-google"
+                        onClick={() => signInWithGoogle()}
                         disabled={isAuthProcessing}
                     >
                         <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
@@ -64,8 +57,8 @@ export default function LoginModal({ isOpen, onClose, message }: LoginModalProps
                     </button>
                 </div>
 
-                <div className="login-footer-notice">
-                    로그인 시 <span className="highlight" onClick={() => window.open('/guide', '_blank')}>이용약관</span> 및 <span className="highlight" onClick={() => window.open('/privacy', '_blank')}>개인정보처리방침</span>에 동의하는 것으로 간주합니다.
+                <div className="LM-footer">
+                    로그인 시 <span className="LM-link" onClick={() => window.open('/guide', '_blank')}>이용약관</span> 및 <span className="LM-link" onClick={() => window.open('/privacy', '_blank')}>개인정보처리방침</span>에 동의하는 것으로 간주합니다.
                 </div>
             </div>
         </div>

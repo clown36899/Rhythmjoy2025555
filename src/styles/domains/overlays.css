@@ -1,0 +1,789 @@
+/* 2026 Pure Semantic CSS: Overlays Domain */
+
+/* ==========================================================================
+   SideDrawer Scope (SD-)
+   ========================================================================== */
+@scope (.SideDrawer) {
+    :scope {
+        --sd-width: 90%;
+        --sd-max-width: 400px;
+        --sd-transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        background-color: rgba(0, 0, 0, 0.5);
+        z-index: var(--z-header);
+        backdrop-filter: blur(4px);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease-out;
+    }
+
+    :scope.is-open {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    .SD-container {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: var(--sd-width);
+        max-width: var(--sd-max-width);
+        height: 100dvh;
+        background-color: var(--bg-color, #1f2937);
+        box-shadow: 4px 0 16px rgba(0, 0, 0, 0.3);
+        display: flex;
+        flex-direction: column;
+        transform: translateX(-100%);
+        transition: var(--sd-transition);
+        border-right: 1px solid rgba(255, 255, 255, 0.1);
+        padding-bottom: env(safe-area-inset-bottom);
+        z-index: calc(var(--z-header) + 1);
+    }
+
+    .SD-container.is-open {
+        transform: translateX(0);
+    }
+
+    .SD-header {
+        padding: 24px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        background-color: rgba(0, 0, 0, 0.1);
+    }
+
+    /* iOS PWA Safe Area Support */
+    @supports (-webkit-touch-callout: none) {
+        @media all and (display-mode: standalone) {
+            .SD-header {
+                padding-top: calc(24px + env(safe-area-inset-top));
+                height: auto;
+            }
+        }
+    }
+
+    .SD-userProfile {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .SD-avatar {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background-color: var(--primary-color, #facc15);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #000;
+        font-size: 24px;
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+
+    .SD-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .SD-avatar.is-placeholder {
+        background-color: rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.6);
+    }
+
+    .SD-userInfo {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .SD-username {
+        color: var(--text-primary, #ffffff);
+        font-weight: 600;
+        font-size: 16px;
+    }
+
+    .SD-email {
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 12px;
+    }
+
+    .SD-loginPrompt {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        cursor: pointer;
+        flex: 1;
+    }
+
+    .SD-closeBtn {
+        background: none;
+        border: none;
+        color: var(--text-primary, #ffffff);
+        font-size: 24px;
+        cursor: pointer;
+        padding: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .SD-nav {
+        flex: 1;
+        overflow-y: auto;
+    }
+
+    .SD-sectionTitle {
+        padding: 8px 24px;
+        font-size: 11px;
+        font-weight: 700;
+        color: rgba(255, 255, 255, 0.4);
+        letter-spacing: 0.05em;
+        margin-top: 8px;
+        margin-bottom: 4px;
+        text-transform: uppercase;
+    }
+
+    .SD-divider {
+        height: 1px;
+        background-color: rgba(255, 255, 255, 0.1);
+        margin: 12px 24px;
+    }
+
+    .SD-menuItem {
+        padding: 14px 24px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        color: var(--text-primary, #ffffff);
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .SD-menuItem:active {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    .SD-menuItem i {
+        font-size: 20px;
+        color: rgba(255, 255, 255, 0.6);
+        width: 24px;
+        text-align: center;
+    }
+
+    .SD-menuItem span {
+        font-size: 15px;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+    }
+
+    .SD-expandIcon {
+        margin-left: auto;
+        font-size: 18px !important;
+        transition: transform 0.2s ease;
+    }
+
+    .SD-submenu {
+        background-color: rgba(0, 0, 0, 0.2);
+        animation: sd-slideDown 0.3s ease-out;
+        overflow: hidden;
+    }
+
+    @keyframes sd-slideDown {
+        from {
+            max-height: 0;
+            opacity: 0;
+        }
+
+        to {
+            max-height: 1000px;
+            opacity: 1;
+        }
+    }
+
+    .SD-submenuItem {
+        padding: 12px 24px 12px 56px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: rgba(255, 255, 255, 0.85);
+        cursor: pointer;
+        transition: background-color 0.2s;
+        font-size: 14px;
+    }
+
+    .SD-statusDot {
+        font-size: 10px;
+        font-weight: 700;
+        padding: 2px 6px;
+        border-radius: 4px;
+        background: #334155;
+        color: #94a3b8;
+    }
+
+    .SD-statusDot.is-active {
+        background: #2563eb;
+        color: white;
+    }
+
+    .SD-adminStatsText {
+        font-weight: 700;
+        color: #3b82f6;
+        text-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
+    }
+
+    .SD-badge {
+        background-color: #f97316;
+        color: white;
+        font-size: 10px;
+        padding: 2px 6px;
+        border-radius: 10px;
+        margin-left: 6px;
+        font-weight: 700;
+        vertical-align: middle;
+    }
+
+    .SD-pwaSection {
+        padding: 20px;
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0) 100%);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .SD-pwaContainer {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        background: rgba(0, 0, 0, 0.2);
+        padding: 16px;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .SD-footer {
+        padding: 20px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .SD-logoutBtn {
+        width: 100%;
+        padding: 12px;
+        background-color: rgba(255, 255, 255, 0.05);
+        border: none;
+        border-radius: 8px;
+        color: #ef4444;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        cursor: pointer;
+        margin-bottom: 12px;
+    }
+
+    .SD-disabledMenuItem {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .SD-profileEditBtn {
+        margin-top: 4px;
+        font-size: 0.75rem;
+        color: #a1a1aa;
+        background: transparent;
+        border: 1px solid #3f3f46;
+        border-radius: 4px;
+        padding: 2px 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .SD-profileEditBtn:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: #ffffff;
+        border-color: #52525b;
+    }
+
+    .SD-menuItem i.SD-favoriteIcon {
+        color: #ffffff;
+    }
+
+    .SD-menuItem.SD-adminToggle {
+        color: #ef4444;
+    }
+
+    .SD-menuItem i.SD-lensIcon {
+        color: #fb923c;
+    }
+
+    .SD-lockIcon {
+        margin-left: auto;
+        font-size: 14px;
+        color: #9ca3af;
+    }
+
+    .SD-isClickable {
+        cursor: pointer;
+        flex: 1;
+    }
+}
+
+/* ==========================================================================
+   PWAInstallModal Scope (PWIM-)
+   ========================================================================== */
+@scope (.PWAInstallModal) {
+    :scope {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.75);
+        backdrop-filter: blur(4px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: var(--z-modal-ultra, 10000);
+        padding: 1rem;
+        animation: pwim-fadeIn 0.2s ease;
+    }
+
+    .PWIM-container {
+        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        border-radius: 20px;
+        max-width: 500px;
+        width: 100%;
+        max-height: 90vh;
+        overflow: hidden;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        animation: pwim-slideUp 0.3s ease;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .PWIM-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .PWIM-header h2 {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 700;
+    }
+
+    .PWIM-closeBtn {
+        background: rgba(255, 255, 255, 0.2);
+        border: none;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        color: white;
+    }
+
+    .PWIM-tabs {
+        display: flex;
+        gap: 0.5rem;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .PWIM-tab {
+        flex: 1;
+        padding: 0.75rem 1rem;
+        border: none;
+        border-radius: 10px;
+        background: white;
+        color: #6b7280;
+        font-weight: 600;
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .PWIM-tab.is-active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .PWIM-content {
+        flex: 1;
+        overflow-y: auto;
+        padding: 1.5rem;
+    }
+
+    .PWIM-instructions {
+        animation: pwim-fadeIn 0.3s ease;
+    }
+
+    .PWIM-platformBadge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+        border-radius: 20px;
+        color: #667eea;
+        font-weight: 600;
+        font-size: 0.875rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .PWIM-steps {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        counter-reset: pwim-step;
+    }
+
+    .PWIM-stepItem {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        counter-increment: pwim-step;
+        position: relative;
+    }
+
+    .PWIM-stepItem:not(:last-child)::after {
+        content: '';
+        position: absolute;
+        left: 20px;
+        top: 45px;
+        bottom: -20px;
+        width: 2px;
+        background: linear-gradient(to bottom, #e5e7eb, transparent);
+    }
+
+    .PWIM-stepIcon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        position: relative;
+    }
+
+    .PWIM-stepIcon::before {
+        content: counter(pwim-step);
+        position: absolute;
+        top: -8px;
+        right: -8px;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        background: #ff6b6b;
+        color: white;
+        font-size: 0.75rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .PWIM-stepContent strong {
+        display: block;
+        font-size: 1rem;
+        color: #1f2937;
+        margin-bottom: 0.25rem;
+    }
+
+    .PWIM-stepContent p {
+        margin: 0;
+        color: #6b7280;
+        font-size: 0.875rem;
+        line-height: 1.5;
+    }
+
+    .PWIM-divider {
+        display: flex;
+        align-items: center;
+        margin: 1.5rem 0;
+        color: #9ca3af;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+
+    .PWIM-divider::before,
+    .PWIM-divider::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background: linear-gradient(to right, transparent, #e5e7eb, transparent);
+    }
+
+    .PWIM-divider span {
+        padding: 0 1rem;
+    }
+
+    .PWIM-note {
+        margin-top: 1.5rem;
+        padding: 1rem;
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.1));
+        border-left: 4px solid #3b82f6;
+        border-radius: 8px;
+        display: flex;
+        gap: 0.75rem;
+        align-items: flex-start;
+    }
+
+    .PWIM-note.is-success {
+        background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(22, 163, 74, 0.1));
+        border-left-color: #22c55e;
+    }
+
+    .PWIM-note p {
+        margin: 0;
+        color: #1f2937;
+        font-size: 0.875rem;
+        line-height: 1.5;
+    }
+
+    .PWIM-footer {
+        padding: 1rem 1.5rem;
+        border-top: 1px solid rgba(0, 0, 0, 0.1);
+        background: #f8f9fa;
+    }
+
+    .PWIM-actionBtn {
+        width: 100%;
+        padding: 0.875rem;
+        border: none;
+        border-radius: 10px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    @keyframes pwim-fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    @keyframes pwim-slideUp {
+        from {
+            transform: translateY(20px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+
+    @media (prefers-color-scheme: dark) {
+        .PWIM-container {
+            background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+        }
+
+        .PWIM-tabs,
+        .PWIM-footer {
+            background: #111827;
+        }
+
+        .PWIM-tab {
+            background: #374151;
+            color: #d1d5db;
+        }
+
+        .PWIM-stepContent strong {
+            color: #f3f4f6;
+        }
+
+        .PWIM-stepContent p,
+        .PWIM-note p {
+            color: #9ca3af;
+        }
+    }
+
+    @media (max-width: 640px) {
+        .PWIM-container {
+            border-radius: 20px 20px 0 0;
+            margin-top: auto;
+            max-height: 95vh;
+        }
+
+        .PWIM-tab span {
+            display: none;
+        }
+    }
+}
+
+/* ==========================================================================
+   LoginModal Scope (LM-)
+   ========================================================================== */
+@scope (.LoginModal) {
+    :scope {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0, 0, 0, 0.7);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: var(--z-modal-ultra, 10000);
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+        animation: lm-fadeIn 0.2s ease-out;
+    }
+
+    .LM-container {
+        background-color: #2d3139;
+        border-radius: 16px;
+        width: 90%;
+        max-width: 360px;
+        padding: 24px;
+        position: relative;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        animation: lm-slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .LM-header {
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+    }
+
+    .LM-closeBtn {
+        background: none;
+        border: none;
+        color: #888;
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: color 0.2s;
+    }
+
+    .LM-closeBtn:hover {
+        color: #fff;
+    }
+
+    .LM-message {
+        margin-bottom: 24px;
+        color: rgba(255, 255, 255, 0.95);
+        padding: 12px;
+        font: 600 1.25rem / 1.75rem "Pretendard Variable", sans-serif;
+        text-align: center;
+        white-space: pre-wrap;
+    }
+
+    .LM-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .LM-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        position: relative;
+        padding: 12px 16px;
+        border-radius: 8px;
+        font-weight: 500;
+        cursor: pointer;
+        border: none;
+        transition: transform 0.1s, opacity 0.2s;
+    }
+
+    .LM-btn-kakao {
+        background-color: #FEE500;
+        color: #000;
+    }
+
+    .LM-btn-kakao i {
+        position: absolute;
+        left: 16px;
+        font-size: 22px;
+    }
+
+    .LM-btn-google {
+        background-color: #FFFFFF;
+        color: #000;
+    }
+
+    .LM-btn-google svg {
+        position: absolute;
+        left: 16px;
+        width: 18px;
+        height: 18px;
+    }
+
+    .LM-footer {
+        margin-top: 24px;
+        font-size: 0.75rem;
+        color: #666;
+        text-align: center;
+        line-height: 1.4;
+    }
+
+    .LM-link {
+        color: #888;
+        font-weight: 500;
+        text-decoration: underline;
+        cursor: pointer;
+    }
+
+    @keyframes lm-fadeIn {
+        from {
+            opacity: 0;
+        }
+
+        to {
+            opacity: 1;
+        }
+    }
+
+    @keyframes lm-slideUp {
+        from {
+            transform: translateY(20px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+}

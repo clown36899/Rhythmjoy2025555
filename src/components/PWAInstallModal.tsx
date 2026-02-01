@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import './PWAInstallModal.css';
+import '../styles/domains/overlays.css';
 
 interface PWAInstallModalProps {
     isOpen: boolean;
@@ -12,7 +12,6 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClos
     const [platform, setPlatform] = useState<Platform>('desktop');
 
     useEffect(() => {
-        // 플랫폼 감지
         const userAgent = navigator.userAgent.toLowerCase();
         const isIOS = /iphone|ipad|ipod/.test(userAgent);
         const isAndroid = /android/.test(userAgent);
@@ -35,32 +34,32 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClos
     };
 
     return (
-        <div className="pwa-install-modal-overlay" onClick={handleBackdropClick}>
-            <div className="pwa-install-modal">
-                <div className="pwa-install-modal-header">
+        <div className="PWAInstallModal" onClick={handleBackdropClick}>
+            <div className="PWIM-container" onClick={e => e.stopPropagation()}>
+                <div className="PWIM-header">
                     <h2>📱 앱 설치 방법</h2>
-                    <button onClick={onClose} className="pwa-install-modal-close">
+                    <button onClick={onClose} className="PWIM-closeBtn">
                         <i className="ri-close-line"></i>
                     </button>
                 </div>
 
-                <div className="pwa-install-modal-tabs">
+                <div className="PWIM-tabs">
                     <button
-                        className={`pwa-install-tab ${platform === 'ios' ? 'active' : ''}`}
+                        className={`PWIM-tab ${platform === 'ios' ? 'is-active' : ''}`}
                         onClick={() => setPlatform('ios')}
                     >
                         <i className="ri-apple-fill"></i>
                         <span>iOS</span>
                     </button>
                     <button
-                        className={`pwa-install-tab ${platform === 'android' ? 'active' : ''}`}
+                        className={`PWIM-tab ${platform === 'android' ? 'is-active' : ''}`}
                         onClick={() => setPlatform('android')}
                     >
                         <i className="ri-android-fill"></i>
                         <span>Android</span>
                     </button>
                     <button
-                        className={`pwa-install-tab ${platform === 'desktop' ? 'active' : ''}`}
+                        className={`PWIM-tab ${platform === 'desktop' ? 'is-active' : ''}`}
                         onClick={() => setPlatform('desktop')}
                     >
                         <i className="ri-computer-line"></i>
@@ -68,45 +67,45 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClos
                     </button>
                 </div>
 
-                <div className="pwa-install-modal-content">
+                <div className="PWIM-content">
                     {platform === 'ios' && (
-                        <div className="pwa-install-instructions">
-                            <div className="pwa-install-platform-badge">
+                        <div className="PWIM-instructions">
+                            <div className="PWIM-platformBadge">
                                 <i className="ri-apple-fill"></i>
                                 <span>iPhone / iPad (Safari)</span>
                             </div>
 
-                            <ol className="pwa-install-steps">
-                                <li>
-                                    <div className="step-icon">
+                            <ol className="PWIM-steps">
+                                <li className="PWIM-stepItem">
+                                    <div className="PWIM-stepIcon">
                                         <i className="ri-upload-2-line"></i>
                                     </div>
-                                    <div className="step-content">
+                                    <div className="PWIM-stepContent">
                                         <strong>공유 버튼 탭</strong>
                                         <p>화면 하단(또는 상단)의 <strong>공유 아이콘</strong>을 탭하세요</p>
                                     </div>
                                 </li>
-                                <li>
-                                    <div className="step-icon">
+                                <li className="PWIM-stepItem">
+                                    <div className="PWIM-stepIcon">
                                         <i className="ri-add-box-line"></i>
                                     </div>
-                                    <div className="step-content">
+                                    <div className="PWIM-stepContent">
                                         <strong>"홈 화면에 추가" 선택</strong>
                                         <p>메뉴에서 <strong>"홈 화면에 추가"</strong>를 찾아 탭하세요</p>
                                     </div>
                                 </li>
-                                <li>
-                                    <div className="step-icon">
+                                <li className="PWIM-stepItem">
+                                    <div className="PWIM-stepIcon">
                                         <i className="ri-check-line"></i>
                                     </div>
-                                    <div className="step-content">
+                                    <div className="PWIM-stepContent">
                                         <strong>추가 확인</strong>
                                         <p>오른쪽 상단의 <strong>"추가"</strong> 버튼을 탭하세요</p>
                                     </div>
                                 </li>
                             </ol>
 
-                            <div className="pwa-install-note">
+                            <div className="PWIM-note">
                                 <i className="ri-information-line"></i>
                                 <p><strong>참고:</strong> iOS에서는 Safari 브라우저에서만 홈 화면 추가가 가능합니다.</p>
                             </div>
@@ -114,43 +113,43 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClos
                     )}
 
                     {platform === 'android' && (
-                        <div className="pwa-install-instructions">
-                            <div className="pwa-install-platform-badge">
+                        <div className="PWIM-instructions">
+                            <div className="PWIM-platformBadge">
                                 <i className="ri-android-fill"></i>
                                 <span>Android (Chrome)</span>
                             </div>
 
-                            <ol className="pwa-install-steps">
-                                <li>
-                                    <div className="step-icon">
+                            <ol className="PWIM-steps">
+                                <li className="PWIM-stepItem">
+                                    <div className="PWIM-stepIcon">
                                         <i className="ri-more-2-fill"></i>
                                     </div>
-                                    <div className="step-content">
+                                    <div className="PWIM-stepContent">
                                         <strong>메뉴 열기</strong>
                                         <p>화면 오른쪽 상단의 <strong>⋮ (점 3개)</strong> 메뉴를 탭하세요</p>
                                     </div>
                                 </li>
-                                <li>
-                                    <div className="step-icon">
+                                <li className="PWIM-stepItem">
+                                    <div className="PWIM-stepIcon">
                                         <i className="ri-download-cloud-line"></i>
                                     </div>
-                                    <div className="step-content">
+                                    <div className="PWIM-stepContent">
                                         <strong>"앱 설치" 또는 "홈 화면에 추가" 선택</strong>
                                         <p>메뉴에서 해당 옵션을 찾아 탭하세요</p>
                                     </div>
                                 </li>
-                                <li>
-                                    <div className="step-icon">
+                                <li className="PWIM-stepItem">
+                                    <div className="PWIM-stepIcon">
                                         <i className="ri-check-line"></i>
                                     </div>
-                                    <div className="step-content">
+                                    <div className="PWIM-stepContent">
                                         <strong>설치 확인</strong>
                                         <p>팝업에서 <strong>"설치"</strong> 또는 <strong>"추가"</strong> 버튼을 탭하세요</p>
                                     </div>
                                 </li>
                             </ol>
 
-                            <div className="pwa-install-note success">
+                            <div className="PWIM-note is-success">
                                 <i className="ri-lightbulb-line"></i>
                                 <p><strong>팁:</strong> 주소창에 설치 아이콘이 표시되면 바로 탭해도 됩니다!</p>
                             </div>
@@ -158,59 +157,59 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClos
                     )}
 
                     {platform === 'desktop' && (
-                        <div className="pwa-install-instructions">
-                            <div className="pwa-install-platform-badge">
+                        <div className="PWIM-instructions">
+                            <div className="PWIM-platformBadge">
                                 <i className="ri-computer-line"></i>
                                 <span>Desktop (Chrome / Edge)</span>
                             </div>
 
-                            <ol className="pwa-install-steps">
-                                <li>
-                                    <div className="step-icon">
+                            <ol className="PWIM-steps">
+                                <li className="PWIM-stepItem">
+                                    <div className="PWIM-stepIcon">
                                         <i className="ri-download-cloud-line"></i>
                                     </div>
-                                    <div className="step-content">
+                                    <div className="PWIM-stepContent">
                                         <strong>주소창 설치 아이콘 클릭</strong>
                                         <p>주소창 오른쪽의 <strong>설치 아이콘</strong>을 클릭하세요</p>
                                     </div>
                                 </li>
-                                <li>
-                                    <div className="step-icon">
+                                <li className="PWIM-stepItem">
+                                    <div className="PWIM-stepIcon">
                                         <i className="ri-check-line"></i>
                                     </div>
-                                    <div className="step-content">
+                                    <div className="PWIM-stepContent">
                                         <strong>설치 확인</strong>
                                         <p>팝업에서 <strong>"설치"</strong> 버튼을 클릭하세요</p>
                                     </div>
                                 </li>
                             </ol>
 
-                            <div className="pwa-install-divider">
+                            <div className="PWIM-divider">
                                 <span>또는</span>
                             </div>
 
-                            <ol className="pwa-install-steps" start={1}>
-                                <li>
-                                    <div className="step-icon">
+                            <ol className="PWIM-steps">
+                                <li className="PWIM-stepItem">
+                                    <div className="PWIM-stepIcon">
                                         <i className="ri-more-2-fill"></i>
                                     </div>
-                                    <div className="step-content">
+                                    <div className="PWIM-stepContent">
                                         <strong>브라우저 메뉴 열기</strong>
                                         <p>오른쪽 상단의 <strong>⋮ (점 3개)</strong> 메뉴를 클릭하세요</p>
                                     </div>
                                 </li>
-                                <li>
-                                    <div className="step-icon">
+                                <li className="PWIM-stepItem">
+                                    <div className="PWIM-stepIcon">
                                         <i className="ri-download-cloud-line"></i>
                                     </div>
-                                    <div className="step-content">
+                                    <div className="PWIM-stepContent">
                                         <strong>"앱 설치" 선택</strong>
                                         <p>메뉴에서 <strong>"댄스빌보드 설치..."</strong> 또는 <strong>"앱 설치"</strong>를 클릭하세요</p>
                                     </div>
                                 </li>
                             </ol>
 
-                            <div className="pwa-install-note">
+                            <div className="PWIM-note">
                                 <i className="ri-information-line"></i>
                                 <p><strong>참고:</strong> 최근에 앱을 삭제한 경우, 잠시 후 다시 시도해주세요.</p>
                             </div>
@@ -218,8 +217,8 @@ export const PWAInstallModal: React.FC<PWAInstallModalProps> = ({ isOpen, onClos
                     )}
                 </div>
 
-                <div className="pwa-install-modal-footer">
-                    <button onClick={onClose} className="pwa-install-modal-btn">
+                <div className="PWIM-footer">
+                    <button onClick={onClose} className="PWIM-actionBtn">
                         확인
                     </button>
                 </div>
