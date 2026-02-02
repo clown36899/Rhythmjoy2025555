@@ -326,12 +326,91 @@
     background: var(--color-gray-600);
 }
 
+/* Genre Colors */
+.genre-color-red {
+    background: var(--genre-red-400);
+}
+
+.genre-color-orange {
+    background: var(--genre-orange-400);
+}
+
+.genre-color-amber {
+    background: var(--genre-amber-400);
+}
+
+.genre-color-yellow {
+    background: var(--genre-yellow-400);
+}
+
+.genre-color-lime {
+    background: var(--genre-lime-400);
+}
+
+.genre-color-green {
+    background: var(--genre-green-400);
+}
+
+.genre-color-emerald {
+    background: var(--genre-emerald-400);
+}
+
+.genre-color-teal {
+    background: var(--genre-teal-400);
+}
+
+.genre-color-cyan {
+    background: var(--genre-cyan-400);
+}
+
+.genre-color-sky {
+    background: var(--genre-sky-400);
+}
+
+.genre-color-blue {
+    background: var(--genre-blue-400);
+}
+
+.genre-color-indigo {
+    background: var(--genre-indigo-400);
+}
+
+.genre-color-violet {
+    background: var(--genre-violet-400);
+}
+
+.genre-color-purple {
+    background: var(--genre-purple-400);
+}
+
+.genre-color-fuchsia {
+    background: var(--genre-fuchsia-400);
+}
+
+.genre-color-pink {
+    background: var(--genre-pink-400);
+}
+
+.genre-color-rose {
+    background: var(--genre-rose-400);
+}
+
+.genre-color-gray {
+    background: var(--color-gray-500);
+}
+
 .EED-genre {
     font-size: 0.85rem;
     font-weight: 700;
-    padding: 4px 8px;
-    border-radius: 6px;
+    padding: 6px 12px;
+    border-radius: 8px;
     color: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease;
+}
+
+.EED-genre:hover {
+    transform: translateY(-1px);
 }
 
 .EED-placeholder {
@@ -387,8 +466,9 @@
 
 .EED-infoItem:hover {
     background: var(--bg-surface-2);
-    border-color: var(--border-glass);
-    transform: translateX(4px);
+    border-color: var(--color-blue-500);
+    transform: translateX(6px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
 .EED-infoIcon {
@@ -700,6 +780,220 @@
     }
 }
 
+/* Portal & Sheets */
+.EED-portal {
+    position: fixed;
+    inset: 0;
+    z-index: calc(var(--z-modal-stack-1) + 100);
+}
+
+.EED-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+    animation: eed-fadeIn 0.3s ease-out;
+}
+
+.EED-sheet {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--bg-surface-1);
+    border-top-left-radius: 2rem;
+    border-top-right-radius: 2rem;
+    padding-bottom: env(safe-area-inset-bottom);
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 -20px 60px rgba(0, 0, 0, 0.7);
+    animation: eed-slideUp 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+    border: 1px solid var(--border-glass-strong);
+    border-bottom: none;
+    overflow: hidden;
+}
+
+.EED-sheetHandle {
+    width: 40px;
+    height: 4px;
+    background: var(--border-glass-strong);
+    border-radius: 2px;
+    margin: 12px auto;
+    flex-shrink: 0;
+}
+
+.EED-sheetHeader {
+    padding: 10px 24px 20px;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: white;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.EED-sheetHeader.is-between {
+    justify-content: space-between;
+}
+
+.EED-sheetBody {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 24px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.EED-sheetActions {
+    padding: 16px 24px 24px;
+    display: flex;
+    gap: 12px;
+}
+
+.EED-sheetBtn {
+    flex: 1;
+    height: 52px;
+    border-radius: 14px;
+    border: 1px solid var(--border-glass-strong);
+    background: var(--bg-surface-2);
+    color: white;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.EED-sheetBtn:hover {
+    background: var(--bg-surface-3);
+}
+
+.EED-sheetBtn.is-primary {
+    background: linear-gradient(135deg, var(--color-blue-500) 0%, var(--color-blue-700) 100%);
+    border: none;
+    box-shadow: var(--shadow-glow-blue);
+}
+
+.EED-sheetBtn.is-active {
+    background: var(--color-blue-600);
+    border-color: var(--color-blue-400);
+    color: white;
+}
+
+.EED-sheetBtn.is-overseas {
+    border-color: var(--color-purple-500);
+}
+
+.EED-sheetBtn.is-overseas.is-active {
+    background: var(--color-purple-600);
+}
+
+.EED-sheetHint {
+    font-size: 0.85rem;
+    color: var(--text-tertiary);
+    line-height: 1.5;
+    margin-bottom: 4px;
+}
+
+.EED-sheetHint .is-error {
+    color: var(--color-red-400);
+}
+
+/* Date Display & Box */
+.EED-dateDisplay {
+    margin-bottom: 12px;
+}
+
+.EED-dateBox {
+    padding: 12px;
+    border-radius: 12px;
+    background: var(--bg-surface-2);
+    border: 1px solid var(--border-glass);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.EED-dateBox.is-active {
+    border-color: var(--color-blue-500);
+    background: rgba(37, 99, 235, 0.1);
+}
+
+.EED-dateLabel {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-tertiary);
+}
+
+.EED-dateValue {
+    font-size: 1rem;
+    font-weight: 700;
+    color: white;
+}
+
+.EED-tagGroup.is-large {
+    min-height: 48px;
+    padding: 8px;
+    background: var(--bg-surface-2);
+    border-radius: 12px;
+    border: 1px solid var(--border-glass);
+}
+
+/* Genre Box Overrides */
+.EED-classification .EED-editBadge {
+    position: static;
+    margin-left: 4px;
+}
+
+/* Custom styles for React DatePicker context */
+.EED-calendar .react-datepicker {
+    background: transparent;
+    border: none;
+    font-family: inherit;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.EED-calendar .react-datepicker__header {
+    background: transparent;
+    border-bottom: 1px solid var(--border-glass);
+}
+
+.EED-calendar .react-datepicker__current-month,
+.EED-calendar .react-datepicker__day-name {
+    color: white;
+}
+
+.EED-calendar .react-datepicker__day {
+    color: rgba(255, 255, 255, 0.8);
+    border-radius: 8px;
+}
+
+.EED-calendar .react-datepicker__day:hover {
+    background: var(--bg-surface-3);
+}
+
+.EED-calendar .react-datepicker__day--selected {
+    background: var(--color-blue-600) !important;
+    color: white !important;
+    font-weight: 800;
+}
+
+.EED-calendar .react-datepicker__day--highlighted {
+    background: rgba(37, 99, 235, 0.2);
+    color: var(--color-blue-400);
+}
+
+.EED-calendar .react-datepicker__day--keyboard-selected {
+    background: transparent;
+}
+
 /* Desktop Adjustments */
 @media (min-width: 768px) {
     .EED-container {
@@ -727,5 +1021,22 @@
         padding: 40px;
         max-height: 100%;
         overflow-y: auto;
+    }
+
+    .EED-sheet {
+        position: absolute;
+        bottom: 50%;
+        left: 50%;
+        transform: translate(-50%, 50%);
+        width: 100%;
+        max-width: 450px;
+        max-height: 80vh;
+        border-radius: 24px;
+        border-bottom: 1px solid var(--border-glass-strong);
+        animation: eed-fadeIn 0.3s ease-out;
+    }
+
+    .EED-sheetHandle {
+        display: none;
     }
 }

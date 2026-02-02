@@ -1,0 +1,2341 @@
+import { useState, useEffect, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
+import { supabase } from '../../../lib/supabase'; // Import value for update
+import type { Event as BaseEvent } from '../../../lib/supabase';
+import { useDefaultThumbnail } from '../../../hooks/useDefaultThumbnail';
+import { getEventThumbnail } from '../../../utils/getEventThumbnail';
+import { parseMultipleContacts, copyToClipboard } from '../../../utils/contactLink';
+import { logEvent, logPageView } from '../../../lib/analytics';
+import "../../../styles/components/EventDetailModal.css";
+import "../../../pages/v2/styles/components/EventDetailModal.css"; // Ensure V2 styles are imported
+import { useAuth } from '../../../contexts/AuthContext';
+import VenueSelectModal from './VenueSelectModal';
+import ImageCropModal from '../../../components/ImageCropModal';
+import { createResizedImages } from '../../../utils/imageResize';
+import DatePicker, { registerLocale } from "react-datepicker";
+import { ko } from "date-fns/locale/ko";
+import "react-datepicker/dist/react-datepicker.css";
+
+registerLocale("ko", ko);
+import GlobalLoadingOverlay from '../../../components/GlobalLoadingOverlay';
+import { retryOperation } from '../../../utils/asyncUtils';
+import { useViewTracking } from '../../../hooks/useViewTracking';
+
+
+interface Event extends Omit<BaseEvent, 'date' | 'start_date' | 'end_date' | 'event_dates'> {
+  storage_path?: string | null;
+  genre?: string | null;
+  date?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  event_dates?: string[] | null;
+  views?: number;
+}
+
+const genreColorPalette = [
+  'genre-color-red',
+  'genre-color-orange',
+  'genre-color-amber',
+  'genre-color-yellow',
+  'genre-color-lime',
+  'genre-color-green',
+  'genre-color-emerald',
+  'genre-color-teal',
+  'genre-color-cyan',
+  'genre-color-sky',
+  'genre-color-blue',
+  'genre-color-indigo',
+  'genre-color-violet',
+  'genre-color-purple',
+  'genre-color-fuchsia',
+  'genre-color-pink',
+  'genre-color-rose',
+];
+
+function getGenreColor(genre: string): string {
+  if (!genre) return 'genre-color-gray';
+  let hash = 0;
+  for (let i = 0; i < genre.length; i++) {
+    hash = genre.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash % genreColorPalette.length);
+  return genreColorPalette[index];
+}
+
+interface EventDetailModalProps {
+  event: Event | null;
+  isOpen: boolean;
+  onClose: () => void;
+  onEdit: (event: Event, arg?: React.MouseEvent | string) => void;
+  onDelete: (event: Event, e?: React.MouseEvent) => void;
+  isAdminMode?: boolean;
+  currentUserId?: string; // Add currentUserId prop
+  isFavorite?: boolean;
+  onToggleFavorite?: (e: React.MouseEvent) => void;
+  onOpenVenueDetail?: (venueId: string) => void;
+  allGenres?: { class: string[]; event: string[] } | string[]; // Backwards compatibility if needed, but we'll cast to structured
+  isDeleting?: boolean;
+  deleteProgress?: number;
+}
+
+export default function EventDetailModal({
+  event,
+  isOpen,
+  onClose,
+  onEdit: _onEdit,
+  onDelete: _onDelete,
+  isAdminMode = false,
+  currentUserId,
+  isFavorite = false,
+  onToggleFavorite,
+  onOpenVenueDetail,
+  allGenres = { class: [], event: [] },
+  isDeleting = false,
+  deleteProgress,
+}: EventDetailModalProps) {
+  // Safe cast or normalization
+  const structuredGenres = Array.isArray(allGenres)
+    ? { class: [], event: [] } // Fallback or logic to distribute if we really needed, but generally we expect structured now
+    : allGenres;
+
+  const { user, signInWithKakao, isAdmin: isActualAdmin } = useAuth();
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+
+  // View tracking Hook
+  const eventId = event?.id ? String(event.id).replace('social-', '') : '';
+  const itemType = event?.id && String(event.id).startsWith('social-') ? 'schedule' : 'event';
+  const { incrementView } = useViewTracking(eventId, itemType as 'event' | 'schedule');
+
+  // console.log('[EventDetailModal] 모달 열림 - event:', event?.title, 'isActualAdmin:', isActualAdmin, 'board_users:', (event as any)?.board_users);
+
+
+
+  const [showFullscreenImage, setShowFullscreenImage] = useState(false);
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [isInternalDeleting, setIsInternalDeleting] = useState(false); // Internal loading state
+  const [internalProgress, setInternalProgress] = useState(0); // Internal progress for spinner
+  const [dateMode, setDateMode] = useState<'single' | 'dates'>('single'); // Track date mode separately
+
+  // Draft State for Local Edits
+  const [draftEvent, setDraftEvent] = useState<Event | null>(event);
+  // Source of truth for change detection (tracks full details fetched from DB)
+  const [originalEvent, setOriginalEvent] = useState<Event | null>(event);
+  const [isFetchingDetail, setIsFetchingDetail] = useState(false);
+
+  useEffect(() => {
+    setDraftEvent(event);
+    setOriginalEvent(event); // Reset baseline to prop
+  }, [event]);
+
+  const { defaultThumbnailClass, defaultThumbnailEvent } = useDefaultThumbnail();
+
+  // Smooth Transition State
+  const [isHighResLoaded, setIsHighResLoaded] = useState(false);
+
+  // Derive sources from Draft if available
+  const displayEvent = draftEvent || event;
+
+  const thumbnailSrc = displayEvent ? (displayEvent.image_micro || displayEvent.image_thumbnail ||
+    getEventThumbnail(displayEvent, defaultThumbnailClass, defaultThumbnailEvent)) : null;
+
+  // Prioritize Medium for faster loading, Fallback to others. This prevents loading 5MB images in a 400px modal.
+  const highResSrc = useMemo(() => {
+    if (!displayEvent) return null;
+
+    // 1. Smart Derivation (If path implies medium exists, derive it from full/original)
+    const sourceImage = displayEvent.image;
+    if (sourceImage && typeof sourceImage === 'string') {
+      if (sourceImage.includes('/event-posters/full/')) {
+        return sourceImage.replace('/event-posters/full/', '/event-posters/medium/');
+      }
+    }
+
+    // 2. Explicit Medium (Most Optimized)
+    if (displayEvent.image_medium) return displayEvent.image_medium;
+
+    // 3. Fallbacks - use thumbnail or original, but avoid image_full (too large)
+    return displayEvent.image_thumbnail || displayEvent.image;
+  }, [displayEvent]);
+
+
+  // Effect to preload high-res image
+  useEffect(() => {
+    setIsHighResLoaded(false);
+
+    if (highResSrc && highResSrc !== thumbnailSrc) {
+      const img = new Image();
+      img.src = highResSrc;
+      img.onload = () => {
+        setIsHighResLoaded(true);
+      };
+    } else if (!highResSrc && thumbnailSrc) {
+      // 고화질 없고 썸네일만 있는 경우 로딩 완료 처리 (사실상 변화 없음)
+      setIsHighResLoaded(true);
+    }
+  }, [highResSrc, thumbnailSrc]);
+  // Enable mobile back gesture to close modal
+  // useModalHistory(isOpen, onClose);
+
+  // Analytics: Log virtual page view for better reporting (Pages and Screens)
+  useEffect(() => {
+    if (isOpen && event) {
+      // 1. 이벤트성 로그 (기존)
+      logEvent('Event', 'View Detail', `${event.title} (ID: ${event.id})`);
+
+      // 2. 가상 페이지뷰 로그 (신규 - 페이지 보고서 용)
+      // 실제 URL은 변하지 않지만, GA4에는 페이지가 바뀐 것처럼 전송
+      logPageView(`/event/${event.id}`, event.title);
+
+      // 3. 조회수 증가
+      incrementView();
+    }
+  }, [isOpen, event, incrementView]);
+
+  // Check if event has started (for hiding edit/delete buttons)
+  const isPastEvent = useMemo(() => {
+    if (!displayEvent) return false;
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const startDate = displayEvent.start_date || displayEvent.date;
+    return startDate ? startDate < today : false;
+  }, [displayEvent]);
+
+
+  const handleLogin = () => {
+    signInWithKakao();
+  };
+
+  // Reset selection mode and draft state when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setIsSelectionMode(false);
+      setDraftEvent(event);
+      setImageFile(null);
+      setTempImageSrc(null);
+      setOriginalImageUrl(null); // 원본 이미지 URL 리셋
+    }
+  }, [isOpen, event]);
+
+
+
+  // Image Edit State
+
+
+  // Image Edit State
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+  const [tempImageSrc, setTempImageSrc] = useState<string | null>(null);
+
+
+
+  // 원본 이미지 정보 보관 (DB 저장 전까지 유지)
+  const [originalImageUrl, setOriginalImageUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Helper to read file as Data URL
+  const fileToDataURL = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target?.result as string);
+      reader.onerror = (err) => reject(err);
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleImageClick = async () => {
+    if (!isSelectionMode) return;
+
+    // 1. Open Modal Immediately
+    setIsCropModalOpen(true);
+    // 2. Start Loading State (Passed to modal)
+    setIsFetchingDetail(true);
+
+    // Yield to UI to ensure modal opens
+
+    // Yield to UI to ensure modal opens
+    await new Promise(resolve => setTimeout(resolve, 0));
+
+    try {
+      if (imageFile) {
+        setTempImageSrc(await fileToDataURL(imageFile));
+      } else if (draftEvent?.image) {
+        // 원본 이미지 URL 저장 (첫 편집 시에만)
+        if (!originalImageUrl) {
+          setOriginalImageUrl(draftEvent.image);
+        }
+        setTempImageSrc(draftEvent.image);
+      } else {
+        setTempImageSrc(null);
+      }
+    } catch (e) {
+      console.error('Failed to prepare image for edit:', e);
+      setTempImageSrc(null);
+    } finally {
+      setIsFetchingDetail(false);
+    }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+
+      // Ensure modal is open immediately
+      setIsCropModalOpen(true);
+      setIsFetchingDetail(true);
+
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      try {
+        const dataUrl = await fileToDataURL(file);
+        setTempImageSrc(dataUrl);
+        // setIsCropModalOpen(true); // Already opened above
+      } catch (error) {
+        console.error("Failed to load image:", error);
+        alert("이미지를 불러오는데 실패했습니다.");
+      } finally {
+        setIsFetchingDetail(false);
+      }
+      e.target.value = ''; // Reset input
+    }
+  };
+
+  const handleCropComplete = (croppedFile: File, previewUrl: string) => {
+    if (!draftEvent) return;
+
+    setImageFile(croppedFile);
+    // Update draft event with preview URL to show immediately
+    setDraftEvent({
+      ...draftEvent,
+      image: previewUrl,
+      image_medium: undefined,
+      image_full: undefined,
+      image_thumbnail: undefined
+    } as any);
+  };
+
+  const handleImageUpdate = async (file: File) => {
+    if (!draftEvent) return;
+
+    // 파일을 Data URL로 변환하여 미리보기
+    const dataUrl = await fileToDataURL(file);
+    setImageFile(file);
+    setDraftEvent({
+      ...draftEvent,
+      image: dataUrl,
+      image_medium: undefined,
+      image_full: undefined,
+      image_thumbnail: undefined
+    } as any);
+    setTempImageSrc(dataUrl);
+  };
+
+  // Bottom Sheet Edit State
+  // Bottom Sheet Edit State
+  const [activeEditField, setActiveEditField] = useState<string | null>(null);
+  const [showVenueSelect, setShowVenueSelect] = useState(false);
+  const [editValue, setEditValue] = useState('');
+  const [editCategory, setEditCategory] = useState<'event' | 'class' | 'club'>('event'); // Added 'club' type
+  // const [useDirectInput, setUseDirectInput] = useState(false); // Removed
+
+  const [linkEditValues, setLinkEditValues] = useState({
+    link1: '', link_name1: '',
+    link2: '', link_name2: '',
+    link3: '', link_name3: ''
+  });
+  const [isSaving, setIsSaving] = useState(false);
+  const [authorNickname, setAuthorNickname] = useState<string | null>(null);
+
+  // Extract authorNickname from board_users if already present
+  useEffect(() => {
+    const nickname = (event as any)?.board_users?.nickname;
+    if (nickname && !authorNickname) {
+      setAuthorNickname(nickname);
+    }
+  }, [event, authorNickname]);
+
+  console.log('[EventDetailModal] Render:', { isOpen, eventId: event?.id, hasEvent: !!event });
+
+  useEffect(() => {
+    if (isOpen) {
+      console.log('[EventDetailModal] Modal opened with event:', event);
+    }
+  }, [isOpen, event]);
+
+  // Moved fetching logic here to access authorNickname
+  useEffect(() => {
+    // On-Demand Fetching: 필수 필드 누락 시 또는 권한이 있는데 작성자 닉네임이 없을 때 조회
+    const shouldFetch = event?.id && (
+      event.description === undefined ||
+      !event.user_id ||
+      event.link1 === undefined ||
+      // 관리자거나 본인인데 닉네임이 없으면 정보 조회를 위해 fetch
+      ((isAdminMode || (user && user.id === event.user_id)) && !authorNickname && !(event as any).board_users)
+    );
+
+    if (shouldFetch) {
+      const fetchDetail = async () => {
+        try {
+          setIsFetchingDetail(true);
+
+          let isSocialIntegrated = String(event!.id).startsWith('social-');
+          let originalId = isSocialIntegrated ? String(event!.id).replace('social-', '') : event!.id;
+
+          // [FIX] FullCalendar Offset Handling (ID > 10,000,000)
+          if (Number(event!.id) > 10000000) {
+            isSocialIntegrated = true;
+            originalId = String(Number(event!.id) - 10000000);
+          }
+
+          console.log('[EventDetailModal] Fetching detail for:', { originalId, isSocialIntegrated });
+
+          if (isSocialIntegrated) {
+            const { data, error } = await supabase
+              .from('social_schedules')
+              .select('*, board_users(nickname), social_groups(name)')
+              .eq('id', originalId)
+              .maybeSingle();
+
+            if (error) throw error;
+            console.log('[EventDetailModal] Social Fetch Result:', data);
+            if (data) {
+              const mappedSocial: any = {
+                ...event,
+                ...data,
+                id: event!.id,
+                location: data.place_name || '',
+                organizer: (Array.isArray(data.social_groups) ? (data.social_groups[0] as any)?.name : (data.social_groups as any)?.name) ||
+                  (Array.isArray(data.board_users) ? (data.board_users[0] as any)?.nickname : (data.board_users as any)?.nickname) ||
+                  '단체소셜',
+                category: data.v2_category || 'club',
+                genre: data.v2_genre || '',
+                link1: data.link_url,
+                link_name1: data.link_name,
+                board_users: Array.isArray(data.board_users) ? data.board_users[0] : data.board_users,
+                is_social_integrated: true
+              };
+              setDraftEvent(mappedSocial);
+              setOriginalEvent(mappedSocial);
+              const nickname = Array.isArray(data.board_users) ? (data.board_users[0] as any)?.nickname : (data.board_users as any)?.nickname;
+              if (nickname) setAuthorNickname(nickname);
+            }
+          } else {
+            const { data, error } = await supabase
+              .from('events')
+              .select('*, board_users(nickname)')
+              .eq('id', originalId)
+              .maybeSingle();
+
+            if (error) throw error;
+            console.log('[EventDetailModal] Event Fetch Result:', data);
+            if (data) {
+              const fullEvent = { ...event, ...(data as any) } as Event;
+              setDraftEvent(fullEvent);
+              setOriginalEvent(fullEvent);
+              const nickname = (data as any).board_users?.nickname;
+              if (nickname) setAuthorNickname(nickname);
+            }
+          }
+        } catch (err) {
+          console.error('[EventDetailModal] Fetch error:', err);
+        } finally {
+          setIsFetchingDetail(false);
+        }
+      };
+      fetchDetail();
+    }
+  }, [event, isAdminMode, user, authorNickname, isOpen]);
+
+  // Genre Management State (Moved down to access editCategory/editValue)
+  const [allHistoricalGenres, setAllHistoricalGenres] = useState<string[]>([]);
+  // const [localCustomGenres, setLocalCustomGenres] = useState<string[]>([]); // Removed
+  // const [customGenreInput, setCustomGenreInput] = useState(''); // Removed
+
+  // Fetch ALL historical genres on mount
+  useEffect(() => {
+    const fetchGenres = async () => {
+      const { data, error } = await supabase
+        .from('events')
+        .select('genre');
+
+      if (!error && data) {
+        // 1. Extract all non-null genres
+        const rawGenres = data.map(d => d.genre).filter(Boolean) as string[];
+        // 2. Split by comma to ensure atomicity (Fixing the duplication bug)
+        const atomicGenres = rawGenres.flatMap(g => g.split(',').map(s => s.trim()));
+        // 3. Unique set
+        const unique = Array.from(new Set(atomicGenres)).sort();
+        setAllHistoricalGenres(unique);
+      }
+    };
+    fetchGenres();
+  }, []);
+
+  // Compute final unique genres for display
+  const uniqueGenres = useMemo(() => {
+    // Start with prop-provided genres (if any)
+    // For 'club' category, use 'class' genres as they share the same genre list
+    const propGenres = editCategory === 'club'
+      ? (structuredGenres['class'] || [])
+      : (structuredGenres[editCategory] || []);
+
+    // Combine all sources: Prop + Historical + Local Custom
+    const combined = [
+      ...propGenres,
+      ...allHistoricalGenres,
+      // ...localCustomGenres // Removed
+    ];
+    // Filter, Flatten, Unique, Sort
+    // Enforce strict genres based on category
+    if (editCategory === 'club') {
+      return ['정규강습', '린디합', '솔로재즈', '발보아', '블루스', '팀원모집'];
+    }
+
+    // Fallback for other potential categories (though currently only event/class exist)
+    return Array.from(new Set(
+      combined
+        .flatMap(g => g.split(',')) // Crucial: Flatten any accidental comma-strings
+        .map(s => s.trim())
+        .filter(s => s && s.length > 0) // Remove empty
+    )).sort();
+  }, [editCategory, structuredGenres, allHistoricalGenres]);
+
+  useEffect(() => {
+    if (activeEditField && draftEvent) {
+      if (activeEditField === 'title') setEditValue(draftEvent.title);
+      if (activeEditField === 'genre') {
+        setEditValue(draftEvent.genre || '');
+        setEditCategory((draftEvent.category === 'class' || draftEvent.category === 'club') ? draftEvent.category : 'event');
+        // setUseDirectInput(false); // Removed
+      }
+      // Location moved to VenueSelectModal
+      if (activeEditField === 'description') setEditValue(draftEvent.description || '');
+      if (activeEditField === 'links') {
+        setLinkEditValues({
+          link1: draftEvent.link1 || '',
+          link_name1: draftEvent.link_name1 || '',
+          link2: draftEvent.link2 || '',
+          link_name2: draftEvent.link_name2 || '',
+          link3: draftEvent.link3 || '',
+          link_name3: draftEvent.link_name3 || ''
+        });
+      }
+    }
+  }, [activeEditField, draftEvent]);
+
+  const handleVenueSelect = (venue: any) => {
+    if (!draftEvent) return;
+    setDraftEvent({
+      ...draftEvent,
+      location: venue.name,
+      location_link: venue.map_url,
+      venue_id: venue.id
+    });
+  };
+
+  const handleManualVenueInput = (name: string, link: string) => {
+    if (!draftEvent) return;
+    setDraftEvent({
+      ...draftEvent,
+      location: name,
+      location_link: link,
+      venue_id: null,
+      venue_name: null
+    });
+  };
+
+  const handleSaveField = () => {
+    if (!draftEvent || !activeEditField) return;
+
+    const updates: Partial<Event> = {};
+
+    if (activeEditField === 'title') updates.title = editValue;
+    if (activeEditField === 'genre') {
+      updates.genre = editValue;
+      updates.category = editCategory;
+    }
+    if (activeEditField === 'description') updates.description = editValue;
+    if (activeEditField === 'date') {
+      if (dateMode === 'dates') {
+        // Multiple dates mode
+        const dates = editValue.split(',').filter(Boolean).sort();
+        updates.event_dates = dates;
+        if (dates.length > 0) {
+          updates.start_date = dates[0];
+          updates.date = dates[0];
+          updates.end_date = dates[dates.length - 1];
+        } else {
+          updates.start_date = null;
+          updates.date = null;
+          updates.end_date = null;
+        }
+      } else {
+        // Single date mode
+        const singleDate = editValue || null;
+        updates.start_date = singleDate;
+        updates.date = singleDate;
+        updates.end_date = singleDate;
+        updates.event_dates = null;
+      }
+    }
+    if (activeEditField === 'links') {
+      updates.link1 = linkEditValues.link1;
+      updates.link_name1 = linkEditValues.link_name1;
+      updates.link2 = linkEditValues.link2;
+      updates.link_name2 = linkEditValues.link_name2;
+      updates.link3 = linkEditValues.link3;
+      updates.link_name3 = linkEditValues.link_name3;
+    }
+
+    setDraftEvent({ ...draftEvent, ...updates });
+    setActiveEditField(null);
+  };
+
+  // 변경사항 감지 함수
+  const hasChanges = () => {
+    if (!event || !draftEvent) return false;
+
+    // 이미지 변경 확인
+    if (imageFile) return true;
+
+    // Helper to normalize values for comparison (treat null/undefined/empty string as same)
+    const normalize = (val: any) => {
+      if (val === null || val === undefined) return '';
+      if (typeof val === 'string') return val.trim();
+      return val;
+    };
+
+    // 필드 변경 확인
+    const fieldsToCheck = [
+      'title', 'description', 'location', 'location_link', 'venue_id', 'genre', 'category',
+      'link1', 'link_name1', 'link2', 'link_name2', 'link3', 'link_name3',
+      'date', 'start_date', 'end_date', 'event_dates'
+    ];
+
+    console.log('[hasChanges] Checking for changes...');
+    const changedFields: string[] = [];
+
+    const hasChanged = fieldsToCheck.some(field => {
+      // Use originalEvent (fetched full data) instead of event (partial prop)
+      const originalValue = originalEvent ? originalEvent[field as keyof Event] : event[field as keyof Event];
+      const draftValue = draftEvent[field as keyof Event];
+
+      const isChanged = normalize(originalValue) !== normalize(draftValue);
+      if (isChanged) {
+        changedFields.push(field);
+      }
+      return isChanged;
+    });
+
+    return hasChanged;
+  };
+
+  const handleFinalSave = async () => {
+    if (!draftEvent) return;
+
+
+    try {
+      setIsSaving(true);
+
+      // Capture timestamp at the start of save for consistent folder naming
+      const timestamp = Date.now();
+
+      // UI 렌더링을 위해 양보 (0ms)
+      await new Promise(resolve => setTimeout(resolve, 0));
+
+      // Initialize updates with current draft state
+      const updates: any = {
+        title: draftEvent.title,
+        genre: draftEvent.genre,
+        category: draftEvent.category,
+        description: draftEvent.description,
+        location: draftEvent.location,
+        location_link: draftEvent.location_link,
+        venue_id: draftEvent.venue_id,
+        // Add date fields
+        date: draftEvent.date,
+        start_date: draftEvent.start_date,
+        end_date: draftEvent.end_date,
+        event_dates: draftEvent.event_dates,
+        // Add link fields
+        link1: draftEvent.link1,
+        link_name1: draftEvent.link_name1,
+        link2: draftEvent.link2,
+        link_name2: draftEvent.link_name2,
+        link3: draftEvent.link3,
+        link_name3: draftEvent.link_name3
+      };
+
+
+
+
+      // Upload image if changed
+      if (imageFile) {
+        const randomString = Math.random().toString(36).substring(2, 7);
+        const eventFolder = `${timestamp}_${randomString}`;
+        const basePath = `event-posters/${eventFolder}`;
+        const imageStoragePath = basePath;
+
+        // Resize images
+        const resizedImages = await createResizedImages(imageFile);
+
+        // [최적화] 병렬 업로드 및 재시도 로직 적용
+        console.log('[Image Upload] Starting parallel upload with retries:', basePath);
+
+        const uploadTasks = [
+          // Full Size
+          retryOperation(() => supabase.storage
+            .from('images')
+            .upload(`${basePath}/full.webp`, resizedImages.full, {
+              contentType: 'image/webp',
+              upsert: true
+            })
+          ).then(({ error }) => { if (error) throw error; }),
+
+          // Medium
+          resizedImages.medium ? retryOperation(() => supabase.storage
+            .from('images')
+            .upload(`${basePath}/medium.webp`, resizedImages.medium!, {
+              contentType: 'image/webp',
+              upsert: true
+            })
+          ).then(({ error }) => { if (error) throw error; }) : Promise.resolve(),
+
+          // Thumbnail
+          resizedImages.thumbnail ? retryOperation(() => supabase.storage
+            .from('images')
+            .upload(`${basePath}/thumbnail.webp`, resizedImages.thumbnail!, {
+              contentType: 'image/webp',
+              upsert: true
+            })
+          ).then(({ error }) => { if (error) throw error; }) : Promise.resolve(),
+
+          // Micro
+          resizedImages.micro ? retryOperation(() => supabase.storage
+            .from('images')
+            .upload(`${basePath}/micro.webp`, resizedImages.micro!, {
+              contentType: 'image/webp',
+              upsert: true
+            })
+          ).then(({ error }) => { if (error) throw error; }) : Promise.resolve()
+        ];
+
+        try {
+          await Promise.all(uploadTasks);
+          console.log('[Image Upload] All versions uploaded successfully');
+        } catch (uploadError) {
+          console.error('[Image Upload] Failed to upload one or more versions:', uploadError);
+          throw uploadError;
+        }
+
+        const publicUrl = supabase.storage
+          .from('images')
+          .getPublicUrl(`${basePath}/full.webp`).data.publicUrl;
+
+        const mediumUrl = supabase.storage
+          .from('images')
+          .getPublicUrl(`${basePath}/medium.webp`).data.publicUrl;
+
+        const thumbnailUrl = supabase.storage
+          .from('images')
+          .getPublicUrl(`${basePath}/thumbnail.webp`).data.publicUrl;
+
+        const microUrl = supabase.storage
+          .from('images')
+          .getPublicUrl(`${basePath}/micro.webp`).data.publicUrl;
+
+        // Update draft fields
+        updates.image = publicUrl;
+        updates.image_full = publicUrl;
+        updates.image_medium = mediumUrl;
+        updates.image_thumbnail = thumbnailUrl;
+        updates.image_micro = microUrl;
+        updates.storage_path = imageStoragePath;
+      }
+
+      // Capture old paths for cleanup if image is changed
+      const oldStoragePath = originalEvent?.storage_path || event?.storage_path || null;
+      const oldImageUrls = [
+        originalEvent?.image,
+        originalEvent?.image_micro,
+        originalEvent?.image_thumbnail,
+        originalEvent?.image_medium,
+        originalEvent?.image_full
+      ].filter(url => !!url);
+
+      // 🎯 [PAYLOAD CLEANUP] Remove undefined values to prevent unexpected DB behavior
+      // but keep null values to allow clearing fields in DB
+      Object.keys(updates).forEach(key => {
+        if (updates[key] === undefined) {
+          delete updates[key];
+        }
+      });
+
+      // 🎯 [DB UPDATE] Reverted to Standard REST API (.update) for simplicity and reliability with retry
+      let updatedEvent = null;
+      let error = null;
+
+      const isSocialIntegrated = (draftEvent as any).is_social_integrated || String(draftEvent.id).startsWith('social-');
+
+      if (isSocialIntegrated) {
+        const originalId = String(draftEvent.id).replace('social-', '');
+        const socialUpdates: any = {
+          title: updates.title,
+          description: updates.description,
+          place_name: updates.location,
+          address: updates.location_link, // 'address' acts as the map link or address in social_schedules 
+          // Wait, I need to verify column names for social_schedules properly. 
+          // Fetch logic says: '*, board_users(nickname), social_groups(name)'
+          // Let's assume standard names or quick check? 
+          // Fetch mapped: link1: data.link_url, link_name1: data.link_name
+          link_url: updates.link1,
+          link_name: updates.link_name1,
+          v2_category: updates.category,
+          v2_genre: updates.genre,
+          // Date fields? social_schedules usually has date, start_time, end_time. 
+          // draftEvent was mapped from social, so likely has date string. 
+          // If date mode changed, we need to handle it. Social usually single date.
+          date: updates.date, // social_schedules has 'date' column usually
+          // image?
+          image_url: updates.image_full || updates.image, // Prefer full or whatever
+          image_thumbnail: updates.image_thumbnail,
+          image_micro: updates.image_micro
+        };
+
+        // Clean undefined
+        Object.keys(socialUpdates).forEach(key => socialUpdates[key] === undefined && delete socialUpdates[key]);
+
+        const result = await retryOperation(async () =>
+          await supabase
+            .from('social_schedules')
+            .update(socialUpdates)
+            .eq('id', originalId)
+            .select()
+            .maybeSingle()
+        ) as any;
+        updatedEvent = result.data;
+        error = result.error;
+
+      } else {
+        // Standard Event
+        const result = await retryOperation(async () =>
+          await supabase
+            .from('events')
+            .update(updates)
+            .eq('id', draftEvent.id)
+            .select()
+            .maybeSingle()
+        ) as any;
+        updatedEvent = result.data;
+        error = result.error;
+      }
+
+
+      if (error) {
+        console.error('[Error] Supabase update failed after retries:', error);
+        throw error;
+      }
+
+      // 🎯 [PERMISSION CHECK] If update returned null, it means RLS blocked the update (0 rows affected)
+      if (!updatedEvent) {
+        console.error('[Error] No rows updated. This usually means RLS permission denied.');
+        const permError = new Error('수정 권한이 없습니다. (DB 관리자 명부 확인 필요)');
+        (permError as any).code = 'PERMISSION_DENIED';
+        throw permError;
+      }
+
+      // Verify if updates were actually applied
+      if (updatedEvent) {
+        if (updates.genre !== updatedEvent.genre) {
+          console.warn('⚠️ CRITICAL: Genre update was NOT reflected in the DB response!');
+        }
+        if (updates.category !== updatedEvent.category) {
+          // Attempt Force Update for Category
+          const { data: retryData, error: retryError } = await supabase
+            .from('events')
+            .update({ category: updates.category })
+            .eq('id', draftEvent.id)
+            .select()
+            .maybeSingle();
+
+          if (!retryError && retryData && retryData.category === updates.category) {
+            console.log('✅ Force update SUCCEEDED! Category is now:', retryData.category);
+            // Correct the local event data reference
+            const eventUpdatedEvent = new CustomEvent("eventUpdated", {
+              detail: {
+                id: draftEvent.id,
+                event: retryData
+              }
+            });
+            window.dispatchEvent(eventUpdatedEvent);
+            setIsSaving(false);
+
+            // Stay in modal, just exit edit mode
+            setIsSelectionMode(false);
+            setDraftEvent(retryData); // Update draft to new data
+            setOriginalEvent(retryData); // Update baseline
+            setImageFile(null);
+            setTempImageSrc(null);
+            setOriginalImageUrl(null);
+            return;
+          }
+        }
+      }
+
+      // Dispatch update event so list updates immediately
+      console.log('[Screen Update] Dispatching eventUpdated custom event');
+      console.log('[Screen Update] Event data to dispatch:', updatedEvent || draftEvent);
+      window.dispatchEvent(new CustomEvent('eventUpdated', {
+        detail: {
+          id: draftEvent.id,
+          event: updatedEvent || draftEvent // 업데이트된 전체 이벤트 데이터
+        }
+      }));
+      console.log('[Screen Update] Custom event dispatched');
+
+      // 🎯 [CLEANUP] After successful DB update, remove old images if changed
+      if (imageFile) {
+        const performCleanup = async () => {
+          console.log("🧹 [EventDetailModal] Starting cleanup of old images...");
+
+          // 1. New style folder-based cleanup
+          if (oldStoragePath) {
+            try {
+              const { data: files } = await supabase.storage.from("images").list(oldStoragePath);
+              if (files && files.length > 0) {
+                const filePaths = files.map(f => `${oldStoragePath}/${f.name}`);
+                await supabase.storage.from("images").remove(filePaths);
+                console.log(`✅ [CLEANUP] Deleted ${files.length} files from old folder: ${oldStoragePath}`);
+              }
+            } catch (e) {
+              console.warn("⚠️ [CLEANUP] Failed to delete old folder content:", e);
+            }
+          }
+
+          // 2. Legacy/Individual file cleanup
+          const extractPath = (url: string | null | undefined) => {
+            if (!url) return null;
+            try {
+              if (url.includes('/images/')) {
+                return decodeURIComponent(url.split('/images/')[1]?.split('?')[0]);
+              }
+              return null;
+            } catch (e) { return null; }
+          };
+
+          const individualPaths = oldImageUrls
+            .map(url => extractPath(url))
+            .filter((p): p is string => !!p);
+
+          if (individualPaths.length > 0) {
+            try {
+              // 현재 새로 업로드한 경로는 제외하고 삭제
+              const filteredPaths = individualPaths.filter(p => !p.startsWith(`event-posters/${timestamp}`));
+              if (filteredPaths.length > 0) {
+                await supabase.storage.from("images").remove(filteredPaths);
+                console.log(`✅ [CLEANUP] Deleted ${filteredPaths.length} individual legacy files`);
+              }
+            } catch (e) {
+              console.warn("⚠️ [CLEANUP] Failed to delete legacy individual files:", e);
+            }
+          }
+        };
+
+        // Run in background
+        performCleanup().catch(err => console.error("❌ [CLEANUP] error:", err));
+      }
+
+      setIsSaving(false);
+
+      // Stay in modal, just exit edit mode
+      console.log('[Screen Update] Exiting edit mode');
+      setIsSelectionMode(false);
+      // Update local state to reflect saved data immediately
+      if (updatedEvent) {
+        console.log('[Screen Update] Updating local state with DB response');
+        setDraftEvent(updatedEvent);
+        setOriginalEvent(updatedEvent);
+      } else {
+        console.warn('[Screen Update] No updatedEvent from DB, keeping current draftEvent');
+      }
+
+      setImageFile(null);
+      setTempImageSrc(null);
+      setOriginalImageUrl(null); // 원본 이미지 URL 리셋
+      console.log('[Screen Update] Save complete, showing alert');
+      alert('저장되었습니다.');
+
+    } catch (error) {
+      console.error('Error saving event:', error);
+      setIsSaving(false);
+      alert('저장 중 오류가 발생했습니다.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  if (!isOpen || !event) {
+    return null;
+  }
+
+  const selectedEvent = draftEvent || event;
+
+  return (
+    <>
+      {createPortal(
+        <div
+          className="event-detail-modal-overlay"
+          onTouchMove={(e) => {
+            // Prevent background scrolling when dragging on the overlay itself
+            if (e.target === e.currentTarget) {
+              e.preventDefault();
+            }
+          }}
+          onTouchStart={(e) => {
+            if (e.target === e.currentTarget) {
+              e.preventDefault();
+            }
+          }}
+          onClick={onClose}
+        >
+          <div
+            className="event-detail-modal-container"
+            style={{ borderColor: "rgb(89, 89, 89)", position: 'relative' }} // relative for login overlay
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* 데이터 로딩 인디케이터 (상세 데이터 없을 때) */}
+            {isFetchingDetail && (
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '4px',
+                background: 'linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.5), transparent)',
+                zIndex: 50,
+                animation: 'pulse 1.5s infinite'
+              }} />
+            )}
+
+            {/* 로그인 유도 오버레이 */}
+            {showLoginPrompt && (
+              <div style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                backgroundColor: 'rgba(30, 41, 59, 0.95)',
+                zIndex: 100,
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                padding: '2rem',
+                textAlign: 'center',
+                borderRadius: 'inherit'
+              }}>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: 'white', marginBottom: '1rem' }}>로그인 필요</h2>
+                <p style={{ color: '#cbd5e1', marginBottom: '1.5rem', lineHeight: '1.5' }}>
+                  수정/삭제하려면 로그인이 필요합니다.<br />
+                  간편하게 로그인하고 계속하세요!
+                </p>
+                <button
+                  onClick={handleLogin}
+                  style={{
+                    width: '100%',
+                    padding: '1rem',
+                    background: '#FEE500',
+                    color: '#000000',
+                    border: 'none',
+                    borderRadius: '0.5rem',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.5rem',
+                    marginBottom: '1rem'
+                  }}
+                >
+                  <i className="ri-kakao-talk-fill" style={{ fontSize: '1.5rem' }}></i>
+                  카카오로 로그인
+                </button>
+                <button
+                  onClick={() => setShowLoginPrompt(false)}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    background: 'transparent',
+                    color: '#9ca3af',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    borderRadius: '0.5rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  취소
+                </button>
+              </div>
+            )}
+
+            {/* 스크롤 가능한 전체 영역 */}
+            <div
+              className={`modal-scroll-container ${isSelectionMode ? 'selection-mode' : ''}`}
+              style={{
+                overscrollBehavior: 'contain',
+                WebkitOverflowScrolling: 'touch'
+              }}
+            >
+              {/* 이미지 영역 (스크롤과 함께 사라짐) */}
+              {/* 이미지 영역 (스크롤과 함께 사라짐) */}
+              {(() => {
+                // Progressive Loading: thumbnail priority logic removed here as it is handled by state above
+                // We will render up to two images: Thumbnail (Base) and HighRes (Overlay)
+
+                const hasImage = !!(thumbnailSrc || highResSrc);
+                const isDefaultThumbnail = !selectedEvent.image_thumbnail && !highResSrc && !!thumbnailSrc;
+
+                // Transform style (shared)
+                const imageStyle = {
+                  transform: `translate3d(${(selectedEvent as any).image_position_x || 0}%, ${(selectedEvent as any).image_position_y || 0}%, 0)`
+                };
+
+                return (
+                  <div
+                    className={`image-area ${hasImage ? "bg-black" : "bg-pattern"}`}
+                    style={{
+                      ...(!hasImage
+                        ? { backgroundImage: "url(/grunge.png)" }
+                        : {}),
+                      // Ensure relative positioning for absolute children
+                      position: 'relative',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      display: 'flex'
+                    }}
+                  >
+                    {hasImage ? (
+                      <>
+
+                        <div className="detail-image-wrapper">
+                          {/* 1. Base Layer: Thumbnail */}
+                          {thumbnailSrc && (
+                            <img
+                              src={thumbnailSrc}
+                              alt={selectedEvent.title}
+                              className="detail-image-content"
+                              loading="eager"
+                              draggable={false}
+                              style={{
+                                ...imageStyle,
+                                zIndex: 1,
+                                opacity: 1,
+                              }}
+                            />
+                          )}
+
+                          {/* 2. Overlay Layer: HighRes (Cross-fade) */}
+                          {highResSrc && highResSrc !== thumbnailSrc && (
+                            <img
+                              src={highResSrc}
+                              alt={selectedEvent.title}
+                              className="detail-image-content"
+                              loading="eager"
+                              decoding="async"
+                              draggable={false}
+                              style={{
+                                ...imageStyle,
+                                zIndex: 2,
+                                opacity: isHighResLoaded ? 1 : 0,
+                                transition: "opacity 0.4s ease-in-out",
+                              }}
+                            />
+                          )}
+
+                          {/* Fallback if only HighRes exists and no thumbnail (Rare) */}
+                          {!thumbnailSrc && highResSrc && (
+                            <img
+                              src={highResSrc}
+                              alt={selectedEvent.title}
+                              className="detail-image-content"
+                              loading="eager"
+                              style={{ ...imageStyle, zIndex: 1 }}
+                            />
+                          )}
+                        </div>
+
+                        {/* Gradient Overlay */}
+                        <div className="image-gradient-overlay" style={{ zIndex: 10 }} />
+
+                        {isDefaultThumbnail && (
+                          <div className="default-thumbnail-overlay">
+                            <span className="default-thumbnail-text manual-label-wrapper">
+                              {selectedEvent.category === "class" ? (
+                                <>
+                                  <span className="translated-part">Class</span>
+                                  <span className="fixed-part ko" translate="no">강습</span>
+                                  <span className="fixed-part en" translate="no">Class</span>
+                                </>
+                              ) : "행사"}
+                            </span>
+                          </div>
+                        )}
+
+                        {isSelectionMode && (
+                          <div
+                            className="image-edit-overlay-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleImageClick();
+                            }}
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              width: '100%',
+                              height: '100%',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              backgroundColor: 'rgba(0,0,0,0.5)',
+                              color: 'white',
+                              zIndex: 20,
+                              cursor: 'pointer'
+                            }}
+                          >
+                            <i className="ri-image-edit-line" style={{ fontSize: '48px', marginBottom: '8px' }}></i>
+                            <span className="manual-label-wrapper" style={{ fontSize: '16px', fontWeight: 600 }}>
+                              <span className="translated-part">Edit Image</span>
+                              <span className="fixed-part ko" translate="no">이미지 수정</span>
+                              <span className="fixed-part en" translate="no">Edit Image</span>
+                            </span>
+                          </div>
+                        )}
+                        {/* 크게보기 버튼 */}
+                        <button
+                          onClick={() => setShowFullscreenImage(true)}
+                          className="fullscreen-button"
+                        >
+                          <span className="manual-label-wrapper">
+                            <span className="translated-part">Full View</span>
+                            <span className="fixed-part ko" translate="no">크게 보기</span>
+                            <span className="fixed-part en" translate="no">Full View</span>
+                          </span>
+                        </button>
+
+                        {/* 즐겨찾기 버튼 (이미지 좌측 하단) */}
+                        {onToggleFavorite && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onToggleFavorite(e);
+                            }}
+                            className={`card-favorite-btn ${isFavorite ? 'is-active' : ''}`}
+                            title={isFavorite ? "즐겨찾기 해제" : "즐겨찾기 추가"}
+                            style={{
+                              top: 'auto',
+                              bottom: '-14px',
+                              left: '0px',
+                              right: 'auto',
+                              width: '72px',
+                              height: '72px'
+                            }}
+                          >
+                            <i className={`card-favorite-icon ${isFavorite ? "ri-star-fill" : "ri-star-line"}`} style={{ fontSize: '40px' }}></i>
+                          </button>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <div
+                          className={`category-bg-overlay ${selectedEvent.category === "class" ? "class" : "event"}`}
+                        ></div>
+                        <span className="category-bg-text manual-label-wrapper">
+                          {selectedEvent.category === "class" ? (
+                            <>
+                              <span className="translated-part">Class</span>
+                              <span className="fixed-part ko" translate="no">강습</span>
+                              <span className="fixed-part en" translate="no">Class</span>
+                            </>
+                          ) : "행사"}
+                        </span>
+                      </>
+                    )}
+
+                    {/* 카테고리 배지 - 좌측 하단 */}
+                    <div
+                      className={`category-badge manual-label-wrapper ${selectedEvent.category === "class" ? "class" : "event"}`}
+                    >
+                      {selectedEvent.category === "class" ? (
+                        <>
+                          <span className="translated-part">Class</span>
+                          <span className="fixed-part ko" translate="no">강습</span>
+                          <span className="fixed-part en" translate="no">Class</span>
+                        </>
+                      ) : "행사"}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Right Column: Header + Info */}
+              <div className="info-column">
+                {/* 제목 - Sticky Header */}
+                <div
+                  className="sticky-header"
+                >
+                  {/* 장르 표시 */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <h2 className="modal-title">
+                      {selectedEvent.title}
+                    </h2>
+
+                    {isSelectionMode && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setActiveEditField('title');
+                        }}
+                        className="edm-edit-trigger-btn"
+                        style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', border: '1px solid #3b82f6', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+                        title="제목 수정"
+                      >
+                        <i className="ri-pencil-line" style={{ fontSize: '14px' }}></i>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* 장르 표시 */}
+                  {(selectedEvent.genre || isSelectionMode) && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '8px' }}>
+                      {selectedEvent.genre ? (
+                        <p className={`genre-text ${getGenreColor(selectedEvent.genre)}`}>
+                          {selectedEvent.genre}
+                        </p>
+                      ) : (
+                        <span style={{ color: '#9ca3af', fontSize: '14px' }}>장르 미지정</span>
+                      )}
+                      {isSelectionMode && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setActiveEditField('genre');
+                          }}
+                          className="edm-edit-trigger-btn"
+                          style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', border: '1px solid #3b82f6', borderRadius: '50%', width: '20px', height: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}
+                          title="장르 수정"
+                        >
+                          <i className="ri-pencil-line" style={{ fontSize: '12px' }}></i>
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* 세부 정보 */}
+                <div className="info-section">
+                  <div className="info-item">
+                    <i className="ri-calendar-line info-icon"></i>
+                    <div className="info-flex-gap-1" style={{ flex: 1, alignItems: 'center', display: 'flex' }}>
+                      <span>
+                        {(() => {
+                          // Helper for safe date parsing
+                          const safeDate = (d: string | null | undefined) => {
+                            if (!d) return null;
+                            const date = new Date(d);
+                            return isNaN(date.getTime()) ? null : date;
+                          };
+
+                          // 특정 날짜 모드: event_dates 배열이 있으면 개별 날짜 표시
+                          if (
+                            selectedEvent.event_dates &&
+                            selectedEvent.event_dates.length > 0
+                          ) {
+                            const dates = selectedEvent.event_dates
+                              .map(d => safeDate(d))
+                              .filter((d): d is Date => d !== null);
+
+                            if (dates.length === 0) return "날짜 정보 없음";
+
+                            const firstDate = dates[0];
+                            const year = firstDate.getFullYear();
+                            const month = firstDate.toLocaleDateString("ko-KR", {
+                              month: "long",
+                            });
+
+                            // 같은 년월인지 확인
+                            const sameYearMonth = dates.every(
+                              (d) =>
+                                d.getFullYear() === year &&
+                                d.toLocaleDateString("ko-KR", { month: "long" }) ===
+                                month,
+                            );
+
+                            if (sameYearMonth) {
+                              // 같은 년월: "2025년 10월 11일, 25일, 31일"
+                              const days = dates
+                                .map((d) => d.getDate())
+                                .join("일, ");
+                              return `${year}년 ${month} ${days}일`;
+                            } else {
+                              // 다른 년월: "10/11, 11/25, 12/31"
+                              return dates
+                                .map((d) => `${d.getMonth() + 1}/${d.getDate()}`)
+                                .join(", ");
+                            }
+                          }
+
+                          // 연속 기간 모드
+                          const startDate =
+                            selectedEvent.start_date || selectedEvent.date;
+                          const endDate = selectedEvent.end_date;
+
+                          if (!startDate) return "날짜 미정";
+
+                          const start = safeDate(startDate);
+                          if (!start) return "날짜 형식 오류";
+
+                          const startYear = start.getFullYear();
+                          const startMonth = start.toLocaleDateString("ko-KR", {
+                            month: "long",
+                          });
+                          const startDay = start.getDate();
+
+                          if (endDate && endDate !== startDate) {
+                            const end = safeDate(endDate);
+                            if (end) {
+                              const endYear = end.getFullYear();
+                              const endMonth = end.toLocaleDateString("ko-KR", {
+                                month: "long",
+                              });
+                              const endDay = end.getDate();
+
+                              if (startYear === endYear && startMonth === endMonth) {
+                                return `${startYear}년 ${startMonth} ${startDay}~${endDay}일`;
+                              } else if (startYear === endYear) {
+                                return `${startYear}년 ${startMonth} ${startDay}일~${endMonth} ${endDay}일`;
+                              } else {
+                                return `${startYear}년 ${startMonth} ${startDay}일~${endYear}년 ${endMonth} ${endDay}일`;
+                              }
+                            }
+                          }
+
+                          return `${startYear}년 ${startMonth} ${startDay}일`;
+                        })()}
+                      </span>
+                      {isSelectionMode && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            // Initialize editValue and dateMode based on current date mode
+                            if (selectedEvent.event_dates && selectedEvent.event_dates.length > 0) {
+                              setDateMode('dates');
+                              setEditValue(selectedEvent.event_dates.join(','));
+                            } else {
+                              setDateMode('single');
+                              const startDate = selectedEvent.start_date || selectedEvent.date;
+                              setEditValue(startDate || '');
+                            }
+                            setActiveEditField('date');
+                          }}
+                          style={{ marginLeft: 'auto', background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', border: '1px solid #3b82f6', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                          title="날짜 수정"
+                        >
+                          <i className="ri-pencil-line" style={{ fontSize: '14px' }}></i>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 조회수 표시 */}
+                  {selectedEvent.views !== undefined && selectedEvent.views !== null && (
+                    <div className="info-item" style={{ marginTop: '8px', opacity: 0.7 }}>
+                      <i className="ri-eye-line info-icon"></i>
+                      <span style={{ fontSize: '14px' }}>
+                        조회 {selectedEvent.views.toLocaleString()}
+                      </span>
+                    </div>
+                  )}
+
+                  {/* {selectedEvent.organizer && (
+                    <div className="info-item">
+                      <i className="ri-user-line info-icon"></i>
+                      <span>{selectedEvent.organizer}</span>
+                    </div>
+                  )} */}
+
+                  {(selectedEvent.location || isSelectionMode) && (
+                    <div className="info-item">
+                      <i className="ri-map-pin-line info-icon"></i>
+                      <div className="info-flex-gap-1" style={{ flex: 1, alignItems: 'center', display: 'flex' }}>
+                        {(selectedEvent as any).venue_id ? (
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              const venueId = (selectedEvent as any).venue_id;
+                              onOpenVenueDetail?.(venueId);
+                            }}
+                            className="venue-link-button"
+                          >
+                            <span>{selectedEvent.location}</span>
+                            <i className="ri-arrow-right-s-line" style={{ fontSize: '1.1em' }}></i>
+                          </button>
+                        ) : (
+                          <span>{selectedEvent.location || "장소 미정"}</span>
+                        )}
+                        {!(selectedEvent as any).venue_id && (selectedEvent.location_link || (selectedEvent as any).venue_custom_link) && (
+                          <a
+                            href={(selectedEvent as any).venue_custom_link || selectedEvent.location_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="location-link"
+                            title="지도 보기"
+                          >
+                            <i className="ri-external-link-line location-link-icon"></i>
+                          </a>
+                        )}
+                        {isSelectionMode && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowVenueSelect(true);
+                            }}
+                            style={{ marginLeft: 'auto', background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', border: '1px solid #3b82f6', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}
+                            title="장소 수정"
+                          >
+                            <i className="ri-pencil-line" style={{ fontSize: '14px' }}></i>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {(selectedEvent.description || isSelectionMode) && (
+                    <div className="info-divider">
+                      <div className="info-item">
+                        <i className="ri-file-text-line info-icon"></i>
+                        <div className="info-item-content" style={{ width: '100%' }}>
+                          <div style={{ position: 'relative' }}>
+                            {isSelectionMode && <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveEditField('description');
+                              }}
+                              style={{ position: 'absolute', right: 0, top: 0, background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', border: '1px solid #3b82f6', borderRadius: '50%', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 10 }}
+                              title="내용 수정"
+                            >
+                              <i className="ri-pencil-line" style={{ fontSize: '14px' }}></i>
+                            </button>
+                            }
+                            <p>
+                              {selectedEvent.description ? (
+                                selectedEvent.description
+                                  .split(/(\bhttps?:\/\/[^\s]+)/g)
+                                  .map((part, idx) => {
+                                    if (part.match(/^https?:\/\//)) {
+                                      return (
+                                        <a
+                                          key={idx}
+                                          href={part}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="info-link"
+                                          onClick={(e) => e.stopPropagation()}
+                                          data-analytics-id={selectedEvent.id}
+                                          data-analytics-type="bio_link"
+                                          data-analytics-title={part}
+                                          data-analytics-section="event_detail_bio"
+                                        >
+                                          {part}
+                                        </a>
+                                      );
+                                    }
+                                    return <span key={idx}>{part}</span>;
+                                  })
+                              ) : (
+                                <span style={{ color: '#9ca3af' }}>내용 없음</span>
+                              )}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {selectedEvent.contact &&
+                    (() => {
+                      const contactInfos = parseMultipleContacts(
+                        selectedEvent.contact,
+                      );
+
+                      return (
+                        <div className="edm-space-y-2">
+                          <span className="contact-label">
+                            문의
+                          </span>
+                          <div className="contact-buttons-container">
+                            {contactInfos.map((contactInfo, index) => {
+                              const handleContactClick = async () => {
+                                if (contactInfo.link) {
+                                  window.open(contactInfo.link, "_blank");
+                                } else {
+                                  try {
+                                    await copyToClipboard(contactInfo.value);
+                                    alert(`복사되었습니다: ${contactInfo.value}`);
+                                  } catch (err) {
+                                    console.error("복사 실패:", err);
+                                    alert("복사에 실패했습니다.");
+                                  }
+                                }
+                              };
+
+                              return (
+                                <button
+                                  key={index}
+                                  onClick={handleContactClick}
+                                  className="contact-button"
+                                  data-analytics-id={selectedEvent.id}
+                                  data-analytics-type="contact_click"
+                                  data-analytics-title={contactInfo.displayText}
+                                  data-analytics-section="event_detail_body"
+                                >
+                                  <i
+                                    className={`${contactInfo.icon} contact-icon`}
+                                  ></i>
+                                  <div className="edm-text-left">
+                                    <div className="contact-text">
+                                      {contactInfo.displayText}
+                                    </div>
+                                    <div className="contact-subtext">
+                                      {contactInfo.link
+                                        ? "탭하여 열기"
+                                        : "탭하여 복사"}
+                                    </div>
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+
+                  {(isAdminMode || ((currentUserId || user?.id) && selectedEvent.user_id === (currentUserId || user?.id))) &&
+                    (selectedEvent.organizer_name ||
+                      selectedEvent.organizer_phone) && (
+                      <div className="admin-info-section">
+                        <div className="admin-info-header">
+                          <i className="ri-admin-line"></i>
+                          <span>등록자 정보 (관리자 전용)</span>
+                        </div>
+                        {selectedEvent.organizer_name && (
+                          <div className="admin-info-item">
+                            <i className="ri-user-star-line"></i>
+                            <span>{selectedEvent.organizer_name}</span>
+                          </div>
+                        )}
+                        {selectedEvent.organizer_phone && (
+                          <div className="admin-info-item">
+                            <i className="ri-phone-line"></i>
+                            <span>{selectedEvent.organizer_phone}</span>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                  {/* Link section removed as per user request */}
+
+                  {(isActualAdmin || ((currentUserId || user?.id) && selectedEvent.user_id === (currentUserId || user?.id))) && selectedEvent.created_at && (
+                    <div className="created-at-text">
+                      <span>
+                        등록:{" "}
+                        {new Date(selectedEvent.created_at).toLocaleDateString(
+                          "ko-KR",
+                          {
+                            year: "numeric",
+                            month: "2-digit",
+                            day: "2-digit",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          },
+                        )}
+                        {authorNickname && ` | 계정: ${authorNickname}`}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div> {/* End of info-column */}
+            </div>
+
+            <div className="modal-footer">
+              <div className="footer-links-container">
+                {selectedEvent.link1 && (
+                  <a
+                    href={selectedEvent.link1}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="footer-link"
+                    title={selectedEvent.link_name1 || "바로가기 1"}
+                    data-analytics-id={selectedEvent.id}
+                    data-analytics-type="external_link"
+                    data-analytics-title={selectedEvent.link_name1 || "링크1"}
+                    data-analytics-section="event_detail_footer"
+                  >
+                    <i className="ri-external-link-line footer-link-icon"></i>
+                    <span className="footer-link-text">
+                      {selectedEvent.link_name1 || "링크1"}
+                    </span>
+                  </a>
+                )}
+                {selectedEvent.link2 && (
+                  <a
+                    href={selectedEvent.link2}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="footer-link"
+                    title={selectedEvent.link_name2 || "바로가기 2"}
+                    data-analytics-id={selectedEvent.id}
+                    data-analytics-type="external_link"
+                    data-analytics-title={selectedEvent.link_name2 || "링크2"}
+                    data-analytics-section="event_detail_footer"
+                  >
+                    <i className="ri-external-link-line footer-link-icon"></i>
+                    <span className="footer-link-text">
+                      {selectedEvent.link_name2 || "링크2"}
+                    </span>
+                  </a>
+                )}
+                {selectedEvent.link3 && (
+                  <a
+                    href={selectedEvent.link3}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="footer-link"
+                    title={selectedEvent.link_name3 || "바로가기 3"}
+                    data-analytics-id={selectedEvent.id}
+                    data-analytics-type="external_link"
+                    data-analytics-title={selectedEvent.link_name3 || "링크3"}
+                    data-analytics-section="event_detail_footer"
+                  >
+                    <i className="ri-external-link-line footer-link-icon"></i>
+                    <span className="footer-link-text">
+                      {selectedEvent.link_name3 || "링크3"}
+                    </span>
+                  </a>
+                )}
+                {isSelectionMode && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveEditField('links');
+                    }}
+                    className="edm-edit-trigger-btn"
+                    style={{
+                      background: 'rgba(59, 130, 246, 0.2)',
+                      color: '#3b82f6',
+                      border: '1px solid #3b82f6',
+                      borderRadius: !selectedEvent.link1 ? '4px' : '50%',
+                      width: !selectedEvent.link1 ? 'auto' : '24px',
+                      height: '24px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      flexShrink: 0,
+                      marginLeft: '-5px',
+                      padding: !selectedEvent.link1 ? '0 8px' : '0'
+                    }}
+                    title="링크 수정"
+                  >
+                    {!selectedEvent.link1 && (
+                      <span style={{ fontSize: '12px', marginRight: '4px', fontWeight: 600 }}>링크 추가</span>
+                    )}
+                    <i className="ri-pencil-line" style={{ fontSize: '14px' }}></i>
+                  </button>
+                )}
+              </div>
+
+              <div className="footer-actions-container">
+                {!isSelectionMode && (
+                  <button
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      const url = new URL(window.location.href);
+                      url.searchParams.set('event', selectedEvent.id.toString());
+                      const shareUrl = url.toString();
+
+                      const shareTitle = selectedEvent.title;
+                      const shareText = `${selectedEvent.title}\n📍 ${selectedEvent.location}\n📅 ${selectedEvent.date || selectedEvent.start_date}`;
+
+                      try {
+                        if (navigator.share) {
+                          await navigator.share({
+                            title: shareTitle,
+                            text: shareText,
+                            url: shareUrl,
+                          });
+                        } else {
+                          await navigator.clipboard.writeText(shareUrl);
+                          const button = e.currentTarget;
+                          button.classList.remove('share');
+                          button.classList.add('share', 'copied');
+                          const icon = button.querySelector('i');
+                          if (icon) {
+                            icon.classList.remove('ri-share-line');
+                            icon.classList.add('ri-check-line');
+                          }
+                          setTimeout(() => {
+                            button.classList.remove('copied');
+                            if (icon) {
+                              icon.classList.remove('ri-check-line');
+                              icon.classList.add('ri-share-line');
+                            }
+                          }, 2000);
+                        }
+                      } catch (err) {
+                        if ((err as Error).name !== 'AbortError') {
+                          console.error("공유 실패:", err);
+                          alert("카카오톡에서는 공유 기능이 제한됩니다.\n\n우측 상단 메뉴(⋮)에서\n'다른 브라우저로 열기'를 선택한 후\n공유해주세요.");
+                        }
+                      }
+                    }}
+                    className="action-button share"
+                    title="공유하기"
+                    data-analytics-id={selectedEvent.id}
+                    data-analytics-type="share"
+                    data-analytics-title={selectedEvent.title}
+                    data-analytics-section="event_detail_footer"
+                  >
+                    <i className="ri-share-line action-icon"></i>
+                  </button>
+                )}
+
+                {/* Delete Button (Only in Selection/Edit Mode) */}
+                {isSelectionMode && !isPastEvent && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      console.log('🔴 [EventDetailModal] Delete button CLICKED');
+                      console.log('   - isDeleting prop:', isDeleting);
+                      console.log('   - selectedEvent:', selectedEvent);
+                      if (isDeleting) {
+                        console.log('   - Delete blocked: isDeleting is TRUE');
+                        return;
+                      }
+                      if (window.confirm('정말로 이 이벤트를 삭제하시겠습니까?')) {
+                        console.log('   - User confirmed delete. Calling _onDelete...');
+                        _onDelete(selectedEvent, e);
+                      } else {
+                        console.log('   - User cancelled delete.');
+                      }
+                    }}
+                    className={`action-button delete ${isDeleting ? 'loading' : ''}`}
+                    title="삭제하기"
+                    style={{ backgroundColor: '#ef4444', color: 'white', marginRight: '8px', opacity: isDeleting ? 0.7 : 1, cursor: isDeleting ? 'not-allowed' : 'pointer' }}
+                    disabled={isDeleting}
+                  >
+                    {isDeleting ? <i className="ri-loader-4-line action-icon spin-animation"></i> : <i className="ri-delete-bin-line action-icon"></i>}
+                  </button>
+                )}
+
+                {/* Edit/Save Button - Only show if authorized (Admin or Owner) AND event hasn't started */}
+                {(isAdminMode || ((currentUserId || user?.id) && selectedEvent.user_id === (currentUserId || user?.id))) && !isPastEvent && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (!user) {
+                        setShowLoginPrompt(true);
+                        return;
+                      }
+
+                      // Special handling for social events: Delegate edit to parent (external modal)
+                      const isSocial = String(selectedEvent.id).startsWith('social-') || (selectedEvent as any).is_social_integrated;
+                      if (isSocial && _onEdit) {
+                        _onEdit(selectedEvent);
+                        return;
+                      }
+
+                      if (isSelectionMode) {
+                        // In Edit Mode -> Check for changes
+                        if (!hasChanges()) {
+                          // No changes -> Exit edit mode directly
+                          setIsSelectionMode(false);
+                          return;
+                        }
+
+                        // Has changes -> Confirm and save
+                        if (window.confirm('변경사항을 저장하시겠습니까?')) {
+                          handleFinalSave();
+                        }
+                        // If canceled, stay in edit mode
+                      } else {
+                        // Not in Edit Mode -> Enter Edit Mode
+                        setIsSelectionMode(true);
+                      }
+                    }}
+                    className={`action-button ${isSelectionMode ? 'save active-mode' : 'edit'}`}
+                    title={isSelectionMode ? "변경사항 저장" : "이벤트 수정"}
+                    style={isSelectionMode ? { backgroundColor: '#3b82f6', color: 'white' } : {}}
+                  >
+                    <i className={`ri-${isSelectionMode ? 'save-3-line' : 'edit-line'} action-icon`}></i>
+                  </button>
+                )}
+
+                <button
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    console.log('🔴 [EventDetailModal] Bottom Delete button CLICKED');
+                    console.log('   - isDeleting prop:', isDeleting);
+                    console.log('   - selectedEvent:', selectedEvent);
+                    if (isDeleting) {
+                      console.log('   - Delete blocked: isDeleting is TRUE');
+                      return;
+                    }
+                    if (window.confirm('정말로 이 이벤트를 삭제하시겠습니까?')) {
+                      console.log('   - User confirmed delete. Calling _onDelete...');
+                      try {
+                        setIsInternalDeleting(true);
+                        setInternalProgress(10);
+
+                        // Start fake progress simulation
+                        const timer = setInterval(() => {
+                          setInternalProgress(prev => {
+                            if (prev >= 90) return prev;
+                            return prev + 10;
+                          });
+                        }, 200);
+
+                        await _onDelete(selectedEvent, e);
+
+                        clearInterval(timer);
+                        setInternalProgress(100);
+                      } catch (error) {
+                        console.error("Delete failed:", error);
+                        setInternalProgress(0);
+                      } finally {
+                        // Keep 'true' briefly to show 100%? No, modal will close.
+                        setIsInternalDeleting(false);
+                      }
+                    } else {
+                      console.log('   - User cancelled delete.');
+                    }
+                  }}
+                  className={`action-button delete ${isDeleting || isInternalDeleting ? 'loading' : ''}`}
+                  title="이벤트 삭제"
+                  style={{ backgroundColor: '#ef4444', color: 'white', marginRight: '8px', opacity: isDeleting || isInternalDeleting ? 0.7 : 1, cursor: isDeleting || isInternalDeleting ? 'not-allowed' : 'pointer' }}
+                  disabled={isDeleting || isInternalDeleting}
+                >
+                  {isDeleting || isInternalDeleting ? <i className="ri-loader-4-line action-icon spin-animation"></i> : <i className="ri-delete-bin-line action-icon"></i>}
+                </button>
+
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onClose();
+                  }}
+                  className="close-button"
+                  title="닫기"
+                >
+                  <i className="ri-close-line action-icon"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+          <GlobalLoadingOverlay
+            isLoading={isDeleting || isInternalDeleting || isSaving}
+            message={(isDeleting || isInternalDeleting) ? "삭제 중입니다..." : "저장 중입니다..."}
+            progress={(isDeleting || isInternalDeleting) ? (deleteProgress || internalProgress) : undefined}
+          />
+        </div >
+        , document.body
+      )
+      }
+
+      {
+        showFullscreenImage &&
+        (selectedEvent.image_medium ||
+          selectedEvent.image ||
+          getEventThumbnail(
+            selectedEvent,
+            defaultThumbnailClass,
+            defaultThumbnailEvent,
+          )) && (
+          createPortal(
+            <div
+              className="fullscreen-overlay"
+              onClick={() => setShowFullscreenImage(false)}
+              onTouchStartCapture={(e) => e.stopPropagation()}
+              onTouchMoveCapture={(e) => {
+                if (e.target === e.currentTarget) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }
+              }}
+              onTouchEndCapture={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setShowFullscreenImage(false)}
+                className="fullscreen-close-button"
+              >
+                <i className="ri-close-line action-icon"></i>
+              </button>
+              <img
+                src={
+                  selectedEvent.image_medium ||
+                  selectedEvent.image ||
+                  getEventThumbnail(
+                    selectedEvent,
+                    defaultThumbnailClass,
+                    defaultThumbnailEvent,
+                  )
+                }
+                alt={selectedEvent.title}
+                loading="lazy"
+                className="fullscreen-image"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </div>, document.body
+          ))
+      }
+      {/* Venue Select Modal */}
+      <VenueSelectModal
+        isOpen={showVenueSelect}
+        onClose={() => setShowVenueSelect(false)}
+        onSelect={handleVenueSelect}
+        onManualInput={handleManualVenueInput}
+      />
+
+      {/* Bottom Sheets Portal */}
+      {
+        activeEditField && createPortal(
+          <div className="bottom-sheet-portal">
+            <div
+              className="bottom-sheet-backdrop"
+              onClick={() => setActiveEditField(null)}
+            />
+            <div className="bottom-sheet-content">
+              <div className="bottom-sheet-handle"></div>
+              <h3 className="bottom-sheet-header">
+                {activeEditField === 'title' && <><i className="ri-text"></i>제목 수정</>}
+                {activeEditField === 'genre' && <><i className="ri-price-tag-3-line"></i>장르 수정</>}
+                {activeEditField === 'description' && <><i className="ri-file-text-line"></i>오픈톡방/내용 수정</>}
+                {activeEditField === 'links' && <><i className="ri-link"></i>링크 수정</>}
+                {activeEditField === 'date' && <><i className="ri-calendar-check-line"></i>날짜 선택</>}
+              </h3>
+
+              <div className="bottom-sheet-body">
+                <div className="bottom-sheet-input-group">
+                  {activeEditField === 'date' ? (
+                    <div className="flex flex-col items-center pb-8">
+                      <div className="date-mode-toggle" style={{ marginBottom: '1rem', display: 'flex', gap: '8px' }}>
+                        <button
+                          onClick={() => {
+                            console.log('[Date Mode] Switching to single mode');
+                            setDateMode('single');
+                            setEditValue(''); // Clear edit value when switching modes
+                          }}
+                          className={`date-mode-btn ${dateMode === 'single' ? 'active' : ''}`}
+                          style={{
+                            padding: '8px 16px',
+                            borderRadius: '8px',
+                            background: dateMode === 'single' ? '#3b82f6' : 'rgba(255,255,255,0.05)',
+                            border: dateMode === 'single' ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
+                            color: 'white',
+                            cursor: 'pointer',
+                            fontWeight: 600
+                          }}
+                        >
+                          하루
+                        </button>
+                        <button
+                          onClick={() => {
+                            console.log('[Date Mode] Switching to dates mode');
+                            setDateMode('dates');
+                            setEditValue(''); // Clear edit value when switching modes
+                          }}
+                          className={`date-mode-btn ${dateMode === 'dates' ? 'active' : ''}`}
+                          style={{
+                            padding: '8px 16px',
+                            borderRadius: '8px',
+                            background: dateMode === 'dates' ? '#3b82f6' : 'rgba(255,255,255,0.05)',
+                            border: dateMode === 'dates' ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
+                            color: 'white',
+                            cursor: 'pointer',
+                            fontWeight: 600
+                          }}
+                        >
+                          개별
+                        </button>
+                      </div>
+                      {/* Selected Dates Display */}
+                      {dateMode === 'dates' && (
+                        <div className="selected-dates-container">
+                          <div className="selected-dates-list">
+                            {editValue.split(',').filter(Boolean).length > 0 ? (
+                              editValue.split(',').filter(Boolean).map(d => (
+                                <div key={d} className="selected-date-chip">
+                                  <span>{d.substring(5)}</span>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      const currentDates = editValue.split(',').filter(Boolean);
+                                      const newDates = currentDates.filter(ed => ed !== d);
+                                      setEditValue(newDates.join(','));
+                                    }}
+                                    className="remove-date-btn"
+                                  >
+                                    <i className="ri-close-line"></i>
+                                  </button>
+                                </div>
+                              ))
+                            ) : (
+                              <span className="no-dates-text">날짜를 선택해주세요</span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      <div className="calendar-wrapper" style={{ minHeight: '340px' }}>
+                        <DatePicker
+                          selected={dateMode === 'single' && editValue ? new Date(editValue) : null}
+                          onChange={(d: Date | null) => {
+                            if (!d) return;
+                            // Use local date to avoid timezone offset
+                            const year = d.getFullYear();
+                            const month = String(d.getMonth() + 1).padStart(2, '0');
+                            const day = String(d.getDate()).padStart(2, '0');
+                            const dateStr = `${year}-${month}-${day}`;
+                            console.log('[DatePicker] Date selected:', dateStr, 'Mode:', dateMode);
+                            if (dateMode === 'single') {
+                              setEditValue(dateStr);
+                            } else {
+                              // Handle multiple dates
+                              const currentDates = editValue.split(',').filter(Boolean);
+                              const newDates = currentDates.includes(dateStr)
+                                ? currentDates.filter(ed => ed !== dateStr)
+                                : [...currentDates, dateStr].sort();
+                              setEditValue(newDates.join(','));
+                            }
+                          }}
+                          highlightDates={dateMode === 'dates' ? editValue.split(',').filter(Boolean).map(d => new Date(d)) : []}
+                          locale={ko}
+                          inline
+                          monthsShown={1}
+                          shouldCloseOnSelect={dateMode === 'single'}
+                        />
+                      </div>
+                    </div>
+                  ) : activeEditField === 'links' ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <label style={{ fontSize: '0.9rem', fontWeight: 600, color: '#e2e8f0' }}>링크</label>
+                        <input
+                          type="text"
+                          className="bottom-sheet-input"
+                          value={linkEditValues.link_name1}
+                          onChange={(e) => setLinkEditValues({ ...linkEditValues, link_name1: e.target.value })}
+                          placeholder="링크 이름 (예: 신청하기)"
+                          style={{ minHeight: '40px', marginBottom: '0.25rem' }}
+                        />
+                        <input
+                          type="text"
+                          className="bottom-sheet-input"
+                          value={linkEditValues.link1}
+                          onChange={(e) => setLinkEditValues({ ...linkEditValues, link1: e.target.value })}
+                          placeholder="URL (https://...)"
+                          style={{ minHeight: '40px' }}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {activeEditField === 'genre' ? (
+                        <div className="genre-edit-container">
+                          {/* 1. Category Selection */}
+                          <div className="genre-category-toggle" style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
+                            <button
+                              onClick={() => {
+                                setEditCategory('event');
+                                setEditValue(''); // Reset genre when switching category
+                              }}
+                              className={`category-toggle-btn ${editCategory === 'event' ? 'active' : ''}`}
+                              style={{
+                                flex: 1,
+                                padding: '12px',
+                                background: editCategory === 'event' ? '#3b82f6' : 'rgba(255,255,255,0.05)',
+                                border: editCategory === 'event' ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
+                                color: 'white',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontWeight: 600
+                              }}
+                            >
+                              행사
+                            </button>
+                            <button
+                              onClick={() => {
+                                setEditCategory('class');
+                                setEditValue(''); // Reset genre when switching category
+                              }}
+                              className={`category-toggle-btn ${editCategory === 'class' ? 'active' : ''}`}
+                              style={{
+                                flex: 1,
+                                padding: '12px',
+                                background: editCategory === 'class' ? '#3b82f6' : 'rgba(255,255,255,0.05)',
+                                border: editCategory === 'class' ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
+                                color: 'white',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontWeight: 600
+                              }}
+                            >
+                              <span className="manual-label-wrapper">
+                                <span className="translated-part">Class</span>
+                                <span className="fixed-part ko" translate="no">강습</span>
+                                <span className="fixed-part en" translate="no">Class</span>
+                              </span>
+                            </button>
+                            <button
+                              onClick={() => {
+                                setEditCategory('club');
+                                setEditValue(''); // Reset genre when switching category
+                              }}
+                              className={`category-toggle-btn ${editCategory === 'club' ? 'active' : ''}`}
+                              style={{
+                                flex: 1,
+                                padding: '12px',
+                                background: editCategory === 'club' ? '#10b981' : 'rgba(255,255,255,0.05)',
+                                border: editCategory === 'club' ? '1px solid #10b981' : '1px solid rgba(255,255,255,0.1)',
+                                color: 'white',
+                                borderRadius: '8px',
+                                cursor: 'pointer',
+                                fontWeight: 600
+                              }}
+                            >
+                              동호회
+                            </button>
+                          </div>
+
+                          {/* 2. Genre Chips */}
+                          <div className="genre-chips-container" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
+                            {/* Fixed Club Lesson Option removed from separate button and added to list below */}
+
+                            {uniqueGenres
+                              .map(genre => (
+                                <button
+                                  key={genre}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    console.log(`[EventDetailModal] Genre Click: ${genre}`);
+
+                                    const current = editValue ? editValue.split(',').map(s => s.trim()).filter(Boolean) : [];
+
+                                    // LOGIC:
+                                    // 1. Class/Club: Single Selection Only
+                                    // 2. Event: Mutual Exclusivity (Party vs Competition)
+
+                                    let newGenres: string[];
+
+                                    if (editCategory === 'class' || editCategory === 'club') {
+                                      // FORCE SINGLE SELECT for Class/Club
+                                      // If clicking the already selected one, allow toggle off (or keep? usually toggle off is fine)
+                                      // User said "Class is not multi-selectable".
+                                      if (current.includes(genre)) {
+                                        newGenres = []; // Toggle off
+                                      } else {
+                                        newGenres = [genre]; // Replace
+                                      }
+                                    } else {
+                                      // EVENT logic (Multi-select with constraints)
+                                      if (current.includes(genre)) {
+                                        newGenres = current.filter(g => g !== genre);
+                                      } else {
+                                        let temp = [...current];
+                                        // Mutual Exclusivity: '파티' vs '대회'
+                                        if (genre === '파티') {
+                                          temp = temp.filter(g => g !== '대회');
+                                        } else if (genre === '대회') {
+                                          temp = temp.filter(g => g !== '파티');
+                                        }
+                                        newGenres = [...temp, genre];
+                                      }
+                                    }
+
+                                    const newValue = newGenres.join(',');
+                                    console.log(`[EventDetailModal] New Value: ${newValue}`);
+
+                                    setEditValue(newValue);
+                                    // setUseDirectInput(false); // Removed
+                                  }}
+                                  className={`genre-chip ${editValue.split(',').map(s => s.trim()).includes(genre) ? 'active' : ''}`}
+                                  style={{
+                                    padding: '8px 16px',
+                                    borderRadius: '9999px',
+                                    background: editValue.split(',').map(s => s.trim()).includes(genre) ? '#3b82f6' : 'rgba(255,255,255,0.05)',
+                                    border: editValue.split(',').map(s => s.trim()).includes(genre) ? '1px solid #3b82f6' : '1px solid rgba(255,255,255,0.1)',
+                                    color: 'white',
+                                    cursor: 'pointer',
+                                    fontSize: '14px'
+                                  }}
+                                >
+                                  {genre}
+                                </button>
+                              ))}
+                            {/* Direct Input Removed */}
+                          </div>
+
+                          {/* 3. Direct Input Field (Conditional) - REMOVED to avoid confusion */}
+                        </div>
+                      ) : (
+                        // Normal text input for other fields
+                        <textarea
+                          className="bottom-sheet-input"
+                          value={editValue}
+                          onChange={(e) => setEditValue(e.target.value)}
+                          placeholder={activeEditField === 'title' ? "행사 제목을 입력하세요" : "내용을 입력하세요"}
+                          rows={activeEditField === 'title' ? 3 : 8}
+                          style={{ resize: 'none', minHeight: activeEditField === 'title' ? '80px' : '200px' }}
+                          autoFocus
+                        />
+                      )}
+                    </>
+                  )}
+                </div>
+                <div className="bottom-sheet-actions">
+                  <button
+                    onClick={handleSaveField}
+                    className="bottom-sheet-button"
+                    disabled={isSaving}
+                  >
+                    {isSaving ? '저장 중...' : '저장'}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div >,
+          document.body
+        )
+      }
+      <ImageCropModal
+        isOpen={isCropModalOpen}
+        imageUrl={tempImageSrc}
+        onClose={() => setIsCropModalOpen(false)}
+        onCropComplete={handleCropComplete}
+        onChangeImage={() => fileInputRef.current?.click()}
+        originalImageUrl={originalImageUrl}
+        onImageUpdate={handleImageUpdate}
+        isLoading={isFetchingDetail}
+      />
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        onChange={handleFileChange}
+        style={{ display: 'none' }}
+      />
+    </>
+  );
+}
