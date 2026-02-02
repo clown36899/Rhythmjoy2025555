@@ -365,10 +365,10 @@ const MainV2TestPage: React.FC = () => {
 
     const getEventColor = (id: string) => {
         const colors = [
-            'cal-bg-red-500', 'cal-bg-orange-500', 'cal-bg-amber-500', 'cal-bg-yellow-500',
-            'cal-bg-lime-500', 'cal-bg-green-500', 'cal-bg-emerald-500', 'cal-bg-teal-500',
-            'cal-bg-cyan-500', 'cal-bg-sky-500', 'cal-bg-blue-500', 'cal-bg-indigo-500',
-            'cal-bg-violet-500', 'cal-bg-purple-500', 'cal-bg-fuchsia-500', 'cal-bg-pink-500',
+            'calendar-bg-red-500', 'calendar-bg-orange-500', 'calendar-bg-amber-500', 'calendar-bg-yellow-500',
+            'calendar-bg-lime-500', 'calendar-bg-green-500', 'calendar-bg-emerald-500', 'calendar-bg-teal-500',
+            'calendar-bg-cyan-500', 'calendar-bg-sky-500', 'calendar-bg-blue-500', 'calendar-bg-indigo-500',
+            'calendar-bg-violet-500', 'calendar-bg-purple-500', 'calendar-bg-fuchsia-500', 'calendar-bg-pink-500',
         ];
         let hash = 0;
         for (let i = 0; i < id.length; i++) {

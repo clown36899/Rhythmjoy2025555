@@ -170,14 +170,14 @@ export default memo(function FullEventCalendar({
   // 현재 달의 이벤트별 색상 맵 생성
   const eventColorMap = useMemo(() => {
     const colors = [
-      'cal-bg-red-500', 'cal-bg-orange-500', 'cal-bg-amber-500', 'cal-bg-yellow-500',
-      'cal-bg-lime-500', 'cal-bg-green-500', 'cal-bg-emerald-500', 'cal-bg-teal-500',
-      'cal-bg-cyan-500', 'cal-bg-sky-500', 'cal-bg-blue-500', 'cal-bg-indigo-500',
-      'cal-bg-violet-500', 'cal-bg-purple-500', 'cal-bg-fuchsia-500', 'cal-bg-pink-500',
-      'cal-bg-rose-500', 'cal-bg-red-600', 'cal-bg-orange-600', 'cal-bg-amber-600',
-      'cal-bg-yellow-600', 'cal-bg-lime-600', 'cal-bg-green-600', 'cal-bg-emerald-600',
-      'cal-bg-teal-600', 'cal-bg-cyan-600', 'cal-bg-sky-600', 'cal-bg-indigo-600',
-      'cal-bg-violet-600', 'cal-bg-purple-600', 'cal-bg-fuchsia-600', 'cal-bg-pink-600'
+      'calendar-bg-red-500', 'calendar-bg-orange-500', 'calendar-bg-amber-500', 'calendar-bg-yellow-500',
+      'calendar-bg-lime-500', 'calendar-bg-green-500', 'calendar-bg-emerald-500', 'calendar-bg-teal-500',
+      'calendar-bg-cyan-500', 'calendar-bg-sky-500', 'calendar-bg-blue-500', 'calendar-bg-indigo-500',
+      'calendar-bg-violet-500', 'calendar-bg-purple-500', 'calendar-bg-fuchsia-500', 'calendar-bg-pink-500',
+      'calendar-bg-rose-500', 'calendar-bg-red-600', 'calendar-bg-orange-600', 'calendar-bg-amber-600',
+      'calendar-bg-yellow-600', 'calendar-bg-lime-600', 'calendar-bg-green-600', 'calendar-bg-emerald-600',
+      'calendar-bg-teal-600', 'calendar-bg-cyan-600', 'calendar-bg-sky-600', 'calendar-bg-indigo-600',
+      'calendar-bg-violet-600', 'calendar-bg-purple-600', 'calendar-bg-fuchsia-600', 'calendar-bg-pink-600'
     ];
 
     const map = new Map<number | string, string>();
@@ -217,7 +217,7 @@ export default memo(function FullEventCalendar({
 
   // 이벤트 색상 가져오기 함수
   const getEventColor = (eventId: number | string) => {
-    return eventColorMap.get(eventId) || 'cal-bg-gray-500';
+    return eventColorMap.get(eventId) || 'calendar-bg-gray-500';
   };
 
   // 현재 월/뷰모드 변경 시 이벤트 발생
@@ -566,7 +566,7 @@ export default memo(function FullEventCalendar({
                   return (
                     <div
                       key={event.id}
-                      className={`calendar-fullscreen-event-card ${isContinueLeft ? 'cal-event-continue-left' : ''} ${isContinueRight ? 'cal-event-continue-right' : ''}`}
+                      className={`calendar-fullscreen-event-card ${isContinueLeft ? 'calendar-event-continue-left' : ''} ${isContinueRight ? 'calendar-event-continue-right' : ''}`}
                       data-event-id={event.id}
                       role="button"
                       onClick={(e) => {
@@ -641,7 +641,7 @@ export default memo(function FullEventCalendar({
     <>
       <div data-calendar className="calendar-main-container">
         {viewMode === "year" ? (
-          <div className="cal-flex-1 cal-overflow-y-auto">{renderYearView()}</div>
+          <div className="calendar-flex-1 calendar-overflow-y-auto">{renderYearView()}</div>
         ) : (
           <div
             className={`calendar-carousel-container calendar-mode-fullscreen`}
