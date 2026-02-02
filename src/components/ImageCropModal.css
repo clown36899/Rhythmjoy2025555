@@ -384,7 +384,28 @@
 
 .crop-button-row {
   display: flex;
+  justify-content: center;
   gap: var(--spacing-2);
+  margin-bottom: var(--spacing-4);
+}
+
+.crop-footer-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-2);
+  width: 100%;
+}
+
+/* Handle case where only one button is present (e.g. no videoUrl) */
+.crop-footer-grid:has(> :only-child) {
+  grid-template-columns: 1fr;
+}
+
+.crop-action-row {
+  display: flex;
+  gap: var(--spacing-2);
+  width: 100%;
+  margin-top: var(--spacing-1);
 }
 
 /* ===== 비율 선택 버튼 ===== */

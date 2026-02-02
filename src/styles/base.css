@@ -189,6 +189,7 @@
     --z-sticky: 500;
     --z-header: 1000;
     --z-overlay: 2000;
+    --z-modal: 10000;
     --z-modal-base: 10000;
     --z-modal-stack-1: 11000;
     /* Main Modal (EED, ERM) */

@@ -178,27 +178,56 @@ export const BoardDataProvider = ({ children }: { children: ReactNode }) => {
         const numericId = typeof eventId === 'number' ? eventId : Number(eventId);
         if (isNaN(numericId)) return;
 
-        try {
-            const isFavorite = interactions?.event_favorites.includes(eventId) ||
-                interactions?.event_favorites.includes(String(eventId));
+        // Save current state for rollback
+        const currentInteractions = interactions;
+        const currentFavorites = (interactions?.event_favorites || []).map(id => Number(id));
+        const isCurrentlyFavorite = currentFavorites.includes(numericId);
 
-            if (isFavorite) {
+        // 1. Optimistic Update: UI responds immediately
+        const nextFavorites = isCurrentlyFavorite
+            ? currentFavorites.filter(id => id !== numericId)
+            : [...currentFavorites, numericId];
+
+        setInteractions(prev => {
+            const base = prev || {
+                post_likes: [], post_dislikes: [], post_favorites: [],
+                anonymous_post_likes: [], anonymous_post_dislikes: [],
+                comment_likes: [], comment_dislikes: [],
+                anonymous_comment_likes: [], anonymous_comment_dislikes: [],
+                event_favorites: [], social_group_favorites: [],
+                practice_room_favorites: [], shop_favorites: []
+            };
+            return {
+                ...base,
+                event_favorites: nextFavorites
+            };
+        });
+
+        try {
+            if (isCurrentlyFavorite) {
                 const { error } = await supabase
                     .from('event_favorites')
                     .delete()
                     .eq('user_id', userId)
-                    .eq('event_id', eventId);
+                    .eq('event_id', numericId);
+
                 if (error) throw error;
             } else {
                 const { error } = await supabase
                     .from('event_favorites')
-                    .insert({ user_id: userId, event_id: eventId });
-                if (error) throw error;
+                    .insert({ user_id: userId, event_id: numericId });
+
+                // If 409 Conflict (Duplicate key), it's already favorited.
+                // We treat this as a success since the end state (is favorited) is correct.
+                if (error && error.code !== '23505') throw error;
             }
 
+            // 2. Background Sync: Ensure state is purely identical to DB
             await fetchInteractions(userId);
         } catch (err) {
             console.error('[BoardDataContext] toggleEventFavorite Error:', err);
+            // Rollback optimistic update on actual error
+            setInteractions(currentInteractions);
             throw err;
         }
     }, [interactions, fetchInteractions]);

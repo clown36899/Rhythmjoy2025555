@@ -1,5 +1,4 @@
-import React, { useMemo, useCallback, useState } from "react";
-import { createPortal } from "react-dom";
+import React, { useMemo, useCallback, useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../../../contexts/AuthContext";
 import { supabase } from "../../../lib/supabase";
@@ -12,10 +11,8 @@ import { useEventsQuery } from "../../../hooks/queries/useEventsQuery";
 import { useSocialSchedulesQuery } from "../../../hooks/queries/useSocialSchedulesQuery";
 import { useUserInteractions } from "../../../hooks/useUserInteractions";
 import { useEventFilters } from "./EventList/hooks/useEventFilters";
-import { useEventSelection } from "./EventList/hooks/useEventSelection";
 import { useBoardStaticData } from "../../../contexts/BoardDataContext";
 import { useRandomizedEvents } from "./EventList/hooks/useRandomizedEvents";
-import { useEffect } from "react";
 
 // Styles
 import "../../../styles/domains/events.css";
@@ -27,7 +24,6 @@ import { EventFavoritesView } from "./EventList/components/EventFavoritesView";
 import { MyEventsView } from "./EventList/components/MyEventsView";
 import { EventPreviewSection } from "./EventList/components/EventPreviewSection";
 import { EventHorizontalListView } from "./EventList/components/EventHorizontalListView";
-import { EventEditModal } from "./EventList/components/EventEditModal";
 import VenueSelectModal from "./VenueSelectModal";
 
 // Utils
@@ -57,7 +53,6 @@ const EventList: React.FC<EventListProps> = ({
   onEventClick,
   calendarMode,
   isAdminMode = false,
-  adminType = null,
   highlightEvent,
   onEventHover,
   // onSectionViewModeChange // Unused
@@ -80,20 +75,6 @@ const EventList: React.FC<EventListProps> = ({
     await refetchSocial();
   }, [refetchSocial]);
 
-  // 3. Selection & Interaction Hook
-  const {
-    eventToEdit,
-    setEventToEdit,
-    isEditingWithDetail,
-    setIsEditingWithDetail,
-    isFetchingDetail,
-    isDeleting,
-    handleDeleteClick
-  } = useEventSelection({
-    isAdminMode,
-    adminType,
-    fetchEvents
-  });
 
   // 3.5 Genre Weights from BoardDataContext
   const { data: boardData } = useBoardStaticData();
@@ -222,9 +203,9 @@ const EventList: React.FC<EventListProps> = ({
   const { interactions, toggleEventFavorite } = useUserInteractions(user?.id || null);
 
   // Convert API array to Set for fast O(1) lookups
-  const favoriteEventIds = useMemo<Set<number | string>>(() => {
-    if (!interactions?.event_favorites) return new Set<number | string>();
-    return new Set(interactions.event_favorites);
+  const favoriteEventIds = useMemo<Set<number>>(() => {
+    if (!interactions?.event_favorites) return new Set<number>();
+    return new Set(interactions.event_favorites.map(id => Number(id)));
   }, [interactions?.event_favorites]);
 
   const handleToggleFavorite = useCallback(async (eventId: number | string, e?: React.MouseEvent) => {
@@ -244,63 +225,6 @@ const EventList: React.FC<EventListProps> = ({
     }
   }, [user, toggleEventFavorite]);
 
-  // Update logic (moved to EventList for orchestration)
-  const handleSaveEvent = async (formData: any, imageFile: File | null) => {
-    if (!eventToEdit) return;
-    try {
-      // 1. Handle Image Upload if needed
-      let imageUrl = formData.image;
-      if (imageFile) {
-        const fileExt = imageFile.name.split('.').pop();
-        const fileName = `${Math.random()}.${fileExt}`;
-        const filePath = `events/${eventToEdit.id}/${fileName}`;
-
-        const { error: uploadError } = await supabase.storage
-          .from('event-images')
-          .upload(filePath, imageFile);
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from('event-images')
-          .getPublicUrl(filePath);
-
-        imageUrl = publicUrl;
-      }
-
-      // 2. Update DB
-      const { error } = await supabase
-        .from('events')
-        .update({
-          title: formData.title,
-          genre: formData.genre,
-          category: formData.category,
-          location: formData.location,
-          location_link: formData.locationLink,
-          link1: formData.link1,
-          start_date: formData.start_date,
-          end_date: formData.end_date,
-          event_dates: formData.event_dates,
-          description: formData.description,
-          video_url: formData.videoUrl,
-          image: imageUrl,
-          organizer: formData.organizerName,
-          organizer_phone: formData.organizerPhone,
-          show_title_on_billboard: formData.showTitleOnBillboard
-        })
-        .eq('id', eventToEdit.id);
-
-      if (error) throw error;
-
-      alert("수정되었습니다.");
-      setIsEditingWithDetail(false);
-      setEventToEdit(null);
-      await fetchEvents();
-    } catch (err: any) {
-      console.error("Error saving event:", err);
-      alert(err.message || "수정 중 오류가 발생했습니다.");
-    }
-  };
 
   if (loading && events.length === 0) {
     return <GlobalLoadingOverlay isLoading={true} />;
@@ -308,15 +232,6 @@ const EventList: React.FC<EventListProps> = ({
 
   return (
     <div className="no-select evt-flex-col-full">
-      {(isDeleting || isFetchingDetail) && createPortal(
-        <div className="evt-delete-overlay">
-          <div className="evt-loading-spinner-outer">
-            <div className="evt-loading-spinner-base evt-loading-spinner-gray"></div>
-            <div className="evt-loading-spinner-base evt-loading-spinner-blue evt-animate-spin"></div>
-          </div>
-          <p className="event-list-deleting-text">{isDeleting ? "삭제 중..." : "데이터 로딩 중..."}</p>
-        </div>, document.body
-      )}
 
       {view === 'favorites' ? (
         <EventFavoritesView
@@ -326,8 +241,8 @@ const EventList: React.FC<EventListProps> = ({
             p.set('favTab', tab);
             setSearchParams(p);
           }}
-          futureFavorites={events.filter(e => favoriteEventIds.has(e.id) && (e.end_date || e.date || "") >= getLocalDateString())}
-          pastFavorites={events.filter(e => favoriteEventIds.has(e.id) && (e.end_date || e.date || "") < getLocalDateString())}
+          futureFavorites={events.filter(e => favoriteEventIds.has(Number(e.id)) && (e.end_date || e.date || "") >= getLocalDateString())}
+          pastFavorites={events.filter(e => favoriteEventIds.has(Number(e.id)) && (e.end_date || e.date || "") < getLocalDateString())}
           favoritedBoardPosts={[]}
           favoriteSocialGroups={[]}
           favoritePracticeRooms={[]}
@@ -512,7 +427,7 @@ const EventList: React.FC<EventListProps> = ({
           regularClasses={randomizedRegularClasses}
           clubLessons={randomizedClubLessons}
           clubRegularClasses={randomizedClubRegularClasses}
-          favoriteEventsList={events.filter(e => favoriteEventIds.has(e.id))}
+          favoriteEventsList={events.filter(e => favoriteEventIds.has(Number(e.id)))}
           // events={events} // Removed
           allGenres={allGenres}
           allGenresStructured={allGenresStructured}
@@ -556,18 +471,6 @@ const EventList: React.FC<EventListProps> = ({
         />
       )}
 
-      {/* Edit Modal */}
-      <EventEditModal
-        isOpen={isEditingWithDetail}
-        onClose={() => setIsEditingWithDetail(false)}
-        event={eventToEdit}
-        onSave={handleSaveEvent}
-        onDelete={handleDeleteClick}
-        isAdmin={isAdminMode}
-        user={user}
-        allGenres={allGenres}
-        onOpenVenueModal={() => setIsVenueModalOpen(true)}
-      />
 
       <VenueSelectModal
         isOpen={isVenueModalOpen}

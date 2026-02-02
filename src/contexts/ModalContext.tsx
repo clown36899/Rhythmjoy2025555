@@ -43,12 +43,17 @@ export function ModalProvider({ children }: { children: ReactNode }) {
     }, [modalStack.length]);
 
     const openModal = useCallback((modalId: string, props?: any) => {
-        setModals(prev => ({
-            ...prev,
-            [modalId]: { isOpen: true, props }
-        }));
+        setModals(prev => {
+            // Always update props if opening or already open
+            return {
+                ...prev,
+                [modalId]: { isOpen: true, props }
+            };
+        });
 
         setModalStack(prev => {
+            // Only move to top if not already at the top
+            if (prev[prev.length - 1] === modalId) return prev;
             const filtered = prev.filter(id => id !== modalId);
             return [...filtered, modalId];
         });

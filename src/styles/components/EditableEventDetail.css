@@ -14,6 +14,32 @@
     animation: eed-fadeIn 0.3s ease-out;
 }
 
+/* Unified Premium Scrollbar for EED */
+.EED-container * {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+.EED-container *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+.EED-container *::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.EED-container *::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    border: 1px solid transparent;
+    background-clip: padding-box;
+}
+
+.EED-container *::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
 .EED-modalWrapper {
     background-color: var(--bg-surface-1);
     backdrop-filter: blur(var(--blur-glass-heavy)) saturate(180%);
@@ -53,8 +79,6 @@
 .EED-scrollArea {
     flex: 1;
     overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
     display: flex;
     flex-direction: column;
 }
@@ -257,6 +281,16 @@
     font-weight: 500;
 }
 
+.EED-uploadVideoInfo {
+    margin-top: 2px;
+}
+
+.EED-uploadVideoRequired {
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    font-weight: 500;
+}
+
 .EED-uploadDivider {
     width: 1px;
     height: 80px;
@@ -302,12 +336,13 @@
 }
 
 .EED-category {
-    padding: 4px 10px;
-    border-radius: 6px;
-    font-size: 0.7rem;
-    font-weight: 800;
-    color: white;
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    font-weight: 850;
+    color: #ffffff;
     text-transform: uppercase;
+    letter-spacing: 0.02em;
 }
 
 .EED-category.is-event {
@@ -402,11 +437,13 @@
 .EED-genre {
     font-size: 0.85rem;
     font-weight: 700;
-    padding: 6px 12px;
+    padding: 6px 14px;
     border-radius: 8px;
-    color: white;
+    color: #ffffff;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    transition: transform 0.2s ease;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
 }
 
 .EED-genre:hover {
@@ -414,17 +451,21 @@
 }
 
 .EED-placeholder {
-    color: var(--text-muted);
-    font-weight: 400;
+    color: rgba(255, 255, 255, 0.55);
+    font-weight: 500;
 }
 
 /* Title Section */
 .EED-titleSection {
     position: relative;
     padding: 4px;
+    display: flex;
+    gap: 5px;
     border-radius: 12px;
     cursor: pointer;
     transition: background 0.2s;
+    align-content: center;
+    align-items: center;
 }
 
 .EED-titleSection:hover {

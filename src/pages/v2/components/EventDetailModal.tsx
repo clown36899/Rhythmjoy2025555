@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { supabase } from '../../../lib/supabase'; // Import value for update
+import { supabase } from '../../../lib/supabase';
 import type { Event as BaseEvent } from '../../../lib/supabase';
 import { useDefaultThumbnail } from '../../../hooks/useDefaultThumbnail';
 import { getEventThumbnail } from '../../../utils/getEventThumbnail';
@@ -15,14 +15,225 @@ import { createResizedImages } from '../../../utils/imageResize';
 import DatePicker, { registerLocale } from "react-datepicker";
 import { ko } from "date-fns/locale/ko";
 import "react-datepicker/dist/react-datepicker.css";
-
-registerLocale("ko", ko);
 import GlobalLoadingOverlay from '../../../components/GlobalLoadingOverlay';
 import { retryOperation } from '../../../utils/asyncUtils';
 import { useViewTracking } from '../../../hooks/useViewTracking';
 
+registerLocale("ko", ko);
 
-interface Event extends Omit<BaseEvent, 'date' | 'start_date' | 'end_date' | 'event_dates'> {
+// --- Optimization Hooks ---
+const useHistoricalGenres = () => {
+  const [allHistoricalGenres, setAllHistoricalGenres] = useState<string[]>([]);
+  useEffect(() => {
+    const fetchGenres = async () => {
+      const { data, error } = await supabase.from('events').select('genre');
+      if (!error && data) {
+        const atomicGenres = data
+          .map(d => d.genre)
+          .filter((g): g is string => !!g)
+          .flatMap(g => g.split(',').map(s => s.trim()));
+        setAllHistoricalGenres(Array.from(new Set(atomicGenres)).sort());
+      }
+    };
+    fetchGenres();
+  }, []);
+  return allHistoricalGenres;
+};
+
+interface BottomSheetProps {
+  activeField: string | null;
+  onClose: () => void;
+  initialValue: any;
+  onSave: (value: any, category?: string) => void;
+  isSaving: boolean;
+  event: any;
+  structuredGenres: { class: string[]; event: string[] };
+  allHistoricalGenres: string[];
+}
+
+const EventEditBottomSheet = React.memo(({
+  activeField,
+  onClose,
+  initialValue,
+  onSave,
+  isSaving,
+  structuredGenres,
+  allHistoricalGenres
+}: BottomSheetProps) => {
+  const [editValue, setEditValue] = useState('');
+  const [editCategory, setEditCategory] = useState<'event' | 'class' | 'club'>('event');
+  const [dateMode, setDateMode] = useState<'single' | 'dates'>('single');
+  const [linkEditValues, setLinkEditValues] = useState({
+    link1: '', link_name1: '',
+    link2: '', link_name2: '',
+    link3: '', link_name3: ''
+  });
+
+  useEffect(() => {
+    if (activeField === 'title') setEditValue(initialValue.title);
+    if (activeField === 'genre') {
+      setEditValue(initialValue.genre || '');
+      setEditCategory((initialValue.category === 'class' || initialValue.category === 'club') ? initialValue.category : 'event');
+    }
+    if (activeField === 'description') setEditValue(initialValue.description || '');
+    if (activeField === 'date') {
+      const dates = initialValue.event_dates || [];
+      if (dates.length > 0) {
+        setDateMode('dates');
+        setEditValue(dates.join(','));
+      } else {
+        setDateMode('single');
+        setEditValue(initialValue.date || initialValue.start_date || '');
+      }
+    }
+    if (activeField === 'links') {
+      setLinkEditValues({
+        link1: initialValue.link1 || '',
+        link_name1: initialValue.link_name1 || '',
+        link2: initialValue.link2 || '',
+        link_name2: initialValue.link_name2 || '',
+        link3: initialValue.link3 || '',
+        link_name3: initialValue.link_name3 || ''
+      });
+    }
+  }, [activeField, initialValue]);
+
+  const uniqueGenres = useMemo(() => {
+    const propGenres = editCategory === 'club'
+      ? (structuredGenres['class'] || [])
+      : (structuredGenres[editCategory as keyof typeof structuredGenres] || []);
+
+    const combined = [...propGenres, ...allHistoricalGenres];
+
+    if (editCategory === 'club') {
+      return ['정규강습', '린디합', '솔로재즈', '발보아', '블루스', '팀원모집'];
+    }
+
+    return Array.from(new Set(
+      combined.flatMap(g => g.split(',')).map(s => s.trim()).filter(s => s && s.length > 0)
+    )).sort();
+  }, [editCategory, structuredGenres, allHistoricalGenres]);
+
+  if (!activeField) return null;
+
+  return createPortal(
+    <div className="EDM-bottomSheetPortal">
+      <div className="EDM-bottomSheetBackdrop" onClick={onClose} />
+      <div className="EDM-bottomSheetContent">
+        <div className="EDM-bottomSheetHandle"></div>
+        <h3 className="EDM-bottomSheetHeader">
+          {activeField === 'title' && <><i className="ri-text"></i>제목 수정</>}
+          {activeField === 'genre' && <><i className="ri-price-tag-3-line"></i>장르 수정</>}
+          {activeField === 'description' && <><i className="ri-file-text-line"></i>오픈톡방/내용 수정</>}
+          {activeField === 'links' && <><i className="ri-link"></i>링크 수정</>}
+          {activeField === 'date' && <><i className="ri-calendar-check-line"></i>날짜 선택</>}
+        </h3>
+
+        <div className="EDM-bottomSheetBody">
+          <div className="EDM-bottomSheetInputGroup">
+            {activeField === 'date' ? (
+              <div className="EDM-dateEditContainer">
+                <div className="EDM-dateModeToggle">
+                  <button onClick={() => { setDateMode('single'); setEditValue(''); }} className={`EDM-dateModeBtn ${dateMode === 'single' ? 'is-active' : ''}`}>하루</button>
+                  <button onClick={() => { setDateMode('dates'); setEditValue(''); }} className={`EDM-dateModeBtn ${dateMode === 'dates' ? 'is-active' : ''}`}>개별</button>
+                </div>
+                {dateMode === 'dates' && (
+                  <div className="EDM-selectedDatesContainer">
+                    <div className="EDM-selectedDatesList">
+                      {editValue.split(',').filter(Boolean).length > 0 ? (
+                        editValue.split(',').filter(Boolean).map(d => (
+                          <div key={d} className="EDM-dateChip">
+                            <span>{d.substring(5)}</span>
+                            <button onClick={(e) => {
+                              e.stopPropagation();
+                              const newDates = editValue.split(',').filter(Boolean).filter(ed => ed !== d);
+                              setEditValue(newDates.join(','));
+                            }} className="EDM-dateChipRemove"><i className="ri-close-line"></i></button>
+                          </div>
+                        ))
+                      ) : <span className="EDM-emptyDatesHint">날짜를 선택해주세요</span>}
+                    </div>
+                  </div>
+                )}
+                <div className="EDM-calendarWrapper">
+                  <DatePicker
+                    selected={dateMode === 'single' && editValue ? new Date(editValue) : null}
+                    onChange={(d: Date | null) => {
+                      if (!d) return;
+                      const dateStr = d.toISOString().split('T')[0];
+                      if (dateMode === 'single') setEditValue(dateStr);
+                      else {
+                        const currentDates = editValue.split(',').filter(Boolean);
+                        const newDates = currentDates.includes(dateStr) ? currentDates.filter(ed => ed !== dateStr) : [...currentDates, dateStr].sort();
+                        setEditValue(newDates.join(','));
+                      }
+                    }}
+                    highlightDates={dateMode === 'dates' ? editValue.split(',').filter(Boolean).map(d => new Date(d)) : []}
+                    locale={ko} inline monthsShown={1} shouldCloseOnSelect={dateMode === 'single'}
+                  />
+                </div>
+              </div>
+            ) : activeField === 'links' ? (
+              <div className="EDM-linksEditContainer">
+                <div className="EDM-inputGroup-v">
+                  <label className="EDM-inputLabel">링크</label>
+                  <input type="text" className="EDM-bottomSheetInput" value={linkEditValues.link_name1} onChange={(e) => setLinkEditValues({ ...linkEditValues, link_name1: e.target.value })} placeholder="링크 이름 (예: 신청하기)" />
+                  <input type="text" className="EDM-bottomSheetInput" value={linkEditValues.link1} onChange={(e) => setLinkEditValues({ ...linkEditValues, link1: e.target.value })} placeholder="URL (https://...)" />
+                </div>
+              </div>
+            ) : activeField === 'genre' ? (
+              <div className="EDM-genreEditContainer">
+                <div className="EDM-categoryToggle">
+                  <button onClick={() => { setEditCategory('event'); setEditValue(''); }} className={`EDM-categoryToggleBtn ${editCategory === 'event' ? 'is-active' : ''}`}>행사</button>
+                  <button onClick={() => { setEditCategory('class'); setEditValue(''); }} className={`EDM-categoryToggleBtn ${editCategory === 'class' ? 'is-active' : ''}`}>
+                    <span className="manual-label-wrapper"><span className="translated-part">Class</span><span className="fixed-part ko" translate="no">강습</span><span className="fixed-part en" translate="no">Class</span></span>
+                  </button>
+                  <button onClick={() => { setEditCategory('club'); setEditValue(''); }} className={`EDM-categoryToggleBtn is-club ${editCategory === 'club' ? 'is-active' : ''}`}>동호회</button>
+                </div>
+                <div className="EDM-genreChipList is-flex-layout">
+                  {uniqueGenres.map((genre: string) => {
+                    const currentList = editValue ? editValue.split(',').map(s => s.trim()).filter(Boolean) : [];
+                    const isActive = currentList.includes(genre);
+                    return (
+                      <button key={genre} onClick={(e) => {
+                        e.preventDefault(); e.stopPropagation();
+                        let newGenres: string[];
+                        if (editCategory === 'class' || editCategory === 'club') newGenres = isActive ? [] : [genre];
+                        else {
+                          if (isActive) newGenres = currentList.filter(g => g !== genre);
+                          else {
+                            let temp = [...currentList];
+                            if (genre === '파티') temp = temp.filter(g => g !== '대회');
+                            else if (genre === '대회') temp = temp.filter(g => g !== '파티');
+                            newGenres = [...temp, genre];
+                          }
+                        }
+                        setEditValue(newGenres.join(','));
+                      }} className={`EDM-genreChip ${isActive ? 'is-active' : ''} ${editCategory === 'club' && isActive ? 'is-club' : ''}`}>{genre}</button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <textarea className="EDM-bottomSheetTextarea" value={editValue} onChange={(e) => setEditValue(e.target.value)} placeholder={activeField === 'title' ? "행사 제목을 입력하세요" : "내용을 입력하세요"} rows={activeField === 'title' ? 3 : 8} autoFocus />
+            )}
+          </div>
+        </div>
+        <div className="EDM-bottomSheetFooter">
+          <button onClick={() => onSave(activeField === 'links' ? linkEditValues : editValue, editCategory)} className="EDM-bottomSheet-btn-submit" disabled={isSaving}>
+            {isSaving ? '저장 중...' : '저장'}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+});
+
+// --- Main Modal Component ---
+
+
+interface Event extends Omit<BaseEvent, 'date' | 'start_date' | 'end_date' | 'event_dates' | 'location' | 'location_link' | 'category'> {
   storage_path?: string | null;
   genre?: string | null;
   date?: string | null;
@@ -30,6 +241,14 @@ interface Event extends Omit<BaseEvent, 'date' | 'start_date' | 'end_date' | 'ev
   end_date?: string | null;
   event_dates?: string[] | null;
   views?: number;
+  // Venue fields
+  venue_id?: string | null;
+  venue_name?: string | null;
+  address?: string | null;
+  location_name?: string | null;
+  location?: string | null;
+  location_link?: string | null;
+  category?: string | null;
 }
 
 const genreColorPalette = [
@@ -112,7 +331,6 @@ export default function EventDetailModal({
 
   const [showFullscreenImage, setShowFullscreenImage] = useState(false);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
-  const [dateMode, setDateMode] = useState<'single' | 'dates'>('single'); // Track date mode separately
 
   // Draft State for Local Edits
   const [draftEvent, setDraftEvent] = useState<Event | null>(event);
@@ -330,15 +548,6 @@ export default function EventDetailModal({
   // Bottom Sheet Edit State
   const [activeEditField, setActiveEditField] = useState<string | null>(null);
   const [showVenueSelect, setShowVenueSelect] = useState(false);
-  const [editValue, setEditValue] = useState('');
-  const [editCategory, setEditCategory] = useState<'event' | 'class' | 'club'>('event'); // Added 'club' type
-  // const [useDirectInput, setUseDirectInput] = useState(false); // Removed
-
-  const [linkEditValues, setLinkEditValues] = useState({
-    link1: '', link_name1: '',
-    link2: '', link_name2: '',
-    link3: '', link_name3: ''
-  });
   const [isSaving, setIsSaving] = useState(false);
   const [authorNickname, setAuthorNickname] = useState<string | null>(null);
 
@@ -442,132 +651,50 @@ export default function EventDetailModal({
     }
   }, [event, isAdminMode, user, authorNickname, isOpen]);
 
-  // Genre Management State (Moved down to access editCategory/editValue)
-  const [allHistoricalGenres, setAllHistoricalGenres] = useState<string[]>([]);
-  // const [localCustomGenres, setLocalCustomGenres] = useState<string[]>([]); // Removed
-  // const [customGenreInput, setCustomGenreInput] = useState(''); // Removed
-
-  // Fetch ALL historical genres on mount
-  useEffect(() => {
-    const fetchGenres = async () => {
-      const { data, error } = await supabase
-        .from('events')
-        .select('genre');
-
-      if (!error && data) {
-        // 1. Extract all non-null genres
-        const rawGenres = data.map(d => d.genre).filter(Boolean) as string[];
-        // 2. Split by comma to ensure atomicity (Fixing the duplication bug)
-        const atomicGenres = rawGenres.flatMap(g => g.split(',').map(s => s.trim()));
-        // 3. Unique set
-        const unique = Array.from(new Set(atomicGenres)).sort();
-        setAllHistoricalGenres(unique);
-      }
-    };
-    fetchGenres();
-  }, []);
-
-  // Compute final unique genres for display
-  const uniqueGenres = useMemo(() => {
-    // Start with prop-provided genres (if any)
-    // For 'club' category, use 'class' genres as they share the same genre list
-    const propGenres = editCategory === 'club'
-      ? (structuredGenres['class'] || [])
-      : (structuredGenres[editCategory] || []);
-
-    // Combine all sources: Prop + Historical + Local Custom
-    const combined = [
-      ...propGenres,
-      ...allHistoricalGenres,
-      // ...localCustomGenres // Removed
-    ];
-    // Filter, Flatten, Unique, Sort
-    // Enforce strict genres based on category
-    if (editCategory === 'club') {
-      return ['정규강습', '린디합', '솔로재즈', '발보아', '블루스', '팀원모집'];
-    }
-
-    // Fallback for other potential categories (though currently only event/class exist)
-    return Array.from(new Set(
-      combined
-        .flatMap(g => g.split(',')) // Crucial: Flatten any accidental comma-strings
-        .map(s => s.trim())
-        .filter(s => s && s.length > 0) // Remove empty
-    )).sort();
-  }, [editCategory, structuredGenres, allHistoricalGenres]);
-
-  useEffect(() => {
-    if (activeEditField && draftEvent) {
-      if (activeEditField === 'title') setEditValue(draftEvent.title);
-      if (activeEditField === 'genre') {
-        setEditValue(draftEvent.genre || '');
-        setEditCategory((draftEvent.category === 'class' || draftEvent.category === 'club') ? draftEvent.category : 'event');
-        // setUseDirectInput(false); // Removed
-      }
-      // Location moved to VenueSelectModal
-      if (activeEditField === 'description') setEditValue(draftEvent.description || '');
-      if (activeEditField === 'links') {
-        setLinkEditValues({
-          link1: draftEvent.link1 || '',
-          link_name1: draftEvent.link_name1 || '',
-          link2: draftEvent.link2 || '',
-          link_name2: draftEvent.link_name2 || '',
-          link3: draftEvent.link3 || '',
-          link_name3: draftEvent.link_name3 || ''
-        });
-      }
-    }
-  }, [activeEditField, draftEvent]);
+  // Genre Management State
+  const allHistoricalGenres = useHistoricalGenres();
 
   const handleVenueSelect = (venue: any) => {
     if (!draftEvent) return;
     setDraftEvent({
       ...draftEvent,
-      location: venue.name,
-      location_link: venue.map_url,
-      venue_id: venue.id
+      venue_id: venue.id,
+      venue_name: venue.name,
+      address: venue.address || '',
+      location_name: venue.address_city || ''
     });
   };
 
-  const handleManualVenueInput = (name: string, link: string) => {
+  const handleManualVenueInput = (venueName: string, address: string) => {
     if (!draftEvent) return;
     setDraftEvent({
       ...draftEvent,
-      location: name,
-      location_link: link,
-      venue_id: null,
-      venue_name: null
+      venue_name: venueName,
+      address: address,
+      venue_id: null
     });
   };
 
-  const handleSaveField = () => {
+  const handleSaveField = useCallback((value: any, category?: string) => {
     if (!draftEvent || !activeEditField) return;
 
     const updates: Partial<Event> = {};
 
-    if (activeEditField === 'title') updates.title = editValue;
+    if (activeEditField === 'title') updates.title = value;
     if (activeEditField === 'genre') {
-      updates.genre = editValue;
-      updates.category = editCategory;
+      updates.genre = value;
+      updates.category = category as any;
     }
-    if (activeEditField === 'description') updates.description = editValue;
+    if (activeEditField === 'description') updates.description = value;
     if (activeEditField === 'date') {
-      if (dateMode === 'dates') {
-        // Multiple dates mode
-        const dates = editValue.split(',').filter(Boolean).sort();
+      const dates = value.split(',').filter(Boolean).sort();
+      if (dates.length > 1) {
         updates.event_dates = dates;
-        if (dates.length > 0) {
-          updates.start_date = dates[0];
-          updates.date = dates[0];
-          updates.end_date = dates[dates.length - 1];
-        } else {
-          updates.start_date = null;
-          updates.date = null;
-          updates.end_date = null;
-        }
+        updates.start_date = dates[0];
+        updates.date = dates[0];
+        updates.end_date = dates[dates.length - 1];
       } else {
-        // Single date mode
-        const singleDate = editValue || null;
+        const singleDate = value || null;
         updates.start_date = singleDate;
         updates.date = singleDate;
         updates.end_date = singleDate;
@@ -575,17 +702,18 @@ export default function EventDetailModal({
       }
     }
     if (activeEditField === 'links') {
-      updates.link1 = linkEditValues.link1;
-      updates.link_name1 = linkEditValues.link_name1;
-      updates.link2 = linkEditValues.link2;
-      updates.link_name2 = linkEditValues.link_name2;
-      updates.link3 = linkEditValues.link3;
-      updates.link_name3 = linkEditValues.link_name3;
+      updates.link1 = value.link1;
+      updates.link_name1 = value.link_name1;
+      updates.link2 = value.link2;
+      updates.link_name2 = value.link_name2;
+      updates.link3 = value.link3;
+      updates.link_name3 = value.link_name3;
     }
 
-    setDraftEvent({ ...draftEvent, ...updates });
+    setDraftEvent(prev => prev ? ({ ...prev, ...updates }) : null);
     setActiveEditField(null);
-  };
+  }, [draftEvent, activeEditField]);
+
 
   // 변경사항 감지 함수
   const hasChanges = () => {
@@ -1024,10 +1152,6 @@ export default function EventDetailModal({
             {/* 스크롤 가능한 전체 영역 */}
             <div
               className={`EDM-scrollContainer ${isSelectionMode ? 'is-selection-mode' : ''}`}
-              style={{
-                overscrollBehavior: 'contain',
-                WebkitOverflowScrolling: 'touch'
-              }}
             >
               <div className="EDM-content">
                 {/* 이미지 영역 (스크롤과 함께 사라짐) */}
@@ -1139,7 +1263,7 @@ export default function EventDetailModal({
                             </span>
                           </button>
 
-                          {/* 즐겨찾기 버튼 (이미지 좌측 하단) */}
+                          {/* 즐겨찾기 버튼 (이미지 좌측 하단 - 원본 위치 복구) */}
                           {onToggleFavorite && (
                             <button
                               onClick={(e) => {
@@ -1148,8 +1272,22 @@ export default function EventDetailModal({
                               }}
                               className={`EDM-favoriteBtn ${isFavorite ? 'is-active' : ''}`}
                               title={isFavorite ? "즐겨찾기 해제" : "즐겨찾기 추가"}
+                              style={{
+                                top: 'auto',
+                                bottom: '-14px',
+                                left: '0px',
+                                right: 'auto',
+                                width: '72px',
+                                height: '72px',
+                                background: 'transparent',
+                                border: 'none',
+                                zIndex: 100
+                              }}
                             >
-                              <i className={isFavorite ? "ri-star-fill" : "ri-star-line"}></i>
+                              <i
+                                className={isFavorite ? "ri-star-fill" : "ri-star-line"}
+                                style={{ fontSize: '40px' }}
+                              ></i>
                             </button>
                           )}
                         </>
@@ -1227,7 +1365,7 @@ export default function EventDetailModal({
                               e.stopPropagation();
                               setActiveEditField('genre');
                             }}
-                            className="EDM-editTrigger-sm"
+                            className="EDM-editTrigger"
                             title="장르 수정"
                           >
                             <i className="ri-pencil-line"></i>
@@ -1332,15 +1470,6 @@ export default function EventDetailModal({
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              // Initialize editValue and dateMode based on current date mode
-                              if (selectedEvent.event_dates && selectedEvent.event_dates.length > 0) {
-                                setDateMode('dates');
-                                setEditValue(selectedEvent.event_dates.join(','));
-                              } else {
-                                setDateMode('single');
-                                const startDate = selectedEvent.start_date || selectedEvent.date;
-                                setEditValue(startDate || '');
-                              }
                               setActiveEditField('date');
                             }}
                             className="EDM-editTrigger"
@@ -1414,23 +1543,27 @@ export default function EventDetailModal({
                         <div className="EDM-infoItem">
                           <i className="ri-file-text-line EDM-infoIcon"></i>
                           <div className="EDM-infoItemContent">
+                            <div className="EDM-descHeader">
+                              <span className="EDM-sectionLabel">내용</span>
+                              {isSelectionMode && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setActiveEditField('description');
+                                  }}
+                                  className="EDM-editTrigger"
+                                  title="내용 수정"
+                                >
+                                  <i className="ri-pencil-line"></i>
+                                </button>
+                              )}
+                            </div>
                             <div className="EDM-descWrapper">
-                              {isSelectionMode && <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setActiveEditField('description');
-                                }}
-                                className="EDM-editTrigger-abs"
-                                title="내용 수정"
-                              >
-                                <i className="ri-pencil-line"></i>
-                              </button>
-                              }
                               <p>
                                 {selectedEvent.description ? (
                                   selectedEvent.description
                                     .split(/(\bhttps?:\/\/[^\s]+)/g)
-                                    .map((part, idx) => {
+                                    .map((part: string, idx: number) => {
                                       if (part.match(/^https?:\/\//)) {
                                         return (
                                           <a
@@ -1473,7 +1606,7 @@ export default function EventDetailModal({
                               문의
                             </span>
                             <div className="EDM-contactGroup">
-                              {contactInfos.map((contactInfo, index) => {
+                              {contactInfos.map((contactInfo: any, index: number) => {
                                 const handleContactClick = async () => {
                                   if (contactInfo.link) {
                                     window.open(contactInfo.link, "_blank");
@@ -1825,201 +1958,17 @@ export default function EventDetailModal({
         onManualInput={handleManualVenueInput}
       />
 
-      {/* Bottom Sheets Portal */}
-      {activeEditField && createPortal(
-        <div className="EDM-bottomSheetPortal">
-          <div
-            className="EDM-bottomSheetBackdrop"
-            onClick={() => setActiveEditField(null)}
-          />
-          <div className="EDM-bottomSheetContent">
-            <div className="EDM-bottomSheetHandle"></div>
-            <h3 className="EDM-bottomSheetHeader">
-              {activeEditField === 'title' && <><i className="ri-text"></i>제목 수정</>}
-              {activeEditField === 'genre' && <><i className="ri-price-tag-3-line"></i>장르 수정</>}
-              {activeEditField === 'description' && <><i className="ri-file-text-line"></i>오픈톡방/내용 수정</>}
-              {activeEditField === 'links' && <><i className="ri-link"></i>링크 수정</>}
-              {activeEditField === 'date' && <><i className="ri-calendar-check-line"></i>날짜 선택</>}
-            </h3>
-
-            <div className="EDM-bottomSheetBody">
-              <div className="EDM-bottomSheetInputGroup">
-                {activeEditField === 'date' ? (
-                  <div className="EDM-dateEditContainer">
-                    <div className="EDM-dateModeToggle">
-                      <button
-                        onClick={() => {
-                          setDateMode('single');
-                          setEditValue('');
-                        }}
-                        className={`EDM-dateModeBtn ${dateMode === 'single' ? 'is-active' : ''}`}
-                      >
-                        하루
-                      </button>
-                      <button
-                        onClick={() => {
-                          setDateMode('dates');
-                          setEditValue('');
-                        }}
-                        className={`EDM-dateModeBtn ${dateMode === 'dates' ? 'is-active' : ''}`}
-                      >
-                        개별
-                      </button>
-                    </div>
-
-                    {dateMode === 'dates' && (
-                      <div className="EDM-selectedDatesContainer">
-                        <div className="EDM-selectedDatesList">
-                          {editValue.split(',').filter(Boolean).length > 0 ? (
-                            editValue.split(',').filter(Boolean).map(d => (
-                              <div key={d} className="EDM-dateChip">
-                                <span>{d.substring(5)}</span>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    const currentDates = editValue.split(',').filter(Boolean);
-                                    const newDates = currentDates.filter(ed => ed !== d);
-                                    setEditValue(newDates.join(','));
-                                  }}
-                                  className="EDM-dateChipRemove"
-                                >
-                                  <i className="ri-close-line"></i>
-                                </button>
-                              </div>
-                            ))
-                          ) : (
-                            <span className="EDM-emptyDatesHint">날짜를 선택해주세요</span>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                    <div className="EDM-calendarWrapper">
-                      <DatePicker
-                        selected={dateMode === 'single' && editValue ? new Date(editValue) : null}
-                        onChange={(d: Date | null) => {
-                          if (!d) return;
-                          const year = d.getFullYear();
-                          const month = String(d.getMonth() + 1).padStart(2, '0');
-                          const day = String(d.getDate()).padStart(2, '0');
-                          const dateStr = `${year}-${month}-${day}`;
-                          if (dateMode === 'single') {
-                            setEditValue(dateStr);
-                          } else {
-                            const currentDates = editValue.split(',').filter(Boolean);
-                            const newDates = currentDates.includes(dateStr)
-                              ? currentDates.filter(ed => ed !== dateStr)
-                              : [...currentDates, dateStr].sort();
-                            setEditValue(newDates.join(','));
-                          }
-                        }}
-                        highlightDates={dateMode === 'dates' ? editValue.split(',').filter(Boolean).map(d => new Date(d)) : []}
-                        locale={ko}
-                        inline
-                        monthsShown={1}
-                        shouldCloseOnSelect={dateMode === 'single'}
-                      />
-                    </div>
-                  </div>
-                ) : activeEditField === 'links' ? (
-                  <div className="EDM-linksEditContainer">
-                    <div className="EDM-inputGroup-v">
-                      <label className="EDM-inputLabel">링크</label>
-                      <input
-                        type="text"
-                        className="EDM-bottomSheetInput"
-                        value={linkEditValues.link_name1}
-                        onChange={(e) => setLinkEditValues({ ...linkEditValues, link_name1: e.target.value })}
-                        placeholder="링크 이름 (예: 신청하기)"
-                      />
-                      <input
-                        type="text"
-                        className="EDM-bottomSheetInput"
-                        value={linkEditValues.link1}
-                        onChange={(e) => setLinkEditValues({ ...linkEditValues, link1: e.target.value })}
-                        placeholder="URL (https://...)"
-                      />
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    {activeEditField === 'genre' ? (
-                      <div className="EDM-genreEditContainer">
-                        <div className="EDM-categoryToggle">
-                          <button
-                            onClick={() => {
-                              setEditCategory('event');
-                              setEditValue('');
-                            }}
-                            className={`EDM-categoryToggleBtn ${editCategory === 'event' ? 'is-active' : ''}`}
-                          >
-                            이벤트
-                          </button>
-                          <button
-                            onClick={() => {
-                              setEditCategory('class');
-                              setEditValue('');
-                            }}
-                            className={`EDM-categoryToggleBtn ${editCategory === 'class' ? 'is-active' : ''}`}
-                          >
-                            강습
-                          </button>
-                        </div>
-
-                        <div className="EDM-genreChipList">
-                          {uniqueGenres.map((genre: string) => (
-                            <button
-                              key={genre}
-                              onClick={() => setEditValue(genre)}
-                              className={`EDM-genreChip ${editValue === genre ? 'is-active' : ''}`}
-                            >
-                              {genre}
-                            </button>
-                          ))}
-                        </div>
-                        <input
-                          type="text"
-                          className="EDM-bottomSheetInput"
-                          value={editValue}
-                          onChange={(e) => setEditValue(e.target.value)}
-                          placeholder="또는 직접 입력"
-                        />
-                      </div>
-                    ) : (
-                      <textarea
-                        className="EDM-bottomSheetTextarea"
-                        value={editValue}
-                        onChange={(e) => setEditValue(e.target.value)}
-                        placeholder={activeEditField === 'title' ? "행사 제목을 입력하세요" : "내용을 입력하세요"}
-                        rows={activeEditField === 'title' ? 3 : 8}
-                        autoFocus
-                      />
-                    )}
-                  </>
-                )}
-              </div>
-            </div>
-
-            <div className="EDM-bottomSheetFooter">
-              <button
-                onClick={() => setActiveEditField(null)}
-                className="EDM-btn-cancel"
-              >
-                취소
-              </button>
-              <button
-                onClick={() => {
-                  handleSaveField();
-                  setActiveEditField(null);
-                }}
-                className="EDM-btn-confirm"
-              >
-                확인
-              </button>
-            </div>
-          </div>
-        </div>,
-        document.body
-      )}
+      {/* Bottom Sheets Portal (Optimized Component) */}
+      <EventEditBottomSheet
+        activeField={activeEditField}
+        onClose={() => setActiveEditField(null)}
+        initialValue={draftEvent || event}
+        onSave={handleSaveField}
+        isSaving={isSaving}
+        event={draftEvent || event}
+        structuredGenres={structuredGenres}
+        allHistoricalGenres={allHistoricalGenres}
+      />
       <ImageCropModal
         isOpen={isCropModalOpen}
         imageUrl={tempImageSrc}

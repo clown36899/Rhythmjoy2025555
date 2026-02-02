@@ -78,7 +78,7 @@ export default function HomePageV2() {
 
     // Favorites Logic
     const { interactions, toggleEventFavorite: baseToggleEventFavorite } = useUserInteractions(user?.id || null);
-    const favoriteEventIds = useMemo(() => new Set(interactions?.event_favorites || []), [interactions]);
+    const favoriteEventIds = useMemo(() => new Set((interactions?.event_favorites || []).map(id => Number(id))), [interactions]);
 
     const toggleFavorite = useCallback(async (eventId: number | string, e?: React.MouseEvent) => {
         e?.stopPropagation();
@@ -96,9 +96,7 @@ export default function HomePageV2() {
 
     useEffect(() => {
         if (selectedEvent) {
-            // Guard: Only open if it's a new event or the modal was closed
-            if (lastOpenedEventIdRef.current === selectedEvent.id) return;
-
+            // Update props even if ID is the same to sync state (isFavorite, deleteProgress etc.)
             lastOpenedEventIdRef.current = selectedEvent.id;
             openModal('eventDetail', {
                 event: selectedEvent,
@@ -113,7 +111,7 @@ export default function HomePageV2() {
                 currentUserId: user?.id,
                 onOpenVenueDetail: handleVenueClick,
                 allGenres: allGenres,
-                isFavorite: favoriteEventIds.has(selectedEvent.id),
+                isFavorite: favoriteEventIds.has(Number(selectedEvent.id)),
                 onToggleFavorite: (e: React.MouseEvent) => toggleFavorite(selectedEvent.id, e),
                 isDeleting: isDeleting,
                 deleteProgress: deleteProgress,

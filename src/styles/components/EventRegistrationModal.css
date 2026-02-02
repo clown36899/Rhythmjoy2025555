@@ -1,6 +1,6 @@
-/* EventRegistrationModal.css - EventRegistrationModal 및 EventEditModal 컴포넌트 전용 스타일 */
+/* EventRegistrationModal.css - EventRegistrationModal 전용 스타일 */
 
-@scope (:is(.EventRegistrationModal, .EventEditModal)) {
+@scope (.EventRegistrationModal) {
     :scope {
         position: fixed;
         inset: 0;

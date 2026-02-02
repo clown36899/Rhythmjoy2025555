@@ -564,7 +564,7 @@ export default memo(function ImageCropModal({
           {/* 편집 컨트롤 - 항상 표시 */}
           <>
             {/* Aspect Ratio Controls */}
-            <div className="crop-button-row" style={{ justifyContent: 'center', marginBottom: '1rem' }}>
+            <div className="crop-button-row">
               <button
                 onClick={() => handleAspectRatioChange('free')}
                 className={`crop-ratio-btn ${aspectRatioMode === 'free' ? 'crop-ratio-btn-active' : 'crop-ratio-btn-inactive'}`}
@@ -602,7 +602,6 @@ export default memo(function ImageCropModal({
                     }
                   }}
                   className="crop-action-btn crop-change-btn"
-                  style={{ justifyContent: 'center' }}
                 >
                   <i className="ri-upload-cloud-2-line crop-icon-lg"></i>
                   업로드
@@ -612,7 +611,6 @@ export default memo(function ImageCropModal({
                     onClick={loadThumbnails}
                     className="crop-action-btn crop-thumbnail-btn"
                     disabled={!videoUrl}
-                    style={{ justifyContent: 'center' }}
                   >
                     <i className="ri-youtube-fill crop-icon-lg"></i>
                     썸네일 가져오기
@@ -635,7 +633,7 @@ export default memo(function ImageCropModal({
                     className="crop-action-btn crop-cancel-btn"
                     disabled={isProcessing}
                   >
-                    <i className="ri-arrow-go-back-line" style={{ marginRight: '0.5rem' }}></i>
+                    <i className="ri-arrow-go-back-line"></i>
                     되돌리기
                   </button>
                 )}
@@ -654,9 +652,8 @@ export default memo(function ImageCropModal({
                     onClick={handleSave}
                     className="crop-action-btn crop-save-btn"
                     disabled={isProcessing}
-                    style={{ backgroundColor: '#4CAF50' }}
                   >
-                    <i className="ri-check-line" style={{ marginRight: '0.5rem' }}></i>
+                    <i className="ri-check-line"></i>
                     저장
                   </button>
                 )}
