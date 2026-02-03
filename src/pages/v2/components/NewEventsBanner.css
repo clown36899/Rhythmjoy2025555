@@ -1,0 +1,244 @@
+.NEB-container {
+    margin: 20px 0;
+    padding: 0 16px;
+}
+
+.NEB-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.NEB-headerLeft {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.NEB-icon {
+    font-size: 1.25rem;
+    color: #fbbf24;
+}
+
+.NEB-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #fff;
+    margin: 0;
+}
+
+.NEB-badge {
+    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    color: #000;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+}
+
+.NEB-infoBtn {
+    background: rgba(59, 130, 246, 0.2);
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    color: #60a5fa;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    padding: 0;
+    margin-left: 4px;
+}
+
+.NEB-infoBtn:hover {
+    background: rgba(59, 130, 246, 0.3);
+    border-color: rgba(59, 130, 246, 0.6);
+    color: #93c5fd;
+    transform: scale(1.1);
+}
+
+.NEB-infoBtn i {
+    font-size: 0.85rem;
+}
+
+.NEB-counter {
+    font-size: 0.85rem;
+    color: #9ca3af;
+    font-weight: 600;
+}
+
+.NEB-slider {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    border-radius: 16px;
+    background: #1f2937;
+}
+
+.NEB-track {
+    display: flex;
+    transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.NEB-slide {
+    min-width: 100%;
+    position: relative;
+    cursor: pointer;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+}
+
+.NEB-imageWrapper {
+    position: absolute;
+    inset: 0;
+}
+
+.NEB-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.NEB-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top,
+            rgba(0, 0, 0, 0.9) 0%,
+            rgba(0, 0, 0, 0.6) 40%,
+            rgba(0, 0, 0, 0.3) 70%,
+            transparent 100%);
+}
+
+.NEB-content {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 24px;
+    z-index: 1;
+    color: #fff;
+}
+
+.NEB-category {
+    display: inline-block;
+    background: rgba(59, 130, 246, 0.9);
+    color: #fff;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+}
+
+.NEB-genre {
+    font-size: 0.85rem;
+    color: #fbbf24;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.NEB-eventTitle {
+    font-size: 1.4rem;
+    font-weight: 700;
+    margin: 0 0 12px 0;
+    line-height: 1.3;
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.NEB-info {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.9);
+    margin-bottom: 6px;
+}
+
+.NEB-info i {
+    font-size: 1rem;
+    color: #fbbf24;
+}
+
+.NEB-navBtn {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.5);
+    border: none;
+    color: #fff;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    z-index: 2;
+    backdrop-filter: blur(4px);
+}
+
+.NEB-navBtn:hover {
+    background: rgba(0, 0, 0, 0.7);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.NEB-navBtn i {
+    font-size: 1.5rem;
+}
+
+.NEB-navBtn-prev {
+    left: 12px;
+}
+
+.NEB-navBtn-next {
+    right: 12px;
+}
+
+.NEB-indicators {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px 0 0 0;
+}
+
+.NEB-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #4b5563;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s;
+    padding: 0;
+}
+
+.NEB-indicator.is-active {
+    background: #fbbf24;
+    width: 24px;
+    border-radius: 4px;
+}
+
+/* 반응형 */
+@media (max-width: 640px) {
+    .NEB-eventTitle {
+        font-size: 1.2rem;
+    }
+
+    .NEB-content {
+        padding: 16px;
+    }
+
+    .NEB-navBtn {
+        width: 32px;
+        height: 32px;
+    }
+
+    .NEB-navBtn i {
+        font-size: 1.2rem;
+    }
+}

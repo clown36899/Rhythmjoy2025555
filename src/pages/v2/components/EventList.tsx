@@ -91,6 +91,23 @@ const EventList: React.FC<EventListProps> = ({
     genreWeights
   });
 
+  // 3.65 Newly Registered Events (24 hours)
+  const newlyRegisteredEvents = useMemo(() => {
+    const now = new Date();
+    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+    return events.filter(event => {
+      if (!event.created_at) return false;
+      const created = new Date(event.created_at);
+      return created > twentyFourHoursAgo;
+    }).sort((a, b) => {
+      // 최신 등록순으로 정렬
+      const timeA = new Date(a.created_at!).getTime();
+      const timeB = new Date(b.created_at!).getTime();
+      return timeB - timeA;
+    });
+  }, [events]);
+
   // 3.7 Realtime Subscription to sync data immediately
   useEffect(() => {
     const channel = supabase
@@ -427,6 +444,7 @@ const EventList: React.FC<EventListProps> = ({
           regularClasses={randomizedRegularClasses}
           clubLessons={randomizedClubLessons}
           clubRegularClasses={randomizedClubRegularClasses}
+          newlyRegisteredEvents={newlyRegisteredEvents}
           favoriteEventsList={events.filter(e => favoriteEventIds.has(Number(e.id)))}
           // events={events} // Removed
           allGenres={allGenres}

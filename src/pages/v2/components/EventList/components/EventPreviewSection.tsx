@@ -9,6 +9,7 @@ import type { Event } from "../../../utils/eventListUtils";
 import type { SocialSchedule } from "../../../../social/types";
 import { UnifiedScheduleSection } from "../../UnifiedScheduleSection";
 import { EventPreviewRow } from "./EventPreviewRow";
+import { NewEventsBanner } from "../../NewEventsBanner";
 
 
 interface EventPreviewSectionProps {
@@ -21,6 +22,7 @@ interface EventPreviewSectionProps {
     regularClasses: Event[];
     clubLessons: Event[];
     clubRegularClasses: Event[];
+    newlyRegisteredEvents: Event[]; // 👈 신규 등록 이벤트 (24시간)
     favoriteEventsList: Event[];
     // events: Event[]; // Removed for BillboardSection
     allGenres: string[];
@@ -48,6 +50,7 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
     regularClasses,
     clubLessons,
     clubRegularClasses,
+    newlyRegisteredEvents,
     favoriteEventsList,
     // events, // Removed
     allGenresStructured,
@@ -139,6 +142,16 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                 onEventClick={onEventClick}
                 onRefresh={refreshSocialSchedules}
             />
+
+            {/* 1.5 Newly Registered Events Section (24 hours) */}
+            {newlyRegisteredEvents.length > 0 && (
+                <NewEventsBanner
+                    events={newlyRegisteredEvents}
+                    onEventClick={onEventClick}
+                    defaultThumbnailClass={defaultThumbnailClass}
+                    defaultThumbnailEvent={defaultThumbnailEvent}
+                />
+            )}
 
             {/* 2. Global Scope Switcher */}
             <div className="ELS-scopeSwitcherContainer">
