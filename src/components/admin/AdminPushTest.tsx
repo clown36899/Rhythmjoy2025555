@@ -30,7 +30,7 @@ export const AdminPushTest: React.FC = () => {
         setVapidHint(`${key.substring(0, 8)}...${key.slice(-8)} `);
     }, []);
 
-    if (!isAdmin && user?.email !== 'clown313@naver.com') return null;
+    if (!isAdmin) return null;
 
     // 1. 수신기 등록 (이 기기에서 알림을 받겠다고 설정)
     // [Debug] SW 메시지 리스너

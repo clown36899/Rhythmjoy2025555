@@ -163,16 +163,15 @@ export default function KakaoCallbackPage() {
                     sessionStorage.setItem('just_logged_in', 'true');
                     sessionStorage.removeItem('kakao_login_return_url');
 
-                    // ✨ PWA 플리커링 방지: navigate 전에 로그인 진행 플래그 제거
-                    // PWA 모드에서는 리다이렉트 시 React 상태가 초기화되지만 sessionStorage는 유지되므로,
-                    // AuthContext가 재마운트될 때 이 플래그를 보고 스피너를 다시 켜는 것을 방지
-                    console.log('[Kakao Callback] 🧹 PWA 플리커링 방지: 로그인 진행 플래그 제거');
-                    sessionStorage.removeItem('kakao_login_in_progress');
-                    sessionStorage.removeItem('kakao_login_start_time');
-
                     console.log('[Kakao Callback] ➡️ navigate() 호출');
                     navigate(returnUrl, { replace: true });
                     console.log('[Kakao Callback] ✈️ navigate() 호출 완료');
+
+                    // ✨ PWA 플리커링 방지: navigate 직후 플래그 제거
+                    // navigate가 호출된 직후이므로 실제로는 페이지 전환이 이미 시작되어
+                    // 스피너는 계속 유지되며 먹통 구간이 발생하지 않음
+                    sessionStorage.removeItem('kakao_login_in_progress');
+                    sessionStorage.removeItem('kakao_login_start_time');
                 } else {
                     console.error('[Kakao Callback] ❌ 세션 정보 없음');
                     throw new Error('서버 응답에 세션 정보가 없습니다');

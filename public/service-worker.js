@@ -1,5 +1,5 @@
-// 빌보드 PWA 서비스 워커 (Version: 20260131-2 - V31/Social FAB Fix & Cleanup)
-const CACHE_NAME = 'rhythmjoy-cache-v31';
+// 빌보드 PWA 서비스 워커 (Version: 20260203 - V32/Kakao Login Spinner Fix)
+const CACHE_NAME = 'rhythmjoy-cache-v32';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

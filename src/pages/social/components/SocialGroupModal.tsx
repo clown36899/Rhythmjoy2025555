@@ -121,7 +121,7 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
 
         // 비밀번호 확인 (생성자/관리자가 아닐 경우)
         const isOwner = user.id === editGroup.user_id;
-        const isAdmin = user.app_metadata?.is_admin === true || (user.email === 'admin@rhythmjoy.com');
+        const isAdmin = user.app_metadata?.is_admin === true;
 
         let deletePassword = '';
         if (!isOwner && !isAdmin) {

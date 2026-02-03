@@ -52,8 +52,8 @@ function AppContent() {
     const initPwaPush = async () => {
       if (!user) return;
 
-      // [Test Mode] 일반 유저는 아직 적용하지 않음 (관리자만 테스트)
-      const isAdmin = user.email === 'clown313@naver.com' || user.user_metadata?.is_admin === true || user.app_metadata?.is_admin === true;
+      // PWA 테스트 모드: 관리자만 접근 가능 (AuthContext의 JWT 메타데이터 사용)
+      const isAdmin = user.user_metadata?.is_admin === true || user.app_metadata?.is_admin === true;
       if (!isAdmin) {
         // console.log('[App] PWA Logic skipped (Not Admin)');
         return;

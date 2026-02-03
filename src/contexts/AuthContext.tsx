@@ -357,11 +357,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    // 1-1순위: JWT 메타데이터 체크 (DB 호출 없이 즉시 판단 가능)
-    if (currentUser.app_metadata?.is_admin === true || currentUser.user_metadata?.is_admin === true) {
-      if (!isAdmin) setIsAdmin(true);
-      return;
-    }
+    // JWT 메타데이터 체크 제거 - RPC만 사용
+    // (이유: JWT에 잘못된 is_admin 값이 박혀있을 수 있음)
 
     // 2순위: 캐시 체크 (5분 이내면 캐시 사용)
     if (adminCheckCache && Date.now() - adminCheckCache.timestamp < 300000) {
