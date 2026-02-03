@@ -21,3 +21,66 @@
     background-color: #111827;
     color: white;
 }
+
+/* ===== 보안 조회 시스템 전용 스타일 ===== */
+
+/* 컨테이너 */
+.secure-members-container {
+    background-color: #1f2937;
+    border-radius: 0.5rem;
+    max-width: 1000px;
+    width: 100%;
+    height: 85vh;
+    border: 1px solid #374151;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    color: #e5e7eb;
+}
+
+/* 가입 경로 뱃지 */
+.secure-provider-badge {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    font-size: 16px;
+}
+
+.secure-provider-kakao {
+    background-color: #FEE500;
+    color: #3C1E1E;
+}
+
+.secure-provider-google {
+    background-color: #fff;
+    color: #4285F4;
+    border: 1px solid #eee;
+}
+
+/* 닉네임 그룹 */
+.secure-nickname-group {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.secure-realname {
+    font-size: 11px;
+    color: #9ca3af;
+}
+
+/* 연락처 및 이메일 */
+.secure-cell-phone {
+    font-size: 13px;
+    color: #e5e7eb;
+}
+
+.secure-cell-email {
+    font-size: 12px;
+    color: #9ca3af;
+}

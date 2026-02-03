@@ -744,35 +744,37 @@ export default memo(function EventRegistrationModal({
                 detail: { event: createdEvent }
               }));
 
-              // [NEW] 관리자에게 자동 푸시 알림 발송 (행사/강습 구분)
+              // [NEW] 관리자에게 자동 푸시 알림 발송 (행사/강습 구분) - 5분 지연 발송 (취소 가능)
               const isLesson = createdEvent.category === 'class' || createdEvent.category === 'regular' || createdEvent.category === 'club';
               const pushCategory = isLesson ? 'class' : 'event';
+              const scheduledAt = new Date(Date.now() + 5 * 60 * 1000).toISOString(); // 5 minutes later
 
-              console.log("[Push] Invoking send-push-notification function...", {
+              console.log("[Push] Queuing delayed notification...", {
                 title: `[신규 ${pushCategory === 'class' ? '강습' : '행사'}] ${createdEvent.title}`,
                 category: pushCategory,
-                url: `${window.location.origin}/calendar?id=${createdEvent.id}`
+                scheduledAt: scheduledAt
               });
 
-              supabase.functions.invoke('send-push-notification', {
-                body: {
-                  title: `[신규 ${pushCategory === 'class' ? '강습' : '행사'}] ${createdEvent.title}`,
-                  body: `${createdEvent.date || createdEvent.start_date || ''} | ${createdEvent.location || '장소 미정'}`,
+              supabase.from('notification_queue').insert({
+                event_id: createdEvent.id,
+                title: `[신규 ${pushCategory === 'class' ? '강습' : '행사'}] ${createdEvent.title}`,
+                body: `${createdEvent.date || createdEvent.start_date || ''} | ${createdEvent.location || '장소 미정'}`,
+                category: pushCategory,
+                payload: {
+                  url: `${window.location.origin}/calendar?id=${createdEvent.id}`,
                   userId: 'ALL',
-                  category: pushCategory,
-                  genre: createdEvent.genre, // [New] 장르 태그 전달 (파티, 워크샵 등)
-                  url: `${window.location.origin}/calendar?id=${createdEvent.id}`
-                }
-              }).then(({ data, error }) => {
+                  genre: createdEvent.genre
+                },
+                scheduled_at: scheduledAt,
+                status: 'pending'
+              }).then(({ error }) => {
                 if (error) {
-                  console.error('[Push] Auto-send failed (Invocation error):', error);
+                  console.error('[Push] Queue insert failed:', error);
                 } else {
-                  console.log('[Push] Auto-send result from server:', JSON.stringify(data, null, 2));
-                  if (data?.results?.[0]?.status === 'rejected') {
-                    console.error('[Push] Push was REJECTED by service:', data.results[0].error);
-                  }
+                  console.log('[Push] Notification queued successfully.');
                 }
-              }).catch(err => console.error('[Push] Auto-send fatal error:', err));
+              });
+
               // Analytics: Log Create
               logEvent('Event', 'Create', `${title} (ID: ${createdEvent.id})`);
             }

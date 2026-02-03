@@ -85,22 +85,14 @@ export default function SecureMembersPage() {
 
     return (
         <div className="secure-page-wrapper">
-            <div className="boum-container secure-container-override">
+            <div className="secure-members-container" translate="no">
                 <div className="boum-header">
                     <div className="boum-header-top">
                         <h2 className="boum-title">🛡️ 관리자 보안 조회 시스템</h2>
                         <button
                             onClick={() => navigate(-1)}
                             className="boum-close-btn"
-                            style={{
-                                color: '#9ca3af',
-                                background: 'none',
-                                border: 'none',
-                                cursor: 'pointer',
-                                fontSize: '1.5rem',
-                                padding: '8px'
-                            }}
-                            title="돌아가기"
+                            title="닫기"
                         >
                             <i className="ri-close-line"></i>
                         </button>
@@ -125,7 +117,7 @@ export default function SecureMembersPage() {
 
                 <div className="boum-content">
                     {loading ? (
-                        <div className="boum-loading"><p>로딩 중...</p></div>
+                        <div className="boum-loading"><div className="prl-spinner"></div></div>
                     ) : (
                         <div className="boum-table-wrapper">
                             <table className="boum-table">
@@ -141,38 +133,43 @@ export default function SecureMembersPage() {
                                 <tbody>
                                     {filteredUsers.map((user) => (
                                         <tr key={user.id} className="boum-table-row">
-                                            <td className="boum-table-cell" style={{ textAlign: 'center' }}>
+                                            <td className="boum-table-cell boum-text-center">
                                                 {user.provider === 'kakao' ? (
-                                                    <div title="카카오 가입" style={{ background: '#FEE500', color: '#3C1E1E', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto', fontSize: '16px' }}>
+                                                    <div title="카카오 가입" className="secure-provider-badge secure-provider-kakao">
                                                         <i className="ri-kakao-talk-fill"></i>
                                                     </div>
                                                 ) : user.provider === 'google' ? (
-                                                    <div title="구글 가입" style={{ background: '#fff', color: '#4285F4', width: '28px', height: '28px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto', fontSize: '16px', border: '1px solid #eee' }}>
+                                                    <div title="구글 가입" className="secure-provider-badge secure-provider-google">
                                                         <i className="ri-google-fill"></i>
                                                     </div>
                                                 ) : (
-                                                    <span style={{ fontSize: '12px', color: '#666' }}>{user.provider || '-'}</span>
+                                                    <span className="secure-cell-email">{user.provider || '-'}</span>
                                                 )}
                                             </td>
                                             <td className="boum-table-cell">
                                                 <div className="boum-nickname-cell">
                                                     <div className="boum-avatar">
                                                         {user.profile_image ? (
-                                                            <img src={user.profile_image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} referrerPolicy="no-referrer" />
+                                                            <img
+                                                                src={user.profile_image}
+                                                                alt=""
+                                                                referrerPolicy="no-referrer"
+                                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                            />
                                                         ) : (
                                                             user.nickname.charAt(0)
                                                         )}
                                                     </div>
-                                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                                    <div className="secure-nickname-group">
                                                         <span className="boum-nickname">{user.nickname}</span>
-                                                        <span style={{ fontSize: '11px', color: '#666' }}>{user.real_name || '-'}</span>
+                                                        <span className="secure-realname">{user.real_name || '-'}</span>
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="boum-table-cell" style={{ fontSize: '13px' }}>
+                                            <td className="boum-table-cell secure-cell-phone">
                                                 {user.phone_number || '-'}
                                             </td>
-                                            <td className="boum-table-cell" style={{ fontSize: '12px', color: '#666' }}>
+                                            <td className="boum-table-cell secure-cell-email">
                                                 {user.email || '-'}
                                             </td>
                                             <td className="boum-table-cell boum-date-text">
@@ -186,8 +183,7 @@ export default function SecureMembersPage() {
                     )}
                 </div>
             </div>
-
-            {/* AdminUserInfoModal removed */}
         </div>
     );
 }
+
