@@ -22,7 +22,7 @@ export const UnifiedScheduleSection: React.FC<UnifiedScheduleSectionProps> = ({
     const { openModal } = useModalActions();
     const { isAdmin, user } = useAuth();
     const scrollerRef = useRef<HTMLDivElement>(null);
-    const [activeTab, setActiveTab] = useState<'today' | 'thisWeek' | 'nextWeek'>('today');
+    const [activeTab, setActiveTab] = useState<'thisWeek' | 'nextWeek'>('thisWeek');
 
     // Stable Randomization: Store weights once per ID to keep order fixed during session
     const shuffleWeights = useRef<Record<string | number, number>>({});
@@ -74,25 +74,24 @@ export const UnifiedScheduleSection: React.FC<UnifiedScheduleSectionProps> = ({
             s.date >= nextWeekStartStr && s.date <= nextWeekEndStr
         );
 
-        // Stably randomize within each group
+        // Stably randomize within each group, BUT keep today's prioritized in the final list
+        const shuffledToday = stableShuffle(todaySchedules);
+        const shuffledRestOfWeek = stableShuffle(thisWeekRestList);
+
         return {
-            today: stableShuffle(todaySchedules),
-            thisWeekRest: stableShuffle(thisWeekRestList),
-            nextWeek: stableShuffle(nextWeekList)
+            thisWeek: [...shuffledToday, ...shuffledRestOfWeek], // Today first, then rest
+            nextWeek: stableShuffle(nextWeekList),
+            todayIdSet: todayIds // For badge logic
         };
     }, [todaySchedules, futureSchedules, todayStr, thisWeekEndStr, nextWeekStartStr, nextWeekEndStr, stableShuffle]);
 
     const combinedList = [
-        ...partitionedData.today.map(item => ({ ...item, group: 'today' })),
-        ...partitionedData.thisWeekRest.map(item => ({ ...item, group: 'thisWeek' })),
+        ...partitionedData.thisWeek.map(item => ({ ...item, group: 'thisWeek' })),
         ...partitionedData.nextWeek.map(item => ({ ...item, group: 'nextWeek' }))
     ];
 
-    // 3. Sunday Check
-    const isSunday = kstDay === 0;
-
-    // 4. Scroll Navigation
-    const scrollToGroup = useCallback((group: 'today' | 'thisWeek' | 'nextWeek') => {
+    // 3. Scroll Navigation
+    const scrollToGroup = useCallback((group: 'thisWeek' | 'nextWeek') => {
         setActiveTab(group);
         if (!scrollerRef.current) return;
 
@@ -138,31 +137,19 @@ export const UnifiedScheduleSection: React.FC<UnifiedScheduleSectionProps> = ({
             <div className="USS-header">
                 <div className="USS-tabGroup">
                     <div
-                        className={`USS-tabItem ${activeTab === 'today' ? 'is-active' : ''}`}
-                        onClick={() => scrollToGroup('today')}
+                        className={`USS-tabItem ${activeTab === 'thisWeek' ? 'is-active' : ''}`}
+                        onClick={() => scrollToGroup('thisWeek')}
                         style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
                     >
-                        오늘 소셜 ({partitionedData.today.length})
-                        {partitionedData.today.length > 0 && (
+                        이번주 소셜 ({partitionedData.thisWeek.length})
+                        {todaySchedules.length > 0 && (
                             <span className="USS-liveBadge manual-label-wrapper" style={{ fontSize: '9px', padding: '1px 4px' }}>
-                                <span className="translated-part">LIVE {partitionedData.today.length}</span>
-                                <span className="fixed-part ko" translate="no">LIVE {partitionedData.today.length}</span>
-                                <span className="fixed-part en" translate="no">LIVE {partitionedData.today.length}</span>
+                                <span className="translated-part">LIVE {todaySchedules.length}</span>
+                                <span className="fixed-part ko" translate="no">LIVE {todaySchedules.length}</span>
+                                <span className="fixed-part en" translate="no">LIVE {todaySchedules.length}</span>
                             </span>
                         )}
                     </div>
-
-                    {!isSunday && partitionedData.thisWeekRest.length > 0 && (
-                        <>
-                            <div className="USS-separator">|</div>
-                            <div
-                                className={`USS-tabItem ${activeTab === 'thisWeek' ? 'is-active' : ''}`}
-                                onClick={() => scrollToGroup('thisWeek')}
-                            >
-                                이번주 ({partitionedData.thisWeekRest.length})
-                            </div>
-                        </>
-                    )}
 
                     {partitionedData.nextWeek.length > 0 && (
                         <>
@@ -201,6 +188,7 @@ export const UnifiedScheduleSection: React.FC<UnifiedScheduleSectionProps> = ({
                     {combinedList.map((item, idx) => {
                         // Find first index of each group for anchor identification
                         const isFirstInGroup = combinedList.findIndex(x => x.group === item.group) === idx;
+                        const isTodayItem = partitionedData.todayIdSet.has(item.id);
 
                         return (
                             <div
@@ -226,7 +214,19 @@ export const UnifiedScheduleSection: React.FC<UnifiedScheduleSectionProps> = ({
                                             <span className="USS-time">{item.start_time.substring(0, 5)}</span>
                                         </div>
                                     )}
-                                    {item.group !== 'today' && item.date && (
+                                    {/* Date Logic: Hide for Today items ONLY IF they were in 'today' tab, but here they are all mixed.
+                                        User asked to keep today's item visible.
+                                        Previously: {item.group !== 'today' && ...}
+                                        Now "today" items are in 'thisWeek'.
+                                        If we want to show date for everyone, we can remove the condition.
+                                        But typically "Today" items might show "Today" or just the date.
+                                        Let's show date for everyone for consistency in "This Week" view,
+                                        or hide if it is strictly today??
+                                        Original code hid date for 'today' group.
+                                        Let's keep showing date for non-today items, and maybe a special label for today?
+                                        Actually design usually implies just showing the date is fine.
+                                    */}
+                                    {item.date && (
                                         <div className="USS-dateLine">
                                             {new Date(item.date + 'T00:00:00').toLocaleDateString('ko-KR', { weekday: 'short' })} {new Date(item.date + 'T00:00:00').getDate()}일
                                         </div>
@@ -240,12 +240,12 @@ export const UnifiedScheduleSection: React.FC<UnifiedScheduleSectionProps> = ({
                                     </p>
                                 </div>
 
-                                {item.group === 'today' && (
+                                {isTodayItem && (
                                     <div className="USS-ddayBadge is-today">
                                         D-Day
                                     </div>
                                 )}
-                                {item.group === 'thisWeek' && (
+                                {item.group === 'thisWeek' && !isTodayItem && (
                                     <div className="USS-ddayBadge">
                                         이번주
                                     </div>
