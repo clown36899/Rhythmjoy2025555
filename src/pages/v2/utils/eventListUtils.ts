@@ -139,7 +139,7 @@ export const sortEvents = (
             case "random": {
                 // 0. Separate "New" events (< 6 hours)
                 const now = new Date();
-                const sixHoursAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000);
+                const sixHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000); // 24시간
 
                 const newEvents: Event[] = [];
                 const regularEvents: Event[] = [];
