@@ -192,7 +192,7 @@ export const initializeAnalyticsSession = async (user?: { id: string }, isAdmin?
 
     try {
         // [PHASE 18] UPSERT로 중복 방지
-        await supabase.from('session_logs').upsert({
+        const { error } = await supabase.from('session_logs').upsert({
             session_id: currentSessionId,
             user_id: user?.id || null,
             fingerprint: fingerprint || null,
@@ -209,11 +209,19 @@ export const initializeAnalyticsSession = async (user?: { id: string }, isAdmin?
             onConflict: 'session_id'
         });
 
+        if (error) {
+            // [IGNORE] Silence 401 errors for analytics as they are expected when session is invalid/missing on some setups
+            const isAuthError = (error as any).status === 401 || (error as any).status === 403;
+            if (!isAuthError) {
+                console.warn('[Analytics] Failed to initialize session log:', error.message);
+            }
+        }
+
         if (SITE_ANALYTICS_CONFIG.ENV.LOG_TO_CONSOLE) {
             console.log('[Analytics] Session initialized:', { sessionId: currentSessionId, userId: user?.id, isAdmin, isPWA, displayMode });
         }
     } catch (error) {
-        console.error('[Analytics] Failed to initialize session:', error);
+        // [IGNORE] Silence general errors for background analytics
     }
 };
 
