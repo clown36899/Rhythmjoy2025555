@@ -3,6 +3,68 @@
 /* ==========================================================================
    Shared Event Utilities & Categories
    ========================================================================== */
+@layer components {
+    .cat-bg-social {
+        background-color: var(--color-blue-600, #2563eb);
+    }
+
+    .cat-bg-regular {
+        background-color: var(--color-purple-600, #9333ea);
+    }
+
+    .cat-bg-class {
+        background-color: var(--color-green-600, #16a34a);
+    }
+
+    .cat-bg-default {
+        background-color: #4b5563;
+    }
+}
+
+
+/* ==========================================================================
+   DateEventsModal Scope (DEM-)
+   - Moved to src/styles/components/DateEventsModal.css
+   ========================================================================== */
+
+
+/* ==========================================================================
+   EventDetailModal Scope (EDM-)
+   ========================================================================== */
+
+/* ==========================================================================
+   EventDetailModal Scope (EDM-)
+   - Moved to src/styles/components/EventDetailModal.css
+   ========================================================================== */
+
+
+
+/* ==========================================================================
+   SocialEventModal Scope (SEM-)
+   - Moved to src/styles/components/SocialEventModal.css
+   ========================================================================== */
+
+
+/* ==========================================================================
+   EventRegistrationModal Scope (ERM-)
+   ========================================================================== */
+
+/* ==========================================================================
+   EventRegistrationModal Scope (ERM-)
+   - Moved to src/styles/components/EventRegistrationModal.css
+   ========================================================================== */
+
+
+/* ==========================================================================
+   UnifiedScheduleSection Scope (USS-)
+   ========================================================================== */
+
+/* ==========================================================================
+   UnifiedScheduleSection Scope (USS-)
+   - Moved to src/styles/components/UnifiedScheduleSection.css
+   ========================================================================== */
+
+
 
 /* Category Colors (Global within events.css scope) */
 .cat-bg-social {
@@ -28,6 +90,12 @@
 .cat-bg-default {
     background-color: #4b5563 !important;
 }
+
+
+/* ==========================================================================
+   EditableEventDetail Scope (EED-)
+   - Moved to src/styles/components/EditableEventDetail.css
+   ========================================================================== */
 
 
 /* ==========================================================================
@@ -407,8 +475,19 @@
         overflow: hidden;
         text-overflow: ellipsis;
     }
+}
 
-    /* Grid Extensions (EventFavoritesView) */
+
+/* ==========================================================================
+   EventCard Scope (ECARD-)
+   - Moved to src/styles/components/EventCard.css
+   ========================================================================== */
+
+
+/* ==========================================================================
+   ELS Grid Extensions (EventFavoritesView)
+   ========================================================================== */
+@scope (.ELS-section) {
     .ELS-grid-5 {
         display: grid;
         grid-template-columns: repeat(5, 1fr);
@@ -421,7 +500,6 @@
         gap: 8px;
     }
 }
-
 
 /* ELS Grid Responsive Overrides */
 @media (max-width: 768px) {
