@@ -9,6 +9,7 @@ import {
     getPushSubscription,
     verifySubscriptionOwnership
 } from '../lib/pushNotifications';
+import { SITE_MENU_SECTIONS, MENU_LABELS_EN } from '../config/menuConfig';
 import '../styles/domains/overlays.css';
 
 interface SideDrawerProps {
@@ -210,29 +211,6 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                         </div>
                     </div>
 
-                    {user && (
-                        <>
-                            <div className="SD-sectionTitle">MY MENU</div>
-                            <div className="SD-menuItem" onClick={() => handleNavigation('/v2?view=favorites')}>
-                                <i className="ri-star-line SD-favoriteIcon"></i>
-                                <span className="manual-label-wrapper">
-                                    <span className="translated-part">My Favorites</span>
-                                    <span className="fixed-part ko" translate="no">내 즐겨찾기</span>
-                                    <span className="fixed-part en" translate="no">My Favorites</span>
-                                </span>
-                            </div>
-                            <div className="SD-menuItem" onClick={() => handleNavigation('/my-activities?tab=posts')}>
-                                <i className="ri-file-list-3-line"></i>
-                                <span className="manual-label-wrapper">
-                                    <span className="translated-part">My Posts</span>
-                                    <span className="fixed-part ko" translate="no">내가 쓴 글 / 등록한 행사</span>
-                                    <span className="fixed-part en" translate="no">My Posts</span>
-                                </span>
-                            </div>
-                            <div className="SD-divider"></div>
-                        </>
-                    )}
-
                     {isAdmin && (
                         <div translate="no">
                             <div className="SD-menuItem SD-isExpandable SD-adminToggle" onClick={() => setIsAdminExpanded(!isAdminExpanded)}>
@@ -302,106 +280,71 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                         </div>
                     )}
 
-                    <div className="SD-sectionTitle">BETA / LAB</div>
-                    <div
-                        className={`SD-menuItem ${!isAdmin ? 'SD-disabledMenuItem' : ''}`}
-                        onClick={() => isAdmin ? handleNavigation('/event-photo-finder') : alert('관리자 승인 필요')}
-                    >
-                        <i className="ri-camera-lens-line SD-lensIcon"></i>
-                        <span>AI 사진 찾기 <span className="SD-badge">New</span></span>
-                        {!isAdmin && <i className="ri-lock-line SD-lockIcon"></i>}
-                    </div>
-                    <div className="SD-divider"></div>
-
                     <div className="SD-sectionTitle">SERVICE</div>
-                    <div className="SD-menuItem" onClick={() => handleNavigation('/v2')}>
-                        <i className="ri-home-4-line"></i>
-                        <span className="manual-label-wrapper">
-                            <span className="translated-part">Home</span>
-                            <span className="fixed-part ko" translate="no">홈</span>
-                            <span className="fixed-part en" translate="no">Home</span>
-                        </span>
-                    </div>
-                    <div className="SD-menuItem" onClick={() => handleNavigation('/social')}>
-                        <i className="ri-calendar-event-line"></i>
-                        <span className="manual-label-wrapper">
-                            <span className="translated-part">Social</span>
-                            <span className="fixed-part ko" translate="no">소셜 (이벤트)</span>
-                            <span className="fixed-part en" translate="no">Social</span>
-                        </span>
-                    </div>
-                    <div className="SD-menuItem" onClick={() => handleNavigation('/calendar')}>
-                        <i className="ri-calendar-line"></i>
-                        <span className="manual-label-wrapper">
-                            <span className="translated-part">Calendar</span>
-                            <span className="fixed-part ko" translate="no">전체 일정</span>
-                            <span className="fixed-part en" translate="no">All Schedule</span>
-                        </span>
-                    </div>
-                    <div className="SD-menuItem" onClick={() => handleNavigation('/practice')}>
-                        <i className="ri-building-line"></i>
-                        <span className="manual-label-wrapper">
-                            <span className="translated-part">Studio</span>
-                            <span className="fixed-part ko" translate="no">연습실</span>
-                            <span className="fixed-part en" translate="no">Studio</span>
-                        </span>
-                    </div>
-                    <div className="SD-menuItem SD-isExpandable" onClick={() => setIsBoardExpanded(!isBoardExpanded)}>
-                        <i className="ri-discuss-line"></i>
-                        <span className="manual-label-wrapper">
-                            <span className="translated-part">Forum</span>
-                            <span className="fixed-part ko" translate="no">포럼</span>
-                            <span className="fixed-part en" translate="no">Forum</span>
-                        </span>
-                        <i className={`ri-arrow-${isBoardExpanded ? 'down' : 'right'}-s-line SD-expandIcon`}></i>
-                    </div>
 
-                    {isBoardExpanded && (
-                        <div className="SD-submenu">
-                            {boardCategories.map((category) => (
-                                <div key={category.code} className="SD-submenuItem" onClick={() => handleNavigation(`/board?category=${category.code}`)}>
-                                    <i className={getIconForCategory(category.code)}></i>
+                    {/* 완전 동적 메뉴 렌더링 */}
+                    {SITE_MENU_SECTIONS.map((section, sectionIdx) => {
+                        return section.items.map((item, itemIdx) => {
+                            // 포럼은 하위 메뉴가 있으므로 특별 처리
+                            if (item.path === '/board' && item.type === 'board') {
+                                return (
+                                    <div key={`${sectionIdx}-${itemIdx}`}>
+                                        <div className="SD-menuItem SD-isExpandable" onClick={() => setIsBoardExpanded(!isBoardExpanded)}>
+                                            <i className={item.icon}></i>
+                                            <span className="manual-label-wrapper">
+                                                <span className="translated-part">{MENU_LABELS_EN[item.title] || item.title}</span>
+                                                <span className="fixed-part ko" translate="no">{item.title}</span>
+                                                <span className="fixed-part en" translate="no">{MENU_LABELS_EN[item.title] || item.title}</span>
+                                            </span>
+                                            <i className={`ri-arrow-${isBoardExpanded ? 'down' : 'right'}-s-line SD-expandIcon`}></i>
+                                        </div>
+                                        {isBoardExpanded && (
+                                            <div className="SD-submenu">
+                                                {boardCategories.map((category) => (
+                                                    <div key={category.code} className="SD-submenuItem" onClick={() => handleNavigation(`/board?category=${category.code}`)}>
+                                                        <i className={getIconForCategory(category.code)}></i>
+                                                        <span className="manual-label-wrapper">
+                                                            <span className="translated-part">{getCategoryEn(category.code, category.name)}</span>
+                                                            <span className="fixed-part ko" translate="no">{category.name}</span>
+                                                            <span className="fixed-part en" translate="no">{getCategoryEn(category.code, category.name)}</span>
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                                <div className="SD-submenuItem" onClick={() => handleNavigation('/board?category=history')}>
+                                                    <i className="ri-book-mark-line"></i>
+                                                    <span className="manual-label-wrapper">
+                                                        <span className="translated-part">Library</span>
+                                                        <span className="fixed-part ko" translate="no">라이브러리</span>
+                                                        <span className="fixed-part en" translate="no">Library</span>
+                                                    </span>
+                                                </div>
+                                                <div className="SD-submenuItem" onClick={() => handleNavigation('/board?category=dev-log')}>
+                                                    <i className="ri-code-box-line"></i>
+                                                    <span className="manual-label-wrapper">
+                                                        <span className="translated-part">Dev Log</span>
+                                                        <span className="fixed-part ko" translate="no">개발일지</span>
+                                                        <span className="fixed-part en" translate="no">Dev Log</span>
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            }
+
+                            // 일반 메뉴 항목
+                            return (
+                                <div key={`${sectionIdx}-${itemIdx}`} className="SD-menuItem" onClick={() => handleNavigation(item.path)}>
+                                    <i className={item.icon}></i>
                                     <span className="manual-label-wrapper">
-                                        <span className="translated-part">{getCategoryEn(category.code, category.name)}</span>
-                                        <span className="fixed-part ko" translate="no">{category.name}</span>
-                                        <span className="fixed-part en" translate="no">{getCategoryEn(category.code, category.name)}</span>
+                                        <span className="translated-part">{MENU_LABELS_EN[item.title] || item.title}</span>
+                                        <span className="fixed-part ko" translate="no">{item.title}</span>
+                                        <span className="fixed-part en" translate="no">{MENU_LABELS_EN[item.title] || item.title}</span>
                                     </span>
                                 </div>
-                            ))}
-                            <div className="SD-submenuItem" onClick={() => handleNavigation('/board?category=dev-log')}>
-                                <i className="ri-code-box-line"></i>
-                                <span className="manual-label-wrapper">
-                                    <span className="translated-part">Dev Log</span>
-                                    <span className="fixed-part ko" translate="no">개발일지</span>
-                                    <span className="fixed-part en" translate="no">Dev Log</span>
-                                </span>
-                            </div>
-                        </div>
-                    )}
-                    <div className="SD-menuItem" onClick={() => handleNavigation('/shopping')}>
-                        <i className="ri-shopping-bag-3-line"></i>
-                        <span className="manual-label-wrapper">
-                            <span className="translated-part">Shop</span>
-                            <span className="fixed-part ko" translate="no">쇼핑</span>
-                            <span className="fixed-part en" translate="no">Shop</span>
-                        </span>
-                    </div>
-                    <div className="SD-menuItem" onClick={() => handleNavigation('/guide')}>
-                        <i className="ri-book-open-line"></i>
-                        <span className="manual-label-wrapper">
-                            <span className="translated-part">Guide</span>
-                            <span className="fixed-part ko" translate="no">이용가이드</span>
-                            <span className="fixed-part en" translate="no">Guide</span>
-                        </span>
-                    </div>
-                    <div className="SD-menuItem" onClick={() => handleNavigation('/map')}>
-                        <i className="ri-map-2-line"></i>
-                        <span className="manual-label-wrapper">
-                            <span className="translated-part">Site Map</span>
-                            <span className="fixed-part ko" translate="no">사이트 맵 (전체 메뉴)</span>
-                            <span className="fixed-part en" translate="no">Site Map</span>
-                        </span>
-                    </div>
+                            );
+                        });
+                    })}
                 </nav>
 
                 <div className="SD-footer">
