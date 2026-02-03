@@ -296,6 +296,17 @@
   font-size: 0.875rem;
 }
 
+.guide-footer-link {
+  color: var(--color-gray-500);
+  font-size: var(--text-xs);
+  text-decoration: underline;
+  transition: var(--transition-colors);
+}
+
+.guide-footer-link:hover {
+  color: var(--color-gray-300);
+}
+
 /* ===== Responsive Design ===== */
 @media (max-width: 480px) {
   .guide-features-grid {

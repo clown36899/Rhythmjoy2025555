@@ -14,11 +14,7 @@
     padding-bottom: env(safe-area-inset-bottom);
 }
 
-.global-loading-spinner {
-    font-size: 3rem;
-    color: white;
-    animation: spin 1s linear infinite;
-}
+
 
 .global-loading-text {
     margin-top: 1rem;
@@ -47,15 +43,7 @@
     /* gray-600 */
 }
 
-@keyframes spin {
-    from {
-        transform: rotate(0deg);
-    }
 
-    to {
-        transform: rotate(360deg);
-    }
-}
 
 .global-loading-progress-container {
     margin-top: 1rem;

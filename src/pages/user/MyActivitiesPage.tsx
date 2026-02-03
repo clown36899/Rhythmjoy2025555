@@ -189,42 +189,37 @@ export default function MyActivitiesPage() {
 
     return (
         <div className="shell-container my-activities-container">
-            <div className="my-activities-content evt-ongoing-section evt-preview-section my-activities-view-container" style={{ paddingTop: '60px' }}>
+            <div className="my-activities-content evt-ongoing-section evt-preview-section my-activities-view-container">
 
                 {/* Tabs restored and expanded as per user request */}
-                <div className="activity-tabs-container" style={{ display: 'flex', margin: '16px 8px', gap: '4px', flexWrap: 'wrap' }}>
+                <div className="activity-tabs-container">
                     <button
                         className={`activity-tab-btn ${currentTab === 'events' ? 'active' : ''}`}
                         onClick={() => handleTabChange('events')}
-                        style={{ flex: 1, padding: '8px 4px', fontSize: '13px' }}
                     >
                         등록한 행사
                     </button>
                     <button
                         className={`activity-tab-btn ${currentTab === 'classes' ? 'active' : ''}`}
                         onClick={() => handleTabChange('classes')}
-                        style={{ flex: 1, padding: '8px 4px', fontSize: '13px' }}
                     >
                         등록한 강습
                     </button>
                     <button
-                        className={`activity-tab-btn ${currentTab === 'groups' ? 'active' : ''}`}
+                        className={`activity-tab-btn tab-groups ${currentTab === 'groups' ? 'active' : ''}`}
                         onClick={() => handleTabChange('groups')}
-                        style={{ flex: 1.2, padding: '8px 2px', fontSize: '12px' }}
                     >
                         등록한 단체
                     </button>
                     <button
                         className={`activity-tab-btn ${currentTab === 'posts' ? 'active' : ''}`}
                         onClick={() => handleTabChange('posts')}
-                        style={{ flex: 1, padding: '8px 4px', fontSize: '13px' }}
                     >
                         내가 쓴 글
                     </button>
                     <button
-                        className={`activity-tab-btn ${currentTab === 'stats' ? 'active' : ''}`}
+                        className={`activity-tab-btn tab-stats ${currentTab === 'stats' ? 'active' : ''}`}
                         onClick={() => handleTabChange('stats')}
-                        style={{ flex: 0.8, padding: '8px 4px', fontSize: '13px', minWidth: '50px' }}
                     >
                         통계
                     </button>
@@ -238,9 +233,9 @@ export default function MyActivitiesPage() {
                     <>
                         {/* STATS TAB CONTENT */}
                         {currentTab === 'stats' && (
-                            <div className="activity-tab-content" style={{ padding: '0 12px' }}>
-                                <div className="evt-v2-section-title" style={{ padding: '0 4px', marginBottom: '12px' }}>
-                                    <i className="ri-bar-chart-groupped-fill" style={{ color: '#22c55e', marginRight: '6px' }}></i>
+                            <div className="activity-tab-content stats-view">
+                                <div className="evt-v2-section-title">
+                                    <i className="ri-bar-chart-groupped-fill section-icon icon-stats"></i>
                                     <span>활동 분석</span>
                                 </div>
                                 <MyImpactCard
@@ -255,9 +250,9 @@ export default function MyActivitiesPage() {
 
                         {(currentTab === 'events' || currentTab === 'classes') && (
                             <div className="activity-tab-content">
-                                <div className="ELS-section" style={{ marginTop: '0' }}>
-                                    <div className="ELS-header" style={{ padding: '0 16px', marginBottom: '12px' }}>
-                                        <i className={currentTab === 'events' ? "ri-calendar-event-fill" : "ri-book-open-fill"} style={{ color: '#00ddff', marginRight: '6px' }}></i>
+                                <div className="ELS-section no-margin-top">
+                                    <div className="ELS-header">
+                                        <i className={`section-icon icon-events ${currentTab === 'events' ? "ri-calendar-event-fill" : "ri-book-open-fill"}`}></i>
                                         <span>{currentTab === 'events' ? '등록한 행사' : '등록한 강습'}</span>
                                     </div>
 
@@ -265,7 +260,7 @@ export default function MyActivitiesPage() {
                                         if (filteredEvents.length === 0) {
                                             return (
                                                 <div className="activity-empty-state">
-                                                    <i className={currentTab === 'events' ? "ri-calendar-event-line" : "ri-book-open-line"} style={{ fontSize: '32px', color: '#444', marginBottom: '12px' }}></i>
+                                                    <i className={`activity-empty-icon ${currentTab === 'events' ? "ri-calendar-event-line" : "ri-book-open-line"}`}></i>
                                                     <p>{currentTab === 'events' ? '등록한 행사가 없습니다.' : '등록한 강습이 없습니다.'}</p>
                                                 </div>
                                             );
@@ -295,9 +290,9 @@ export default function MyActivitiesPage() {
                         {currentTab === 'groups' && (
                             <div className="activity-tab-content managed-groups-tab">
                                 {/* 1. My Groups (Top) */}
-                                <div className="ELS-section" style={{ marginTop: '0', marginBottom: '24px' }}>
-                                    <div className="ELS-header" style={{ padding: '0 16px', marginBottom: '12px' }}>
-                                        <i className="ri-team-fill" style={{ color: '#a855f7', marginRight: '6px' }}></i>
+                                <div className="ELS-section no-margin-top margin-bottom-24">
+                                    <div className="ELS-header">
+                                        <i className="ri-team-fill section-icon icon-groups"></i>
                                         <span>내 단체</span>
                                     </div>
 
@@ -306,23 +301,23 @@ export default function MyActivitiesPage() {
                                             <p>관리 중인 단체가 없습니다.</p>
                                         </div>
                                     ) : (
-                                        <div className="managed-groups-grid" style={{ padding: '0 8px' }}>
+                                        <div className="managed-groups-grid">
                                             {socialGroups.map(group => (
-                                                <div key={group.id} className="group-wide-card" onClick={() => { setGroupToEdit(group); setIsCalendarOpen(true); }} style={{ marginBottom: '12px' }}>
-                                                    <div className="group-wide-image" style={{ width: '60px', height: '60px' }}>
+                                                <div key={group.id} className="group-wide-card" onClick={() => { setGroupToEdit(group); setIsCalendarOpen(true); }}>
+                                                    <div className="group-wide-image">
                                                         {group.image_url ? (
-                                                            <img src={group.image_url} alt={group.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }} />
+                                                            <img src={group.image_url} alt={group.name} />
                                                         ) : (
-                                                            <div className="group-placeholder" style={{ fontSize: '20px' }}><i className="ri-team-line"></i></div>
+                                                            <div className="group-placeholder"><i className="ri-team-line"></i></div>
                                                         )}
                                                     </div>
-                                                    <div className="group-wide-info" style={{ padding: '8px 12px' }}>
+                                                    <div className="group-wide-info">
                                                         <div className="group-wide-header">
-                                                            <h3 className="group-wide-name" style={{ fontSize: '15px' }}>{group.name}</h3>
-                                                            <div className="group-type-tag" style={{ fontSize: '10px' }}>{group.type === 'club' ? '동호회' : group.type === 'bar' ? '스윙바' : '기타'}</div>
+                                                            <h3 className="group-wide-name">{group.name}</h3>
+                                                            <div className="group-type-tag">{group.type === 'club' ? '동호회' : group.type === 'bar' ? '스윙바' : '기타'}</div>
                                                         </div>
-                                                        <div className="group-wide-footer" style={{ marginTop: '4px' }}>
-                                                            <button className="admin-edit-btn" onClick={(e) => { e.stopPropagation(); handleEditGroup(group); }} style={{ fontSize: '11px', padding: '2px 8px' }}>
+                                                        <div className="group-wide-footer">
+                                                            <button className="admin-edit-btn" onClick={(e) => { e.stopPropagation(); handleEditGroup(group); }}>
                                                                 <i className="ri-edit-line"></i> 정보 수정
                                                             </button>
                                                         </div>
@@ -334,9 +329,9 @@ export default function MyActivitiesPage() {
                                 </div>
 
                                 {/* 2. My Schedules (Bottom) */}
-                                <div className="ELS-section" style={{ marginTop: '24px' }}>
-                                    <div className="ELS-header" style={{ padding: '0 16px', marginBottom: '12px' }}>
-                                        <i className="ri-calendar-check-fill" style={{ color: '#10b981', marginRight: '6px' }}></i>
+                                <div className="ELS-section margin-top-24">
+                                    <div className="ELS-header">
+                                        <i className="ri-calendar-check-fill section-icon icon-schedules"></i>
                                         <span>내가 등록한 일정</span>
                                     </div>
 
@@ -345,29 +340,28 @@ export default function MyActivitiesPage() {
                                             <p>등록한 일정이 없습니다.</p>
                                         </div>
                                     ) : (
-                                        <div className="managed-schedules-list" style={{ padding: '0 8px' }}>
+                                        <div className="managed-schedules-list">
                                             <div className="managed-events-grid">
                                                 {socialSchedules.map(schedule => (
                                                     <div
                                                         key={schedule.id}
-                                                        className="evt-card-v2 evt-v2-single"
+                                                        className="evt-card-v2-single"
                                                         onClick={() => handleScheduleClick(schedule)}
-                                                        style={{ display: 'flex', width: '100%', maxWidth: 'none', marginBottom: '12px', background: '#252525', borderRadius: '12px', overflow: 'hidden' }}
                                                     >
-                                                        <div className="evt-card-img-wrapper" style={{ width: '80px', height: '80px', flexShrink: 0 }}>
+                                                        <div className="evt-card-img-wrapper">
                                                             <img
                                                                 src={schedule.image_thumbnail || schedule.image_url}
                                                                 alt={schedule.title}
-                                                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                                                className="evt-card-img"
                                                             />
                                                         </div>
-                                                        <div className="evt-card-info" style={{ padding: '10px 12px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                                                            <div className="evt-card-title" style={{ fontSize: '14px', fontWeight: 'bold', marginBottom: '4px', color: '#fff' }}>{schedule.title}</div>
-                                                            <div className="evt-card-meta" style={{ fontSize: '12px', color: '#999' }}>
-                                                                <i className="ri-map-pin-line" style={{ marginRight: '4px' }}></i>
+                                                        <div className="evt-card-info">
+                                                            <div className="evt-card-title">{schedule.title}</div>
+                                                            <div className="evt-card-meta">
+                                                                <i className="ri-map-pin-line"></i>
                                                                 {schedule.place_name || '장소 정보 없음'}
                                                             </div>
-                                                            <div className="evt-card-date" style={{ fontSize: '11px', color: '#00ddff', marginTop: '4px' }}>
+                                                            <div className="evt-card-date">
                                                                 {schedule.date || (schedule.day_of_week !== undefined ? ['일', '월', '화', '수', '목', '금', '토'][schedule.day_of_week] + '요일 정규' : '시간 정보 없음')}
                                                             </div>
                                                         </div>
@@ -389,9 +383,9 @@ export default function MyActivitiesPage() {
                                 {/* My Impact Dashboard */}
                                 {/* My Impact Dashboard MOVED TO STATS TAB */}
 
-                                <div className="ELS-section" style={{ marginTop: '0' }}>
-                                    <div className="ELS-header" style={{ padding: '0 16px', marginBottom: '12px' }}>
-                                        <i className="ri-chat-3-fill" style={{ color: '#ffaa00', marginRight: '6px' }}></i>
+                                <div className="ELS-section no-margin-top">
+                                    <div className="ELS-header">
+                                        <i className="ri-chat-3-fill section-icon icon-posts"></i>
                                         <span>내가 쓴 글</span>
                                     </div>
 

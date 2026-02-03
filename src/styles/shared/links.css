@@ -1,0 +1,24 @@
+/* src/styles/shared/links.css */
+
+/* Standard text link style */
+.text-link {
+    color: var(--color-blue-500);
+    /* base.css defined variable */
+    text-decoration: underline;
+    cursor: pointer;
+    transition: color 0.2s ease-in-out;
+}
+
+.text-link:hover {
+    color: var(--color-blue-300);
+}
+
+.text-link.secondary {
+    color: var(--text-tertiary);
+    text-decoration: none;
+}
+
+.text-link.secondary:hover {
+    color: var(--text-primary);
+    text-decoration: underline;
+}

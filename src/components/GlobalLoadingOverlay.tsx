@@ -15,7 +15,7 @@ const GlobalLoadingOverlay: FC<GlobalLoadingOverlayProps> = ({ isLoading, messag
 
     return (
         <div className="global-loading-overlay">
-            <i className="ri-loader-4-line global-loading-spinner"></i>
+            <i className="ri-loader-4-line loading-spinner"></i>
             <p className="global-loading-text">{message}</p>
 
             {typeof progress === 'number' && (

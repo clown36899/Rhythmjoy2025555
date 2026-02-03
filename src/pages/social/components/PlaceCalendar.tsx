@@ -174,18 +174,18 @@ export default function PlaceCalendar({ place, onBack }: PlaceCalendarProps) {
             onClick={onBack}
             className="pcal-back-btn"
           >
-            <i className="ri-arrow-left-line text-xl"></i>
+            <i className="ri-arrow-left-line pcal-icon-large"></i>
           </button>
           <div className="flex-1">
-            <h1 className="text-lg font-bold text-white">{place.name}</h1>
-            <p className="text-xs text-gray-400">{place.address}</p>
+            <h1 className="pcal-header-title">{place.name}</h1>
+            <p className="pcal-place-address">{place.address}</p>
           </div>
         </div>
       </div>
 
       {/* 요일별 스케줄 */}
       <div className="pcal-weekly-area">
-        <h2 className="text-lg font-bold text-white mb-4 px-4 pt-4">요일별 스케줄</h2>
+        <h2 className="pcal-section-title">요일별 스케줄</h2>
 
         <div className="pcal-weekly-grid">
           {WEEKDAYS.map((day) => {

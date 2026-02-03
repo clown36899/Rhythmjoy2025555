@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import CalendarSearchModal from '../v2/components/CalendarSearchModal';
 import { PWAInstallButton } from '../../components/PWAInstallButton';
-import './guide.css';
+import '../../styles/pages/guide.css';
 
 declare global {
   interface Window {
@@ -303,7 +303,7 @@ export default function GuidePage() {
               </a>
             </p>
             <p className="guide-footer-contact" style={{ marginTop: '0.5rem' }}>
-              <Link to="/privacy" className="text-gray-500 hover:text-gray-300 text-xs underline">
+              <Link to="/privacy" className="guide-footer-link">
                 개인정보 처리방침
               </Link>
             </p>

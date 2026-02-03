@@ -1,0 +1,230 @@
+/* StatsModal.css - 통계 모달 전용 스타일 */
+
+.stats-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.15s ease-out;
+    /* [Standard Fix] Isolate touch and scroll */
+    touch-action: pan-y !important;
+    overscroll-behavior: contain !important;
+}
+
+.stats-modal {
+    width: 95%;
+    max-width: 450px;
+    height: auto;
+    max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 32px);
+    /* Use dynamic viewport height and leave safe margin */
+    background: rgba(15, 15, 15, 0.98);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 0 !important;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+    .stats-modal {
+        width: 90%;
+    }
+}
+
+.stats-modal.wide-mode {
+    max-width: 98vw;
+}
+
+@media (min-width: 1024px) {
+    .stats-modal.wide-mode {
+        max-width: 95vw;
+    }
+}
+
+.close-btn {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: #fff;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 1100;
+    transition: background 0.2s;
+    backdrop-filter: blur(4px);
+}
+
+.close-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.tabs-header {
+    display: flex;
+    align-items: center;
+    overflow-x: auto;
+    scrollbar-width: none;
+    flex-shrink: 0;
+    /* Base Padding + Modal Offset simulation */
+    padding: 24px 80px 16px 20px;
+    margin-bottom: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.tabs-header::-webkit-scrollbar {
+    display: none;
+}
+
+.tabs-container {
+    display: flex;
+    gap: 24px;
+    flex-wrap: nowrap;
+    position: relative;
+}
+
+.tab-item {
+    margin: 0;
+    font-size: 1rem;
+    color: #52525b;
+    font-weight: 700;
+    cursor: pointer;
+    padding-bottom: 4px;
+    transition: color 0.2s;
+    white-space: nowrap;
+    position: relative;
+    display: inline-block;
+    z-index: 1;
+}
+
+.tab-item.active {
+    color: #fff;
+}
+
+.tab-indicator {
+    position: absolute;
+    bottom: 0;
+    height: 2px;
+    background: #3b82f6;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 1px;
+}
+
+.badge-beta {
+    position: absolute;
+    top: -12px;
+    right: -10px;
+    font-size: 0.55rem;
+    color: #000;
+    background: #f59e0b;
+    padding: 1px 4px;
+    border-radius: 4px;
+    font-weight: 600;
+    line-height: 1;
+    transform: scale(0.9);
+    white-space: nowrap;
+    z-index: 1;
+}
+
+.content-area {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto !important;
+    padding: 0 16px 24px 16px;
+    /* New Unified Padding */
+    -webkit-overflow-scrolling: touch;
+    pointer-events: auto !important;
+    touch-action: pan-y !important;
+    overscroll-behavior: contain !important;
+}
+
+.content-area.wide-content {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden !important;
+    /* Fixed on Desktop */
+}
+
+@media (max-width: 1023px) {
+    .content-area.wide-content {
+        overflow-y: auto !important;
+        /* Unified Scroll on Mobile */
+        padding-bottom: 60px;
+    }
+}
+
+.loading-container {
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.info-box {
+    margin-top: 20px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.info-title {
+    font-size: 13px;
+    color: #a1a1aa;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 0;
+}
+
+.info-content {
+    font-size: 11px;
+    color: #71717a;
+    line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.info-text {
+    margin: 0;
+}
+
+.footer-text {
+    font-size: 11px;
+    color: #52525b;
+    text-align: center;
+    margin-top: 16px;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}

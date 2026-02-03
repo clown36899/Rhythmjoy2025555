@@ -188,6 +188,31 @@
   background-color: #15803d;
 }
 
+.pcal-place-address {
+  font-size: var(--text-xs);
+  color: var(--color-gray-400);
+  margin: 0;
+}
+
+.pcal-header-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.pcal-section-title {
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-4);
+  padding: var(--spacing-4) var(--spacing-4) 0;
+}
+
+.pcal-icon-large {
+  font-size: var(--text-xl);
+}
+
 /* 반응형 */
 @media (min-width: 768px) {
   .pcal-weekly-grid {

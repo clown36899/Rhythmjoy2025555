@@ -9,7 +9,7 @@
 /* Header is handled by MobileShell.css classes */
 
 .my-activities-content {
-    padding-top: 0;
+    padding-top: 60px;
     max-width: 650px;
     margin: 0 auto;
     width: 100%;
@@ -17,22 +17,36 @@
 
 /* Tabs removed for exact replica of Favorites view */
 .activity-tabs-container {
-    display: none;
+    display: flex;
+    margin: 16px 8px;
+    gap: 4px;
+    flex-wrap: wrap;
 }
 
 .activity-tab-btn {
     flex: 1;
-    padding: 12px 0;
+    padding: 8px 4px;
     text-align: center;
     font-weight: 500;
     background: transparent;
     border: none;
     cursor: pointer;
-    font-size: 1rem;
+    font-size: 13px;
     color: #9ca3af;
     /* gray-400 */
     transition: color 0.2s, border-bottom 0.2s;
     border-bottom: 2px solid transparent;
+}
+
+.activity-tab-btn.tab-groups {
+    flex: 1.2;
+    font-size: 12px;
+    padding: 8px 2px;
+}
+
+.activity-tab-btn.tab-stats {
+    flex: 0.8;
+    min-width: 50px;
 }
 
 .activity-tab-btn.active {
@@ -84,3 +98,118 @@
 .event-card-container {
     width: 100%;
 }
+
+/* Group Card Compact Overrides */
+.my-activities-content .group-wide-card {
+    margin-bottom: 12px;
+}
+
+.my-activities-content .group-wide-image {
+    width: 60px;
+    height: 60px;
+    min-width: 60px;
+    /* Override min-width 120px */
+}
+
+.my-activities-content .group-wide-info {
+    padding: 8px 12px;
+}
+
+.my-activities-content .group-wide-name {
+    font-size: 15px;
+}
+
+.my-activities-content .group-wide-footer {
+    margin-top: 4px;
+}
+
+.my-activities-content .admin-edit-btn {
+    font-size: 11px;
+    padding: 2px 8px;
+}
+
+/* Event List Section */
+.ELS-section.no-margin-top {
+    margin-top: 0;
+}
+
+.ELS-section.margin-bottom-24 {
+    margin-bottom: 24px;
+}
+
+.ELS-header {
+    padding: 0 16px;
+    margin-bottom: 12px;
+}
+
+/* Section Title (Stats) */
+.evt-v2-section-title {
+    padding: 0 4px;
+    margin-bottom: 12px;
+}
+
+/* Managed Groups Grid */
+.managed-groups-grid {
+    padding: 0 8px;
+}
+
+/* Managed Schedules List */
+.managed-schedules-list {
+    padding: 0 8px;
+}
+
+.evt-card-v2-single {
+    display: flex;
+    width: 100%;
+    max-width: none;
+    margin-bottom: 12px;
+    background: #252525;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.evt-card-img-wrapper {
+    width: 80px;
+    height: 80px;
+    flex-shrink: 0;
+}
+
+.evt-card-info {
+    padding: 10px 12px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.evt-card-title {
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 4px;
+    color: #fff;
+}
+
+.evt-card-meta {
+    font-size: 12px;
+    color: #999;
+}
+
+.evt-card-date {
+    font-size: 11px;
+    color: #00ddff;
+    margin-top: 4px;
+}
+/* Tab Content & Icons */
+.activity-tab-content.stats-view { padding: 0 12px; }
+.section-icon { margin-right: 6px; }
+.section-icon.icon-stats { color: #22c55e; }
+.section-icon.icon-events { color: #00ddff; }
+.section-icon.icon-groups { color: #a855f7; }
+.section-icon.icon-schedules { color: #10b981; }
+.section-icon.icon-posts { color: #ffaa00; }
+
+/* Card Images & Icons */
+.my-activities-content .group-wide-image img { border-radius: 8px; }
+.evt-card-img { width: 100%; height: 100%; object-fit: cover; }
+.evt-card-meta i { margin-right: 4px; }
+.my-activities-content .group-placeholder { font-size: 20px; }

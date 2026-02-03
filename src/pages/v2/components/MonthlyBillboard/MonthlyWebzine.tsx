@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useMonthlyBillboard } from '../../hooks/useMonthlyBillboard';
 import MonthlyLogDetailModal from './MonthlyLogDetailModal';
+import './MonthlyWebzine.css';
 
 // --- Premium Dark Mode Colors (Used for Chart Logic & Dynamic Styles) ---
 const colors = {
@@ -13,257 +14,6 @@ const colors = {
     event: '#f43f5e',    // Rose 500
 };
 
-const mwStyles = `
-                /* Container & Layout */
-                .mw-container {
-                    padding: 4px;
-                    color: #f4f4f5;
-                    font-family: 'Pretendard', sans-serif;
-                }
-                .mw-dashboard {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 8px;
-                    flex: 1;
-                    min-height: 0;
-                    min-width: 0; /* CRITICAL for infinite shrinking */
-                }
-                
-                .mw-grid {
-                    display: grid;
-                    grid-template-columns: 1fr;
-                    gap: 8px;
-                    flex: 1;
-                    min-height: 0;
-                    min-width: 0;
-                }
-                .mw-col {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 8px;
-                    flex: 1;
-                    min-height: 0;
-                    min-width: 0;
-                }
-                .scroll-list {
-                    flex: 1;
-                    min-height: 0;
-                    overflow: visible !important; /* Allow parent to handle scroll */
-                    padding-right: 4px;
-                    -webkit-overflow-scrolling: touch;
-                    touch-action: pan-y !important;
-                    pointer-events: auto !important;
-                }
-
-                @media (min-width: 1024px) {
-                    .mw-dashboard {
-                        display: grid;
-                        grid-template-rows: auto 1fr;
-                        height: 75vh;
-                        gap: 0;
-                    }
-                    .mw-grid {
-                        grid-template-columns: 1fr 1.1fr 0.9fr;
-                        height: 100%;
-                    }
-                    .mw-col {
-                        height: 100%;
-                    }
-                    .scroll-list {
-                        overflow-y: auto !important; /* Internal scroll only on Desktop Wide */
-                    }
-                }
-
-                /* Header Components */
-                .mw-header { 
-                    display: flex; 
-                    justify-content: space-between; 
-                    align-items: flex-end; 
-                    margin-bottom: 12px; 
-                    gap: 8px; /* Added gap */
-                    flex-wrap: wrap; /* Allow wrapping for narrow mobiles */
-                }
-                .mw-eyebrow { font-size: 10px; font-weight: 800; color: #fbbf24; margin-bottom: 4px; letter-spacing: 1px; text-transform: uppercase; opacity: 0.9; }
-                .mw-headline { 
-                    font-size: 18px; font-weight: 800; margin: 0; line-height: 1.2; letter-spacing: -0.5px;
-                    background: linear-gradient(to right, #fff, #a1a1aa); -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-                    word-break: keep-all; 
-                    overflow-wrap: break-word;
-                    min-width: 0;
-                }
-                
-                @media (max-width: 380px) {
-                    .mw-headline { font-size: 16px; }
-                }
-
-                .mw-meta-box {
-                    font-size: 10px; color: #a1a1aa; background: rgba(255,255,255,0.03);
-                    padding: 4px 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.05);
-                    text-align: right; cursor: pointer; transition: all 0.2s ease;
-                    flex-shrink: 1; 
-                    min-width: 0;
-                    overflow: hidden;
-                }
-                .mw-meta-box > div { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-                @media (max-width: 400px) {
-                    .mw-meta-box { text-align: left; }
-                }
-                .mw-meta-box:hover { background: rgba(255,255,255,0.08); border-color: rgba(251, 191, 36, 0.3); transform: translateY(-1px); }
-                .mw-meta-box:active { transform: translateY(0); opacity: 0.8; }
-                .mw-highlight-dot { color: #fbbf24; }
-                .mw-meta-sub { opacity: 0.6; }
-
-                /* Cards */
-                .mw-card {
-                    background: rgba(255,255,255,0.02);
-                    border-radius: 12px;
-                    border: 1px solid rgba(255,255,255,0.06);
-                    padding: 12px;
-                    display: flex;
-                    flex-direction: column;
-                    position: relative;
-                    overflow: hidden;
-                    min-height: 0;
-                    min-width: 0; /* CRITICAL */
-                }
-                .mw-card.flex-1 { flex: 1; }
-                .mw-card.padding-lg { padding: 14px; }
-                .mw-card.no-bg { background: rgba(255,255,255,0.01); border: none; padding: 12px 4px 12px 14px; }
-
-                .mw-section-title {
-                    font-size: 13px; font-weight: 700; color: #f4f4f5; margin-bottom: 12px;
-                    display: flex; align-items: center; gap: 8px; letter-spacing: -0.3px; margin-top: 0;
-                }
-                .metric-badge {
-                    font-size: 9px; padding: 2px 6px; border-radius: 4px;
-                    background: rgba(251, 191, 36, 0.1); color: #fbbf24;
-                    border: 1px solid rgba(251, 191, 36, 0.2); font-weight: 600;
-                    letter-spacing: 0;
-                }
-
-                /* Content Specifics */
-                .mw-desc { font-size: 12px; color: #d4d4d8; margin-bottom: 20px; line-height: 1.5; }
-                .mw-desc-sm { font-size: 11px; color: #d4d4d8; margin-bottom: 16px; line-height: 1.4; }
-                .mw-desc-sub { font-size: 11px; color: #a1a1aa; margin-top: 4px; display: block; }
-                
-                .text-class { color: #3b82f6; font-weight: 700; }
-                .text-event { color: #f43f5e; font-weight: 700; }
-
-                /* Lifecycle Chart (Standard) */
-                .lc-chart-container { flex: 1; position: relative; min-height: 90px; margin-bottom: 8px; }
-                .lc-svg { position: absolute; top: 0; left: 6%; width: 88%; height: calc(100% - 12px); z-index: 0; overflow: visible; }
-                .lc-bars-container { display: flex; align-items: flex-end; justify-content: space-between; height: 100%; padding-bottom: 20px; position: relative; z-index: 1; }
-                .lc-bar-col { width: 12%; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; cursor: pointer; position: relative; }
-                .lc-class-bar { width: 5px; background: #3b82f6; border-radius: 2.5px; opacity: 0.9; }
-                .lc-event-bar { width: 5px; background: #f43f5e; border-radius: 2.5px; margin-bottom: 1.5px; opacity: 0.9; }
-                .lc-day-label { position: absolute; bottom: -20px; font-size: 10px; font-weight: 600; color: #a1a1aa; }
-                .lc-active-dot {
-                    position: absolute; width: 8px; height: 8px; background: #fbbf24;
-                    border-radius: 50%; border: 2px solid #18181b; box-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
-                    transition: bottom 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-                    z-index: 5;
-                }
-                .lc-tooltip {
-                    position: absolute; background: rgba(0, 0, 0, 0.85); color: #fff;
-                    padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: 800;
-                    white-space: nowrap; z-index: 15; pointer-events: none;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-                    border: 1px solid rgba(255,255,255,0.1);
-                    backdrop-filter: blur(4px);
-                }
-                .lc-legend { display: flex; justify-content: center; gap: 16px; margin-top: 24px; }
-                .legend-item { font-size: 10px; display: flex; align-items: center; color: #a1a1aa; }
-                .dot-event { width: 6px; height: 6px; background: #f43f5e; border-radius: 2px; margin-right: 6px; }
-                .dot-class { width: 6px; height: 6px; background: #3b82f6; border-radius: 2px; margin-right: 6px; }
-                .dot-traffic { width: 10px; height: 2px; background: #fbbf24; margin-right: 6px; }
-                
-                /* Hourly Chart (Standard) */
-                .hourly-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-                .btn-toggle { 
-                    font-size: 10px; padding: 4px 10px; border-radius: 8px; 
-                    background: rgba(255,255,255,0.05); color: #a1a1aa; 
-                    border: 1px solid rgba(255,255,255,0.08); cursor: pointer;
-                    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-                    font-weight: 600;
-                }
-                .btn-toggle.active { background: #fbbf24; color: #000; border-color: #fbbf24; }
-                .btn-toggle:hover:not(.active) { background: rgba(255,255,255,0.12); color: #fff; border-color: rgba(255,255,255,0.2); }
-
-                .graph-container { height: 60px; position: relative; width: 100%; margin-bottom: 4px; }
-                .graph-line-grid { stroke: rgba(255,255,255,0.03); stroke-width: 1; }
-                .graph-polyline { fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; transition: all 0.3s ease; filter: drop-shadow(0 0 2px rgba(0,0,0,0.5)); }
-                .graph-polyline-class { stroke: #3b82f6; filter: drop-shadow(0 0 4px rgba(59, 130, 246, 0.3)); }
-                .graph-polyline-event { stroke: #f43f5e; filter: drop-shadow(0 0 4px rgba(244, 63, 94, 0.3)); }
-                
-                .graph-area-fill {
-                    fill: currentColor;
-                    opacity: 0.05;
-                    transition: all 0.5s ease;
-                }
-                .graph-area-fill.active { opacity: 0.15; }
-
-                .graph-y-label {
-                    position: absolute; right: 0; font-size: 8px; font-weight: 800;
-                    color: rgba(251, 191, 36, 0.6); pointer-events: none;
-                }
-
-                .graph-xaxis { display: flex; justify-content: space-between; font-size: 9px; color: #52525b; padding: 0 4px; font-weight: 600; margin-bottom: 12px; }
-                
-                .graph-interaction-layer {
-                    position: absolute; inset: 0; display: flex; z-index: 10;
-                }
-                .graph-hour-zone { flex: 1; height: 100%; cursor: crosshair; }
-                
-                .graph-hover-line {
-                    position: absolute; top: 0; bottom: 0; width: 1px;
-                    background: rgba(251, 191, 36, 0.4); pointer-events: none; z-index: 5;
-                }
-                
-                .graph-tooltip {
-                    position: absolute; background: rgba(0, 0, 0, 0.9);
-                    padding: 8px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
-                    backdrop-filter: blur(8px); z-index: 20; pointer-events: none;
-                    box-shadow: 0 8px 24px rgba(0,0,0,0.4); min-width: 80px;
-                }
-                .gt-time { font-size: 10px; font-weight: 800; color: #fbbf24; margin-bottom: 4px; display: block; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 2px; }
-                .gt-row { display: flex; justify-content: space-between; gap: 8px; font-size: 10px; margin-top: 2px; }
-                .gt-label { color: #a1a1aa; }
-                .gt-val { font-weight: 700; }
-                .gt-val.class { color: #3b82f6; }
-                .gt-val.event { color: #f43f5e; }
-
-                .hourly-legend { display: flex; gap: 10px; justify-content: flex-end; }
-                .hourly-legend-item { font-size: 9px; display: flex; align-items: center; color: #71717a; gap: 4px; }
-                .hl-dot { width: 6px; height: 6px; border-radius: 1px; }
-
-                /* Lead Time */
-                .lead-grid { display: flex; flex-direction: column; gap: 8px; flex: 1; }
-                .lead-item { display: flex; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: 8px; }
-                .lead-item.class { background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.15); }
-                .lead-item.event { background: rgba(244, 63, 94, 0.08); border: 1px solid rgba(244, 63, 94, 0.15); }
-                .lead-label { font-size: 10px; font-weight: 700; }
-                .lead-label-sub { font-size: 12px; color: #fff; }
-                .lead-value { font-size: 16px; font-weight: 800; color: #fff; text-align: right; }
-                .lead-unit { font-size: 10px; font-weight: 400; margin-left: 2px; }
-                .lead-caption { fontSize: 9px; opacity: 0.7; text-align: right; }
-                .text-blue-400 { color: #60a5fa; }
-                .text-blue-300 { color: #93c5fd; }
-                .text-rose-400 { color: #fb7185; }
-                .text-rose-300 { color: #fca5a5; }
-
-                /* Ranking */
-                .ranking-container { flex: 1; display: flex; flex-direction: column; gap: 6px; padding-right: 12px; }
-                .rank-row { 
-                    display: flex; align-items: center; padding: 10px 12px; border-radius: 10px; background: rgba(255,255,255,0.02); border: 1px solid transparent; 
-                }
-                .rank-row.top-tier { background: rgba(255,255,255,0.05); border-color: rgba(251, 191, 36, 0.15); }
-                .rank-num { width: 24px; font-size: 14px; font-weight: 800; font-style: italic; margin-right: 8px; color: #52525b; }
-                .rank-num.highlight { color: #fbbf24; }
-                .rank-content { flex: 1; min-width: 0; margin-right: 8px; }
-                .rank-type { font-size: 9px; font-weight: 700; margin-bottom: 2px; text-transform: uppercase; }
-                .rank-title { font-size: 12px; font-weight: 500; color: #f4f4f5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-                .rank-val { font-size: 11px; color: #71717a; font-weight: 500; }
-`;
 
 const MonthlyWebzine = () => {
     const { data, loading } = useMonthlyBillboard();
@@ -341,12 +91,9 @@ const MonthlyWebzine = () => {
     if (loading || !data) {
         return (
             <div className="mw-loading-container">
-                <style>{`
-                    .mw-loading-container { height: 400px; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-                    .mw-loading-text { margin-top: 16px; color: #a1a1aa; font-size: 12px; font-weight: 500; }
-                `}</style>
-                <div className="evt-loading-spinner-base evt-loading-spinner-blue evt-animate-spin"></div>
-                <p className="mw-loading-text">데이터 분석 중...</p>
+
+                <i className="ri-loader-4-line loading-spinner"></i>
+                <p className="loading-text">데이터 분석 중...</p>
             </div>
         );
     }
@@ -357,7 +104,7 @@ const MonthlyWebzine = () => {
 
     return (
         <div className="mw-container">
-            <style>{mwStyles}</style>
+
 
             <div className="mw-dashboard">
                 {/* 1. Header (Compact) */}
