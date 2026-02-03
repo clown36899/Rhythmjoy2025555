@@ -210,11 +210,8 @@ export const initializeAnalyticsSession = async (user?: { id: string }, isAdmin?
         });
 
         if (error) {
-            // [IGNORE] Silence 401 errors for analytics as they are expected when session is invalid/missing on some setups
-            const isAuthError = (error as any).status === 401 || (error as any).status === 403;
-            if (!isAuthError) {
-                console.warn('[Analytics] Failed to initialize session log:', error.message);
-            }
+            // [IGNORE] Silence ALL errors for background analytics to keep console clean
+            // These errors are usually RLS/401 issues that don't affect core functionality
         }
 
         if (SITE_ANALYTICS_CONFIG.ENV.LOG_TO_CONSOLE) {
