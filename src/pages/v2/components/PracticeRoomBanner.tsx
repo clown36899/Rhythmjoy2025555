@@ -34,8 +34,11 @@ export default function PracticeRoomBanner() {
                     : (room.images ?? []),
             })) as PracticeRoom[];
 
+            // Filter out rooms without images
+            const validRooms = processedData.filter(room => room.images && room.images.length > 0);
+
             // Shuffle array for random order
-            const shuffled = processedData.sort(() => Math.random() - 0.5);
+            const shuffled = validRooms.sort(() => Math.random() - 0.5);
             setRooms(shuffled);
         }
     }, [boardData]);

@@ -211,6 +211,11 @@ export default function VenueRegistrationModal({
     const handleSubmit = async () => {
         if (!formData.name.trim()) return alert("이름을 입력해주세요.");
 
+        // Photo Validation
+        if (!thumbnailPreview && images.length === 0) {
+            return alert("대표 썸네일 또는 이미지를 최소 1장 이상 등록해주세요.");
+        }
+
         // Auth check is handled by Overlay, but for safety:
         if (!user) {
             window.dispatchEvent(new CustomEvent('openLoginModal', {
