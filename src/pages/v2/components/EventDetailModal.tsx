@@ -252,27 +252,27 @@ interface Event extends Omit<BaseEvent, 'date' | 'start_date' | 'end_date' | 'ev
 }
 
 const genreColorPalette = [
-  'genre-color-red',
-  'genre-color-orange',
-  'genre-color-amber',
-  'genre-color-yellow',
-  'genre-color-lime',
-  'genre-color-green',
-  'genre-color-emerald',
-  'genre-color-teal',
-  'genre-color-cyan',
-  'genre-color-sky',
-  'genre-color-blue',
-  'genre-color-indigo',
-  'genre-color-violet',
-  'genre-color-purple',
-  'genre-color-fuchsia',
-  'genre-color-pink',
-  'genre-color-rose',
+  'edm-text-red',
+  'edm-text-orange',
+  'edm-text-amber',
+  'edm-text-yellow',
+  'edm-text-lime',
+  'edm-text-green',
+  'edm-text-emerald',
+  'edm-text-teal',
+  'edm-text-cyan',
+  'edm-text-sky',
+  'edm-text-blue',
+  'edm-text-indigo',
+  'edm-text-violet',
+  'edm-text-purple',
+  'edm-text-fuchsia',
+  'edm-text-pink',
+  'edm-text-rose',
 ];
 
 function getGenreColor(genre: string): string {
-  if (!genre) return 'genre-color-gray';
+  if (!genre) return 'edm-text-gray';
   let hash = 0;
   for (let i = 0; i < genre.length; i++) {
     hash = genre.charCodeAt(i) + ((hash << 5) - hash);
