@@ -8,21 +8,29 @@
 ALTER FUNCTION public.update_updated_at_column() SET search_path = public;
 
 -- 2. [Security] 알림 큐(notification_queue) 권한 강화
--- 원인: 누구나 알림을 보낼 수 있는 취약점 해결
+-- 수정: INSERT는 인증된 사용자 모두 허용 (이벤트 등록 시 자동 알림용)
+-- SELECT/UPDATE/DELETE는 관리자만 허용
 DROP POLICY IF EXISTS "Allow authenticated insert" ON public.notification_queue;
+DROP POLICY IF EXISTS "Allow admins only to insert notification queue" ON public.notification_queue;
 
-CREATE POLICY "Allow admins only to insert notification queue" 
+-- INSERT: 인증된 사용자 모두 허용 (이벤트 등록 시 알림 큐잉용)
+CREATE POLICY "Allow authenticated to insert notification queue" 
 ON public.notification_queue
 FOR INSERT 
 TO authenticated
-WITH CHECK (
-    -- 관리자만 알림 생성 가능
-    (SELECT public.is_admin_user()) = true
-);
+WITH CHECK (true);
+
+-- SELECT/UPDATE/DELETE: 관리자만 허용
+CREATE POLICY "Allow admins to manage notification queue" 
+ON public.notification_queue
+FOR ALL
+USING ((SELECT public.is_admin_user()) = true)
+WITH CHECK ((SELECT public.is_admin_user()) = true);
 
 -- 3. [Security] 접속 로그(session_logs) 정책 정교화
 -- 원인: UPDATE (true) 정책의 잠재적 위험 제거
 DROP POLICY IF EXISTS "session_logs_update_all" ON public.session_logs;
+DROP POLICY IF EXISTS "session_logs_update_owner" ON public.session_logs;
 
 CREATE POLICY "session_logs_update_owner"
 ON public.session_logs

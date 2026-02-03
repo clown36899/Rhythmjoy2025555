@@ -112,13 +112,13 @@ export const EventCard = memo(({
 
   // D-day 계산 로직
   const dDay = useMemo(() => {
-    // 0. NEW Badge Logic (Created within 6 hours)
+    // 0. NEW Badge Logic (Created within 24 hours)
     if (event.created_at) {
       const created = new Date(event.created_at);
       const now = new Date();
       const diffMs = now.getTime() - created.getTime();
       const diffHours = diffMs / (1000 * 60 * 60);
-      if (diffHours < 6) {
+      if (diffHours < 24) {
         return 'NEW';
       }
     }

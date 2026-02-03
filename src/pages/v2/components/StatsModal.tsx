@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../lib/supabase';
 import MyImpactCard from '../../user/components/MyImpactCard';
 import type { Event as SupabaseEvent } from '../../../lib/supabase';
@@ -97,27 +97,36 @@ const modalStyles = `
 
                 .tabs-container {
                     display: flex;
-                    gap: 24px; /* Reduced from 32px to save space */
+                    gap: 24px;
                     flex-wrap: nowrap;
+                    position: relative;
                 }
 
                 .tab-item {
                     margin: 0;
-                    font-size: 1rem; /* Reduced from 1.1rem for mobile */
+                    font-size: 1rem;
                     color: #52525b;
                     font-weight: 700;
                     cursor: pointer;
-                    border-bottom: 2px solid transparent;
                     padding-bottom: 4px;
-                    transition: all 0.2s;
+                    transition: color 0.2s;
                     white-space: nowrap;
                     position: relative;
                     display: inline-block;
+                    z-index: 1;
                 }
                 
                 .tab-item.active {
                     color: #fff;
-                    border-bottom-color: #3b82f6;
+                }
+                
+                .tab-indicator {
+                    position: absolute;
+                    bottom: 0;
+                    height: 2px;
+                    background: #3b82f6;
+                    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                    border-radius: 1px;
                 }
 
                 .badge-beta {
@@ -145,11 +154,6 @@ const modalStyles = `
                     pointer-events: auto !important;
                     touch-action: pan-y !important;
                     overscroll-behavior: contain !important;
-                    transition: opacity 0.15s ease-in-out; 
-                }
-                
-                .content-area.switching {
-                    opacity: 0;
                 }
                 
                 .content-area.wide-content {
@@ -227,23 +231,67 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
     const [loading, setLoading] = useState(true);
     const [userProfile, setUserProfile] = useState<any>(null);
     const [activeTab, setActiveTab] = useState<'my' | 'scene' | 'monthly'>('my');
-    const [isSwitching, setIsSwitching] = useState(false);
+
+    // Swipe gesture state
+    const [touchStart, setTouchStart] = useState<number | null>(null);
+    const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+    // Tab refs for measuring actual dimensions
+    const tabRefs = useRef<{ [key: string]: HTMLElement | null }>({});
+    const [indicatorStyle, setIndicatorStyle] = useState({ left: '0px', width: '0px' });
+
+    // Update indicator position based on active tab
+    useEffect(() => {
+        const activeTabElement = tabRefs.current[activeTab];
+        if (activeTabElement) {
+            const { offsetLeft, offsetWidth } = activeTabElement;
+            setIndicatorStyle({
+                left: `${offsetLeft}px`,
+                width: `${offsetWidth}px`
+            });
+        }
+    }, [activeTab]);
 
     useEffect(() => {
         if (isOpen) {
-            setIsSwitching(true);
             setActiveTab(initialTab);
-            setTimeout(() => setIsSwitching(false), 150);
         }
     }, [isOpen, initialTab]);
 
     const handleTabChange = (tab: 'my' | 'scene' | 'monthly') => {
         if (tab === activeTab) return;
-        setIsSwitching(true);
-        setTimeout(() => {
-            setActiveTab(tab);
-            setIsSwitching(false);
-        }, 150);
+        setActiveTab(tab);
+    };
+
+    // Swipe gesture handlers
+    const minSwipeDistance = 50;
+    const tabs: ('my' | 'scene' | 'monthly')[] = ['my', 'scene', 'monthly'];
+
+    const onTouchStart = (e: React.TouchEvent) => {
+        setTouchEnd(null);
+        setTouchStart(e.targetTouches[0].clientX);
+    };
+
+    const onTouchMove = (e: React.TouchEvent) => {
+        setTouchEnd(e.targetTouches[0].clientX);
+    };
+
+    const onTouchEnd = () => {
+        if (!touchStart || !touchEnd) return;
+
+        const distance = touchStart - touchEnd;
+        const isLeftSwipe = distance > minSwipeDistance;
+        const isRightSwipe = distance < -minSwipeDistance;
+
+        const currentIndex = tabs.indexOf(activeTab);
+
+        if (isLeftSwipe && currentIndex < tabs.length - 1) {
+            // Swipe left -> next tab
+            handleTabChange(tabs[currentIndex + 1]);
+        } else if (isRightSwipe && currentIndex > 0) {
+            // Swipe right -> previous tab
+            handleTabChange(tabs[currentIndex - 1]);
+        }
     };
 
     useEffect(() => {
@@ -302,16 +350,29 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
 
                 <div className="tabs-header">
                     <div className="tabs-container">
-                        <h2 onClick={() => handleTabChange('my')} className={`tab-item ${activeTab === 'my' ? 'active' : ''}`}>
+                        <h2
+                            ref={(el) => { tabRefs.current['my'] = el; }}
+                            onClick={() => handleTabChange('my')}
+                            className={`tab-item ${activeTab === 'my' ? 'active' : ''}`}
+                        >
                             내 활동
                         </h2>
-                        <h2 onClick={() => handleTabChange('scene')} className={`tab-item ${activeTab === 'scene' ? 'active' : ''}`}>
+                        <h2
+                            ref={(el) => { tabRefs.current['scene'] = el; }}
+                            onClick={() => handleTabChange('scene')}
+                            className={`tab-item ${activeTab === 'scene' ? 'active' : ''}`}
+                        >
                             스윙씬 통계
                             <span className="badge-beta">개선중</span>
                         </h2>
-                        <h2 onClick={() => handleTabChange('monthly')} className={`tab-item ${activeTab === 'monthly' ? 'active' : ''}`}>
+                        <h2
+                            ref={(el) => { tabRefs.current['monthly'] = el; }}
+                            onClick={() => handleTabChange('monthly')}
+                            className={`tab-item ${activeTab === 'monthly' ? 'active' : ''}`}
+                        >
                             월간 빌보드
                         </h2>
+                        <div className="tab-indicator" style={indicatorStyle}></div>
                     </div>
                 </div>
 
@@ -320,7 +381,12 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
                         <div className="evt-loading-spinner-base evt-loading-spinner-blue evt-animate-spin"></div>
                     </div>
                 ) : (
-                    <div className={`content-area ${activeTab === 'monthly' || activeTab === 'scene' ? 'wide-content' : ''} ${isSwitching ? 'switching' : ''}`}>
+                    <div
+                        className={`content-area ${activeTab === 'monthly' || activeTab === 'scene' ? 'wide-content' : ''}`}
+                        onTouchStart={onTouchStart}
+                        onTouchMove={onTouchMove}
+                        onTouchEnd={onTouchEnd}
+                    >
                         <div style={{ display: activeTab === 'my' ? 'block' : 'none' }}>
                             <MyImpactCard
                                 user={{ id: userId, ...userProfile }}
