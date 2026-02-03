@@ -155,6 +155,16 @@
         animation: ecard-ddayPulse 2s ease-in-out infinite;
     }
 
+    .ECARD-ddayBadge.is-new {
+        background: linear-gradient(135deg, #16a34a, #15803d);
+        /* Brighter accent border/shadow */
+        box-shadow: 0 0 12px rgba(34, 197, 94, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        animation: ecard-ddayPulse 2s ease-in-out infinite;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+    }
+
     @keyframes ecard-ddayPulse {
 
         0%,

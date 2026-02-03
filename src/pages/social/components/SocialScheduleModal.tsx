@@ -312,6 +312,11 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
             return;
         }
 
+        if (!linkUrl.trim()) {
+            alert('관련 링크 URL을 입력해주세요.');
+            return;
+        }
+
         setIsSubmitting(true);
         setLoadingMessage('일정 저장 중...');
 
@@ -632,7 +637,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                                 />
                             </div>
                             <div className="form-item" style={{ flex: 1 }}>
-                                <label>관련 링크 URL</label>
+                                <label>관련 링크 URL *</label>
                                 <input
                                     type="url"
                                     value={linkUrl}

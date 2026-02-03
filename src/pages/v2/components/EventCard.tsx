@@ -112,6 +112,17 @@ export const EventCard = memo(({
 
   // D-day 계산 로직
   const dDay = useMemo(() => {
+    // 0. NEW Badge Logic (Created within 6 hours)
+    if (event.created_at) {
+      const created = new Date(event.created_at);
+      const now = new Date();
+      const diffMs = now.getTime() - created.getTime();
+      const diffHours = diffMs / (1000 * 60 * 60);
+      if (diffHours < 6) {
+        return 'NEW';
+      }
+    }
+
     if (isPast) return null; // 완전히 지난 이벤트는 D-day 표시 안 함
 
     // 1. 오늘이 행사 날짜 목록(개별 일정)에 포함되는지 확인 -> 'D-Day' 표시
@@ -155,7 +166,7 @@ export const EventCard = memo(({
     if (diffDays < 0) return null;
     if (diffDays === 0) return 'D-Day';
     return `D-${diffDays}일`;
-  }, [todayString, isPast, event.event_dates, event.start_date, event.date, event.end_date]);
+  }, [todayString, isPast, event.event_dates, event.start_date, event.date, event.end_date, event.created_at]);
 
 
   // Determine modifiers
@@ -277,7 +288,7 @@ export const EventCard = memo(({
       </div>
 
       {dDay && (
-        <div className={`ECARD-ddayBadge ${dDay === 'D-Day' ? 'is-today' : ''}`}>
+        <div className={`ECARD-ddayBadge ${dDay === 'D-Day' ? 'is-today' : ''} ${dDay === 'NEW' ? 'is-new' : ''}`}>
           {dDay}
         </div>
       )}

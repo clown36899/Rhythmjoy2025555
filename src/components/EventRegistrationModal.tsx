@@ -520,6 +520,12 @@ export default memo(function EventRegistrationModal({
 
     // Password validation removed - using RLS
 
+    if (!link1.trim()) {
+      alert("관련 링크를 입력해주세요.");
+      detailRef.current?.openModal('link');
+      return;
+    }
+
     // New Validation: Image OR Video is required (only for new events or if explicit removal logic exists)
     // For edit, if they haven't changed the image (imageFile is null) but there was an existing image, it's fine.
     const hasExistingImage = editEventData && (editEventData.image || editEventData.image_thumbnail);

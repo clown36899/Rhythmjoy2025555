@@ -137,15 +137,40 @@ export const sortEvents = (
     const sortGroup = (group: Event[]) => {
         switch (sortType) {
             case "random": {
+                // 0. Separate "New" events (< 6 hours)
+                const now = new Date();
+                const sixHoursAgo = new Date(now.getTime() - 6 * 60 * 60 * 1000);
+
+                const newEvents: Event[] = [];
+                const regularEvents: Event[] = [];
+
+                group.forEach(event => {
+                    if (event.created_at && new Date(event.created_at) > sixHoursAgo) {
+                        newEvents.push(event);
+                    } else {
+                        regularEvents.push(event);
+                    }
+                });
+
+                // Sort "New" events by created_at descending (Newest first)
+                newEvents.sort((a, b) => {
+                    const tA = new Date(a.created_at!).getTime();
+                    const tB = new Date(b.created_at!).getTime();
+                    return tB - tA;
+                });
+
+                // Randomize regular events
                 // 랜덤 정렬 - 시드가 있으면 사용하고, 없으면 새로고침할 때마다 변하도록 생성
                 const finalSeed = seed ?? (Date.now() + Math.floor(Math.random() * 1000000));
                 const random = seededRandom(finalSeed);
+
+                let sortedRegular: Event[] = [];
 
                 if (applyGenreWeights && genreWeights) {
                     // Weighted Shuffle (Efraimidis-Spirakis)
                     // k_i = u_i ^ (1 / w_i)
                     // Sort by k_i descending
-                    return [...group].map(event => {
+                    sortedRegular = [...regularEvents].map(event => {
                         // Extract first/main genre for weighting
                         const eventGenre = event.genre ? event.genre.split(',')[0].trim() : '기타';
                         const weight = genreWeights[eventGenre] || 1.0;
@@ -161,14 +186,16 @@ export const sortEvents = (
 
                 } else {
                     // Standard Fisher-Yates Shuffle (Uniform)
-                    const shuffled = [...group];
+                    const shuffled = [...regularEvents];
                     for (let i = shuffled.length - 1; i > 0; i--) {
                         const j = Math.floor(random() * (i + 1));
                         [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
                     }
-                    return shuffled;
+                    sortedRegular = shuffled;
                 }
-                return []; // Should not reach here, but for type safety logic structure correction (above block returns)
+
+                // Combine: New Events First
+                return [...newEvents, ...sortedRegular];
             }
             case "time":
                 // 시간순 정렬 (날짜 + 시간) - 달 단위에서만 사용
