@@ -465,7 +465,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                             className={`ssm-tab ${activeTab === 'schedule' ? 'active' : ''}`}
                             onClick={() => setActiveTab('schedule')}
                         >
-                            내부 일정 등록
+                            소셜 일정 등록
                         </button>
                         <button
                             className={`ssm-tab ${activeTab === 'recruit' ? 'active' : ''}`}

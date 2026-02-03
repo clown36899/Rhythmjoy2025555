@@ -67,6 +67,10 @@ const SocialRegistrationModal: React.FC<SocialRegistrationModalProps> = ({
                                                     <button className="admin-add-item-btn" style={{ width: '100%', justifyContent: 'center' }}>
                                                         <i className="ri-add-line"></i> 일정 등록하기
                                                     </button>
+                                                    <p style={{ marginTop: '6px', fontSize: '0.75rem', color: '#ef4444', textAlign: 'center', wordBreak: 'keep-all' }}>
+                                                        <i className="ri-alert-line" style={{ marginRight: '2px', verticalAlign: 'text-bottom' }}></i>
+                                                        행사는 별도 등록, 소셜일정만 등록해주세요
+                                                    </p>
                                                 </div>
                                             </div>
                                         </div>
