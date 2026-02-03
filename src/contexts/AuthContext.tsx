@@ -17,6 +17,7 @@ interface AuthContextType {
   loading: boolean;
   isAuthCheckComplete: boolean;
   isAuthProcessing: boolean;
+  setIsAuthProcessing: (value: boolean) => void;
   isLoggingOut: boolean;
   billboardUserId: string | null;
   billboardUserName: string | null;
@@ -580,9 +581,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       .finally(() => {
         setIsAuthCheckComplete(true);
-        // 🔥 [Critical] 초기 인증 체크가 끝나면 무조건 로딩 상태 해제 (Safety net)
-        setIsAuthProcessing(false);
-        sessionStorage.removeItem('kakao_login_in_progress');
+        // [Optimization] Global spinner auto-clear removed. 
+        // Each specific login flow (like KakaoCallback) is now responsible for clearing its own loading state.
+        // The 60s safety timeout in the constructor remains as a fallback.
       });
 
     return () => {
@@ -616,13 +617,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUserId(currentUser.id);
           if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
             logEvent('Auth', 'Login', 'Success');
-            // Clear login in progress flag
-            sessionStorage.removeItem('kakao_login_in_progress');
-            sessionStorage.removeItem('kakao_login_start_time');
-            setIsAuthProcessing(false);
+            // [Optimization] Global spinner auto-clear removed.
+            // Component-level flows (e.g. KakaoCallbackPage) now handle their own cleanup
+            // after completing their specific redirect/navigation tasks.
+            // setIsAuthProcessing(false) and sessionStorage removal moved to flow owners.
 
             // [FIX] Ensure board_users record exists (especially for Google/Apple login)
-            // 익명 함수 내부에서 비동기 호출
+            // 익명 함수 내부에서 비동기 호출 (async context inside callback)
             (async () => {
               try {
                 await ensureBoardUser(currentUser);
@@ -644,7 +645,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } else {
           setUserId(null);
         }
-        setIsAuthProcessing(false); // 🔥 기타 모든 상태 변경 시에도 로딩 해제
+        // [Optimization] Removed global setIsAuthProcessing(false) fallback
       }
     });
 
@@ -891,6 +892,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading,
     isAuthCheckComplete,
     isAuthProcessing,
+    setIsAuthProcessing,
     isLoggingOut,
     billboardUserId,
     billboardUserName,

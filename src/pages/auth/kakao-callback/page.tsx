@@ -7,7 +7,7 @@ import '../../../styles/pages/auth-callback.css';
 export default function KakaoCallbackPage() {
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
-    const { } = useAuth();
+    const { setIsAuthProcessing } = useAuth();
 
     // Ref to track processing state within a single mount (still useful for manual double-invoke protection)
     const processingRef = useRef(false);
@@ -172,6 +172,10 @@ export default function KakaoCallbackPage() {
                     // 스피너는 계속 유지되며 먹통 구간이 발생하지 않음
                     sessionStorage.removeItem('kakao_login_in_progress');
                     sessionStorage.removeItem('kakao_login_start_time');
+
+                    // [Optimization] Flow-owner explicitly clears processing state
+                    // This ensures the spinner stays active until navigation is fully triggered.
+                    setIsAuthProcessing(false);
                 } else {
                     console.error('[Kakao Callback] ❌ 세션 정보 없음');
                     throw new Error('서버 응답에 세션 정보가 없습니다');
