@@ -5,8 +5,8 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useModal } from '../../../hooks/useModal';
 import { useModalHistory } from '../../../hooks/useModalHistory';
 import VenueSelectModal from '../../v2/components/VenueSelectModal';
-import '../../../../styles/domains/events.css';
-import '../../../../styles/components/SocialEventModal.css';
+import '../../../styles/domains/events.css';
+import '../../../styles/components/SocialEventModal.css';
 
 interface SocialEventModalProps {
   onClose: () => void;
