@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
-import type { SocialPlace } from '../types';
+import type { SocialGroup as SocialPlace } from '../types';
 import SocialEditModal from './SocialEditModal';
 import './PlaceCalendar.css';
 

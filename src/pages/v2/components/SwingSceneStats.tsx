@@ -408,9 +408,9 @@ export default function SwingSceneStats() {
 
     if (loading || !stats) {
         return (
-            <div style={{ padding: '60px 0', textAlign: 'center' }}>
-                <div className="evt-loading-spinner-base evt-loading-spinner-blue evt-animate-spin" style={{ margin: '0 auto' }}></div>
-                <p style={{ marginTop: '12px', color: '#71717a', fontSize: '13px' }}>데이터 집계 중...</p>
+            <div className="loading-container" style={{ padding: '60px 0' }}>
+                <i className="ri-loader-4-line loading-spinner"></i>
+                <p className="loading-text">데이터 집계 중...</p>
             </div>
         );
     }
