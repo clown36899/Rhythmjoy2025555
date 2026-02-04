@@ -1,5 +1,5 @@
-// 빌보드 PWA 서비스 워커 (Version: 20260204 - V34/PWA Resume Fix + Theme Admin Only)
-const CACHE_NAME = 'rhythmjoy-cache-v34';
+// 빌보드 PWA 서비스 워커 (Version: 20260205 - V35/Theme Dark Default + Calendar Tonedown + SW Immediate Update)
+const CACHE_NAME = 'rhythmjoy-cache-v35';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

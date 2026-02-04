@@ -8,6 +8,15 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '3.8.1',
+        date: '2026-02-05',
+        changes: [
+            '[🎨 Theme] 기본 테마 다크 모드 설정 및 화이트 모드 관리자 제한',
+            '[🎨 Theme] 전체 달력 가시성 개선 (셀 배경 톤다운)',
+            '[🔧 PWA] 서비스 워커 버전 업데이트 (즉시 반영)'
+        ]
+    },
+    {
         version: '3.8.0',
         date: '2026-01-29',
         changes: [
