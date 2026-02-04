@@ -182,7 +182,7 @@
         border-radius: 8px;
         background: var(--bg-surface-2);
         color: var(--text-secondary);
-        border: 1px solid var(--border-subtle);
+        border: 1px solid var(--border-glass);
         font-size: 13px;
         font-weight: 500;
         cursor: pointer;

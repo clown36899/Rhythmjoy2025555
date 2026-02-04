@@ -12,7 +12,7 @@ html {
     /* overflow: hidden; - Removed to allow pull-to-refresh */
     user-select: none;
     -webkit-user-select: none;
-    background-color: #000000;
+    background-color: var(--bg-base);
     padding-bottom: 60px;
     /* 웹 기본값 */
 }
@@ -27,20 +27,20 @@ html {
     width: 100%;
     max-width: 650px;
     z-index: 41;
-    background-color: #171717;
+    background-color: var(--bg-surface-1);
     display: flex;
     gap: 8px;
     padding: 10px 16px;
     /* border-top: 1px solid #222; */
-    box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 -4px 10px var(--shadow-md);
 }
 
 .calendar-tab-btn {
     flex: 1;
     padding: 8px 12px;
-    background-color: #000000;
-    color: #d9d9d9;
-    border: 1px solid #333;
+    background-color: var(--bg-base);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-primary);
     border-radius: 8px;
     font-size: 14px;
     font-weight: 500;
@@ -59,14 +59,14 @@ html {
 }
 
 .calendar-tab-btn:hover {
-    background-color: #252525;
-    border-color: #444;
+    background-color: var(--bg-hover);
+    border-color: var(--border-glass);
 }
 
 .calendar-tab-btn.active {
-    background-color: #052c59;
-    color: #ffffff;
-    border-color: #1d497c;
+    background-color: var(--color-blue-600);
+    color: var(--color-white);
+    border-color: var(--color-blue-600);
     font-weight: 600;
 }
 
@@ -80,10 +80,10 @@ html {
     max-width: 650px;
     z-index: 40;
     /* BoardTabBar와 동일한 레벨 */
-    background-color: #000000;
+    background-color: var(--bg-base);
     /* padding-top: 10px; */
     /* padding-bottom: 10px; */
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid var(--border-primary);
 }
 
 /* 요일 헤더가 fixed로 변경됨에 따라 본문이 가려지지 않도록 여백 추가 */
@@ -110,9 +110,9 @@ html {
     text-align: center;
     font-size: 0.9rem;
     font-weight: 600;
-    color: #c7c7c7;
+    color: var(--text-secondary);
     flex-shrink: 0;
-    background-color: #171717;
+    background-color: var(--bg-surface-1);
 }
 
 .calendar-weekday-item {
@@ -124,14 +124,14 @@ html {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    color: #c7c7c7;
+    color: var(--text-secondary);
     transition: all 0.2s ease;
     position: relative;
     /* For absolute icon */
 }
 
 .calendar-weekday-item.selected {
-    color: #4a9eff !important;
+    color: var(--color-blue-400) !important;
     font-weight: bold;
 }
 

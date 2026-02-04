@@ -635,7 +635,14 @@
 .calendar-header-nav {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: clamp(6px, 2vw, 12px);
+  /* 반응형 gap */
+  flex: 1;
+  /* 가능한 공간 모두 사용 */
+  min-width: 0;
+  /* 축소 가능 */
+  overflow: visible;
+  /* 버튼이 잘리지 않도록 */
 }
 
 .calendar-back-btn {
@@ -647,6 +654,8 @@
   display: flex;
   align-items: center;
   transition: opacity 0.2s;
+  flex-shrink: 0;
+  /* 뒤로가기 버튼은 크기 유지 */
 }
 
 .calendar-back-btn:hover {
@@ -654,7 +663,8 @@
 }
 
 .calendar-back-btn i {
-  font-size: 1.5rem;
+  font-size: clamp(1.2rem, 5vw, 1.5rem);
+  /* 반응형 아이콘 */
 }
 
 .calendar-month-nav {
@@ -664,6 +674,12 @@
   background-color: var(--bg-surface-2);
   padding: 4px 8px;
   border-radius: 8px;
+  flex-shrink: 1;
+  /* 좁은 화면에서 크기 축소 허용 */
+  min-width: 0;
+  /* 박스 크기를 0까지 줄일 수 있게 허용 */
+  overflow: visible;
+  /* 버튼이 잘리지 않도록 */
 }
 
 
@@ -671,12 +687,15 @@
   background: none;
   border: none;
   color: rgba(255, 255, 255, 0.7);
-  padding: 4px 6px;
+  padding: 4px min(1.5vw, 6px);
+  /* 반응형 패딩 */
   cursor: pointer;
   display: flex;
   align-items: center;
   border-radius: 4px;
   transition: all 0.2s;
+  flex-shrink: 0;
+  /* 버튼 자체는 크기 유지 */
 }
 
 .calendar-month-btn:hover {
@@ -688,25 +707,55 @@
   transform: scale(0.95);
 }
 
+.calendar-month-btn i {
+  font-size: clamp(1rem, 4vw, 1.3rem);
+  /* 아이콘 크기 반응형 */
+}
+
 .calendar-month-label {
   color: var(--text-primary);
   font-weight: 600;
-  font-size: clamp(0.9rem, 4.5vw, 1.3rem);
-  min-width: 60px;
+  font-size: clamp(0.75rem, 3.5vw, 1.1rem);
+  /* 더 작은 최소 크기 */
+  min-width: clamp(50px, 15vw, 70px);
+  /* 반응형 최소 너비 */
   text-align: center;
+  white-space: nowrap;
+  /* 텍스트 줄바꿈 방지 */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 1;
+  /* 필요시 크기 축소 */
+}
+
+.calendar-month-label-clickable {
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.calendar-month-label-clickable:hover {
+  opacity: 0.8;
 }
 
 .calendar-today-header-btn {
   background: var(--text-primary);
   color: var(--bg-base);
   border: none;
-  padding: 4px 10px;
+  padding: clamp(3px, 1vw, 4px) clamp(6px, 2vw, 10px);
+  /* 더 작은 패딩 */
   border-radius: 6px;
-  font-size: 13px;
+  font-size: clamp(0.65rem, 2.8vw, 0.85rem);
+  /* 더 작은 폰트 */
   font-weight: 600;
-  margin-left: 4px;
+  margin-left: clamp(2px, 1vw, 4px);
+  /* 반응형 마진 */
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap;
+  flex-shrink: 1;
+  /* 필요 시 축소 허용 */
+  min-width: 32px;
+  /* 최소 너비 보장 */
 }
 
 .calendar-today-header-btn:hover {
@@ -716,6 +765,34 @@
 
 .calendar-today-header-btn:active {
   transform: translateY(0);
+}
+
+/* 매우 좁은 화면용 추가 조정 */
+@media (max-width: 350px) {
+  .calendar-header-nav {
+    gap: 4px;
+  }
+
+  .calendar-month-nav {
+    gap: 2px;
+    padding: 3px 6px;
+  }
+
+  .calendar-month-btn {
+    padding: 3px 4px;
+  }
+
+  .calendar-month-label {
+    font-size: 0.7rem;
+    min-width: 45px;
+  }
+
+  .calendar-today-header-btn {
+    font-size: 0.6rem;
+    padding: 3px 5px;
+    margin-left: 2px;
+    margin-left: 2px;
+  }
 }
 
 /* FAB styles moved to BottomNavigation */

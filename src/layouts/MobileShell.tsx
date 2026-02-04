@@ -41,7 +41,6 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const notificationSettingsModal = useModal('notificationSettings');
-  const [calendarMode, setCalendarMode] = useState<'collapsed' | 'fullscreen'>('collapsed');
   const [calendarView, setCalendarView] = useState({ year: new Date().getFullYear(), month: new Date().getMonth() });
   // unused state removed
   const [totalUserCount, setTotalUserCount] = useState<number | null>(null);
@@ -384,15 +383,6 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
               {/* 2. Calendar Page (Full Screen) */}
               {isCalendarPage && (
                 <div className="calendar-header-nav">
-                  <button
-                    onClick={() => {
-                      setCalendarMode('collapsed');
-                      navigate('/');
-                    }}
-                    className="calendar-back-btn"
-                  >
-                    <i className="ri-arrow-left-line"></i>
-                  </button>
                   {/* Month Navigation Buttons */}
                   <div className="calendar-month-nav">
                     <button
@@ -500,7 +490,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
         </header >
       )}
 
-      <Outlet context={{ category, calendarMode, isFullscreen }} />
+      <Outlet context={{ category, isFullscreen }} />
 
       {/* Bottom Navigation */}
       {!isFullscreen && (

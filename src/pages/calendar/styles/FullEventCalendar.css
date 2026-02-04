@@ -151,15 +151,15 @@
 
 /* 배경 색상 - 그레이 계열 */
 .calendar-bg-gray-600 {
-  background-color: #4b5563;
+  background-color: var(--bg-surface-2);
 }
 
 .calendar-bg-gray-700 {
-  background-color: #374151;
+  background-color: var(--bg-surface-3);
 }
 
 .calendar-bg-gray-800 {
-  background-color: #1f2937;
+  background-color: var(--bg-base);
 }
 
 /* 배경 색상 - 이벤트 카테고리별 */
@@ -442,7 +442,7 @@
 
 /* ===== 호버 효과 (Hover States) ===== */
 .calendar-hover-bg-gray-700:hover {
-  background-color: #374151;
+  background-color: var(--bg-hover);
 }
 
 .calendar-hover-text-white:hover {
@@ -553,11 +553,11 @@
 }
 
 .calendar-bg-blue-600 {
-  background-color: #2563eb;
+  background-color: var(--color-blue-600);
 }
 
 .calendar-hover-bg-gray-600:hover {
-  background-color: #4b5563;
+  background-color: var(--bg-hover);
 }
 
 /* ===== 추가 레이아웃 클래스 ===== */
@@ -734,18 +734,18 @@
 }
 
 .calendar-year-btn-selected {
-  background-color: #2563eb;
-  color: white;
+  background-color: var(--color-blue-600);
+  color: var(--color-white);
 }
 
 .calendar-year-btn-default {
-  background-color: #374151;
-  color: #d1d5db;
+  background-color: var(--bg-surface-3);
+  color: var(--text-tertiary);
 }
 
 .calendar-year-btn-default:hover {
-  background-color: #4b5563;
-  color: white;
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .calendar-nav-btn {
@@ -756,7 +756,7 @@
 }
 
 .calendar-nav-btn:hover {
-  color: white;
+  color: var(--text-primary);
 }
 
 /* ===== 달력 날짜 셀 특수 스타일 ===== */
@@ -890,7 +890,7 @@
 
 .calendar-placeholder-text {
   font-size: 10px;
-  color: white;
+  color: var(--color-white);
   font-weight: bold;
 }
 
@@ -898,7 +898,7 @@
   position: relative;
   user-select: none;
   transition: background-color 0.3s, color 0.3s, border-color 0.3s;
-  background-color: var(--calendar-bg-color, #000000);
+  background-color: var(--calendar-cell-bg);
   /* Ensure cells have a background so gaps show as borders */
 }
 
@@ -919,12 +919,12 @@
 }
 
 .calendar-cell-selected {
-  color: white;
+  color: var(--color-white);
   z-index: 10;
 }
 
 .calendar-cell-default {
-  color: #d1d5db;
+  color: var(--text-secondary);
   /* gray-300 */
 }
 
@@ -948,7 +948,7 @@
 .calendar-event-bar-title {
   font-size: 10px;
   font-weight: 500;
-  color: white;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -958,7 +958,7 @@
 .calendar-fullscreen-title {
   font-size: clamp(0rem, 2.4vw, 0.9rem);
   font-weight: 500;
-  color: white;
+  color: var(--text-primary);
   overflow: hidden;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -1020,7 +1020,7 @@
   height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
-  background-color: #000000;
+  background-color: var(--calendar-bg);
   z-index: 5;
   /* 글로벌 헤더(z-index: 1000)보다 낮게 설정하여 헤더 버튼 클릭 가능하도록 */
   -webkit-overflow-scrolling: touch;
@@ -1048,7 +1048,7 @@
 .calendar-overlay-title {
   font-size: 10px;
   font-weight: 500;
-  color: white;
+  color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1076,9 +1076,9 @@
 }
 
 .calendar-year-button.selected {
-  background-color: #2563eb;
+  background-color: var(--color-blue-600);
   /* blue-600 */
-  color: white;
+  color: var(--color-white);
 }
 
 .calendar-year-button.default {
@@ -1089,9 +1089,9 @@
 }
 
 .calendar-year-button.default:hover {
-  background-color: #4b5563;
+  background-color: var(--bg-hover);
   /* gray-600 */
-  color: white;
+  color: var(--text-primary);
 }
 
 /* Event Chip Styles (Single Day) */
@@ -1106,7 +1106,7 @@
   padding-left: 0.375rem;
   /* 1.5 * 0.25rem */
   padding-right: 0.375rem;
-  color: white;
+  color: var(--color-white);
   height: 14px;
   line-height: 14px;
 }
@@ -1212,14 +1212,14 @@
   color: var(--text-muted);
   /* border-bottom: 1px solid #000; */
   flex-shrink: 0;
-  background-color: #171717;
+  background-color: var(--bg-surface-1);
   z-index: 35;
 }
 
 .calendar-weekday-item.selected {
-  color: #fff !important;
+  color: var(--color-white) !important;
   font-weight: bold;
-  background-color: #3b82f6;
+  background-color: var(--color-blue-500);
 }
 
 .calendar-event-container-normal {
@@ -1323,23 +1323,23 @@
 
 /* Color Utilities (for dynamic classes) */
 .calendar-bg-gray-700 {
-  background-color: #374151;
+  background-color: var(--bg-surface-3);
 }
 
 .calendar-bg-gray-800 {
-  background-color: #1f2937;
+  background-color: var(--bg-base);
 }
 
 .calendar-text-white {
-  color: white;
+  color: var(--text-primary);
 }
 
 .calendar-text-gray-300 {
-  color: #d1d5db;
+  color: var(--text-secondary);
 }
 
 .calendar-text-gray-400 {
-  color: #9ca3af;
+  color: var(--text-muted);
 }
 
 /* Event Colors */
@@ -1452,7 +1452,7 @@
 }
 
 .calendar-bg-blue-600 {
-  background-color: #2563eb;
+  background-color: var(--color-blue-600);
 }
 
 .calendar-bg-indigo-600 {
@@ -1488,15 +1488,15 @@
 }
 
 .calendar-hover-bg-gray-600:hover {
-  background-color: #4b5563;
+  background-color: var(--bg-hover);
 }
 
 .calendar-hover-bg-gray-700:hover {
-  background-color: #374151;
+  background-color: var(--bg-hover);
 }
 
 .calendar-hover-text-white:hover {
-  color: white;
+  color: var(--text-primary);
 }
 
 .calendar-hover-text-blue-400:hover {
@@ -1576,7 +1576,7 @@
   /* min-height: 100px; Removed to allow shrinking */
   min-height: auto;
   /* Minimum height for fullscreen cells */
-  background-color: #171717;
+  background-color: var(--bg-surface-1);
   border-right: 1px solid var(--calendar-vertical-border);
   border-bottom: 1px solid var(--calendar-week-border);
   border-top: 1px solid var(--calendar-week-border);
@@ -1665,7 +1665,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: white;
+  color: var(--color-white);
   font-size: 12px;
 }
 
@@ -1684,14 +1684,14 @@
   height: 14px;
   padding: 0 3px;
   border-radius: 10px;
-  background-color: #a9a9a9;
-  color: #000;
+  background-color: var(--bg-surface-3);
+  color: var(--text-inverse);
   font-size: 9px;
   font-weight: 700;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 2px 4px var(--bg-overlay);
   z-index: 10;
   white-space: nowrap;
 }
@@ -1745,8 +1745,8 @@
 }
 
 .calendar-event-count-hovered {
-  background-color: #3b82f6;
-  color: white;
+  background-color: var(--color-blue-500);
+  color: var(--color-white);
   transform: scale(1.1);
 }
 
@@ -2002,15 +2002,15 @@
 
 /* Hover States */
 .calendar-hover-bg-gray-700:hover {
-  background-color: #374151;
+  background-color: var(--bg-hover);
 }
 
 .calendar-hover-bg-gray-600:hover {
-  background-color: #4b5563;
+  background-color: var(--bg-hover);
 }
 
 .calendar-hover-text-white:hover {
-  color: white;
+  color: var(--text-primary);
 }
 
 .calendar-hover-text-blue-400:hover {
