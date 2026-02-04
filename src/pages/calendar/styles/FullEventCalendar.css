@@ -820,7 +820,7 @@
   overflow: hidden;
   padding-bottom: 6px;
   /* Bottom padding for last row */
-  background-color: var(--calendar-bg);
+  background-color: var(--bg-base);
   /* Gap color */
 }
 
@@ -828,6 +828,7 @@
 .calendar-cell-fullscreen {
   background-color: var(--calendar-cell-bg);
   border-bottom: 1px solid var(--calendar-cell-border);
+
   border-right: 1px solid var(--calendar-cell-border);
   min-height: var(--cell-min-height, auto);
   height: auto;
@@ -846,13 +847,14 @@
 .calendar-cell-fullscreen:nth-child(7n+1) {
   border-top-left-radius: 8px;
   border-bottom-left-radius: 8px;
-  border-left: 1px solid var(--calendar-cell-border);
+
+  border-left: 1px solid var(--calendar-vertical-border);
 }
 
 .calendar-cell-fullscreen:nth-child(7n) {
   border-top-right-radius: 8px;
   border-bottom-right-radius: 8px;
-  border-right: 1px solid var(--calendar-cell-border);
+  /* border-right: 1px solid var(--calendar-cell-border); */
 }
 
 /* Remove default background from base if strictly enforcing card look */
@@ -1576,7 +1578,7 @@
   /* min-height: 100px; Removed to allow shrinking */
   min-height: auto;
   /* Minimum height for fullscreen cells */
-  background-color: var(--bg-surface-1);
+  background-color: var(--calendar-cell-bg);
   border-right: 1px solid var(--calendar-vertical-border);
   border-bottom: 1px solid var(--calendar-week-border);
   border-top: 1px solid var(--calendar-week-border);

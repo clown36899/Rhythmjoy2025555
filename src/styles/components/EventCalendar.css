@@ -135,7 +135,7 @@
 
     /* Remove default background from base if strictly enforcing card look */
     .ECAL-cell-base {
-        background-color: transparent;
+        background-color: var(--calendar-cell-bg);
     }
 
 
@@ -178,7 +178,7 @@
         position: relative;
         user-select: none;
         transition: background-color 0.3s, color 0.3s, border-color 0.3s;
-        background-color: var(--calendar-bg-color, #000000);
+        background-color: var(--calendar-cell-bg);
         /* Ensure cells have a background so gaps show as borders */
     }
 
@@ -471,7 +471,7 @@
         background: transparent;
         border: 0;
         cursor: pointer;
-        color: #9ca3af;
+        color: var(--text-tertiary);
         /* text-gray-400 */
         display: flex;
         align-items: center;

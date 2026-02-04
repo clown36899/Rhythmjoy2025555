@@ -72,21 +72,21 @@
     }
 
     .ELS-countBadge {
-        background: var(--bg-surface-2);
-        color: var(--text-tertiary);
+        background: var(--bg-surface-3);
+        color: var(--text-secondary);
         padding: 2px 8px;
         border-radius: 12px;
         font-size: 11px;
-        font-weight: 500;
+        font-weight: 600;
     }
 
     .ELS-viewAllBtn {
         margin-left: min(0.8vw, 6px);
         padding: min(0.8vw, 6px) min(1.8vw, 10px);
         color: var(--text-secondary);
-        background: var(--bg-surface-2);
+        background: var(--bg-surface-1);
         border-radius: 1rem;
-        border: 1px solid var(--border-subtle);
+        border: 1px solid var(--border-secondary);
         cursor: pointer;
         display: flex;
         align-items: center;

@@ -88,7 +88,7 @@
     }
 
     .NSM-closeBtn:hover {
-        background: rgba(255, 255, 255, 0.15);
+        background: var(--bg-hover);
         transform: rotate(90deg);
     }
 
@@ -254,8 +254,8 @@
     }
 
     .NSM-chip:hover {
-        background: rgba(255, 255, 255, 0.08);
-        color: white;
+        background: var(--bg-hover);
+        color: var(--nsm-text);
     }
 
     .NSM-chip.is-active {
@@ -269,7 +269,7 @@
     .NSM-footer {
         padding: 28px;
         border-top: 1px solid var(--nsm-border);
-        background: rgba(255, 255, 255, 0.01);
+        background: var(--bg-surface-glass);
     }
 
     .NSM-saveBtn {

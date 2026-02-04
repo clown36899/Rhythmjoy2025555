@@ -248,7 +248,8 @@
 
     /* Calendar Specifics (Dark) */
     --calendar-bg: #000000;
-    --calendar-cell-bg: #0a0a0a;
+    --calendar-cell-bg: #1f2937;
+    /* Surface-1 to distinguish cells from bg */
     --calendar-vertical-border: #3d3d3d81;
     --calendar-week-border: #303030ac;
     --calendar-weekday-border: #4b5563;
@@ -271,6 +272,7 @@
     --gradient-premium: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
     --gradient-card: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 100%);
     --gradient-accent: linear-gradient(135deg, var(--color-blue-600) 0%, var(--color-blue-400) 100%);
+    --gradient-banner-overlay: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.6) 40%, rgba(0, 0, 0, 0.3) 70%, transparent 100%);
 
     /* Effects */
     --shadow-premium: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
@@ -296,13 +298,13 @@
   /* ===== 3. LIGHT THEME OVERRIDE ===== */
   [data-theme="light"] {
     /* Backgrounds */
-    --bg-base: #f9fafb;
-    /* gray-50 - subtle depth */
+    --bg-base: #e2e8f0;
+    /* Slate-200: Industry Standard for Card UI Background (Toss, FB style) */
     --bg-surface-1: #ffffff;
     --bg-surface-2: #f1f5f9;
-    /* slate-100 */
-    --bg-surface-3: #e2e8f0;
-    /* slate-200 */
+    /* Slate-100 */
+    --bg-surface-3: #cbd5e1;
+    /* Slate-300 */
     --bg-input: #ffffff;
     --bg-overlay: rgba(0, 0, 0, 0.65);
     --bg-card: #ffffff;
@@ -345,13 +347,17 @@
     --header-bg-dark: #f8fafc;
 
     /* Calendar Specifics (Light) */
-    --calendar-bg: #fcfdfe;
-    --calendar-cell-bg: #ffffff;
+    --calendar-bg: #ffffff;
+    /* White  */
+    --calendar-cell-bg: #c9cfd8;
+    /* User Requested: Mid-gray blue */
     /* Soft off-white for better grid clarity */
-    --calendar-vertical-border: #f1f5f9;
-    --calendar-week-border: #f1f5f9;
-    --calendar-weekday-border: #e2e8f0;
-    --calendar-cell-border: #f1f5f9;
+    --calendar-vertical-border: #94a3b8;
+    /* Slate-400 */
+    --calendar-week-border: #94a3b8;
+    --calendar-weekday-border: #64748b;
+    /* Slate-500 */
+    --calendar-cell-border: #cbd5e1;
 
     /* Effects - 고도화된 그림자 시스템 */
     --shadow-premium:
@@ -376,9 +382,10 @@
     --gradient-card: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
     --gradient-accent: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
     --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.4) 100%);
+    --gradient-banner-overlay: linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.4) 40%, rgba(0, 0, 0, 0.1) 70%, transparent 100%);
 
     /* Legacy Map Update */
-    --page-bg-color: #f9fafb;
+    --page-bg-color: #e2e8f0;
   }
 
   /* ===== 4. GLOBAL RESET (Now Inside Layer) ===== */

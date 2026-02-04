@@ -37,8 +37,22 @@
         width: 100%;
         overflow: hidden;
         aspect-ratio: 13 / 16;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        border-radius: var(--radius-xl);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        border-radius: var(--radius-2xl);
+        border: 1px solid var(--border-glass-subtle);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        transform: translateZ(0);
+        /* Hardware accel */
+        background-color: var(--bg-surface-2);
+    }
+
+    /* Hover Effect for Desktop */
+    @media (hover: hover) {
+        .ECARD-container:hover .ECARD-imageWrapper {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-xl);
+            border-color: var(--border-glass);
+        }
     }
 
     .ECARD-imageWrapper.is-highlighted,
@@ -119,13 +133,13 @@
     }
 
     .ECARD-badge.is-event {
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(37, 99, 235, 0.9));
-        color: var(--text-primary);
+        background: rgba(59, 130, 246, 0.9);
+        color: white;
     }
 
     .ECARD-badge.is-class {
-        background: linear-gradient(135deg, rgba(147, 51, 234, 0.9), rgba(126, 34, 206, 0.9));
-        color: var(--text-primary);
+        background: rgba(147, 51, 234, 0.9);
+        color: white;
     }
 
     .ECARD-badge.is-past {
@@ -142,41 +156,23 @@
         font-size: 11px;
         font-weight: 700;
         letter-spacing: 0.3px;
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.95), rgba(37, 99, 235, 0.95));
-        color: var(--text-inverse);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        transition: all 0.3s ease;
+        background: rgba(15, 23, 42, 0.85);
+        /* Slate-900 with opacity */
+        color: white;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        z-index: 5;
     }
 
     .ECARD-ddayBadge.is-today {
-        background: linear-gradient(135deg, rgba(239, 68, 68, 0.95), rgba(220, 38, 38, 0.95));
-        animation: ecard-ddayPulse 2s ease-in-out infinite;
+        background: rgba(220, 38, 38, 0.9);
+        /* Red-600 */
     }
 
     .ECARD-ddayBadge.is-new {
-        background: linear-gradient(135deg, #16a34a, #15803d);
-        /* Brighter accent border/shadow */
-        box-shadow: 0 0 12px rgba(34, 197, 94, 0.7);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        animation: ecard-ddayPulse 2s ease-in-out infinite;
-        font-weight: 800;
-        letter-spacing: 0.5px;
-    }
-
-    @keyframes ecard-ddayPulse {
-
-        0%,
-        100% {
-            transform: scale(1);
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-        }
-
-        50% {
-            transform: scale(1.05);
-            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.5);
-        }
+        background: rgba(22, 163, 74, 0.9);
+        /* Green-600 */
     }
 
     /* Favorite Button */
@@ -193,7 +189,8 @@
         justify-content: center;
         cursor: pointer;
         border-radius: var(--radius-full);
-        color: var(--text-primary);
+        color: white;
+        /* Force white for visibility */
         transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         -webkit-tap-highlight-color: transparent;
     }
@@ -235,97 +232,133 @@
 
     /* Text Container */
     .ECARD-textContainer {
-        padding: 0.4rem 0;
+        padding: 0.5rem 0 0.2rem 0;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        justify-content: flex-start;
     }
 
-    /* Genre */
+    /* Genre - Chip Style Upgrade */
     .ECARD-genre {
-        font-size: 0.75rem;
-        font-weight: 900;
+        font-size: 0.7rem;
+        font-weight: 700;
         margin: 0;
-        letter-spacing: 0.05em;
+        letter-spacing: 0;
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 4px;
+        line-height: 1.2;
+        align-self: flex-start;
+        /* Ensure chips don't stretch */
     }
 
     /* Genre Colors (Scoped map) - Prefix: ECARD-genre- */
+    /* Using rgba for background opacity (approx 10-15%) & Darker text for contrast */
+
     .ECARD-genre-red {
-        color: var(--color-red-400);
+        background-color: rgba(239, 68, 68, 0.1);
+        color: var(--color-red-600);
     }
 
     .ECARD-genre-orange {
-        color: var(--color-orange-400);
+        background-color: rgba(249, 115, 22, 0.1);
+        color: var(--color-orange-600);
     }
 
     .ECARD-genre-amber {
-        color: var(--color-amber-400);
+        background-color: rgba(245, 158, 11, 0.1);
+        color: var(--color-amber-600);
+        /* Darker than 400 */
     }
 
     .ECARD-genre-yellow {
-        color: var(--color-yellow-400);
+        background-color: rgba(234, 179, 8, 0.15);
+        /* Yellow needs more opacity */
+        color: #ca8a04;
+        /* yellow-600 hex override for visibility */
     }
 
     .ECARD-genre-lime {
-        color: var(--color-lime-400);
+        background-color: rgba(132, 204, 22, 0.15);
+        color: var(--color-lime-600);
     }
 
     .ECARD-genre-green {
-        color: var(--color-green-400);
+        background-color: rgba(34, 197, 94, 0.1);
+        color: var(--color-green-600);
     }
 
     .ECARD-genre-emerald {
-        color: var(--color-emerald-400);
+        background-color: rgba(16, 185, 129, 0.1);
+        color: var(--color-emerald-600);
     }
 
     .ECARD-genre-teal {
-        color: var(--color-teal-400);
+        background-color: rgba(20, 184, 166, 0.1);
+        color: var(--color-teal-600);
     }
 
     .ECARD-genre-cyan {
-        color: var(--color-cyan-400);
+        background-color: rgba(6, 182, 212, 0.1);
+        color: var(--color-cyan-600);
     }
 
     .ECARD-genre-sky {
-        color: var(--color-sky-400);
+        background-color: rgba(14, 165, 233, 0.1);
+        color: var(--color-sky-600);
     }
 
     .ECARD-genre-blue {
-        color: var(--color-blue-400);
+        background-color: rgba(59, 130, 246, 0.1);
+        color: var(--color-blue-600);
     }
 
     .ECARD-genre-indigo {
-        color: var(--color-indigo-400);
+        background-color: rgba(99, 102, 241, 0.1);
+        color: var(--color-indigo-600);
     }
 
     .ECARD-genre-violet {
-        color: var(--color-violet-400);
+        background-color: rgba(139, 92, 246, 0.1);
+        color: var(--color-violet-600);
     }
 
     .ECARD-genre-purple {
-        color: var(--color-purple-400);
+        background-color: rgba(168, 85, 247, 0.1);
+        color: var(--color-purple-600);
     }
 
     .ECARD-genre-fuchsia {
-        color: var(--color-fuchsia-400);
+        background-color: rgba(217, 70, 239, 0.1);
+        color: var(--color-fuchsia-600);
     }
 
     .ECARD-genre-pink {
-        color: var(--color-pink-400);
+        background-color: rgba(236, 72, 153, 0.1);
+        color: var(--color-pink-600);
     }
 
     .ECARD-genre-rose {
-        color: var(--color-rose-400);
+        background-color: rgba(244, 63, 94, 0.1);
+        color: var(--color-rose-600);
     }
 
     .ECARD-genre-gray {
-        color: var(--color-gray-400);
+        background-color: rgba(107, 114, 128, 0.1);
+        color: var(--color-gray-600);
     }
 
     /* Title */
     .ECARD-title {
-        font-size: clamp(0.41rem, 3vw, 1rem);
-        font-weight: 500;
-        line-height: 1.3;
-        color: var(--text-secondary);
-        margin: 0 0 0.3rem 0;
+        font-size: clamp(0.9rem, 3vw, 1.05rem);
+        font-weight: 600;
+        /* Clean look from 700 */
+        line-height: 1.35;
+        letter-spacing: -0.015em;
+        color: var(--text-primary);
+        margin: 0;
+        /* Handled by container gap */
         display: -webkit-box;
         -webkit-line-clamp: 2;
         line-clamp: 2;
@@ -367,10 +400,10 @@
         font-size: 0.7125rem;
         color: var(--text-secondary);
         font-weight: 500;
-        border-radius: var(--radius-3xl);
-        padding: 2px 8px 2px 0;
-        background-color: var(--bg-surface-2);
-        border: 1px solid var(--border-light);
+        border-radius: var(--radius-xl);
+        padding: 2px 8px;
+        background-color: var(--bg-surface-3);
+        border: 1px solid var(--border-glass);
     }
 
     /* QR/Highlight Animation */
