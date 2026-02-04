@@ -174,10 +174,17 @@
     --container-width-xl: 1280px;
     --header-max-width: 1200px;
     --header-height: 51px;
+
+    /* Blurs */
+    --blur-sm: 4px;
+    --blur-md: 8px;
+    --blur-lg: 12px;
+    --blur-xl: 20px;
   }
 
   /* ===== 2. SEMANTIC THEME (Default: Dark Mode) ===== */
-  :root {
+  :root,
+  [data-theme="dark"] {
     /* Backgrounds */
     --bg-base: #000000;
     --bg-surface-1: #1f2937;
@@ -231,9 +238,23 @@
     --color-danger: var(--color-red-500);
     --color-info: var(--color-blue-500);
 
+    /* Glassmorphism & Translucency */
+    --bg-glass: rgba(0, 0, 0, 0.4);
+    --bg-glass-heavy: rgba(15, 23, 42, 0.8);
+    --bg-surface-translucent: rgba(31, 41, 55, 0.5);
+    --bg-surface-glass: rgba(255, 255, 255, 0.03);
+    --bg-card-highlight: rgba(255, 255, 255, 0.05);
+
+    /* Gradients */
+    --gradient-premium: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    --gradient-card: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 100%);
+    --gradient-accent: linear-gradient(135deg, var(--color-blue-600) 0%, var(--color-blue-400) 100%);
+
     /* Effects */
     --shadow-premium: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    --shadow-elevated: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
     --shadow-glow-blue: 0 8px 20px rgba(37, 99, 235, 0.3);
+    --shadow-inset: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
 
     /* Compatibility Aliases (Legacy Support) */
     --bg-color: var(--bg-base);
@@ -253,82 +274,102 @@
   /* ===== 3. LIGHT THEME OVERRIDE ===== */
   [data-theme="light"] {
     /* Backgrounds */
-    --bg-base: #ffffff;
+    --bg-base: #f9fafb;
+    /* gray-50 - subtle depth */
     --bg-surface-1: #ffffff;
-    /* Cards are white in light mode usually */
-    --bg-surface-2: #f3f4f6;
-    /* gray-100 */
-    --bg-surface-3: #e5e7eb;
-    /* gray-200 */
-    --bg-input: #f9fafb;
-    /* gray-50 */
-    --bg-overlay: rgba(0, 0, 0, 0.5);
+    --bg-surface-2: #f1f5f9;
+    /* slate-100 */
+    --bg-surface-3: #e2e8f0;
+    /* slate-200 */
+    --bg-input: #ffffff;
+    --bg-overlay: rgba(0, 0, 0, 0.65);
     --bg-card: #ffffff;
     --bg-modal: #ffffff;
 
     /* Hover Interactions */
     --bg-hover: #f3f4f6;
-    --bg-selected: #bfdbfe;
-    /* blue-200 */
+    --bg-selected: #e0f2fe;
+    /* sky-100 */
 
     /* Texts */
     --text-primary: #111827;
     /* gray-900 */
-    --text-secondary: #4b5563;
-    /* gray-600 */
+    --text-secondary: #374151;
+    /* gray-700 */
     --text-tertiary: #6b7280;
     /* gray-500 */
     --text-muted: #9ca3af;
     /* gray-400 */
     --text-disabled: #d1d5db;
+    /* gray-300 */
     --text-inverse: #ffffff;
 
     /* Borders */
-    --border-primary: #e5e7eb;
-    /* gray-200 */
-    --border-secondary: #d1d5db;
-    /* gray-300 */
-    --border-light: #f3f4f6;
-    --border-glass: rgba(0, 0, 0, 0.1);
-    --border-glass-strong: rgba(0, 0, 0, 0.15);
-    --border-glass-subtle: rgba(0, 0, 0, 0.05);
+    --border-primary: #e2e8f0;
+    /* slate-200 */
+    --border-secondary: #cbd5e1;
+    /* slate-300 */
+    --border-light: #f1f5f9;
+    /* slate-100 */
+    --border-glass: rgba(0, 0, 0, 0.05);
+    --border-glass-strong: rgba(0, 0, 0, 0.1);
+    --border-glass-subtle: rgba(0, 0, 0, 0.02);
 
     /* Header */
-    --header-bg-color: #ffffff;
-    --header-border-color: #e5e7eb;
-    --header-bg-dark: #f9fafb;
+    --header-bg-color: rgba(255, 255, 255, 0.8);
+    --header-border-color: #f1f5f9;
+    --header-bg-dark: #f8fafc;
 
     /* Calendar Specifics (Light) */
-    --calendar-vertical-border: #e5e7eb;
-    --calendar-week-border: #e5e7eb;
-    --calendar-weekday-border: #d1d5db;
+    --calendar-vertical-border: #f8fafc;
+    --calendar-week-border: #f8fafc;
+    --calendar-weekday-border: #f1f5f9;
 
-    /* Effects */
-    --shadow-premium: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
-    --shadow-glow-blue: 0 8px 20px rgba(37, 99, 235, 0.15);
+    /* Effects - 고도화된 그림자 시스템 */
+    --shadow-premium:
+      0 10px 15px -3px rgba(0, 0, 0, 0.04),
+      0 4px 6px -4px rgba(0, 0, 0, 0.02),
+      0 0 0 1px rgba(0, 0, 0, 0.01);
+    --shadow-elevated:
+      0 20px 25px -5px rgba(0, 0, 0, 0.05),
+      0 8px 10px -6px rgba(0, 0, 0, 0.03);
+    --shadow-glow-blue: 0 0 20px rgba(59, 130, 246, 0.15);
+    --shadow-inset: inset 0 2px 4px 0 rgba(0, 0, 0, 0.01);
+
+    /* Glassmorphism & Translucency (Light) - 더 맑은 느낌 */
+    --bg-glass: rgba(255, 255, 255, 0.7);
+    --bg-glass-heavy: rgba(255, 255, 255, 0.9);
+    --bg-surface-translucent: rgba(255, 255, 255, 0.6);
+    --bg-surface-glass: rgba(0, 0, 0, 0.015);
+    --bg-card-highlight: rgba(0, 0, 0, 0.03);
+
+    /* Gradients (Light) - 부드럽고 고급스러운 톤 */
+    --gradient-premium: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+    --gradient-card: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    --gradient-accent: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
+    --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.4) 100%);
 
     /* Legacy Map Update */
     --page-bg-color: #f9fafb;
-    /* gray-50 */
   }
 
-  /* ===== 4. GLOBAL RESET ===== */
+  /* ===== 4. GLOBAL RESET (Now Inside Layer) ===== */
   * {
     box-sizing: border-box;
   }
 
-  body,
-  html {
-    margin: 0;
-    padding: 0;
-    min-height: 100svh;
-    font-family: var(--font-sans);
+  html,
+  body {
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+    max-width: 650px;
+    margin: 0 auto;
+    overflow-x: hidden !important;
+    width: 100% !important;
+    touch-action: pan-y;
+    font-family: var(--font-primary);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background-color: var(--bg-base);
-    /* Apply Semantic Variable */
-    color: var(--text-primary);
-    /* Apply Semantic Variable */
   }
 
   /* ... Translation & Utils unchanged ... */
@@ -384,3 +425,5 @@
     top: 0 !important;
   }
 }
+
+/* Final closing brace for @layer base */

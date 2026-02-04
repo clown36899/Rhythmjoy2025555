@@ -14,7 +14,7 @@
         left: 0;
         width: 100vw;
         height: 100vh;
-        background-color: rgba(0, 0, 0, 0.5);
+        background-color: var(--bg-overlay);
         z-index: var(--z-header);
         backdrop-filter: blur(4px);
         opacity: 0;
@@ -34,13 +34,13 @@
         width: var(--sd-width);
         max-width: var(--sd-max-width);
         height: 100dvh;
-        background-color: var(--bg-color, #1f2937);
-        box-shadow: 4px 0 16px rgba(0, 0, 0, 0.3);
+        background-color: var(--bg-modal);
+        box-shadow: var(--shadow-premium);
         display: flex;
         flex-direction: column;
         transform: translateX(-100%);
         transition: var(--sd-transition);
-        border-right: 1px solid rgba(255, 255, 255, 0.1);
+        border-right: 1px solid var(--border-glass);
         padding-top: env(safe-area-inset-top);
         padding-bottom: env(safe-area-inset-bottom);
         z-index: calc(var(--z-header) + 1);
@@ -55,8 +55,8 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-        background-color: rgba(0, 0, 0, 0.1);
+        border-bottom: 1px solid var(--border-glass);
+        background-color: var(--bg-surface-2);
     }
 
     .SD-userProfile {
@@ -86,8 +86,8 @@
     }
 
     .SD-avatar.is-placeholder {
-        background-color: rgba(255, 255, 255, 0.1);
-        color: rgba(255, 255, 255, 0.6);
+        background-color: var(--bg-surface-2);
+        color: var(--text-tertiary);
     }
 
     .SD-userInfo {
@@ -96,13 +96,13 @@
     }
 
     .SD-username {
-        color: var(--text-primary, #ffffff);
+        color: var(--text-primary);
         font-weight: 600;
         font-size: 16px;
     }
 
     .SD-email {
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--text-tertiary);
         font-size: 12px;
     }
 
@@ -117,7 +117,7 @@
     .SD-closeBtn {
         background: none;
         border: none;
-        color: var(--text-primary, #ffffff);
+        color: var(--text-primary);
         font-size: 24px;
         cursor: pointer;
         padding: 4px;
@@ -135,7 +135,7 @@
         padding: 8px 24px;
         font-size: 11px;
         font-weight: 700;
-        color: rgba(255, 255, 255, 0.4);
+        color: var(--text-muted);
         letter-spacing: 0.05em;
         margin-top: 8px;
         margin-bottom: 4px;
@@ -144,7 +144,7 @@
 
     .SD-divider {
         height: 1px;
-        background-color: rgba(255, 255, 255, 0.1);
+        background-color: var(--border-glass);
         margin: 12px 24px;
     }
 
@@ -153,7 +153,7 @@
         display: flex;
         align-items: center;
         gap: 16px;
-        color: var(--text-primary, #ffffff);
+        color: var(--text-primary);
         cursor: pointer;
         transition: background-color 0.2s;
     }
@@ -164,7 +164,7 @@
 
     .SD-menuItem i {
         font-size: 20px;
-        color: rgba(255, 255, 255, 0.6);
+        color: var(--text-tertiary);
         width: 24px;
         text-align: center;
     }
@@ -183,7 +183,7 @@
     }
 
     .SD-submenu {
-        background-color: rgba(0, 0, 0, 0.2);
+        background-color: var(--bg-surface-2);
         animation: sd-slideDown 0.3s ease-out;
         overflow: hidden;
     }
@@ -205,7 +205,7 @@
         display: flex;
         align-items: center;
         gap: 12px;
-        color: rgba(255, 255, 255, 0.85);
+        color: var(--text-secondary);
         cursor: pointer;
         transition: background-color 0.2s;
         font-size: 14px;
@@ -244,18 +244,18 @@
 
     .SD-pwaSection {
         padding: 20px;
-        background: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0) 100%);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        background: var(--bg-surface-2);
+        border-bottom: 1px solid var(--border-glass);
     }
 
     .SD-pwaContainer {
         display: flex;
         flex-direction: column;
         gap: 16px;
-        background: rgba(0, 0, 0, 0.2);
+        background: var(--bg-surface-3);
         padding: 16px;
         border-radius: 16px;
-        border: 1px solid rgba(255, 255, 255, 0.05);
+        border: 1px solid var(--border-glass);
     }
 
     .SD-footer {
@@ -266,8 +266,8 @@
     .SD-logoutBtn {
         width: 100%;
         padding: 12px;
-        background-color: rgba(255, 255, 255, 0.05);
-        border: none;
+        background-color: var(--bg-surface-2);
+        border: 1px solid var(--border-primary);
         border-radius: 8px;
         color: #ef4444;
         font-weight: 500;
@@ -655,7 +655,7 @@
     }
 
     .LM-container {
-        background-color: #2d3139;
+        background-color: var(--bg-modal);
         border-radius: 16px;
         width: 90%;
         max-width: 360px;
@@ -691,9 +691,9 @@
 
     .LM-message {
         margin-bottom: 24px;
-        color: rgba(255, 255, 255, 0.95);
+        color: var(--text-primary);
         padding: 12px;
-        font: 600 1.25rem / 1.75rem "Pretendard Variable", sans-serif;
+        font: 600 1.25rem / 1.75rem "Pretendard", sans-serif;
         text-align: center;
         white-space: pre-wrap;
     }

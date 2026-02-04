@@ -4,14 +4,16 @@
 
     /* Variables specific to this scope */
     :scope {
-        --nsm-bg: rgba(18, 18, 18, 0.8);
-        --nsm-container-bg: rgba(30, 30, 30, 0.7);
-        --nsm-border: rgba(255, 255, 255, 0.1);
-        --nsm-primary: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-        --nsm-accent: #60a5fa;
-        --nsm-text: #f8fafc;
-        --nsm-text-muted: #94a3b8;
-        --nsm-glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+        --nsm-overlay-bg: var(--bg-overlay);
+        --nsm-container-bg: var(--bg-modal);
+        --nsm-border: var(--border-glass-strong);
+        --nsm-primary: var(--gradient-accent);
+        --nsm-accent: var(--color-blue-500);
+        --nsm-text: var(--text-primary);
+        --nsm-text-muted: var(--text-tertiary);
+        --nsm-glass-shadow: var(--shadow-premium);
+        --nsm-item-bg: var(--bg-surface-2);
+        --nsm-hover-bg: var(--bg-hover);
     }
 
     .NSM-overlay,
@@ -21,7 +23,7 @@
         left: 0 !important;
         right: 0 !important;
         bottom: 0 !important;
-        background: var(--nsm-bg) !important;
+        background: var(--nsm-overlay-bg) !important;
         backdrop-filter: blur(12px) !important;
         -webkit-backdrop-filter: blur(12px) !important;
         display: flex !important;
@@ -51,7 +53,7 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        background: rgba(255, 255, 255, 0.02);
+        background: var(--bg-surface-translucent);
         border-bottom: 1px solid var(--nsm-border);
     }
 
@@ -59,7 +61,7 @@
         margin: 0;
         font-size: 1.3rem;
         font-weight: 800;
-        color: white;
+        color: var(--nsm-text);
         display: flex;
         align-items: center;
         gap: 12px;
@@ -72,9 +74,9 @@
     }
 
     .NSM-closeBtn {
-        background: rgba(255, 255, 255, 0.08);
+        background: var(--bg-surface-3);
         border: none;
-        color: white;
+        color: var(--nsm-text);
         width: 36px;
         height: 36px;
         border-radius: 50%;
@@ -160,7 +162,7 @@
         display: block;
         font-size: 1.15rem;
         font-weight: 700;
-        color: white;
+        color: var(--nsm-text);
         margin-bottom: 4px;
     }
 
@@ -173,12 +175,12 @@
     .NSM-switch {
         width: 56px;
         height: 30px;
-        background: #2d2d2d;
+        background: var(--bg-surface-3);
         border-radius: 99px;
         position: relative;
         cursor: pointer;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        border: 1px solid var(--border-light);
     }
 
     .NSM-switch.is-active {
@@ -209,7 +211,7 @@
     }
 
     .NSM-card {
-        background: rgba(255, 255, 255, 0.035);
+        background: var(--nsm-item-bg);
         border: 1px solid var(--nsm-border);
         border-radius: 20px;
         padding: 20px;
@@ -227,7 +229,7 @@
     .NSM-cardTitle {
         font-size: 1rem;
         font-weight: 600;
-        color: white;
+        color: var(--nsm-text);
     }
 
     .NSM-tagGrid {
@@ -240,8 +242,8 @@
     }
 
     .NSM-chip {
-        background: rgba(255, 255, 255, 0.05);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        background: var(--bg-surface-3);
+        border: 1px solid var(--border-light);
         color: var(--nsm-text-muted);
         padding: 8px 16px;
         border-radius: 12px;
@@ -275,7 +277,7 @@
         padding: 18px;
         border-radius: 18px;
         border: none;
-        background: #334155;
+        background: var(--bg-surface-3);
         color: var(--nsm-text-muted);
         font-size: 1.05rem;
         font-weight: 800;

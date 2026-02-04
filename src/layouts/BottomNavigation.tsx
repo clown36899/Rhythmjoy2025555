@@ -55,24 +55,11 @@ export function BottomNavigation({ pageAction, onPageActionClick }: BottomNaviga
         if (path === '/' && currentPath === '/') {
             // 이벤트 달력 페이지에서 다시 누르면 새로고침 효과
             const overlay = document.createElement('div');
-            overlay.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.8);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 9999;
-        max-width: 650px;
-        margin: 0 auto;
-      `;
+            overlay.className = 'refresh-overlay';
             overlay.innerHTML = `
-        <div style="text-align: center;">
-          <i class="ri-loader-4-line" style="font-size: 48px; color: #3b82f6; animation: spin 1s linear infinite;"></i>
-          <div style="color: white; margin-top: 16px; font-size: 14px;">새로고침 중...</div>
+        <div class="refresh-content">
+          <i class="ri-loader-4-line refresh-loader"></i>
+          <div class="refresh-text">새로고침 중...</div>
         </div>
       `;
             document.body.appendChild(overlay);
@@ -157,25 +144,9 @@ export function BottomNavigation({ pageAction, onPageActionClick }: BottomNaviga
                             data-analytics-id="fab_action_center"
                             data-analytics-type="action"
                             data-analytics-title={pageAction.label || "Action"}
-                            style={{
-                                backgroundColor: '#3b82f6', // Blue
-                                borderRadius: '50%',
-                                width: '45px',
-                                height: '45px',
-                                minWidth: '45px', // Prevent shrink
-                                minHeight: '45px', // Prevent shrink
-                                flexShrink: 0,    // Prevent flex shrink
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                marginTop: '-22.5px', // Pop out a bit (half of 45px)
-                                boxShadow: '0 4px 12px rgba(59, 130, 246, 0.4)',
-                                border: '2px solid #111'
-                            }}
                         >
                             <i
                                 className={`${pageAction.icon} bottom-nav-icon fab-icon-only`}
-                                style={{ color: 'white', fontSize: '24px', margin: 0 }}
                             ></i>
                         </button>
                     );

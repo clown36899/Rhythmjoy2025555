@@ -30,8 +30,8 @@
     padding: 0 16px;
     height: 50px;
     background: rgba(9, 9, 11, 0);
-    /* backdrop-filter: blur(12px); */
     -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
     /* border-bottom: 1px solid rgba(255, 255, 255, 0.05); */
     z-index: 48;
     /* Just below main header (49) */
@@ -103,6 +103,12 @@
     color: #fafafa;
     transform: translateY(-1px);
 }
+
+.mode-tab.back-tab {
+    margin-right: auto;
+    padding-left: 0;
+}
+
 
 /* Page specific rules handled above */
 

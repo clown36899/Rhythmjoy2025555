@@ -16,7 +16,7 @@
     gap: 8px;
     font-size: 16px;
     font-weight: 600;
-    color: #fff;
+    color: var(--text-primary);
     margin: 0;
 }
 
@@ -28,7 +28,7 @@
 
 .practice-banner-count {
     font-size: 14px;
-    color: #9ca3af;
+    color: var(--text-tertiary);
     font-weight: 400;
 }
 
@@ -86,7 +86,7 @@
     border-radius: 50%;
     overflow: hidden;
 
-    background-color: #1f2937;
+    background-color: var(--bg-surface-3);
     transition: border-color 0.2s ease;
 }
 
@@ -103,7 +103,7 @@
 /* Room Name */
 .practice-banner-name {
     font-size: 0.875rem;
-    color: #e5e7eb;
+    color: var(--text-secondary);
     text-align: center;
     margin: 0;
     max-width: 90px;

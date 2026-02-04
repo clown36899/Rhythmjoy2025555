@@ -1,6 +1,6 @@
 .history-node {
-    background: rgba(17, 24, 39, 0.95);
-    border: 2px solid #8b5cf6;
+    background: var(--bg-modal);
+    border: 2px solid var(--color-blue-500);
     border-radius: 12px;
     width: 421px;
     min-width: 200px;
@@ -21,18 +21,18 @@
 
 /* Canvas Portal Unique Style */
 .history-node.is-canvas-portal {
-    border-color: #22d3ee !important;
+    border-color: var(--color-blue-400) !important;
     /* Cyan border */
     border-width: 3px;
-    /* box-shadow: 0 0 20px rgba(34, 211, 238, 0.3); */
+    box-shadow: var(--shadow-glow-blue);
 }
 
 .canvas-portal-label {
     position: absolute;
     top: -50px;
     right: 16px;
-    background: #22d3ee;
-    color: #0f172a;
+    background: var(--color-blue-400);
+    color: var(--text-inverse);
     font-size: clamp(12px, 10cqmin, 40px);
     /* Increased 4x from 10px */
     font-weight: 900;
@@ -43,7 +43,7 @@
     letter-spacing: 2px;
     z-index: 50;
     pointer-events: none;
-    /* box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4); */
+    box-shadow: var(--shadow-md);
 }
 
 
@@ -59,7 +59,7 @@
     border-radius: 50%;
     overflow: hidden;
     margin: 1.5cqh auto;
-    border: clamp(2px, 1cqmin, 10px) solid rgba(255, 255, 255, 0.2);
+    border: clamp(2px, 1cqmin, 10px) solid var(--border-glass);
     /* box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); */
 }
 
@@ -76,7 +76,7 @@
     height: clamp(80px, 40cqh, 1200px);
     overflow: hidden;
     cursor: pointer;
-    background: #1f2937;
+    background: var(--bg-surface-2);
     flex-shrink: 0;
 }
 
@@ -113,7 +113,7 @@
 
 .history-node-play-overlay i {
     font-size: clamp(24px, 15cqmin, 200px);
-    color: white;
+    color: var(--text-primary);
     /* filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5)); */
 }
 
@@ -153,7 +153,7 @@
 }
 
 .history-node-content::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
+    background: var(--border-glass-strong);
     border-radius: 2px;
 }
 
@@ -172,10 +172,11 @@
 .node-year {
     font-size: clamp(12px, 6cqmin, 4rem);
     font-weight: 700;
-    color: #a78bfa;
-    background: rgba(167, 139, 250, 0.1);
+    color: var(--color-purple-500);
+    background: var(--bg-surface-3);
     padding: 2px 8px;
     border-radius: 4px;
+    border: 1px solid var(--border-glass);
 }
 
 .history-node-badge {
@@ -185,8 +186,9 @@
     width: clamp(20px, 8cqmin, 80px);
     height: clamp(20px, 8cqmin, 80px);
     border-radius: 50%;
-    color: white;
+    color: var(--text-inverse);
     font-size: clamp(10px, 4cqmin, 40px);
+    box-shadow: var(--shadow-sm);
 }
 
 .history-node-badge i {
@@ -238,7 +240,7 @@
     margin: 0;
     font-size: clamp(14px, 10cqmin, 12rem);
     font-weight: 600;
-    color: #fff;
+    color: var(--text-primary);
     line-height: 1.1;
     word-break: keep-all;
     overflow-wrap: break-word;
@@ -257,9 +259,9 @@
 }
 
 .history-node-link-badge {
-    background: rgba(16, 185, 129, 0.2);
-    border: 1px solid rgba(16, 185, 129, 0.4);
-    color: #10b981;
+    background: var(--bg-surface-2);
+    border: 1px solid var(--color-green-500);
+    color: var(--color-green-500);
     width: 22px;
     height: 22px;
     border-radius: 6px;
@@ -391,9 +393,9 @@
     justify-content: flex-end;
     gap: clamp(2px, 2cqmin, 24px);
     padding: clamp(6px, 2.5cqmin, 40px) clamp(16px, 4cqmin, 48px);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid var(--border-glass);
     flex-shrink: 0;
-    background: rgba(17, 24, 39, 0.98);
+    background: var(--bg-surface-2);
     /* Slightly more opaque to ensure visibility */
     position: relative;
     z-index: 10;
@@ -403,15 +405,15 @@
     width: clamp(24px, 15cqmin, 250px);
     height: clamp(24px, 15cqmin, 250px);
     border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-glass);
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: clamp(14px, 10cqmin, 150px);
     transition: all 0.2s;
-    background: rgba(255, 255, 255, 0.08);
-    color: #e5e7eb;
+    background: var(--bg-surface-glass);
+    color: var(--text-secondary);
     z-index: 5;
 }
 
@@ -452,8 +454,8 @@
 
 /* Selected State Override */
 .history-node.selected {
-    border-color: #fff;
-    /* box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.2); */
+    border-color: var(--color-blue-500);
+    box-shadow: 0 0 0 4px var(--shadow-glow-blue);
 }
 
 /* 🔥 Nuclear Tighten for Minimal Nodes (No image, No description) */
@@ -507,7 +509,7 @@
     /* Much higher than child nodes */
     pointer-events: none;
     /* Allow clicks to pass through to children behind */
-    background: rgba(17, 24, 39, 0.95);
+    background: var(--bg-surface-3);
     padding: 8px 12px;
     margin: 0 !important;
 }
@@ -547,8 +549,8 @@
     width: 24px;
     /* Default size increased */
     height: 24px;
-    background: #8b5cf6;
-    border: 3px solid #fff;
+    background: var(--color-purple-500);
+    border: 3px solid var(--bg-modal);
     border-radius: 50%;
     transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     opacity: 0;
@@ -615,7 +617,7 @@
 
 /* Connection Line Preview */
 .react-flow__connection-path {
-    stroke: #8b5cf6;
+    stroke: var(--color-purple-500);
     stroke-width: 3;
     stroke-dasharray: 5;
     animation: dashdraw 0.5s linear infinite;
@@ -665,8 +667,8 @@
 .react-flow__resize-control.handle {
     width: 24px !important;
     height: 24px !important;
-    background: #8b5cf6 !important;
-    border: 3px solid #fff !important;
+    background: var(--color-purple-500) !important;
+    border: 3px solid var(--bg-modal) !important;
     border-radius: 4px !important;
     /* box-shadow: 0 0 10px rgba(0, 0, 0, 0.5) !important; */
     transition: transform 0.2s ease !important;
@@ -748,10 +750,8 @@
     /* Start of the lift */
     transform: translateY(-100%);
     /* Full lift above the border */
-    background: rgba(17, 24, 39, 0.9) !important;
-    /* Glass effect removed for performance */
-    /* backdrop-filter: blur(10px); */
-    border: 2px solid rgba(139, 92, 246, 0.3);
+    background: var(--bg-surface-3);
+    border: 2px solid var(--border-glass-strong);
     border-bottom: none;
     border-radius: 20px 20px 0 0;
     padding-bottom: 20px !important;
@@ -768,8 +768,7 @@
     line-height: 1.1;
     margin-bottom: 10px;
     width: 100%;
-    color: #ffffff !important;
-    /* 🔥 Solid White Text */
+    color: var(--text-primary) !important;
     opacity: 1 !important;
 }
 
@@ -796,7 +795,7 @@
     /* Let glass effect take over */
     z-index: 500 !important;
     /* Stay above children */
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid var(--border-glass);
     /* 🔥 Solid Border */
     display: flex;
     align-items: center;
@@ -813,10 +812,8 @@
     /* Start of the drop */
     transform: translateY(100%);
     /* Full drop below the border */
-    background: rgba(17, 24, 39, 0.8) !important;
-    /* Glass effect for floating */
-    /* backdrop-filter: blur(10px); REMOVED for performance */
-    border: 2px solid rgba(139, 92, 246, 0.3);
+    background: var(--bg-surface-3);
+    border: 2px solid var(--border-glass-strong);
     border-top: none;
     border-radius: 0 0 20px 20px;
     padding-top: 20px !important;
@@ -900,7 +897,7 @@
 }
 
 .arrow-text {
-    fill: #ffffff;
+    fill: var(--text-primary);
     font-size: clamp(12px, 4cqmin, 18px);
     font-weight: 600;
     text-anchor: middle;

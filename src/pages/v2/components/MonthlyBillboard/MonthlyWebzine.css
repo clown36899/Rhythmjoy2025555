@@ -115,10 +115,10 @@
 .mw-meta-box {
     font-size: 10px;
     color: var(--text-tertiary);
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--bg-surface-2);
     padding: 4px 8px;
     border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-glass);
     text-align: right;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -140,8 +140,8 @@
 }
 
 .mw-meta-box:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(251, 191, 36, 0.3);
+    background: var(--bg-hover);
+    border-color: var(--color-amber-400);
     transform: translateY(-1px);
 }
 
@@ -160,9 +160,9 @@
 
 /* Cards */
 .mw-card {
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--bg-surface-glass);
     border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--border-glass);
     padding: 12px;
     display: flex;
     flex-direction: column;
@@ -182,7 +182,7 @@
 }
 
 .mw-card.no-bg {
-    background: rgba(255, 255, 255, 0.01);
+    background: transparent;
     border: none;
     padding: 12px 4px 12px 14px;
 }
@@ -381,9 +381,9 @@
     font-size: 10px;
     padding: 4px 10px;
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--bg-surface-2);
     color: var(--text-tertiary);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--border-glass);
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     font-weight: 600;
@@ -439,7 +439,7 @@
 }
 
 .graph-area-fill.active {
-    opacity: 0.15;
+    opacity: 0.25;
 }
 
 .graph-y-label {
@@ -636,13 +636,13 @@
     align-items: center;
     padding: 10px 12px;
     border-radius: 10px;
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--bg-card-highlight);
     border: 1px solid transparent;
 }
 
 .rank-row.top-tier {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(251, 191, 36, 0.15);
+    background: var(--bg-selected);
+    border-color: var(--color-amber-400);
 }
 
 .rank-num {

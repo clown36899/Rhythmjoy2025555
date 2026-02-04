@@ -6,22 +6,12 @@
 @import './styles/utilities.css' layer(utilities);
 @import './styles/shared/loading.css' layer(components);
 @import './styles/shared/links.css' layer(components);
+@import './styles/components/DatePickerTheme.css' layer(components);
 
 @layer components {
 
   /* 모바일 전용: 650px 고정 - 가로 스크롤 방지 */
-  html,
-  body {
-    background-color: var(--bg-base);
-    max-width: 650px;
-    /* !important removed to allow media query override */
-    margin: 0 auto;
-    overflow-x: hidden !important;
-    width: 100% !important;
-    /* 수직 스크롤만 허용, 수평 슬라이드는 JS로 제어 */
-    touch-action: pan-y;
-  }
-
+  /* html, body styles moved to base.css */
   #root {
     max-width: 650px;
     margin: 0 auto;
@@ -57,10 +47,7 @@
     }
   }
 
-  body,
-  html {
-    background-color: var(--bg-color);
-  }
+  /* Redundant body style removed */
 
   /* ===== Global Header Styles ===== */
   .global-header {
@@ -135,8 +122,8 @@
     /* height는 grid-auto-rows로 제어됨 */
     min-height: 30px;
     padding: 1px 2px;
-    border-right: 1px solid #15151575;
-    border-bottom: 1px solid #15151575;
+    border-right: 1px solid var(--calendar-vertical-border);
+    border-bottom: 1px solid var(--calendar-week-border);
   }
 
   /* 태블릿 이상에서는 패딩만 조정 */
@@ -152,139 +139,12 @@
 
   /* 요일 헤더 셀 - 날짜와 동일한 border 스타일 */
   .calendar-day-header {
-    border-right: 1px solid #15151575;
-    border-bottom: 1px solid #15151575;
-    background-color: #252525;
+    border-right: 1px solid var(--calendar-vertical-border);
+    border-bottom: 1px solid var(--calendar-week-border);
+    background-color: var(--bg-surface-2);
   }
 
-  /* react-datepicker 모바일 터치 반응성 개선 */
-  .react-datepicker__day:active,
-  .react-datepicker__day:focus {
-    background-color: #2563eb !important;
-    color: white !important;
-    outline: none;
-  }
-
-  .react-datepicker__day--keyboard-selected:active {
-    background-color: #2563eb !important;
-  }
-
-  /* 터치 하이라이트 제거 - 우리가 직접 제어 */
-  .react-datepicker__day {
-    -webkit-tap-highlight-color: transparent;
-    transition: background-color 0.05s ease, color 0.05s ease;
-    border: none !important;
-    border-radius: 0 !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-  }
-
-  /* 선택된 날짜 - 채도 낮춤 */
-  .react-datepicker__day--selected {
-    background-color: #4169aa !important;
-    color: white !important;
-    font-weight: 600 !important;
-    border-radius: 0 !important;
-  }
-
-  /* 범위 내 날짜 - 애벌레 모양 (위아래 간격, 좌우 붙음) */
-  .react-datepicker__day--in-range {
-    background-color: #6b8bc3 !important;
-    color: white !important;
-    border-radius: 0 !important;
-    margin-top: 2px !important;
-    margin-bottom: 2px !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-  }
-
-  /* 범위 시작 - 왼쪽 라운드 */
-  .react-datepicker__day--range-start {
-    background-color: #4169aa !important;
-    color: white !important;
-    font-weight: 600 !important;
-    border-top-left-radius: 8px !important;
-    border-bottom-left-radius: 8px !important;
-    border-top-right-radius: 0 !important;
-    border-bottom-right-radius: 0 !important;
-    margin-top: 2px !important;
-    margin-bottom: 2px !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-  }
-
-  /* 범위 종료 - 오른쪽 라운드 */
-  .react-datepicker__day--range-end {
-    background-color: #4169aa !important;
-    color: white !important;
-    font-weight: 600 !important;
-    border-top-left-radius: 0 !important;
-    border-bottom-left-radius: 0 !important;
-    border-top-right-radius: 8px !important;
-    border-bottom-right-radius: 8px !important;
-    margin-top: 2px !important;
-    margin-bottom: 2px !important;
-    margin-left: 0 !important;
-    margin-right: 0 !important;
-  }
-
-  /* hover 반응 */
-  .react-datepicker__day:hover {
-    background-color: #60a5fa !important;
-    color: white !important;
-    font-weight: 600 !important;
-    border-radius: 0 !important;
-  }
-
-  /* 달력 크기 조정 (모바일) */
-  .react-datepicker {
-    font-size: 0.85rem !important;
-    border: none !important;
-  }
-
-  .react-datepicker__month-container {
-    width: 280px !important;
-  }
-
-  .react-datepicker__day-name,
-  .react-datepicker__day {
-    flex: 1 !important;
-    line-height: 2.2rem !important;
-    margin: 0.15rem 0 !important;
-    padding: 0 !important;
-  }
-
-  .react-datepicker__week {
-    display: flex !important;
-    gap: 0 !important;
-    margin-bottom: 0 !important;
-  }
-
-  .react-datepicker__current-month {
-    font-size: 0.9rem !important;
-    padding: 0.5rem !important;
-  }
-
-  .react-datepicker__header {
-    padding-top: 0 !important;
-    padding-bottom: 0.25rem !important;
-    border: none !important;
-  }
-
-  /* 2개월 표시 시 간격 조정 */
-  .react-datepicker__month-container+.react-datepicker__month-container {
-    margin-left: 0.5rem !important;
-  }
-
-  /* 요일 헤더 - 위아래 마진 제거 */
-  .react-datepicker__day-names {
-    text-align: center;
-    white-space: nowrap;
-    background-color: #2d2d2d !important;
-    margin-top: 0 !important;
-    margin-bottom: 0 !important;
-    padding: 0 0.5rem !important;
-  }
+  /* react-datepicker styles moved to DatePickerTheme.css */
 
 
 

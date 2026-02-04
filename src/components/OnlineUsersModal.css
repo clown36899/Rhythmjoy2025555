@@ -6,7 +6,8 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.8);
+    background-color: var(--bg-overlay);
+    backdrop-filter: blur(8px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -15,15 +16,16 @@
 }
 
 .online-users-modal {
-    background-color: #1a1a1a;
-    border-radius: 16px;
+    background-color: var(--bg-modal);
+    border: 1px solid var(--border-glass-strong);
+    border-radius: 20px;
     width: 100%;
-    max-width: 500px;
+    max-width: 480px;
     max-height: 80vh;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    box-shadow: var(--shadow-elevated);
 }
 
 /* Header */
@@ -31,14 +33,14 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 1.5rem;
-    border-bottom: 1px solid #2a2a2a;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border-glass);
 }
 
 .online-users-title {
     font-size: 1.25rem;
-    font-weight: 600;
-    color: #fff;
+    font-weight: 700;
+    color: var(--text-primary);
     margin: 0;
 }
 
@@ -57,8 +59,8 @@
 }
 
 .online-users-close:hover {
-    background-color: #2a2a2a;
-    color: #fff;
+    background-color: var(--bg-hover);
+    color: var(--text-primary);
 }
 
 /* Stats */
@@ -66,9 +68,9 @@
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 1rem;
-    padding: 1.5rem;
-    background-color: #0f0f0f;
-    border-bottom: 1px solid #2a2a2a;
+    padding: 1.25rem 1.5rem;
+    background-color: var(--bg-surface-2);
+    border-bottom: 1px solid var(--border-glass-subtle);
 }
 
 .online-stat {
@@ -87,8 +89,8 @@
 
 .stat-value {
     font-size: 1.5rem;
-    font-weight: 700;
-    color: #fff;
+    font-weight: 800;
+    color: var(--text-primary);
 }
 
 .stat-logged {
@@ -127,25 +129,28 @@
     align-items: center;
     gap: 1rem;
     padding: 0.75rem;
-    background-color: #242424;
+    background-color: var(--bg-surface-glass);
+    border: 1px solid var(--border-glass-subtle);
     border-radius: 12px;
-    transition: background-color 0.2s;
+    transition: all 0.2s;
 }
 
 .online-user-item:hover {
-    background-color: #2a2a2a;
+    background-color: var(--bg-hover);
+    border-color: var(--border-glass);
 }
 
 .online-user-avatar {
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background-color: #333;
+    background-color: var(--bg-surface-3);
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: hidden;
     flex-shrink: 0;
+    border: 1px solid var(--border-glass);
 }
 
 .online-user-avatar img {
@@ -168,8 +173,8 @@
 
 .online-user-name {
     font-size: 0.875rem;
-    font-weight: 600;
-    color: #fff;
+    font-weight: 700;
+    color: var(--text-primary);
 }
 
 .online-user-time {

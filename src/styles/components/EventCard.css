@@ -66,13 +66,13 @@
     }
 
     .ECARD-overlayText-semi {
-        color: rgba(255, 255, 255, 0.5);
+        color: var(--text-tertiary);
         font-size: 2.25rem;
         font-weight: 700;
     }
 
     .ECARD-overlayText-faint {
-        color: rgba(255, 255, 255, 0.1);
+        color: var(--border-glass);
         font-size: 2.25rem;
         font-weight: 700;
         position: relative;
@@ -143,10 +143,10 @@
         font-weight: 700;
         letter-spacing: 0.3px;
         background: linear-gradient(135deg, rgba(59, 130, 246, 0.95), rgba(37, 99, 235, 0.95));
-        color: var(--text-primary);
+        color: var(--text-inverse);
         backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
         transition: all 0.3s ease;
     }
 
@@ -184,7 +184,7 @@
         position: absolute;
         top: 1px;
         right: 1px;
-        background: rgba(0, 0, 0, 0.44);
+        background: var(--bg-overlay);
         border: none;
         width: 27px;
         height: 27px;
@@ -207,7 +207,7 @@
     }
 
     .ECARD-favoriteBtn.is-active {
-        color: var(--text-primary);
+        color: var(--color-red-500);
     }
 
     .ECARD-favoriteIcon {
@@ -366,10 +366,11 @@
     .ECARD-date {
         font-size: 0.7125rem;
         color: var(--text-secondary);
-        font-weight: 400;
+        font-weight: 500;
         border-radius: var(--radius-3xl);
-        padding: 2px 6px;
-        background-color: rgba(43, 43, 43, 0.62);
+        padding: 2px 8px;
+        background-color: var(--bg-surface-2);
+        border: 1px solid var(--border-light);
     }
 
     /* QR/Highlight Animation */

@@ -20,7 +20,6 @@ const ArchiveLayout = () => {
                         <button
                             className="mode-tab back-tab"
                             onClick={() => navigate('/board')}
-                            style={{ marginRight: 'auto', paddingLeft: '0' }}
                         >
                             <i className="ri-arrow-left-line"></i>
                             <span>돌아가기</span>

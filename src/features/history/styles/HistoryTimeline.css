@@ -18,7 +18,7 @@
     bottom: 0 !important;
     width: 100vw !important;
     height: 100svh !important;
-    background: #000000 !important;
+    background: var(--bg-base) !important;
     z-index: 10000 !important;
     /* Overlay everything including shell headers */
     padding: 0 !important;
@@ -32,9 +32,9 @@
 
 .timeline-header {
     height: 64px;
-    background: rgb(22 22 22);
+    background: var(--bg-modal);
     backdrop-filter: blur(12px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid var(--border-glass);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -73,11 +73,11 @@
 
 .search-box input {
     width: 100%;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--bg-surface-2);
+    border: 1px solid var(--border-glass);
     border-radius: 8px;
     padding: 8px 12px 8px 38px;
-    color: #f3f4f6;
+    color: var(--text-primary);
     font-size: 0.95rem;
     transition: all 0.2s;
 }
@@ -105,11 +105,11 @@
 }
 
 .category-filter {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--bg-surface-2);
+    border: 1px solid var(--border-glass);
     border-radius: 8px;
     padding: 0 12px;
-    color: #f3f4f6;
+    color: var(--text-primary);
     font-size: 0.9rem;
     cursor: pointer;
     outline: none;
@@ -132,18 +132,18 @@
     justify-content: center;
     width: 36px;
     height: 36px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--bg-surface-2);
+    border: 1px solid var(--border-glass);
     border-radius: 8px;
-    color: #9ca3af;
+    color: var(--text-tertiary);
     cursor: pointer;
     transition: all 0.2s;
 }
 
 .back-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
-    border-color: rgba(255, 255, 255, 0.2);
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    border-color: var(--border-glass-strong);
 }
 
 .breadcrumb-area {
@@ -151,7 +151,7 @@
     align-items: center;
     gap: 6px;
     font-size: 0.95rem;
-    color: #e5e7eb;
+    color: var(--text-secondary);
     font-weight: 500;
 }
 
@@ -166,7 +166,7 @@
 }
 
 .breadcrumb-area span:hover {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--bg-hover);
 }
 
 .breadcrumb-area i {
@@ -179,10 +179,10 @@
     align-items: center;
     gap: 6px;
     padding: 8px 12px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--bg-surface-2);
+    border: 1px solid var(--border-glass);
     border-radius: 8px;
-    color: #d1d5db;
+    color: var(--text-secondary);
     font-size: 0.9rem;
     font-weight: 500;
     cursor: pointer;
@@ -190,24 +190,24 @@
 }
 
 .action-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
+    background: var(--bg-hover);
+    color: var(--text-primary);
 }
 
 .action-btn.active {
-    background: rgba(139, 92, 246, 0.2);
-    border-color: #8b5cf6;
-    color: #a78bfa;
+    background: var(--bg-selected);
+    border-color: var(--color-blue-500);
+    color: var(--color-blue-500);
 }
 
 .action-btn.save-btn {
-    background: #10b981;
-    border-color: #059669;
-    color: white;
+    background: var(--color-green-600);
+    border-color: var(--color-green-700);
+    color: var(--text-inverse);
 }
 
 .action-btn.save-btn:hover {
-    background: #059669;
+    background: var(--color-green-700);
 }
 
 
@@ -219,21 +219,21 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
+    background: var(--bg-overlay);
     backdrop-filter: blur(4px);
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     z-index: 2000;
-    color: white;
+    color: var(--text-primary);
 }
 
 .loader {
     width: 48px;
     height: 48px;
-    border: 4px solid rgba(255, 255, 255, 0.1);
-    border-top-color: #8b5cf6;
+    border: 4px solid var(--border-glass);
+    border-top-color: var(--color-blue-500);
     border-radius: 50%;
     animation: spin 1s linear infinite;
     margin-bottom: 16px;
@@ -259,41 +259,41 @@
     height: 42px;
     padding: 0 12px;
     gap: 8px;
-    background: rgba(17, 24, 39, 0.8);
+    background: var(--bg-surface-glass);
     backdrop-filter: blur(8px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-glass-strong);
     border-radius: 10px;
-    color: #d1d5db;
+    color: var(--text-secondary);
     font-size: 0.9rem;
     /* Slightly smaller text */
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--shadow-elevated);
 }
 
 .toolbar-btn:hover {
-    background: rgba(30, 41, 59, 0.9);
-    color: #ffffff;
+    background: var(--bg-hover);
+    color: var(--text-primary);
     transform: translateY(-2px);
-    border-color: rgba(255, 255, 255, 0.2);
+    border-color: var(--border-glass-strong);
 }
 
 .toolbar-btn.active {
-    background: #8b5cf6;
-    color: #ffffff !important;
-    border-color: #a78bfa;
+    background: var(--color-blue-500);
+    color: var(--text-inverse) !important;
+    border-color: var(--color-blue-400);
 }
 
 .toolbar-btn.add-btn {
-    background: #10b981;
-    color: #ffffff;
-    border-color: #34d399;
+    background: var(--color-green-600);
+    color: var(--text-inverse);
+    border-color: var(--color-green-500);
     margin-top: 8px;
 }
 
 .toolbar-btn.add-btn:hover {
-    background: #059669;
+    background: var(--color-green-700);
 }
 
 .timeline-main {
@@ -301,7 +301,7 @@
     position: relative;
     width: 100%;
     height: 100%;
-    background: #000;
+    background: var(--bg-base);
     overflow: hidden;
 }
 
@@ -311,7 +311,7 @@
     width: 100%;
     height: 100%;
     /* Fill remaining space */
-    background: #000000;
+    background: var(--bg-base);
     overflow: hidden;
     touch-action: none;
     /* Prevent address bar jitter during dragging */
@@ -374,26 +374,26 @@
 } */
 
 .react-flow__attribution {
-    background: rgba(17, 24, 39, 0.8);
-    color: #9ca3af;
+    background: var(--bg-surface-glass);
+    color: var(--text-tertiary);
     padding: 4px 8px;
     border-radius: 4px;
 }
 
 .react-flow__controls {
-    background: rgba(17, 24, 39, 0.95);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--bg-modal);
+    border: 1px solid var(--border-glass-strong);
     border-radius: 8px;
     overflow: hidden;
     margin: 10px;
     /* Add some spacing from the edges */
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    box-shadow: var(--shadow-elevated);
 }
 
 .react-flow__controls-button {
     background: transparent;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    color: #d1d5db;
+    border-bottom: 1px solid var(--border-glass);
+    color: var(--text-secondary);
 }
 
 .react-flow__controls-button svg {
@@ -407,8 +407,8 @@
 }
 
 .react-flow__controls-button:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #ffffff !important;
+    background: var(--bg-hover);
+    color: var(--text-primary) !important;
 }
 
 .react-flow__minimap {
@@ -432,13 +432,13 @@
 }
 
 .react-flow__edge-text {
-    fill: #fff;
+    fill: var(--text-primary);
     font-size: 12px;
     font-weight: 500;
 }
 
 .react-flow__edge-textbg {
-    fill: #1f2937;
+    fill: var(--bg-modal);
     fill-opacity: 0.9;
     rx: 4;
     ry: 4;
@@ -464,10 +464,10 @@
 /* 🔥 Selection State (Simplified for React Flow Compatibility) */
 /* Retain simple styling that doesn't conflict with LOD scaling */
 .react-flow__node.selected .history-node {
-    border-color: #8b5cf6 !important;
+    border-color: var(--color-blue-500) !important;
     z-index: 1000 !important;
     /* Basic, standard box-shadow that browsers optimize well */
-    box-shadow: 0 0 0 2px #fff, 0 0 15px rgba(139, 92, 246, 0.6) !important;
+    box-shadow: 0 0 0 2px var(--bg-surface-1), 0 0 15px var(--shadow-glow-blue) !important;
 }
 
 
@@ -487,9 +487,8 @@
 }
 
 .edge-modal-content {
-    background: #323232;
-    /* Adobe Panel Gray */
-    border: 1px solid #1e1e1e;
+    background: var(--bg-modal);
+    border: 1px solid var(--border-glass);
     border-radius: 4px;
     /* Sharp corners */
     padding: 16px;
@@ -498,18 +497,18 @@
     /* Tighter width */
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-    color: #e3e3e3;
+    color: var(--text-primary);
     animation: modalScaleIn 0.15s ease-out;
 }
 
 .edge-modal-content h3 {
     margin: 0 0 12px 0;
-    color: #f0f0f0;
+    color: var(--text-primary);
     font-size: 13px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    border-bottom: 1px solid #454545;
+    border-bottom: 1px solid var(--border-glass);
     padding-bottom: 8px;
 }
 
@@ -519,25 +518,25 @@
 
 .edge-input-group label {
     display: block;
-    color: #aaaaaa;
+    color: var(--text-tertiary);
     font-size: 11px;
     margin-bottom: 4px;
 }
 
 .edge-input {
     width: 100%;
-    background: #262626;
-    border: 1px solid #505050;
+    background: var(--bg-surface-2);
+    border: 1px solid var(--border-glass);
     border-radius: 2px;
     padding: 6px 8px;
-    color: #e3e3e3;
+    color: var(--text-primary);
     font-size: 13px;
     box-sizing: border-box;
 }
 
 .edge-input:focus {
     outline: none;
-    border-color: #0265D2;
+    border-color: var(--color-blue-500);
     /* Adobe Focus Blue */
 }
 
@@ -570,9 +569,9 @@
 }
 
 .btn-cancel {
-    background: #4a4a4a;
-    color: #d1d1d1;
-    border: 1px solid #3a3a3a;
+    background: var(--bg-surface-3);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-glass);
     padding: 4px 12px;
     border-radius: 2px;
     font-size: 12px;
@@ -585,10 +584,10 @@
 }
 
 .btn-save-edge {
-    background: #0265D2;
+    background: var(--color-blue-600);
     /* Adobe Blue */
-    color: #fff;
-    border: 1px solid #004cab;
+    color: var(--text-inverse);
+    border: 1px solid var(--color-blue-700);
     padding: 4px 12px;
     border-radius: 2px;
     font-size: 12px;
@@ -626,8 +625,8 @@
     position: fixed;
     z-index: 5000;
     min-width: 180px;
-    background: #27272a;
-    border: 1px solid #3f3f46;
+    background: var(--bg-modal);
+    border: 1px solid var(--border-glass);
     border-radius: 8px;
     padding: 6px;
     box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
@@ -742,9 +741,9 @@
 }
 
 .floating-canvas-controls .action-btn.active {
-    background: rgba(139, 92, 246, 0.8);
-    border-color: #8b5cf6;
-    color: white;
+    background: var(--bg-selected);
+    border-color: var(--color-blue-500);
+    color: var(--color-blue-500);
 }
 
 .floating-canvas-controls .action-btn.save-btn {

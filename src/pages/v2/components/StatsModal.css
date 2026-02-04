@@ -6,12 +6,12 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.7);
+    background: var(--bg-overlay);
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    z-index: 1000;
+    backdrop-filter: blur(var(--blur-md));
+    -webkit-backdrop-filter: blur(var(--blur-md));
+    z-index: var(--z-modal);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -27,9 +27,9 @@
     height: auto;
     max-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 32px);
     /* Use dynamic viewport height and leave safe margin */
-    background: rgba(15, 15, 15, 0.98);
+    background: var(--bg-modal);
     border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--border-glass-strong);
     padding: 0 !important;
     position: relative;
     overflow: hidden;
@@ -60,9 +60,9 @@
     position: absolute;
     top: 14px;
     right: 14px;
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--bg-surface-2);
     border: none;
-    color: #fff;
+    color: var(--text-primary);
     width: 36px;
     height: 36px;
     border-radius: 50%;
@@ -88,7 +88,7 @@
     /* Base Padding + Modal Offset simulation */
     padding: 24px 80px 16px 20px;
     margin-bottom: 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid var(--border-glass);
 }
 
 .tabs-header::-webkit-scrollbar {
@@ -105,7 +105,7 @@
 .tab-item {
     margin: 0;
     font-size: 1rem;
-    color: #52525b;
+    color: var(--text-tertiary);
     font-weight: 700;
     cursor: pointer;
     padding-bottom: 4px;
@@ -117,14 +117,14 @@
 }
 
 .tab-item.active {
-    color: #fff;
+    color: var(--text-primary);
 }
 
 .tab-indicator {
     position: absolute;
     bottom: 0;
     height: 2px;
-    background: #3b82f6;
+    background: var(--color-blue-500);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     border-radius: 1px;
 }
@@ -184,9 +184,9 @@
 .info-box {
     margin-top: 20px;
     padding: 16px;
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--bg-surface-2);
     border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-glass);
 }
 
 .info-title {

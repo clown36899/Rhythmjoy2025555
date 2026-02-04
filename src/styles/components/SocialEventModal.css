@@ -13,12 +13,14 @@
     }
 
     .SEM-container {
-        background-color: var(--color-gray-800);
-        border-radius: var(--radius-lg);
+        background-color: var(--bg-modal);
+        border-radius: var(--radius-xl);
         max-width: 28rem;
         width: 100%;
         max-height: 90vh;
         overflow-y: auto;
+        box-shadow: var(--shadow-premium);
+        border: 1px solid var(--border-glass-strong);
     }
 
     .SEM-form {
@@ -58,13 +60,21 @@
     .SEM-select,
     .SEM-textarea {
         width: 100%;
-        background-color: var(--color-gray-700);
+        background-color: var(--bg-input);
         color: var(--text-primary);
         border-radius: var(--radius-lg);
-        padding: 0.5rem 0.75rem;
-        font-size: 0.875rem;
+        padding: 0.625rem 0.875rem;
+        font-size: 0.9375rem;
         outline: none;
-        border: 1px solid var(--border-glass);
+        border: 1px solid var(--border-primary);
+        transition: all 0.2s ease;
+    }
+
+    .SEM-input:focus,
+    .SEM-select:focus,
+    .SEM-textarea:focus {
+        border-color: var(--color-blue-500);
+        box-shadow: 0 0 0 4px var(--shadow-glow-blue);
     }
 
     .SEM-inputGroup {
@@ -103,7 +113,7 @@
     }
 
     .SEM-btn-cancel {
-        background-color: var(--color-gray-700);
+        background-color: var(--bg-surface-2);
         color: var(--text-primary);
         padding: 0.5rem 1.5rem;
         border-radius: var(--radius-lg);
@@ -140,7 +150,7 @@
     }
 
     .SEM-btn-search {
-        background: var(--color-gray-700);
+        background: var(--bg-surface-2);
         color: var(--text-primary);
         padding: 0.5rem 1rem;
         border-radius: 0.5rem;
@@ -160,14 +170,16 @@
 
     .SEM-imageUploadLabel {
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        min-height: 100px;
-        border: 1px dashed var(--border-glass-heavy);
-        border-radius: var(--radius-lg);
-        background: rgba(255, 255, 255, 0.02);
+        min-height: 120px;
+        border: 2px dashed var(--border-secondary);
+        border-radius: var(--radius-xl);
+        background: var(--bg-surface-2);
         transition: all 0.2s;
+        gap: 8px;
     }
 
     .SEM-imageUploadLabel.is-uploading {
@@ -177,7 +189,7 @@
 
     .SEM-imageUploadLabel:hover {
         border-color: var(--color-blue-500);
-        background: rgba(59, 130, 246, 0.05);
+        background: var(--bg-hover);
     }
 
     .SEM-imagePreview-rect {

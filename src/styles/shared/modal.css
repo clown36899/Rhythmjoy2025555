@@ -10,7 +10,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--bg-overlay);
     backdrop-filter: blur(4px);
     z-index: 1000;
     display: flex;
@@ -21,9 +21,9 @@
 
 /* 모달 컨테이너 - 메인 박스 */
 .modal-container {
-    background: var(--bg-card);
-    border-radius: var(--border-radius-lg, 12px);
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    background: var(--bg-modal);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-premium);
     max-width: 90vw;
     max-height: 90vh;
     overflow: hidden;
@@ -36,7 +36,7 @@
     align-items: center;
     justify-content: space-between;
     padding: 20px 24px;
-    border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+    border-bottom: 1px solid var(--border-glass);
 }
 
 .modal-title {
@@ -50,7 +50,7 @@
 .modal-close-btn {
     background: none;
     border: none;
-    color: var(--text-secondary, rgba(255, 255, 255, 0.6));
+    color: var(--text-secondary);
     cursor: pointer;
     padding: 8px;
     border-radius: var(--border-radius-sm, 6px);
@@ -61,7 +61,7 @@
 }
 
 .modal-close-btn:hover {
-    background: var(--hover-bg, rgba(255, 255, 255, 0.1));
+    background: var(--bg-hover);
     color: var(--text-primary);
 }
 
@@ -81,7 +81,7 @@
     display: flex;
     gap: 12px;
     padding: 16px 24px;
-    border-top: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+    border-top: 1px solid var(--border-glass);
     justify-content: flex-end;
 }
 
@@ -107,7 +107,7 @@
 }
 
 .modal-btn-secondary {
-    background: var(--secondary-bg, rgba(255, 255, 255, 0.1));
+    background: var(--bg-surface-2);
     color: var(--text-primary);
 }
 

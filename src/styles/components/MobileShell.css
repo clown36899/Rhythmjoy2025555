@@ -6,9 +6,9 @@
   align-items: center;
   gap: 0.25rem;
   padding: 0.375rem 0.75rem;
-  background-color: rgba(255, 255, 255, 0.1);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background-color: var(--bg-surface-2);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
   border-radius: 0.375rem;
   font-size: 0.875rem;
   font-weight: 500;
@@ -17,8 +17,8 @@
 }
 
 .shell-back-btn:hover {
-  background-color: rgba(255, 255, 255, 0.15);
-  border-color: rgba(255, 255, 255, 0.3);
+  background-color: var(--bg-hover);
+  border-color: var(--border-glass-strong);
 }
 
 .shell-back-btn i {
@@ -41,10 +41,10 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgb(23 23 23 / 63%);
+  background: var(--header-bg-color);
   -webkit-backdrop-filter: blur(20px);
   backdrop-filter: blur(20px);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-top: 1px solid var(--border-glass);
   z-index: var(--z-header);
   width: 100%;
   margin: 0;
@@ -142,16 +142,16 @@
   border-radius: 6px;
   font-size: 0.75rem;
   font-weight: 600;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid var(--border-glass);
   transition: all 0.2s ease;
-  background-color: rgba(255, 255, 255, 0.05);
-  color: #fbbf24;
+  background-color: var(--bg-surface-2);
+  color: var(--color-orange-400);
   height: 24px;
 }
 
 .shell-admin-btn-topbar:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.3);
+  background-color: var(--bg-hover);
+  border-color: var(--border-glass-strong);
 }
 
 .shell-admin-btn-topbar i {
@@ -225,7 +225,7 @@
   top: 0;
   right: 0.25rem;
   font-size: 9px;
-  color: #fb923c;
+  color: var(--color-orange-500);
   font-weight: 600;
 }
 
@@ -248,12 +248,12 @@
 .shell-admin-panel-btn {
   width: 100%;
   text-align: left;
-  color: white;
+  color: var(--text-primary);
   padding: 0.5rem 0.75rem;
   border-radius: 0.25rem;
   font-size: 0.75rem;
   border: 0;
-  background: #000000;
+  background: var(--bg-base);
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -292,7 +292,7 @@
   width: 100%;
   height: calc(60px + env(safe-area-inset-top));
   padding-top: env(safe-area-inset-top);
-  background-color: rgb(17 17 17 / 56%);
+  background-color: var(--header-bg-color);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   z-index: 49;
@@ -339,7 +339,7 @@
   right: 0;
   /* height: 60px; - safe area 적용을 위해 제거 */
   height: calc(60px + env(safe-area-inset-top));
-  background-color: #000000;
+  background-color: var(--bg-base);
   z-index: 2;
   display: flex;
   align-items: center;
@@ -377,7 +377,7 @@
 .header-back-btn {
   background: transparent;
   border: none;
-  color: #fff;
+  color: var(--text-primary);
   font-size: min(6vw, 24px);
   padding: 8px;
   display: flex;
@@ -395,7 +395,7 @@
 .header-title {
   font-size: clamp(0.41rem, 4.5vw, 2rem) !important;
   font-weight: bold;
-  color: white;
+  color: var(--text-primary);
   white-space: nowrap;
 }
 
@@ -406,19 +406,19 @@
 }
 
 .header-breadcrumb-link:hover {
-  color: white;
+  color: var(--text-primary);
   text-decoration: underline;
 }
 
 .header-breadcrumb-separator {
-  color: rgba(255, 255, 255, 0.3);
+  color: var(--text-tertiary);
   font-weight: 300;
   font-size: 0.9em;
   margin: 0 2px;
 }
 
 .header-breadcrumb-current {
-  color: white;
+  color: var(--text-primary);
 }
 
 /* 작은 화면에서 헤더 크기 무제한 축소 (삭제 - 기본 vw 단위가 무제한 축소 담당) */
@@ -426,7 +426,7 @@
 .header-search-btn {
   background: none;
   border: none;
-  color: white;
+  color: var(--text-primary);
   cursor: pointer;
   padding: 0;
   display: flex;
@@ -441,7 +441,7 @@
   background: rgba(59, 130, 246, 0.15);
   border: 1px solid rgba(59, 130, 246, 0.3);
   border-radius: min(1vw, 6px);
-  color: white;
+  color: var(--text-primary);
   cursor: pointer;
   padding: min(1vw, 6px) min(1.5vw, 10px);
   display: flex;
@@ -475,7 +475,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
+  color: var(--text-primary);
   margin-top: -1px;
 }
 
@@ -519,7 +519,7 @@
 .header-hamburger-btn {
   background: none;
   border: none;
-  color: white;
+  color: var(--text-primary);
   font-size: 1.5rem;
   cursor: pointer;
   padding: 8px;
@@ -537,7 +537,7 @@
 .header-user-btn {
   background: none;
   border: none;
-  color: white;
+  color: var(--text-primary);
   font-size: min(4vw, 1.3rem);
   cursor: pointer;
   padding: min(1vw, 4px);
@@ -600,13 +600,13 @@
 .header-title-board {
   font-size: 1.1rem;
   font-weight: bold;
-  color: white;
+  color: var(--text-primary);
   margin-right: auto;
 }
 
 .board-btn-write-header {
   background-color: var(--primary-color);
-  color: white;
+  color: var(--text-primary);
   border: none;
   padding: 6px 12px;
   border-radius: 6px;
@@ -628,7 +628,7 @@
 .header-title-other {
   font-size: 1.1rem;
   font-weight: bold;
-  color: white;
+  color: var(--text-primary);
 }
 
 /* Calendar Header Navigation Styles */
@@ -641,7 +641,7 @@
 .calendar-back-btn {
   background: none;
   border: none;
-  color: white;
+  color: var(--text-primary);
   cursor: pointer;
   padding: 4px;
   display: flex;
@@ -661,7 +661,7 @@
   display: flex;
   gap: 4px;
   align-items: center;
-  background-color: rgba(255, 255, 255, 0.05);
+  background-color: var(--bg-surface-2);
   padding: 4px 8px;
   border-radius: 8px;
 }
@@ -680,8 +680,8 @@
 }
 
 .calendar-month-btn:hover {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: white;
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
 }
 
 .calendar-month-btn:active {
@@ -689,7 +689,7 @@
 }
 
 .calendar-month-label {
-  color: white;
+  color: var(--text-primary);
   font-weight: 600;
   font-size: clamp(0.9rem, 4.5vw, 1.3rem);
   min-width: 60px;
@@ -697,8 +697,8 @@
 }
 
 .calendar-today-header-btn {
-  background: white;
-  color: black;
+  background: var(--text-primary);
+  color: var(--bg-base);
   border: none;
   padding: 4px 10px;
   border-radius: 6px;
@@ -719,3 +719,119 @@
 }
 
 /* FAB styles moved to BottomNavigation */
+
+/* ===== Logo Header Semantic Classes (Replacement for inline styles) ===== */
+.header-logo-container {
+  display: flex;
+  align-items: center;
+  gap: 1.5vw;
+  cursor: pointer;
+}
+
+.header-logo-text-wrapper {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1;
+  min-width: 0;
+  overflow: hidden;
+  width: fit-content;
+}
+
+.header-logo-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: min(0.8vw, 6px);
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.header-logo-title {
+  margin: 0;
+  font-size: min(4vw, 1.45rem);
+  min-width: 0;
+  flex-shrink: 1;
+  overflow: hidden;
+  color: var(--text-primary);
+}
+
+.header-logo-tag {
+  font-size: min(2.2vw, 0.8rem);
+  color: var(--text-tertiary);
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.header-logo-domain {
+  font-size: min(2.5vw, 11px);
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-tertiary);
+  margin-top: min(0.3vw, 2px);
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.header-logo-domain span {
+  display: inline-block;
+}
+
+.header-title-simple {
+  margin: 0;
+  font-size: 18px;
+  font-weight: bold;
+  margin-left: 8px;
+  color: var(--text-primary);
+}
+
+/* ===== Admin Stats Semantic Classes ===== */
+.admin-stats-wrapper {
+  margin-left: 8px;
+}
+
+.admin-stats-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: min(0.5vw, 4px);
+  font-size: min(2.2vw, 0.8rem);
+  font-weight: 600;
+  background: var(--bg-surface-glass);
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--border-glass);
+  color: var(--text-secondary);
+  flex-shrink: 1;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.admin-stats-badge:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-glass-strong);
+}
+
+.stat-logged-count {
+  color: var(--color-blue-400);
+}
+
+.stat-separator {
+  color: var(--text-tertiary);
+  opacity: 0.6;
+}
+
+.stat-anon-count {
+  color: var(--color-orange-400);
+}
+
+.stat-total-count {
+  font-size: min(0.85em, 10px);
+  color: var(--text-tertiary);
+  font-weight: normal;
+  margin-left: min(0.3vw, 2px);
+}
+
+/* ===== Calendar Header Refinements ===== */
+.calendar-month-label-clickable {
+  cursor: pointer;
+}

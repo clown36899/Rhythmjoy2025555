@@ -59,7 +59,7 @@ const SurveyTestPage = lazy(() => import('./pages/test/SurveyTestPage'));
 const AdminPushTestPage = lazy(() => import('./components/admin/AdminPushTest').then(m => ({ default: m.AdminPushTest })));
 
 const BillboardFallback = () => (
-  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', backgroundColor: '#000000', color: 'white' }}>
+  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', backgroundColor: 'var(--bg-base)', color: 'var(--text-primary)' }}>
   </div>
 );
 

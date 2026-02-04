@@ -75,7 +75,7 @@
 /* State: Active */
 .bottom-nav-item.active .bottom-nav-icon,
 .bottom-nav-item.active .bottom-nav-label {
-    color: white;
+    color: var(--color-blue-500);
 }
 
 .bottom-nav-item.active .bottom-nav-icon {
@@ -108,8 +108,8 @@
     font-weight: 700;
     line-height: 1;
     border-radius: 9999px;
-    box-shadow: 0 0 0 2px rgba(31, 41, 55, 0.85);
-    /* Match bg for cutout effect */
+    box-shadow: 0 0 0 2px var(--bg-surface-1);
+    /* Match container/container-bg for cutout effect */
 
     z-index: 10;
 }
@@ -125,15 +125,83 @@
     min-height: 40px !important;
     border-radius: 50%;
     /* Ensure circle */
+    border: 1px solid var(--border-glass-strong);
+    background-color: var(--bg-surface-1);
 }
 
 .bottom-nav-item.fab-center-item .bottom-nav-icon {
     font-size: 1.6rem;
-    color: white;
+    color: var(--text-primary);
     /* User requested white color */
     margin-bottom: 0;
 }
 
 .bottom-nav-item.fab-center-item:active {
     transform: scale(0.9);
+}
+
+/* ===== Custom Refresh Overlay ===== */
+.refresh-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--bg-overlay);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: var(--z-max);
+    max-width: 650px;
+    margin: 0 auto;
+}
+
+.refresh-content {
+    text-align: center;
+}
+
+.refresh-loader {
+    font-size: 48px;
+    color: var(--color-blue-500);
+}
+
+.refresh-text {
+    color: white;
+    margin-top: 16px;
+    font-size: 14px;
+}
+
+/* ===== FAB Styles (Board/Action) ===== */
+.bottom-nav-item.fab-center-item.board-fab {
+    background-color: var(--color-blue-500) !important;
+    border-radius: 50% !important;
+    width: 45px !important;
+    height: 45px !important;
+    min-width: 45px !important;
+    min-height: 45px !important;
+    flex-shrink: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin-top: -22.5px !important;
+    box-shadow: var(--shadow-glow-blue) !important;
+    border: 2px solid var(--bg-base) !important;
+    padding: 0 !important;
+}
+
+.fab-icon-only {
+    color: white !important;
+    font-size: 24px !important;
+    margin: 0 !important;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
 }

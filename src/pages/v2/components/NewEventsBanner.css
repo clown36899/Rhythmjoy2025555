@@ -24,7 +24,7 @@
 .NEB-title {
     font-size: 1.1rem;
     font-weight: 700;
-    color: #fff;
+    color: var(--text-primary);
     margin: 0;
 }
 
@@ -67,7 +67,7 @@
 
 .NEB-counter {
     font-size: 0.85rem;
-    color: #9ca3af;
+    color: var(--text-tertiary);
     font-weight: 600;
 }
 
@@ -76,7 +76,8 @@
     width: 100%;
     overflow: hidden;
     border-radius: 16px;
-    background: #1f2937;
+    background: var(--bg-surface-3);
+    border: 1px solid var(--border-glass);
 }
 
 .NEB-track {

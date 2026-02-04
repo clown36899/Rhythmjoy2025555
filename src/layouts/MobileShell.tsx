@@ -239,28 +239,13 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
           siteAnalyticsModal.open();
         }}
         title="운영 통계 리포트 보기"
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 'min(0.5vw, 4px)',
-          fontSize: 'min(2.2vw, 0.8rem)',
-          fontWeight: 600,
-          background: 'rgba(255, 255, 255, 0.08)',
-          padding: '2px 6px',
-          borderRadius: '6px',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          marginLeft: '0px',
-          color: '#e5e7eb',
-          flexShrink: 1,
-          cursor: 'pointer'
-        }}
       >
-        <span key={`logged-in-${loggedInCount}`} style={{ color: '#00ddff' }}>{loggedInCount}</span>
-        <span key="separator" style={{ color: '#888', opacity: 0.6 }}>/</span>
-        <span key={`anonymous-${anonymousCount}`} style={{ color: '#ffaa00' }}>{anonymousCount}</span>
+        <span key={`logged-in-${loggedInCount}`} className="stat-logged-count">{loggedInCount}</span>
+        <span key="separator" className="stat-separator">/</span>
+        <span key={`anonymous-${anonymousCount}`} className="stat-anon-count">{anonymousCount}</span>
 
         {totalUserCount !== null && (
-          <span key={`total-count-${totalUserCount}`} style={{ fontSize: 'min(0.85em, 10px)', color: '#aaa', fontWeight: 'normal', marginLeft: 'min(0.3vw, 2px)' }}>
+          <span key={`total-count-${totalUserCount}`} className="stat-total-count">
             ({totalUserCount})
           </span>
         )}
@@ -350,28 +335,23 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                     /* Main Page: Logo + Detailed Title - Wrapped for clickable area */
                     <div
                       onClick={() => window.location.reload()}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '1.5vw',
-                        cursor: 'pointer'
-                      }}
+                      className="header-logo-container"
                       data-analytics-id="logo_home"
                       data-analytics-type="nav_item"
                       data-analytics-title="댄스빌보드 로고"
                       data-analytics-section="header"
                     >
                       <img src="/logo.png" alt="Dance Billboard Logo" className="header-logo" referrerPolicy="no-referrer" />
-                      <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: '1', minWidth: 0, overflow: 'hidden', width: 'fit-content' }}>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: 'min(0.8vw, 6px)', flexWrap: 'nowrap', minWidth: 0 }}>
-                          <h1 className="header-title" style={{ margin: 0, fontSize: 'min(4vw, 1.45rem)', minWidth: 0, flexShrink: 1, overflow: 'hidden' }}>
+                      <div className="header-logo-text-wrapper">
+                        <div className="header-logo-title-row">
+                          <h1 className="header-logo-title">
                             댄스빌보드
                           </h1>
-                          <span style={{ fontSize: 'min(2.2vw, 0.8rem)', color: 'rgb(156, 163, 175)', fontWeight: 400, whiteSpace: 'nowrap' }}>
+                          <span className="header-logo-tag">
                             korea
                           </span>
                         </div>
-                        <span style={{ fontSize: 'min(2.5vw, 11px)', width: '100%', display: 'flex', justifyContent: 'space-between', color: 'rgba(255,255,255,0.8)', marginTop: 'min(0.3vw, 2px)', fontWeight: 500 }}>
+                        <span className="header-logo-domain">
                           {'swingenjoy.com'.split('').map((char, i) => (
                             <span key={`char-${i}-${char}`}>{char}</span>
                           ))}
@@ -380,13 +360,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                     </div>
                   ) : (
                     /* Other Pages: Simple Title Text */
-                    <h1 className="header-title-simple" style={{
-                      margin: 0,
-                      fontSize: '18px',
-                      fontWeight: 'bold',
-                      marginLeft: '8px',
-                      color: '#fff'
-                    }}>
+                    <h1 className="header-title-simple">
                       {(() => {
                         if (isSocialPage) return '소셜';
                         if (isBoardPage) return '포럼';
@@ -403,7 +377,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                   {/* 이벤트·활동 페이지에 adminStats 표시 (Optional: Keep specifically for events page or strictly follow logic) */}
                   {/* User said "Header Title changes". Doesn't explicitely say remove stats. Keeping stats if relevant. */}
                   {(isEventsPage || isMyActivitiesPage) && (
-                    <div style={{ marginLeft: '8px' }}>{adminStats}</div>
+                    <div className="admin-stats-wrapper">{adminStats}</div>
                   )}
                 </div>
               )}
@@ -428,9 +402,8 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                       <i className="ri-arrow-left-s-line"></i>
                     </button>
                     <span
-                      className="calendar-month-label"
+                      className="calendar-month-label calendar-month-label-clickable"
                       onClick={() => window.dispatchEvent(new CustomEvent('goToToday'))}
-                      style={{ cursor: 'pointer' }}
                     >
                       {String(calendarView.year).slice(-2)}년 {String(calendarView.month + 1).padStart(2, '0')}
                     </span>
