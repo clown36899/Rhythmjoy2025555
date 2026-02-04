@@ -62,5 +62,6 @@ export const useEventsQuery = () => {
         },
         staleTime: 60000,
         gcTime: 3600000,
+        placeholderData: (previousData) => previousData, // refetch 중에도 이전 데이터 유지
     });
 };

@@ -2,6 +2,8 @@ import React from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import { logUserInteraction } from '../lib/analytics';
 
+import '../styles/components/ThemeToggle.css';
+
 /**
  * Header Theme Toggle Button
  */
@@ -21,25 +23,11 @@ export const ThemeToggle: React.FC = () => {
             data-analytics-id="header_theme_toggle"
             data-analytics-type="action"
             data-analytics-section="header"
-            style={{
-                marginLeft: '8px',
-                background: 'transparent',
-                border: 'none',
-                color: 'var(--text-primary)',
-                fontSize: '1.2rem',
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                padding: '8px',
-                borderRadius: '50%',
-                transition: 'background-color 0.2s'
-            }}
         >
             {theme === 'dark' ? (
-                <i className="ri-sun-line" style={{ color: 'var(--color-yellow-400)' }}></i>
+                <i className="ri-sun-line"></i>
             ) : (
-                <i className="ri-moon-line" style={{ color: 'var(--text-primary)' }}></i>
+                <i className="ri-moon-line"></i>
             )}
         </button>
     );

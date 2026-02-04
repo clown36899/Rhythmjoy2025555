@@ -247,9 +247,12 @@
     --header-title-font-size: 1.4rem;
 
     /* Calendar Specifics (Dark) */
+    --calendar-bg: #000000;
+    --calendar-cell-bg: #0a0a0a;
     --calendar-vertical-border: #3d3d3d81;
     --calendar-week-border: #303030ac;
     --calendar-weekday-border: #4b5563;
+    --calendar-cell-border: #2a2a2a;
 
     /* Semantic States */
     --color-success: var(--color-green-500);
@@ -343,10 +346,12 @@
 
     /* Calendar Specifics (Light) */
     --calendar-bg: #fcfdfe;
+    --calendar-cell-bg: #ffffff;
     /* Soft off-white for better grid clarity */
     --calendar-vertical-border: #f1f5f9;
     --calendar-week-border: #f1f5f9;
     --calendar-weekday-border: #e2e8f0;
+    --calendar-cell-border: #f1f5f9;
 
     /* Effects - 고도화된 그림자 시스템 */
     --shadow-premium:

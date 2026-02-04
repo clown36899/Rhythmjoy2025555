@@ -83,10 +83,10 @@
     .ELS-viewAllBtn {
         margin-left: min(0.8vw, 6px);
         padding: min(0.8vw, 6px) min(1.8vw, 10px);
-        color: #d0d3d6;
-        background: transparent;
+        color: var(--text-secondary);
+        background: var(--bg-surface-2);
         border-radius: 1rem;
-        border: 1px solid var(--border-glass);
+        border: 1px solid var(--border-subtle);
         cursor: pointer;
         display: flex;
         align-items: center;
@@ -95,6 +95,13 @@
         white-space: nowrap;
         flex-shrink: 1;
         min-width: 0;
+        transition: all var(--transition-normal);
+    }
+
+    .ELS-viewAllBtn:hover {
+        background: var(--bg-hover);
+        color: var(--text-primary);
+        border-color: var(--border-primary);
     }
 
     .ELS-scroller {
@@ -174,27 +181,28 @@
         padding: 6px 12px;
         border-radius: 8px;
         background: var(--bg-surface-2);
-        color: var(--text-tertiary);
-        border: 1px solid var(--border-glass);
+        color: var(--text-secondary);
+        border: 1px solid var(--border-subtle);
         font-size: 13px;
         font-weight: 500;
         cursor: pointer;
-        transition: all 0.2s;
+        transition: all var(--transition-normal);
         white-space: nowrap;
     }
 
     .ELS-genreBtn:hover {
         background: var(--bg-hover);
         color: var(--text-primary);
+        border-color: var(--border-primary);
         transform: translateY(-1px);
     }
 
     .ELS-genreBtn.is-active {
-        background: var(--text-primary);
+        background: var(--color-blue-500);
         color: var(--text-inverse);
-        border-color: var(--text-primary);
+        border-color: var(--color-blue-500);
         font-weight: 600;
-        box-shadow: var(--shadow-glow-blue);
+        box-shadow: var(--shadow-sm);
     }
 
     /* Global Scope Switcher */
@@ -212,7 +220,7 @@
         width: 100%;
         max-width: 400px;
         position: relative;
-        border: 1px solid var(--border-glass);
+        border: 1px solid var(--border-subtle);
     }
 
     .ELS-scopeBtn {
@@ -220,12 +228,12 @@
         padding: 10px;
         border: none;
         background: transparent;
-        color: #71717a;
+        color: var(--text-muted);
         font-size: 14px;
         font-weight: 600;
         cursor: pointer;
         z-index: 2;
-        transition: color 0.3s ease;
+        transition: color var(--transition-normal);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -242,11 +250,11 @@
         left: 4px;
         width: calc(50% - 4px);
         height: calc(100% - 8px);
-        background: var(--bg-surface-3);
+        background: var(--bg-surface-1);
         border-radius: 8px;
         transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         box-shadow: var(--shadow-sm);
-        border: 1px solid var(--border-glass-strong);
+        border: 1px solid var(--border-primary);
     }
 
     .ELS-scopeSwitcher[data-scope="overseas"] .ELS-scopeIndicator {

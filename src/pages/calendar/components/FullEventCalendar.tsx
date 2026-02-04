@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, memo, useMemo, useRef, useLayoutEffect } from "react";
 import { useTranslation } from "react-i18next";
-import type { CSSProperties } from "react";
 import { supabase } from "../../../lib/supabase";
 import type { Event as AppEvent } from "../../../lib/supabase";
 import EventRegistrationModal from "../../../components/EventRegistrationModal";
@@ -480,18 +479,15 @@ export default memo(function FullEventCalendar({
           key={dateString}
           id={todayFlag ? 'calendar-today-cell' : undefined}
           onClick={(e) => handleFullscreenDateClick(day, e)}
-          className={`calendar-cell-fullscreen ${todayFlag ? 'is-today' : ''}`}
+          className={`calendar-cell-fullscreen ${todayFlag ? 'is-today' : ''} ${isLastRow ? 'is-last-row' : ''}`}
           style={{
-            minHeight: `${getCellHeight(monthDate)}px`,
-            height: 'auto',
-            paddingBottom: isLastRow ? 'calc(60px + env(safe-area-inset-bottom))' : undefined
-          }}
+            '--cell-min-height': `${getCellHeight(monthDate)}px`,
+          } as any}
         >
           {/* 헤더: 날짜 숫자 */}
           <div className="calendar-cell-fullscreen-header">
             <span
               onClick={(e) => handleDateNumberClick(e, day)}
-              style={{ cursor: 'pointer' }}
               className={`calendar-date-number-fullscreen ${todayFlag
                 ? "calendar-date-number-today"
                 : day.getDay() === 0
@@ -499,10 +495,10 @@ export default memo(function FullEventCalendar({
                   : day.getDay() === 6
                     ? "calendar-date-saturday"
                     : ""
-                }`}
+                } cursor-pointer`}
             >
-              <span style={{ marginRight: '2px' }}>{day.getDate()}</span>
-              <span className="weekday-wrapper" style={{ fontSize: '10px', fontWeight: 'normal', marginLeft: '2px' }}>
+              <span className="calendar-date-digit">{day.getDate()}</span>
+              <span className="weekday-wrapper">
                 <span className="translated-part">
                   {todayFlag ? t('today') : t(`weekdays.${['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][day.getDay()]}`)}
                 </span>
@@ -574,7 +570,7 @@ export default memo(function FullEventCalendar({
                         if (onEventClick) onEventClick(event);
                       }}
                     >
-                      <div style={{ position: 'relative', width: '100%' }}>
+                      <div className="calendar-fullscreen-card-inner">
                         {thumbnailUrl ? (
                           <div className={`calendar-fullscreen-image-container ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
                             <img
@@ -587,7 +583,7 @@ export default memo(function FullEventCalendar({
                           </div>
                         ) : (
                           <div className={`calendar-fullscreen-placeholder ${categoryColor} ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
-                            <span style={{ fontSize: '10px', color: 'white', fontWeight: 'bold' }}>
+                            <span className="calendar-placeholder-text">
                               {event.title.charAt(0)}
                             </span>
                           </div>
@@ -644,25 +640,17 @@ export default memo(function FullEventCalendar({
           <div className="calendar-flex-1 calendar-overflow-y-auto">{renderYearView()}</div>
         ) : (
           <div
-            className={`calendar-carousel-container calendar-mode-fullscreen`}
+            className="calendar-carousel-container calendar-mode-fullscreen"
             style={{
-              height: containerHeight ? `${containerHeight}px` : 'auto',
-              transition: 'height 0.3s ease-in-out',
-              overflow: 'hidden'
-            }}
+              '--container-height': containerHeight ? `${containerHeight}px` : 'auto',
+            } as any}
           >
             <div
               ref={containerRef}
-              className="calendar-carousel-track"
+              className={`calendar-carousel-track ${effectiveIsAnimating ? 'is-animating' : ''}`}
               style={{
-                width: '300%',
-                display: 'flex',
-                transform: `translateX(calc(-33.3333% + ${effectiveDragOffset}px))`,
-                transition: effectiveIsAnimating ? "transform 0.3s ease-out" : "none",
-                alignItems: 'flex-start', // Important: let slides have their own height
-                // height: '100%', // Removed to allow auto height
-                // minHeight: '100%' // Removed
-              }}
+                '--drag-offset': `${effectiveDragOffset}px`,
+              } as any}
             >
               {[prevMonth, currentMonth, nextMonth].map((month, idx) => {
                 const days = idx === 0 ? prevDays : idx === 1 ? currentDays : nextDays;
@@ -670,15 +658,13 @@ export default memo(function FullEventCalendar({
                   <div
                     key={`${month.getFullYear()}-${month.getMonth()}`}
                     className="calendar-month-slide"
-                    style={{ width: "33.3333%", height: 'auto' }}
                     data-active-month={idx === 1}
                   >
                     <div
                       className="calendar-grid-container"
                       style={{
-                        gridTemplateRows: `repeat(${getActualWeeksCount(month)}, auto)`,
-                        // minHeight: '100%', // Removed to let it shrink
-                      } as CSSProperties}
+                        '--weeks-count': getActualWeeksCount(month),
+                      } as any}
                     >
                       {renderFullscreenGrid(days, month)}
                     </div>

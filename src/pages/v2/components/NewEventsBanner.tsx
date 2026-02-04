@@ -47,6 +47,9 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
 
     const currentEvent = events[currentIndex];
 
+    // PWA 재개 시 refetch 중 currentEvent가 undefined일 수 있음
+    if (!currentEvent) return null;
+
     // 날짜 포맷팅
     let dateText = '';
     if (currentEvent.event_dates && currentEvent.event_dates.length > 0) {

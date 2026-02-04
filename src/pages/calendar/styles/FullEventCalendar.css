@@ -13,7 +13,7 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background-color: var(--calendar-bg);
+  background-color: var(--calendar-bg, var(--bg-base));
   border-radius: 0;
   padding: 0;
 }
@@ -775,8 +775,7 @@
   left: 4px;
   z-index: 30;
   font-weight: 700;
-  color: #d1d5dbcf;
-  /* Default text color for dark background */
+  color: var(--text-tertiary);
   display: flex !important;
   flex-direction: row !important;
   align-items: baseline !important;
@@ -786,15 +785,11 @@
 
 .calendar-date-number-today {
   opacity: 1;
-
-  /* Bold Badge Style for Today */
-  background-color: #3b82f6;
-  /* Red badge */
-  color: white;
+  background-color: var(--color-blue-500);
+  color: var(--text-inverse);
   border-radius: 4px;
   padding: 2px 6px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-
+  box-shadow: var(--shadow-sm);
   font-size: 12px;
   font-weight: 800;
   width: auto;
@@ -816,8 +811,8 @@
   display: grid;
   border-radius: 0 0 0.9rem 0.9rem;
   grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-rows: repeat(var(--weeks-count), auto);
   padding: 5px;
-  /* Week Separation: Gap between rows */
   column-gap: 0;
   row-gap: 6px;
 
@@ -825,18 +820,21 @@
   overflow: hidden;
   padding-bottom: 6px;
   /* Bottom padding for last row */
-  background-color: #000;
+  background-color: var(--calendar-bg);
   /* Gap color */
 }
 
 /* Individual Cell Styling for Card Look */
 .calendar-cell-fullscreen {
-  background-color: #1a1a1a;
-  /* Card Background */
-  border-bottom: 1px solid #2a2a2a;
-  /* Internal row separation? No, continuous */
-  border-right: 1px solid #2a2a2a;
-  /* Vertical dividers */
+  background-color: var(--calendar-cell-bg);
+  border-bottom: 1px solid var(--calendar-cell-border);
+  border-right: 1px solid var(--calendar-cell-border);
+  min-height: var(--cell-min-height, auto);
+  height: auto;
+}
+
+.calendar-cell-fullscreen.is-last-row {
+  padding-bottom: calc(60px + env(safe-area-inset-bottom));
 }
 
 /* Remove bottom border for Card look consistency */
@@ -848,16 +846,13 @@
 .calendar-cell-fullscreen:nth-child(7n+1) {
   border-top-left-radius: 8px;
   border-bottom-left-radius: 8px;
-  border-left: 1px solid #2a2a2a;
-  /* Left border */
+  border-left: 1px solid var(--calendar-cell-border);
 }
 
-/* Last Column: Rounded Right, No Right Border */
 .calendar-cell-fullscreen:nth-child(7n) {
   border-top-right-radius: 8px;
   border-bottom-right-radius: 8px;
-  border-right: 1px solid #2a2a2a;
-  /* Right border */
+  border-right: 1px solid var(--calendar-cell-border);
 }
 
 /* Remove default background from base if strictly enforcing card look */
@@ -871,39 +866,32 @@
 .calendar-weekday-item {
   position: relative;
   text-align: center;
-  color: #c7c7c7;
-  /* gray-400 */
+  color: var(--text-tertiary);
   font-size: 0.875rem;
-  /* 14px */
   padding-top: 0.5rem;
   padding-bottom: 0.5rem;
-  /* Use solid border-right to match calendar-cell-fullscreen for perfect alignment */
-  /* border-right: 1px solid var(--calendar-vertical-border); */
-  /* Include border in width calculation to prevent misalignment */
   box-sizing: border-box;
 }
 
-/* Gradient overlay on top of solid border for fade effect */
-.calendar-weekday-item::after {
-  content: '';
-  position: absolute;
-  right: 0;
-  top: 0;
-  width: 1px;
-  height: 100%;
-  background: linear-gradient(to top, var(--calendar-vertical-border) 0%, transparent 100%);
-  pointer-events: none;
-  z-index: 1;
-  /* Ensure gradient appears above border */
+.calendar-date-digit {
+  margin-right: 2px;
 }
 
-/* Remove border and gradient from last weekday item */
-.calendar-weekday-item:nth-child(7) {
-  border-right: none;
+.weekday-wrapper {
+  font-size: 10px;
+  font-weight: normal;
+  margin-left: 2px;
 }
 
-.calendar-weekday-item:nth-child(7)::after {
-  display: none;
+.calendar-fullscreen-card-inner {
+  position: relative;
+  width: 100%;
+}
+
+.calendar-placeholder-text {
+  font-size: 10px;
+  color: white;
+  font-weight: bold;
 }
 
 .calendar-cell-base {
@@ -985,11 +973,11 @@
 .calendar-carousel-container {
   flex: 1;
   display: flex;
-  overflow-x: hidden;
-  /* Critical: Hide horizontal overflow from 300% track */
+  overflow: hidden;
   width: 100%;
-  /* Ensure container itself doesn't expand */
   position: relative;
+  height: var(--container-height, auto);
+  transition: height 0.3s ease-in-out;
 }
 
 .calendar-mode-fullscreen {
@@ -1004,33 +992,26 @@
 
 .calendar-carousel-track {
   display: flex;
-  /* height: 100%; Removed to allow growth */
-  /* min-height: 100%; Removed to allow shrinking */
-  /* min-height: 100%; Removed to allow shrinking */
   flex-shrink: 0;
-  /* Critical: Prevent track from shrinking to container width */
   touch-action: pan-y;
   height: inherit;
   align-items: flex-start !important;
-  /* Force items to top and allow independent height */
+  width: 300%;
+  transform: translateX(calc(-33.3331% + var(--drag-offset, 0px)));
+}
+
+.calendar-carousel-track.is-animating {
+  transition: transform 0.3s ease-out;
 }
 
 .calendar-month-slide {
   padding-bottom: 0;
   flex-shrink: 0;
   position: relative;
-  /* background-color: #161616; */
-  position: relative;
-  /* min-height: 100%; Removed to fix dynamic height */
+  width: 33.3333%;
   height: auto !important;
-  /* Force auto height */
   min-height: 0 !important;
-  /* Prevent min-height inheritance */
-  /* Match container height */
-  /* overflow-y: auto; Removed for strict height */
-  /* -webkit-overflow-scrolling: touch; Removed */
   touch-action: pan-y;
-  /* Explicitly allow vertical pan, let JS handle horizontal */
 }
 
 .full-calendar-container {

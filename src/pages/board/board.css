@@ -376,6 +376,15 @@
   object-fit: cover;
 }
 
+.board-filter-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: var(--bg-surface-2);
+  border-bottom: 1px solid var(--border-subtle);
+  gap: 8px;
+}
 
 /* ===== 페이지네이션 (Global) ===== */
 .board-pagination {
@@ -455,17 +464,19 @@
 
 .board-search-input {
   flex: 1;
-  background-color: var(--bg-surface-2);
-  border: none;
+  padding: 8px 12px;
   border-radius: 8px;
-  padding: 0.75rem 1rem;
+  background: var(--bg-surface-1);
   color: var(--text-primary);
-  font-size: 1rem;
+  border: 1px solid var(--border-subtle);
+  font-size: 14px;
+  outline: none;
+  transition: all var(--transition-normal);
 }
 
 .board-search-input:focus {
-  outline: none;
-  background-color: var(--bg-surface-3);
+  border-color: var(--color-blue-500);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .board-search-close {
@@ -494,6 +505,32 @@
   text-align: center;
   padding: 2rem;
   color: var(--text-muted);
+}
+
+.board-filter-btn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  background: var(--bg-surface-2);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  white-space: nowrap;
+}
+
+.board-filter-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--border-primary);
+}
+
+.board-filter-btn.is-active {
+  background: var(--color-blue-500);
+  color: var(--text-inverse);
+  border-color: var(--color-blue-500);
+  font-weight: 600;
 }
 
 .board-search-item {
