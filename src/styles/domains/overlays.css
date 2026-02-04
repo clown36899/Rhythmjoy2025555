@@ -15,7 +15,7 @@
         width: 100vw;
         height: 100vh;
         background-color: rgba(0, 0, 0, 0.6);
-        z-index: var(--z-header);
+        z-index: 9999;
         backdrop-filter: blur(4px);
         opacity: 0;
         pointer-events: none;
