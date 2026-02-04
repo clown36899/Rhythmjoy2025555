@@ -35,7 +35,7 @@
 /* 새로 추가된 사용 가이드 스타일 */
 .header-usage-guide {
   font-size: 0.9rem;
-  color: #9ca3af;
+  color: var(--text-tertiary);
   margin: 0;
   background: rgba(255, 255, 255, 0.05);
   padding: 10px 16px;
@@ -47,12 +47,12 @@
 }
 
 .header-usage-guide i {
-  color: #fbbf24;
+  color: var(--color-amber-400);
   font-size: 1.1rem;
 }
 
 .admin-add-group-btn {
-  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  background: linear-gradient(135deg, var(--color-amber-400), var(--color-amber-500));
   border: none;
   padding: 8px 16px;
   border-radius: 12px;

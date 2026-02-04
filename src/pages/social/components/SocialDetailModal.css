@@ -17,7 +17,7 @@
 
     .social-detail-container {
         position: relative;
-        background: #000;
+        background: var(--bg-base);
         width: 100%;
         max-width: 400px;
         max-height: 90svh;
@@ -44,7 +44,7 @@
         position: relative;
         width: 100%;
         aspect-ratio: 1 / 1;
-        background-color: #262626;
+        background-color: var(--bg-surface-1);
         z-index: 10;
         overflow: hidden;
     }
@@ -64,7 +64,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        color: #333;
+        color: var(--bg-surface-3);
         font-size: 5rem;
     }
 
@@ -134,7 +134,7 @@
         display: flex;
         align-items: center;
         gap: 8px;
-        color: #fbbf24;
+        color: var(--color-amber-400);
         font-weight: 700;
         font-size: 1rem;
     }
@@ -144,7 +144,7 @@
         display: flex;
         align-items: center;
         gap: 6px;
-        color: #9ca3af;
+        color: var(--text-tertiary);
         font-size: 0.85rem;
         padding: 6px 12px;
         background: rgba(255, 255, 255, 0.05);
@@ -154,12 +154,12 @@
     }
 
     .detail-admin-author i {
-        color: #fbbf24;
+        color: var(--color-amber-400);
     }
 
     .detail-description {
         margin-bottom: 32px;
-        color: #d1d5db;
+        color: var(--text-secondary);
         line-height: 1.7;
         font-size: 1.05rem;
         white-space: pre-wrap;
@@ -172,7 +172,7 @@
     }
 
     .detail-place-box {
-        background: #262626;
+        background: var(--bg-surface-1);
         border-radius: 20px;
         padding: 20px;
         display: flex;
@@ -196,7 +196,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        color: #fbbf24;
+        color: var(--color-amber-400);
         font-size: 1.5rem;
     }
 
@@ -212,7 +212,7 @@
     }
 
     .place-addr {
-        color: #9ca3af;
+        color: var(--text-tertiary);
         font-size: 0.85rem;
     }
 
@@ -248,7 +248,7 @@
 
     .admin-btn.edit {
         background: #2d2d2d;
-        color: #9ca3af;
+        color: var(--text-tertiary);
         border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
@@ -299,8 +299,8 @@
     }
 
     .detail-map-btn.google {
-        background-color: #ffffff;
-        color: #333333;
+        background-color: var(--text-primary);
+        color: var(--bg-surface-3)333;
     }
 
     .detail-map-btn:hover {

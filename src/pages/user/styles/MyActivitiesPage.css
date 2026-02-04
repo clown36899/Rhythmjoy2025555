@@ -2,7 +2,7 @@
 
 .my-activities-container {
     min-height: 100vh;
-    background-color: #000;
+    background-color: var(--bg-base);
     padding-bottom: calc(80px + env(safe-area-inset-bottom));
 }
 
@@ -32,7 +32,7 @@
     border: none;
     cursor: pointer;
     font-size: 13px;
-    color: #9ca3af;
+    color: var(--text-tertiary);
     /* gray-400 */
     transition: color 0.2s, border-bottom 0.2s;
     border-bottom: 2px solid transparent;
@@ -50,16 +50,16 @@
 }
 
 .activity-tab-btn.active {
-    color: #3b82f6;
+    color: var(--color-blue-500);
     /* blue-500 */
-    border-bottom-color: #3b82f6;
+    border-bottom-color: var(--color-blue-500);
 }
 
 /* Empty State */
 .activity-empty-state {
     text-align: center;
     padding: 80px 0;
-    color: #6b7280;
+    color: var(--text-muted);
     /* gray-500 */
 }
 
@@ -163,7 +163,7 @@
     width: 100%;
     max-width: none;
     margin-bottom: 12px;
-    background: #252525;
+    background: var(--bg-card);
     border-radius: 12px;
     overflow: hidden;
 }
@@ -186,27 +186,27 @@
     font-size: 14px;
     font-weight: bold;
     margin-bottom: 4px;
-    color: #fff;
+    color: var(--text-primary);
 }
 
 .evt-card-meta {
     font-size: 12px;
-    color: #999;
+    color: var(--text-tertiary);
 }
 
 .evt-card-date {
     font-size: 11px;
-    color: #00ddff;
+    color: var(--color-cyan-400);
     margin-top: 4px;
 }
 /* Tab Content & Icons */
 .activity-tab-content.stats-view { padding: 0 12px; }
 .section-icon { margin-right: 6px; }
-.section-icon.icon-stats { color: #22c55e; }
-.section-icon.icon-events { color: #00ddff; }
-.section-icon.icon-groups { color: #a855f7; }
-.section-icon.icon-schedules { color: #10b981; }
-.section-icon.icon-posts { color: #ffaa00; }
+.section-icon.icon-stats { color: var(--color-green-500); }
+.section-icon.icon-events { color: var(--color-cyan-400); }
+.section-icon.icon-groups { color: var(--color-purple-500); }
+.section-icon.icon-schedules { color: var(--color-emerald-500); }
+.section-icon.icon-posts { color: var(--color-orange-500); }
 
 /* Card Images & Icons */
 .my-activities-content .group-wide-image img { border-radius: 8px; }

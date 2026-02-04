@@ -25,7 +25,7 @@
 }
 
 .live-badge {
-    background: linear-gradient(90deg, #ff4b2b, #ff416c);
+    background: linear-gradient(90deg, var(--color-red-500), #ff416c);
     color: white;
     font-size: min(2vw, 0.62rem);
     font-weight: 900;
@@ -72,7 +72,7 @@
     flex: 0 0 120px;
     max-width: 120px;
     height: 200px;
-    /* background: #1e1e1e; */
+    /* background: var(--bg-card); */
     /* border-radius: 14px; */
     /* overflow: hidden; Removed to allow badge overflow */
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
@@ -99,7 +99,7 @@
     /* border-radius: 14px; */
 
     position: relative;
-    background-color: #262626;
+    background-color: var(--bg-surface-1);
     overflow: hidden;
 }
 
@@ -121,9 +121,9 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #525252;
+    color: var(--text-secondary);
     font-size: 2.5rem;
-    background: linear-gradient(45deg, #1f1f1f, #2a2a2a);
+    background: linear-gradient(45deg, var(--bg-card), var(--bg-surface-2));
 }
 
 /* Gradient Overlay for Image */
@@ -150,7 +150,7 @@
     background: rgba(0, 0, 0, 0.7);
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
-    color: #ffd700;
+    color: var(--color-yellow-400);
     font-size: 0.65rem;
     font-weight: 700;
     padding: 2px 6px;
@@ -168,7 +168,7 @@
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    background: #1e1e1e;
+    background: var(--bg-card);
     z-index: 2;
     /* border-top: 1px solid rgba(255, 255, 255, 0.03); */
     gap: 4px;
@@ -191,7 +191,7 @@
 
 .today-card-place {
     font-size: 0.7rem;
-    color: #ffffff;
+    color: var(--text-primary);
     margin: 0;
     display: flex;
     align-items: center;
@@ -211,7 +211,7 @@
 }
 
 .today-card-place i {
-    color: #fbbf24;
+    color: var(--color-amber-400);
     font-size: 0.8rem;
     filter: none;
 }
@@ -224,7 +224,7 @@
     margin-left: auto;
     background: none;
     border: 1px solid rgba(255, 255, 255, 0.2);
-    color: #9ca3af;
+    color: var(--text-tertiary);
     font-size: 0.8rem;
     padding: 6px 12px;
     border-radius: 8px;
@@ -242,7 +242,7 @@
 }
 
 .admin-add-group-btn-small i {
-    color: #fbbf24;
+    color: var(--color-amber-400);
 }
 
 /* Mobile Adjustments */

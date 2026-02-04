@@ -317,7 +317,7 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                         {/* LIST VIEW */}
                         {viewType === 'list' && (
                             isLoading ? (
-                                <div style={{ padding: '40px 0', textAlign: 'center', color: '#888' }}>
+                                <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--text-muted)' }}>
                                     <i className="ri-loader-4-line ri-spin" style={{ fontSize: '2rem', marginBottom: '8px', display: 'block' }}></i>
                                     <div>일정을 불러오는 중...</div>
                                 </div>
@@ -445,7 +445,7 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                                     ))}
                                 </div>
                             ) : (
-                                <div style={{ color: '#666', textAlign: 'center', padding: '40px 0' }}>
+                                <div style={{ color: 'var(--text-muted)', textAlign: 'center', padding: '40px 0' }}>
                                     해당 날짜의 일정이 없습니다.
                                 </div>
                             )
@@ -466,7 +466,7 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                         border: '1px solid rgba(59, 130, 246, 0.3)',
                         borderRadius: '8px',
                         fontSize: '0.85rem',
-                        color: '#93c5fd',
+                        color: 'var(--color-blue-300)',
                         lineHeight: '1.4',
                         display: 'flex',
                         alignItems: 'center',
@@ -492,7 +492,7 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                                         {dayItems.length > 0 ? (
                                             dayItems.map(renderRegularCompactCard)
                                         ) : (
-                                            <div className="kanban-empty" style={{ textAlign: 'center', color: '#444', fontSize: '12px' }}>없음</div>
+                                            <div className="kanban-empty" style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '12px' }}>없음</div>
                                         )}
                                     </div>
                                 </div>

@@ -11,6 +11,12 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
+  <script>
+    (function () {
+      var savedTheme = localStorage.getItem('theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    })();
+  </script>
 
   <!-- PWA 설정 - 동적 manifest -->
   <link rel="manifest" id="manifest-placeholder" />
@@ -339,7 +345,7 @@
   </style>
 </head>
 
-<body style="background-color:--bg-color; margin: 0; padding: 0;">
+<body style="margin: 0; padding: 0;">
   <div id="google_translate_element" style="display: none;"></div>
 
   <div id="root"></div>

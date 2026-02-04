@@ -26,7 +26,7 @@
 .all-social-title-menu {
     font-size: min(4.2vw, 1.3rem);
     font-weight: 700;
-    color: #fff;
+    color: var(--text-primary);
     margin: 0;
     display: flex;
     align-items: center;
@@ -50,7 +50,7 @@
 }
 
 .menu-item.active {
-    color: #fff;
+    color: var(--text-primary);
     font-weight: 800;
 }
 
@@ -84,7 +84,7 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    color: #fbbf24;
+    color: var(--color-amber-400);
     font-size: 1.2rem;
     transition: all 0.2s ease;
     flex-shrink: 0;
@@ -215,7 +215,7 @@
 .all-social-time {
     font-size: 0.85rem;
     font-weight: 700;
-    color: #fff;
+    color: var(--text-primary);
     text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
@@ -233,14 +233,14 @@
             rgb(0 0 0) 97%
             /* 완전히 검정 */
         );
-    /* background: linear-gradient(to bottom, transparent -296%, #000000 100%); */
+    /* background: linear-gradient(to bottom, transparent -296%, var(--bg-base) 100%); */
     flex-direction: column;
     gap: 4px;
 }
 
 .all-social-place {
     font-size: 0.75rem;
-    color: #ffffff;
+    color: var(--text-primary);
     font-weight: 500;
     display: flex;
     align-items: center;

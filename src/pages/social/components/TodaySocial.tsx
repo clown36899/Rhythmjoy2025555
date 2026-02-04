@@ -112,7 +112,7 @@ const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll, on
     return (
         <section className="today-social-container">
             <div className="section-title-area" style={{ display: 'flex', alignItems: 'center', width: '100%', minWidth: 0, overflow: 'hidden' }}>
-                <i className="ri-fire-fill" style={{ color: '#ff4b2b', fontSize: 'min(4vw, 1.15rem)', flexShrink: 1 }}></i>
+                <i className="ri-fire-fill" style={{ color: 'var(--color-red-500)', fontSize: 'min(4vw, 1.15rem)', flexShrink: 1 }}></i>
                 <h2 className="section-title manual-label-wrapper" style={{ flexShrink: 1, minWidth: 0, overflow: 'hidden', justifyContent: 'flex-start' }}>
                     <span className="translated-part">Today Schedule ({new Date().toLocaleDateString('ko-KR', { weekday: 'short' })} {new Date().getDate()}일)</span>
                     <span className="fixed-part ko" translate="no">오늘 일정 ({new Date().toLocaleDateString('ko-KR', { weekday: 'short' })} {new Date().getDate()}일)</span>

@@ -40,7 +40,7 @@ export const EventCard = memo(({
   className = "", // Destructure className
 }: EventCardProps) => {
   const highlightBorderColor =
-    event.category === "class" ? "#9333ea" : "#2563eb";
+    event.category === "class" ? "var(--color-purple-600)" : "var(--color-blue-600)";
 
   // 1. Try explicit thumbnail
   // 2. Use optimized card thumbnail helper

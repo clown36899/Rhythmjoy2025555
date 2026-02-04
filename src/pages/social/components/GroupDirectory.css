@@ -17,7 +17,7 @@
 .count-badge {
     font-size: 0.8rem;
     color: #6b7280;
-    background: #1e1e1e;
+    background: var(--bg-card);
     padding: 4px 10px;
     border-radius: 20px;
     border: 1px solid rgba(255, 255, 255, 0.05);
@@ -43,7 +43,7 @@
 
 .group-wide-card:hover {
     transform: translateY(-4px);
-    background: #222;
+    background: var(--bg-surface-1);
     border-color: rgba(251, 191, 36, 0.2);
     box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
 }
@@ -53,7 +53,7 @@
     width: 120px;
     min-width: 120px;
     height: 140px;
-    background-color: #333;
+    background-color: var(--bg-surface-3);
 }
 
 .group-wide-image img {
@@ -117,13 +117,13 @@
 }
 
 .fav-btn.active {
-    color: #fbbf24;
+    color: var(--color-amber-400);
     transform: scale(1.1);
 }
 
 .group-wide-desc {
     font-size: 0.85rem;
-    color: #9ca3af;
+    color: var(--text-tertiary);
     margin: 0;
     line-height: 1.5;
     display: -webkit-box;
@@ -160,7 +160,7 @@
 }
 
 .view-calendar-btn {
-    background: #fbbf24;
+    background: var(--color-amber-400);
     color: #1a1a1a;
     border: none;
 }
@@ -178,7 +178,7 @@
 .admin-edit-btn {
     background: #2d2d2d;
     border: 1px solid rgba(255, 255, 255, 0.05);
-    color: #9ca3af;
+    color: var(--text-tertiary);
 }
 
 .admin-edit-btn:hover {
@@ -229,7 +229,7 @@
     border-radius: 100px;
     background: #1a1a1a;
     border: 1px solid rgba(255, 255, 255, 0.05);
-    color: #9ca3af;
+    color: var(--text-tertiary);
     font-size: clamp(0.1rem, 3.2vw, 1rem);
     font-weight: 700;
     cursor: pointer;
@@ -246,7 +246,7 @@
 }
 
 .group-tab.active {
-    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    background: linear-gradient(135deg, var(--color-amber-400), var(--color-amber-500));
     color: #1a1a1a;
     border: none;
     box-shadow: 0 4px 12px rgba(245, 158, 11, 0.2);
@@ -276,7 +276,7 @@
     left: 8px;
     background: rgba(0, 0, 0, 0.6);
     backdrop-filter: blur(4px);
-    color: #fbbf24;
+    color: var(--color-amber-400);
     font-size: 0.7rem;
     font-weight: 700;
     padding: 4px 8px;
@@ -289,7 +289,7 @@
     position: absolute;
     top: 8px;
     right: 8px;
-    background: #ef4444;
+    background: var(--color-red-500);
     color: white;
     font-size: 0.7rem;
     font-weight: 800;
@@ -315,14 +315,14 @@
 }
 
 .view-recruit-btn {
-    background: #2563eb;
+    background: var(--color-blue-600);
     color: white;
     border: none;
     box-shadow: 0 2px 6px rgba(37, 99, 235, 0.3);
 }
 
 .view-recruit-btn:hover {
-    background: #1d4ed8;
+    background: var(--color-blue-700);
     transform: translateY(-1px);
     box-shadow: 0 4px 10px rgba(37, 99, 235, 0.4);
 }

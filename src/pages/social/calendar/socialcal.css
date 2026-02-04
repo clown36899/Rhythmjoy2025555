@@ -43,7 +43,7 @@
 }
 
 .socialcal-loading-text {
-  color: #9ca3af;
+  color: var(--text-tertiary);
 }
 
 /* ===== 달력 헤더 ===== */
@@ -65,7 +65,7 @@
 }
 
 .socialcal-nav-btn:hover {
-  background-color: #374151;
+  background-color: var(--bg-surface-2);
 }
 
 .socialcal-month-title {
@@ -90,15 +90,15 @@
 }
 
 .socialcal-weekday-sun {
-  color: #ef4444;
+  color: var(--color-red-500);
 }
 
 .socialcal-weekday-sat {
-  color: #3b82f6;
+  color: var(--color-blue-500);
 }
 
 .socialcal-weekday-normal {
-  color: #9ca3af;
+  color: var(--text-tertiary);
 }
 
 /* ===== 달력 그리드 ===== */
@@ -114,7 +114,7 @@
 
 .socialcal-day-cell {
   aspect-ratio: 1;
-  background-color: #1f2937;
+  background-color: var(--bg-surface-1);
   border-radius: var(--radius-lg);
   padding: 0.25rem;
   cursor: pointer;
@@ -123,11 +123,11 @@
 }
 
 .socialcal-day-cell:hover {
-  background-color: #374151;
+  background-color: var(--bg-surface-2);
 }
 
 .socialcal-day-cell-today {
-  border: 2px solid #10b981;
+  border: 2px solid var(--color-emerald-500);
 }
 
 .socialcal-day-number {
@@ -137,11 +137,11 @@
 }
 
 .socialcal-day-number-sun {
-  color: #ef4444;
+  color: var(--color-red-500);
 }
 
 .socialcal-day-number-sat {
-  color: #3b82f6;
+  color: var(--color-blue-500);
 }
 
 .socialcal-day-number-normal {
@@ -157,7 +157,7 @@
 
 .socialcal-event-item {
   font-size: 8px;
-  background-color: #16a34a;
+  background-color: var(--color-green-600);
   color: white;
   padding: 0 0.25rem;
   border-radius: 0.125rem;
@@ -168,7 +168,7 @@
 
 .socialcal-more-events {
   font-size: 8px;
-  color: #9ca3af;
+  color: var(--text-tertiary);
   padding: 0 0.25rem;
 }
 
@@ -190,13 +190,13 @@
 }
 
 .socialcal-event-list-empty {
-  color: #9ca3af;
+  color: var(--text-tertiary);
   text-align: center;
   padding: 2rem;
 }
 
 .socialcal-event-card {
-  background-color: #1f2937;
+  background-color: var(--bg-surface-1);
   border-radius: var(--radius-lg);
   padding: 0.75rem;
 }
@@ -215,22 +215,22 @@
 
 .socialcal-event-date {
   font-size: 0.75rem;
-  color: #9ca3af;
+  color: var(--text-tertiary);
 }
 
 .socialcal-event-place {
   font-size: 0.875rem;
-  color: #10b981;
+  color: var(--color-emerald-500);
   margin-bottom: 0.25rem;
 }
 
 .socialcal-event-time {
   font-size: 0.75rem;
-  color: #9ca3af;
+  color: var(--text-tertiary);
 }
 
 .socialcal-event-description {
   font-size: 0.75rem;
-  color: #d1d5db;
+  color: var(--text-secondary);
   margin-top: 0.5rem;
 }

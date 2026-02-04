@@ -71,7 +71,7 @@
     border-radius: 50%;
     background: #2d2d2d;
     border: none;
-    color: #9ca3af;
+    color: var(--text-tertiary);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -90,7 +90,7 @@
 .calendar-month-selector button {
     background: none;
     border: none;
-    color: #fbbf24;
+    color: var(--color-amber-400);
     font-size: 1.5rem;
     cursor: pointer;
 }
@@ -137,7 +137,7 @@
 }
 
 .calendar-cell.selected {
-    background: var(--primary-color, #fbbf24) !important;
+    background: var(--primary-color, var(--color-amber-400)) !important;
 }
 
 .calendar-cell.selected .date-num {
@@ -151,7 +151,7 @@
 .date-num {
     font-size: 0.95rem;
     font-weight: 600;
-    color: #d1d5db;
+    color: var(--text-secondary);
 }
 
 .calendar-cell.empty .date-num {
@@ -169,7 +169,7 @@
     width: 4px;
     height: 4px;
     border-radius: 50%;
-    background-color: #fbbf24;
+    background-color: var(--color-amber-400);
 }
 
 /* 일일 일정 리스트 */
@@ -192,13 +192,13 @@
 .info-label {
     font-size: 0.9rem;
     font-weight: 700;
-    color: #9ca3af;
+    color: var(--text-tertiary);
 }
 
 .event-count-badge {
     font-size: 0.75rem;
     background: rgba(251, 191, 36, 0.2);
-    color: #fbbf24;
+    color: var(--color-amber-400);
     padding: 2px 8px;
     border-radius: 20px;
     font-weight: 800;
@@ -214,7 +214,7 @@
 .daily-schedule-item {
     display: flex;
     align-items: center;
-    background: #262626;
+    background: var(--bg-surface-1);
     padding: 12px 16px;
     border-radius: 16px;
     gap: 12px;
@@ -234,7 +234,7 @@
     height: 40px;
     border-radius: 8px;
     overflow: hidden;
-    background: #333;
+    background: var(--bg-surface-3);
     flex-shrink: 0;
     display: flex;
     align-items: center;
@@ -255,7 +255,7 @@
 .daily-item-time {
     font-size: 0.8rem;
     font-weight: 800;
-    color: #fbbf24;
+    color: var(--color-amber-400);
     min-width: 45px;
 }
 
@@ -283,7 +283,7 @@
 .back-to-month-btn {
     background: none;
     border: none;
-    color: #9ca3af;
+    color: var(--text-tertiary);
     font-size: 0.9rem;
     font-weight: 700;
     cursor: pointer;
@@ -315,7 +315,7 @@
 
 .calendar-footer-legend p i {
     font-size: 1rem;
-    color: #fbbf24;
+    color: var(--color-amber-400);
 }
 
 .daily-item-place {

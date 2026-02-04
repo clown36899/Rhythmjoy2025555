@@ -335,7 +335,7 @@ export default function ProfileEditModal({
             }}>
                 <div className="userreg-header" style={{ padding: '28px 24px 20px' }}>
                     <div className="userreg-header-top">
-                        <h2 className="userreg-title" style={{ fontSize: '1.35rem', color: '#fff', letterSpacing: '-0.5px' }}>내 정보 수정</h2>
+                        <h2 className="userreg-title" style={{ fontSize: '1.35rem', color: 'var(--color-white)', letterSpacing: '-0.5px' }}>내 정보 수정</h2>
                         <button onClick={onClose} className="userreg-close-btn" style={{
                             top: '24px',
                             right: '24px',
@@ -360,7 +360,7 @@ export default function ProfileEditModal({
                                 height: '106px',
                                 borderRadius: '50%',
                                 overflow: 'hidden',
-                                backgroundColor: '#27272a',
+                                backgroundColor: 'var(--bg-surface-2)',
                                 cursor: 'pointer',
                                 position: 'relative',
                                 border: '3px solid rgba(255,255,255,0.15)',
@@ -373,7 +373,7 @@ export default function ProfileEditModal({
                             {previewImage ? (
                                 <img src={previewImage} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                             ) : (
-                                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555' }}>
+                                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-disabled)' }}>
                                     <i className="ri-user-line" style={{ fontSize: '44px' }}></i>
                                 </div>
                             )}
@@ -402,9 +402,9 @@ export default function ProfileEditModal({
                                     marginTop: '8px',
                                     padding: '4px 12px',
                                     fontSize: '12px',
-                                    color: '#ef4444',
+                                    color: 'var(--color-red-500)',
                                     backgroundColor: 'transparent',
-                                    border: '1px solid #ef4444',
+                                    border: '1px solid var(--color-red-500)',
                                     borderRadius: '4px',
                                     cursor: 'pointer'
                                 }}
@@ -446,7 +446,7 @@ export default function ProfileEditModal({
                                 className="userreg-submit-btn"
                                 style={{
                                     backgroundColor: 'rgba(239, 68, 68, 0.08)',
-                                    color: '#ef4444',
+                                    color: 'var(--color-red-500)',
                                     border: '1px solid rgba(239, 68, 68, 0.2)',
                                     flex: 1,
                                     fontSize: '0.92rem',

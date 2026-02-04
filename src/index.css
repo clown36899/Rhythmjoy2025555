@@ -12,7 +12,7 @@
   /* 모바일 전용: 650px 고정 - 가로 스크롤 방지 */
   html,
   body {
-    background-color: #000000;
+    background-color: var(--bg-base);
     max-width: 650px;
     /* !important removed to allow media query override */
     margin: 0 auto;

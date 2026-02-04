@@ -26,7 +26,7 @@
 }
 
 .pcal-back-btn:hover {
-  background-color: #374151;
+  background-color: var(--bg-surface-2);
 }
 
 /* 요일별 스케줄 영역 */
@@ -42,16 +42,16 @@
 
 /* 요일 카드 */
 .pcal-day-card {
-  background-color: #1f2937;
+  background-color: var(--bg-surface-1);
   border-radius: 0.75rem;
   overflow: hidden;
-  border: 1px solid #374151;
+  border: 1px solid var(--bg-surface-2);
 }
 
 .pcal-day-header {
   padding: 0.75rem 1rem;
-  background-color: #374151;
-  color: #9ca3af;
+  background-color: var(--bg-surface-2);
+  color: var(--text-tertiary);
   font-weight: 600;
   font-size: 0.875rem;
   text-align: center;
@@ -89,7 +89,7 @@
 }
 
 .pcal-schedule-desc {
-  color: #9ca3af;
+  color: var(--text-tertiary);
   font-size: 0.875rem;
   margin-bottom: 0.5rem;
   line-height: 1.5;
@@ -99,7 +99,7 @@
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  color: #9ca3af;
+  color: var(--text-tertiary);
   font-size: 0.875rem;
   margin-bottom: 0.5rem;
 }
@@ -125,7 +125,7 @@
   gap: 0.5rem;
   margin-top: 0.75rem;
   padding-top: 0.75rem;
-  border-top: 1px solid #374151;
+  border-top: 1px solid var(--bg-surface-2);
 }
 
 .pcal-action-btn {
@@ -142,12 +142,12 @@
 }
 
 .pcal-action-edit {
-  background-color: #3b82f6;
+  background-color: var(--color-blue-500);
   color: white;
 }
 
 .pcal-action-edit:hover {
-  background-color: #2563eb;
+  background-color: var(--color-blue-600);
 }
 
 .pcal-action-delete {
@@ -173,7 +173,7 @@
 
 .pcal-add-btn {
   padding: 0.5rem 1rem;
-  background-color: #16a34a;
+  background-color: var(--color-green-600);
   color: white;
   border-radius: 0.375rem;
   font-size: 0.875rem;
@@ -185,7 +185,7 @@
 }
 
 .pcal-add-btn:hover {
-  background-color: #15803d;
+  background-color: var(--color-green-700);
 }
 
 .pcal-place-address {

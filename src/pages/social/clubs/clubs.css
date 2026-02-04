@@ -52,11 +52,11 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #1f2937;
+  background-color: var(--bg-surface-1);
 }
 
 .clubs-loading-text {
-  color: #9ca3af;
+  color: var(--text-tertiary);
 }
 
 /* ===== 장소 등록 버튼 ===== */
@@ -65,7 +65,7 @@
   top: 1rem;
   right: 1rem;
   z-index: var(--z-10);
-  background-color: #10b981;
+  background-color: var(--color-emerald-500);
   color: white;
   padding: 0.5rem 1rem;
   border-radius: var(--radius-lg);
@@ -76,7 +76,7 @@
 }
 
 .clubs-add-btn:hover {
-  background-color: #059669;
+  background-color: var(--color-emerald-600);
 }
 
 /* ===== 장소 정보 카드 ===== */
@@ -86,7 +86,7 @@
   left: 1rem;
   right: 1rem;
   z-index: 50;
-  background-color: #111827;
+  background-color: var(--bg-base);
   border-radius: var(--radius-lg);
   padding: var(--spacing-4);
   box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
@@ -106,13 +106,13 @@
 }
 
 .clubs-place-address {
-  color: #9ca3af;
+  color: var(--text-tertiary);
   font-size: 0.875rem;
   margin-top: 0.25rem;
 }
 
 .clubs-close-btn {
-  color: #9ca3af;
+  color: var(--text-tertiary);
   cursor: pointer;
   border: none;
   background: none;
@@ -141,25 +141,25 @@
 }
 
 .clubs-action-btn-copy {
-  background-color: #1f2937;
+  background-color: var(--bg-surface-1);
 }
 
 .clubs-action-btn-copy:hover {
-  background-color: #374151;
+  background-color: var(--bg-surface-2);
 }
 
 .clubs-action-btn-map {
-  background-color: #16a34a;
+  background-color: var(--color-green-600);
 }
 
 .clubs-action-btn-map:hover {
-  background-color: #15803d;
+  background-color: var(--color-green-700);
 }
 
 .clubs-action-btn-share {
-  background-color: #2563eb;
+  background-color: var(--color-blue-600);
 }
 
 .clubs-action-btn-share:hover {
-  background-color: #1d4ed8;
+  background-color: var(--color-blue-700);
 }

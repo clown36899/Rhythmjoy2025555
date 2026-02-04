@@ -41,14 +41,14 @@
 .srm-title {
     font-size: 18px;
     font-weight: 700;
-    color: #fff;
+    color: var(--text-primary);
     margin: 0;
 }
 
 .srm-close-btn {
     background: transparent;
     border: none;
-    color: #888;
+    color: var(--text-muted);
     font-size: 24px;
     cursor: pointer;
     padding: 4px;
@@ -61,7 +61,7 @@
 
 .srm-close-btn:hover {
     background: rgba(255, 255, 255, 0.1);
-    color: #fff;
+    color: var(--text-primary);
 }
 
 .srm-body {
@@ -71,7 +71,7 @@
 }
 
 .srm-desc {
-    color: #ccc;
+    color: var(--text-secondary);
     font-size: 14px;
     margin: 0 0 20px 0;
     line-height: 1.5;
@@ -83,7 +83,7 @@
 
 .srm-section-title {
     font-size: 13px;
-    color: #888;
+    color: var(--text-muted);
     margin-bottom: 10px;
     font-weight: 600;
     text-transform: uppercase;
@@ -102,7 +102,7 @@
     background: rgba(255, 255, 255, 0.03);
     border: 1px dashed rgba(255, 255, 255, 0.2);
     border-radius: 12px;
-    color: #ccc;
+    color: var(--text-secondary);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -116,12 +116,12 @@
 .srm-create-btn:hover {
     background: rgba(255, 255, 255, 0.08);
     border-color: rgba(255, 255, 255, 0.4);
-    color: #fff;
+    color: var(--text-primary);
 }
 
 .srm-create-btn i {
     font-size: 20px;
-    color: #fbbf24;
+    color: var(--color-amber-400);
     /* Amber color for emphasis */
 }
 

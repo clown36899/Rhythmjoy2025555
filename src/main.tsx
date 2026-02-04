@@ -19,6 +19,7 @@ if (typeof window !== 'undefined' && /iPhone|iPad|iPod/i.test(navigator.userAgen
 import 'mobile-drag-drop/default.css';
 
 import { PageActionProvider } from './contexts/PageActionContext';
+import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { BoardDataProvider } from './contexts/BoardDataContext';
 import { ModalProvider } from './contexts/ModalContext';
@@ -67,9 +68,11 @@ const router = createBrowserRouter([
     path: "/billboard/:userId",
     element: (
       <Suspense fallback={<BillboardFallback />}>
-        <QueryClientProvider client={queryClient}>
-          <BillboardPage />
-        </QueryClientProvider>
+        <ThemeProvider>
+          <QueryClientProvider client={queryClient}>
+            <BillboardPage />
+          </QueryClientProvider>
+        </ThemeProvider>
       </Suspense>
     ),
   },
@@ -77,19 +80,21 @@ const router = createBrowserRouter([
     path: "/billboard/:userId/preview",
     element: (
       <Suspense fallback={<BillboardFallback />}>
-        <AuthProvider>
-          <PageActionProvider>
-            <QueryClientProvider client={queryClient}>
-              <BoardDataProvider>
-                <ModalProvider>
-                  <GlobalPlayerProvider>
-                    <BillboardPreviewPage />
-                  </GlobalPlayerProvider>
-                </ModalProvider>
-              </BoardDataProvider>
-            </QueryClientProvider>
-          </PageActionProvider>
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <PageActionProvider>
+              <QueryClientProvider client={queryClient}>
+                <BoardDataProvider>
+                  <ModalProvider>
+                    <GlobalPlayerProvider>
+                      <BillboardPreviewPage />
+                    </GlobalPlayerProvider>
+                  </ModalProvider>
+                </BoardDataProvider>
+              </QueryClientProvider>
+            </PageActionProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </Suspense>
     ),
   },
@@ -97,37 +102,41 @@ const router = createBrowserRouter([
     path: "/billboard/:userId/preview/catalog",
     element: (
       <Suspense fallback={<BillboardFallback />}>
-        <AuthProvider>
-          <PageActionProvider>
-            <QueryClientProvider client={queryClient}>
-              <BoardDataProvider>
-                <ModalProvider>
-                  <GlobalPlayerProvider>
-                    <BillboardCatalogPage />
-                  </GlobalPlayerProvider>
-                </ModalProvider>
-              </BoardDataProvider>
-            </QueryClientProvider>
-          </PageActionProvider>
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <PageActionProvider>
+              <QueryClientProvider client={queryClient}>
+                <BoardDataProvider>
+                  <ModalProvider>
+                    <GlobalPlayerProvider>
+                      <BillboardCatalogPage />
+                    </GlobalPlayerProvider>
+                  </ModalProvider>
+                </BoardDataProvider>
+              </QueryClientProvider>
+            </PageActionProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </Suspense>
     ),
   },
   {
     path: "/",
     element: (
-      <AuthProvider>
-        <PageActionProvider>
-          <BoardDataProvider>
-            <ModalProvider>
-              <GlobalErrorBoundary>
-                <App />
-                <ModalRegistry />
-              </GlobalErrorBoundary>
-            </ModalProvider>
-          </BoardDataProvider>
-        </PageActionProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <PageActionProvider>
+            <BoardDataProvider>
+              <ModalProvider>
+                <GlobalErrorBoundary>
+                  <App />
+                  <ModalRegistry />
+                </GlobalErrorBoundary>
+              </ModalProvider>
+            </BoardDataProvider>
+          </PageActionProvider>
+        </AuthProvider>
+      </ThemeProvider>
     ),
     children: [
       { path: "/", element: <HomePageV2 /> },

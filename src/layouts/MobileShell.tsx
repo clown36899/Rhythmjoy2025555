@@ -15,6 +15,7 @@ import { useGlobalPlayer } from '../contexts/GlobalPlayerContext';
 import { PlaylistModal } from '../pages/learning/components/PlaylistModal';
 import LoginModal from '../components/LoginModal';
 import NotificationSettingsModal from '../components/NotificationSettingsModal';
+import { ThemeToggle } from '../components/ThemeToggle';
 import '../styles/components/MobileShell.css';
 
 interface MobileShellProps {
@@ -451,6 +452,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
             </div>
 
             <div className="header-right-buttons">
+              <ThemeToggle />
               <button
                 onClick={() => {
                   const nextLang = i18n.language === 'ko' ? 'en' : 'ko';

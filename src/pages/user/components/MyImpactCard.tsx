@@ -33,9 +33,9 @@ export default function MyImpactCard({ posts, events, initialExpanded = false }:
 
     // UI Props
     const impactLevel = useMemo(() => {
-        if (stats.totalViews > 10000) return { color: "#a855f7" }; // Purple
-        if (stats.totalViews > 1000) return { color: "#00ddff" }; // Cyan
-        return { color: "#22c55e" }; // Green
+        if (stats.totalViews > 10000) return { color: "var(--color-purple-500)" }; // Purple
+        if (stats.totalViews > 1000) return { color: "var(--color-cyan-400)" }; // Cyan
+        return { color: "var(--color-green-500)" }; // Green
     }, [stats.totalViews]);
 
     // Top Lists
@@ -44,7 +44,7 @@ export default function MyImpactCard({ posts, events, initialExpanded = false }:
 
     // 3. Exposure Status Logic (Matching Main Screen Filters)
     const getExposureStatus = (item: any, type: 'post' | 'event') => {
-        if (type === 'post') return { label: '노출 중', color: '#22c55e', isActive: true };
+        if (type === 'post') return { label: '노출 중', color: 'var(--color-green-500)', isActive: true };
 
         const today = new Date().toLocaleDateString('en-CA'); // YYYY-MM-DD local
         let startDate = item.start_date || item.date;
@@ -59,20 +59,20 @@ export default function MyImpactCard({ posts, events, initialExpanded = false }:
         const isVisible = !(today > (startDate || ''));
 
         return isVisible
-            ? { label: '노출 중', color: '#22c55e', isActive: true }
-            : { label: '종료됨', color: '#71717a', isActive: false };
+            ? { label: '노출 중', color: 'var(--color-green-500)', isActive: true }
+            : { label: '종료됨', color: 'var(--text-disabled)', isActive: false };
     };
 
     return (
         <div className="mic-card" onClick={() => setShowDetail(!showDetail)}>
             <style>{`
                 .mic-card {
-                    background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
+                    background: var(--bg-card);
                     border-radius: 16px;
                     padding: 20px;
                     margin-bottom: 24px;
                     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-                    border: 1px solid rgba(255,255,255,0.05);
+                    border: 1px solid var(--border-glass);
                     position: relative;
                     overflow: hidden;
                     cursor: pointer;
@@ -102,7 +102,7 @@ export default function MyImpactCard({ posts, events, initialExpanded = false }:
                     margin: 0;
                     font-size: 18px;
                     font-weight: 700;
-                    color: #fff;
+                    color: var(--text-primary);
                     display: flex;
                     align-items: center;
                     gap: 8px;
@@ -110,12 +110,12 @@ export default function MyImpactCard({ posts, events, initialExpanded = false }:
 
                 .mic-subtitle {
                     font-size: 12px;
-                    color: #9ca3af;
+                    color: var(--text-tertiary);
                     margin-top: 4px;
                 }
 
                 .mic-arrow {
-                    color: #6b7280;
+                    color: var(--text-muted);
                     transition: transform 0.2s;
                 }
                 .mic-arrow.rotated { transform: rotate(180deg); }
@@ -128,7 +128,7 @@ export default function MyImpactCard({ posts, events, initialExpanded = false }:
                 }
 
                 .mic-stat-box {
-                    background: rgba(255,255,255,0.03);
+                    background: var(--bg-surface-2);
                     border-radius: 12px;
                     padding: 16px;
                     display: flex;
@@ -137,16 +137,16 @@ export default function MyImpactCard({ posts, events, initialExpanded = false }:
 
                 .mic-stat-label {
                     font-size: 11px;
-                    color: #9ca3af;
+                    color: var(--text-tertiary);
                     margin-bottom: 4px;
                 }
 
                 .mic-stat-val {
                     font-size: 24px;
                     font-weight: 700;
-                    color: #fff;
+                    color: var(--text-primary);
                 }
-                .mic-stat-val.pink { color: #ec4899; }
+                .mic-stat-val.pink { color: var(--color-pink-500); }
 
                 .mic-footer {
                     margin-top: 16px;
@@ -155,7 +155,7 @@ export default function MyImpactCard({ posts, events, initialExpanded = false }:
                     display: flex;
                     gap: 16px;
                     font-size: 11px;
-                    color: #6b7280;
+                    color: var(--text-muted);
                     justify-content: space-between;
                     align-items: center;
                 }
@@ -170,7 +170,7 @@ export default function MyImpactCard({ posts, events, initialExpanded = false }:
 
                 .mic-section-title {
                     font-size: 13px;
-                    color: #e5e7eb;
+                    color: var(--text-secondary);
                     margin-bottom: 10px;
                     display: flex;
                     align-items: center;
@@ -209,7 +209,7 @@ export default function MyImpactCard({ posts, events, initialExpanded = false }:
                 }
 
                 .mic-item-title {
-                    color: #fff;
+                    color: var(--text-primary);
                     white-space: nowrap;
                     overflow: hidden;
                     text-overflow: ellipsis;
@@ -222,12 +222,12 @@ export default function MyImpactCard({ posts, events, initialExpanded = false }:
                     gap: 12px;
                     font-size: 12px;
                 }
-                .mic-stat-view { color: #9ca3af; }
-                .mic-stat-like { color: #ec4899; }
+                .mic-stat-view { color: var(--text-tertiary); }
+                .mic-stat-like { color: var(--color-pink-500); }
 
                 .mic-empty {
                     font-size: 12px;
-                    color: #6b7280;
+                    color: var(--text-muted);
                 }
             `}</style>
 
@@ -287,7 +287,7 @@ export default function MyImpactCard({ posts, events, initialExpanded = false }:
                     {/* Top Posts */}
                     <div className="mic-section-margin">
                         <h4 className="mic-section-title">
-                            <i className="ri-fire-fill" style={{ color: '#ef4444' }}></i> 인기 게시글 TOP 5
+                            <i className="ri-fire-fill" style={{ color: 'var(--color-red-500)' }}></i> 인기 게시글 TOP 5
                         </h4>
                         {topPosts.length > 0 ? (
                             <ul className="mic-list">
@@ -318,7 +318,7 @@ export default function MyImpactCard({ posts, events, initialExpanded = false }:
                     {/* Top Events */}
                     <div>
                         <h4 className="mic-section-title">
-                            <i className="ri-calendar-event-fill" style={{ color: '#3b82f6' }}></i> 인기 행사 TOP 5
+                            <i className="ri-calendar-event-fill" style={{ color: 'var(--color-blue-500)' }}></i> 인기 행사 TOP 5
                         </h4>
                         {topEvents.length > 0 ? (
                             <ul className="mic-list">

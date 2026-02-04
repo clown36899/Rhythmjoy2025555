@@ -83,7 +83,7 @@
   padding: 0.5rem 0.75rem;
   font-size: 0.875rem;
   outline: none;
-  border: 1px solid #555;
+  border: 1px solid var(--border-primary);
 }
 
 .sed-form-input:focus {
@@ -103,7 +103,7 @@
   padding: 0.5rem 0.75rem;
   font-size: 0.875rem;
   outline: none;
-  border: 1px solid #555;
+  border: 1px solid var(--border-primary);
   cursor: pointer;
 }
 
@@ -120,7 +120,7 @@
   padding: 0.5rem 0.75rem;
   font-size: 0.875rem;
   outline: none;
-  border: 1px solid #555;
+  border: 1px solid var(--border-primary);
   resize: vertical;
   min-height: 120px;
   /* Ensure minimum height */
@@ -148,7 +148,7 @@
   border-radius: var(--radius-lg);
   padding: 0.5rem 0.75rem;
   font-size: 0.875rem;
-  border: 1px solid #555;
+  border: 1px solid var(--border-primary);
 }
 
 /* ===== 시간 입력 그리드 ===== */
@@ -277,7 +277,7 @@
 }
 
 .sed-submit-button {
-  background-color: #16a34a;
+  background-color: var(--color-green-600);
   color: white;
   padding: 0.5rem 1rem;
   border-radius: var(--radius-lg);
@@ -289,7 +289,7 @@
 }
 
 .sed-submit-button:hover {
-  background-color: #15803d;
+  background-color: var(--color-green-700);
 }
 
 .sed-submit-button:disabled {

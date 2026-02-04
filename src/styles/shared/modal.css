@@ -21,7 +21,7 @@
 
 /* 모달 컨테이너 - 메인 박스 */
 .modal-container {
-    background: var(--modal-bg-color, #1a1a1a);
+    background: var(--bg-card);
     border-radius: var(--border-radius-lg, 12px);
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     max-width: 90vw;
@@ -42,7 +42,7 @@
 .modal-title {
     font-size: 20px;
     font-weight: 600;
-    color: var(--text-primary, #fff);
+    color: var(--text-primary);
     margin: 0;
 }
 
@@ -62,7 +62,7 @@
 
 .modal-close-btn:hover {
     background: var(--hover-bg, rgba(255, 255, 255, 0.1));
-    color: var(--text-primary, #fff);
+    color: var(--text-primary);
 }
 
 .modal-close-icon {
@@ -98,17 +98,17 @@
 }
 
 .modal-btn-primary {
-    background: var(--primary-color, #3b82f6);
+    background: var(--color-blue-500);
     color: white;
 }
 
 .modal-btn-primary:hover {
-    background: var(--primary-hover, #2563eb);
+    background: var(--color-blue-600);
 }
 
 .modal-btn-secondary {
     background: var(--secondary-bg, rgba(255, 255, 255, 0.1));
-    color: var(--text-primary, #fff);
+    color: var(--text-primary);
 }
 
 .modal-btn-secondary:hover {

@@ -30,7 +30,7 @@
 .pl-card {
   display: flex;
   align-items: center;
-  background: var(--card-bg-color, #ffffff);
+  background: var(--card-bg-color, var(--text-primary));
   border-radius: 12px;
   padding: 0.75rem;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
@@ -67,7 +67,7 @@
   justify-content: center;
   flex-shrink: 0;
   margin-right: 1rem;
-  color: #ccc;
+  color: var(--text-secondary);
   font-size: 1.5rem;
 }
 
@@ -93,7 +93,7 @@
 
 .pl-card-address {
   font-size: 0.8rem;
-  color: #666;
+  color: var(--text-muted);
   margin: 0;
   white-space: nowrap;
   overflow: hidden;
@@ -102,7 +102,7 @@
 
 /* 우측 액션 아이콘 (작게) */
 .pl-card-arrow {
-  color: #ccc;
+  color: var(--text-secondary);
   font-size: 1.2rem;
   margin-left: 0.5rem;
 }

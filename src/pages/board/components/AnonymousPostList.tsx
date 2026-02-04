@@ -121,14 +121,14 @@ export default function AnonymousPostList({
                             <div className="board-post-meta">
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                     {/* Anonymous Avatar */}
-                                    <div className="anonymous-avatar" style={{ background: '#333', color: '#ccc' }}>
+                                    <div className="anonymous-avatar" style={{ backgroundColor: 'var(--bg-surface-2)', color: 'var(--color-white)' }}>
                                         <i className="ri-user-3-fill"></i>
                                     </div>
                                     <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.2' }}>
                                         <span className="board-post-meta-nickname">
                                             {post.author_nickname || '익명'}
                                             {post.is_notice && (
-                                                <i className="ri-megaphone-fill" style={{ marginLeft: '4px', color: '#fbbf24', verticalAlign: 'middle' }} title="공지사항"></i>
+                                                <i className="ri-megaphone-fill" style={{ marginLeft: '4px', color: 'var(--color-amber-400)', verticalAlign: 'middle' }} title="공지사항"></i>
                                             )}
                                         </span>
                                         <span style={{ fontSize: '0.75rem', opacity: 0.5 }}>
@@ -239,7 +239,7 @@ export default function AnonymousPostList({
                                             e.stopPropagation();
                                             handleEditClick(post);
                                         }}
-                                        style={{ color: '#9ca3af' }}
+                                        style={{ color: 'var(--text-muted)' }}
                                     >
                                         <i className="ri-pencil-line"></i>
                                         <span>수정</span>

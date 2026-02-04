@@ -5,7 +5,7 @@
 
 /* 기본 카드 컨테이너 */
 .card {
-    background: var(--card-bg, #1a1a1a);
+    background: var(--bg-card);
     border-radius: var(--border-radius-md, 10px);
     overflow: hidden;
     transition: all 0.3s ease;
@@ -24,7 +24,7 @@
     padding-top: 56.25%;
     /* 16:9 비율 */
     overflow: hidden;
-    background: var(--image-placeholder, #2a2a2a);
+    background: var(--bg-surface-2);
 }
 
 .card-image {
@@ -44,7 +44,7 @@
 .card-title {
     font-size: 16px;
     font-weight: 600;
-    color: var(--text-primary, #fff);
+    color: var(--text-primary);
     margin: 0 0 8px 0;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -90,13 +90,13 @@
 }
 
 .card-badge-primary {
-    background: var(--primary-color, #3b82f6);
+    background: var(--color-blue-500);
     color: white;
 }
 
 .card-badge-secondary {
     background: var(--secondary-bg, rgba(255, 255, 255, 0.1));
-    color: var(--text-primary, #fff);
+    color: var(--text-primary);
 }
 
 /* 그리드 레이아웃 */

@@ -56,6 +56,7 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
 
     // Swipe gesture handlers
     const minSwipeDistance = 50;
+
     const tabs: ('my' | 'scene' | 'monthly')[] = ['my', 'scene', 'monthly'];
 
     const onTouchStart = (e: React.TouchEvent) => {

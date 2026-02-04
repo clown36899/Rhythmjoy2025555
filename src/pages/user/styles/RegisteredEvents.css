@@ -30,13 +30,13 @@
         display: flex !important;
         flex-direction: row !important;
         align-items: center !important;
-        background: #1a1a1a !important;
+        background: var(--bg-card) !important;
         border-radius: 8px !important;
         overflow: hidden !important;
         height: 80px !important;
         width: 100% !important;
         max-width: none !important;
-        border: 1px solid #333 !important;
+        border: 1px solid var(--border-default) !important;
         margin-bottom: 0 !important;
         padding: 0 !important;
         flex: none !important;
@@ -84,7 +84,7 @@
         line-clamp: 1 !important;
         -webkit-box-orient: vertical !important;
         overflow: hidden !important;
-        color: #eee !important;
+        color: var(--text-primary) !important;
         background: transparent !important;
     }
 
@@ -92,7 +92,7 @@
     .my-activities-view-container .managed-events-grid .card-date-text-event,
     .my-activities-view-container .managed-events-grid .card-date-text-class {
         font-size: 11px !important;
-        color: #888 !important;
+        color: var(--text-tertiary) !important;
         line-height: 1.3 !important;
         background: transparent !important;
     }
@@ -123,13 +123,13 @@
         display: flex !important;
         flex-direction: row !important;
         align-items: center !important;
-        background: #1a1a1a !important;
+        background: var(--bg-card) !important;
         border-radius: 8px !important;
         overflow: hidden !important;
         height: 80px !important;
         width: 100% !important;
         max-width: none !important;
-        border: 1px solid #333 !important;
+        border: 1px solid var(--border-default) !important;
         margin-bottom: 0 !important;
         padding: 0 !important;
         flex: none !important;
@@ -177,7 +177,7 @@
         line-clamp: 1 !important;
         -webkit-box-orient: vertical !important;
         overflow: hidden !important;
-        color: #eee !important;
+        color: var(--text-primary) !important;
         background: transparent !important;
     }
 
@@ -185,7 +185,7 @@
     .my-activities-view-container .managed-classes-grid .card-date-text-event,
     .my-activities-view-container .managed-classes-grid .card-date-text-class {
         font-size: 11px !important;
-        color: #888 !important;
+        color: var(--text-tertiary) !important;
         line-height: 1.3 !important;
         background: transparent !important;
     }

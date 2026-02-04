@@ -26,7 +26,7 @@
 }
 
 .cat-bg-default {
-    background-color: #4b5563 !important;
+    background-color: var(--bg-surface-3) !important;
 }
 
 
@@ -61,19 +61,19 @@
         font-size: 1.25rem;
         /* Restored from legacy 1.25rem */
         font-weight: 700;
-        color: #fff;
+        color: var(--text-primary);
         white-space: nowrap;
     }
 
     .ELS-icon {
         font-size: 1.4rem;
         /* Restored from legacy 1.4rem */
-        color: #9ca3af;
+        color: var(--text-tertiary);
     }
 
     .ELS-countBadge {
         background: rgba(255, 255, 255, 0.1);
-        color: #9ca3af;
+        color: var(--text-tertiary);
         padding: 2px 8px;
         border-radius: 12px;
         font-size: 11px;
@@ -185,14 +185,14 @@
 
     .ELS-genreBtn:hover {
         background: rgba(255, 255, 255, 0.08);
-        color: #fff;
+        color: var(--text-primary);
         transform: translateY(-1px);
     }
 
     .ELS-genreBtn.is-active {
-        background: #fff;
+        background: var(--text-primary);
         color: #000;
-        border-color: #fff;
+        border-color: var(--text-primary);
         font-weight: 600;
         box-shadow: 0 4px 12px rgba(255, 255, 255, 0.2);
     }
@@ -233,7 +233,7 @@
     }
 
     .ELS-scopeBtn.is-active {
-        color: #fff;
+        color: var(--text-primary);
     }
 
     .ELS-scopeIndicator {
@@ -256,7 +256,7 @@
     .ELS-empty {
         padding: 2rem;
         text-align: center;
-        color: #9ca3af;
+        color: var(--text-tertiary);
         font-size: 0.875rem;
         width: 100%;
     }
@@ -306,7 +306,7 @@
     :scope {
         padding: 0 0 100px 0;
         min-height: 100vh;
-        background-color: #000000;
+        background-color: var(--bg-base);
     }
 
     .EHLV-group {
@@ -323,13 +323,13 @@
     .EHLV-year {
         font-size: 1.1rem;
         font-weight: 700;
-        color: #9ca3af;
+        color: var(--text-tertiary);
     }
 
     .EHLV-month {
         font-size: 1.8rem;
         font-weight: 800;
-        color: #ffffff;
+        color: var(--text-primary);
     }
 
     .EHLV-list {
@@ -379,7 +379,7 @@
     .EHLV-cardTitle {
         font-size: 1.05rem;
         font-weight: 700;
-        color: #ffffff;
+        color: var(--text-primary);
         margin: 0 0 6px 0;
         display: -webkit-box;
         -webkit-line-clamp: 2;
@@ -398,7 +398,7 @@
 
     .EHLV-cardLocation {
         font-size: 0.85rem;
-        color: #9ca3af;
+        color: var(--text-tertiary);
         display: flex;
         align-items: center;
         gap: 4px;
@@ -469,7 +469,7 @@
     }
 
     .ESSM-container {
-        background-color: #1f2937;
+        background-color: var(--bg-surface-1);
         border-radius: 1rem;
         width: 100%;
         max-width: 28rem;
@@ -499,7 +499,7 @@
     .ESSM-closeBtn {
         background: transparent;
         border: none;
-        color: #9ca3af;
+        color: var(--text-tertiary);
         cursor: pointer;
         padding: 0.25rem;
         transition: color 0.2s;
@@ -524,8 +524,8 @@
 
     .ESSM-input {
         width: 100%;
-        background-color: #374151;
-        border: 1px solid #4b5563;
+        background-color: var(--bg-surface-2);
+        border: 1px solid var(--bg-surface-3);
         border-radius: 0.75rem;
         padding: 0.875rem 1rem 0.875rem 2.75rem;
         color: white;
@@ -544,7 +544,7 @@
         left: 1rem;
         top: 50%;
         transform: translateY(-50%);
-        color: #9ca3af;
+        color: var(--text-tertiary);
         font-size: 1.25rem;
         pointer-events: none;
     }
@@ -558,7 +558,7 @@
     .ESSM-suggestionsLabel {
         font-size: 0.75rem;
         font-weight: 600;
-        color: #6b7280;
+        color: var(--text-muted);
         text-transform: uppercase;
         letter-spacing: 0.05em;
         margin-bottom: 0.25rem;
@@ -581,7 +581,7 @@
         background-color: #283142;
         border: none;
         border-radius: 0.5rem;
-        color: #d1d5db;
+        color: var(--text-secondary);
         text-align: left;
         cursor: pointer;
         transition: all 0.2s;
@@ -589,13 +589,13 @@
     }
 
     .ESSM-suggestionItem:hover {
-        background-color: #374151;
+        background-color: var(--bg-surface-2);
         color: white;
     }
 
     .ESSM-suggestionIcon {
         margin-right: 0.75rem;
-        color: #6b7280;
+        color: var(--text-muted);
         font-size: 1rem;
     }
 
@@ -610,15 +610,15 @@
         padding: 0.75rem;
         border-radius: 0.75rem;
         font-weight: 600;
-        background-color: #374151;
-        color: #d1d5db;
+        background-color: var(--bg-surface-2);
+        color: var(--text-secondary);
         border: none;
         cursor: pointer;
         transition: all 0.2s;
     }
 
     .ESSM-btnCancel:hover {
-        background-color: #4b5563;
+        background-color: var(--bg-surface-3);
         color: white;
     }
 
@@ -660,7 +660,7 @@
     }
 
     .ESOM-container {
-        background-color: #1f2937;
+        background-color: var(--bg-surface-1);
         border-radius: 1rem;
         width: 100%;
         max-width: 28rem;
@@ -688,7 +688,7 @@
     }
 
     .ESOM-closeBtn {
-        color: #9ca3af;
+        color: var(--text-tertiary);
         transition: color 0.2s ease;
         background: none;
         border: none;
@@ -722,14 +722,14 @@
         border-radius: 0.75rem;
         transition: all 0.2s ease;
         cursor: pointer;
-        background-color: #374151;
-        color: #d1d5db;
+        background-color: var(--bg-surface-2);
+        color: var(--text-secondary);
         border: none;
         text-align: left;
     }
 
     .ESOM-optionBtn:hover {
-        background-color: #4b5563;
+        background-color: var(--bg-surface-3);
         color: white;
     }
 
@@ -779,7 +779,7 @@
     }
 
     .EPM-container {
-        background-color: #1f2937;
+        background-color: var(--bg-surface-1);
         border-radius: 0.5rem;
         padding: 1.5rem;
         width: 100%;
@@ -794,13 +794,13 @@
     }
 
     .EPM-description {
-        color: #d1d5db;
+        color: var(--text-secondary);
         margin-bottom: 1rem;
     }
 
     .EPM-input {
         width: 100%;
-        background-color: #374151;
+        background-color: var(--bg-surface-2);
         color: white;
         border-radius: 0.5rem;
         padding: 0.75rem 1rem;
@@ -815,7 +815,7 @@
     }
 
     .EPM-input::placeholder {
-        color: #9ca3af;
+        color: var(--text-tertiary);
     }
 
     .EPM-buttonContainer {
@@ -835,12 +835,12 @@
     }
 
     .EPM-cancelBtn {
-        background-color: #374151;
-        color: #d1d5db;
+        background-color: var(--bg-surface-2);
+        color: var(--text-secondary);
     }
 
     .EPM-cancelBtn:hover {
-        background-color: #4b5563;
+        background-color: var(--bg-surface-3);
     }
 
     .EPM-confirmBtn {
@@ -901,7 +901,7 @@
 
     /* ===== 서브 관리자 모달 컨테이너 ===== */
     .ABM-sub-container {
-        background-color: #1f2937;
+        background-color: var(--bg-surface-1);
         border-radius: 0.75rem;
         box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         max-width: 42rem;
@@ -959,7 +959,7 @@
     .ABM-section-desc {
         font-size: 0.875rem;
         line-height: 1.25rem;
-        color: #9ca3af;
+        color: var(--text-tertiary);
         margin-bottom: 0.75rem;
     }
 
@@ -987,12 +987,12 @@
     }
 
     .ABM-weekday-btn-normal {
-        background-color: #4b5563;
-        color: #d1d5db;
+        background-color: var(--bg-surface-3);
+        color: var(--text-secondary);
     }
 
     .ABM-weekday-btn-normal:hover {
-        background-color: #6b7280;
+        background-color: var(--text-muted);
     }
 
     /* ===== 슬라이드 시간 컨트롤 ===== */
@@ -1000,7 +1000,7 @@
         display: flex;
         align-items: center;
         gap: 0.75rem;
-        background-color: #4b5563;
+        background-color: var(--bg-surface-3);
         border-radius: 0.5rem;
         padding: 0.75rem 1rem;
     }
@@ -1083,12 +1083,12 @@
     }
 
     .ABM-play-order-btn-inactive {
-        background-color: #4b5563;
-        color: #d1d5db;
+        background-color: var(--bg-surface-3);
+        color: var(--text-secondary);
     }
 
     .ABM-play-order-btn-inactive:hover {
-        background-color: #6b7280;
+        background-color: var(--text-muted);
     }
 
     .ABM-play-order-title {
@@ -1100,7 +1100,7 @@
     .ABM-play-order-subtitle {
         font-size: 0.75rem;
         line-height: 1rem;
-        color: #d1d5db;
+        color: var(--text-secondary);
         margin-top: 0.25rem;
     }
 
@@ -1112,7 +1112,7 @@
     .ABM-date-filter-label {
         font-size: 0.875rem;
         line-height: 1.25rem;
-        color: #9ca3af;
+        color: var(--text-tertiary);
         display: block;
         margin-bottom: 0.25rem;
     }
@@ -1129,7 +1129,7 @@
 
     .ABM-date-input {
         width: 100%;
-        background-color: #4b5563;
+        background-color: var(--bg-surface-3);
         color: white;
         border-radius: 0.5rem;
         padding: 0.5rem 0.75rem;
@@ -1147,7 +1147,7 @@
         left: 0.75rem;
         top: 50%;
         transform: translateY(-50%);
-        color: #9ca3af;
+        color: var(--text-tertiary);
         pointer-events: none;
     }
 
@@ -1234,7 +1234,7 @@
     .ABM-event-list {
         max-height: 15rem;
         overflow-y: auto;
-        background-color: #374151;
+        background-color: var(--bg-surface-2);
         border-radius: 0.5rem;
         padding: 0.75rem;
     }
@@ -1246,7 +1246,7 @@
     }
 
     .ABM-event-empty {
-        color: #9ca3af;
+        color: var(--text-tertiary);
         font-size: 0.875rem;
         line-height: 1.25rem;
     }
@@ -1265,7 +1265,7 @@
     }
 
     .ABM-event-item-media:hover {
-        background-color: #4b5563;
+        background-color: var(--bg-surface-3);
     }
 
     .ABM-event-item-excluded {
@@ -1304,11 +1304,11 @@
     }
 
     .ABM-event-text-no-media {
-        color: #6b7280;
+        color: var(--text-muted);
     }
 
     .ABM-event-date {
-        color: #9ca3af;
+        color: var(--text-tertiary);
         font-size: 0.75rem;
         line-height: 1rem;
         margin-left: 0.5rem;
@@ -1331,8 +1331,8 @@
 
     /* ===== 서브 관리자 푸터 ===== */
     .ABM-sub-footer {
-        background-color: #1f2937;
-        border-top: 1px solid #374151;
+        background-color: var(--bg-surface-1);
+        border-top: 1px solid var(--bg-surface-2);
         padding: 1rem 1.5rem;
         display: flex;
         gap: 0.75rem;
@@ -1341,7 +1341,7 @@
 
     .ABM-sub-footer-btn-cancel {
         flex: 1;
-        background-color: #374151;
+        background-color: var(--bg-surface-2);
         color: white;
         padding: 0.75rem;
         border-radius: 0.5rem;
@@ -1352,7 +1352,7 @@
     }
 
     .ABM-sub-footer-btn-cancel:hover {
-        background-color: #4b5563;
+        background-color: var(--bg-surface-3);
     }
 
     .ABM-sub-footer-btn-save {
@@ -1375,7 +1375,7 @@
     .slider-purple {
         width: 100%;
         height: 0.5rem;
-        background: linear-gradient(to right, #4b5563, #a855f7);
+        background: linear-gradient(to right, var(--bg-surface-3), #a855f7);
         border-radius: 9999px;
         outline: none;
         appearance: none;
@@ -1428,7 +1428,7 @@
     }
 
     .ABM-super-container {
-        background-color: #1f2937;
+        background-color: var(--bg-surface-1);
         border-radius: 0.75rem;
         box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         max-width: 42rem;
@@ -1492,7 +1492,7 @@
     .ABM-summary-content {
         font-size: 0.875rem;
         line-height: 1.25rem;
-        color: #d1d5db;
+        color: var(--text-secondary);
     }
 
     .ABM-summary-content-inner {
@@ -1522,14 +1522,14 @@
     }
 
     .ABM-summary-value-gray {
-        color: #9ca3af;
+        color: var(--text-tertiary);
         font-weight: 500;
     }
 
     /* ===== 슈퍼 관리자 푸터 ===== */
     .ABM-super-footer {
-        background-color: #1f2937;
-        border-top: 1px solid #374151;
+        background-color: var(--bg-surface-1);
+        border-top: 1px solid var(--bg-surface-2);
         padding: 1rem 1.5rem;
         display: flex;
         align-items: center;
@@ -1540,7 +1540,7 @@
 
     .ABM-super-reset-btn {
         padding: 0.5rem 1rem;
-        background-color: #374151;
+        background-color: var(--bg-surface-2);
         color: white;
         border-radius: 0.5rem;
         transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
@@ -1552,7 +1552,7 @@
     }
 
     .ABM-super-reset-btn:hover {
-        background-color: #4b5563;
+        background-color: var(--bg-surface-3);
     }
 
     .ABM-super-close-btn {
@@ -1585,7 +1585,7 @@
     }
 
     .ABM-success-container {
-        background-color: #1f2937;
+        background-color: var(--bg-surface-1);
         border-radius: 0.5rem;
         padding: 1.5rem;
         max-width: 24rem;
@@ -1651,7 +1651,7 @@
     .ABM-toggle-desc {
         font-size: 0.875rem;
         line-height: 1.25rem;
-        color: #9ca3af;
+        color: var(--text-tertiary);
         margin-top: 0.25rem;
     }
 
@@ -1672,7 +1672,7 @@
     }
 
     .ABM-toggle-switch-off {
-        background-color: #4b5563;
+        background-color: var(--bg-surface-3);
     }
 
     .ABM-toggle-thumb {
@@ -1720,14 +1720,14 @@
     .ABM-slider-desc {
         font-size: 0.875rem;
         line-height: 1.25rem;
-        color: #9ca3af;
+        color: var(--text-tertiary);
         margin-bottom: 1rem;
     }
 
     .ABM-slider-input {
         width: 100%;
         height: 0.5rem;
-        background-color: #4b5563;
+        background-color: var(--bg-surface-3);
         border-radius: 0.5rem;
         appearance: none;
         cursor: pointer;
@@ -1738,7 +1738,7 @@
         justify-content: space-between;
         font-size: 0.75rem;
         line-height: 1rem;
-        color: #6b7280;
+        color: var(--text-muted);
         margin-top: 0.5rem;
     }
 
@@ -1759,7 +1759,7 @@
     .ABM-playorder-desc {
         font-size: 0.875rem;
         line-height: 1.25rem;
-        color: #9ca3af;
+        color: var(--text-tertiary);
         margin-bottom: 1rem;
     }
 
@@ -1785,13 +1785,13 @@
     }
 
     .ABM-playorder-btn-inactive {
-        border-color: #4b5563;
+        border-color: var(--bg-surface-3);
         background-color: rgba(55, 65, 81, 0.3);
-        color: #d1d5db;
+        color: var(--text-secondary);
     }
 
     .ABM-playorder-btn-inactive:hover {
-        border-color: #6b7280;
+        border-color: var(--text-muted);
     }
 
     .ABM-playorder-btn-content {
@@ -1814,7 +1814,7 @@
     .ABM-playorder-btn-subtitle {
         font-size: 0.75rem;
         line-height: 1rem;
-        color: #9ca3af;
+        color: var(--text-tertiary);
     }
 
     /* 날짜 범위 섹션 */
@@ -1834,7 +1834,7 @@
     .ABM-daterange-desc {
         font-size: 0.875rem;
         line-height: 1.25rem;
-        color: #9ca3af;
+        color: var(--text-tertiary);
         margin-bottom: 1rem;
     }
 
@@ -1853,7 +1853,7 @@
     .ABM-daterange-input-label {
         font-size: 0.875rem;
         line-height: 1.25rem;
-        color: #9ca3af;
+        color: var(--text-tertiary);
         margin-bottom: 0.25rem;
         display: block;
     }
@@ -1871,10 +1871,10 @@
     .ABM-daterange-input {
         width: 100%;
         padding: 0.5rem 0.75rem;
-        background-color: #4b5563;
+        background-color: var(--bg-surface-3);
         color: white;
         border-radius: 0.5rem;
-        border: 1px solid #6b7280;
+        border: 1px solid var(--text-muted);
         outline: none;
     }
 
@@ -1888,7 +1888,7 @@
         left: 0.75rem;
         top: 50%;
         transform: translateY(-50%);
-        color: #9ca3af;
+        color: var(--text-tertiary);
         pointer-events: none;
     }
 
@@ -1941,7 +1941,7 @@
     .ABM-daterange-toggle-desc {
         font-size: 0.875rem;
         line-height: 1.25rem;
-        color: #9ca3af;
+        color: var(--text-tertiary);
         margin-top: 0.25rem;
     }
 
@@ -1962,7 +1962,7 @@
     .ABM-weekdays-desc {
         font-size: 0.875rem;
         line-height: 1.25rem;
-        color: #9ca3af;
+        color: var(--text-tertiary);
         margin-bottom: 0.75rem;
     }
 
@@ -1989,12 +1989,12 @@
     }
 
     .ABM-weekdays-btn-normal {
-        background-color: #4b5563;
-        color: #d1d5db;
+        background-color: var(--bg-surface-3);
+        color: var(--text-secondary);
     }
 
     .ABM-weekdays-btn-normal:hover {
-        background-color: #6b7280;
+        background-color: var(--text-muted);
     }
 
     /* 특정 이벤트 제외 섹션 */
@@ -2014,14 +2014,14 @@
     .ABM-events-desc {
         font-size: 0.875rem;
         line-height: 1.25rem;
-        color: #9ca3af;
+        color: var(--text-tertiary);
         margin-bottom: 0.75rem;
     }
 
     .ABM-events-list {
         max-height: 15rem;
         overflow-y: auto;
-        background-color: #374151;
+        background-color: var(--bg-surface-2);
         border-radius: 0.5rem;
         padding: 0.75rem;
     }
@@ -2033,7 +2033,7 @@
     }
 
     .ABM-events-empty {
-        color: #9ca3af;
+        color: var(--text-tertiary);
         font-size: 0.875rem;
         line-height: 1.25rem;
     }
@@ -2051,7 +2051,7 @@
     }
 
     .ABM-events-item-media:hover {
-        background-color: #4b5563;
+        background-color: var(--bg-surface-3);
     }
 
     .ABM-events-item-no-media {
@@ -2075,11 +2075,11 @@
     }
 
     .ABM-events-text-gray {
-        color: #6b7280;
+        color: var(--text-muted);
     }
 
     .ABM-events-date {
-        color: #9ca3af;
+        color: var(--text-tertiary);
         font-size: 0.75rem;
         line-height: 1rem;
         margin-left: 0.5rem;
@@ -2112,7 +2112,7 @@
     .ABM-summary-list {
         font-size: 0.875rem;
         line-height: 1.25rem;
-        color: #d1d5db;
+        color: var(--text-secondary);
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
@@ -2264,7 +2264,7 @@
         margin-bottom: 1rem;
         font-weight: 600;
         font-size: 1.1rem;
-        color: #1f2937;
+        color: var(--bg-surface-1);
     }
 
     .EPC-inlineInput {

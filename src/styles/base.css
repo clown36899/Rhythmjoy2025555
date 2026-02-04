@@ -1,44 +1,8 @@
 @layer base {
   /* base.css - 전역 CSS 변수 및 기본 스타일 */
 
-  /* ===== CSS 변수 정의 ===== */
+  /* ===== 1. PRIMITIVES (Color Palette) ===== */
   :root {
-    /* 주요 배경 색상 */
-    --bg-color: #000000;
-    --bg-primary: #1f2937;
-    --bg-secondary: #374151;
-    --bg-tertiary: #4b5563;
-    --bg-hover: #4b5563;
-    --bg-selected: #3b82f6;
-
-    /* 카드/컨테이너 배경 */
-    --bg-card: #1f1f1f;
-    --bg-modal: #2d2d2d;
-    --bg-input: #374151;
-
-    /* 텍스트 색상 */
-    --text-primary: #ffffff;
-    --text-secondary: #d1d5db;
-    --text-tertiary: #9ca3af;
-    --text-muted: #6b7280;
-    --text-disabled: #6b7280;
-
-    /* Header 관련 변수 */
-    --header-bg-color: #000000;
-    --header-border-color: #353636;
-    --header-height: 51px;
-    /* Default fallback, overridden by JavaScript in App.tsx */
-    --header-title-font-size: 1.4rem;
-    --header-bg-dark: #242424;
-
-    /* Page 배경 */
-    --page-bg-color: #0a0a0a;
-
-    /* 레거시 변수 (호환성 유지) */
-    --primary-color: #3b82f6;
-    --secondary-color: #8b5cf6;
-    --color-white: #ffffff;
-
     /* 액센트 색상 */
     --color-blue-400: #60a5fa;
     --color-blue-500: #3b82f6;
@@ -69,6 +33,9 @@
     --color-orange-600: #ea580c;
     --color-orange-700: #c2410c;
 
+    --color-gray-50: #f9fafb;
+    --color-gray-100: #f3f4f6;
+    --color-gray-200: #e5e7eb;
     --color-gray-300: #d1d5db;
     --color-gray-400: #9ca3af;
     --color-gray-500: #6b7280;
@@ -76,11 +43,12 @@
     --color-gray-700: #374151;
     --color-gray-800: #1f2937;
     --color-gray-900: #111827;
+    --color-black: #000000;
+    --color-white: #ffffff;
 
-    /* 전체 색상 팔레트 */
+    /* 전체 색상 팔레트 (확장) */
     --color-amber-400: #fbbf24;
     --color-amber-500: #f59e0b;
-    --color-yellow-400: #facc15;
     --color-yellow-500: #eab308;
     --color-lime-400: #a3e635;
     --color-lime-500: #84cc16;
@@ -103,82 +71,44 @@
     --color-rose-400: #fb7185;
     --color-rose-500: #f43f5e;
 
-    /* 장르 색상 변수 (genre-color-* 클래스용) */
-    --genre-red-400: #f87171;
-    --genre-orange-400: #fb923c;
-    --genre-amber-400: #fbbf24;
-    --genre-yellow-400: #facc15;
-    --genre-lime-400: #a3e635;
-    --genre-green-400: #4ade80;
-    --genre-emerald-400: #34d399;
-    --genre-teal-400: #2dd4bf;
-    --genre-cyan-400: #22d3ee;
-    --genre-sky-400: #38bdf8;
-    --genre-blue-400: #60a5fa;
-    --genre-indigo-400: #818cf8;
-    --genre-violet-400: #a78bfa;
-    --genre-purple-400: #c084fc;
-    --genre-fuchsia-400: #e879f9;
-    --genre-pink-400: #f472b6;
-    --genre-rose-400: #fb7185;
+    /* 장르 색상 변수 */
+    --genre-red-400: var(--color-red-400);
+    --genre-orange-400: var(--color-orange-400);
+    --genre-amber-400: var(--color-amber-400);
+    --genre-yellow-400: var(--color-yellow-400);
+    --genre-lime-400: var(--color-lime-400);
+    --genre-green-400: var(--color-green-400);
+    --genre-emerald-400: var(--color-emerald-400);
+    --genre-teal-400: var(--color-teal-400);
+    --genre-cyan-400: var(--color-cyan-400);
+    --genre-sky-400: var(--color-sky-400);
+    --genre-blue-400: var(--color-blue-400);
+    --genre-indigo-400: var(--color-indigo-400);
+    --genre-violet-400: var(--color-violet-400);
+    --genre-purple-400: var(--color-purple-400);
+    --genre-fuchsia-400: var(--color-fuchsia-400);
+    --genre-pink-400: var(--color-pink-400);
+    --genre-rose-400: var(--color-rose-400);
 
-    /* ===== Semantic State Colors ===== */
-    --color-success: var(--color-green-500);
-    --color-warning: var(--color-amber-500);
-    --color-danger: var(--color-red-500);
-    --color-info: var(--color-blue-500);
-
-    /* ===== Typography System ===== */
+    /* Typography System (Common) */
     --font-sans: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-
-    /* Font Sizes */
     --text-xs: 0.75rem;
-    /* 12px */
     --text-sm: 0.875rem;
-    /* 14px */
     --text-base: 1rem;
-    /* 16px */
     --text-lg: 1.125rem;
-    /* 18px */
     --text-xl: 1.25rem;
-    /* 20px */
     --text-2xl: 1.5rem;
-    /* 24px */
     --text-3xl: 1.875rem;
-    /* 30px */
-
-    /* Font Weights */
     --font-normal: 400;
     --font-medium: 500;
     --font-semibold: 600;
     --font-bold: 700;
-
-    /* Line Heights */
     --leading-none: 1;
     --leading-tight: 1.25;
     --leading-normal: 1.5;
     --leading-relaxed: 1.625;
 
-    /* ===== Layout & Containers ===== */
-    --container-width-sm: 640px;
-    --container-width-md: 768px;
-    --container-width-lg: 1024px;
-    --container-width-xl: 1280px;
-
-    --header-max-width: 1200px;
-    --border-primary: #555555;
-    --border-secondary: #4b5563;
-    --border-light: #374151;
-
-    /* 달력 전용 보더 색상 */
-    --calendar-vertical-border: #3d3d3d81;
-    /* 요일 사이 세로 경계선 */
-    --calendar-week-border: #303030ac;
-    /* 주 단위 분리 가로선 */
-    --calendar-weekday-border: #4b5563;
-    /* 요일 헤더 하단 경계선 */
-
-    /* 간격 */
+    /* Spacing & Radius & Shadow (Common) */
     --spacing-0: 0;
     --spacing-px: 1px;
     --spacing-0-5: 0.125rem;
@@ -197,7 +127,6 @@
     --spacing-16: 4rem;
     --spacing-20: 5rem;
 
-    /* Border Radius */
     --radius-none: 0;
     --radius-sm: 0.125rem;
     --radius-default: 0.25rem;
@@ -208,15 +137,6 @@
     --radius-3xl: 1.5rem;
     --radius-full: 9999px;
 
-    /* 트랜지션 */
-    --transition-fast: 0.15s ease;
-    --transition-normal: 0.2s ease;
-    --transition-slow: 0.3s ease;
-    --transition-colors: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
-    --transition-transform: transform 0.2s ease;
-    --transition-all: all 0.2s ease;
-
-    /* 그림자 */
     --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
     --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
     --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
@@ -234,37 +154,165 @@
     --z-modal: 10000;
     --z-modal-base: 10000;
     --z-modal-stack-1: 11000;
-    /* Main Modal (EED, ERM) */
     --z-modal-stack-2: 12000;
-    /* Sub Sheets / Portals */
     --z-modal-stack-3: 13000;
-    /* Top Overlays / DatePicker */
     --z-toast: 20000;
     --z-max: 2147483647;
 
-    /* Semantic Backgrounds & Surfaces */
-    --bg-premium-dark: #0f172a;
-    --bg-surface-1: #1a1a1a;
-    --bg-surface-2: #262626;
-    --bg-surface-3: #333333;
+    /* Transitions */
+    --transition-fast: 0.15s ease;
+    --transition-normal: 0.2s ease;
+    --transition-slow: 0.3s ease;
+    --transition-colors: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+    --transition-transform: transform 0.2s ease;
+    --transition-all: all 0.2s ease;
 
-    /* Semantic Borders & Dividers */
+    /* Layout Containers */
+    --container-width-sm: 640px;
+    --container-width-md: 768px;
+    --container-width-lg: 1024px;
+    --container-width-xl: 1280px;
+    --header-max-width: 1200px;
+    --header-height: 51px;
+  }
+
+  /* ===== 2. SEMANTIC THEME (Default: Dark Mode) ===== */
+  :root {
+    /* Backgrounds */
+    --bg-base: #000000;
+    --bg-surface-1: #1f2937;
+    /* gray-800 */
+    --bg-surface-2: #374151;
+    /* gray-700 */
+    --bg-surface-3: #4b5563;
+    /* gray-600 */
+    --bg-input: #374151;
+    --bg-overlay: rgba(0, 0, 0, 0.7);
+    --bg-card: #1f1f1f;
+    --bg-modal: #2d2d2d;
+
+    /* Hover Interactions */
+    --bg-hover: #4b5563;
+    --bg-selected: #3b82f6;
+
+    /* Texts */
+    --text-primary: #ffffff;
+    --text-secondary: #d1d5db;
+    /* gray-300 */
+    --text-tertiary: #9ca3af;
+    /* gray-400 */
+    --text-muted: #6b7280;
+    /* gray-500 */
+    --text-disabled: #6b7280;
+    --text-inverse: #000000;
+
+    /* Borders */
+    --border-primary: #555555;
+    --border-secondary: #4b5563;
+    --border-light: #374151;
     --border-glass: rgba(255, 255, 255, 0.1);
     --border-glass-strong: rgba(255, 255, 255, 0.15);
     --border-glass-subtle: rgba(255, 255, 255, 0.05);
 
-    /* Semantic Effects */
-    --blur-glass: 12px;
-    --blur-glass-heavy: 32px;
+    /* Header */
+    --header-bg-color: #000000;
+    --header-border-color: #353636;
+    --header-bg-dark: #242424;
+    --header-title-font-size: 1.4rem;
+
+    /* Calendar Specifics (Dark) */
+    --calendar-vertical-border: #3d3d3d81;
+    --calendar-week-border: #303030ac;
+    --calendar-weekday-border: #4b5563;
+
+    /* Semantic States */
+    --color-success: var(--color-green-500);
+    --color-warning: var(--color-amber-500);
+    --color-danger: var(--color-red-500);
+    --color-info: var(--color-blue-500);
+
+    /* Effects */
     --shadow-premium: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
     --shadow-glow-blue: 0 8px 20px rgba(37, 99, 235, 0.3);
 
-    /* Branding & Integration */
+    /* Compatibility Aliases (Legacy Support) */
+    --bg-color: var(--bg-base);
+    --bg-primary: var(--bg-surface-1);
+    --bg-secondary: var(--bg-surface-2);
+    --bg-tertiary: var(--bg-surface-3);
+    --page-bg-color: #0a0a0a;
+    /* Slightly lighter than pure black for pages? Or keep hex? Keep for now */
+    --primary-color: var(--color-blue-500);
+    --secondary-color: var(--color-violet-500);
+
+    /* Brand Colors */
     --color-kakao-bg: #fee500;
     --color-kakao-text: #000000;
   }
 
-  /* ===== 글로벌 리셋 ===== */
+  /* ===== 3. LIGHT THEME OVERRIDE ===== */
+  [data-theme="light"] {
+    /* Backgrounds */
+    --bg-base: #ffffff;
+    --bg-surface-1: #ffffff;
+    /* Cards are white in light mode usually */
+    --bg-surface-2: #f3f4f6;
+    /* gray-100 */
+    --bg-surface-3: #e5e7eb;
+    /* gray-200 */
+    --bg-input: #f9fafb;
+    /* gray-50 */
+    --bg-overlay: rgba(0, 0, 0, 0.5);
+    --bg-card: #ffffff;
+    --bg-modal: #ffffff;
+
+    /* Hover Interactions */
+    --bg-hover: #f3f4f6;
+    --bg-selected: #bfdbfe;
+    /* blue-200 */
+
+    /* Texts */
+    --text-primary: #111827;
+    /* gray-900 */
+    --text-secondary: #4b5563;
+    /* gray-600 */
+    --text-tertiary: #6b7280;
+    /* gray-500 */
+    --text-muted: #9ca3af;
+    /* gray-400 */
+    --text-disabled: #d1d5db;
+    --text-inverse: #ffffff;
+
+    /* Borders */
+    --border-primary: #e5e7eb;
+    /* gray-200 */
+    --border-secondary: #d1d5db;
+    /* gray-300 */
+    --border-light: #f3f4f6;
+    --border-glass: rgba(0, 0, 0, 0.1);
+    --border-glass-strong: rgba(0, 0, 0, 0.15);
+    --border-glass-subtle: rgba(0, 0, 0, 0.05);
+
+    /* Header */
+    --header-bg-color: #ffffff;
+    --header-border-color: #e5e7eb;
+    --header-bg-dark: #f9fafb;
+
+    /* Calendar Specifics (Light) */
+    --calendar-vertical-border: #e5e7eb;
+    --calendar-week-border: #e5e7eb;
+    --calendar-weekday-border: #d1d5db;
+
+    /* Effects */
+    --shadow-premium: 0 25px 50px -12px rgba(0, 0, 0, 0.1);
+    --shadow-glow-blue: 0 8px 20px rgba(37, 99, 235, 0.15);
+
+    /* Legacy Map Update */
+    --page-bg-color: #f9fafb;
+    /* gray-50 */
+  }
+
+  /* ===== 4. GLOBAL RESET ===== */
   * {
     box-sizing: border-box;
   }
@@ -274,20 +322,22 @@
     margin: 0;
     padding: 0;
     min-height: 100svh;
-    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+    font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    background-color: var(--bg-base);
+    /* Apply Semantic Variable */
+    color: var(--text-primary);
+    /* Apply Semantic Variable */
   }
 
-  /* ===== Multi-Language Manual Labels (Double-Span) ===== */
+  /* ... Translation & Utils unchanged ... */
   .manual-label-wrapper {
     display: inline-flex;
     align-items: center;
-    /* justify-content: center; 제거하여 기본 왼쪽 정렬 유지 */
     vertical-align: middle;
   }
 
-  /* Screen Reader Only (for Translators) - Takes no space, invisible */
   .translated-part {
     position: absolute;
     width: 1px;
@@ -304,29 +354,23 @@
     display: none !important;
   }
 
-  /* Default: Show KO (Force visibility unless explicitly other lang) */
   .fixed-part.ko {
     display: inline-block !important;
   }
 
-  /* Hide KO in other modes */
   html:not([lang^="ko"]) .fixed-part.ko {
     display: none !important;
   }
 
-  /* Show EN in other modes (Global Strategy: EN, ZH, JA all use EN labels) */
   html:not([lang^="ko"]) .fixed-part.en {
     display: inline-block !important;
   }
 
-  /* Proper Noun Protection */
   [translate="no"],
   .notranslate {
     display: inline-block;
   }
 
-  /* ===== Google Translate UI Cleanup ===== */
-  /* Hide Google Translate widget, spinner, and banners */
   [class*="VIpgJd-ZVi9od-aZ2wEe"],
   .goog-te-banner-frame,
   #goog-gt-tt,
@@ -336,7 +380,6 @@
     display: none !important;
   }
 
-  /* Prevent body from shifting down when Google banner is hidden */
   body {
     top: 0 !important;
   }

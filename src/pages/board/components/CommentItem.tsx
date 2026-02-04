@@ -107,7 +107,7 @@ export default function CommentItem({ comment: initialComment, isAnonymous, onEd
             hash = name.charCodeAt(i) + ((hash << 5) - hash);
         }
         const color = colors[Math.abs(hash) % colors.length];
-        return { backgroundColor: color, color: '#fff' };
+        return { backgroundColor: color, color: 'var(--color-white)' };
     };
 
     const formatDate = (dateString: string) => {

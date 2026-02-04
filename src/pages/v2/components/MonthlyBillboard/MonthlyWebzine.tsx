@@ -5,13 +5,13 @@ import './MonthlyWebzine.css';
 
 // --- Premium Dark Mode Colors (Used for Chart Logic & Dynamic Styles) ---
 const colors = {
-    bg: 'rgba(255,255,255,0.02)',
-    border: 'rgba(255,255,255,0.06)',
-    highlight: '#fbbf24', // Amber 400
-    textMain: '#f4f4f5', // Zinc 100
-    textSub: '#a1a1aa',  // Zinc 400
-    class: '#3b82f6',    // Blue 500
-    event: '#f43f5e',    // Rose 500
+    bg: 'var(--bg-surface-glass, rgba(255,255,255,0.02))',
+    border: 'var(--border-glass, rgba(255,255,255,0.06))',
+    highlight: 'var(--color-amber-400)',
+    textMain: 'var(--text-primary)',
+    textSub: 'var(--text-tertiary)',
+    class: 'var(--color-blue-500)',
+    event: 'var(--color-rose-500)',
 };
 
 
@@ -222,8 +222,8 @@ const MonthlyWebzine = () => {
                                     <line x1="0" y1={hourlyH * 0.75} x2={hourlyW} y2={hourlyH * 0.75} className="graph-line-grid" />
 
                                     {/* Area Fills */}
-                                    <polyline points={classAreaPoints} className={`graph-area-fill ${viewMode === 'count' ? 'active' : ''}`} style={{ color: '#3b82f6' }} />
-                                    <polyline points={eventAreaPoints} className={`graph-area-fill ${viewMode === 'count' ? 'active' : ''}`} style={{ color: '#f43f5e' }} />
+                                    <polyline points={classAreaPoints} className={`graph-area-fill ${viewMode === 'count' ? 'active' : ''}`} style={{ color: 'var(--color-blue-500)' }} />
+                                    <polyline points={eventAreaPoints} className={`graph-area-fill ${viewMode === 'count' ? 'active' : ''}`} style={{ color: 'var(--color-rose-500)' }} />
 
                                     <polyline points={classPoints} className="graph-polyline graph-polyline-class" />
                                     <polyline points={eventPoints} className="graph-polyline graph-polyline-event" />
@@ -279,8 +279,8 @@ const MonthlyWebzine = () => {
 
                             <div className="hourly-legend">
                                 <div className="hourly-legend-item" style={{ opacity: 0.5, marginRight: 'auto' }}>* 시스템 로그 기반</div>
-                                <div className="hourly-legend-item"><div className="hl-dot" style={{ background: '#3b82f6' }} /> 강습</div>
-                                <div className="hourly-legend-item"><div className="hl-dot" style={{ background: '#f43f5e' }} /> 행사</div>
+                                <div className="hourly-legend-item"><div className="hl-dot" style={{ background: 'var(--color-blue-500)' }} /> 강습</div>
+                                <div className="hourly-legend-item"><div className="hl-dot" style={{ background: 'var(--color-rose-500)' }} /> 행사</div>
                             </div>
                         </section>
 

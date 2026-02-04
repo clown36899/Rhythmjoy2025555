@@ -512,7 +512,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                                 borderRadius: '8px',
                                 marginBottom: '10px',
                                 fontSize: '0.85rem',
-                                color: '#93c5fd',
+                                color: 'var(--color-blue-300)',
                                 lineHeight: '1.4'
                             }}>
                                 <i className="ri-information-line" style={{ marginRight: '6px' }}></i>
@@ -697,7 +697,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                                 borderRadius: '8px',
                                 marginBottom: '20px',
                                 fontSize: '0.85rem',
-                                color: '#93c5fd',
+                                color: 'var(--color-blue-300)',
                                 lineHeight: '1.4'
                             }}>
                                 <i className="ri-information-line" style={{ marginRight: '6px' }}></i>

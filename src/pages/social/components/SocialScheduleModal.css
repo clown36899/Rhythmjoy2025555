@@ -69,7 +69,7 @@
     display: block;
     font-size: 0.9rem;
     font-weight: 600;
-    color: #9ca3af;
+    color: var(--text-tertiary);
     margin-bottom: 8px;
 }
 
@@ -81,7 +81,7 @@
 .social-schedule-modal-form textarea {
     width: 100%;
     padding: 12px 14px;
-    background-color: #262626;
+    background-color: var(--bg-surface-1);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 12px;
     color: white;
@@ -92,7 +92,7 @@
 .social-schedule-modal-form input:focus,
 .social-schedule-modal-form textarea:focus {
     outline: none;
-    border-color: #fbbf24;
+    border-color: var(--color-amber-400);
     background-color: #2d2d2d;
     box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.1);
 }
@@ -113,7 +113,7 @@
 /* Schedule Type Selector */
 .schedule-type-selector {
     display: flex;
-    background: #262626;
+    background: var(--bg-surface-1);
     padding: 4px;
     border-radius: 12px;
     gap: 4px;
@@ -125,7 +125,7 @@
     flex: 1;
     background: none;
     border: none;
-    color: #9ca3af;
+    color: var(--text-tertiary);
     padding: 10px 0;
     border-radius: 10px;
     font-size: 0.85rem;
@@ -135,7 +135,7 @@
 }
 
 .schedule-type-selector button.active {
-    background: #fbbf24;
+    background: var(--color-amber-400);
     color: #1a1a1a;
 }
 
@@ -150,9 +150,9 @@
     flex: 1;
     aspect-ratio: 1;
     border-radius: 50%;
-    background: #262626;
+    background: var(--bg-surface-1);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    color: #9ca3af;
+    color: var(--text-tertiary);
     font-size: 0.8rem;
     font-weight: 600;
     padding: 0;
@@ -160,9 +160,9 @@
 }
 
 .weekday-selector button.active {
-    background: #fbbf24;
+    background: var(--color-amber-400);
     color: #1a1a1a;
-    border-color: #fbbf24;
+    border-color: var(--color-amber-400);
 }
 
 .location-box {
@@ -183,7 +183,7 @@
 
 .venue-search-btn {
     padding: 0 16px;
-    background-color: #3b82f6;
+    background-color: var(--color-blue-500);
     border: none;
     border-radius: 10px;
     color: white;
@@ -200,18 +200,18 @@
 }
 
 .venue-search-btn:hover {
-    background-color: #2563eb;
+    background-color: var(--color-blue-600);
 }
 
 .address-input {
     font-size: 0.9rem !important;
-    color: #9ca3af !important;
+    color: var(--text-tertiary) !important;
 }
 
 .schedule-image-uploader {
     width: 100%;
     aspect-ratio: 16 / 9;
-    background-color: #262626;
+    background-color: var(--bg-surface-1);
     border: 2px dashed rgba(255, 255, 255, 0.1);
     border-radius: 16px;
     overflow: hidden;
@@ -223,7 +223,7 @@
 }
 
 .schedule-image-uploader:hover {
-    border-color: #fbbf24;
+    border-color: var(--color-amber-400);
     background-color: #2d2d2d;
 }
 
@@ -251,7 +251,7 @@
     /* Allow infinite shrinking */
     padding: 12px clamp(4px, 2vw, 16px);
     background-color: transparent;
-    color: #ef4444;
+    color: var(--color-red-500);
     border: 1px solid rgba(239, 68, 68, 0.5);
     border-radius: 12px;
     font-weight: 600;
@@ -269,13 +269,13 @@
 
 .ssm-delete-btn:hover:not(:disabled) {
     background-color: rgba(239, 68, 68, 0.1);
-    border-color: #ef4444;
+    border-color: var(--color-red-500);
 }
 
 .ssm-close-btn {
     background: none;
     border: none;
-    color: #9ca3af;
+    color: var(--text-tertiary);
     font-size: 1.5rem;
     cursor: pointer;
     padding: 4px;
@@ -343,7 +343,7 @@
     background: rgba(0, 0, 0, 0.2);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
-    color: #fff;
+    color: var(--text-primary);
     font-size: 1rem;
     margin-top: 8px;
     outline: none;
@@ -352,7 +352,7 @@
 }
 
 .v2-display-select:focus {
-    border-color: #3b82f6;
+    border-color: var(--color-blue-500);
     background: rgba(0, 0, 0, 0.3);
 }
 
@@ -372,20 +372,20 @@
 }
 
 .v2-display-description strong {
-    color: #3b82f6;
+    color: var(--color-blue-500);
 }
 
 .v2-display-description .warning {
-    color: #ef4444;
+    color: var(--color-red-500);
 }
 
 .v2-display-description i {
     font-size: 1rem;
-    color: #3b82f6;
+    color: var(--color-blue-500);
 }
 
 .v2-display-description .warning i {
-    color: #ef4444;
+    color: var(--color-red-500);
 }
 
 .form-actions {
@@ -405,7 +405,7 @@
     padding: 12px clamp(4px, 2vw, 16px);
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    background: #333;
+    background: var(--bg-surface-3);
     color: white;
     font-weight: 600;
     cursor: pointer;
@@ -417,7 +417,7 @@
 }
 
 .ssm-cancel-btn:hover {
-    background: #444;
+    background: var(--bg-surface-3);
 }
 
 .ssm-submit-btn {
@@ -427,7 +427,7 @@
     padding: 12px clamp(4px, 2vw, 16px);
     border-radius: 12px;
     border: none;
-    background: #fbbf24;
+    background: var(--color-amber-400);
     color: #1a1a1a;
     font-weight: 700;
     cursor: pointer;
@@ -439,14 +439,14 @@
 }
 
 .ssm-submit-btn:hover {
-    background: #f59e0b;
+    background: var(--color-amber-500);
     transform: translateY(-1px);
 }
 
 /* Link Box in Detail Modal */
 .detail-link-box {
     margin-top: 12px;
-    background-color: #262626;
+    background-color: var(--bg-surface-1);
     border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
@@ -465,7 +465,7 @@
 }
 
 .detail-link-box .place-addr.link-url {
-    color: #888;
+    color: var(--text-muted);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -484,7 +484,7 @@
     background: none;
     border: none;
     padding: 14px 0;
-    color: #9ca3af;
+    color: var(--text-tertiary);
     font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
@@ -493,8 +493,8 @@
 }
 
 .ssm-tab.active {
-    color: #fbbf24;
-    border-bottom-color: #fbbf24;
+    color: var(--color-amber-400);
+    border-bottom-color: var(--color-amber-400);
 }
 
 .ssm-tab:hover:not(.active) {

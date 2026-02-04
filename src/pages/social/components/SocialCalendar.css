@@ -12,7 +12,7 @@
   text-align: center;
   padding: 3rem;
   font-size: 0.95rem;
-  color: #666;
+  color: var(--text-muted);
   font-weight: 500;
 }
 
@@ -54,7 +54,7 @@
   /* More breathing room top */
   background-color: transparent;
   /* Soft text color */
-  color: #888;
+  color: var(--text-muted);
   font-weight: 600;
   font-size: 1rem;
   /* Simple, readable size */
@@ -116,7 +116,7 @@
 
 .compact-place {
   font-size: 0.7rem;
-  color: #888;
+  color: var(--text-muted);
   font-weight: 500;
   white-space: nowrap;
   overflow: hidden;
@@ -160,7 +160,7 @@
   background-color: transparent;
   border: 1px solid transparent;
   border-radius: 6px;
-  color: #555;
+  color: var(--border-primary);
   font-size: 1.1rem;
   display: flex;
   align-items: center;
@@ -172,7 +172,7 @@
 
 .add-event-button-bottom:hover {
   background-color: rgba(255, 255, 255, 0.05);
-  color: #ccc;
+  color: var(--text-secondary);
 }
 
 /* Media Queries */
@@ -218,7 +218,7 @@
 
 /* 오늘 요일 동그라미 표시 */
 .day-name.today {
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    background: linear-gradient(135deg, var(--color-blue-500) 0%, var(--color-blue-600) 100%);
     color: white;
     border-radius: 50%;
     width: 32px;

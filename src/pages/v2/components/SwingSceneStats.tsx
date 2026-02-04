@@ -440,7 +440,7 @@ export default function SwingSceneStats() {
 
     const getGenreColor = (name: string, index: number) => {
         if (GENRE_COLORS[name]) return GENRE_COLORS[name];
-        const palette = ['#14b8a6', '#8b5cf6', '#f43f5e', '#fbbf24', '#3b82f6'];
+        const palette = ['var(--color-teal-500)', 'var(--color-violet-500)', 'var(--color-rose-500)', 'var(--color-amber-400)', 'var(--color-blue-500)'];
         return palette[index % palette.length];
     };
 
@@ -515,17 +515,17 @@ export default function SwingSceneStats() {
                     }
                     
                     .stats-col-2, .stats-col-3 {
-                        border-left: 1px solid rgba(255,255,255,0.06);
+                        border-left: 1px solid var(--border-glass);
                         padding-left: 20px;
                     }
                 }
 
                 /* Component Styles */
                 .stats-section {
-                    background: rgba(255,255,255,0.02);
+                    background: var(--bg-surface-glass);
                     padding: 16px 20px; /* Reduced vertical padding */
                     border-radius: 20px;
-                    border: 1px solid rgba(255,255,255,0.06);
+                    border: 1px solid var(--border-glass);
                     display: flex;
                     flex-direction: column;
                     flex: 1; /* Expand to fill column */
@@ -544,7 +544,7 @@ export default function SwingSceneStats() {
                 .section-title {
                     margin: 0;
                     font-size: 14px;
-                    color: #e4e4e7;
+                    color: var(--text-secondary);
                     display: flex;
                     align-items: center;
                     gap: 8px;
@@ -560,7 +560,7 @@ export default function SwingSceneStats() {
                 }
 
                 .stats-card {
-                    background: rgba(255,255,255,0.03);
+                    background: var(--bg-surface-2);
                     padding: 16px 12px;
                     border-radius: 16px;
                     border: 1px solid rgba(255,255,255,0.08);
@@ -569,8 +569,8 @@ export default function SwingSceneStats() {
                 }
                 .stats-card:hover { transform: translateY(-2px); background: rgba(255,255,255,0.05); }
 
-                .card-label { font-size: 11px; color: #a1a1aa; margin-bottom: 6px; }
-                .card-value { font-size: 16px; color: #fff; font-weight: 700; }
+                .card-label { font-size: 11px; color: var(--text-tertiary); margin-bottom: 6px; }
+                .card-value { font-size: 16px; color: var(--text-primary); font-weight: 700; }
 
                 /* Chart Components */
                 .chart-container {
@@ -611,8 +611,8 @@ export default function SwingSceneStats() {
                 
                 .bar-segment { width: 100%; transition: height 0.3s ease; }
                 
-                .total-label { font-size: 9px; color: #fff; margin-bottom: 4px; font-weight: 600; }
-                .axis-label { font-size: 10px; color: #71717a; margin-top: 8px; flex-shrink: 0; }
+                .total-label { font-size: 9px; color: var(--text-primary); margin-bottom: 4px; font-weight: 600; }
+                .axis-label { font-size: 10px; color: var(--text-muted); margin-top: 8px; flex-shrink: 0; }
 
                 /* Legend */
                 .legend-grid {
@@ -627,7 +627,7 @@ export default function SwingSceneStats() {
                     align-items: center;
                     gap: 8px;
                     font-size: 11px;
-                    color: #a1a1aa;
+                    color: var(--text-tertiary);
                 }
                 .legend-dot { width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; }
 
@@ -648,16 +648,16 @@ export default function SwingSceneStats() {
                     cursor: pointer;
                     transition: all 0.2s;
                     font-weight: 500;
-                    color: #71717a;
+                    color: var(--text-muted);
                     background: transparent;
                 }
-                .tab-btn.active { background: rgba(255,255,255,0.15); color: #fff; font-weight: 600; }
+                .tab-btn.active { background: rgba(255,255,255,0.15); color: var(--text-primary); font-weight: 600; }
 
                 .share-btn {
                     background: rgba(255, 255, 255, 0.08);
                     border: 1px solid rgba(255, 255, 255, 0.15);
                     border-radius: 8px;
-                    color: #e4e4e7;
+                    color: var(--text-secondary);
                     padding: 8px 16px;
                     font-size: 12px;
                     font-weight: 600;
@@ -684,7 +684,7 @@ export default function SwingSceneStats() {
                 /* Utility / Specific Overrides */
                 .share-container { display: flex; justify-content: flex-end; margin-bottom: 16px; }
                 .weekly-header { margin-bottom: 16px; padding: 0 4px; }
-                .weekly-title { margin: 0; font-size: 16px; font-weight: 700; color: #fff; }
+                .weekly-title { margin: 0; font-size: 16px; font-weight: 700; color: var(--text-primary); }
                 .touch-hint { margin-bottom: 12px; font-size: 11px; color: #9ca3af; text-align: right; margin-top: 4px; }
                 .spacer-52 { height: 52px; }
                 .spacer-30 { height: 30px; }
@@ -709,7 +709,7 @@ export default function SwingSceneStats() {
                 }
 
                 .inspector-modal {
-                    background: #1e293b;
+                    background: var(--bg-surface-1);
                     width: 90%;
                     max-width: 500px;
                     max-height: 80vh;
@@ -727,33 +727,33 @@ export default function SwingSceneStats() {
                     display: flex;
                     justify-content: space-between;
                     align-items: center;
-                    background: #1e293b; /* Ensure opaque background */
+                    background: var(--bg-surface-1); /* Ensure opaque background */
                 }
 
                 .inspector-title {
                     margin: 0;
                     font-size: 16px;
                     font-weight: 600;
-                    color: #fff;
+                    color: var(--text-primary);
                 }
 
                 .inspector-subtitle {
                     font-size: 13px;
-                    color: #94a3b8;
+                    color: var(--text-muted);
                     font-weight: 400;
                 }
 
                 .inspector-close-btn {
                     background: none;
                     border: none;
-                    color: #94a3b8;
+                    color: var(--text-muted);
                     cursor: pointer;
                     padding: 4px;
                     display: flex;
                     align-items: center;
                     transition: color 0.2s;
                 }
-                .inspector-close-btn:hover { color: #fff; }
+                .inspector-close-btn:hover { color: var(--text-primary); }
 
                 .inspector-content {
                     flex: 1;
@@ -763,7 +763,7 @@ export default function SwingSceneStats() {
                 .inspector-empty {
                     padding: 40px;
                     text-align: center;
-                    color: #64748b;
+                    color: var(--text-muted);
                     font-size: 14px;
                 }
 
@@ -776,7 +776,7 @@ export default function SwingSceneStats() {
                 .inspector-thead {
                     position: sticky;
                     top: 0;
-                    background: #1e293b;
+                    background: var(--bg-surface-1);
                     z-index: 10;
                 }
 
@@ -785,10 +785,10 @@ export default function SwingSceneStats() {
                     text-align: left;
                     font-weight: 500;
                     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-                    color: #94a3b8;
+                    color: var(--text-muted);
                 }
-                .inspector-th.highlight-type { color: #60a5fa; }
-                .inspector-th.highlight-genre { color: #fcd34d; }
+                .inspector-th.highlight-type { color: var(--color-blue-400); }
+                .inspector-th.highlight-genre { color: var(--color-amber-300); }
                 .inspector-th.align-right { text-align: right; }
 
                 .inspector-tr {
@@ -798,10 +798,10 @@ export default function SwingSceneStats() {
                 .inspector-tr:nth-child(even) { background: rgba(255, 255, 255, 0.01); }
                 .inspector-tr:hover { background: rgba(255, 255, 255, 0.03); }
 
-                .inspector-td { padding: 12px 16px; color: #e2e8f0; }
-                .inspector-td.date { color: #94a3b8; text-align: right; font-size: 12px; white-space: nowrap; }
-                .inspector-td.genre-highlight { color: #fcd34d; font-weight: 600; }
-                .inspector-td.genre-dim { color: #cbd5e1; font-weight: 400; }
+                .inspector-td { padding: 12px 16px; color: var(--text-secondary); }
+                .inspector-td.date { color: var(--text-muted); text-align: right; font-size: 12px; white-space: nowrap; }
+                .inspector-td.genre-highlight { color: var(--color-amber-300); font-weight: 600; }
+                .inspector-td.genre-dim { color: var(--text-disabled); font-weight: 400; }
 
                 .type-badge {
                     padding: 2px 8px;
@@ -809,8 +809,8 @@ export default function SwingSceneStats() {
                     font-size: 11px;
                     font-weight: 600;
                 }
-                .type-badge.class { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
-                .type-badge.event { background: rgba(251, 191, 36, 0.2); color: #fcd34d; }
+                .type-badge.class { background: rgba(59, 130, 246, 0.2); color: var(--color-blue-400); }
+                .type-badge.event { background: rgba(251, 191, 36, 0.2); color: var(--color-amber-300); }
                 .type-badge.social { background: rgba(16, 185, 129, 0.2); color: #34d399; }
                 .type-badge.post { background: rgba(168, 85, 247, 0.2); color: #c084fc; }
 
@@ -889,13 +889,13 @@ export default function SwingSceneStats() {
                         <div className="chart-container">
                             {currentWeekly.map((d, i) => (
                                 <div key={i} className="bar-wrapper" style={{ cursor: 'pointer', opacity: inspectTypeDay && inspectTypeDay !== d.day ? 0.3 : 1 }} onClick={() => setInspectTypeDay(inspectTypeDay === d.day ? null : d.day)}>
-                                    {d.count > 0 && <span className="total-label" style={{ color: inspectTypeDay === d.day ? '#60a5fa' : '#fff' }}>{d.count}</span>}
+                                    {d.count > 0 && <span className="total-label" style={{ color: inspectTypeDay === d.day ? 'var(--color-blue-400)' : 'var(--text-primary)' }}>{d.count}</span>}
                                     <div className="stacked-bar">
                                         {d.typeBreakdown.map((tb, idx) => (
                                             <div key={idx} className="bar-segment" style={{ height: (tb.count / maxDay) * 150, background: [COLORS.classes, COLORS.events, COLORS.socials, COLORS.posts][idx] }}></div>
                                         ))}
                                     </div>
-                                    <span className="axis-label" style={{ color: inspectTypeDay === d.day ? '#60a5fa' : '#71717a' }}>{d.day}</span>
+                                    <span className="axis-label" style={{ color: inspectTypeDay === d.day ? 'var(--color-blue-400)' : 'var(--text-muted)' }}>{d.day}</span>
                                 </div>
                             ))}
                         </div>
@@ -927,13 +927,13 @@ export default function SwingSceneStats() {
                         <div className="chart-container">
                             {currentWeekly.map((d, i) => (
                                 <div key={i} className="bar-wrapper" style={{ cursor: 'pointer', opacity: inspectGenreDay && inspectGenreDay !== d.day ? 0.3 : 1 }} onClick={() => setInspectGenreDay(inspectGenreDay === d.day ? null : d.day)}>
-                                    {d.count > 0 && <span className="total-label" style={{ color: inspectGenreDay === d.day ? '#60a5fa' : '#fff' }}>{d.count}</span>}
+                                    {d.count > 0 && <span className="total-label" style={{ color: inspectGenreDay === d.day ? 'var(--color-blue-400)' : 'var(--text-primary)' }}>{d.count}</span>}
                                     <div className="stacked-bar">
                                         {d.genreBreakdown.map((gb, idx) => (
                                             <div key={idx} className="bar-segment" style={{ height: (gb.count / maxDay) * 150, width: '100%', background: getGenreColor(gb.name, idx) }}></div>
                                         ))}
                                     </div>
-                                    <span className="axis-label" style={{ color: inspectGenreDay === d.day ? '#60a5fa' : '#71717a' }}>{d.day}</span>
+                                    <span className="axis-label" style={{ color: inspectGenreDay === d.day ? 'var(--color-blue-400)' : 'var(--text-muted)' }}>{d.day}</span>
                                 </div>
                             ))}
                         </div>
@@ -1033,11 +1033,11 @@ const DataInspectorModal = ({ day, items, sortBy, onClose }: { day: string, item
 };
 
 const GENRE_COLORS: { [key: string]: string } = {
-    '린디합': '#2563eb', '발보아': '#f59e0b', '지터벅': '#10b981', '블루스': '#4f46e5',
-    '솔로재즈': '#e11d48', '샤그': '#ea580c', '탭댄스': '#06b6d4', '웨스트코스트스윙': '#8b5cf6',
-    '슬로우린디': '#6366f1', '버번': '#f43f5e', '소셜': '#44444a'
+    '린디합': 'var(--color-blue-600)', '발보아': 'var(--color-amber-500)', '지터벅': 'var(--color-emerald-500)', '블루스': 'var(--color-indigo-600)',
+    '솔로재즈': 'var(--color-rose-600)', '샤그': 'var(--color-orange-600)', '탭댄스': 'var(--color-cyan-500)', '웨스트코스트스윙': 'var(--color-violet-500)',
+    '슬로우린디': 'var(--color-indigo-500)', '버번': 'var(--color-rose-500)', '소셜': 'var(--bg-surface-3)'
 };
 
-const COLORS = { classes: '#3b82f6', events: '#fbbf24', socials: '#10b981', posts: '#a855f7' };
+const COLORS = { classes: 'var(--color-blue-500)', events: 'var(--color-amber-400)', socials: 'var(--color-emerald-500)', posts: 'var(--color-purple-500)' };
 
 

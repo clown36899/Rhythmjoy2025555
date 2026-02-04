@@ -21,7 +21,7 @@ const getAvatarStyle = (userId: string | number | undefined, name: string) => {
     }
 
     const color = colors[Math.abs(hash) % colors.length];
-    return { backgroundColor: color, color: '#fff' };
+    return { backgroundColor: color, color: 'var(--color-white)' };
 };
 
 interface StandardPostListProps {
