@@ -26,8 +26,17 @@
 }
 
 /* ===== 컨테이너 클래스 ===== */
+/* [Masked Scroll View] 관련 스타일 삭제 및 표준 복원 */
+/* .masked-scroll-view 스타일 완전 제거됨 */
+
 .shell-container {
   min-height: 100svh;
+  /* 뷰포트 고정 */
+  overflow: hidden;
+  /* 전역 스크롤 차단 */
+  display: flex;
+  flex-direction: column;
+  position: relative;
 }
 
 .shell-container.layout-wide {
@@ -41,15 +50,21 @@
   bottom: 0;
   left: 0;
   right: 0;
-  background: var(--header-bg-color);
-  -webkit-backdrop-filter: blur(20px);
-  backdrop-filter: blur(20px);
-  border-top: 1px solid var(--border-glass);
+  background: rgba(0, 0, 0, 0.6);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(5px) saturate(160%);
+  border: none !important;
+  box-shadow: none !important;
+  /* 날카로운 그림자 제거 */
   z-index: var(--z-header);
   width: 100%;
   margin: 0;
   touch-action: none;
   overscroll-behavior: contain;
+
+  /* [Foggy Boundary] 하단 바 자체의 상단을 마스크 처리 */
+  -webkit-mask-image: linear-gradient(to top, black 70%, transparent 100%);
+  mask-image: linear-gradient(to top, black 70%, transparent 100%);
 }
 
 
@@ -288,18 +303,24 @@
   position: fixed;
   top: 0;
   left: 0;
-  /* border-bottom: 1px solid rgba(255, 255, 255, 0.08); */
+  border: none !important;
   width: 100%;
   height: calc(60px + env(safe-area-inset-top));
   padding-top: env(safe-area-inset-top);
-  background-color: var(--header-bg-color);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background-color: rgba(0, 0, 0, 0.4);
+  /* 마스크로 투명해지므로 기본 농도 상향 */
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
   z-index: 49;
   display: flex;
   align-items: center;
   justify-content: center;
+  box-shadow: none !important;
 }
+
+
+/* 날카로운 그림자 제거 */
+
 
 .header-content-inner {
   width: 100%;
@@ -440,7 +461,8 @@
 .header-translate-btn {
   background: rgba(59, 130, 246, 0.15);
   border: 1px solid rgba(59, 130, 246, 0.3);
-  border-radius: min(1vw, 6px);
+  border-radius: 40px;
+  /* 캡슐형 */
   color: var(--text-primary);
   cursor: pointer;
   padding: min(1vw, 6px) min(1.5vw, 10px);
@@ -519,7 +541,8 @@
 .header-hamburger-btn {
   background: none;
   border: none;
-  color: var(--text-primary);
+  color: #ffffff;
+  /* 다크모드 대응: 명시적 흰색 */
   font-size: 1.5rem;
   cursor: pointer;
   padding: 8px;
@@ -537,7 +560,8 @@
 .header-user-btn {
   background: none;
   border: none;
-  color: var(--text-primary);
+  color: #ffffff;
+  /* 다크모드 대응: 명시적 흰색 */
   font-size: min(4vw, 1.3rem);
   cursor: pointer;
   padding: min(1vw, 4px);
@@ -560,7 +584,8 @@
   height: min(7vw, 35px);
   border-radius: 50%;
   object-fit: cover;
-  /* border: 1px solid rgba(255, 255, 255, 0.469); */
+  border: 1px solid rgba(255, 255, 255, 0.469);
+  /* 테두리 복구 */
 }
 
 /* Login Button (when not logged in) */
@@ -671,22 +696,30 @@
   display: flex;
   gap: 4px;
   align-items: center;
-  background-color: var(--bg-surface-2);
+  background-color: var(--bg-surface-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   padding: 4px 8px;
-  border-radius: 8px;
+  border-radius: 10px;
+  border: 1px solid var(--border-glass-strong);
   flex-shrink: 1;
   /* 좁은 화면에서 크기 축소 허용 */
   min-width: 0;
   /* 박스 크기를 0까지 줄일 수 있게 허용 */
   overflow: visible;
   /* 버튼이 잘리지 않도록 */
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.4),
+    0 2px 4px rgba(0, 0, 0, 0.2);
+  border-radius: 40px;
+  /* 캡슐형 곡률 */
 }
 
 
 .calendar-month-btn {
   background: none;
   border: none;
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--text-secondary);
   padding: 4px min(1.5vw, 6px);
   /* 반응형 패딩 */
   cursor: pointer;
@@ -738,33 +771,40 @@
 }
 
 .calendar-today-header-btn {
-  background: var(--text-primary);
-  color: var(--bg-base);
+  background: var(--gradient-accent);
+  color: white;
   border: none;
-  padding: clamp(3px, 1vw, 4px) clamp(6px, 2vw, 10px);
+  padding: clamp(3px, 1vw, 4px) clamp(8px, 2vw, 12px);
   /* 더 작은 패딩 */
   border-radius: 6px;
   font-size: clamp(0.65rem, 2.8vw, 0.85rem);
   /* 더 작은 폰트 */
-  font-weight: 600;
+  font-weight: 700;
   margin-left: clamp(2px, 1vw, 4px);
   /* 반응형 마진 */
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
   flex-shrink: 1;
   /* 필요 시 축소 허용 */
   min-width: 32px;
   /* 최소 너비 보장 */
+  box-shadow:
+    0 8px 16px rgba(37, 99, 235, 0.3),
+    0 2px 4px rgba(37, 99, 235, 0.2);
+  border-radius: 40px;
+  /* 캡슐형 곡률 */
 }
 
 .calendar-today-header-btn:hover {
-  background: #f3f4f6;
+  filter: brightness(1.1);
   transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3);
 }
 
 .calendar-today-header-btn:active {
   transform: translateY(0);
+  filter: brightness(0.95);
 }
 
 /* 매우 좁은 화면용 추가 조정 */

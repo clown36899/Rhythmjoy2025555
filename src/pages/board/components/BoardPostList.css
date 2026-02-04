@@ -37,17 +37,36 @@
 
 /* CSS Variables for Memo Theme (Scoped to Anonymous Mode) */
 .anonymous-mode {
-    --memo-card-bg: #1a1a1a;
-    --memo-card-hover: #222222;
-    --memo-card-border: rgba(255, 255, 255, 0.08);
+    --memo-card-bg: #111111;
+    /* 깊은 블랙 */
+    --memo-card-hover: #111111;
+    /* 호버 차단용 동일 색상 */
+    --memo-card-border: rgba(255, 255, 255, 0.03);
     --memo-card-accent: #3b82f6;
 
-    --memo-text-title: #f3f4f6;
-    --memo-text-content: #d1d5db;
+    --memo-text-title: #ffffff;
+    --memo-text-content: #e5e7eb;
+    --memo-text-meta: #6b7280;
+
+    --memo-shadow-idle: none;
+    /* 그림자 제거 (Zen Minimalist) */
+    --memo-shadow-hover: none;
+}
+
+/* Light Mode Overrides for Anonymous Board */
+[data-theme="light"] .anonymous-mode {
+    --memo-card-bg: #ffffff;
+    /* 순백색 */
+    --memo-card-hover: #ffffff;
+    --memo-card-border: rgba(0, 0, 0, 0.05);
+    --memo-card-accent: #2563eb;
+
+    --memo-text-title: #111111;
+    --memo-text-content: #374151;
     --memo-text-meta: #9ca3af;
 
-    --memo-shadow-idle: 0 4px 20px rgba(0, 0, 0, 0.2);
-    --memo-shadow-hover: 0 12px 30px rgba(0, 0, 0, 0.4);
+    --memo-shadow-idle: none;
+    --memo-shadow-hover: none;
 }
 
 .standard-mode .standard-view {
@@ -71,19 +90,30 @@
     align-items: start;
 }
 
-/* Modern Anonymous Card */
+/* Modern Anonymous Card (Zen Minimalist) */
 .anonymous-mode .board-post-card.is-memo {
     background: var(--memo-card-bg);
-    /* border: 1px solid var(--memo-card-border); */
-    border-radius: 15px;
-    padding: 5px;
-    margin: 11px;
+    border-bottom: 1px solid var(--memo-card-border);
+    /* 아래쪽 구분선만 남김 */
+    border-radius: 0;
+    /* 각진 미니멀리즘 */
+    padding: 2rem 1.5rem;
+    margin: 0;
+    /* 테두리 없이 리스트처럼 보임 */
     display: flex;
     flex-direction: column;
-    /* width: 100%; */
     box-sizing: border-box;
-    box-shadow: var(--memo-shadow-idle);
-    transition: all 0.2s ease;
+    box-shadow: none !important;
+    transition: none !important;
+    /* 호버 차단 */
+}
+
+/* Hover/Active 100% 원천 차단 */
+.anonymous-mode .board-post-card.is-memo:hover,
+.anonymous-mode .board-post-card.is-memo:active {
+    background: var(--memo-card-bg) !important;
+    transform: none !important;
+    box-shadow: none !important;
 }
 
 
@@ -95,16 +125,10 @@
     display: none !important;
 }
 
-/* Profile / Avatar */
+/* Profile / Avatar (Zen: Hidden) */
 .anonymous-mode .anonymous-avatar {
-    width: 24px;
-    height: 24px;
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 12px;
-    font-weight: 700;
+    display: none !important;
+    /* 아바타 완전 제거 */
 }
 
 /* Flattened Row Styles */
@@ -116,20 +140,10 @@
     /* padding: 9px 10px 0px 10px; */
 }
 
-/* Title & Content */
+/* Title & Content (Zen Minimalist) */
 .anonymous-mode .board-post-title {
-    display: none;
-    color: var(--memo-text-title) !important;
-    font-size: 1rem;
-    font-weight: 700;
-    line-height: 1.4;
-    letter-spacing: -0.03em;
-    margin: 0 !important;
-    flex: 1;
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    display: none !important;
+    /* 제목도 본문에 포함되거나 불필요할 경우 숨김 */
 }
 
 .anonymous-mode .fold-toggle-btn {
@@ -168,12 +182,15 @@
 
 .anonymous-mode .board-post-content {
     color: var(--memo-text-content) !important;
-    font-size: clamp(0.1rem, 14px, 1rem);
-    line-height: 1.4;
-    letter-spacing: -0.02em;
+    font-size: 0.95rem;
+    /* 가독성 확보 */
+    line-height: 1.6;
+    /* 넉넉한 줄간격 */
+    letter-spacing: -0.01em;
     margin: 0 !important;
     white-space: pre-wrap;
-    padding: 5px 20px 5px 39px;
+    padding: 0 !important;
+    /* 여백 초기화 (부모의 패딩 활용) */
 }
 
 /* Thumbnail */
@@ -235,15 +252,17 @@
 }
 
 .anonymous-mode .board-post-meta-nickname {
-    font-weight: 600;
-    color: var(--memo-text-title);
+    font-weight: 500;
+    font-size: 0.85rem;
+    color: var(--memo-text-meta) !important;
+    /* 닉네임 강조 낮춤 */
+    letter-spacing: -0.01em;
 }
 
 /* Interaction Bar */
 .anonymous-mode .memo-interaction-bar {
-    margin-top: 12px;
-    margin-bottom: 12px;
-    padding: 0 0 0 15px;
+    margin-top: 1.5rem;
+    padding: 0;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -258,25 +277,23 @@
 }
 
 .anonymous-mode .memo-btn {
-    background: rgba(255, 255, 255, 0);
-    border: 0;
-    padding: clamp(6px, 1.2vw, 8px) clamp(8px, 1.8vw, 14px);
-    border-radius: 10px;
+    background: transparent !important;
+    border: none !important;
+    padding: 4px 8px;
     color: var(--memo-text-meta);
-    font-size: clamp(11px, 1.3vw, 13px);
-    font-weight: 600;
+    font-size: 0.8rem;
+    font-weight: 500;
     display: flex;
     align-items: center;
-    gap: clamp(3px, 0.8vw, 6px);
-    cursor: pointer;
-    transition: all 0.2s;
-    white-space: nowrap;
-    flex-shrink: 1;
-    min-width: 0;
+    gap: 4px;
+    cursor: default !important;
+    /* 호버 차단용 */
+    transition: none !important;
 }
 
 .anonymous-mode .memo-btn i {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
+    opacity: 0.7;
 }
 
 .anonymous-mode .memo-btn:hover {
@@ -297,19 +314,16 @@
 }
 
 .anonymous-mode .memo-comment-toggle {
-    background: rgba(255, 255, 255, 0.05);
-    border: 0px solid var(--memo-card-border);
+    background: transparent !important;
+    border: none !important;
     color: var(--memo-text-meta);
-    font-weight: 700;
+    font-weight: 500;
     display: flex;
     align-items: center;
-    gap: clamp(3px, 0.8vw, 6px);
+    gap: 4px;
+    padding: 4px 8px;
     cursor: pointer;
-    padding: clamp(6px, 1.2vw, 8px) clamp(8px, 1.8vw, 14px);
-    border-radius: 8px;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    white-space: nowrap;
-    flex-shrink: 0;
+    transition: none !important;
 }
 
 .anonymous-mode .memo-comment-toggle .comment-label {
@@ -444,20 +458,23 @@
 }
 
 .anonymous-mode .blind-warning {
-    color: #ef4444 !important;
+    color: var(--text-muted) !important;
+    font-size: 0.8rem !important;
+    opacity: 0.7;
 }
 
 .anonymous-mode .admin-status-badge {
-    background: #ef4444;
-    color: white;
-    font-size: 10px;
-    font-weight: 800;
-    padding: 2px 6px;
-    border-radius: 4px;
-    margin-right: 8px;
+    background: var(--bg-surface-3);
+    color: var(--text-secondary);
+    font-size: 9px;
+    font-weight: 600;
+    padding: 1px 4px;
+    border-radius: 3px;
+    margin-right: 6px;
     vertical-align: middle;
     text-transform: uppercase;
     display: inline-block;
+    border: 1px solid var(--border-subtle);
 }
 
 /* Ensure admin sees content clearly despite dimmed/locked state */

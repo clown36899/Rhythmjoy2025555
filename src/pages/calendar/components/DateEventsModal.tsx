@@ -139,7 +139,7 @@ export default function DateEventsModal({
                             style={{ '--grid-cols': gridCols } as React.CSSProperties}
                         >
                             {sortedEvents.map(event => {
-                                const imageUrl = event.image_thumbnail || event.image_medium || event.image_micro;
+                                const imageUrl = event.image_thumbnail || event.image_micro || event.image_medium;
                                 const categoryClass = getCategoryColor(event.category);
                                 const categoryName = getCategoryName(event.category);
                                 const timeStr = formatTime(event.start_date || event.date);

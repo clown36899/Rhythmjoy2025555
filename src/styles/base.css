@@ -204,6 +204,8 @@
   [data-theme="dark"] {
     /* Backgrounds */
     --bg-base: #000000;
+    --bg-dotted-grid: radial-gradient(circle, #111111 1.2px, transparent 1.2px);
+    --bg-dotted-size: 30px 30px;
     --bg-surface-1: #1f2937;
     /* gray-800 */
     --bg-surface-2: #374151;
@@ -249,6 +251,8 @@
     /* Calendar Specifics (Dark) */
     --calendar-bg: #000000;
     --calendar-cell-bg: #1f2937;
+    --uss-card-overlay-opacity: 1;
+    /* 다크 모드에서는 이미지 하단 그림자 유지 */
     /* Surface-1 to distinguish cells from bg */
     --calendar-vertical-border: #3d3d3d81;
     --calendar-week-border: #303030ac;
@@ -350,6 +354,8 @@
     --calendar-bg: #ffffff;
     /* White  */
     --calendar-cell-bg: #c9cfd8;
+    --uss-card-overlay-opacity: 0;
+    /* 라이트 모드에서는 이미지 하단 그림자 제거 */
     /* User Requested: Mid-gray blue */
     /* Soft off-white for better grid clarity */
     --calendar-vertical-border: #94a3b8;
@@ -386,6 +392,9 @@
 
     /* Legacy Map Update */
     --page-bg-color: #e2e8f0;
+    --bg-dotted-grid: none;
+    /* 라이트 모드에서는 패턴 제거 */
+    --bg-dotted-size: auto;
   }
 
   /* ===== 4. GLOBAL RESET (Now Inside Layer) ===== */
@@ -396,6 +405,10 @@
   html,
   body {
     background-color: var(--bg-base);
+    background-image: var(--bg-dotted-grid);
+    background-size: var(--bg-dotted-size);
+    background-attachment: fixed;
+    /* 스크롤 시에도 배경 패턴 고정 */
     color: var(--text-primary);
     max-width: 650px;
     margin: 0 auto;

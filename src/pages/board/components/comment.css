@@ -11,12 +11,14 @@
 }
 
 .comment-section-title {
-    font-size: 1.25rem;
-    font-weight: 700;
+    font-size: 1.125rem;
+    font-weight: 800;
     color: var(--text-primary);
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .comment-count {
@@ -47,8 +49,8 @@
     /* Adjusted to align with author name */
     width: 14px;
     height: 12px;
-    border-left: 1px solid rgba(255, 255, 255, 0.1);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-left: 1px solid var(--border-glass-strong);
+    border-bottom: 1px solid var(--border-glass-strong);
     border-bottom-left-radius: 8px;
     /* Curved branch */
 }
@@ -71,8 +73,8 @@
 .comment-password-input {
     width: 100%;
     padding: 8px 10px 8px 30px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.07);
+    background: var(--bg-surface-2);
+    border: 1px solid var(--border-subtle);
     border-radius: 8px;
     font-size: 13px;
     color: var(--text-primary);
@@ -80,15 +82,26 @@
 
 .comment-form-textarea {
     width: 100%;
-    min-height: 80px;
-    padding: 12px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.07);
-    border-radius: 10px;
-    font-size: 0.93rem;
-    line-height: 1.5;
+    min-height: 100px;
+    /* 고도화 */
+    padding: 16px;
+    background: var(--bg-surface-2);
+    border: 1.5px solid var(--border-subtle);
+    /* 더 뚜렷한 경계 */
+    border-radius: 16px;
+    /* 더 둥근 모서리 */
+    font-size: 0.95rem;
+    line-height: 1.6;
     color: var(--text-primary);
     resize: none;
+    transition: all 0.2s ease;
+}
+
+.comment-form-textarea:focus {
+    border-color: var(--color-blue-500);
+    background: var(--bg-surface-1);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .comment-form-actions {
@@ -108,6 +121,7 @@
 .comment-form-btn-submit {
     background: var(--primary-color);
     color: #000;
+    border: 0;
 }
 
 .comment-form-login-required {
@@ -207,13 +221,20 @@
 /* Comment Item */
 /* Comment Item - Threaded style */
 .comment-item {
-    padding: 8px 0 16px 0;
-    /* Clear vertical spacing, no side padding */
-    margin: 0;
-    background-color: transparent;
-    border-radius: 12px;
-    border: 1px solid #2e2e2e;
+    padding: 1.15rem;
+    margin: 0.75rem 0;
+    background-color: var(--bg-surface-1);
+    border-radius: 8px;
+    /* 곡률 정제 */
     position: relative;
+    transition: background-color 0.2s ease;
+    border: 1px solid transparent;
+    /* 기본은 투명 */
+}
+
+.comment-item:hover {
+    background-color: var(--bg-surface-2);
+    border-color: var(--border-subtle);
 }
 
 /* Branch line connector for each comment */
@@ -224,8 +245,8 @@
     top: 14px;
     width: 14px;
     height: 12px;
-    border-left: 1px solid rgba(255, 255, 255, 0.1);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-left: 1px solid var(--border-glass-strong);
+    border-bottom: 1px solid var(--border-glass-strong);
     border-bottom-left-radius: 8px;
     /* Curved branch */
 }
@@ -282,12 +303,13 @@
 }
 
 .comment-item-content {
-    color: #d1d5dc;
+    color: var(--text-primary);
     line-height: 1.6;
     white-space: pre-wrap;
     word-break: break-word;
-    font-size: clamp(0.1rem, 14px, 1rem);
-    margin-bottom: 0.8rem;
+    font-size: 0.9375rem;
+    margin: 1rem 0;
+    letter-spacing: -0.01em;
 }
 
 /* Comment Footer & Interactions */

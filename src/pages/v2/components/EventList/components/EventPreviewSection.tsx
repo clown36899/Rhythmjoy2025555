@@ -191,8 +191,8 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
             {favoriteEventsList.length > 0 && (
                 <EventPreviewRow
                     title="즐겨찾기한 내 이벤트"
-                    icon="ri-star-fill"
-                    iconColor="#ffffff"
+                    // icon="ri-star-fill"
+                    // iconColor="#ffffff"
                     events={favoriteEventsList}
                     onEventClick={onEventClick}
                     onEventHover={onEventHover}
@@ -207,8 +207,8 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
             {/* 6. Events Rows (Domestic or Overseas based on Global Scope) */}
             <EventPreviewRow
                 title={showGlobal ? 'Global Events' : '예정된 행사'}
-                icon="ri-fire-fill"
-                iconColor={showGlobal ? "#3b82f6" : "#f97316"}
+                // icon="ri-fire-fill" 
+                // iconColor={showGlobal ? "#3b82f6" : "#f97316"}
                 count={showGlobal ? overseasEvents.length : domesticEvents.length}
                 viewAllUrl={!showGlobal ? "/calendar" : undefined}
                 viewAllLabel="달력보기"
@@ -230,8 +230,8 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
             {!showGlobal && (
                 <EventPreviewRow
                     title="강습"
-                    icon="ri-calendar-check-fill"
-                    iconColor="#10b981"
+                    // icon="ri-calendar-check-fill"
+                    // iconColor="#10b981"
                     count={regularClasses.length}
                     viewAllUrl="/calendar?category=classes&scrollToToday=true"
                     viewAllLabel="달력보기"
@@ -254,8 +254,8 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
             {!showGlobal && (
                 <EventPreviewRow
                     title="동호회 강습"
-                    icon="ri-group-fill"
-                    iconColor="#9ca3af" // Default color or custom
+                    // icon="ri-group-fill"
+                    // iconColor="#9ca3af" // Default color or custom
                     count={clubLessons.length}
                     viewAllUrl="/social"
                     viewAllLabel="이벤트등록"
@@ -278,8 +278,8 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
             {!showGlobal && clubRegularClasses.length > 0 && (
                 <EventPreviewRow
                     title="동호회 정규강습"
-                    icon="ri-group-2-fill"
-                    iconColor="#9ca3af"
+                    // icon="ri-group-2-fill"
+                    // iconColor="#9ca3af"
                     count={clubRegularClasses.length}
                     events={clubRegularClasses.filter(shouldShowClass)}
                     onEventClick={onEventClick}

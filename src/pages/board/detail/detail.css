@@ -8,6 +8,11 @@
     animation: fadeIn 0.2s ease-in;
 }
 
+/* 라이브러리 모드에서는 기존 다크 스타일 고수 */
+.is-history-mode .board-detail-container {
+    background-color: #0f172a;
+}
+
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -23,11 +28,11 @@
     position: sticky;
     top: 0;
     z-index: 1000;
-    background-color: rgba(17, 24, 39, 0.85);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    background-color: var(--bg-base);
+    border-bottom: 1px solid var(--border-subtle);
     height: 60px;
+    box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.05);
+    /* 헤더 하단 입체감 부여 */
 }
 
 .board-detail-content-wrapper {
@@ -40,9 +45,20 @@
 
 /* Header Section */
 .board-detail-header {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    padding-bottom: 1.25rem;
-    margin-bottom: 1.5rem;
+    padding-bottom: 2rem;
+    margin-bottom: 3rem;
+    position: relative;
+}
+
+.board-detail-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 40px;
+    /* 정교한 포인트 라인 */
+    height: 2px;
+    background-color: var(--color-blue-500);
 }
 
 .board-detail-header-top {
@@ -94,9 +110,9 @@
     align-items: center;
     justify-content: center;
     border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background-color: rgba(255, 255, 255, 0.05);
-    color: #9ca3af;
+    border: 1px solid var(--border-subtle);
+    background-color: var(--bg-surface-2);
+    color: var(--text-secondary);
     cursor: pointer;
     transition: all 0.2s ease;
 }
@@ -105,9 +121,11 @@
     transform: scale(0.92);
 }
 
-.top-action-btn.edit:hover {
-    color: #3b82f6;
-    border-color: rgba(59, 130, 246, 0.3);
+.top-action-btn:hover {
+    color: var(--color-blue-500);
+    border-color: var(--color-blue-300);
+    background-color: var(--bg-surface-3);
+    /* transform 및 box-shadow 제거 */
 }
 
 .top-action-btn.delete:hover {
@@ -116,13 +134,16 @@
 }
 
 .board-detail-title {
-    font-size: clamp(1.25rem, 5vw, 1.625rem);
+    font-size: clamp(1.6rem, 7vw, 2.25rem);
+    /* 더 대담하고 권위있는 크기 */
     font-weight: 800;
-    line-height: 1.35;
-    color: #ffffff;
+    line-height: 1.2;
+    color: var(--text-primary);
     word-break: break-word;
-    margin: 0 0 1rem 0;
-    letter-spacing: -0.02em;
+    margin: 1.5rem 0 2rem 0;
+    /* 여백 대폭 확장 */
+    letter-spacing: -0.04em;
+    /* 하이엔드 타이포그래피 스타일 */
 }
 
 /* Metadata */
@@ -131,7 +152,7 @@
     align-items: center;
     flex-wrap: wrap;
     gap: 0.5rem 0.75rem;
-    color: #9ca3af;
+    color: var(--text-tertiary);
     font-size: 0.8125rem;
 }
 
@@ -144,7 +165,7 @@
 .board-detail-meta-divider {
     width: 1px;
     height: 10px;
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: var(--border-subtle);
 }
 
 .board-detail-author-avatar {
@@ -152,19 +173,22 @@
     height: 20px;
     border-radius: 50%;
     object-fit: cover;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-subtle);
 }
 
 
 /* Content Section */
 .board-detail-body {
-    min-height: 100px;
-    margin-bottom: 2.5rem;
-    font-size: 1.0625rem;
-    line-height: 1.8;
-    color: #e5e7eb;
+    min-height: 120px;
+    margin-bottom: 4rem;
+    /* 여백 확보 */
+    font-size: 1.125rem;
+    /* 본문 크기 최적화 */
+    line-height: 1.85;
+    color: var(--text-primary);
     white-space: pre-wrap;
     word-break: break-word;
+    letter-spacing: -0.01em;
 }
 
 .board-detail-image-container {
@@ -191,7 +215,7 @@
     justify-content: space-between;
     align-items: center;
     padding: 1.5rem 0;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid var(--border-subtle);
     gap: 8px;
     /* Reduced gap */
     margin-bottom: 2rem;
@@ -213,22 +237,33 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 4px;
-    padding: 0.625rem 0.75rem;
-    /* Flexible padding */
-    border-radius: 10px;
-    font-size: clamp(0.7rem, 2.8vw, 0.9rem);
-    /* Shrinkable font */
-    font-weight: 700;
+    gap: 8px;
+    padding: 0.875rem 1.75rem;
+    /* 더 정교한 비율 */
+    border-radius: 0;
+    /* 미니멀리즘의 정점: 각진 디자인 또는 매우 미세한 곡률 */
+    font-size: 0.875rem;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
-    border: none;
-    white-space: nowrap;
-    flex-shrink: 1;
-    /* Allow individual buttons to shrink */
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    border: 1px solid var(--border-subtle);
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.board-detail-btn:hover {
+    background-color: var(--text-primary);
+    color: var(--bg-base);
+    border-color: var(--text-primary);
+}
+
+.board-detail-btn:hover {
+    background-color: var(--bg-surface-3);
+    border-color: var(--border-glass-strong);
+    filter: brightness(0.98);
+    /* transform 및 box-shadow 제거 */
 }
 
 .board-detail-btn i {
@@ -241,8 +276,8 @@
 }
 
 .board-detail-btn-back {
-    background-color: #374151;
-    color: #ffffff;
+    background-color: var(--bg-surface-3);
+    color: var(--text-primary);
     flex-shrink: 1;
     min-width: 0;
 }
@@ -267,7 +302,7 @@
     font-size: 0.95rem;
     font-weight: 600;
     background: transparent;
-    color: #ffffff;
+    color: var(--text-primary);
     border: none;
     cursor: pointer;
     border-radius: 10px;

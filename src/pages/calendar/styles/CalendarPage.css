@@ -21,27 +21,35 @@ html {
 .calendar-tab-menu {
     position: fixed;
     top: auto;
-    bottom: calc(56px + env(safe-area-inset-bottom));
+    bottom: calc(88px + env(safe-area-inset-bottom));
+    /* 안개 효과 위로 충분히 올림 */
     left: 50%;
     transform: translateX(-50%);
     width: 100%;
     max-width: 650px;
-    z-index: 41;
-    background-color: var(--bg-surface-1);
+    z-index: 9999;
+    /* 하단 네비게이션(50)보다 높게 설정 */
+    background-color: transparent;
+    /* 배경 투명화 */
     display: flex;
     gap: 8px;
-    padding: 10px 16px;
-    /* border-top: 1px solid #222; */
-    box-shadow: 0 -4px 10px var(--shadow-md);
+    padding: 0 16px;
+    box-shadow: none;
+    /* 컨테이너 그림자 제거 */
+    pointer-events: none;
+    /* 버튼 외 영역 클릭 통과 */
 }
 
 .calendar-tab-btn {
     flex: 1;
     padding: 8px 12px;
-    background-color: var(--bg-base);
+    background-color: rgba(30, 30, 30, 0.8);
+    /* 반투명 배경 */
+    backdrop-filter: blur(10px);
     color: var(--text-secondary);
-    border: 1px solid var(--border-primary);
-    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 40px;
+    /* 캡슐형 */
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
@@ -50,7 +58,10 @@ html {
     display: flex;
     align-items: center;
     justify-content: center;
-    /* gap: 6px; */
+    pointer-events: auto;
+    /* 버튼 클릭 활성화 */
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    /* 버튼 자체 그림자 */
 }
 
 .calendar-tab-btn i {

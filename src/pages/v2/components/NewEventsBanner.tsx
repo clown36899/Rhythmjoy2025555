@@ -74,7 +74,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
         >
             <div className="NEB-header">
                 <div className="NEB-headerLeft">
-                    <i className="ri-sparkling-fill NEB-icon"></i>
+                    {/* <i className="ri-sparkling-fill NEB-icon"></i> */}
                     <h3 className="NEB-title">신규 등록</h3>
                     <span className="NEB-badge">NEW</span>
                     <button
@@ -102,7 +102,8 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                 >
                     {events.map((event) => {
                         // 큰 배너이므로 고해상도 이미지 우선 사용
-                        const eventThumbnail = event.image ||
+                        const eventThumbnail = event.image_full ||
+                            event.image ||
                             event.image_medium ||
                             event.image_thumbnail ||
                             getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);

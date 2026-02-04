@@ -139,13 +139,7 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
                     {categories.map((cat, index) => (
                         <div key={cat.id} style={{ display: 'flex', alignItems: 'center' }}>
                             {index > 0 && (
-                                <span style={{
-                                    color: 'rgba(255,255,255,0.2)',
-                                    fontSize: '10px',
-                                    margin: '0 2px',
-                                    transform: 'translateY(-1px)',
-                                    fontWeight: 300
-                                }}>|</span>
+                                <span className="board-tab-separator">|</span>
                             )}
                             <button
                                 ref={el => { tabRefs.current[cat.id] = el; }}

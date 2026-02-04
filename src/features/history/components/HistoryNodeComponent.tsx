@@ -1,34 +1,18 @@
-import { memo, useRef, useState, useLayoutEffect, useMemo, useCallback } from 'react';
-import { Handle, Position, NodeResizer, useStore } from 'reactflow';
+import { memo, useRef, useState, useLayoutEffect } from 'react';
+import { Handle, Position, NodeResizer } from 'reactflow';
 import type { NodeProps } from 'reactflow';
 import { parseVideoUrl, validateYouTubeThumbnailUrl } from '../../../utils/videoEmbed';
 import './HistoryNodeComponent.css';
 import type { HistoryNodeData } from '../types';
 import { CATEGORY_COLORS } from '../utils/constants';
 
-// 🔥 LOD Selector: Only re-render when crossing the zoom threshold (0.45)
-const zoomSelector = (s: { transform: number[] }) => s.transform[2] > 0.45;
-
 function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
-    const showDetail = useStore(zoomSelector);
 
-    // 🔍 Debug: Log first render only (avoid spam)
-    // if (!isLoggedRef.current) {
-    //     console.log('🎨 [HistoryNodeComponent] Rendering Node', {
-    //         id: data.id,
-    //         title: data.title,
-    //         category: data.category,
-    //         hasHandlers: !!(data.onEdit && data.onViewDetail && data.onPlayVideo)
-    //     });
-    //     isLoggedRef.current = true;
-    // }
 
     const videoInfo = data.youtube_url ? parseVideoUrl(data.youtube_url) : null;
     let thumbnailUrl: string | null = null;
 
-    if (data.image_url) {
-        thumbnailUrl = data.image_url;
-    } else if (data.thumbnail_url) {
+    if (data.thumbnail_url) {
         thumbnailUrl = validateYouTubeThumbnailUrl(data.thumbnail_url);
     }
     if (!thumbnailUrl && videoInfo?.thumbnailUrl) {
@@ -46,7 +30,7 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
 
     // [V21] Nuclear Correction: Folders with children are NEVER minimal nodes.
     // They must act as containers with elevated/floating UI.
-    const isMinimalNode = !data.description && !hasThumbnail && (data.category !== 'person' && !isCanvas) && !hasChildren;
+    const isMinimalNode = false; // 🔥 Disable minimal mode
 
     const [minSize, setMinSize] = useState({
         width: isCanvas ? 420 : 200,
@@ -74,8 +58,7 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
                 // [Folder Logic] All folders (empty or populated) now allow 60px floor
                 const isFolderType = data.category === 'folder' || (data.node_behavior as string) === 'FOLDER';
                 if (isFolderType || isMinimalNode) {
-                    // 🔥 [Fix] Allow shrinking down to 200px (was 421px)
-                    return { width: 200, height: 60 };
+                    return { width: 421, height: 60 };
                 }
 
                 // 2. Standard Nodes - Content-Driven
@@ -100,39 +83,34 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
             });
         };
 
-        // Run once initially to ensure correct size
+        const observer = new ResizeObserver(updateMinSize);
+        observer.observe(contentEl);
         updateMinSize();
 
-        let observer: ResizeObserver | null = null;
+        return () => observer.disconnect();
+    }, [isCanvas, hasThumbnail, isMinimalNode, data.category, data.node_behavior]);
 
-        // 🔥 Optimization: Only observe when selected or editing
-        if (selected || data.isEditMode) {
-            observer = new ResizeObserver(updateMinSize);
-            observer.observe(contentEl);
-        }
-
-        return () => observer?.disconnect();
-    }, [isCanvas, hasThumbnail, isMinimalNode, data.category, data.node_behavior, selected, data.isEditMode]);
-
-    const handlePlayVideo = useCallback((e: React.MouseEvent) => {
+    const handlePlayVideo = (e: React.MouseEvent) => {
         e.stopPropagation();
         if (data.youtube_url && data.onPlayVideo) {
             data.onPlayVideo(data.youtube_url, data.linked_playlist_id, data.linked_video_id);
         }
-    }, [data.youtube_url, data.onPlayVideo, data.linked_playlist_id, data.linked_video_id]);
+    };
 
-    const handleEdit = useCallback((e: React.MouseEvent) => {
+    const handleEdit = (e: React.MouseEvent) => {
         e.stopPropagation();
         if (data.onEdit) data.onEdit(data);
-    }, [data.onEdit, data]);
+    };
 
-    const handleViewDetail = useCallback((e: React.MouseEvent) => {
+    const handleViewDetail = (e: React.MouseEvent) => {
         e.stopPropagation();
         if (data.onViewDetail) data.onViewDetail(data);
-    }, [data.onViewDetail, data]);
+    };
 
-    const handleThumbnailClick = useCallback((e: React.MouseEvent) => {
+    const handleThumbnailClick = (e: React.MouseEvent) => {
         e.stopPropagation();
+        if (!data.onPreviewLinkedResource && !data.onPlayVideo) return;
+
         // V7 Refined Link Logic: Prioritize IDs over nodeType for robustness
         if (data.linked_playlist_id && data.onPreviewLinkedResource) {
             data.onPreviewLinkedResource(data.linked_playlist_id, 'playlist', data.title);
@@ -144,19 +122,16 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
             data.onPreviewLinkedResource(data.linked_category_id, 'folder', data.title);
         } else if (data.youtube_url && data.onPlayVideo) {
             data.onPlayVideo(data.youtube_url, data.linked_playlist_id, data.linked_video_id);
-        } else if (data.onViewDetail) {
-            data.onViewDetail(data);
         }
-    }, [data]);
+    };
 
-    const handleLinkClick = useCallback((e: React.MouseEvent) => {
+    const handleLinkClick = (e: React.MouseEvent) => {
         e.stopPropagation();
         handleThumbnailClick(e);
-    }, [handleThumbnailClick]);
+    };
 
-    const categoryIcon = useMemo(() => {
-        const cat = data.category || 'general';
-        switch (cat) {
+    const getCategoryIcon = (category: string) => {
+        switch (category) {
             case 'genre': return <i className="ri-dancers-line"></i>;
             case 'person': return <i className="ri-user-star-line"></i>;
             case 'event': return <i className="ri-calendar-event-line"></i>;
@@ -171,11 +146,9 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
             case 'arrow': return <i className="ri-arrow-right-line"></i>;
             default: return <i className="ri-bookmark-line"></i>;
         }
-    }, [data.category]);
+    };
 
-    const categoryColor = useMemo(() => {
-        return CATEGORY_COLORS[data.category || 'default'] || CATEGORY_COLORS.default;
-    }, [data.category]);
+    const categoryColor = CATEGORY_COLORS[data.category || 'default'] || CATEGORY_COLORS.default;
 
     const linkedType = data.linked_playlist_id ? 'playlist' :
         data.linked_category_id ? (data.category === 'canvas' ? 'canvas' : 'folder') :
@@ -211,7 +184,7 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
         return () => observer.disconnect();
     }, []);
 
-    const handleNodeClick = useCallback((e: React.MouseEvent) => {
+    const handleNodeClick = (e: React.MouseEvent) => {
         // console.log('🖱️ [HistoryNode] Click:', { id: data.id, title: data.title, type: data.nodeType });
 
         if (data.isSelectionMode) {
@@ -235,13 +208,6 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
         // 1. Container Type (Portal/Group) -> Navigate
         if (isContainer) {
             e.stopPropagation();
-
-            // 🔥 [Canvas Interaction Change]
-            // Canvas Node body click does NOT navigate. Must use the Enter button.
-            if (isCanvas) {
-                return;
-            }
-
             if (data.onNavigate) {
                 // Double check it's not a folder to be safe
                 if (data.nodeType !== 'folder') {
@@ -274,27 +240,19 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
 
         // 4. Default -> View Detail Modal
         handleViewDetail(e);
-    }, [data, isContainer, handleViewDetail, isCanvas]);
-
-    // 🔥 Explicit Enter Logic for Canvas
-    const handleEnterCanvas = useCallback((e: React.MouseEvent) => {
-        e.stopPropagation();
-        if (data.onNavigate) {
-            data.onNavigate(String(data.id), data.title);
-        }
-    }, [data]);
-
+    };
     return (
         <div
             ref={nodeRef}
-            className={`history-node ${selected ? 'selected' : ''} ${isContainer ? 'is-container' : ''} linked-type-${linkedType} ${isCanvas ? 'is-canvas-portal' : ''} ${!hasThumbnail && data.category !== 'person' ? 'no-content-image' : ''} ${isMinimalNode ? 'is-minimal-node' : ''} ${useUnifiedFolderLayout ? 'use-folder-system' : ''} ${hasChildren ? 'has-children' : ''} ${!showDetail ? 'lod-low' : ''}`}
+            className={`history-node ${selected ? 'selected' : ''} ${isContainer ? 'is-container' : ''} linked-type-${linkedType} ${isCanvas ? 'is-canvas-portal' : ''} ${!hasThumbnail && data.category !== 'person' ? 'no-content-image' : ''} ${isMinimalNode ? 'is-minimal-node' : ''} ${useUnifiedFolderLayout ? 'use-folder-system' : ''} ${hasChildren ? 'has-children' : ''}`}
             style={{
-                '--dynamic-category-color': categoryColor,
+                borderColor: categoryColor,
+                height: '100%',
+                width: '100%',
                 '--dynamic-header-height': `${headerHeight}px`,
                 // 🔥 Folder/Container index is 0, non-folders must be at least 1
                 zIndex: isContainer ? 0 : 1
             } as React.CSSProperties}
-            data-category-color={categoryColor}
             onClick={handleNodeClick} // 🔥 Use dedicated handler that manages propagation
             onContextMenu={() => {
                 // Allow context menu to bubble up to ReactFlow's onNodeContextMenu
@@ -320,33 +278,29 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
             )}
 
             {/* Simple Handles: Defined as both source and target for flexibility */}
-            {/* 🔥 Optimization: Do not render handles for nodes inside folders to reduce DOM (8 per node!) */}
-            {!data.parent_node_id && (
-                <>
-                    {/* Reliable Handles: Source and Target for all directions with standard IDs */}
-                    {/* Top: Target (primary) & Source */}
-                    <Handle type="target" position={Position.Top} id="top" />
-                    <Handle type="source" position={Position.Top} id="top" className="handle-pos-top" />
+            {/* Reliable Handles: Source and Target for all directions with standard IDs */}
+            {/* Top: Target (primary) & Source */}
+            <Handle type="target" position={Position.Top} id="top" />
+            <Handle type="source" position={Position.Top} id="top" style={{ top: 0, opacity: 0 }} />
 
-                    {/* Bottom: Source (primary) & Target */}
-                    <Handle type="source" position={Position.Bottom} id="bottom" />
-                    <Handle type="target" position={Position.Bottom} id="bottom" className="handle-pos-bottom" />
+            {/* Bottom: Source (primary) & Target */}
+            <Handle type="source" position={Position.Bottom} id="bottom" />
+            <Handle type="target" position={Position.Bottom} id="bottom" style={{ bottom: 0, opacity: 0 }} />
 
-                    {/* Left: Target (primary) & Source */}
-                    <Handle type="target" position={Position.Left} id="left" className="handle-pos-left" />
-                    <Handle type="source" position={Position.Left} id="left" className="handle-pos-left-hidden" />
+            {/* Left: Target (primary) & Source */}
+            <Handle type="target" position={Position.Left} id="left" style={{ top: '50%' }} />
+            <Handle type="source" position={Position.Left} id="left" style={{ top: '50%', opacity: 0 }} />
 
-                    {/* Right: Source (primary) & Target */}
-                    <Handle type="source" position={Position.Right} id="right" className="handle-pos-right" />
-                    <Handle type="target" position={Position.Right} id="right" className="handle-pos-right-hidden" />
-                </>
-            )}
+            {/* Right: Source (primary) & Target */}
+            <Handle type="source" position={Position.Right} id="right" style={{ top: '50%' }} />
+            <Handle type="target" position={Position.Right} id="right" style={{ top: '50%', opacity: 0 }} />
 
             {/* Person Avatar for person category */}
             {data.category === 'person' && data.image_url && (
                 <div
-                    className="person-avatar clickable-avatar"
+                    className="person-avatar"
                     onClick={handleNodeClick} // 🔥 Use centralized handler
+                    style={{ cursor: 'pointer' }}
                 >
                     <img
                         src={data.image_url}
@@ -361,12 +315,13 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
             {data.category === 'arrow' && (
                 <div className="arrow-node-container">
                     <svg
-                        className="arrow-svg arrow-svg-container"
+                        className="arrow-svg"
                         width={data.arrow_length || 200}
                         height="80"
                         style={{
-                            transform: `rotate(${data.arrow_rotation || 0}deg)`
-                        } as React.CSSProperties}
+                            transform: `rotate(${data.arrow_rotation || 0}deg)`,
+                            transformOrigin: 'center'
+                        }}
                     >
                         {/* Arrow Line */}
                         <line
@@ -397,12 +352,12 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
                 </div>
             )}
 
-            {/* Thumbnail - Show Simplified or Hide in Low LOD? User said "Simplify" or "Keep after test" */}
-            {/* But since performance is goal, hiding complex overlays/hover effects is good */}
+            {/* Thumbnail */}
             {thumbnailUrl && data.category !== 'person' && (
                 <div
-                    className={`history-node-thumbnail clickable-thumbnail ${data.nodeType === 'document' ? 'document-thumbnail' : ''}`}
+                    className="history-node-thumbnail"
                     onClick={data.isSelectionMode ? undefined : handleThumbnailClick}
+                    style={{ cursor: data.isSelectionMode ? 'default' : 'pointer' }}
                 >
                     <img
                         src={thumbnailUrl}
@@ -410,8 +365,7 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
                         loading="lazy"
                         decoding="async"
                     />
-                    {/* Hide overlay in Low LOD */}
-                    {showDetail && (data.youtube_url || data.nodeType === 'video') && (
+                    {(data.youtube_url || data.nodeType === 'video') && (
                         <div className="history-node-play-overlay">
                             <i className="ri-play-circle-fill"></i>
                         </div>
@@ -420,50 +374,52 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
             )}
 
             <div
-                className="history-node-content clickable-content"
+                className="history-node-content"
+                style={{ cursor: (data.isSelectionMode || data.isEditMode) ? 'default' : 'pointer' }}
             >
                 <div className="node-header">
-                    <div className="node-header-row">
-                        <span className="node-year">{data.year || data.date}</span>
-                        <div className="node-badge-group">
-                            {showDetail && categoryIcon && (
-                                <span className={`history-node-badge badge-${data.category || 'general'}`}>
-                                    {categoryIcon}
-                                </span>
-                            )}
-                            {showDetail && (data.linked_playlist_id || data.linked_document_id || data.linked_video_id || data.linked_category_id) && (
-                                <span
-                                    className={`history-node-link-badge ${linkedType}`}
-                                    title="학습 자료 열기"
-                                    onClick={handleLinkClick}
-                                >
-                                    <i className="ri-link"></i>
-                                </span>
-                            )}
+                    <div style={{ width: '100%' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                            <span className="node-year">{data.year || data.date}</span>
+                            <div style={{ display: 'flex', gap: '4px' }}>
+                                {getCategoryIcon(data.category || 'general') && (
+                                    <span className={`history-node-badge badge-${data.category || 'general'}`}>
+                                        {getCategoryIcon(data.category || 'general')}
+                                    </span>
+                                )}
+                                {(data.linked_playlist_id || data.linked_document_id || data.linked_video_id || data.linked_category_id) && (
+                                    <span
+                                        className={`history-node-link-badge ${linkedType}`}
+                                        title="학습 자료 열기"
+                                        onClick={handleLinkClick}
+                                    >
+                                        <i className="ri-link"></i>
+                                    </span>
+                                )}
+                            </div>
                         </div>
+                        <h3 className="history-node-title">
+                            <span className="node-type-icon">
+                                {data.nodeType === 'playlist' ? '💿' :
+                                    data.nodeType === 'document' ? '📄' :
+                                        data.nodeType === 'video' ? '📹' :
+                                            data.nodeType === 'canvas' ? '🎨' :
+                                                (data.nodeType === 'category' || data.nodeType === 'folder') ? '📁' :
+                                                    '📅'}
+                            </span>
+                            {data.title}
+                        </h3>
                     </div>
-                    <h3 className="history-node-title">
-                        <span className="node-type-icon">
-                            {data.nodeType === 'playlist' ? '💿' :
-                                data.nodeType === 'document' ? '📄' :
-                                    data.nodeType === 'video' ? '📹' :
-                                        data.nodeType === 'canvas' ? '🎨' :
-                                            (data.nodeType === 'category' || data.nodeType === 'folder') ? '📁' :
-                                                '📅'}
-                        </span>
-                        {data.title}
-                    </h3>
                 </div>
 
-                {/* Hide Description in Low LOD */}
-                {showDetail && (data.description || data.content) && (
+                {(data.description || data.content) && (
                     <p className="history-node-description">
                         {data.description || data.content}
                     </p>
                 )}
             </div>
 
-            {/* Footer: Always visible as requested */}
+            {/* Footer: Moved outside content for absolute visibility */}
             <div
                 className="history-node-footer"
                 onClick={(e) => {
@@ -479,14 +435,6 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
                         <i className="ri-youtube-fill"></i>
                     </button>
                 )}
-
-                {/* 🔥 Canvas Enter Button */}
-                {isCanvas && (
-                    <button className="node-action-btn btn-enter" onClick={handleEnterCanvas} title="캔버스 진입">
-                        <i className="ri-login-box-line"></i>
-                    </button>
-                )}
-
                 <button className="node-action-btn btn-detail" onClick={handleViewDetail} title="상세보기">
                     <i className="ri-fullscreen-line"></i>
                 </button>
@@ -495,21 +443,18 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
                         <i className="ri-edit-line"></i>
                     </button>
                 )}
-                {/* 🔥 Optimization: Do not render relation highlight button for nodes inside folders/containers */}
-                {!data.parent_node_id && (
-                    <button
-                        className={`node-action-btn btn-highlight ${selected ? 'active' : ''}`}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            if (data.onSelectionChange) {
-                                data.onSelectionChange(String(data.id), !selected);
-                            }
-                        }}
-                        title="관계된 노드 하이라이트"
-                    >
-                        <i className="ri-focus-3-line"></i>
-                    </button>
-                )}
+                <button
+                    className={`node-action-btn btn-highlight ${selected ? 'active' : ''}`}
+                    onClick={(e) => {
+                        e.stopPropagation();
+                        if (data.onSelectionChange) {
+                            data.onSelectionChange(String(data.id), !selected);
+                        }
+                    }}
+                    title="관계된 노드 하이라이트"
+                >
+                    <i className="ri-focus-3-line"></i>
+                </button>
             </div>
 
         </div>

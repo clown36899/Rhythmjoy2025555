@@ -139,11 +139,11 @@ export const UnifiedScheduleSection: React.FC<UnifiedScheduleSectionProps> = ({
                     <div
                         className={`USS-tabItem ${activeTab === 'thisWeek' ? 'is-active' : ''}`}
                         onClick={() => scrollToGroup('thisWeek')}
-                        style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
                     >
-                        이번주 소셜 ({partitionedData.thisWeek.length})
+                        이번주 소셜
+                        <span className="countBadge">{partitionedData.thisWeek.length}</span>
                         {todaySchedules.length > 0 && (
-                            <span className="USS-liveBadge manual-label-wrapper" style={{ fontSize: '9px', padding: '1px 4px' }}>
+                            <span className="USS-liveBadge manual-label-wrapper">
                                 <span className="translated-part">LIVE {todaySchedules.length}</span>
                                 <span className="fixed-part ko" translate="no">LIVE {todaySchedules.length}</span>
                                 <span className="fixed-part en" translate="no">LIVE {todaySchedules.length}</span>
@@ -158,7 +158,8 @@ export const UnifiedScheduleSection: React.FC<UnifiedScheduleSectionProps> = ({
                                 className={`USS-tabItem ${activeTab === 'nextWeek' ? 'is-active' : ''}`}
                                 onClick={() => scrollToGroup('nextWeek')}
                             >
-                                다음주 ({partitionedData.nextWeek.length})
+                                다음주
+                                <span className="countBadge">{partitionedData.nextWeek.length}</span>
                             </div>
                         </>
                     )}

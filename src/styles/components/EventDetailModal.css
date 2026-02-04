@@ -742,7 +742,7 @@
     /* Footer & Actions */
     .EDM-footer {
         padding: 16px 20px;
-        background: var(--bg-modal);
+
         backdrop-filter: blur(12px);
         border-top: 1px solid var(--border-glass-subtle);
         display: flex;

@@ -1,8 +1,6 @@
 .board-prefix-tab-outer {
-    background-color: rgb(23 23 23 / 85%);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    /* border-bottom: 1px solid rgba(255, 255, 255, 0.08); */
+    background-color: var(--bg-base);
+    border-bottom: 1px solid var(--border-subtle);
     position: fixed;
     top: calc(108px + env(safe-area-inset-top));
     left: 0;
@@ -45,7 +43,7 @@
     border: 1px solid transparent;
     border-radius: 16px;
     padding: 4px 12px;
-    color: #6b7280;
+    color: var(--text-tertiary);
     font-size: 0.8rem;
     font-weight: 500;
     white-space: nowrap;
@@ -55,8 +53,8 @@
 }
 
 .board-prefix-item.active {
-    background: rgba(255, 255, 255, 0.1);
-    color: #fff;
-    font-weight: 600;
-    border-color: rgba(255, 255, 255, 0.2);
+    background: var(--bg-surface-2);
+    color: var(--color-blue-500);
+    font-weight: 700;
+    border-color: var(--color-blue-500);
 }

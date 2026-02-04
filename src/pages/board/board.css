@@ -91,29 +91,25 @@
   height: 100%;
 }
 
-/* Anonymous Board Notice */
+/* Anonymous Board Notice (Zen Minimalist) */
 .anonymous-board-notice {
-  margin: 0 16px 0px;
-  /* Reduced bottom margin from 20px to 10px */
-  padding: 1px 20px 14px 20px;
-  background-color: var(--bg-surface-2);
-  border: 1px solid var(--border-glass);
-  /* Match memo card border */
-  border-radius: 12px;
+  margin: 1rem 1.5rem;
+  padding: 0;
+  background-color: transparent !important;
+  border: none !important;
   display: flex;
   align-items: center;
-  gap: 12px;
-  color: var(--text-tertiary);
-  /* Gray-400 */
-  font-size: 13px;
-  font-weight: 500;
-  backdrop-filter: blur(4px);
+  gap: 8px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 400;
+  backdrop-filter: none !important;
+  opacity: 0.8;
 }
 
 .anonymous-board-notice i {
-  color: var(--color-blue-500);
-  /* Modern Blue accent */
-  font-size: 18px;
+  color: var(--text-muted) !important;
+  font-size: 1rem;
 }
 
 /* ===== 로딩 상태 (Standard Mode) ===== */
@@ -171,23 +167,243 @@
 /* ===== 게시글 카드 ===== */
 
 .standard-view .board-post-card {
-  padding: 14px 11px;
-  /* margin: 0 8px 12px 8px; */
-  transition: all 0.3s ease;
+  padding: 1.5rem;
+  /* 더 여유로운 패딩 */
+  transition: background-color 0.2s ease;
   cursor: pointer;
-  border: 1px solid var(--border-glass);
+  border-bottom: 1px solid var(--border-subtle);
+  /* 아래쪽 구분선 위주로 정제 */
   display: flex;
-  /* border-radius: 12px; */
   flex-direction: column;
-  overflow: hidden;
-  background: linear-gradient(135deg, var(--bg-surface-1) 0%, var(--bg-card) 100%);
+  background-color: var(--bg-card);
+  /* 기본 카드는 카드 배경 사용 */
 }
 
-.standard-view .board-post-card:hover {
-  background: linear-gradient(135deg, var(--bg-surface-2) 0%, var(--bg-surface-1) 100%);
-  border-color: var(--color-blue-500);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+.standard-view .board-post-card:last-child {
+  border-bottom: none;
+}
+
+.standard-view .board-post-card:not(.is-free-board):hover {
+  background-color: var(--bg-surface-1);
+  /* 매우 미세한 반전 */
+}
+
+/* ==========================================================================
+   [FORCE APPLY v2] 자유/표준 게시판 통합 미니멀리즘 디자인 (호버 박멸)
+   ========================================================================== */
+
+/* 1. 일반 게시글 카드: Modern Static List 스타일 (호버 원천 차단) */
+body .board-posts-container.is-standard-board-v2 .board-post-card {
+  background-color: var(--bg-card) !important;
+  border-bottom: 1px solid var(--border-subtle) !important;
+  padding: 1.5rem 1rem !important;
+  transition: none !important;
+  transform: none !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  cursor: default !important;
+}
+
+/* 2. 공지사항: Quiet Luxury (웜 뉴트럴 프리미엄 디자인) */
+body .board-posts-container.is-standard-board-v2 .board-post-card-notice {
+  background-color: #fdfcfb !important;
+  /* 미세한 미색 (Warm Ivory) */
+  border-left: 3px solid #334155 !important;
+  /* 세련된 딥 슬레이트 바 */
+  border-bottom: 1px solid var(--border-subtle) !important;
+  transition: none !important;
+  transform: none !important;
+}
+
+/* 다크 모드 공지사항: Deep Charcoal Luxe */
+[data-theme="dark"] body .board-posts-container.is-standard-board-v2 .board-post-card-notice {
+  background-color: #17191e !important;
+  /* 깊이 있는 차콜 배경 */
+  border-left: 3px solid #94a3b8 !important;
+  /* 은은한 슬레이트 그레이 바 */
+}
+
+/* 3. 모든 상호작용 요소의 호버/액티브/트랜지션 100% 박멸 */
+body .board-posts-container.is-standard-board-v2 .board-post-card:hover,
+body .board-posts-container.is-standard-board-v2 .board-post-card:active,
+body .board-posts-container.is-standard-board-v2 .board-post-card-normal:hover,
+body .board-posts-container.is-standard-board-v2 .board-post-card-notice:hover,
+body .board-posts-container.is-standard-board-v2 button:hover,
+body .board-posts-container.is-standard-board-v2 a:hover {
+  background-color: var(--bg-card) !important;
+  transform: none !important;
+  box-shadow: none !important;
+  transition: none !important;
+  opacity: 1 !important;
+}
+
+/* 4. 공지사항 전용 호버 차단 (배경색 정적 고정) */
+body .board-posts-container.is-standard-board-v2 .board-post-card-notice:hover {
+  background-color: #fdfcfb !important;
+}
+
+[data-theme="dark"] body .board-posts-container.is-standard-board-v2 .board-post-card-notice:hover {
+  background-color: #17191e !important;
+}
+
+.is-standard-board-v2 .board-post-title {
+  font-size: 1.15rem !important;
+  letter-spacing: -0.03em !important;
+  font-weight: 700 !important;
+  color: var(--text-primary) !important;
+  white-space: normal !important;
+  line-height: 1.4 !important;
+  margin: 0 !important;
+}
+
+.is-standard-board-v2 .board-post-content {
+  font-size: 0.9rem;
+  color: var(--text-tertiary);
+  margin-top: 6px;
+  line-height: 1.6;
+}
+
+.is-standard-board-v2 .board-post-meta {
+  margin-top: 12px;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+}
+
+.is-free-board .board-post-thumbnail {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  border: 1px solid var(--border-subtle);
+}
+
+.is-standard-board-v2 .board-notice-badge {
+  background-color: transparent !important;
+  color: var(--text-secondary) !important;
+  border: 1px solid var(--border-subtle) !important;
+  /* 아주 얇은 실선 박스 */
+  font-size: 0.62rem !important;
+  letter-spacing: 0.02em !important;
+  font-weight: 600 !important;
+  padding: 1px 5px !important;
+  border-radius: 3px !important;
+  margin-bottom: 12px !important;
+  display: inline-block !important;
+  opacity: 0.8 !important;
+  line-height: 1.2 !important;
+}
+
+/* 중복 방지: 영어 및 다른 요소 완전 숨김 */
+.is-standard-board-v2 .board-notice-badge i,
+.is-standard-board-v2 .board-notice-badge .translated-part,
+.is-standard-board-v2 .board-notice-badge .fixed-part.en {
+  display: none !important;
+}
+
+/* 한글 '공지'만 노출 */
+.is-standard-board-v2 .board-notice-badge .fixed-part.ko {
+  display: block !important;
+}
+
+/* 기존에 썼던 가짜 NOTICE 텍스트 박멸 */
+.is-standard-board-v2 .board-notice-badge::before,
+.is-standard-board-v2 .board-notice-badge::after {
+  display: none !important;
+  content: "" !important;
+}
+
+.is-free-board .board-post-card-notice .board-post-title {
+  color: var(--text-primary) !important;
+  font-weight: 700 !important;
+}
+
+.is-free-board .board-post-prefix {
+  background-color: var(--bg-surface-2) !important;
+  color: var(--text-tertiary) !important;
+  border: none !important;
+  font-size: 9px !important;
+  padding: 2px 8px !important;
+  border-radius: 4px !important;
+}
+
+/* ==========================================================================
+   [FORCE APPLY] 익명 게시판 전용 'Noir Noir' 디자인 (칠흑의 미학)
+   ========================================================================== */
+
+/* 1. 아바타 영역 물리적 제거 (익명성 강화) */
+.is-anonymous-board .board-post-author-avatar-container {
+  display: none !important;
+}
+
+/* 2. 게시글 카드: Noir Noir Static 스타일 */
+body .board-posts-container.is-anonymous-board .board-post-card {
+  background-color: #f9f9f9 !important;
+  /* 안개색 (Light) */
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+  padding: 1.25rem 1rem !important;
+}
+
+[data-theme="dark"] body .board-posts-container.is-anonymous-board .board-post-card {
+  background-color: #050505 !important;
+  /* 칠흑색 (Dark) */
+  border-bottom: 1px solid rgba(255, 255, 255, 0.03) !important;
+}
+
+/* 3. 메타 정보: 저대비 계층 구조 (배경에 녹아드는 감성) */
+.is-anonymous-board .board-post-meta {
+  color: var(--text-muted) !important;
+  opacity: 0.6;
+}
+
+.is-anonymous-board .board-post-meta-nickname {
+  color: var(--text-tertiary) !important;
+  font-weight: 400 !important;
+  letter-spacing: -0.02em;
+}
+
+/* 4. 익명 게시판 공지 알림 섹션 정제 */
+.is-anonymous-board .anonymous-board-notice {
+  background-color: var(--bg-surface-1) !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: 8px !important;
+  margin: 12px 16px !important;
+  padding: 10px 16px !important;
+  color: var(--text-tertiary) !important;
+  font-size: 12px !important;
+  opacity: 0.8;
+}
+
+.is-anonymous-board .anonymous-board-notice i {
+  color: var(--text-muted) !important;
+  font-size: 16px !important;
+}
+
+/* 5. 호버 완전 차단 (Noir Noir 고정) */
+body .board-posts-container.is-anonymous-board .board-post-card:hover {
+  background-color: #f9f9f9 !important;
+  transform: none !important;
+}
+
+[data-theme="dark"] body .board-posts-container.is-anonymous-board .board-post-card:hover {
+  background-color: #050505 !important;
+}
+
+/* Hidden Badge Style (Global but used in Standard) */
+.board-hidden-badge {
+  background-color: #6c757d;
+  color: white;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  margin-right: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.is-free-board .board-hidden-badge {
+  background-color: var(--bg-surface-3) !important;
+  color: var(--text-tertiary) !important;
+  font-size: 9px !important;
 }
 
 
@@ -255,37 +471,40 @@
   margin-bottom: 2px;
 }
 
-.standard-view .board-post-prefix {
-
-  color: white;
-  font-size: 11px;
-  padding: 3px 8px;
-  border-radius: 6px;
-  font-weight: 600;
-  flex-shrink: 0;
+.standard-view .board-notice-badge {
+  background-color: var(--color-slate-100);
+  /* 차분한 그레이 배경 */
+  color: var(--color-red-600);
+  /* 세련된 포인트 컬러 */
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 2px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  border: 1px solid rgba(220, 38, 38, 0.1);
 }
 
-.standard-view .board-notice-badge {
-  background: linear-gradient(135deg, var(--color-red-500) 0%, var(--color-red-600) 100%);
-  color: white;
-  font-size: 11px;
-  padding: 3px 8px;
-  border-radius: 6px;
+.standard-view .board-post-prefix {
+  background-color: var(--bg-surface-2);
+  color: var(--text-secondary);
+  font-size: 10px;
+  padding: 1px 6px;
+  border-radius: 2px;
   font-weight: 600;
-  flex-shrink: 0;
-  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.3);
+  border: 1px solid var(--border-subtle);
 }
 
 .standard-view .board-post-title {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.5;
+  margin: 0;
+  letter-spacing: -0.015em;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  line-height: 1.4;
-  margin: 0;
-  padding: 0;
-  color: var(--text-primary);
 }
 
 /* Hide separate title colors, just use white for consistency */
@@ -341,9 +560,14 @@
 .standard-view .board-post-meta-item {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
+  /* 아이콘과 숫자 간격 최적화 */
   white-space: nowrap;
-  /* Prevent wrap */
+  background: none !important;
+  border: none !important;
+  padding: 0 !important;
+  color: inherit !important;
+  font-size: inherit !important;
 }
 
 /* Specific truncation for nickname container */
@@ -376,14 +600,18 @@
   object-fit: cover;
 }
 
-.board-filter-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px 16px;
-  background-color: var(--bg-surface-2);
-  border-bottom: 1px solid var(--border-subtle);
-  gap: 8px;
+.is-free-board .board-filter-bar {
+  background-color: transparent !important;
+  padding: 8px 16px !important;
+  border-bottom: 1px solid var(--border-subtle) !important;
+}
+
+.is-free-board .board-search-input {
+  background: var(--bg-surface-2) !important;
+  border-radius: 20px !important;
+  border: none !important;
+  font-size: 13px !important;
+  padding: 6px 16px !important;
 }
 
 /* ===== 페이지네이션 (Global) ===== */
@@ -411,7 +639,7 @@
 
 .board-page-btn:hover {
   background-color: var(--bg-surface-2);
-  color: white;
+  color: var(--text-primary);
 }
 
 .board-page-btn:disabled {
@@ -555,7 +783,7 @@
 }
 
 .board-search-item-prefix {
-  color: white;
+  color: var(--text-inverse);
   font-size: 10px;
   padding: 0.125rem 0.25rem;
   border-radius: 4px;
@@ -617,40 +845,33 @@
   background-color: var(--bg-surface-2);
 }
 
-/* Like Button (Standard Mode) */
-.standard-mode .board-post-like-btn {
-  cursor: pointer;
-  transition: transform 0.2s, color 0.2s;
-  padding: 2px 4px;
-  border-radius: 4px;
+/* 메타 구역 버튼 완전 정적화: 텍스트와 레이아웃만 남김 */
+.is-free-board .board-post-like-btn,
+.is-free-board .board-post-heart-btn {
+  background: none !important;
+  border: none !important;
+  padding: 0 !important;
+  color: var(--text-muted) !important;
+  cursor: pointer !important;
+  transition: none !important;
 }
 
-.standard-mode .board-post-like-btn:hover {
-  background-color: var(--bg-surface-2);
-  transform: scale(1.1);
+.is-free-board .board-post-like-btn.liked {
+  color: #ffb800 !important;
+  /* 세련된 골드 */
 }
 
-.standard-mode .board-post-like-btn.liked {
-  color: var(--text-primary);
-  /* White */
+.is-free-board .board-post-heart-btn.active {
+  color: #ef4444 !important;
+  /* 하트 레드 */
 }
 
-.standard-mode .board-post-like-btn:not(.liked) {
-  color: var(--text-tertiary);
-  /* Gray-400 */
-}
-
-/* Real Heart Like Button */
-.standard-mode .board-post-heart-btn {
-  cursor: pointer;
-  transition: transform 0.2s, color 0.2s;
-  padding: 2px 4px;
-  border-radius: 4px;
-}
-
-.standard-mode .board-post-heart-btn:hover {
-  background-color: var(--bg-surface-2);
-  transform: scale(1.1);
+/* 모든 호버 완벽 제거 */
+.is-free-board .board-post-like-btn:hover,
+.is-free-board .board-post-heart-btn:hover {
+  background-color: transparent !important;
+  transform: none !important;
+  opacity: 1 !important;
 }
 
 .standard-mode .board-post-heart-btn.active {

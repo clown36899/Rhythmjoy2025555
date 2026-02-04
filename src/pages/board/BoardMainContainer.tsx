@@ -280,7 +280,10 @@ export default function BoardMainContainer() {
     };
 
     return (
-        <div className={`board-page-container ${category === 'history' ? 'is-history-mode' : ''}`}>
+        <div
+            className={`board-page-container ${category === 'history' ? 'is-history-mode' : ''}`}
+            data-theme={category === 'history' ? 'dark' : undefined}
+        >
             <BoardTabBar
                 activeCategory={category}
                 onCategoryChange={handleCategoryChange}
@@ -295,7 +298,7 @@ export default function BoardMainContainer() {
             )}
 
             <div
-                className={`board-posts-container ${category === 'history' ? 'is-history' : ''}`}
+                className={`board-posts-container ${category === 'history' ? 'is-history' : ''} ${['free', 'notice', 'market', 'trade', 'anonymous'].includes(category || '') ? 'is-standard-board-v2' : ''} ${category === 'anonymous' ? 'is-anonymous-board' : ''}`}
                 onTouchStart={onTouchStart}
                 onTouchMove={onTouchMove}
                 onTouchEnd={onTouchEnd}

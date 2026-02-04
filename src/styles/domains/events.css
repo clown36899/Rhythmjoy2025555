@@ -72,12 +72,15 @@
     }
 
     .ELS-countBadge {
-        background: var(--bg-surface-3);
+        background: transparent;
         color: var(--text-secondary);
-        padding: 2px 8px;
-        border-radius: 12px;
-        font-size: 11px;
-        font-weight: 600;
+        padding: 0;
+        border-radius: 0;
+        font-size: 0.85rem;
+        font-weight: 700;
+        position: relative;
+        top: -6px;
+        margin-left: 0;
     }
 
     .ELS-viewAllBtn {
@@ -179,10 +182,10 @@
 
     .ELS-genreBtn {
         padding: 6px 12px;
-        border-radius: 8px;
-        background: var(--bg-surface-2);
+        border-radius: 31px;
+        background: #191919;
         color: var(--text-secondary);
-        border: 1px solid var(--border-glass);
+        border: 1px solid #323232;
         font-size: 13px;
         font-weight: 500;
         cursor: pointer;

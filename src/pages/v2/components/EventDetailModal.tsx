@@ -1286,7 +1286,7 @@ export default function EventDetailModal({
                             >
                               <i
                                 className={isFavorite ? "ri-star-fill" : "ri-star-line"}
-                                style={{ fontSize: '40px' }}
+                                style={{ fontSize: '40px', color: '#ffffff' }}
                               ></i>
                             </button>
                           )}

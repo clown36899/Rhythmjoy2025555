@@ -1,8 +1,6 @@
 .board-tab-outer {
-    background-color: rgb(23 23 23 / 85%);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    /* border-bottom: 1px solid rgba(255, 255, 255, 0.08); */
+    background-color: var(--bg-base);
+    /* border-bottom: 1px solid var(--border-subtle); */
     position: fixed;
     top: calc(60px + env(safe-area-inset-top));
     left: 0;
@@ -46,9 +44,9 @@
     height: 100%;
     background: none;
     border: none;
-    color: #6d6d6d;
+    color: var(--text-tertiary);
     /* font-size: clamp(0.7rem, 2.5vw, 1rem); */
-    font-weight: 400;
+    font-weight: 500;
     white-space: nowrap;
     position: relative;
     cursor: pointer;
@@ -57,7 +55,7 @@
 }
 
 .board-tab-item.active {
-    color: #ffffff;
+    color: var(--text-primary);
     font-weight: 800;
 }
 
@@ -70,10 +68,18 @@
     bottom: 0;
     left: 0;
     height: 2px;
-    background-color: #ffffff;
+    background-color: var(--color-blue-500);
     border-radius: 2px 2px 0 0;
     pointer-events: none;
     /* Transition and visibility are precision-controlled via React inline styles */
+}
+
+.board-tab-separator {
+    color: var(--border-glass-strong);
+    font-size: 10px;
+    margin: 0 2px;
+    transform: translateY(-1px);
+    font-weight: 300;
 }
 
 .tab-wip-badge {

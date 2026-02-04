@@ -83,11 +83,8 @@ export default function StandardPostList({
                             </span>
                         )}
                         {isAdmin && post.is_hidden && (
-                            <span className="board-hidden-badge" style={{
-                                backgroundColor: '#6c757d', color: 'white', fontSize: '11px', padding: '2px 6px',
-                                borderRadius: '4px', marginRight: '6px', display: 'inline-flex', alignItems: 'center', gap: '3px'
-                            }}>
-                                <i className="ri-eye-off-line" style={{ fontSize: '12px' }}></i> 숨김
+                            <span className="board-hidden-badge">
+                                <i className="ri-eye-off-line"></i> 숨김
                             </span>
                         )}
                         {post.prefix && !post.is_notice && (
@@ -131,15 +128,15 @@ export default function StandardPostList({
                     <div
                         className="board-post-author-avatar-container"
                         style={{
-                            width: '10px', height: '10px', borderRadius: '50%', overflow: 'hidden',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '4px',
+                            width: '16px', height: '16px', borderRadius: '50%', overflow: 'hidden',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '6px',
                             ...getAvatarStyle(post.user_id, post.author_nickname || post.author_name)
                         }}
                     >
                         {post.author_profile_image ? (
                             <img src={post.author_profile_image} alt="author" className="board-post-author-avatar" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover' }} referrerPolicy="no-referrer" />
                         ) : (
-                            <span style={{ fontSize: '9px', fontWeight: 'bold' }}>
+                            <span style={{ fontSize: '10px', fontWeight: 'bold' }}>
                                 {(post.author_nickname || post.author_name || '?').charAt(0)}
                             </span>
                         )}
@@ -161,24 +158,22 @@ export default function StandardPostList({
 
                     {onToggleFavorite && (
                         <button
-                            className={`board-post-like-btn ${favoritedPostIds?.has(post.id) ? 'liked' : ''}`}
+                            className={`board-post-meta-item board-post-like-btn ${favoritedPostIds?.has(post.id) ? 'liked' : ''}`}
                             onClick={(e) => { e.stopPropagation(); onToggleFavorite(post.id); }}
-                            style={{ background: 'transparent', border: 'none', display: 'flex', alignItems: 'center' }}
                             title="즐겨찾기"
                         >
                             <i className={favoritedPostIds?.has(post.id) ? "ri-star-fill board-post-meta-icon" : "ri-star-line board-post-meta-icon"}></i>
-                            <span style={{ marginLeft: '4px' }}>{post.favorites || 0}</span>
+                            {post.favorites || 0}
                         </button>
                     )}
                     {onToggleLike && (
                         <button
-                            className={`board-post-heart-btn ${likedPostIds?.has(post.id) ? 'active' : ''}`}
+                            className={`board-post-meta-item board-post-heart-btn ${likedPostIds?.has(post.id) ? 'active' : ''}`}
                             onClick={(e) => { e.stopPropagation(); onToggleLike(post.id); }}
-                            style={{ background: 'transparent', border: 'none', display: 'flex', alignItems: 'center' }}
                             title="좋아요"
                         >
                             <i className={likedPostIds?.has(post.id) ? "ri-heart-fill board-post-meta-icon" : "ri-heart-line board-post-meta-icon"}></i>
-                            <span style={{ marginLeft: '4px' }}>{post.likes || 0}</span>
+                            {post.likes || 0}
                         </button>
                     )}
 
