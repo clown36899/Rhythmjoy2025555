@@ -5,6 +5,7 @@
 @import './styles/base.css' layer(base);
 @import './styles/utilities.css' layer(utilities);
 @import './styles/shared/loading.css' layer(components);
+@import './styles/shared/error.css' layer(components);
 @import './styles/shared/links.css' layer(components);
 @import './styles/components/DatePickerTheme.css' layer(components);
 
@@ -132,8 +133,8 @@
       /* height는 grid-auto-rows로 제어됨 */
       min-height: 30px;
       padding: 1px;
-      border-right: 1px solid #15151575;
-      border-bottom: 1px solid #15151575;
+      border-right: 1px solid var(--calendar-vertical-border);
+      border-bottom: 1px solid var(--calendar-week-border);
     }
   }
 

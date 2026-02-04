@@ -59,7 +59,7 @@ const SurveyTestPage = lazy(() => import('./pages/test/SurveyTestPage'));
 const AdminPushTestPage = lazy(() => import('./components/admin/AdminPushTest').then(m => ({ default: m.AdminPushTest })));
 
 const BillboardFallback = () => (
-  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', backgroundColor: 'var(--bg-base)', color: 'var(--text-primary)' }}>
+  <div className="full-screen-fallback">
   </div>
 );
 
@@ -238,11 +238,11 @@ function RootApp() {
 
           // Loop detected: Show fallback UI instead of white screen
           document.body.innerHTML = `
-            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;text-align:center;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-              <h2 style="margin-bottom:10px;font-size:18px;font-weight:600;">업데이트 문제 발생</h2>
-              <p style="margin-bottom:20px;color:#666;font-size:14px;">최신 버전을 로딩하는 중 문제가 발생했습니다.</p>
+            <div class="crash-fallback-container">
+              <h2 class="crash-fallback-title">업데이트 문제 발생</h2>
+              <p class="crash-fallback-desc">최신 버전을 로딩하는 중 문제가 발생했습니다.</p>
               <button onclick="sessionStorage.clear(); localStorage.clear(); window.location.reload();" 
-                style="padding:10px 20px;background:#2563EB;color:white;border:none;border-radius:6px;font-weight:500;cursor:pointer;">
+                class="crash-fallback-btn">
                 앱 초기화 및 다시 불러오기
               </button>
             </div>

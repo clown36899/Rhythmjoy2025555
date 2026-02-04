@@ -13,6 +13,7 @@ import DecadeNodeComponent from './DecadeNodeComponent';
 import CustomBezierEdge from './CustomBezierEdge';
 import { CANVAS_CONFIG, CATEGORY_COLORS } from '../utils/constants';
 import { isValidConnection } from '../utils/helpers';
+import './HistoryCanvas.css';
 
 interface HistoryCanvasProps {
     nodes: HistoryRFNode[];
@@ -78,7 +79,7 @@ export const HistoryCanvas = ({
     const [isMinimapVisible, setIsMinimapVisible] = useState(false);
 
     return (
-        <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+        <div className="history-canvas-container">
             <ReactFlow
                 nodes={nodes}
                 edges={edges}
@@ -129,24 +130,7 @@ export const HistoryCanvas = ({
                 )}
                 <button
                     onClick={() => setIsMinimapVisible(prev => !prev)}
-                    style={{
-                        position: 'absolute',
-                        bottom: isMinimapVisible ? 170 : 15,
-                        right: 15,
-                        zIndex: 5,
-                        width: 40,
-                        height: 40,
-                        borderRadius: '50%',
-                        backgroundColor: '#1f2937',
-                        color: '#e5e7eb',
-                        border: '1px solid #374151',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                        transition: 'all 0.2s ease'
-                    }}
+                    data-minimap-visible={isMinimapVisible}
                     title={isMinimapVisible ? "미니맵 숨기기" : "미니맵 보기"}
                     className="minimap-toggle-btn"
                 >

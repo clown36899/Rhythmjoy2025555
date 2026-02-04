@@ -40,7 +40,7 @@
         flex-direction: column;
         transform: translateX(-100%);
         transition: var(--sd-transition);
-        border-right: 1px solid var(--border-glass);
+        border-right: 1px solid var(--border-subtle);
         padding-top: env(safe-area-inset-top);
         padding-bottom: env(safe-area-inset-bottom);
         z-index: calc(var(--z-header) + 1);
@@ -55,7 +55,7 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        border-bottom: 1px solid var(--border-glass);
+        border-bottom: 1px solid var(--border-subtle);
         background-color: var(--bg-surface-2);
     }
 
@@ -144,7 +144,7 @@
 
     .SD-divider {
         height: 1px;
-        background-color: var(--border-glass);
+        background-color: var(--border-subtle);
         margin: 12px 24px;
     }
 
@@ -245,7 +245,7 @@
     .SD-pwaSection {
         padding: 20px;
         background: var(--bg-surface-2);
-        border-bottom: 1px solid var(--border-glass);
+        border-bottom: 1px solid var(--border-subtle);
     }
 
     .SD-pwaContainer {
@@ -255,7 +255,7 @@
         background: var(--bg-surface-3);
         padding: 16px;
         border-radius: 16px;
-        border: 1px solid var(--border-glass);
+        border: 1px solid var(--border-subtle);
     }
 
     .SD-footer {
@@ -347,13 +347,14 @@
     }
 
     .PWIM-container {
-        background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        background: var(--bg-modal);
+        border: 1px solid var(--border-subtle);
         border-radius: 20px;
         max-width: 500px;
         width: 100%;
         max-height: 90vh;
         overflow: hidden;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        box-shadow: var(--shadow-elevated);
         animation: pwim-slideUp 0.3s ease;
         display: flex;
         flex-direction: column;
@@ -361,7 +362,7 @@
 
     .PWIM-header {
         padding: 1.5rem;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+        border-bottom: 1px solid var(--border-subtle);
         display: flex;
         align-items: center;
         justify-content: space-between;
@@ -661,8 +662,8 @@
         max-width: 360px;
         padding: 24px;
         position: relative;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: var(--shadow-elevated);
+        border: 1px solid var(--border-subtle);
         animation: lm-slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
 

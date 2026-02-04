@@ -8,6 +8,14 @@
     width: 100vw;
     height: 100vh;
     position: relative;
+    /* Dynamic Props from React */
+    --scale: 1;
+    --qr-size: 150px;
+    --qr-margin-bottom: 8px;
+    --qr-padding: 12px;
+    --title-font-size: 48px;
+    --date-location-font-size: 24px;
+    --transition-duration: 500ms;
   }
 
   /* ===== 로딩 화면 ===== */
@@ -127,11 +135,41 @@
   .billboard-youtube-container {
     width: 100%;
     height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 2;
+    opacity: var(--video-opacity);
+    transition: opacity 0.8s ease-in-out;
+  }
+
+  /* ===== 가변 레이아웃 컨테이너 ===== */
+  .portrait-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: var(--container-width);
+    height: var(--container-height);
+    transform: translate(-50%, -50%) rotate(var(--rotation));
+    opacity: var(--opacity);
+    pointer-events: var(--pointer-events);
+    transition: opacity var(--transition-duration) ease-in-out;
+    z-index: var(--z-index);
   }
 
   /* ===== 정보 레이어 ===== */
   .billboard-top-info {
     position: absolute;
+    width: 100%;
+    padding: calc(42px * var(--scale)) 42px;
+    top: 0;
+    z-index: 10;
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-content: space-between;
+    align-items: center;
+    justify-content: space-between;
   }
 
   .billboard-progress-container {
@@ -139,6 +177,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    width: calc(96px * var(--scale));
+    height: calc(96px * var(--scale));
   }
 
   .billboard-pulse-outer {
@@ -148,11 +188,19 @@
     bottom: 0;
     left: 0;
     border-radius: 9999px;
+    background-color: rgba(255, 255, 255, 0.15);
+    animation: billboard-pulse 3s ease-in-out infinite;
   }
 
   .billboard-pulse-inner {
     position: absolute;
     border-radius: 9999px;
+    width: calc(72px * var(--scale));
+    height: calc(72px * var(--scale));
+    top: calc(12px * var(--scale));
+    left: calc(12px * var(--scale));
+    background-color: rgba(255, 255, 255, 0.25);
+    animation: billboard-pulse-inner 3s ease-in-out infinite;
   }
 
   .billboard-slide-number {
@@ -160,6 +208,7 @@
     color: white;
     font-weight: 700;
     z-index: var(--z-10);
+    font-size: calc(20px * var(--scale));
   }
 
   .billboard-status-badge {
@@ -186,6 +235,10 @@
     justify-content: flex-end;
     z-index: var(--z-10);
     padding-bottom: env(safe-area-inset-bottom);
+    padding-left: calc(32px * var(--scale));
+    padding-right: calc(32px * var(--scale));
+    padding-bottom: calc(40px * var(--scale));
+    padding-top: calc(80px * var(--scale));
   }
 
   .info-background {
@@ -225,28 +278,37 @@
     line-clamp: 3;
     -webkit-box-orient: vertical;
     margin: 0;
-    /* Remove default h3 margin */
     margin-bottom: 0.25rem;
-    /* Small spacing below title */
+    font-size: var(--title-font-size-px);
+    opacity: 0;
+    animation: zoomInUp 1.3s cubic-bezier(0.34, 1.56, 0.64, 1) 0s forwards;
   }
 
   .billboard-date {
     color: #60a5fa;
     font-weight: 600;
     line-height: 1.2;
+    font-size: var(--date-location-font-size-px);
+    opacity: 0;
+    animation: slideInLeft 1s cubic-bezier(0.34, 1.56, 0.64, 1) 1.5s forwards;
   }
 
   .billboard-date-icon {
     display: inline-block;
+    margin-right: calc(var(--date-location-font-size-px) * 0.3);
   }
 
   .billboard-location {
     color: #d1d5db;
     line-height: 1.2;
+    font-size: var(--date-location-font-size-px);
+    opacity: 0;
+    animation: slideInRight 1s cubic-bezier(0.34, 1.56, 0.64, 1) 2.2s forwards;
   }
 
   .billboard-location-icon {
     display: inline-block;
+    margin-right: calc(var(--date-location-font-size-px) * 0.3);
   }
 
   .billboard-qr-container {
@@ -263,11 +325,371 @@
     text-align: center;
     white-space: nowrap;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+    font-size: var(--qr-label-font-size);
+    margin-bottom: var(--qr-label-margin-bottom);
+    width: var(--qr-size-px);
   }
 
   .billboard-qr-wrapper {
     background-color: white;
     border-radius: var(--radius-lg);
+    padding: var(--qr-padding);
+  }
+
+  /* ===== 장식 요소들 ===== */
+  .billboard-deco-float-1 {
+    position: absolute;
+    top: calc(-80px * var(--scale));
+    left: calc(20px * var(--scale));
+    width: calc(60px * var(--scale));
+    height: calc(60px * var(--scale));
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0));
+    animation: float1 2.5s ease-in-out 0s forwards;
+    opacity: 0;
+    transform: scale(0) translateY(calc(-50px * var(--scale)));
+  }
+
+  .billboard-deco-float-2 {
+    position: absolute;
+    top: calc(-60px * var(--scale));
+    right: calc(40px * var(--scale));
+    width: calc(80px * var(--scale));
+    height: calc(80px * var(--scale));
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0));
+    animation: float2 2.6s ease-in-out 0.3s forwards;
+    opacity: 0;
+    transform: scale(0) translateY(calc(-80px * var(--scale)));
+  }
+
+  .billboard-deco-diamond-1 {
+    position: absolute;
+    top: calc(-90px * var(--scale));
+    left: calc(120px * var(--scale));
+    width: calc(40px * var(--scale));
+    height: calc(40px * var(--scale));
+    background-color: rgba(255, 255, 255, 0.7);
+    transform: rotate(45deg);
+    animation: diamond 2.8s ease-in-out 0.6s forwards;
+    opacity: 0;
+  }
+
+  .billboard-deco-diamond-2 {
+    position: absolute;
+    top: calc(-70px * var(--scale));
+    right: calc(150px * var(--scale));
+    width: calc(50px * var(--scale));
+    height: calc(50px * var(--scale));
+    background-color: rgba(255, 255, 255, 0.6);
+    transform: rotate(45deg);
+    animation: diamond2 2.7s ease-in-out 0.9s forwards;
+    opacity: 0;
+  }
+
+  .billboard-deco-particle-1 {
+    position: absolute;
+    top: calc(10px * var(--scale));
+    left: calc(-30px * var(--scale));
+    width: calc(12px * var(--scale));
+    height: calc(12px * var(--scale));
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 0 calc(20px * var(--scale)) rgba(255, 255, 255, 0.6);
+    animation: particle1 3s ease-in-out 1.2s forwards;
+    opacity: 0;
+  }
+
+  .billboard-deco-particle-2 {
+    position: absolute;
+    top: calc(40px * var(--scale));
+    right: calc(-20px * var(--scale));
+    width: calc(14px * var(--scale));
+    height: calc(14px * var(--scale));
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.85);
+    box-shadow: 0 0 calc(25px * var(--scale)) rgba(255, 255, 255, 0.5);
+    animation: particle2 2.9s ease-in-out 1.5s forwards;
+    opacity: 0;
+  }
+
+  .billboard-deco-particle-3 {
+    position: absolute;
+    top: calc(-50px * var(--scale));
+    left: calc(250px * var(--scale));
+    width: calc(10px * var(--scale));
+    height: calc(10px * var(--scale));
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.8);
+    box-shadow: 0 0 calc(18px * var(--scale)) rgba(255, 255, 255, 0.5);
+    animation: particle3 2.8s ease-in-out 1.8s forwards;
+    opacity: 0;
+  }
+
+  .billboard-deco-line {
+    position: absolute;
+    top: 0;
+    left: calc(48px * var(--scale));
+    right: calc(48px * var(--scale));
+    height: calc(2px * var(--scale));
+    background-color: rgba(255, 255, 255, 0.3);
+    transform-origin: left;
+    animation: drawLine 1.2s ease-out 4.2s forwards;
+    transform: scaleX(0);
+  }
+
+  .billboard-qr-wrapper canvas {
+    width: var(--qr-size-px) !important;
+    height: var(--qr-size-px) !important;
+  }
+}
+
+/* ===== 애니메이션 키프레임 (컴포넌트에서 이관) ===== */
+@keyframes billboard-pulse {
+
+  0%,
+  100% {
+    opacity: 0.15;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.3;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes billboard-pulse-inner {
+
+  0%,
+  100% {
+    opacity: 0.25;
+    transform: scale(1);
+  }
+
+  50% {
+    opacity: 0.4;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes progressCircle {
+  from {
+    stroke-dashoffset: var(--dash-total);
+  }
+
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes float1 {
+  0% {
+    opacity: 0;
+    transform: scale(0) translateY(-50px);
+  }
+
+  30% {
+    opacity: 0.8;
+    transform: scale(1.3) translateY(5px);
+  }
+
+  60% {
+    opacity: 0.6;
+    transform: scale(1) translateY(0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(0.8) translateY(10px);
+  }
+}
+
+@keyframes float2 {
+  0% {
+    opacity: 0;
+    transform: scale(0) translateY(-80px);
+  }
+
+  30% {
+    opacity: 0.7;
+    transform: scale(1.4) translateY(8px);
+  }
+
+  60% {
+    opacity: 0.5;
+    transform: scale(1) translateY(0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(0.7) translateY(15px);
+  }
+}
+
+@keyframes diamond {
+  0% {
+    opacity: 0;
+    transform: rotate(45deg) scale(0);
+  }
+
+  30% {
+    opacity: 0.7;
+    transform: rotate(225deg) scale(1.3);
+  }
+
+  60% {
+    opacity: 0.5;
+    transform: rotate(405deg) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: rotate(495deg) scale(0.6);
+  }
+}
+
+@keyframes diamond2 {
+  0% {
+    opacity: 0;
+    transform: rotate(45deg) scale(0);
+  }
+
+  30% {
+    opacity: 0.6;
+    transform: rotate(-135deg) scale(1.4);
+  }
+
+  60% {
+    opacity: 0.4;
+    transform: rotate(-315deg) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: rotate(-405deg) scale(0.5);
+  }
+}
+
+@keyframes particle1 {
+  0% {
+    opacity: 0;
+    transform: translateX(calc(-100px * var(--scale))) translateY(calc(-50px * var(--scale))) scale(0);
+  }
+
+  30% {
+    opacity: 0.9;
+    transform: translateX(calc(50px * var(--scale))) translateY(calc(25px * var(--scale))) scale(1.5);
+  }
+
+  60% {
+    opacity: 0.6;
+    transform: translateX(0) translateY(0) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(calc(30px * var(--scale))) translateY(calc(-20px * var(--scale))) scale(0.5);
+  }
+}
+
+@keyframes particle2 {
+  0% {
+    opacity: 0;
+    transform: translateX(calc(100px * var(--scale))) translateY(calc(-50px * var(--scale))) scale(0);
+  }
+
+  30% {
+    opacity: 0.8;
+    transform: translateX(calc(-50px * var(--scale))) translateY(calc(25px * var(--scale))) scale(1.6);
+  }
+
+  60% {
+    opacity: 0.5;
+    transform: translateX(0) translateY(0) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateX(calc(-30px * var(--scale))) translateY(calc(-20px * var(--scale))) scale(0.4);
+  }
+}
+
+@keyframes particle3 {
+  0% {
+    opacity: 0;
+    transform: translateY(calc(-80px * var(--scale))) scale(0);
+  }
+
+  30% {
+    opacity: 0.7;
+    transform: translateY(calc(20px * var(--scale))) scale(1.4);
+  }
+
+  60% {
+    opacity: 0.4;
+    transform: translateY(0) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(calc(-15px * var(--scale))) scale(0.6);
+  }
+}
+
+@keyframes drawLine {
+  0% {
+    transform: scaleX(0);
+  }
+
+  100% {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes slideInLeft {
+  0% {
+    opacity: 0;
+    transform: translateX(calc(-150px * var(--scale))) rotate(-8deg);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateX(0) rotate(0deg);
+  }
+}
+
+@keyframes slideInRight {
+  0% {
+    opacity: 0;
+    transform: translateX(calc(150px * var(--scale))) rotate(8deg);
+  }
+
+  100% {
+    opacity: 1;
+    transform: translateX(0) rotate(0deg);
+  }
+}
+
+@keyframes zoomInUp {
+  0% {
+    opacity: 0;
+    transform: scale(0.2) translateY(calc(100px * var(--scale))) rotate(-15deg);
+  }
+
+  60% {
+    opacity: 1;
+    transform: scale(1.2) translateY(calc(-15px * var(--scale))) rotate(5deg);
+  }
+
+  80% {
+    opacity: 1;
+    transform: scale(0.9) translateY(calc(5px * var(--scale))) rotate(-3deg);
+  }
+
+  100% {
+    opacity: 1;
+    transform: scale(1) translateY(0) rotate(0deg);
   }
 }
 

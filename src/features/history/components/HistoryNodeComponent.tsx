@@ -289,13 +289,12 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
             ref={nodeRef}
             className={`history-node ${selected ? 'selected' : ''} ${isContainer ? 'is-container' : ''} linked-type-${linkedType} ${isCanvas ? 'is-canvas-portal' : ''} ${!hasThumbnail && data.category !== 'person' ? 'no-content-image' : ''} ${isMinimalNode ? 'is-minimal-node' : ''} ${useUnifiedFolderLayout ? 'use-folder-system' : ''} ${hasChildren ? 'has-children' : ''} ${!showDetail ? 'lod-low' : ''}`}
             style={{
-                borderColor: categoryColor,
-                height: '100%',
-                width: '100%',
+                '--dynamic-category-color': categoryColor,
                 '--dynamic-header-height': `${headerHeight}px`,
                 // 🔥 Folder/Container index is 0, non-folders must be at least 1
                 zIndex: isContainer ? 0 : 1
             } as React.CSSProperties}
+            data-category-color={categoryColor}
             onClick={handleNodeClick} // 🔥 Use dedicated handler that manages propagation
             onContextMenu={() => {
                 // Allow context menu to bubble up to ReactFlow's onNodeContextMenu
@@ -346,9 +345,8 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
             {/* Person Avatar for person category */}
             {data.category === 'person' && data.image_url && (
                 <div
-                    className="person-avatar"
+                    className="person-avatar clickable-avatar"
                     onClick={handleNodeClick} // 🔥 Use centralized handler
-                    style={{ cursor: 'pointer' }}
                 >
                     <img
                         src={data.image_url}
@@ -363,13 +361,12 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
             {data.category === 'arrow' && (
                 <div className="arrow-node-container">
                     <svg
-                        className="arrow-svg"
+                        className="arrow-svg arrow-svg-container"
                         width={data.arrow_length || 200}
                         height="80"
                         style={{
-                            transform: `rotate(${data.arrow_rotation || 0}deg)`,
-                            transformOrigin: 'center'
-                        }}
+                            transform: `rotate(${data.arrow_rotation || 0}deg)`
+                        } as React.CSSProperties}
                     >
                         {/* Arrow Line */}
                         <line
@@ -404,9 +401,8 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
             {/* But since performance is goal, hiding complex overlays/hover effects is good */}
             {thumbnailUrl && data.category !== 'person' && (
                 <div
-                    className={`history-node-thumbnail ${data.nodeType === 'document' ? 'document-thumbnail' : ''}`}
+                    className={`history-node-thumbnail clickable-thumbnail ${data.nodeType === 'document' ? 'document-thumbnail' : ''}`}
                     onClick={data.isSelectionMode ? undefined : handleThumbnailClick}
-                    style={{ cursor: data.isSelectionMode ? 'default' : 'pointer' }}
                 >
                     <img
                         src={thumbnailUrl}
@@ -424,13 +420,12 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
             )}
 
             <div
-                className="history-node-content"
-                style={{ cursor: (data.isSelectionMode || data.isEditMode) ? 'default' : 'pointer' }}
+                className="history-node-content clickable-content"
             >
                 <div className="node-header">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <div className="node-header-row">
                         <span className="node-year">{data.year || data.date}</span>
-                        <div style={{ display: 'flex', gap: '4px' }}>
+                        <div className="node-badge-group">
                             {showDetail && categoryIcon && (
                                 <span className={`history-node-badge badge-${data.category || 'general'}`}>
                                     {categoryIcon}

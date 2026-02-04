@@ -378,15 +378,28 @@
     /* 전체 패딩 넉넉하게 */
 }
 
-/* === Loading === */
-.room-detail-page-loading {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 3rem;
-    color: white;
-    gap: 1rem;
+.room-detail-page-loading i {
+    font-size: 2rem;
+}
+
+.room-detail-error-icon {
+    font-size: 3rem;
+    color: var(--color-red-500);
+}
+
+.room-detail-error-subtext {
+    font-size: 0.8rem;
+    color: var(--color-gray-500);
+}
+
+.room-detail-error-close-btn {
+    margin-top: 1rem;
+    padding: 0.5rem 1rem;
+    background: var(--bg-selected);
+    border: 1px solid var(--border-subtle);
+    border-radius: 0.5rem;
+    color: var(--color-base);
+    cursor: pointer;
 }
 
 /* === Info Section (Top) === */
@@ -659,6 +672,17 @@
     flex: 1;
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
+}
+
+.room-detail-debug-id {
+    font-size: 0.7rem;
+    color: var(--color-gray-600);
+    text-align: center;
+    margin-top: 2rem;
+}
+
+.venue-website-link {
+    margin-top: -2px;
 }
 
 .room-detail-page-loading {

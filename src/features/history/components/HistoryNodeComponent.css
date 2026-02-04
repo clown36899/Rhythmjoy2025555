@@ -19,6 +19,11 @@
     /* overflow: hidden removed to allow NodeResizer handles to be visible outside the border */
 }
 
+/* Category Color Binding */
+.history-node[data-category-color] {
+    border-color: var(--dynamic-category-color) !important;
+}
+
 /* Canvas Portal Unique Style */
 .history-node.is-canvas-portal {
     border-color: var(--color-blue-400) !important;
@@ -387,7 +392,7 @@
     }
 }
 
-/* Footer Actions - Anchored and Shielded */
+/* Footer Actions - Anchored and Shielded*/
 .history-node-footer {
     display: flex;
     justify-content: flex-end;
@@ -399,6 +404,37 @@
     /* Slightly more opaque to ensure visibility */
     position: relative;
     z-index: 10;
+}
+
+/* Header Row & Groups */
+.node-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.node-badge-group {
+    display: flex;
+    gap: 4px;
+}
+
+/* Interactive Elements */
+.clickable-avatar {
+    cursor: pointer;
+}
+
+.clickable-content {
+    cursor: pointer;
+}
+
+.clickable-thumbnail {
+    cursor: pointer;
+}
+
+/* Arrow Node Specifics */
+.arrow-svg-container {
+    transform-origin: center;
 }
 
 .node-action-btn {

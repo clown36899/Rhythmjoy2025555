@@ -73,22 +73,39 @@
 
     /* 장르 색상 변수 */
     --genre-red-400: var(--color-red-400);
+    --genre-red-500: var(--color-red-500);
     --genre-orange-400: var(--color-orange-400);
+    --genre-orange-500: var(--color-orange-500);
     --genre-amber-400: var(--color-amber-400);
+    --genre-amber-500: var(--color-amber-500);
     --genre-yellow-400: var(--color-yellow-400);
+    --genre-yellow-500: var(--color-yellow-500);
     --genre-lime-400: var(--color-lime-400);
+    --genre-lime-500: var(--color-lime-500);
     --genre-green-400: var(--color-green-400);
+    --genre-green-500: var(--color-green-500);
     --genre-emerald-400: var(--color-emerald-400);
+    --genre-emerald-500: var(--color-emerald-500);
     --genre-teal-400: var(--color-teal-400);
+    --genre-teal-500: var(--color-teal-500);
     --genre-cyan-400: var(--color-cyan-400);
+    --genre-cyan-500: var(--color-cyan-500);
     --genre-sky-400: var(--color-sky-400);
+    --genre-sky-500: var(--color-sky-500);
     --genre-blue-400: var(--color-blue-400);
+    --genre-blue-500: var(--color-blue-500);
     --genre-indigo-400: var(--color-indigo-400);
+    --genre-indigo-500: var(--color-indigo-500);
     --genre-violet-400: var(--color-violet-400);
+    --genre-violet-500: var(--color-violet-500);
     --genre-purple-400: var(--color-purple-400);
+    --genre-purple-500: var(--color-purple-500);
     --genre-fuchsia-400: var(--color-fuchsia-400);
+    --genre-fuchsia-500: var(--color-fuchsia-500);
     --genre-pink-400: var(--color-pink-400);
+    --genre-pink-500: var(--color-pink-500);
     --genre-rose-400: var(--color-rose-400);
+    --genre-rose-500: var(--color-rose-500);
 
     /* Typography System (Common) */
     --font-sans: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
@@ -217,6 +234,8 @@
     --border-primary: #555555;
     --border-secondary: #4b5563;
     --border-light: #374151;
+    --border-subtle: rgba(255, 255, 255, 0.03);
+    /* Dark mode subtle border */
     --border-glass: rgba(255, 255, 255, 0.1);
     --border-glass-strong: rgba(255, 255, 255, 0.15);
     --border-glass-subtle: rgba(255, 255, 255, 0.05);
@@ -311,6 +330,8 @@
     /* slate-300 */
     --border-light: #f1f5f9;
     /* slate-100 */
+    --border-subtle: #f1f5f9;
+    /* slate-100 - very subtle layout divider */
     --border-glass: rgba(0, 0, 0, 0.05);
     --border-glass-strong: rgba(0, 0, 0, 0.1);
     --border-glass-subtle: rgba(0, 0, 0, 0.02);
@@ -321,20 +342,22 @@
     --header-bg-dark: #f8fafc;
 
     /* Calendar Specifics (Light) */
-    --calendar-vertical-border: #f8fafc;
-    --calendar-week-border: #f8fafc;
-    --calendar-weekday-border: #f1f5f9;
+    --calendar-bg: #fcfdfe;
+    /* Soft off-white for better grid clarity */
+    --calendar-vertical-border: #f1f5f9;
+    --calendar-week-border: #f1f5f9;
+    --calendar-weekday-border: #e2e8f0;
 
     /* Effects - 고도화된 그림자 시스템 */
     --shadow-premium:
-      0 10px 15px -3px rgba(0, 0, 0, 0.04),
-      0 4px 6px -4px rgba(0, 0, 0, 0.02),
-      0 0 0 1px rgba(0, 0, 0, 0.01);
+      0 10px 15px -3px rgba(0, 0, 0, 0.03),
+      0 4px 6px -4px rgba(0, 0, 0, 0.01),
+      0 0 0 1px rgba(0, 0, 0, 0.005);
     --shadow-elevated:
-      0 20px 25px -5px rgba(0, 0, 0, 0.05),
-      0 8px 10px -6px rgba(0, 0, 0, 0.03);
-    --shadow-glow-blue: 0 0 20px rgba(59, 130, 246, 0.15);
-    --shadow-inset: inset 0 2px 4px 0 rgba(0, 0, 0, 0.01);
+      0 20px 25px -5px rgba(0, 0, 0, 0.04),
+      0 8px 10px -6px rgba(0, 0, 0, 0.02);
+    --shadow-glow-blue: 0 0 20px rgba(59, 130, 246, 0.12);
+    --shadow-inset: inset 0 2px 4px 0 rgba(0, 0, 0, 0.005);
 
     /* Glassmorphism & Translucency (Light) - 더 맑은 느낌 */
     --bg-glass: rgba(255, 255, 255, 0.7);

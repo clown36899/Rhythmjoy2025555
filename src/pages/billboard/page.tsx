@@ -1304,19 +1304,13 @@ export default function BillboardPage() {
       <div
         className="portrait-container"
         style={{
-          position: "absolute",
-          top: "50%",
-          left: "50%",
-          width: needsRotation ? "100vh" : "100vw",
-          height: needsRotation ? "100vw" : "100vh",
-          transform: needsRotation
-            ? `translate(-50%, -50%) rotate(90deg)`
-            : `translate(-50%, -50%)`,
-          opacity: isVisible ? 1 : 0,
-          pointerEvents: isVisible ? "auto" : "none",
-          transition: `opacity ${settings?.transition_duration ?? 500}ms ease-in-out`,
-          zIndex: isVisible ? 2 : 1,
-        }}
+          ['--container-width' as any]: needsRotation ? "100vh" : "100vw",
+          ['--container-height' as any]: needsRotation ? "100vw" : "100vh",
+          ['--rotation' as any]: needsRotation ? "90deg" : "0deg",
+          ['--opacity' as any]: isVisible ? 1 : 0,
+          ['--pointer-events' as any]: isVisible ? "auto" : "none",
+          ['--z-index' as any]: isVisible ? 2 : 1,
+        } as any}
       >
         {/* === 유튜브 영상 + 썸네일 === */}
         {videoInfo?.videoId ? (
@@ -1333,8 +1327,6 @@ export default function BillboardPage() {
                   top: 0,
                   left: 0,
                   zIndex: 1,
-                  opacity: 1,
-                  transition: "opacity 0.8s ease-in-out",
                 }}
               />
             )}
@@ -1342,13 +1334,8 @@ export default function BillboardPage() {
             <div
               className="billboard-youtube-container"
               style={{
-                position: "absolute",
-                top: 0,
-                left: 0,
-                zIndex: 2,
-                opacity: videoLoaded ? 1 : 0,
-                transition: "opacity 0.8s ease-in-out",
-              }}
+                ['--video-opacity' as any]: videoLoaded ? 1 : 0,
+              } as any}
             >
               <YouTubePlayer
                 ref={(el) => {
@@ -1392,21 +1379,7 @@ export default function BillboardPage() {
         {/* === 정보 레이어 === */}
         {isVisible && (
           <>
-            <div
-              className="billboard-top-info"
-              style={{
-                width: "100%",
-                padding: "0 42px",
-                top: "0",
-                zIndex: 10,
-                display: "flex",
-                flexDirection: "row",
-                flexWrap: "wrap",
-                alignContent: "space-between",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
+            <div className="billboard-top-info">
               {events.length > 1 && (
                 <div
                   className="billboard-progress-container"
@@ -1415,31 +1388,10 @@ export default function BillboardPage() {
                     height: `${96 * scale}px`,
                   }}
                 >
-                  {/* 펄스 링 (외부) - 부하 1%, CSS animation만 사용 */}
-                  <div
-                    className="billboard-pulse-outer"
-                    style={{
-                      backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                      animation: 'billboard-pulse 3s ease-in-out infinite',
-                    }}
-                  />
-                  {/* 펄스 링 (내부) */}
-                  <div
-                    className="billboard-pulse-inner"
-                    style={{
-                      width: `${72 * scale}px`,
-                      height: `${72 * scale}px`,
-                      top: `${12 * scale}px`,
-                      left: `${12 * scale}px`,
-                      backgroundColor: 'rgba(255, 255, 255, 0.25)',
-                      animation: 'billboard-pulse-inner 3s ease-in-out infinite',
-                    }}
-                  />
+                  <div className="billboard-pulse-outer" />
+                  <div className="billboard-pulse-inner" />
                   {/* 슬라이드 번호 */}
-                  <span
-                    className="billboard-slide-number"
-                    style={{ fontSize: `${20 * scale}px` }}
-                  >
+                  <span className="billboard-slide-number">
                     {currentIndex + 1}/{events.length}
                   </span>
 
@@ -1478,10 +1430,7 @@ export default function BillboardPage() {
                   */}
                 </div>
               )}
-              <div
-                className="billboard-status-badge"
-                style={{ position: "relative", width: "max-content" }}
-              >
+              <div className="billboard-status-badge">
                 {realtimeStatus}
               </div>
             </div>
@@ -1490,128 +1439,18 @@ export default function BillboardPage() {
             <div
               key={`info-${event.id}-${slideIndex}`}
               className={`billboard-bottom-info ${(event.show_title_on_billboard ?? true) ? 'info-background' : ''}`}
-              style={{
-                paddingLeft: `${32 * scale}px`,
-                paddingRight: `${32 * scale}px`,
-                paddingBottom: `${40 * scale}px`,
-                paddingTop: `${80 * scale}px`, // 그라데이션 영역 확보
-                zIndex: 10,
-              }}
             >
               {(event.show_title_on_billboard ?? true) && (
                 <>
                   {/* 장식 요소들 */}
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: `${-80 * scale}px`,
-                      left: `${20 * scale}px`,
-                      width: `${60 * scale}px`,
-                      height: `${60 * scale}px`,
-                      borderRadius: "50%",
-                      background:
-                        "radial-gradient(circle, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0))",
-                      animation: `float1 2.5s ease-in-out 0s forwards`,
-                      opacity: 0,
-                      transform: `scale(0) translateY(-${50 * scale}px)`,
-                    }}
-                  />
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: `${-60 * scale}px`,
-                      right: `${40 * scale}px`,
-                      width: `${80 * scale}px`,
-                      height: `${80 * scale}px`,
-                      borderRadius: "50%",
-                      background:
-                        "radial-gradient(circle, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0))",
-                      animation: `float2 2.6s ease-in-out 0.3s forwards`,
-                      opacity: 0,
-                      transform: `scale(0) translateY(-${80 * scale}px)`,
-                    }}
-                  />
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: `${-90 * scale}px`,
-                      left: `${120 * scale}px`,
-                      width: `${40 * scale}px`,
-                      height: `${40 * scale}px`,
-                      backgroundColor: "rgba(255, 255, 255, 0.7)",
-                      transform: "rotate(45deg)",
-                      animation: `diamond 2.8s ease-in-out 0.6s forwards`,
-                      opacity: 0,
-                    }}
-                  />
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: `${-70 * scale}px`,
-                      right: `${150 * scale}px`,
-                      width: `${50 * scale}px`,
-                      height: `${50 * scale}px`,
-                      backgroundColor: "rgba(255, 255, 255, 0.6)",
-                      transform: "rotate(45deg)",
-                      animation: `diamond2 2.7s ease-in-out 0.9s forwards`,
-                      opacity: 0,
-                    }}
-                  />
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: `${10 * scale}px`,
-                      left: `${-30 * scale}px`,
-                      width: `${12 * scale}px`,
-                      height: `${12 * scale}px`,
-                      borderRadius: "50%",
-                      backgroundColor: "rgba(255, 255, 255, 0.9)",
-                      boxShadow: `0 0 ${20 * scale}px rgba(255, 255, 255, 0.6)`,
-                      animation: `particle1 3s ease-in-out 1.2s forwards`,
-                      opacity: 0,
-                    }}
-                  />
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: `${40 * scale}px`,
-                      right: `${-20 * scale}px`,
-                      width: `${14 * scale}px`,
-                      height: `${14 * scale}px`,
-                      borderRadius: "50%",
-                      backgroundColor: "rgba(255, 255, 255, 0.85)",
-                      boxShadow: `0 0 ${25 * scale}px rgba(255, 255, 255, 0.5)`,
-                      animation: `particle2 2.9s ease-in-out 1.5s forwards`,
-                      opacity: 0,
-                    }}
-                  />
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: `${-50 * scale}px`,
-                      left: `${250 * scale}px`,
-                      width: `${10 * scale}px`,
-                      height: `${10 * scale}px`,
-                      borderRadius: "50%",
-                      backgroundColor: "rgba(255, 255, 255, 0.8)",
-                      boxShadow: `0 0 ${18 * scale}px rgba(255, 255, 255, 0.5)`,
-                      animation: `particle3 2.8s ease-in-out 1.8s forwards`,
-                      opacity: 0,
-                    }}
-                  />
-                  <div
-                    style={{
-                      position: "absolute",
-                      top: 0,
-                      left: `${48 * scale}px`,
-                      right: `${48 * scale}px`,
-                      height: `${2 * scale}px`,
-                      backgroundColor: "rgba(255, 255, 255, 0.3)",
-                      transformOrigin: "left",
-                      animation: `drawLine 1.2s ease-out 4.2s forwards`,
-                      transform: "scaleX(0)",
-                    }}
-                  />
+                  <div className="billboard-deco-float-1" />
+                  <div className="billboard-deco-float-2" />
+                  <div className="billboard-deco-diamond-1" />
+                  <div className="billboard-deco-diamond-2" />
+                  <div className="billboard-deco-particle-1" />
+                  <div className="billboard-deco-particle-2" />
+                  <div className="billboard-deco-particle-3" />
+                  <div className="billboard-deco-line" />
                 </>
               )}
 
@@ -1621,53 +1460,21 @@ export default function BillboardPage() {
                 {(event.show_title_on_billboard ?? true) && (
                   <div className="billboard-text-info">
                     {/* 제목 */}
-                    <h3
-                      className="billboard-title"
-                      style={{
-                        fontSize: `${titleFontSize}px`,
-                        lineHeight: 1.2,
-                        wordBreak: "keep-all",
-                        overflow: "hidden",
-                        display: "-webkit-box",
-                        WebkitLineClamp: 3, // 최대 3줄까지 표시
-                        WebkitBoxOrient: "vertical",
-                        animation: `zoomInUp 1.3s cubic-bezier(0.34, 1.56, 0.64, 1) 0s forwards`,
-                        opacity: 0,
-                        transform: `scale(0.2) translateY(${titleFontSize * 2}px) rotate(-15deg)`,
-                      }}
-                    >
+                    <h3 className="billboard-title">
                       {event.title}
                     </h3>
 
                     {/* 날짜 */}
                     {event.start_date && (
-                      <div
-                        className="billboard-date"
-                        style={{
-                          fontSize: `${dateLocationFontSize}px`,
-                          lineHeight: 1.2,
-                          animation: `slideInLeft 1s cubic-bezier(0.34, 1.56, 0.64, 1) 1.5s forwards`,
-                          opacity: 0,
-                          transform: `translateX(-${dateLocationFontSize * 5}px) rotate(-8deg)`,
-                        }}
-                      >
-                        <i className="ri-calendar-line billboard-date-icon" style={{ marginRight: `${dateLocationFontSize * 0.3}px` }}></i>
+                      <div className="billboard-date">
+                        <i className="ri-calendar-line billboard-date-icon"></i>
                         {formatDateRange(event.start_date, event.end_date)}
                       </div>
                     )}
                     {/* 장소 */}
                     {event.location && event.location.trim() && event.location !== "미정" && (
-                      <div
-                        className="billboard-location"
-                        style={{
-                          fontSize: `${dateLocationFontSize}px`,
-                          lineHeight: 1.2,
-                          animation: `slideInRight 1s cubic-bezier(0.34, 1.56, 0.64, 1) 2.2s forwards`,
-                          opacity: 0,
-                          transform: `translateX(${dateLocationFontSize * 5}px) rotate(8deg)`,
-                        }}
-                      >
-                        <i className="ri-map-pin-line billboard-location-icon" style={{ marginRight: `${dateLocationFontSize * 0.3}px` }}></i>
+                      <div className="billboard-location">
+                        <i className="ri-map-pin-line billboard-location-icon"></i>
                         {event.location}
                       </div>
                     )}
@@ -1675,28 +1482,11 @@ export default function BillboardPage() {
                 )}
 
                 {/* QR 코드 */}
-                <div
-                  className="billboard-qr-container"
-                  style={{
-                    filter: "drop-shadow(0 4px 8px rgba(0, 0, 0, 0.7))",
-                  }}
-                >
-                  <p
-                    className="billboard-qr-label"
-                    style={{
-                      fontSize: `${Math.max(12, qrSize * 0.15)}px`,
-                      marginBottom: `${qrSize * 0.05}px`,
-                      width: `${Math.round(qrSize)}px`,
-                      whiteSpace: "nowrap",
-                      textShadow: "0 2px 4px rgba(0, 0, 0, 0.8)",
-                    }}
-                  >
+                <div className="billboard-qr-container">
+                  <p className="billboard-qr-label">
                     등록 + 상세
                   </p>
-                  <div
-                    className="billboard-qr-wrapper"
-                    style={{ padding: `${qrSize * 0.08}px` }}
-                  >
+                  <div className="billboard-qr-wrapper">
                     <QRCodeCanvas
                       value={`${window.location.origin}/v2?event=${event.id}&category=${event.category}&from=qr`}
                       size={Math.round(qrSize)}
@@ -1718,41 +1508,16 @@ export default function BillboardPage() {
       <link rel="dns-prefetch" href="https://www.youtube.com" />
       <link rel="preconnect" href="https://www.youtube.com" />
       <link rel="preconnect" href="https://i.ytimg.com" />
-      <style>{`
-        .info-background {
-          background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.7) 40%, transparent 100%);
-        }
-        @keyframes billboard-pulse { 
-          0%, 100% { opacity: 0.15; transform: scale(1); }
-          50% { opacity: 0.3; transform: scale(1.08); }
-        }
-        @keyframes billboard-pulse-inner { 
-          0%, 100% { opacity: 0.25; transform: scale(1); }
-          50% { opacity: 0.4; transform: scale(1.05); }
-        }
-        @keyframes progressCircle { from { stroke-dashoffset: var(--dash-total); } to { stroke-dashoffset: 0; } }
-        @keyframes float1 { 0% { opacity: 0; transform: scale(0) translateY(-50px); } 30% { opacity: 0.8; transform: scale(1.3) translateY(5px); } 60% { opacity: 0.6; transform: scale(1) translateY(0); } 100% { opacity: 0; transform: scale(0.8) translateY(10px); } }
-        @keyframes float2 { 0% { opacity: 0; transform: scale(0) translateY(-80px); } 30% { opacity: 0.7; transform: scale(1.4) translateY(8px); } 60% { opacity: 0.5; transform: scale(1) translateY(0); } 100% { opacity: 0; transform: scale(0.7) translateY(15px); } }
-        @keyframes diamond { 0% { opacity: 0; transform: rotate(45deg) scale(0); } 30% { opacity: 0.7; transform: rotate(225deg) scale(1.3); } 60% { opacity: 0.5; transform: rotate(405deg) scale(1); } 100% { opacity: 0; transform: rotate(495deg) scale(0.6); } }
-        @keyframes diamond2 { 0% { opacity: 0; transform: rotate(45deg) scale(0); } 30% { opacity: 0.6; transform: rotate(-135deg) scale(1.4); } 60% { opacity: 0.4; transform: rotate(-315deg) scale(1); } 100% { opacity: 0; transform: rotate(-405deg) scale(0.5); } }
-        @keyframes particle1 { 0% { opacity: 0; transform: translateX(-100px) translateY(-50px) scale(0); } 30% { opacity: 0.9; transform: translateX(50px) translateY(25px) scale(1.5); } 60% { opacity: 0.6; transform: translateX(0) translateY(0) scale(1); } 100% { opacity: 0; transform: translateX(30px) translateY(-20px) scale(0.5); } }
-        @keyframes particle2 { 0% { opacity: 0; transform: translateX(100px) translateY(-50px) scale(0); } 30% { opacity: 0.8; transform: translateX(-50px) translateY(25px) scale(1.6); } 60% { opacity: 0.5; transform: translateX(0) translateY(0) scale(1); } 100% { opacity: 0; transform: translateX(-30px) translateY(-20px) scale(0.4); } }
-        @keyframes particle3 { 0% { opacity: 0; transform: translateY(-80px) scale(0); } 30% { opacity: 0.7; transform: translateY(20px) scale(1.4); } 60% { opacity: 0.4; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-15px) scale(0.6); } }
-        @keyframes drawLine { 0% { transform: scaleX(0); } 100% { transform: scaleX(1); } }
-        @keyframes slideInLeft { 0% { opacity: 0; transform: translateX(-150px) rotate(-8deg); } 100% { opacity: 1; transform: translateX(0) rotate(0deg); } }
-        @keyframes slideInRight { 0% { opacity: 0; transform: translateX(150px) rotate(8deg); } 100% { opacity: 1; transform: translateX(0) rotate(0deg); } }
-        @keyframes zoomInUp { 0% { opacity: 0; transform: scale(0.2) translateY(100px) rotate(-15deg); } 60% { opacity: 1; transform: scale(1.2) translateY(-15px) rotate(5deg); } 80% { opacity: 1; transform: scale(0.9) translateY(5px) rotate(-3deg); } 100% { opacity: 1; transform: scale(1) translateY(0) rotate(0deg); } }
-        @keyframes fadeInScale { 0% { opacity: 0; transform: scale(0.2) translateY(100px) rotate(-15deg); } 60% { opacity: 1; transform: scale(1.2) translateY(-15px) rotate(5deg); } 80% { opacity: 1; transform: scale(0.9) translateY(5px) rotate(-3deg); } 100% { opacity: 1; transform: scale(1) translateY(0) rotate(0deg); } }
-        @keyframes qrBounce { 0% { transform: rotate(540deg) scale(0.1); } 100% { transform: rotate(270deg) scale(1.3); } }
-      `}</style>
       <div className="billboard-page" style={{
-        overflow: 'hidden',
-        width: '100vw',
-        height: '100vh',
-        position: 'fixed',
-        top: 0,
-        left: 0,
-      }}>
+        ['--scale' as any]: scale,
+        ['--title-font-size-px' as any]: `${titleFontSize}px`,
+        ['--date-location-font-size-px' as any]: `${dateLocationFontSize}px`,
+        ['--qr-size-px' as any]: `${qrSize}px`,
+        ['--qr-label-font-size' as any]: `${Math.max(12, qrSize * 0.15)}px`,
+        ['--qr-label-margin-bottom' as any]: `${qrSize * 0.05}px`,
+        ['--qr-padding' as any]: `${qrSize * 0.08}px`,
+        ['--transition-duration' as any]: `${settings?.transition_duration ?? 500}ms`,
+      } as any}>
         {/* 현재 + 다음 슬라이드만 DOM에 유지 (부드러운 전환 + 메모리 최적화) */}
         {events.map((event, index) => {
           // 현재 + 다음 슬라이드 렌더링 (마지막 5초 전에 다음 슬라이드 미리 로드)

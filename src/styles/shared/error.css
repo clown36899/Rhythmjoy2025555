@@ -1,0 +1,42 @@
+/* error.css - Shared Error/Fallback Styles */
+@layer components {
+    .crash-fallback-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100vh;
+        text-align: center;
+        font-family: var(--font-sans);
+        background-color: var(--bg-base);
+        color: var(--text-primary);
+        padding: 20px;
+    }
+
+    .crash-fallback-title {
+        margin-bottom: 10px;
+        font-size: 18px;
+        font-weight: 600;
+    }
+
+    .crash-fallback-desc {
+        margin-bottom: 20px;
+        color: var(--text-tertiary);
+        font-size: 14px;
+    }
+
+    .crash-fallback-btn {
+        padding: 10px 20px;
+        background-color: var(--color-blue-600);
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .crash-fallback-btn:hover {
+        background-color: var(--color-blue-700);
+    }
+}

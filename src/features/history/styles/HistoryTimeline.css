@@ -17,7 +17,8 @@
     right: 0 !important;
     bottom: 0 !important;
     width: 100vw !important;
-    height: 100svh !important;
+    height: 101vh !important;
+    /* Slightly more to hide safe areas if any */
     background: var(--bg-base) !important;
     z-index: 10000 !important;
     /* Overlay everything including shell headers */
@@ -34,7 +35,7 @@
     height: 64px;
     background: var(--bg-modal);
     backdrop-filter: blur(12px);
-    border-bottom: 1px solid var(--border-glass);
+    border-bottom: 1px solid var(--border-subtle);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -167,6 +168,12 @@
 
 .breadcrumb-area span:hover {
     background: var(--bg-hover);
+}
+
+.breadcrumb-area span.is-drag-over {
+    font-weight: 700 !important;
+    color: var(--color-blue-500) !important;
+    background: var(--bg-selected);
 }
 
 .breadcrumb-area i {
@@ -315,6 +322,12 @@
     overflow: hidden;
     touch-action: none;
     /* Prevent address bar jitter during dragging */
+    opacity: 0;
+    transition: opacity 0.5s ease-out;
+}
+
+.history-timeline-canvas.is-ready {
+    opacity: 1;
 }
 
 /* Interaction States */
@@ -765,4 +778,13 @@
         opacity: 1;
         transform: translateY(0);
     }
+}
+
+/* Detail Modal Stack Management */
+.detail-stack-item {
+    display: none;
+}
+
+.detail-stack-item.is-top {
+    display: block;
 }

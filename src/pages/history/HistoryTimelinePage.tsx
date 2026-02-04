@@ -1016,17 +1016,14 @@ function HistoryTimelinePage() {
                                     onClick={() => handleNavigate(b.id, b.title)}
                                     onDragOver={(e) => {
                                         e.preventDefault();
-                                        e.currentTarget.style.fontWeight = 'bold';
-                                        e.currentTarget.style.color = '#60a5fa';
+                                        e.currentTarget.classList.add('is-drag-over');
                                     }}
                                     onDragLeave={(e) => {
-                                        e.currentTarget.style.fontWeight = 'normal';
-                                        e.currentTarget.style.color = '';
+                                        e.currentTarget.classList.remove('is-drag-over');
                                     }}
                                     onDrop={(e) => {
                                         e.preventDefault();
-                                        e.currentTarget.style.fontWeight = 'normal';
-                                        e.currentTarget.style.color = '';
+                                        e.currentTarget.classList.remove('is-drag-over');
                                         // Handle HTML5 drop if implemented, but primarily this is a target for onNodeDragStop detection
                                     }}
                                     data-breadcrumb-id={b.id || 'null'} // Marker for detection
@@ -1058,8 +1055,7 @@ function HistoryTimelinePage() {
             )}
 
             <main
-                className="timeline-main history-timeline-canvas"
-                style={{ opacity: isViewportReady ? 1 : 0, transition: 'opacity 0.2s ease-in' }}
+                className={`timeline-main history-timeline-canvas ${isViewportReady ? 'is-ready' : ''}`}
             >
                 <HistoryCanvas
                     nodes={nodes}
@@ -1280,7 +1276,7 @@ function HistoryTimelinePage() {
             {viewingNodeStack.map((node, index) => {
                 const isTop = index === viewingNodeStack.length - 1;
                 return (
-                    <div key={`${node.id}-${index}`} style={{ display: isTop ? 'block' : 'none' }}>
+                    <div key={`${node.id}-${index}`} className={`detail-stack-item ${isTop ? 'is-top' : ''}`}>
                         <NodeDetailModal
                             nodeData={node}
                             onClose={handleCloseDetail}

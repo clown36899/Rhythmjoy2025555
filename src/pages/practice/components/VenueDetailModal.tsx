@@ -123,10 +123,10 @@ export default function VenueDetailModal({ venueId, onClose, onSelect, onEdit }:
             <div className="room-modal-overlay" onClick={onClose}>
                 <div className="room-modal-container" onClick={(e) => e.stopPropagation()}>
                     <div className="room-detail-page-loading">
-                        <i className="ri-error-warning-line" style={{ fontSize: '3rem', color: '#ef4444' }}></i>
+                        <i className="ri-error-warning-line room-detail-error-icon"></i>
                         <p>장소 정보를 불러올 수 없습니다.</p>
-                        <p style={{ fontSize: '0.8rem', color: '#9ca3af' }}>ID: {venueId}</p>
-                        <button onClick={onClose} style={{ marginTop: '1rem', padding: '0.5rem 1rem', background: '#333', border: 'none', borderRadius: '0.5rem', color: 'white', cursor: 'pointer' }}>
+                        <p className="room-detail-error-subtext">ID: {venueId}</p>
+                        <button onClick={onClose} className="room-detail-error-close-btn">
                             닫기
                         </button>
                     </div>
@@ -237,8 +237,7 @@ export default function VenueDetailModal({ venueId, onClose, onSelect, onEdit }:
                                         href={venue.website_url}
                                         target="_blank"
                                         rel="noopener noreferrer"
-                                        className="venue-xs-btn"
-                                        style={{ marginTop: '-2px' }}
+                                        className="venue-xs-btn venue-website-link"
                                         data-analytics-id={venue.id}
                                         data-analytics-type="external_link"
                                         data-analytics-title="website"
@@ -307,7 +306,7 @@ export default function VenueDetailModal({ venueId, onClose, onSelect, onEdit }:
                     )}
 
                     {/* Debug ID */}
-                    <div style={{ fontSize: '0.7rem', color: '#333', textAlign: 'center', marginTop: '2rem' }}>
+                    <div className="room-detail-debug-id">
                         ID: {venue.id}
                     </div>
                 </div>
