@@ -113,13 +113,13 @@
 }
 
 /* ===== 로딩 상태 (Standard Mode) ===== */
-.standard-mode .board-loading-container {
+.board-loading-container {
   text-align: center;
   padding-top: 3rem;
   padding-bottom: 3rem;
 }
 
-.standard-mode .board-loading-spinner {
+.board-loading-spinner {
   font-size: 1.875rem;
   color: var(--color-blue-500);
   animation: spin 1s linear infinite;
@@ -135,7 +135,7 @@
   }
 }
 
-.standard-mode .board-loading-text {
+.board-loading-text {
   color: var(--color-gray-400);
   margin-top: var(--spacing-2);
 }
