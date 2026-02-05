@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useMonthlyBillboard } from '../../hooks/useMonthlyBillboard';
+import { useMonthlyBillboard, type BillboardData } from '../../hooks/useMonthlyBillboard';
 import MonthlyLogDetailModal from './MonthlyLogDetailModal';
 import './MonthlyWebzine.css';
 
@@ -16,7 +16,7 @@ const colors = {
 
 
 const MonthlyWebzine = () => {
-    const { data, loading } = useMonthlyBillboard();
+    const { data, loading, targetDate, setTargetDate } = useMonthlyBillboard();
     const [viewMode, setViewMode] = useState<'percent' | 'count'>('percent');
     const [userActivityInfo, setUserActivityInfo] = useState<{ day: string, val: number, idx: number } | null>(null);
     const [hoverHour, setHoverHour] = useState<number | null>(null);
@@ -36,12 +36,13 @@ const MonthlyWebzine = () => {
     }, [data, userActivityInfo]);
 
     const { weeklyFlow, dailyFlow, leadTime, topContents, meta } = data || {
-        weeklyFlow: { classStartDays: [], socialRunDays: [], visitorTrafficDays: [] },
+        weeklyFlow: { classStartRatio: 0, weekendSocialRatio: 0, weekendClassDrop: 0, classStartDays: [], socialRunDays: [], visitorTrafficDays: [] },
         dailyFlow: { hourlyData: [], rawHourlyData: [], classPeakHour: 0, eventPeakHour: 0 },
-        leadTime: { classD28: 0, eventD42: 0 },
+        leadTime: { classD28: 0, classD7: 0, eventD42: 0, eventD14: 0 },
         topContents: [],
-        meta: { totalLogs: 0, uniqueVisitors: 0, clickRate: 0, range: '' }
-    };
+        meta: { totalLogs: 0, uniqueVisitors: 0, clickRate: 0, range: '', monthLabel: 'LOADING...', monthKor: '' },
+        loading: false
+    } as BillboardData;
 
     const getHourLabel = (h: number) => {
         if (h >= 0 && h < 6) return '심야';
@@ -51,6 +52,46 @@ const MonthlyWebzine = () => {
         if (h >= 17 && h < 21) return '퇴근 전후';
         return '야간';
     };
+
+    // --- Month Selection Logic ---
+    const handleMonthChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const val = e.target.value;
+        if (val === 'all') {
+            setTargetDate('all');
+        } else {
+            const [y, m] = val.split('-').map(Number);
+            setTargetDate({ year: y, month: m });
+        }
+    };
+
+    const monthOptions = useMemo(() => {
+        const opts = [];
+        // Generate last 12 months (excluding current month, as per requirement, or including logic handled by hook default?)
+        // Requirement: "Normally analyzes previous month on the 1st". 
+        // We will show options starting from Previous Month back to 12 months ago.
+
+        let d = new Date();
+        d.setDate(1); // Safety
+        d.setMonth(d.getMonth() - 1); // Start from previous month
+
+        for (let i = 0; i < 12; i++) {
+            const y = d.getFullYear();
+            const m = d.getMonth();
+
+            // Limit: Start from Jan 2026
+            if (y < 2026) break;
+
+            const label = `${y}년 ${m + 1}월`;
+            opts.push({ value: `${y}-${m}`, label });
+            d.setMonth(d.getMonth() - 1);
+        }
+        return opts;
+    }, []);
+
+    const selectedValue = targetDate === 'all'
+        ? 'all'
+        : `${targetDate?.year}-${targetDate?.month}`;
+
 
     // --- Memoized Calculations (Moved ABOVE conditional return to satisfy Hook rules) ---
     const sourceData = useMemo(() => {
@@ -107,11 +148,39 @@ const MonthlyWebzine = () => {
 
 
             <div className="mw-dashboard">
-                {/* 1. Header (Compact) */}
-                <div className="mw-header dashboard-header">
-                    <div>
-                        <div className="mw-eyebrow">Monthly Insight • JAN 2026</div>
+                {/* 1. Header (Compact) with Selector */}
+                <div className="mw-header dashboard-header" style={{ alignItems: 'flex-start', gap: '12px' }}>
+                    <div style={{ flex: 1 }}>
+                        <div className="mw-eyebrow" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <span>Monthly Insight</span>
+                            <span className="text-gray-500">•</span>
+                            <select
+                                value={selectedValue}
+                                onChange={handleMonthChange}
+                                className="mw-month-select"
+                                style={{
+                                    background: 'rgba(255,255,255,0.05)',
+                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    color: 'var(--color-amber-400)',
+                                    borderRadius: '4px',
+                                    padding: '2px 8px',
+                                    fontSize: '0.9em',
+                                    cursor: 'pointer',
+                                    outline: 'none'
+                                }}
+                            >
+                                {monthOptions.map(opt => (
+                                    <option key={opt.value} value={opt.value} style={{ background: '#1a1a1a', color: '#fff' }}>
+                                        {opt.label}
+                                    </option>
+                                ))}
+                                <option value="all" style={{ background: '#1a1a1a', color: '#fff' }}>전체 기간 (All Time)</option>
+                            </select>
+                        </div>
                         <h1 className="mw-headline">동호회의 주말, 외부 강습의 평일.</h1>
+                        <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>
+                            * 매월 1일 지난 달의 데이터를 분석하여 업데이트됩니다.
+                        </p>
                     </div>
 
                     <div className="mw-meta-box" onClick={() => setShowDetailModal(true)}>
@@ -320,7 +389,7 @@ const MonthlyWebzine = () => {
                     {/* Col 3: Ranking (Scrollable) */}
                     <div className="mw-col dashboard-col">
                         <section className="mw-card flex-1 no-bg">
-                            <h3 className="mw-section-title pl-1">4. 1월 조회수 (Top 20)</h3>
+                            <h3 className="mw-section-title pl-1">4. {meta.monthKor} 조회수 (Top 20)</h3>
 
                             <div className="ranking-container scroll-list">
                                 {topContents.slice(0, 20).map((item: any, index: number) => (
