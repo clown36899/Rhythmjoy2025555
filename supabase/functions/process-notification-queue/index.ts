@@ -65,19 +65,21 @@ Deno.serve(async (req) => {
                     .eq('id', item.id);
 
                 const { title, body, category, payload } = item;
-                const { url, userId, genre } = payload || {};
+                const { url, userId, genre, image, content } = payload || {};
 
                 console.log(`[Queue] Invoking send-push for Item ${item.id} (${title})`);
 
                 // Invoke send-push-notification
                 const { data, error } = await supabaseClient.functions.invoke('send-push-notification', {
                     body: {
-                        title: title, // Already has formatting? No, queue has raw title.
+                        title: title,
                         body: body,
                         url: url,
                         userId: userId,
                         category: category,
-                        genre: genre
+                        genre: genre,
+                        image: image,
+                        content: content // [NEW] 상세 내용 전달
                     }
                 });
 

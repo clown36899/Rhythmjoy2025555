@@ -63,12 +63,11 @@ function AppContent() {
     const initPwaPush = async () => {
       if (!user) return;
 
-      // PWA 테스트 모드: 관리자만 접근 가능 (AuthContext의 JWT 메타데이터 사용)
-      const isAdmin = user.user_metadata?.is_admin === true || user.app_metadata?.is_admin === true;
-      if (!isAdmin) {
-        // console.log('[App] PWA Logic skipped (Not Admin)');
-        return;
-      }
+      // [Update] PWA 알림 구독은 모든 유저에게 제공
+      // const isAdmin = user.user_metadata?.is_admin === true || user.app_metadata?.is_admin === true;
+      // if (!isAdmin) {
+      //   return;
+      // }
 
       // 이미 '안 보기'를 선택했는지 확인
       const isDismissed = localStorage.getItem('pwa_prompt_dismissed') === 'true';

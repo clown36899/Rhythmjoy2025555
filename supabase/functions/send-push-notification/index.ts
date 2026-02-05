@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
         const supabaseClient = createClient(supabaseUrl, supabaseServiceKey);
 
         const payload = await req.json();
-        const { title, body, url, userId, category } = payload;
+        const { title, body, url, userId, category, image, content } = payload;
 
         // [Fix] setVapidDetails must be called before sendNotification
         const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY') || '';
@@ -90,46 +90,36 @@ Deno.serve(async (req) => {
         const genreStr = typeof payload.genre === 'string' ? payload.genre : '';
         console.log(`[Push] Filtering Category="${category}", Genre="${genreStr}"`);
 
-        /* 
-          Logic:
-           - Events: Check 'pref_filter_tags'
-           - Classes: Check 'pref_filter_class_genres'
-           - Clubs: No filter (pref_clubs is already checked above)
-        */
-
         if (category === 'event') {
             targetSubscriptions = subscriptions.filter((sub: any) => {
-                // If tags are null/empty => Send to all who enabled events
                 if (!sub.pref_filter_tags || sub.pref_filter_tags.length === 0) return true;
-
-                // Check intersection
                 const userTags = sub.pref_filter_tags as string[];
                 const isMatch = userTags.some((tag: string) => genreStr.includes(tag));
                 return isMatch;
             });
         } else if (category === 'class') {
             targetSubscriptions = subscriptions.filter((sub: any) => {
-                // If genres are null/empty => Send to all who enabled classes
                 if (!sub.pref_filter_class_genres || sub.pref_filter_class_genres.length === 0) return true;
-
-                // Check intersection
                 const userGenres = sub.pref_filter_class_genres as string[];
                 const isMatch = userGenres.some((g: string) => genreStr.includes(g));
                 return isMatch;
             });
         }
-        // 'club' needs no extra filtering here, DB query handled pref_clubs = true.
 
         const targetUserIds = [...new Set(targetSubscriptions.map((s: any) => s.user_id))];
         console.log(`[Push] Found ${targetSubscriptions.length} devices for users: ${targetUserIds.join(', ')}`);
 
         // 3. Send Notifications
-        const timestamp = new Date().toLocaleTimeString('ko-KR');
         const results = await Promise.allSettled(
             targetSubscriptions.map(async (subRecord: any) => {
+                // 상세 내용(content)이 있으면 본문에 추가 (펼쳤을 때 표시됨)
+                const finalBody = content ? `${body}\n\n${content}` : body;
+
                 const pushPayload = JSON.stringify({
-                    title: `${title} (${timestamp})`,
-                    body,
+                    title: title, // 등록시간 등 부가정보 절대 포함 금지
+                    body: finalBody,
+                    icon: image || 'https://swingenjoy.com/logo512.png', // 이미지가 있으면 우측 이미지(아이콘)로 활용
+                    image: image, // 큰 이미지(Android 배너 등)
                     tag: `push-${Date.now()}`,
                     data: { url: url || '/' }
                 });
@@ -139,23 +129,14 @@ Deno.serve(async (req) => {
                     console.log(`[Push] Device Success: ${subRecord.user_id}`);
                     return res;
                 } catch (err: any) {
-                    // [Garbage Collection] 410(Gone) or 404(Not Found) means the subscription is dead.
                     if (err.statusCode === 410 || err.statusCode === 404) {
                         console.warn(`[Push] Dead subscription detected (Status ${err.statusCode}). Deleting... ID: ${subRecord.id}`);
-
-                        // Lazy Delete from DB
-                        const { error: delError } = await supabaseClient
+                        await supabaseClient
                             .from('user_push_subscriptions')
                             .delete()
                             .eq('id', subRecord.id);
-
-                        if (delError) {
-                            console.error(`[Push] Failed to delete garbage record: ${delError.message}`);
-                        } else {
-                            console.log(`[Push] Garbage record deleted successfully: ${subRecord.id}`);
-                        }
                     } else {
-                        console.error(`[Push] Device Rejection: ${subRecord.user_id} - code: ${err.statusCode}, body: ${err.body}`);
+                        console.error(`[Push] Device Rejection: ${subRecord.user_id} - code: ${err.statusCode}`);
                     }
                     throw err;
                 }

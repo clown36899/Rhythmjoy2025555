@@ -749,21 +749,27 @@ export default memo(function EventRegistrationModal({
               const pushCategory = isLesson ? 'class' : 'event';
               const scheduledAt = new Date(Date.now() + 5 * 60 * 1000).toISOString(); // 5 minutes later
 
+              const pushTitle = `${createdEvent.title} (${pushCategory === 'class' ? '강습' : '행사'})`;
+              const weekDay = createdEvent.date ? ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'][new Date(createdEvent.date).getDay()] : '';
+              const pushBody = `${createdEvent.date || ''} ${weekDay} | ${createdEvent.location || '장소 미정'}`;
+
               console.log("[Push] Queuing delayed notification...", {
-                title: `[신규 ${pushCategory === 'class' ? '강습' : '행사'}] ${createdEvent.title}`,
+                title: pushTitle,
                 category: pushCategory,
                 scheduledAt: scheduledAt
               });
 
               supabase.from('notification_queue').insert({
                 event_id: createdEvent.id,
-                title: `[신규 ${pushCategory === 'class' ? '강습' : '행사'}] ${createdEvent.title}`,
-                body: `${createdEvent.date || createdEvent.start_date || ''} | ${createdEvent.location || '장소 미정'}`,
+                title: pushTitle,
+                body: pushBody,
                 category: pushCategory,
                 payload: {
                   url: `${window.location.origin}/calendar?id=${createdEvent.id}`,
                   userId: 'ALL',
-                  genre: createdEvent.genre
+                  genre: createdEvent.genre,
+                  image: createdEvent.image_thumbnail, // [NEW] 이미지 URL 추가
+                  content: createdEvent.description // [NEW] 상세 내용 추가
                 },
                 scheduled_at: scheduledAt,
                 status: 'pending'

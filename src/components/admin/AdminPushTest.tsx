@@ -1,361 +1,258 @@
 import React, { useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { saveSubscriptionToSupabase, subscribeToPush, unsubscribeFromPush } from '../../lib/pushNotifications';
+import { saveSubscriptionToSupabase, subscribeToPush } from '../../lib/pushNotifications';
 
 export const AdminPushTest: React.FC = () => {
     const { user, isAdmin } = useAuth();
-    const [title, setTitle] = useState('테스트 알림');
-    const [body, setBody] = useState('이것은 PWA 푸시 알림 테스트입니다.');
-    const [category, setCategory] = useState<'none' | 'event' | 'class'>('none');
+    const [title, setTitle] = useState('폴린의 솔로재즈 베이직');
+    const [body, setBody] = useState('2026-02-17 화요일 | 해피홀(신촌)');
+    const [imageUrl, setImageUrl] = useState('https://swingenjoy.com/logo512.png');
+    const [category, setCategory] = useState<'event' | 'class' | 'club'>('class');
+    const [genre, setGenre] = useState('솔로재즈');
+    const [content, setContent] = useState('폴린 선생님과 함께하는 즐거운 솔로재즈 시간! 초보자 환영합니다. 놓치지 마세요!');
+    const [targetUrl, setTargetUrl] = useState(window.location.origin);
     const [loading, setLoading] = useState(false);
     const [subscribing, setSubscribing] = useState(false);
     const [result, setResult] = useState<string | null>(null);
-    const [swStatus, setSwStatus] = useState<string>('Checking...');
-    const [vapidHint, setVapidHint] = useState<string>('');
 
-    React.useEffect(() => {
-        const checkSW = async () => {
-            if ('serviceWorker' in navigator) {
-                const reg = await navigator.serviceWorker.getRegistration();
-                setSwStatus(reg ? `Registered(${reg.active ? 'Active' : 'Not Active'})` : 'Not Registered');
-            } else {
-                setSwStatus('Not Supported');
-            }
-        };
-        checkSW();
-
-        // VAPID Hint
-        const key = import.meta.env.VITE_PUBLIC_VAPID_KEY || 'BKg5c8Ja6Ce_iEtvV4y3KqaCb8mV9f-a2ClJsy8eiBLIfOi1wlAhaidG6jPq9Va0PM10RmOvOIetYs1wSeZRDG0';
-        setVapidHint(`${key.substring(0, 8)}...${key.slice(-8)} `);
-    }, []);
-
-    if (!isAdmin) return null;
-
-    // 1. 수신기 등록 (이 기기에서 알림을 받겠다고 설정)
-    // [Debug] SW 메시지 리스너
-    React.useEffect(() => {
-        const handler = (event: MessageEvent) => {
-            if (event.data && event.data.type === 'PUSH_DEBUG') {
-                console.log('🔔 [디버그] SW 수신됨:', event.data.payload);
-                setResult(prev => prev + '\n✅ SW 수신 확인됨 (OS 배너는 숨겨졌을 수 있음)');
-            }
-            if (event.data && event.data.type === 'PUSH_ERROR') {
-                console.error('❌ [SW 에러] 알림 표시 실패:', event.data.error);
-                setResult(prev => prev + `\n❌ SW 표시 에러: ${event.data.error} `);
-            }
-        };
-        navigator.serviceWorker.addEventListener('message', handler);
-        return () => navigator.serviceWorker.removeEventListener('message', handler);
-    }, []);
+    if (!isAdmin) return (
+        <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
+            관리자만 접근 가능한 페이지입니다.
+        </div>
+    );
 
     const handleSubscribe = async () => {
         setSubscribing(true);
         setResult(null);
         try {
-            // isAdmin 정보를 넘겨서 저장
             const sub = await subscribeToPush();
             if (sub) {
-                // saveSubscriptionToSupabase에서 에러 발생 시 catch 블록으로 감
                 await saveSubscriptionToSupabase(sub);
-                setResult('✅ 수신기 연결 성공! (이제 이 아이디로 알림을 받을 수 있습니다)');
+                setResult('✅ 이 기기의 알림 수신기가 성공적으로 연결되었습니다!');
             } else {
-                setResult('❌ 구독 실패. PWA 모드가 아니거나 권한이 거절되었습니다.');
+                setResult('❌ PWA 모드 확인 또는 알림 권한 허용이 필요합니다.');
             }
         } catch (err: any) {
-            setResult(`❌ 에러: ${err.message} `);
+            setResult(`❌ 오류: ${err.message}`);
         } finally {
             setSubscribing(false);
         }
     };
 
-    // 2. 관리자 대상 전체 발송 (userId: 'ALL' -> 엣지 펑션에서 is_admin: true 필터링)
-    const handleSendAdminBroadcast = async () => {
+    const handleSendTest = async (targetType: 'me' | 'all-admin') => {
         setLoading(true);
         setResult(null);
+
+        // 사용자가 요청한 포맷 적용 테스트 (제목 + 분류)
+        const finalTitle = `${title} (${category === 'class' ? '강습' : '행사'})`;
+
         try {
             const { data, error } = await supabase.functions.invoke('send-push-notification', {
                 body: {
-                    title,
-                    body,
-                    userId: 'ALL',
-                    category: category === 'none' ? undefined : category,
-                    url: window.location.origin
+                    title: finalTitle,
+                    body: body,
+                    image: imageUrl,
+                    category: category,
+                    genre: genre,
+                    content: content, // [NEW] 상세 내용 포함
+                    userId: targetType === 'me' ? user?.id : 'ALL',
+                    url: targetUrl
                 }
             });
-            if (error) throw error;
 
-            setResult(`🚀 발송 신호 완료: ${JSON.stringify(data, null, 2)} `);
+            if (error) throw error;
+            setResult(`🚀 발송 완료! (결과: ${JSON.stringify(data.summary)})`);
         } catch (err: any) {
-            setResult(`❌ 발송 실패: ${err.message}${err.stack ? '\n' + err.stack : ''} `);
+            setResult(`❌ 발송 실패: ${err.message}`);
         } finally {
             setLoading(false);
         }
     };
-
-    // 3. 현재 로그인된 '나'에게만 발송 (ID 기반 발송 확인용)
-    const handleSendToMe = async () => {
-        setLoading(true);
-        setResult(null);
-        try {
-            const { data, error } = await supabase.functions.invoke('send-push-notification', {
-                body: { title, body, userId: user?.id, url: window.location.origin }
-            });
-            if (error) throw error;
-
-            setResult(`🎯 나에게 발송 완료: ${JSON.stringify(data, null, 2)} `);
-        } catch (err: any) {
-            setResult(`❌ 발송 실패: ${err.message}${err.stack ? '\n' + err.stack : ''} `);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    // 4. 수신 해제 (이 기기의 알림 수신을 중단하고 DB에서 삭제)
-    const handleUnsubscribe = async () => {
-        setSubscribing(true);
-        setResult(null);
-        try {
-            const success = await unsubscribeFromPush();
-            if (success) {
-                setResult('🔕 알림 수신이 성공적으로 취소되었습니다. (더 이상 알림을 받지 않습니다)');
-            } else {
-                setResult('⚠️ 수신 해제 실패. 이미 해제되어 있거나 권한이 없을 수 있습니다.');
-            }
-        } catch (err: any) {
-            setResult(`❌ 에러: ${err.message} `);
-        } finally {
-            setSubscribing(false);
-        }
-    };
-
-    // [New] 로컬 즉시 알림 테스트 (OS 차단 확인용)
-    const handleLocalTest = async () => {
-        try {
-            if (Notification.permission !== 'granted') {
-                const perm = await Notification.requestPermission();
-                if (perm !== 'granted') {
-                    alert('알림 권한이 거부되어 있습니다. 브라우저 설정에서 권한을 허용해주세요.');
-                    return;
-                }
-            }
-
-            // 1. 일반 알림 (Main Thread)
-            new Notification("테스트 알림 (Main)", {
-                body: "이 알림이 보인다면 OS 설정은 정상입니다!",
-                icon: '/icon-192.png'
-            });
-
-            // 2. SW 알림 (Service Worker)
-            if ('serviceWorker' in navigator) {
-                const reg = await navigator.serviceWorker.ready;
-                await reg.showNotification("테스트 알림 (SW)", {
-                    body: "이것도 보여야 푸시가 작동합니다.",
-                    icon: '/icon-192.png',
-                    requireInteraction: true
-                });
-            }
-
-            alert("알림을 요청했습니다. 우측 상단을 확인하세요!");
-        } catch (e: any) {
-            alert(`테스트 실패: ${e.message} `);
-        }
-    };
-
-    // if (!isPushSupported) return null; // Removed check to avoid lint error
 
     return (
         <div style={{
+            maxWidth: '500px',
+            margin: '20px auto',
             padding: '24px',
             background: '#ffffff',
-            borderRadius: '16px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '20px',
-            color: '#1e293b'
+            borderRadius: '24px',
+            boxShadow: '0 10px 25px rgba(0,0,0,0.05)',
+            fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
         }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h2 style={{ margin: 0 }}>Push Test Admin</h2>
-                <button
-                    onClick={() => window.location.href = '/'}
-                    style={{ padding: '6px 12px', background: '#e2e8f0', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
-                >
-                    홈으로
-                </button>
-            </div>
-
-            <div style={{ background: '#f1f5f9', padding: '12px', borderRadius: '8px', fontSize: '12px' }}>
-                <div>📡 <b>SW Status:</b> {swStatus}</div>
-                <div>🔑 <b>VAPID Hint:</b> {vapidHint}</div>
-            </div>
-
-            {/* New: Local Test Button */}
-            <button
-                onClick={handleLocalTest}
-                style={{
-                    padding: '8px',
-                    background: '#f59e0b',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                }}
-            >
-                📢 로컬 알림 테스트 (OS Check)
-            </button>
-            <button
-                onClick={() => (window as any).adminTestPwaModal && (window as any).adminTestPwaModal()}
-                style={{
-                    padding: '8px',
-                    background: '#8b5cf6',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '8px',
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                }}
-            >
-                👁️ [Admin] PWA 안내 모달 강제 띄우기
-            </button>
-
-            <div>
-                <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: 700 }}>
-                    📱 1단계: 수신기 등록 (받는 쪽)
-                </h3>
-                <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 12px 0', lineHeight: '1.5' }}>
-                    알림을 **받고 싶은 기기(모바일 PWA 등)**에서 이 버튼을 눌러주세요. 한 번 등록하면 앱을 꺼도 서버가 알림을 보낼 수 있습니다.
+            <header style={{ marginBottom: '24px', textAlign: 'center' }}>
+                <h1 style={{ fontSize: '22px', fontWeight: 800, color: '#111827', margin: '0 0 8px 0' }}>
+                    Push Delivery Lab 🧪
+                </h1>
+                <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>
+                    이미지·필터링·포맷 즉시 테스트
                 </p>
-                <div style={{ display: 'flex', gap: '8px' }}>
+            </header>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {/* 1. Subscription Area */}
+                <section style={{ padding: '16px', background: '#f8fafc', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
+                    <h2 style={{ fontSize: '15px', fontWeight: 700, margin: '0 0 12px 0', color: '#334155' }}>
+                        1. 내 기기 연결
+                    </h2>
                     <button
                         onClick={handleSubscribe}
                         disabled={subscribing}
                         style={{
-                            flex: 2,
+                            width: '100%',
                             padding: '12px',
                             background: '#10b981',
                             color: 'white',
                             border: 'none',
-                            borderRadius: '8px',
+                            borderRadius: '12px',
                             fontWeight: 600,
-                            cursor: subscribing ? 'not-allowed' : 'pointer',
-                            boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.2)'
+                            cursor: 'pointer',
+                            opacity: subscribing ? 0.7 : 1
                         }}
                     >
-                        {subscribing ? '처리 중...' : '지금 아이디로 알림 받기'}
+                        {subscribing ? '연결 중...' : '현재 기기 알림 구독하기'}
                     </button>
-                    <button
-                        onClick={handleUnsubscribe}
-                        disabled={subscribing}
-                        style={{
-                            flex: 1,
-                            padding: '12px',
-                            background: '#ef4444',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '8px',
-                            fontWeight: 600,
-                            cursor: subscribing ? 'not-allowed' : 'pointer'
-                        }}
-                    >
-                        수신 취소
-                    </button>
-                </div>
-            </div>
+                </section>
 
-            <div style={{ height: '1px', background: '#e2e8f0' }} />
+                {/* 2. Payload Area */}
+                <section style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <h2 style={{ fontSize: '15px', fontWeight: 700, margin: '0', color: '#334155' }}>
+                        2. 알림 내용 구성
+                    </h2>
 
-            <div>
-                <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: 700 }}>
-                    📢 2단계: 신호 보내기 (보내는 쪽)
-                </h3>
-                <p style={{ fontSize: '13px', color: '#64748b', margin: '0 0 12px 0' }}>
-                    **아무 브라우저(PC 등)**에서나 메시지를 입력하고 보내보세요. 1단계에서 등록한 내 모든 기기로 알림이 전송됩니다.
-                </p>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>알림 제목 (자동으로 분류가 뒤에 붙음)</label>
+                        <input
+                            type="text"
+                            value={title}
+                            onChange={e => setTitle(e.target.value)}
+                            style={{ padding: '12px', borderRadius: '10px', border: '1.5px solid #e2e8f0', fontSize: '14px' }}
+                        />
+                    </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '12px' }}>
-                    <input
-                        type="text"
-                        placeholder="알림 제목"
-                        value={title}
-                        onChange={e => setTitle(e.target.value)}
-                        style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px' }}
-                    />
-                    <textarea
-                        placeholder="알림 내용"
-                        value={body}
-                        onChange={e => setBody(e.target.value)}
-                        style={{ padding: '10px', borderRadius: '8px', border: '1px solid #cbd5e1', fontSize: '14px', minHeight: '60px' }}
-                    />
-                    <div style={{ marginBottom: '16px' }}>
-                        <label style={{ display: 'block', fontSize: '13px', color: '#a1a1aa', marginBottom: '8px' }}>알림 카테고리 (필터링 테스트)</label>
-                        <div style={{ display: 'flex', gap: '12px' }}>
-                            {(['none', 'event', 'class'] as const).map((cat) => (
-                                <label key={cat} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '14px' }}>
-                                    <input
-                                        type="radio"
-                                        name="category"
-                                        checked={category === cat}
-                                        onChange={() => setCategory(cat)}
-                                    />
-                                    {cat === 'none' ? '전체' : (cat === 'event' ? '행사' : '강습')}
-                                </label>
-                            ))}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>알림 본문 (날짜 요일 | 장소)</label>
+                        <textarea
+                            value={body}
+                            onChange={e => setBody(e.target.value)}
+                            style={{ padding: '12px', borderRadius: '10px', border: '1.5px solid #e2e8f0', fontSize: '14px', minHeight: '60px' }}
+                        />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>알림 이미지 URL (오른쪽 표시)</label>
+                        <input
+                            type="text"
+                            value={imageUrl}
+                            onChange={e => setImageUrl(e.target.value)}
+                            style={{ padding: '12px', borderRadius: '10px', border: '1.5px solid #e2e8f0', fontSize: '14px' }}
+                        />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>알림 상세 내용 (펼쳤을 때 표시됨)</label>
+                        <textarea
+                            value={content}
+                            onChange={e => setContent(e.target.value)}
+                            placeholder="이벤트의 상세한 내용을 입력하세요 (Optional)"
+                            style={{ padding: '12px', borderRadius: '10px', border: '1.5px solid #e2e8f0', fontSize: '14px', minHeight: '80px' }}
+                        />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>목적지 URL (클릭 시 이동)</label>
+                        <input
+                            type="text"
+                            value={targetUrl}
+                            onChange={e => setTargetUrl(e.target.value)}
+                            style={{ padding: '12px', borderRadius: '10px', border: '1.5px solid #e2e8f0', fontSize: '14px' }}
+                        />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>카테고리</label>
+                            <select
+                                value={category}
+                                onChange={e => setCategory(e.target.value as any)}
+                                style={{ padding: '10px', borderRadius: '10px', border: '1.5px solid #e2e8f0' }}
+                            >
+                                <option value="class">강습 (class)</option>
+                                <option value="event">행사 (event)</option>
+                                <option value="club">동호회 (club)</option>
+                            </select>
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                            <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>장르 (필터링용)</label>
+                            <input
+                                type="text"
+                                value={genre}
+                                onChange={e => setGenre(e.target.value)}
+                                style={{ padding: '10px', borderRadius: '10px', border: '1.5px solid #e2e8f0', fontSize: '14px' }}
+                            />
                         </div>
                     </div>
+                </section>
 
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <button
-                            onClick={handleSendToMe}
-                            disabled={loading}
-                            style={{
-                                padding: '12px',
-                                background: '#2563eb',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '8px',
-                                fontWeight: 600,
-                                cursor: loading ? 'not-allowed' : 'pointer'
-                            }}
-                        >
-                            {loading ? '전송 중...' : '🎯 오직 나에게만 발송 (ID 기반)'}
-                        </button>
-                        <button
-                            onClick={handleSendAdminBroadcast}
-                            disabled={loading}
-                            style={{
-                                padding: '12px',
-                                background: '#6366f1',
-                                color: 'white',
-                                border: 'none',
-                                borderRadius: '8px',
-                                fontWeight: 600,
-                                cursor: loading ? 'not-allowed' : 'pointer'
-                            }}
-                        >
-                            {loading ? '전송 중...' : '📢 관리자 전체 기기에 발송'}
-                        </button>
+                {/* 3. Action Area */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
+                    <button
+                        onClick={() => handleSendTest('me')}
+                        disabled={loading}
+                        style={{
+                            padding: '14px',
+                            background: '#2563eb',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '12px',
+                            fontWeight: 700,
+                            cursor: 'pointer',
+                            boxShadow: '0 4px 10px rgba(37, 99, 235, 0.2)'
+                        }}
+                    >
+                        🎯 나에게만 즉시 발송
+                    </button>
+                    <button
+                        onClick={() => handleSendTest('all-admin')}
+                        disabled={loading}
+                        style={{
+                            padding: '14px',
+                            background: '#6366f1',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '12px',
+                            fontWeight: 700,
+                            cursor: 'pointer'
+                        }}
+                    >
+                        📢 모든 유저/기기에 방송 (주의)
+                    </button>
+                </div>
+
+                {result && (
+                    <div style={{
+                        marginTop: '10px',
+                        padding: '12px',
+                        background: result.includes('❌') ? '#fef2f2' : '#f0fdf4',
+                        color: result.includes('❌') ? '#991b1b' : '#166534',
+                        fontSize: '13px',
+                        fontWeight: 600,
+                        borderRadius: '12px',
+                        border: '1px solid' + (result.includes('❌') ? '#fee2e2' : '#dcfce7')
+                    }}>
+                        {result}
                     </div>
-                </div>
+                )}
             </div>
 
-            {result && (
-                <div style={{
-                    padding: '12px',
-                    background: result.includes('❌') ? '#fef2f2' : '#f0fdf4',
-                    color: result.includes('❌') ? '#991b1b' : '#166534',
-                    fontSize: '13px',
-                    fontWeight: 500,
-                    borderRadius: '8px',
-                    border: result.includes('❌') ? '1px solid #fee2e2' : '1px solid #dcfce7'
-                }}>
-                    {result}
-                </div>
-            )}
-
-            <div style={{ fontSize: '12px', color: '#94a3b8', background: '#f8fafc', padding: '12px', borderRadius: '8px' }}>
-                💡 <b>팁:</b> PC에서 푸시 전송 버튼을 누르고, 폰(PWA)으로 알림이 오는지 확인하는 것이 가장 확실한 테스트 방법입니다.
-            </div>
+            <footer style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid #f1f5f9', textAlign: 'center' }}>
+                <button
+                    onClick={() => window.location.href = '/'}
+                    style={{ background: 'none', border: 'none', color: '#94a3b8', fontSize: '13px', fontWeight: 500, cursor: 'pointer', textDecoration: 'underline' }}
+                >
+                    홈으로 돌아가기
+                </button>
+            </footer>
         </div>
     );
 };

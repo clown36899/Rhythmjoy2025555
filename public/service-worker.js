@@ -140,6 +140,7 @@ self.addEventListener('push', (event) => {
         title: data.title || notificationData.title,
         body: data.body || notificationData.body,
         icon: data.icon || notificationData.icon,
+        image: data.image || null, // [NEW] 큰 이미지 필드 추가
         badge: data.badge || notificationData.badge,
         tag: data.tag || notificationData.tag,
         data: data.data || notificationData.data
@@ -157,6 +158,7 @@ self.addEventListener('push', (event) => {
     await self.registration.showNotification(notificationData.title, {
       body: notificationData.body,
       icon: notificationData.icon,
+      image: notificationData.image, // [NEW] 큰 이미지 표시
       badge: notificationData.badge,
       tag: notificationData.tag,
       data: { ...notificationData.data, dbId: dbId }, // DB ID 추가

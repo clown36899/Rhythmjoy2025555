@@ -291,20 +291,6 @@ export default function UniversalPostEditor({
 
                 if (error) throw error;
 
-                // [NEW] 관리자에게 자동 푸시 알림 발송 (행사/강습 머릿말일 때만)
-                const selectedPrefix = prefixes.find(p => p.id === formData.prefix_id);
-                if (selectedPrefix && (selectedPrefix.name === '행사' || selectedPrefix.name === '강습')) {
-                    const pushCategory = selectedPrefix.name === '강습' ? 'lesson' : 'event';
-                    supabase.functions.invoke('send-push-notification', {
-                        body: {
-                            title: `[게시판 새 ${selectedPrefix.name}] ${formData.title}`,
-                            body: `${finalAuthorName}님이 새 글을 등록했습니다.`,
-                            userId: 'ALL',
-                            category: pushCategory,
-                            url: `${window.location.origin}/board/${formData.category}`
-                        }
-                    }).catch(err => console.error('[Push] Auto-send failed:', err));
-                }
 
                 alert('게시글이 등록되었습니다!');
             }
