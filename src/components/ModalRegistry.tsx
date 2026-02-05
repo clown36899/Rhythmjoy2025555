@@ -15,6 +15,7 @@ const ManualVenueInputModal = lazy(() => import('../pages/v2/components/ManualVe
 const AdminBillboardModal = lazy(() => import('../pages/v2/components/AdminBillboardModal'));
 const StatsModal = lazy(() => import('../pages/v2/components/StatsModal'));
 const RegistrationChoiceModal = lazy(() => import('../pages/v2/components/RegistrationChoiceModal'));
+const NewEventsListModal = lazy(() => import('../pages/v2/components/NewEventsListModal'));
 
 // Social Modals
 const SocialDetailModal = lazy(() => import('../pages/social/components/SocialDetailModal'));
@@ -129,6 +130,7 @@ const MODAL_COMPONENTS: Record<string, any> = {
     'globalNoticeEditor': GlobalNoticeEditor,
     'siteAnalytics': SiteAnalyticsModal,
     'adminPushTest': AdminPushTestModal,
+    'newEventsList': NewEventsListModal,
 };
 
 /**

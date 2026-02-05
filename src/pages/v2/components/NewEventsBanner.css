@@ -71,6 +71,33 @@
     font-weight: 600;
 }
 
+.NEB-headerRight {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.NEB-viewAllBtn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-glass);
+    color: var(--text-secondary);
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.NEB-viewAllBtn:hover {
+    background: var(--bg-surface-3);
+    color: var(--text-primary);
+    border-color: var(--border-primary);
+}
+
 .NEB-slider {
     position: relative;
     width: 100%;

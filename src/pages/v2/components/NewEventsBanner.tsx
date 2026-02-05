@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getEventThumbnail } from '../../../utils/getEventThumbnail';
 import { formatEventDate } from '../../../utils/dateUtils';
+import { useModalContext } from '../../../contexts/ModalContext';
 import type { Event } from '../utils/eventListUtils';
 import './NewEventsBanner.css';
 
@@ -17,6 +18,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
     defaultThumbnailClass,
     defaultThumbnailEvent,
 }) => {
+    const { openModal } = useModalContext();
     const [currentIndex, setCurrentIndex] = useState(0);
     const [isPaused, setIsPaused] = useState(false);
     const [showInfoModal, setShowInfoModal] = useState(false);
@@ -122,11 +124,25 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                             <i className="ri-information-line"></i>
                         </button>
                     </div>
-                    {events.length > 1 && (
-                        <div className="NEB-counter">
-                            {currentIndex + 1} / {events.length}
-                        </div>
-                    )}
+                    <div className="NEB-headerRight">
+                        <button
+                            className="NEB-viewAllBtn"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                openModal('newEventsList', {
+                                    events,
+                                    onEventClick
+                                });
+                            }}
+                        >
+                            모아보기 <i className="ri-arrow-right-s-line"></i>
+                        </button>
+                        {events.length > 1 && (
+                            <div className="NEB-counter">
+                                {currentIndex + 1} / {events.length}
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 <div className="NEB-slider">
@@ -219,24 +235,25 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                         ))}
                     </div>
                 )}
-            </div>
+            </div >
 
             {/* Info Modal */}
-            {showInfoModal && (
-                <div className="neb-modal-overlay" onClick={() => setShowInfoModal(false)}>
-                    <div className="neb-modal" onClick={e => e.stopPropagation()}>
-                        <h3 className="neb-modal-title">📢 신규 등록 노출 기준</h3>
-                        <div className="neb-modal-content">
-                            <p className="neb-highlight">등록 후 72시간 동안 이 섹션에 노출됩니다.</p>
-                            <ul className="neb-modal-list">
-                                <li>자동 슬라이드: 5초마다 전환</li>
-                                <li>마우스 호버 시 일시정지</li>
-                                <li>좌우 화살표로 수동 전환 가능</li>
-                            </ul>
+            {
+                showInfoModal && (
+                    <div className="neb-modal-overlay" onClick={() => setShowInfoModal(false)}>
+                        <div className="neb-modal" onClick={e => e.stopPropagation()}>
+                            <h3 className="neb-modal-title">📢 신규 등록 노출 기준</h3>
+                            <div className="neb-modal-content">
+                                <p className="neb-highlight">등록 후 72시간 동안 이 섹션에 노출됩니다.</p>
+                                <ul className="neb-modal-list">
+                                    <li>자동 슬라이드: 5초마다 전환</li>
+                                    <li>마우스 호버 시 일시정지</li>
+                                    <li>좌우 화살표로 수동 전환 가능</li>
+                                </ul>
+                            </div>
+                            <button className="neb-modal-close" onClick={() => setShowInfoModal(false)}>확인</button>
                         </div>
-                        <button className="neb-modal-close" onClick={() => setShowInfoModal(false)}>확인</button>
-                    </div>
-                    <style>{`
+                        <style>{`
                         .neb-modal-overlay {
                             position: fixed; top: 0; left: 0; right: 0; bottom: 0;
                             background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
@@ -286,8 +303,9 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
                         @keyframes slideUp { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
                     `}</style>
-                </div>
-            )}
+                    </div>
+                )
+            }
         </>
     );
 };
