@@ -137,15 +137,15 @@ export const sortEvents = (
     const sortGroup = (group: Event[]) => {
         switch (sortType) {
             case "random": {
-                // 0. Separate "New" events (< 6 hours)
+                // 0. Separate "New" events (72 hours)
                 const now = new Date();
-                const sixHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000); // 24시간
+                const seventyTwoHoursAgo = new Date(now.getTime() - 72 * 60 * 60 * 1000); // 72시간
 
                 const newEvents: Event[] = [];
                 const regularEvents: Event[] = [];
 
                 group.forEach(event => {
-                    if (event.created_at && new Date(event.created_at) > sixHoursAgo) {
+                    if (event.created_at && new Date(event.created_at) > seventyTwoHoursAgo) {
                         newEvents.push(event);
                     } else {
                         regularEvents.push(event);

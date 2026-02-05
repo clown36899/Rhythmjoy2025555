@@ -276,8 +276,41 @@
     color: #71717a !important;
 }
 
-.highlight-purple {
-    color: #a855f7 !important;
+/* Inline Descriptions */
+.hero-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.hero-title-desc {
+    font-size: 0.75rem;
+    color: #71717a;
+    font-weight: normal;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.analytics-sub-stats .label-group {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.analytics-sub-stats .label-desc {
+    font-size: 0.7rem;
+    color: #71717a;
+}
+
+.summary-exclusion-note {
+    margin-top: 16px;
+    font-size: 0.75rem;
+    color: #52525b;
+    text-align: center;
+    padding: 12px;
+    border-top: 1px dashed #27272a;
 }
 
 .analytics-grid {

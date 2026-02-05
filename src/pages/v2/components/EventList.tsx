@@ -91,15 +91,15 @@ const EventList: React.FC<EventListProps> = ({
     genreWeights
   });
 
-  // 3.65 Newly Registered Events (24 hours)
+  // 3.65 Newly Registered Events (72 hours)
   const newlyRegisteredEvents = useMemo(() => {
     const now = new Date();
-    const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const seventyTwoHoursAgo = new Date(now.getTime() - 72 * 60 * 60 * 1000);
 
     return events.filter(event => {
       if (!event.created_at) return false;
       const created = new Date(event.created_at);
-      return created > twentyFourHoursAgo;
+      return created > seventyTwoHoursAgo;
     }).sort((a, b) => {
       // 최신 등록순으로 정렬
       const timeA = new Date(a.created_at!).getTime();

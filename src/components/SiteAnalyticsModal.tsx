@@ -67,6 +67,7 @@ interface AnalyticsSummary {
         monthly: { month: string; count: number; ratio: number }[];
     };
     daily_visit_trend?: { date: string; count: number }[];
+    total_pv?: number; // [PHASE 24] 실제 PV (전체 로그 수)
 }
 
 interface UserInfo {
@@ -616,7 +617,8 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                 pwa_stats: pwaStats,
                 items_by_type: itemsByTypeRecord,
                 visitor_stats,
-                daily_visit_trend: dailyVisitTrend
+                daily_visit_trend: dailyVisitTrend,
+                total_pv: validData.length // [PHASE 24] 전체 로그 기반 PV
             };
 
             setSummary(newSummary as any);
@@ -802,10 +804,11 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                 <div className="analytics-hero-card">
                                     <h3 className="hero-title">
                                         {viewMode === 'summary'
-                                            ? '누적 방문자 (Unique Access) 6시간텀'
+                                            ? '누적 방문자 (Unique Access)'
                                             : dateRange.start === dateRange.end && dateRange.end === getKRDateString(new Date())
-                                                ? '오늘의 총 방문자 (Unique Access) 6시간텀'
-                                                : '기간 내 누적 방문자 (Unique Access) 6시간텀'}
+                                                ? '오늘의 총 방문자 (Unique Access)'
+                                                : '기간 내 누적 방문자 (Unique Access)'}
+                                        <span className="hero-title-desc">6시간 내 중복 제외</span>
                                     </h3>
                                     <div className="hero-number">
                                         {(summary.user_clicks || 0) + (summary.anon_clicks || 0)}
@@ -838,14 +841,22 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                             {/* 활동량 요약 (기존 클릭 수 정보는 보조 지표로 축소) */}
                             <div className="analytics-sub-stats">
                                 <div className="sub-stat-item">
-                                    <span className="label">총 페이지뷰(PV)</span>
-                                    <span className="value">{summary.total_clicks}</span>
+                                    <div className="label-group">
+                                        <span className="label">총 활동 로그 (PV)</span>
+                                        <span className="label-desc">전체 클릭/이동 합산</span>
+                                    </div>
+                                    <span className="value">{(summary.total_pv || 0).toLocaleString()}</span>
                                 </div>
                                 <div className="sub-stat-item">
-                                    <span className="label">활동 회원</span>
-                                    <span className="value">{summary.user_clicks}</span>
+                                    <div className="label-group">
+                                        <span className="label">데이터 산정 수 (Unique)</span>
+                                        <span className="label-desc">6시간 텀 중복제거</span>
+                                    </div>
+                                    <span className="value">{summary.total_clicks.toLocaleString()}</span>
                                 </div>
                             </div>
+
+
 
 
                             {/* [PHASE 11] 타입별 통계 */}
@@ -969,7 +980,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                     )}
                                 </div>
                                 <div style={{ marginTop: '12px', fontSize: '0.8rem', color: '#71717a', textAlign: 'right' }}>
-                                    * 방문 트렌드 기준: 6시간 단위 유니크 세션 (21일 이전은 활동 로그 기반 추정치)
+                                    * 방문 트렌드 기준: 전체 세션 발생 건수 (21일 이전은 활동 로그 기반 추정치)
                                 </div>
                             </div>
 
@@ -1014,6 +1025,9 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                                                 })}
                                             </div>
                                         </div>
+                                    </div>
+                                    <div className="summary-exclusion-note">
+                                        * 관리자(Admin) 및 테스트용 계정의 데이터는 모든 통계에서 자동 제외됩니다.
                                     </div>
                                 </div>
                             ) : viewMode === 'daily' ? (
