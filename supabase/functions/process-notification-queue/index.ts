@@ -58,14 +58,46 @@ Deno.serve(async (req) => {
 
         for (const item of pendingItems) {
             try {
-                // Update status to 'processing' to prevent double-send in next run (though we likely finish before next run)
+                // Update status to 'processing'
                 await supabaseClient
                     .from('notification_queue')
                     .update({ status: 'processing' })
                     .eq('id', item.id);
 
-                const { title, body, category, payload } = item;
-                const { url, userId, genre, image, content } = payload || {};
+                let { title, body, category, payload, event_id } = item;
+                let { url, userId, genre, image, content } = payload || {};
+
+                // [Feature] 발송 직전 최신 데이터 동기화
+                if (event_id) {
+                    const { data: latestEvent, error: eventError } = await supabaseClient
+                        .from('events')
+                        .select('*')
+                        .eq('id', event_id)
+                        .single();
+
+                    if (eventError || !latestEvent) {
+                        console.log(`[Queue] Event ${event_id} not found. Canceling notification.`);
+                        await supabaseClient
+                            .from('notification_queue')
+                            .update({ status: 'canceled' })
+                            .eq('id', item.id);
+                        results.push({ id: item.id, status: 'canceled' });
+                        continue;
+                    }
+
+                    // 최신 데이터로 업데이트
+                    const isLesson = latestEvent.category === 'class' || latestEvent.category === 'regular' || latestEvent.category === 'club';
+                    const pushCategory = isLesson ? 'class' : 'event';
+                    const weekDay = latestEvent.date ? ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'][new Date(latestEvent.date).getDay()] : '';
+
+                    title = `${latestEvent.title} (${pushCategory === 'class' ? '강습' : '행사'})`;
+                    body = `${latestEvent.date || ''} ${weekDay} | ${latestEvent.location || '장소 미정'}`;
+                    category = pushCategory;
+                    genre = latestEvent.genre;
+                    image = latestEvent.image_thumbnail;
+                    content = latestEvent.description;
+                    url = `${Deno.env.get('SITE_URL') || 'https://swingenjoy.com'}/calendar?id=${latestEvent.id}`;
+                }
 
                 console.log(`[Queue] Invoking send-push for Item ${item.id} (${title})`);
 
@@ -79,7 +111,7 @@ Deno.serve(async (req) => {
                         category: category,
                         genre: genre,
                         image: image,
-                        content: content // [NEW] 상세 내용 전달
+                        content: content
                     }
                 });
 
