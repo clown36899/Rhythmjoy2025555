@@ -25,7 +25,7 @@ interface MobileShellProps {
 export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }) => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, userProfile, isAdmin: authIsAdmin, refreshUserProfile, signOut, isAuthProcessing, isLoggingOut, cancelAuth, isAuthCheckComplete } = useAuth();
+  const { user, userProfile, isAdmin: authIsAdmin, isAuthProcessing, isLoggingOut, cancelAuth, isAuthCheckComplete } = useAuth();
   const { i18n } = useTranslation();
   const onlineUsersData = useOnlineUsers();
   const { action: pageAction } = usePageAction();
@@ -33,7 +33,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
 
 
   // Modals
-  const profileEditModal = useModal('profileEdit');
+
   const userRegistrationModal = useModal('userRegistration');
   const loginModal = useModal('login');
 
@@ -170,21 +170,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
       }
     };
 
-    const handleOpenProfileEdit = () => {
-      if (user) {
-        profileEditModal.open({
-          currentUser: userProfile || {
-            nickname: user.user_metadata?.name || user.email?.split('@')[0] || '',
-            profile_image: user.user_metadata?.avatar_url || null
-          },
-          userId: user.id,
-          onProfileUpdated: refreshUserProfile,
-          onLogout: signOut
-        });
-      } else {
-        handleOpenUserProfile();
-      }
-    };
+
 
     const handleProtectedAction = (e: any) => {
       const { message } = e.detail || {};
@@ -202,17 +188,15 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
     };
 
     window.addEventListener('openUserProfile', handleOpenUserProfile);
-    window.addEventListener('openProfileEdit', handleOpenProfileEdit);
     window.addEventListener('requestProtectedAction', handleProtectedAction);
     window.addEventListener('openLoginModal', handleOpenLoginModal);
 
     return () => {
       window.removeEventListener('openUserProfile', handleOpenUserProfile);
-      window.removeEventListener('openProfileEdit', handleOpenProfileEdit);
       window.removeEventListener('requestProtectedAction', handleProtectedAction);
       window.removeEventListener('openLoginModal', handleOpenLoginModal);
     };
-  }, [user, profileEditModal, userRegistrationModal, loginModal]);
+  }, [user, userRegistrationModal, loginModal]);
 
   const changeLanguage = (lng: string) => {
     // Google Translate 호출

@@ -14,7 +14,7 @@
   }
 
   /* ===== 모달 오버레이 ===== */
-  .userreg-overlay {
+  :scope {
     position: fixed;
     inset: 0;
     background-color: var(--ur-bg-overlay);

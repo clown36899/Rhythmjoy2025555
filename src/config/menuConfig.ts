@@ -15,6 +15,13 @@ export interface MenuSection {
 // 실제 네비게이션 구조 기반 메뉴 (navigation.ts 순서 그대로)
 export const SITE_MENU_SECTIONS: MenuSection[] = [
     {
+        title: "내 공간 (Personal)",
+        items: [
+            { icon: 'ri-heart-3-fill', title: '내 즐겨찾기', desc: '내가 찜한 행사/게시글 모아보기', path: '/?view=favorites', type: 'personal' },
+            { icon: 'ri-history-line', title: '내 활동', desc: '내가 등록한 콘텐츠 관리', path: '/my-activities', type: 'personal' },
+        ]
+    },
+    {
         title: "메인 서비스 (Service)",
         items: [
             { icon: 'ri-ticket-line', title: '홈', desc: '이벤트 및 강습 모아보기', path: '/v2', type: 'home' },
@@ -35,4 +42,6 @@ export const MENU_LABELS_EN: Record<string, string> = {
     '소셜': 'Social',
     '쇼핑': 'Shop',
     '안내': 'Guide',
+    '내 즐겨찾기': 'Favorites',
+    '내 활동': 'My Activities',
 };

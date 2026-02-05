@@ -27,7 +27,7 @@ interface BoardCategory {
 
 export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawerProps) {
     const navigate = useNavigate();
-    const { user, billboardUserName, signOut, userProfile, isAdmin } = useAuth();
+    const { user, billboardUserName, signOut, userProfile, isAdmin, refreshUserProfile } = useAuth();
     const [isBoardExpanded, setIsBoardExpanded] = useState(true);
     const [isAdminExpanded, setIsAdminExpanded] = useState(true);
     const [boardCategories, setBoardCategories] = useState<BoardCategory[]>([]);
@@ -65,6 +65,7 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
     const noticeModal = useModal('globalNoticeEditor');
     const siteAnalyticsModal = useModal('siteAnalytics');
     const notificationSettingsModal = useModal('notificationSettings');
+    const profileEditModal = useModal('profileEdit');
 
     const nickname = userProfile?.nickname || billboardUserName || user?.user_metadata?.name || user?.email?.split('@')[0] || 'Guest';
     const profileImage = userProfile?.profile_image || user?.user_metadata?.avatar_url || null;
@@ -157,7 +158,15 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                                 <button
                                     className="SD-profileEditBtn"
                                     onClick={() => {
-                                        window.dispatchEvent(new CustomEvent('openProfileEdit'));
+                                        profileEditModal.open({
+                                            currentUser: userProfile || {
+                                                nickname: user.user_metadata?.name || user.email?.split('@')[0] || '',
+                                                profile_image: user.user_metadata?.avatar_url || null
+                                            },
+                                            userId: user.id,
+                                            onProfileUpdated: refreshUserProfile,
+                                            onLogout: signOut
+                                        });
                                         onClose();
                                     }}
                                 >
@@ -280,71 +289,72 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                         </div>
                     )}
 
-                    <div className="SD-sectionTitle">SERVICE</div>
-
                     {/* 완전 동적 메뉴 렌더링 */}
-                    {SITE_MENU_SECTIONS.map((section, sectionIdx) => {
-                        return section.items.map((item, itemIdx) => {
-                            // 포럼은 하위 메뉴가 있으므로 특별 처리
-                            if (item.path === '/board' && item.type === 'board') {
-                                return (
-                                    <div key={`${sectionIdx}-${itemIdx}`}>
-                                        <div className="SD-menuItem SD-isExpandable" onClick={() => setIsBoardExpanded(!isBoardExpanded)}>
-                                            <i className={item.icon}></i>
-                                            <span className="manual-label-wrapper">
-                                                <span className="translated-part">{MENU_LABELS_EN[item.title] || item.title}</span>
-                                                <span className="fixed-part ko" translate="no">{item.title}</span>
-                                                <span className="fixed-part en" translate="no">{MENU_LABELS_EN[item.title] || item.title}</span>
-                                            </span>
-                                            <i className={`ri-arrow-${isBoardExpanded ? 'down' : 'right'}-s-line SD-expandIcon`}></i>
-                                        </div>
-                                        {isBoardExpanded && (
-                                            <div className="SD-submenu">
-                                                {boardCategories.map((category) => (
-                                                    <div key={category.code} className="SD-submenuItem" onClick={() => handleNavigation(`/board?category=${category.code}`)}>
-                                                        <i className={getIconForCategory(category.code)}></i>
+                    {SITE_MENU_SECTIONS.map((section, sectionIdx) => (
+                        <div key={`section-${sectionIdx}`}>
+                            <div className="SD-sectionTitle">{section.title}</div>
+                            {section.items.map((item, itemIdx) => {
+                                // 포럼은 하위 메뉴가 있으므로 특별 처리
+                                if (item.path === '/board' && item.type === 'board') {
+                                    return (
+                                        <div key={`${sectionIdx}-${itemIdx}`}>
+                                            <div className="SD-menuItem SD-isExpandable" onClick={() => setIsBoardExpanded(!isBoardExpanded)}>
+                                                <i className={item.icon}></i>
+                                                <span className="manual-label-wrapper">
+                                                    <span className="translated-part">{MENU_LABELS_EN[item.title] || item.title}</span>
+                                                    <span className="fixed-part ko" translate="no">{item.title}</span>
+                                                    <span className="fixed-part en" translate="no">{MENU_LABELS_EN[item.title] || item.title}</span>
+                                                </span>
+                                                <i className={`ri-arrow-${isBoardExpanded ? 'down' : 'right'}-s-line SD-expandIcon`}></i>
+                                            </div>
+                                            {isBoardExpanded && (
+                                                <div className="SD-submenu">
+                                                    {boardCategories.map((category) => (
+                                                        <div key={category.code} className="SD-submenuItem" onClick={() => handleNavigation(`/board?category=${category.code}`)}>
+                                                            <i className={getIconForCategory(category.code)}></i>
+                                                            <span className="manual-label-wrapper">
+                                                                <span className="translated-part">{getCategoryEn(category.code, category.name)}</span>
+                                                                <span className="fixed-part ko" translate="no">{category.name}</span>
+                                                                <span className="fixed-part en" translate="no">{getCategoryEn(category.code, category.name)}</span>
+                                                            </span>
+                                                        </div>
+                                                    ))}
+                                                    <div className="SD-submenuItem" onClick={() => handleNavigation('/board?category=history')}>
+                                                        <i className="ri-book-mark-line"></i>
                                                         <span className="manual-label-wrapper">
-                                                            <span className="translated-part">{getCategoryEn(category.code, category.name)}</span>
-                                                            <span className="fixed-part ko" translate="no">{category.name}</span>
-                                                            <span className="fixed-part en" translate="no">{getCategoryEn(category.code, category.name)}</span>
+                                                            <span className="translated-part">Library</span>
+                                                            <span className="fixed-part ko" translate="no">라이브러리</span>
+                                                            <span className="fixed-part en" translate="no">Library</span>
                                                         </span>
                                                     </div>
-                                                ))}
-                                                <div className="SD-submenuItem" onClick={() => handleNavigation('/board?category=history')}>
-                                                    <i className="ri-book-mark-line"></i>
-                                                    <span className="manual-label-wrapper">
-                                                        <span className="translated-part">Library</span>
-                                                        <span className="fixed-part ko" translate="no">라이브러리</span>
-                                                        <span className="fixed-part en" translate="no">Library</span>
-                                                    </span>
+                                                    <div className="SD-submenuItem" onClick={() => handleNavigation('/board?category=dev-log')}>
+                                                        <i className="ri-code-box-line"></i>
+                                                        <span className="manual-label-wrapper">
+                                                            <span className="translated-part">Dev Log</span>
+                                                            <span className="fixed-part ko" translate="no">개발일지</span>
+                                                            <span className="fixed-part en" translate="no">Dev Log</span>
+                                                        </span>
+                                                    </div>
                                                 </div>
-                                                <div className="SD-submenuItem" onClick={() => handleNavigation('/board?category=dev-log')}>
-                                                    <i className="ri-code-box-line"></i>
-                                                    <span className="manual-label-wrapper">
-                                                        <span className="translated-part">Dev Log</span>
-                                                        <span className="fixed-part ko" translate="no">개발일지</span>
-                                                        <span className="fixed-part en" translate="no">Dev Log</span>
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        )}
+                                            )}
+                                        </div>
+                                    );
+                                }
+
+                                // 일반 메뉴 항목
+                                return (
+                                    <div key={`${sectionIdx}-${itemIdx}`} className="SD-menuItem" onClick={() => handleNavigation(item.path)}>
+                                        <i className={item.icon}></i>
+                                        <span className="manual-label-wrapper">
+                                            <span className="translated-part">{MENU_LABELS_EN[item.title] || item.title}</span>
+                                            <span className="fixed-part ko" translate="no">{item.title}</span>
+                                            <span className="fixed-part en" translate="no">{MENU_LABELS_EN[item.title] || item.title}</span>
+                                        </span>
                                     </div>
                                 );
-                            }
-
-                            // 일반 메뉴 항목
-                            return (
-                                <div key={`${sectionIdx}-${itemIdx}`} className="SD-menuItem" onClick={() => handleNavigation(item.path)}>
-                                    <i className={item.icon}></i>
-                                    <span className="manual-label-wrapper">
-                                        <span className="translated-part">{MENU_LABELS_EN[item.title] || item.title}</span>
-                                        <span className="fixed-part ko" translate="no">{item.title}</span>
-                                        <span className="fixed-part en" translate="no">{MENU_LABELS_EN[item.title] || item.title}</span>
-                                    </span>
-                                </div>
-                            );
-                        });
-                    })}
+                            })}
+                        </div>
+                    ))}
                 </nav>
 
                 <div className="SD-footer">
