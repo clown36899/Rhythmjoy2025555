@@ -8,7 +8,7 @@
   right: 0;
   bottom: 0;
   left: 0;
-  z-index: 300000;
+  z-index: var(--z-modal-stack-3);
   /* Higher than SocialGroupModal (200000) */
   display: flex;
   align-items: center;

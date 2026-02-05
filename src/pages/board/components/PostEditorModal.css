@@ -25,7 +25,7 @@
   --pem-radius-lg: 0.75rem;
 
   /* Misc */
-  --pem-z-modal: 9999;
+  --pem-z-modal: var(--z-modal-stack-2);
   /* 매우 높은 Z-Index */
   --pem-transition-colors: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }

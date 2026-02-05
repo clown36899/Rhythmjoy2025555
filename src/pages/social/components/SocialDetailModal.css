@@ -10,7 +10,7 @@
         display: flex;
         justify-content: center;
         align-items: center;
-        z-index: 150000;
+        z-index: var(--z-modal-stack-1);
         will-change: opacity;
         animation: socialFadeInOverlay 0.2s ease-out;
     }

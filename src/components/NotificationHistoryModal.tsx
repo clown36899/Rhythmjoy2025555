@@ -215,7 +215,7 @@ export default function NotificationHistoryModal({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            zIndex: 40,
+            zIndex: 'var(--z-modal)',
             padding: '20px'
         }}>
             <div style={{
