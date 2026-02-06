@@ -43,11 +43,11 @@ html {
 .calendar-tab-btn {
     flex: 1;
     padding: 8px 12px;
-    background-color: rgba(30, 30, 30, 0.8);
-    /* 반투명 배경 */
+    background-color: var(--bg-glass-heavy);
+    /* 시맨틱 반투명 배경 */
     backdrop-filter: blur(10px);
     color: var(--text-secondary);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-glass-strong);
     border-radius: 40px;
     /* 캡슐형 */
     font-size: 14px;
@@ -60,7 +60,7 @@ html {
     justify-content: center;
     pointer-events: auto;
     /* 버튼 클릭 활성화 */
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--shadow-md);
     /* 버튼 자체 그림자 */
 }
 

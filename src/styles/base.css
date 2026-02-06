@@ -208,7 +208,7 @@
     --bg-dotted-size: 30px 30px;
     --bg-surface-1: #1f2937;
     /* gray-800 */
-    --bg-surface-2: #374151;
+    --bg-surface-2: #1b1f25;
     /* gray-700 */
     --bg-surface-3: #4b5563;
     /* gray-600 */
@@ -234,7 +234,7 @@
 
     /* Borders */
     --border-primary: #555555;
-    --border-secondary: #4b5563;
+    --border-secondary: #333942;
     --border-light: #374151;
     --border-subtle: rgba(255, 255, 255, 0.03);
     /* Dark mode subtle border */
@@ -281,7 +281,6 @@
     --bottom-nav-mask-image: linear-gradient(to top, black 70%, transparent 100%);
     --bg-header-backdrop: rgba(0, 0, 0, 0.4);
     --bg-bottom-nav-backdrop: rgba(0, 0, 0, 0.6);
-    --shell-border-dark: rgba(255, 255, 255, 0.1);
 
     /* Effects */
     --shadow-premium: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
@@ -329,9 +328,9 @@
     /* gray-900 */
     --text-secondary: #374151;
     /* gray-700 */
-    --text-tertiary: #6b7280;
+    --text-tertiary: #000000;
     /* gray-500 */
-    --text-muted: #9ca3af;
+    --text-muted: #212225;
     /* gray-400 */
     --text-disabled: #d1d5db;
     /* gray-300 */
@@ -347,7 +346,7 @@
     --border-subtle: #f1f5f9;
     /* slate-100 - very subtle layout divider */
     --border-glass: rgba(0, 0, 0, 0.05);
-    --border-glass-strong: rgba(0, 0, 0, 0.1);
+    --border-glass-strong: rgba(0, 0, 0, 0);
     --border-glass-subtle: rgba(0, 0, 0, 0.02);
 
     /* Header */
@@ -393,13 +392,13 @@
     --gradient-card: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
     --gradient-accent: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
     --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.4) 100%);
-    --gradient-banner-overlay: linear-gradient(to top, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.6) 40%, rgba(255, 255, 255, 0.2) 70%, transparent 100%);
-    --header-mask-image: none;
-    --bottom-nav-mask-image: linear-gradient(to top, black 0%, black 20%, transparent 100%);
-    /* 라이트 모드: 헤더 마스크 제거(사용자 요청), 바텀 마스크는 20%부터 페이드하여 경계선 제거 */
+    --gradient-banner-overlay: linear-gradient(to top, rgba(0, 0, 0, 0.75) 0%, rgba(0, 0, 0, 0.3) 50%, transparent 100%);
+    --header-mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+    --bottom-nav-mask-image: linear-gradient(to top, black 60%, transparent 100%);
+    /* 라이트 모드에서도 부드러운 경계선을 위해 마스크 범위 확대(60%부터 페이드) */
     --bg-header-backdrop: rgba(255, 255, 255, 0.9);
-    --bg-bottom-nav-backdrop: rgba(255, 255, 255, 0.9);
-    --shell-border-dark: rgba(0, 0, 0, 0.05);
+    --bg-bottom-nav-backdrop: rgba(255, 255, 255, 0);
+    --shell-border-dark: transparent;
 
     /* Legacy Map Update */
     --page-bg-color: #e2e8f0;

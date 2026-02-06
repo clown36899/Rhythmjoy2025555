@@ -183,9 +183,9 @@
     .ELS-genreBtn {
         padding: 6px 12px;
         border-radius: 31px;
-        background: #191919;
+        background: var(--bg-surface-2);
         color: var(--text-secondary);
-        border: 1px solid #323232;
+        border: 1px solid var(--border-secondary);
         font-size: 13px;
         font-weight: 500;
         cursor: pointer;
@@ -363,7 +363,7 @@
 
     .EHLV-card:active {
         transform: scale(0.98);
-        background: #2a2a2a;
+        background: var(--bg-hover);
     }
 
     .EHLV-cardImage {
@@ -503,7 +503,7 @@
     .ESSM-title {
         font-size: 1.25rem;
         font-weight: 700;
-        color: white;
+        color: var(--text-primary);
         margin: 0;
     }
 
@@ -536,10 +536,10 @@
     .ESSM-input {
         width: 100%;
         background-color: var(--bg-surface-2);
-        border: 1px solid var(--bg-surface-3);
+        border: 1px solid var(--border-secondary);
         border-radius: 0.75rem;
         padding: 0.875rem 1rem 0.875rem 2.75rem;
-        color: white;
+        color: var(--text-primary);
         font-size: 1rem;
         transition: all 0.2s;
         outline: none;
@@ -600,8 +600,8 @@
     }
 
     .ESSM-suggestionItem:hover {
-        background-color: var(--bg-surface-2);
-        color: white;
+        background-color: var(--bg-hover);
+        color: var(--text-primary);
     }
 
     .ESSM-suggestionIcon {
@@ -629,8 +629,8 @@
     }
 
     .ESSM-btnCancel:hover {
-        background-color: var(--bg-surface-3);
-        color: white;
+        background-color: var(--bg-hover);
+        color: var(--text-primary);
     }
 
     .ESSM-btnConfirm {
@@ -694,7 +694,7 @@
     .ESOM-title {
         font-size: 1.125rem;
         font-weight: 700;
-        color: white;
+        color: var(--text-primary);
         margin: 0;
     }
 
@@ -740,8 +740,8 @@
     }
 
     .ESOM-optionBtn:hover {
-        background-color: var(--bg-surface-3);
-        color: white;
+        background-color: var(--bg-hover);
+        color: var(--text-primary);
     }
 
     .ESOM-optionBtn.is-active {

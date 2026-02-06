@@ -1,6 +1,5 @@
 import React from 'react';
 import { useTheme } from '../contexts/ThemeContext';
-import { useAuth } from '../contexts/AuthContext';
 import { logUserInteraction } from '../lib/analytics';
 
 import '../styles/components/ThemeToggle.css';
@@ -11,13 +10,6 @@ import '../styles/components/ThemeToggle.css';
  */
 export const ThemeToggle: React.FC = () => {
     const { theme, toggleTheme } = useTheme();
-    const { user } = useAuth();
-
-    // 관리자 확인 (JWT 메타데이터)
-    const isAdmin = user?.user_metadata?.is_admin === true || user?.app_metadata?.is_admin === true;
-
-    // 관리자가 아니면 토글 버튼 숨김
-    if (!isAdmin) return null;
 
     const handleToggle = () => {
         toggleTheme();

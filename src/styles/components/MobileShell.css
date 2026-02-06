@@ -307,12 +307,12 @@
   width: 100%;
   height: calc(60px + env(safe-area-inset-top));
   padding-top: env(safe-area-inset-top);
-  background-color: var(--bg-header-backdrop);
+  /* background-color: var(--bg-header-backdrop); */
   /* 마스크로 투명해지므로 기본 농도 상향 */
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
-  -webkit-mask-image: var(--header-mask-image);
-  mask-image: var(--header-mask-image);
+  /* -webkit-mask-image: var(--header-mask-image);
+  mask-image: var(--header-mask-image); */
   z-index: 49;
   display: flex;
   align-items: center;
@@ -710,7 +710,6 @@
   /* 박스 크기를 0까지 줄일 수 있게 허용 */
   overflow: visible;
   /* 버튼이 잘리지 않도록 */
-  box-shadow: var(--shadow-lg);
   border-radius: 40px;
   /* 캡슐형 곡률 */
 }
@@ -789,9 +788,9 @@
   /* 필요 시 축소 허용 */
   min-width: 32px;
   /* 최소 너비 보장 */
-  box-shadow:
+  /* box-shadow:
     0 8px 16px rgba(37, 99, 235, 0.3),
-    0 2px 4px rgba(37, 99, 235, 0.2);
+    0 2px 4px rgba(37, 99, 235, 0.2); */
   border-radius: 40px;
   /* 캡슐형 곡률 */
 }
