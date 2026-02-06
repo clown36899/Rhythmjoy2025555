@@ -277,6 +277,11 @@
     --gradient-card: linear-gradient(135deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0) 100%);
     --gradient-accent: linear-gradient(135deg, var(--color-blue-600) 0%, var(--color-blue-400) 100%);
     --gradient-banner-overlay: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.6) 40%, rgba(0, 0, 0, 0.3) 70%, transparent 100%);
+    --header-mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+    --bottom-nav-mask-image: linear-gradient(to top, black 70%, transparent 100%);
+    --bg-header-backdrop: rgba(0, 0, 0, 0.4);
+    --bg-bottom-nav-backdrop: rgba(0, 0, 0, 0.6);
+    --shell-border-dark: rgba(255, 255, 255, 0.1);
 
     /* Effects */
     --shadow-premium: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
@@ -388,7 +393,13 @@
     --gradient-card: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
     --gradient-accent: linear-gradient(135deg, #3b82f6 0%, #60a5fa 100%);
     --gradient-glass: linear-gradient(135deg, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0.4) 100%);
-    --gradient-banner-overlay: linear-gradient(to top, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.4) 40%, rgba(0, 0, 0, 0.1) 70%, transparent 100%);
+    --gradient-banner-overlay: linear-gradient(to top, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.6) 40%, rgba(255, 255, 255, 0.2) 70%, transparent 100%);
+    --header-mask-image: none;
+    --bottom-nav-mask-image: linear-gradient(to top, black 0%, black 20%, transparent 100%);
+    /* 라이트 모드: 헤더 마스크 제거(사용자 요청), 바텀 마스크는 20%부터 페이드하여 경계선 제거 */
+    --bg-header-backdrop: rgba(255, 255, 255, 0.9);
+    --bg-bottom-nav-backdrop: rgba(255, 255, 255, 0.9);
+    --shell-border-dark: rgba(0, 0, 0, 0.05);
 
     /* Legacy Map Update */
     --page-bg-color: #e2e8f0;
