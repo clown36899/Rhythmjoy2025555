@@ -17,7 +17,6 @@ import { PwaNotificationModal } from './components/PwaNotificationModal';
 import { useState } from 'react';
 import { notificationStore } from './lib/notificationStore';
 import { useModalActions } from './contexts/ModalContext';
-import { useTheme } from './contexts/ThemeContext';
 import './styles/devtools.css';
 
 function AppContent() {
@@ -30,18 +29,9 @@ function AppContent() {
   useRealtimeSync();
 
   const { user, isAdmin } = useAuth();
-  const { theme, toggleTheme } = useTheme();
   const [showPwaModal, setShowPwaModal] = useState(false);
   const { openModal } = useModalActions();
 
-  // [Theme Security] 화이트 모드는 관리자만 접근 가능 (기본값: 다크 모드)
-  useEffect(() => {
-    // 관리자가 아니거나 아직 확인되지 않은 상태에서 라이트 모드라면 즉시 다크 모드로 전환
-    if (!isAdmin && theme === 'light') {
-      // console.log('[App] Enforcing Dark Mode (Restricted Access)');
-      toggleTheme();
-    }
-  }, [isAdmin, theme, toggleTheme]);
 
   // [History] 읽지 않은 알림 로드
   const loadUnreadNotifications = async () => {
