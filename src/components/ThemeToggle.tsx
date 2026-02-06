@@ -11,7 +11,8 @@ import '../styles/components/ThemeToggle.css';
 export const ThemeToggle: React.FC = () => {
     const { theme, toggleTheme } = useTheme();
 
-    const handleToggle = () => {
+    const handleToggle = (e: React.MouseEvent) => {
+        e.stopPropagation();
         toggleTheme();
         logUserInteraction('Theme', 'Toggle', theme === 'dark' ? 'light' : 'dark');
     };

@@ -324,7 +324,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                       data-analytics-title="댄스빌보드 로고"
                       data-analytics-section="header"
                     >
-                      <img src="/logo.png" alt="Dance Billboard Logo" className="header-logo" referrerPolicy="no-referrer" />
+                      {/* <img src="/logo.png" alt="Dance Billboard Logo" className="header-logo" referrerPolicy="no-referrer" /> */}
                       <div className="header-logo-text-wrapper">
                         <div className="header-logo-title-row">
                           <h1 className="header-logo-title">
