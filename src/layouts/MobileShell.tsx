@@ -13,7 +13,6 @@ import GlobalLoadingOverlay from '../components/GlobalLoadingOverlay';
 import GlobalNoticePopup from '../components/GlobalNoticePopup';
 import { useGlobalPlayer } from '../contexts/GlobalPlayerContext';
 import { PlaylistModal } from '../pages/learning/components/PlaylistModal';
-import LoginModal from '../components/LoginModal';
 import NotificationSettingsModal from '../components/NotificationSettingsModal';
 import { ThemeToggle } from '../components/ThemeToggle';
 import '../styles/components/MobileShell.css';
@@ -117,14 +116,29 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
     // Check if user is not logged in
     if (user) return;
 
+    // [Standard Fix] Logout guard: Don't show login prompt immediately after logging out
+    const isPWA = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
+    const storagePrefix = isPWA ? 'pwa-' : '';
+    const isLoggingOut = localStorage.getItem(`${storagePrefix}isLoggingOut`) === 'true';
+
+    if (isLoggingOut) {
+      // Consume the flag and mark as shown to prevent popup for this session
+      localStorage.removeItem(`${storagePrefix}isLoggingOut`);
+      sessionStorage.setItem('hasShownLoginPrompt', 'true');
+      return;
+    }
+
     // Check if we've already shown the modal in this session
     const hasShownLoginPrompt = sessionStorage.getItem('hasShownLoginPrompt');
     if (hasShownLoginPrompt) return;
 
+    // [Fix] Already open check to prevent flicker on redundant calls
+    if (loginModal.isOpen) return;
+
     // Show login modal immediately
     loginModal.open({ message: '댄스빌보드 로그인' });
     sessionStorage.setItem('hasShownLoginPrompt', 'true');
-  }, [user, isEventsPage, loginModal, isAuthCheckComplete]);
+  }, [user, isEventsPage, loginModal.isOpen, loginModal.open, isAuthCheckComplete]);
 
   // 🔄 Global Scroll Reset on Route Change
   useEffect(() => {
@@ -514,14 +528,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
         />
       )}
 
-      {/* Login Modal */}
-      {loginModal.isOpen && (
-        <LoginModal
-          isOpen={loginModal.isOpen}
-          onClose={loginModal.close}
-          message={loginModal.props?.message} // Pass custom message
-        />
-      )}
+      {/* Login Modal removed here - handled by global ModalRegistry */}
 
       <GlobalLoadingOverlay
         isLoading={isAuthProcessing}
