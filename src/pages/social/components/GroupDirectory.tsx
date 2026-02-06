@@ -146,9 +146,13 @@ const GroupDirectory: React.FC<GroupDirectoryProps> = ({
                                     <div className="group-type-tag">
                                         {typeLabels[group.type] || group.type}
                                     </div>
-                                    {group.recruit_content && (
-                                        <div className="group-recruit-badge">NEW</div>
-                                    )}
+                                    {group.recruit_content && (() => {
+                                        const updated = new Date(group.updated_at || group.created_at);
+                                        const diffHours = (new Date().getTime() - updated.getTime()) / (1000 * 60 * 60);
+                                        return diffHours < 72;
+                                    })() && (
+                                            <div className="group-recruit-badge">NEW</div>
+                                        )}
                                 </div>
 
                                 <div className="group-wide-info">

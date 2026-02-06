@@ -118,7 +118,7 @@ export const EventCard = memo(({
       const now = new Date();
       const diffMs = now.getTime() - created.getTime();
       const diffHours = diffMs / (1000 * 60 * 60);
-      if (diffHours < 24) {
+      if (diffHours < 72) {
         return 'NEW';
       }
     }

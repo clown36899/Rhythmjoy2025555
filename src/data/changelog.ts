@@ -8,6 +8,15 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '3.8.2',
+        date: '2026-02-06',
+        changes: [
+            '[🔧 PWA] 서비스 워커 갱신 및 캐시 초기화 (Z-Index 변경사항 반영)',
+            '[🎨 UI] 전역 모달 Z-Index 표준화 체계 적용 (4단계 계층)',
+            '[🎨 UI] ShopRegisterModal 등 주요 모달 레이어 정합성 수정'
+        ]
+    },
+    {
         version: '3.8.1',
         date: '2026-02-05',
         changes: [
