@@ -15,6 +15,7 @@ import { useGlobalPlayer } from '../contexts/GlobalPlayerContext';
 import { PlaylistModal } from '../pages/learning/components/PlaylistModal';
 import NotificationSettingsModal from '../components/NotificationSettingsModal';
 import { ThemeToggle } from '../components/ThemeToggle';
+import { useLoading } from '../contexts/LoadingContext';
 import '../styles/components/MobileShell.css';
 
 interface MobileShellProps {
@@ -40,6 +41,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const notificationSettingsModal = useModal('notificationSettings');
+  const { isGlobalLoading, globalLoadingMessage } = useLoading();
   const [calendarView, setCalendarView] = useState({ year: new Date().getFullYear(), month: new Date().getMonth() });
   // unused state removed
   const [totalUserCount, setTotalUserCount] = useState<number | null>(null);
@@ -531,9 +533,9 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
       {/* Login Modal removed here - handled by global ModalRegistry */}
 
       <GlobalLoadingOverlay
-        isLoading={isAuthProcessing}
-        message={isLoggingOut ? "로그아웃 중..." : "로그인 중..."}
-        onCancel={cancelAuth}
+        isLoading={isAuthProcessing || isGlobalLoading}
+        message={isAuthProcessing ? (isLoggingOut ? "로그아웃 중..." : "로그인 중...") : globalLoadingMessage}
+        onCancel={isAuthProcessing ? cancelAuth : undefined}
       />
       <GlobalNoticePopup />
     </div >

@@ -4,7 +4,8 @@ import { useAuth } from "../../../contexts/AuthContext";
 import { supabase } from "../../../lib/supabase";
 
 // Components
-import GlobalLoadingOverlay from "../../../components/GlobalLoadingOverlay";
+import LocalLoading from "../../../components/LocalLoading";
+// import GlobalLoadingOverlay from "../../../components/GlobalLoadingOverlay"; // Remove unused
 
 // Hooks
 import { useEventsQuery } from "../../../hooks/queries/useEventsQuery";
@@ -244,7 +245,7 @@ const EventList: React.FC<EventListProps> = ({
 
 
   if (loading && events.length === 0) {
-    return <GlobalLoadingOverlay isLoading={true} />;
+    return <LocalLoading message="이벤트를 불러오는 중..." />;
   }
 
   return (

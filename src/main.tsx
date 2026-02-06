@@ -23,6 +23,7 @@ import { ThemeProvider } from './contexts/ThemeContext';
 import { AuthProvider } from './contexts/AuthContext';
 import { BoardDataProvider } from './contexts/BoardDataContext';
 import { ModalProvider } from './contexts/ModalContext';
+import { LoadingProvider } from './contexts/LoadingContext';
 import { InstallPromptProvider } from './contexts/InstallPromptContext';
 import { GlobalPlayerProvider } from './contexts/GlobalPlayerContext';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -128,10 +129,12 @@ const router = createBrowserRouter([
           <PageActionProvider>
             <BoardDataProvider>
               <ModalProvider>
-                <GlobalErrorBoundary>
-                  <App />
-                  <ModalRegistry />
-                </GlobalErrorBoundary>
+                <LoadingProvider>
+                  <GlobalErrorBoundary>
+                    <App />
+                    <ModalRegistry />
+                  </GlobalErrorBoundary>
+                </LoadingProvider>
               </ModalProvider>
             </BoardDataProvider>
           </PageActionProvider>

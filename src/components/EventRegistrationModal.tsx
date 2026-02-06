@@ -17,7 +17,7 @@ import { EditablePreviewCard } from "./EditablePreviewCard";
 import EditableEventDetail, { type EditableEventDetailRef } from './EditableEventDetail';
 import type { Event as AppEvent } from "../lib/supabase";
 import { useModalHistory } from "../hooks/useModalHistory";
-import GlobalLoadingOverlay from "./GlobalLoadingOverlay";
+import { useLoading } from "../contexts/LoadingContext";
 import { retryOperation } from "../utils/asyncUtils";
 
 // Extended Event type for preview
@@ -64,6 +64,7 @@ export default memo(function EventRegistrationModal({
   isDeleting = false,
 }: EventRegistrationModalProps) {
   const { isAdmin, user } = useAuth();
+  const { showLoading, hideLoading } = useLoading();
 
   // Preview Mode State
   const [previewMode, setPreviewMode] = useState<'detail' | 'card' | 'billboard'>('detail');
@@ -110,7 +111,21 @@ export default memo(function EventRegistrationModal({
   // Loading State
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loadingMessage, setLoadingMessage] = useState(isDeleting ? "삭제 중입니다..." : "저장 중...");
-  const [uploadProgress, setUploadProgress] = useState<number | undefined>(undefined);
+  // const [uploadProgress, setUploadProgress] = useState<number | undefined>(undefined); // Unused
+
+  // 전역 로딩 상태 연동
+  useEffect(() => {
+    if (isSubmitting || isDeleting) {
+      showLoading('event-register-save', isDeleting ? "삭제 중입니다..." : loadingMessage);
+    } else {
+      hideLoading('event-register-save');
+    }
+  }, [isSubmitting, isDeleting, loadingMessage, showLoading, hideLoading]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => hideLoading('event-register-save');
+  }, [hideLoading]);
 
   // Genre Suggestions
   const [allGenres, setAllGenres] = useState<string[]>([]);
@@ -568,7 +583,7 @@ export default memo(function EventRegistrationModal({
           // 원본 이미지를 다운로드하여 fileToUpload로 설정 -> 아래 로직에서 4가지 버전 생성 및 업로드 수행
           if (fileToUpload) {
             setLoadingMessage("이미지 변환 중...");
-            setUploadProgress(10); // Start processing
+            // setUploadProgress removed
 
             const timestamp = Date.now();
             const randomString = Math.random().toString(36).substring(2, 7);
@@ -579,7 +594,7 @@ export default memo(function EventRegistrationModal({
             // 먼저 모든 이미지 리사이즈 (WebP 변환 포함)
             try {
               const resizedImages = await createResizedImages(fileToUpload);
-              setUploadProgress(30); // Resize done
+              // setUploadProgress removed
               setLoadingMessage("이미지 업로드 중...");
 
               // 이미지 업로드 함수 (재시도 용)
@@ -592,7 +607,6 @@ export default memo(function EventRegistrationModal({
                 return supabase.storage.from("images").getPublicUrl(path).data.publicUrl;
               };
 
-              let completedUploads = 0;
               const totalUploads = 4;
 
               const trackProgress = async (promise: Promise<string>) => {
@@ -600,7 +614,7 @@ export default memo(function EventRegistrationModal({
                 completedUploads++;
                 // 30% to 100% range for uploads (70% span)
                 // Each upload is 17.5%
-                setUploadProgress(30 + Math.floor((completedUploads / totalUploads) * 70));
+                // setUploadProgress removed
                 return result;
               };
 
@@ -622,7 +636,7 @@ export default memo(function EventRegistrationModal({
               imageUrl = imageFullUrl;
               imageStoragePath = storagePath;
 
-              setUploadProgress(100);
+              // setUploadProgress removed
 
             } catch (resizeError) {
               console.error("Image processing failed:", resizeError);
@@ -855,7 +869,7 @@ export default memo(function EventRegistrationModal({
       alert(errorMessage);
     } finally {
       setIsSubmitting(false);
-      setUploadProgress(undefined);
+      // setUploadProgress removed
     }
   };
 
@@ -1012,7 +1026,7 @@ export default memo(function EventRegistrationModal({
           onExtractThumbnail={handleExtractThumbnail}
           onDelete={onDelete && editEventData ? () => onDelete(editEventData.id) : undefined}
           isDeleting={isDeleting}
-          progress={uploadProgress}
+          // progress={uploadProgress}
           onVenueSelectClick={() => {
             console.log('🎯 EventRegistrationModal.onVenueSelectClick called');
             console.log('   - showVenueSelectModal before:', showVenueSelectModal);
@@ -1125,15 +1139,6 @@ export default memo(function EventRegistrationModal({
         onImageUpdate={handleImageUpdate}
         originalImageUrl={tempImageSrc}
       />
-
-      {/* Blocking Loading Overlay */}
-      <GlobalLoadingOverlay
-        isLoading={isSubmitting || isDeleting}
-        message={loadingMessage}
-        progress={uploadProgress}
-      />
-
-      {/* Venue Select Modal */}
       <VenueSelectModal
         isOpen={showVenueSelectModal}
         onClose={() => setShowVenueSelectModal(false)}

@@ -1,6 +1,5 @@
-
 import type { FC } from 'react';
-
+import { createPortal } from 'react-dom';
 import '../styles/components/GlobalLoadingOverlay.css';
 
 interface GlobalLoadingOverlayProps {
@@ -13,7 +12,7 @@ interface GlobalLoadingOverlayProps {
 const GlobalLoadingOverlay: FC<GlobalLoadingOverlayProps> = ({ isLoading, message = '로딩 중...', onCancel, progress }) => {
     if (!isLoading) return null;
 
-    return (
+    return createPortal(
         <div className="global-loading-overlay">
             <i className="ri-loader-4-line loading-spinner"></i>
             <p className="global-loading-text">{message}</p>
@@ -40,7 +39,8 @@ const GlobalLoadingOverlay: FC<GlobalLoadingOverlayProps> = ({ isLoading, messag
                     취소하기
                 </button>
             )}
-        </div>
+        </div>,
+        document.body
     );
 };
 

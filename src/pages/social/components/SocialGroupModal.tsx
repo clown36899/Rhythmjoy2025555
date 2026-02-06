@@ -4,7 +4,7 @@ import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { createResizedImages, isImageFile } from '../../../utils/imageResize';
 import ImageCropModal from '../../../components/ImageCropModal';
-import GlobalLoadingOverlay from '../../../components/GlobalLoadingOverlay';
+import { useLoading } from '../../../contexts/LoadingContext';
 import VenueSelectModal from '../../v2/components/VenueSelectModal';
 import './SocialGroupModal.css';
 
@@ -32,13 +32,28 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
     const [password, setPassword] = useState(''); // 관리 비밀번호
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [loadingMessage, setLoadingMessage] = useState('');
-    const [uploadProgress, setUploadProgress] = useState(0);
     const [showVenueModal, setShowVenueModal] = useState(false);
 
     // Image Crop State
     const [isCropModalOpen, setIsCropModalOpen] = useState(false);
     const [tempImageSrc, setTempImageSrc] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const { showLoading, hideLoading } = useLoading();
+
+    // 전역 로딩 상태 연동
+    useEffect(() => {
+        if (isSubmitting) {
+            showLoading('social-group-save', loadingMessage);
+        } else {
+            hideLoading('social-group-save');
+        }
+    }, [isSubmitting, loadingMessage, showLoading, hideLoading]);
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => hideLoading('social-group-save');
+    }, [hideLoading]);
 
     useEffect(() => {
         if (isOpen) {
@@ -555,12 +570,6 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
                     </div>
                 </form>
             </div>
-
-            <GlobalLoadingOverlay
-                isLoading={isSubmitting}
-                message={loadingMessage}
-                progress={uploadProgress}
-            />
         </div>,
         document.body
     );
@@ -572,7 +581,7 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
                 isOpen={showVenueModal}
                 onClose={() => setShowVenueModal(false)}
                 onSelect={handleVenueSelect}
-                onManualInput={(name, link) => {
+                onManualInput={(name, _link) => {
                     setAddress(name); // Use name for address in manual input
                     setShowVenueModal(false);
                 }}

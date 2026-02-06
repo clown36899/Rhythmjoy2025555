@@ -4,7 +4,7 @@ import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { createResizedImages, isImageFile } from '../../../utils/imageResize';
 import ImageCropModal from '../../../components/ImageCropModal';
-import GlobalLoadingOverlay from '../../../components/GlobalLoadingOverlay';
+import { useLoading } from '../../../contexts/LoadingContext';
 import VenueSelectModal from '../../v2/components/VenueSelectModal';
 import type { SocialSchedule } from '../types';
 import './SocialScheduleModal.css';
@@ -38,7 +38,6 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
 
     // Schedule State
     const [title, setTitle] = useState(editSchedule?.title || copyFrom?.title || '');
-    const [uploadProgress, setUploadProgress] = useState(0);
     const [scheduleType, setScheduleType] = useState<'once' | 'regular'>(
         (editSchedule?.date || copyFrom?.date) ? 'once' : 'regular'
     );
@@ -98,6 +97,22 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
     const [tempImageSrc, setTempImageSrc] = useState<string | null>(null);
     const [showVenueModal, setShowVenueModal] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const { showLoading, hideLoading } = useLoading();
+
+    // 전역 로딩 상태 연동
+    useEffect(() => {
+        if (isSubmitting) {
+            showLoading('social-schedule-save', loadingMessage);
+        } else {
+            hideLoading('social-schedule-save');
+        }
+    }, [isSubmitting, loadingMessage, showLoading, hideLoading]);
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => hideLoading('social-schedule-save');
+    }, [hideLoading]);
 
     // Sync state if props change while open
     useEffect(() => {
@@ -180,9 +195,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
 
             if (recruitImageFile) {
                 setLoadingMessage('이미지 최적화 중...');
-                setUploadProgress(10);
                 const resized = await createResizedImages(recruitImageFile);
-                setUploadProgress(20);
 
                 setLoadingMessage('이미지 업로드 중...');
                 const timestamp = Date.now();
@@ -190,10 +203,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                 const path = `social-groups/${groupId}/recruit/${timestamp}_${rand}.webp`;
 
                 const progressInterval = setInterval(() => {
-                    setUploadProgress(prev => {
-                        if (prev >= 95) return prev;
-                        return prev + 5;
-                    });
+                    // setUploadProgress removed
                 }, 200);
 
                 try {
@@ -203,10 +213,9 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                         upsert: true
                     });
                     if (error) throw error;
-                    imageUrl = supabase.storage.from('images').getPublicUrl(path).data.publicUrl;
+                    // setUploadProgress removed
                 } finally {
                     clearInterval(progressInterval);
-                    setUploadProgress(100);
                 }
             }
 
@@ -332,9 +341,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
 
             if (imageFile) {
                 setLoadingMessage('이미지 최적화 중...');
-                setUploadProgress(10);
                 const resized = await createResizedImages(imageFile);
-                setUploadProgress(20);
 
                 setLoadingMessage('이미지 업로드 중...');
                 const timestamp = Date.now();
@@ -358,10 +365,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                 }
 
                 const progressInterval = setInterval(() => {
-                    setUploadProgress(prev => {
-                        if (prev >= 95) return prev;
-                        return prev + 5;
-                    });
+                    // setUploadProgress removed
                 }, 200);
 
                 try {
@@ -391,7 +395,6 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                     };
                 } finally {
                     clearInterval(progressInterval);
-                    setUploadProgress(100);
                 }
             }
 
@@ -814,12 +817,6 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                     setVenueId(null);
                     setShowVenueModal(false);
                 }}
-            />
-
-            <GlobalLoadingOverlay
-                isLoading={isSubmitting}
-                message={loadingMessage}
-                progress={uploadProgress}
             />
         </div>,
         document.body

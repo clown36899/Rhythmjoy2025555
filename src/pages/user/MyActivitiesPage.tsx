@@ -7,7 +7,8 @@ import StandardPostList from '../board/components/StandardPostList';
 import type { Event as SupabaseEvent } from '../../lib/supabase';
 import type { StandardBoardPost } from '../../types/board';
 import { useDefaultThumbnail } from '../../hooks/useDefaultThumbnail';
-import GlobalLoadingOverlay from '../../components/GlobalLoadingOverlay';
+import LocalLoading from '../../components/LocalLoading';
+// import GlobalLoadingOverlay from '../../components/GlobalLoadingOverlay'; // Unused
 import EventDetailModal from '../v2/components/EventDetailModal';
 import EventRegistrationModal from '../../components/EventRegistrationModal';
 
@@ -226,9 +227,7 @@ export default function MyActivitiesPage() {
                 </div>
 
                 {loading ? (
-                    <div className="activity-loading-container">
-                        <GlobalLoadingOverlay isLoading={true} message="불러오는 중..." />
-                    </div>
+                    <LocalLoading message="내 활동 내역을 불러오는 중..." />
                 ) : (
                     <>
                         {/* STATS TAB CONTENT */}

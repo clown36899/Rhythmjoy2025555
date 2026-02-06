@@ -15,7 +15,7 @@ import { createResizedImages } from '../../../utils/imageResize';
 import DatePicker, { registerLocale } from "react-datepicker";
 import { ko } from "date-fns/locale/ko";
 import "react-datepicker/dist/react-datepicker.css";
-import GlobalLoadingOverlay from '../../../components/GlobalLoadingOverlay';
+import { useLoading } from '../../../contexts/LoadingContext';
 import { retryOperation } from '../../../utils/asyncUtils';
 import { useViewTracking } from '../../../hooks/useViewTracking';
 
@@ -310,7 +310,6 @@ export default function EventDetailModal({
   onOpenVenueDetail,
   allGenres = { class: [], event: [] },
   isDeleting = false,
-  deleteProgress,
 }: EventDetailModalProps) {
   // Safe cast or normalization
   const structuredGenres = Array.isArray(allGenres)
@@ -318,6 +317,8 @@ export default function EventDetailModal({
     : allGenres;
 
   const { user, signInWithKakao, isAdmin: isActualAdmin } = useAuth();
+  const { showLoading, hideLoading } = useLoading();
+
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
   // View tracking Hook
@@ -549,6 +550,20 @@ export default function EventDetailModal({
   const [activeEditField, setActiveEditField] = useState<string | null>(null);
   const [showVenueSelect, setShowVenueSelect] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // 전역 로딩 상태 연동
+  useEffect(() => {
+    if (isDeleting || isSaving) {
+      showLoading('event-detail-save', isDeleting ? "삭제 중입니다..." : "저장 중입니다...");
+    } else {
+      hideLoading('event-detail-save');
+    }
+  }, [isDeleting, isSaving, showLoading, hideLoading]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => hideLoading('event-detail-save');
+  }, [hideLoading]);
   const [authorNickname, setAuthorNickname] = useState<string | null>(null);
 
   // Extract authorNickname from board_users if already present
@@ -1903,11 +1918,6 @@ export default function EventDetailModal({
               </div>
             </div>
           </div>
-          <GlobalLoadingOverlay
-            isLoading={isDeleting || isSaving}
-            message={isDeleting ? "삭제 중입니다..." : "저장 중입니다..."}
-            progress={isDeleting ? deleteProgress : undefined}
-          />
         </div>,
         document.body
       )}
