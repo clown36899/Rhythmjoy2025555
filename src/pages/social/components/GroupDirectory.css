@@ -16,11 +16,11 @@
 
 .count-badge {
     font-size: 0.8rem;
-    color: #6b7280;
-    background: var(--bg-card);
+    color: var(--text-muted);
+    background: var(--bg-card-highlight);
     padding: 4px 10px;
     border-radius: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-glass);
 }
 
 .group-list {
@@ -32,27 +32,25 @@
 
 .group-wide-card {
     display: flex;
-    background: #1a1a1a;
-    border-radius: 24px;
+    background: var(--bg-card);
+    border-radius: 20px;
     overflow: hidden;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-glass);
     cursor: pointer;
     transition: all 0.2s;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--shadow-sm);
 }
 
 .group-wide-card:hover {
-    transform: translateY(-4px);
-    background: var(--bg-surface-1);
-    border-color: rgba(251, 191, 36, 0.2);
-    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
+    background: var(--bg-card-highlight);
+    border-color: var(--border-primary);
 }
 
 .group-wide-image {
     position: relative;
     width: 120px;
     min-width: 120px;
-    height: 140px;
+
     background-color: var(--bg-surface-3);
 }
 
@@ -68,7 +66,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    color: #4b5563;
+    color: var(--text-muted);
     font-size: 2rem;
 }
 
@@ -102,14 +100,14 @@
 .group-wide-name {
     font-size: 1.1rem;
     font-weight: 800;
-    color: white;
+    color: var(--text-primary);
     margin: 0;
 }
 
 .fav-btn {
     background: none;
     border: none;
-    color: #4b5563;
+    color: var(--text-muted);
     font-size: 1.4rem;
     cursor: pointer;
     padding: 0;
@@ -127,28 +125,31 @@
     margin: 0;
     line-height: 1.5;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
+    -webkit-line-clamp: 4;
+    /* 노출 라인 확대 */
+    line-clamp: 4;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    height: 2.5em;
+    min-height: 3.8em;
 }
 
 .group-wide-footer {
-    margin-top: auto;
+    margin-top: 12px;
     display: flex;
-    gap: 8px;
-    flex-wrap: nowrap;
+    gap: 6px;
+    flex-wrap: wrap;
     flex-direction: row;
-    /* 버튼이 많을 경우 다음 줄로 */
+    /* 다시 좌우 배치로 */
+    align-items: center;
 }
 
 /* 모든 푸터 버튼 공통: 글자가 화면에 맞춰 유어하게 줄어듦 */
 .group-wide-footer button {
     white-space: nowrap;
-    font-size: clamp(1px, 2.2vw, 0.8rem);
-    padding: 6px clamp(6px, 1.5vw, 12px);
-    border-radius: 8px;
+    font-size: 13px;
+    /* 크기 조정 */
+    padding: 6px 12px;
+    border-radius: 10px;
     font-weight: 700;
     cursor: pointer;
     display: flex;
@@ -166,24 +167,25 @@
 }
 
 .admin-add-item-btn {
-    background: #334155;
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--bg-input);
+    color: var(--text-primary);
+    border: 1px solid var(--border-secondary);
 }
 
 .admin-add-item-btn:hover {
-    background: #475569;
+    background: var(--bg-card-highlight);
+    border-color: var(--border-primary);
 }
 
 .admin-edit-btn {
-    background: #2d2d2d;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: var(--bg-surface-glass);
+    border: 1px solid var(--border-subtle);
     color: var(--text-tertiary);
 }
 
 .admin-edit-btn:hover {
-    background: #3d3d3d;
-    color: white;
+    background: var(--bg-card-highlight);
+    color: var(--text-primary);
 }
 
 @media (max-width: 480px) {
@@ -227,8 +229,8 @@
 .group-tab {
     padding: 10px 20px;
     border-radius: 100px;
-    background: #1a1a1a;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: var(--bg-surface-glass);
+    border: 1px solid var(--border-subtle);
     color: var(--text-tertiary);
     font-size: clamp(0.1rem, 3.2vw, 1rem);
     font-weight: 700;
@@ -240,9 +242,9 @@
 }
 
 .group-tab:hover {
-    background: #2d2d2d;
-    color: white;
-    border-color: rgba(255, 255, 255, 0.1);
+    background: var(--bg-card-highlight);
+    color: var(--text-primary);
+    border-color: var(--border-glass);
 }
 
 .group-tab.active {

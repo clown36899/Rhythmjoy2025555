@@ -98,6 +98,10 @@ const EventList: React.FC<EventListProps> = ({
     const seventyTwoHoursAgo = new Date(now.getTime() - 72 * 60 * 60 * 1000);
 
     return events.filter(event => {
+      // 소셜 스케줄(통합 이벤트)은 신규 등록 섹션에서 제외
+      if ((event as any).is_social_integrated) return false;
+      if (typeof event.id === 'string' && event.id.startsWith('social-')) return false;
+
       if (!event.created_at) return false;
       const created = new Date(event.created_at);
       return created > seventyTwoHoursAgo;

@@ -187,6 +187,11 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
     const handleRecruitSubmit = async () => {
         if (!user || !groupId) return;
 
+        if (!recruitImagePreview && !recruitImageFile) {
+            alert('모집 이미지를 등록해주세요.');
+            return;
+        }
+
         setIsSubmitting(true);
         setLoadingMessage('모집 공고 저장 중...');
 
@@ -323,6 +328,11 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
 
         if (!linkUrl.trim()) {
             alert('관련 링크 URL을 입력해주세요.');
+            return;
+        }
+
+        if (!imagePreview && !imageFile) {
+            alert('일정 포스터 이미지를 등록해주세요.');
             return;
         }
 
@@ -508,18 +518,9 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                     */}
 
                         <div className="form-section">
-                            <div className="info-box-helper" style={{
-                                background: 'rgba(59, 130, 246, 0.1)',
-                                border: '1px solid rgba(59, 130, 246, 0.3)',
-                                padding: '12px',
-                                borderRadius: '8px',
-                                marginBottom: '10px',
-                                fontSize: '0.85rem',
-                                color: 'var(--color-blue-300)',
-                                lineHeight: '1.4'
-                            }}>
-                                <i className="ri-information-line" style={{ marginRight: '6px' }}></i>
-                                등록된 일정은 <strong>오늘, 이번 주 일정</strong>에 노출됩니다.
+                            <div className="info-box-helper">
+                                <i className="ri-information-line"></i>
+                                <span>등록된 일정은 <strong>오늘, 이번 주 일정</strong>에 노출됩니다.</span>
                             </div>
                         </div>
 
@@ -530,7 +531,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                                     type="text"
                                     value={title}
                                     onChange={(e) => setTitle(e.target.value)}
-                                    placeholder="예: 금요 정기 모임"
+                                    placeholder="예: 금(?) DJ 누구"
                                     required
                                 />
                             </div>
@@ -606,7 +607,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                         </div>
 
                         <div className="form-section">
-                            <label>일정 포스터/이미지</label>
+                            <label>일정 포스터/이미지 *</label>
                             <div className="schedule-image-uploader" onClick={() => fileInputRef.current?.click()}>
                                 {imagePreview ? (
                                     <img src={imagePreview} alt="Schedule Preview" />
@@ -630,7 +631,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                         </div>
 
                         <div className="form-section multi-row link-row">
-                            <div className="form-item" style={{ flex: '0 0 140px' }}>
+                            <div className="form-item is-narrow">
                                 <label>관련 링크 이름</label>
                                 <input
                                     type="text"
@@ -639,7 +640,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                                     placeholder="예: 신청폼"
                                 />
                             </div>
-                            <div className="form-item" style={{ flex: 1 }}>
+                            <div className="form-item is-grow">
                                 <label>관련 링크 URL *</label>
                                 <input
                                     type="url"
@@ -677,7 +678,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                             </div>
                         </div>
 
-                        <div className="form-actions">
+                        <div className="ssm-form-actions">
                             {editSchedule && (
                                 <button type="button" className="ssm-delete-btn" onClick={handleDelete} disabled={isSubmitting}>
                                     <i className="ri-delete-bin-line"></i> 삭제
@@ -691,20 +692,11 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                     </form>
                 ) : (
                     /* RECRUIT FORM */
-                    <div className="social-schedule-modal-form">
+                    <form className="social-schedule-modal-form" onSubmit={handleRecruitSubmit}>
                         <div className="form-section">
-                            <div className="info-box-helper" style={{
-                                background: 'rgba(59, 130, 246, 0.1)',
-                                border: '1px solid rgba(59, 130, 246, 0.3)',
-                                padding: '12px',
-                                borderRadius: '8px',
-                                marginBottom: '20px',
-                                fontSize: '0.85rem',
-                                color: 'var(--color-blue-300)',
-                                lineHeight: '1.4'
-                            }}>
-                                <i className="ri-information-line" style={{ marginRight: '6px' }}></i>
-                                신규 모집 내용을 등록하거나 수정하시면, <strong>최신 순서로 단체 리스트 최상단</strong>에 노출됩니다.
+                            <div className="info-box-helper">
+                                <i className="ri-information-line"></i>
+                                <span>신규 모집 내용을 등록하거나 수정하시면, <strong>최신 순서로 단체 리스트 최상단</strong>에 노출됩니다.</span>
                             </div>
 
                             <label>모집 내용</label>
@@ -717,7 +709,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                         </div>
 
                         <div className="form-section">
-                            <label>모집 포스터/이미지</label>
+                            <label>모집 포스터/이미지 *</label>
                             <div className="schedule-image-uploader" onClick={() => fileInputRef.current?.click()}>
                                 {recruitImagePreview ? (
                                     <img src={recruitImagePreview} alt="Recruit Preview" />
@@ -752,18 +744,17 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                             />
                         </div>
 
-                        <div className="form-actions">
+                        <div className="ssm-form-actions">
                             <button type="button" className="ssm-cancel-btn" onClick={onClose} disabled={isSubmitting}>취소</button>
                             <button
-                                type="button"
+                                type="submit"
                                 className="ssm-submit-btn"
                                 disabled={isSubmitting}
-                                onClick={handleRecruitSubmit}
                             >
                                 모집 공고 저장
                             </button>
                         </div>
-                    </div>
+                    </form>
                 )}
                 {/* File Input for Both Tabs */}
                 <input
@@ -771,7 +762,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                     ref={fileInputRef}
                     onChange={handleImageSelect}
                     accept="image/*"
-                    style={{ display: 'none' }}
+                    className="ssm-hidden-input"
                 />
             </div>
 

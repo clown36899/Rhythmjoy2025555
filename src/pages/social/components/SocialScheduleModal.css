@@ -5,7 +5,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.85);
+    background-color: var(--bg-overlay);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -15,14 +15,14 @@
 }
 
 .social-schedule-modal-container {
-    background-color: #1a1a1a;
+    background-color: var(--bg-modal);
     width: 100%;
     max-width: 550px;
     max-height: 90vh;
     border-radius: 24px;
     overflow-y: auto;
-    box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.6);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: var(--shadow-elevated);
+    border: 1px solid var(--border-glass);
     animation: modal-slide-up 0.3s ease-out;
 }
 
@@ -43,17 +43,17 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid var(--border-subtle);
     position: sticky;
     top: 0;
-    background-color: #1a1a1a;
+    background-color: var(--bg-modal);
     z-index: 10;
 }
 
 .social-schedule-modal-header h2 {
     font-size: 1.3rem;
     font-weight: 700;
-    color: white;
+    color: var(--text-primary);
     margin: 0;
 }
 
@@ -81,10 +81,10 @@
 .social-schedule-modal-form textarea {
     width: 100%;
     padding: 12px 14px;
-    background-color: var(--bg-surface-1);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-primary);
     border-radius: 12px;
-    color: white;
+    color: var(--text-primary);
     font-size: 0.95rem;
     transition: all 0.2s;
 }
@@ -93,7 +93,7 @@
 .social-schedule-modal-form textarea:focus {
     outline: none;
     border-color: var(--color-amber-400);
-    background-color: #2d2d2d;
+    background-color: var(--bg-surface-2);
     box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.1);
 }
 
@@ -107,7 +107,14 @@
 .form-item {
     flex: 1;
     min-width: 130px;
-    /* 너무 좁아지지 않도록 최소 너비 설정 */
+}
+
+.form-item.is-narrow {
+    flex: 0 0 140px;
+}
+
+.form-item.is-grow {
+    flex: 1;
 }
 
 /* Schedule Type Selector */
@@ -118,7 +125,7 @@
     border-radius: 12px;
     gap: 4px;
     margin-top: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-subtle);
 }
 
 .schedule-type-selector button {
@@ -151,7 +158,7 @@
     aspect-ratio: 1;
     border-radius: 50%;
     background: var(--bg-surface-1);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-primary);
     color: var(--text-tertiary);
     font-size: 0.8rem;
     font-weight: 600;
@@ -186,7 +193,7 @@
     background-color: var(--color-blue-500);
     border: none;
     border-radius: 10px;
-    color: white;
+    color: var(--text-inverse);
     font-size: 0.85rem;
     font-weight: 700;
     cursor: pointer;
@@ -212,7 +219,7 @@
     width: 100%;
     aspect-ratio: 16 / 9;
     background-color: var(--bg-surface-1);
-    border: 2px dashed rgba(255, 255, 255, 0.1);
+    border: 2px dashed var(--border-primary);
     border-radius: 16px;
     overflow: hidden;
     cursor: pointer;
@@ -224,7 +231,7 @@
 
 .schedule-image-uploader:hover {
     border-color: var(--color-amber-400);
-    background-color: #2d2d2d;
+    background-color: var(--bg-surface-2);
 }
 
 .schedule-image-uploader img {
@@ -252,7 +259,7 @@
     padding: 12px clamp(4px, 2vw, 16px);
     background-color: transparent;
     color: var(--color-red-500);
-    border: 1px solid rgba(239, 68, 68, 0.5);
+    border: 1px solid var(--color-red-500);
     border-radius: 12px;
     font-weight: 600;
     cursor: pointer;
@@ -287,8 +294,8 @@
 }
 
 .ssm-close-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: white;
+    background: var(--bg-card-highlight);
+    color: var(--text-primary);
 }
 
 @media (max-width: 480px) {
@@ -330,18 +337,18 @@
 
 /* v2 Display Section */
 .v2-display-section {
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--bg-surface-glass);
     padding: 16px;
     border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-subtle);
     margin-top: 10px;
 }
 
 .v2-display-select {
     width: 100%;
     padding: 12px;
-    background: rgba(0, 0, 0, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--bg-base);
+    border: 1px solid var(--border-primary);
     border-radius: 8px;
     color: var(--text-primary);
     font-size: 1rem;
@@ -353,13 +360,13 @@
 
 .v2-display-select:focus {
     border-color: var(--color-blue-500);
-    background: rgba(0, 0, 0, 0.3);
+    background: var(--bg-surface-1);
 }
 
 .v2-display-description {
     margin-top: 12px;
     font-size: 0.85rem;
-    color: #94a3b8;
+    color: var(--text-tertiary);
     line-height: 1.5;
     padding-left: 4px;
 }
@@ -388,32 +395,27 @@
     color: var(--color-red-500);
 }
 
-.form-actions {
+.ssm-form-actions {
     display: flex;
-    gap: 8px;
-    /* Reduced gap for better fit */
-    margin-top: 10px;
-    flex-wrap: nowrap;
-    /* Force single line */
+    flex-direction: row;
+    /* 좌우 정렬 강제 */
+    gap: 12px;
+    margin-top: 24px;
+    padding: 0;
     width: 100%;
 }
 
 .ssm-cancel-btn {
     flex: 1;
-    min-width: 0;
-    /* Allow infinite shrinking */
-    padding: 12px clamp(4px, 2vw, 16px);
-    border-radius: 12px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    background: var(--bg-surface-3);
-    color: white;
-    font-weight: 600;
+    padding: 14px 20px;
+    border-radius: 14px;
+    border: 1.5px solid var(--border-secondary);
+    background: var(--bg-surface-2);
+    color: var(--text-primary);
+    font-size: 16px;
+    font-weight: 700;
     cursor: pointer;
     transition: all 0.2s;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font-size: clamp(10px, 3.5vw, 15px);
 }
 
 .ssm-cancel-btn:hover {
@@ -422,37 +424,31 @@
 
 .ssm-submit-btn {
     flex: 1;
-    min-width: 0;
-    /* Allow infinite shrinking */
-    padding: 12px clamp(4px, 2vw, 16px);
-    border-radius: 12px;
+    padding: 14px 20px;
+    border-radius: 14px;
     border: none;
     background: var(--color-amber-400);
-    color: #1a1a1a;
-    font-weight: 700;
+    color: #000000;
+    font-size: 16px;
+    font-weight: 800;
     cursor: pointer;
     transition: all 0.2s;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    font-size: clamp(10px, 3.5vw, 15px);
 }
 
 .ssm-submit-btn:hover {
     background: var(--color-amber-500);
-    transform: translateY(-1px);
 }
 
 /* Link Box in Detail Modal */
 .detail-link-box {
     margin-top: 12px;
-    background-color: var(--bg-surface-1);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background-color: var(--bg-input);
+    border: 1px solid var(--border-subtle);
 }
 
 .detail-link-box:hover {
-    background-color: #2d2d2d;
-    border-color: rgba(77, 166, 255, 0.3);
+    background-color: var(--bg-surface-2);
+    border-color: var(--color-blue-400);
 }
 
 .detail-link-box .place-icon.link-icon {
@@ -475,7 +471,7 @@
 .ssm-tabs {
     display: flex;
     padding: 0 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid var(--border-subtle);
     margin-bottom: 20px;
 }
 
@@ -498,5 +494,27 @@
 }
 
 .ssm-tab:hover:not(.active) {
-    color: #e5e7eb;
+    color: var(--text-primary);
+}
+
+.info-box-helper {
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+    font-size: 0.85rem;
+    color: var(--color-blue-500);
+    line-height: 1.4;
+    display: flex;
+    align-items: center;
+}
+
+.info-box-helper i {
+    margin-right: 6px;
+    font-size: 1.1rem;
+}
+
+.ssm-hidden-input {
+    display: none;
 }

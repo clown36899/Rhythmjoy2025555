@@ -21,40 +21,33 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    /* background-color: rgb(23 23 23 / 95%); */
-    /* Higher opacity for fixed header */
-    /* backdrop-filter: blur(12px); */
-    /* -webkit-backdrop-filter: blur(12px); */
+    background-color: var(--bg-modal);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border-radius: 0;
-    border-bottom: 0px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid var(--border-subtle);
 
     padding: 0;
     height: 48px;
-    /* Fixed height */
 
     /* Fixed Positioning Logic */
     position: fixed;
     top: calc(60px + env(safe-area-inset-top));
-    /* Header Height */
     left: 50%;
     transform: translateX(-50%);
     width: 100%;
-    /* max-width: 800px; */
-    /* Match Page Max Width */
 
     z-index: 45;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    box-shadow: var(--shadow-sm);
 }
 
 .view-tab-menu-v3 .tab-btn {
     flex: 1;
     padding: 0;
-    backdrop-filter: blur(20px);
     font-size: 15px;
-    /* Slightly larger for readability */
     font-weight: 500;
     color: var(--text-muted);
-    background: rgb(23 23 23 / 85%);
+    background: transparent;
     border: none;
     cursor: pointer;
     z-index: 2;

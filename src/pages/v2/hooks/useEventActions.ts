@@ -2,6 +2,7 @@
 import { useState, useCallback } from "react";
 import { supabase } from "../../../lib/supabase";
 import type { Event as AppEvent } from "../../../lib/supabase";
+import { useModalActions } from "../../../contexts/ModalContext";
 
 interface UseEventActionsProps {
     adminType: "super" | "sub" | null;
@@ -11,6 +12,7 @@ interface UseEventActionsProps {
 
 export function useEventActions({ adminType, user, signInWithKakao }: UseEventActionsProps) {
     const [selectedEvent, setSelectedEvent] = useState<AppEvent | null>(null);
+    const { openModal } = useModalActions();
 
     const handleDailyModalEventClick = useCallback((event: AppEvent) => {
         // [Optimization] Removed artificial 100ms delay
@@ -42,6 +44,32 @@ export function useEventActions({ adminType, user, signInWithKakao }: UseEventAc
 
         if (!isOwner && !isSuperAdmin && !adminType) {
             alert("본인이 작성한 이벤트만 수정할 수 있습니다.");
+            return;
+        }
+
+        // 3. 소셜 이벤트 여부 확인
+        const isSocial = String(event.id).startsWith('social-') || (event as any).is_social_integrated;
+
+        if (isSocial) {
+            // 소셜 스케줄 수정을 위해 SocialScheduleModal 호출
+            const socialId = typeof event.id === 'string' && event.id.startsWith('social-')
+                ? parseInt(event.id.replace('social-', ''), 10)
+                : event.id;
+
+            openModal('socialSchedule', {
+                editSchedule: {
+                    ...event,
+                    id: socialId // 숫자형 ID로 복원하여 전달 (SocialSchedule 타입 기대치 충족)
+                },
+                groupId: (event as any).group_id || null,
+                onSuccess: () => {
+                    // 성공 시 이벤트 리스트 갱신을 위해 커스텀 이벤트 발생
+                    window.dispatchEvent(new CustomEvent('eventUpdated'));
+                }
+            });
+
+            // 상세 모달 닫기
+            setSelectedEvent(null);
             return;
         }
 

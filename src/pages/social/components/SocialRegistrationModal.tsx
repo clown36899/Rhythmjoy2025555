@@ -29,9 +29,9 @@ const SocialRegistrationModal: React.FC<SocialRegistrationModalProps> = ({
 
                 <div className="srm-body">
                     <p className="srm-desc">
-                        <i className="ri-information-fill" style={{ marginRight: '6px', color: '#60a5fa' }}></i>
+                        <i className="ri-information-fill"></i>
                         소셜일정을 등록하려면 단체(주최자)를 선택해야 합니다.<br />
-                        <span style={{ fontSize: '0.85rem', color: '#9ca3af', display: 'block', marginTop: '6px', paddingLeft: '22px' }}>
+                        <span className="srm-desc-sub">
                             비밀번호로 추가하시려면 하단에 등록단체 리스트에서 일정등록 버튼으로 등록해주세요.
                         </span>
                     </p>
@@ -41,13 +41,12 @@ const SocialRegistrationModal: React.FC<SocialRegistrationModalProps> = ({
                         {userGroups.length > 0 && (
                             <div className="srm-group-section">
                                 <h3 className="srm-section-title">내 단체 선택</h3>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                <div className="srm-group-list">
                                     {userGroups.map(group => (
                                         <div
                                             key={group.id}
-                                            className="group-wide-card"
+                                            className="group-wide-card is-clickable"
                                             onClick={() => onSelectGroup(group)}
-                                            style={{ cursor: 'pointer', border: '1px solid rgba(255,255,255,0.1)' }}
                                         >
                                             <div className="group-wide-image">
                                                 <img
@@ -64,11 +63,11 @@ const SocialRegistrationModal: React.FC<SocialRegistrationModalProps> = ({
                                                 </div>
                                                 <p className="group-wide-desc">{group.description || '설명 없음'}</p>
                                                 <div className="group-wide-footer">
-                                                    <button className="admin-add-item-btn" style={{ width: '100%', justifyContent: 'center' }}>
+                                                    <button className="admin-add-item-btn is-full-width">
                                                         <i className="ri-add-line"></i> 일정 등록하기
                                                     </button>
-                                                    <p style={{ marginTop: '6px', fontSize: '0.75rem', color: '#ef4444', textAlign: 'center', wordBreak: 'keep-all' }}>
-                                                        <i className="ri-alert-line" style={{ marginRight: '2px', verticalAlign: 'text-bottom' }}></i>
+                                                    <p className="srm-alert-text">
+                                                        <i className="ri-alert-line"></i>
                                                         행사는 별도 등록, 소셜일정만 등록해주세요
                                                     </p>
                                                 </div>
