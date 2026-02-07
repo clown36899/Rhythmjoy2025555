@@ -541,11 +541,14 @@ export default memo(function EventRegistrationModal({
       return;
     }
 
-    // New Validation: Image OR Video is required (only for new events or if explicit removal logic exists)
-    // For edit, if they haven't changed the image (imageFile is null) but there was an existing image, it's fine.
+    // Validation: Image is strictly required
     const hasExistingImage = editEventData && (editEventData.image || editEventData.image_thumbnail);
-    if (!imageFile && !videoUrl && !hasExistingImage) {
-      alert("이미지 또는 동영상 중 하나는 필수입니다!\n둘 중 하나라도 입력해주세요.");
+    if (!imageFile && !hasExistingImage) {
+      if (videoUrl) {
+        alert("이미지는 필수입니다! 동영상이 있다면 '썸네일 추출'을 눌러 이미지를 생성해주세요.");
+      } else {
+        alert("이미지는 필수입니다! 사진을 업로드해주세요.");
+      }
       return;
     }
 
@@ -607,23 +610,12 @@ export default memo(function EventRegistrationModal({
                 return supabase.storage.from("images").getPublicUrl(path).data.publicUrl;
               };
 
-              const totalUploads = 4;
-
-              const trackProgress = async (promise: Promise<string>) => {
-                const result = await promise;
-                completedUploads++;
-                // 30% to 100% range for uploads (70% span)
-                // Each upload is 17.5%
-                // setUploadProgress removed
-                return result;
-              };
-
               // 병렬 업로드 및 재시도 적용
               const uploadPromises = [
-                trackProgress(retryOperation(() => uploadImage(`${basePath}/micro.webp`, resizedImages.micro))),
-                trackProgress(retryOperation(() => uploadImage(`${basePath}/thumbnail.webp`, resizedImages.thumbnail))),
-                trackProgress(retryOperation(() => uploadImage(`${basePath}/medium.webp`, resizedImages.medium))),
-                trackProgress(retryOperation(() => uploadImage(`${basePath}/full.webp`, resizedImages.full)))
+                retryOperation(() => uploadImage(`${basePath}/micro.webp`, resizedImages.micro)),
+                retryOperation(() => uploadImage(`${basePath}/thumbnail.webp`, resizedImages.thumbnail)),
+                retryOperation(() => uploadImage(`${basePath}/medium.webp`, resizedImages.medium)),
+                retryOperation(() => uploadImage(`${basePath}/full.webp`, resizedImages.full))
               ];
 
               const [microUrl, thumbUrl, mediumUrl, fullUrl] = await Promise.all(uploadPromises);

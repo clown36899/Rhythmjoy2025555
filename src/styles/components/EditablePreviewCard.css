@@ -16,7 +16,7 @@
     }
 
     .EPC-inlineBtn:hover {
-        background: rgba(0, 0, 0, 0.7);
+        background: var(--bg-hover);
         transform: translateY(-1px);
     }
 
@@ -46,7 +46,7 @@
     }
 
     .EPC-textContainer .EPC-editableSection:hover {
-        background-color: rgba(255, 255, 255, 0.05);
+        background-color: var(--bg-hover);
     }
 
     .EPC-textContainer input {
@@ -105,8 +105,8 @@
     }
 
     .EPC-dateTab.is-active {
-        background-color: var(--text-primary);
-        color: var(--color-blue-600);
+        background-color: var(--color-blue-600);
+        color: white;
         box-shadow: var(--shadow-sm);
     }
 
@@ -150,7 +150,7 @@
         top: var(--spacing-4);
         left: 50%;
         transform: translateX(-50%);
-        background-color: rgba(0, 0, 0, 0.7);
+        background-color: var(--bg-glass-heavy);
         color: var(--text-primary);
         padding: var(--spacing-2) var(--spacing-4);
         border-radius: var(--radius-3xl);

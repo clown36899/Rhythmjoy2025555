@@ -103,7 +103,7 @@ export const EditablePreviewCard: React.FC<EditablePreviewCardProps> = ({
                                     top: '50%',
                                     left: '50%',
                                     transform: 'translate(-50%, -50%)',
-                                    color: 'white',
+                                    color: 'var(--text-on-accent)',
                                     fontSize: 'clamp(0.8rem, 3vw, 1.2rem)',
                                     fontWeight: 600,
                                     opacity: 0.8,
@@ -179,14 +179,14 @@ export const EditablePreviewCard: React.FC<EditablePreviewCardProps> = ({
                                 top: '100%',
                                 left: 0,
                                 width: '100%',
-                                backgroundColor: '#1f2937',
-                                border: '1px solid #374151',
+                                backgroundColor: 'var(--bg-modal)',
+                                border: '1px solid var(--border-glass)',
                                 borderRadius: '0.375rem',
                                 marginTop: '0.25rem',
                                 maxHeight: '150px',
                                 overflowY: 'auto',
                                 zIndex: 100,
-                                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.5)',
+                                boxShadow: 'var(--shadow-premium)',
                                 listStyle: 'none',
                                 padding: 0,
                                 margin: 0
@@ -203,10 +203,10 @@ export const EditablePreviewCard: React.FC<EditablePreviewCardProps> = ({
                                             padding: '0.5rem 0.75rem',
                                             cursor: 'pointer',
                                             fontSize: '0.875rem',
-                                            color: '#e5e7eb',
-                                            borderBottom: index < suggestions.length - 1 ? '1px solid #374151' : 'none'
+                                            color: 'var(--text-primary)',
+                                            borderBottom: index < suggestions.length - 1 ? '1px solid var(--border-glass)' : 'none'
                                         }}
-                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#374151'}
+                                        onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-hover)'}
                                         onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                                     >
                                         {suggestion}
@@ -253,7 +253,7 @@ export const EditablePreviewCard: React.FC<EditablePreviewCardProps> = ({
                             margin: 0,
                             fontFamily: 'inherit',
                             cursor: 'text',
-                            color: 'var(--color-gray-100)'
+                            color: 'var(--text-primary)'
                         }}
                     />
                 ) : (

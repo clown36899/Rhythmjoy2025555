@@ -345,9 +345,9 @@
     /* slate-100 */
     --border-subtle: #f1f5f9;
     /* slate-100 - very subtle layout divider */
-    --border-glass: rgba(0, 0, 0, 0.05);
-    --border-glass-strong: rgba(0, 0, 0, 0);
-    --border-glass-subtle: rgba(0, 0, 0, 0.02);
+    --border-glass: rgba(0, 0, 0, 0.125);
+    --border-glass-strong: rgba(0, 0, 0, 0.139);
+    --border-glass-subtle: rgba(0, 0, 0, 0.11);
 
     /* Header */
     --header-bg-color: rgba(255, 255, 255, 0.8);

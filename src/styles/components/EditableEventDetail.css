@@ -4,7 +4,7 @@
 .EED-container {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.6);
+    background: var(--bg-overlay, rgba(0, 0, 0, 0.6));
     backdrop-filter: blur(var(--blur-glass-subtle, 3px));
     z-index: var(--z-modal-stack-1);
     display: flex;
@@ -17,7 +17,7 @@
 /* Unified Premium Scrollbar for EED */
 .EED-container * {
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+    scrollbar-color: var(--border-glass) transparent;
 }
 
 .EED-container *::-webkit-scrollbar {
@@ -30,14 +30,14 @@
 }
 
 .EED-container *::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--border-glass);
     border-radius: 10px;
     border: 1px solid transparent;
     background-clip: padding-box;
 }
 
 .EED-container *::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.2);
+    background: var(--border-glass-strong);
 }
 
 .EED-modalWrapper {
@@ -87,7 +87,7 @@
 .EED-imageArea {
     width: 100%;
     aspect-ratio: 1/1;
-    background: #000;
+    background: var(--bg-base);
     position: relative;
     overflow: hidden;
     display: flex;
@@ -108,7 +108,7 @@
     background-size: cover;
     background-position: center;
     filter: blur(60px);
-    opacity: 0.4;
+    opacity: 0.2;
     transform: scale(1.1);
     z-index: 1;
     pointer-events: none;
@@ -131,7 +131,7 @@
 .EED-imageGradient {
     position: absolute;
     inset: 0;
-    background: linear-gradient(to top, rgba(15, 23, 42, 0.95), transparent 60%);
+    background: linear-gradient(to top, var(--bg-overlay-heavy), transparent 60%);
     z-index: 3;
     pointer-events: none;
 }
@@ -149,7 +149,7 @@
 }
 
 .EED-imageControlGroup {
-    background: rgba(15, 23, 42, 0.8);
+    background: var(--bg-glass-heavy);
     backdrop-filter: blur(var(--blur-glass));
     padding: 6px;
     border-radius: 16px;
@@ -163,7 +163,7 @@
     border-radius: 10px;
     background: transparent;
     border: none;
-    color: rgba(255, 255, 255, 0.8);
+    color: var(--text-primary);
     font-size: 0.85rem;
     font-weight: 600;
     display: flex;
@@ -175,12 +175,13 @@
 
 .EED-imageControlBtn:hover {
     background: rgba(255, 255, 255, 0.1);
-    color: white;
+    color: var(--text-on-accent);
+    /* Changed from 'white' */
 }
 
 .EED-imageControlBtn.is-active {
     background: var(--color-blue-600);
-    color: white;
+    color: var(--text-on-accent);
 }
 
 .EED-repositionOverlay {
@@ -198,7 +199,7 @@
 .EED-repositionBtn {
     padding: 10px 24px;
     background: var(--color-blue-600);
-    color: white;
+    color: var(--text-on-accent);
     border: none;
     border-radius: var(--radius-full);
     font-weight: 700;
@@ -207,7 +208,7 @@
 }
 
 .EED-repositionHint {
-    color: white;
+    color: var(--text-on-accent);
     font-size: 0.9rem;
     font-weight: 600;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
@@ -221,7 +222,7 @@
     flex-direction: row;
     align-items: stretch;
     justify-content: center;
-    background: var(--bg-premium-dark);
+    background: var(--bg-surface-1);
     gap: 0;
     padding: 0;
 }
@@ -263,13 +264,13 @@
 
 .EED-uploadOption:hover .EED-uploadIcon {
     background: var(--color-blue-600);
-    color: white;
+    color: var(--text-on-accent);
     transform: translateY(-2px);
     box-shadow: var(--shadow-glow-blue);
 }
 
 .EED-uploadTitle {
-    color: white;
+    color: var(--text-primary);
     font-weight: 800;
     font-size: 0.95rem;
     margin-bottom: 4px;
@@ -324,15 +325,18 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 4px;
+    padding: 10px 14px;
     border-radius: 12px;
-    transition: background 0.2s;
+    background: var(--bg-surface-2);
+    border: 1px solid var(--border-glass);
+    transition: all 0.2s;
     cursor: pointer;
     position: relative;
 }
 
 .EED-classification:hover {
-    background: var(--bg-surface-2);
+    background: var(--bg-surface-3);
+    border-color: var(--border-glass-strong);
 }
 
 .EED-category {
@@ -340,9 +344,11 @@
     border-radius: 8px;
     font-size: 0.75rem;
     font-weight: 850;
-    color: #ffffff;
+    color: var(--text-on-accent);
     text-transform: uppercase;
     letter-spacing: 0.02em;
+    background: var(--bg-surface-3);
+    border: 1px solid var(--border-glass);
 }
 
 .EED-category.is-event {
@@ -431,7 +437,8 @@
 }
 
 .genre-color-gray {
-    background: var(--color-gray-500);
+    background: var(--color-gray-500) !important;
+    border-color: var(--color-gray-400) !important;
 }
 
 .EED-genre {
@@ -439,8 +446,10 @@
     font-weight: 700;
     padding: 6px 14px;
     border-radius: 8px;
-    color: #ffffff;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    color: var(--text-on-accent);
+    background: var(--bg-surface-3);
+    border: 1px solid var(--border-glass-subtle);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
@@ -451,31 +460,35 @@
 }
 
 .EED-placeholder {
-    color: rgba(255, 255, 255, 0.55);
+    color: inherit;
+    opacity: 0.7;
     font-weight: 500;
 }
 
 /* Title Section */
 .EED-titleSection {
     position: relative;
-    padding: 4px;
+    padding: 12px 16px;
     display: flex;
-    gap: 5px;
+    gap: 10px;
     border-radius: 12px;
+    background: var(--bg-surface-2);
+    border: 1px solid var(--border-glass);
     cursor: pointer;
-    transition: background 0.2s;
+    transition: all 0.2s;
     align-content: center;
     align-items: center;
 }
 
 .EED-titleSection:hover {
-    background: var(--bg-surface-2);
+    background: var(--bg-surface-3);
+    border-color: var(--border-glass-strong);
 }
 
 .EED-title {
     font-size: 1.75rem;
     font-weight: 800;
-    color: white;
+    color: var(--text-primary);
     line-height: 1.3;
     margin: 0;
     word-break: keep-all;
@@ -499,7 +512,7 @@
     padding: 12px;
     border-radius: 16px;
     background: var(--border-glass-subtle);
-    border: 1px solid var(--border-glass-subtle);
+    border: 1px solid var(--border-glass);
     cursor: pointer;
     transition: all 0.2s;
     position: relative;
@@ -547,7 +560,7 @@
 
 .EED-tag {
     background: var(--color-blue-600);
-    color: white;
+    color: var(--text-on-accent);
     padding: 4px 10px;
     border-radius: var(--radius-full);
     font-size: 0.8rem;
@@ -580,7 +593,7 @@
 
 .EED-descriptionPreview {
     font-size: 0.95rem;
-    color: var(--text-tertiary);
+    color: var(--text-secondary);
     line-height: 1.6;
     white-space: pre-wrap;
     display: -webkit-box;
@@ -595,7 +608,7 @@
     width: 22px;
     height: 22px;
     background: var(--color-blue-600);
-    color: white;
+    color: var(--text-on-accent);
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -617,7 +630,7 @@
 .EED-footer {
     padding: 16px 20px;
     padding-bottom: calc(16px + env(safe-area-inset-bottom));
-    background: var(--bg-premium-dark);
+    background: var(--bg-surface-1);
     backdrop-filter: blur(var(--blur-glass));
     border-top: 1px solid var(--border-glass);
     z-index: var(--z-header);
@@ -634,7 +647,7 @@
     border-radius: 14px;
     border: 1px solid var(--border-glass-strong);
     background: var(--bg-surface-2);
-    color: white;
+    color: var(--text-primary);
     font-weight: 700;
     display: flex;
     align-items: center;
@@ -658,7 +671,7 @@
 
 .EED-actionBtn.is-delete:hover {
     background: var(--color-red-600);
-    color: white;
+    color: var(--text-on-accent);
 }
 
 .EED-actionBtn.is-link {
@@ -671,7 +684,7 @@
     flex: 1.5;
     background: linear-gradient(135deg, var(--color-blue-500) 0%, var(--color-blue-700) 100%);
     border: none;
-    color: white;
+    color: var(--text-on-accent);
     box-shadow: var(--shadow-glow-blue);
 }
 
@@ -694,7 +707,7 @@
     border: 1px solid var(--border-glass);
     border-radius: 12px;
     padding: 12px 16px;
-    color: white;
+    color: var(--text-primary);
     font-size: 1rem;
     outline: none;
     transition: all 0.2s;
@@ -750,7 +763,7 @@
 
 .EED-tabBtn.is-active {
     background: var(--bg-surface-3);
-    color: white;
+    color: var(--text-primary);
 }
 
 /* Genre Grid */
@@ -783,7 +796,7 @@
 .EED-genreBtn.is-active {
     background: var(--color-blue-600);
     border-color: var(--color-blue-500);
-    color: white;
+    color: var(--text-on-accent);
 }
 
 /* Animations */
@@ -868,7 +881,7 @@
     padding: 10px 24px 20px;
     font-size: 1.1rem;
     font-weight: 800;
-    color: white;
+    color: var(--text-primary);
     display: flex;
     align-items: center;
     gap: 10px;
@@ -899,7 +912,7 @@
     border-radius: 14px;
     border: 1px solid var(--border-glass-strong);
     background: var(--bg-surface-2);
-    color: white;
+    color: var(--text-primary);
     font-weight: 700;
     font-size: 1rem;
     cursor: pointer;
@@ -923,7 +936,7 @@
 .EED-sheetBtn.is-active {
     background: var(--color-blue-600);
     border-color: var(--color-blue-400);
-    color: white;
+    color: var(--text-on-accent);
 }
 
 .EED-sheetBtn.is-overseas {
@@ -935,8 +948,8 @@
 }
 
 .EED-sheetHint {
-    font-size: 0.85rem;
-    color: var(--text-tertiary);
+    font-size: 0.95rem;
+    color: var(--text-secondary);
     line-height: 1.5;
     margin-bottom: 4px;
 }
@@ -974,7 +987,7 @@
 .EED-dateValue {
     font-size: 1rem;
     font-weight: 700;
-    color: white;
+    color: var(--text-primary);
 }
 
 .EED-tagGroup.is-large {
