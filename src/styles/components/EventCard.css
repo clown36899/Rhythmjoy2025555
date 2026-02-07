@@ -98,6 +98,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
+        background-image: url(/grunge.png);
         background-size: cover;
         background-position: center;
     }
@@ -404,6 +405,15 @@
         padding: 2px 8px;
         background-color: var(--bg-surface-3);
         border: 1px solid var(--border-glass);
+    }
+
+    /* Highlight Colors by Category */
+    :scope.is-highlighted.ECARD-cat-class {
+        --highlight-color: var(--color-purple-600);
+    }
+
+    :scope.is-highlighted.ECARD-cat-event {
+        --highlight-color: var(--color-blue-600);
     }
 
     /* QR/Highlight Animation */

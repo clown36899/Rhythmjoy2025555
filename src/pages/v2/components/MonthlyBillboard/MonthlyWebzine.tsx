@@ -148,42 +148,32 @@ const MonthlyWebzine = () => {
 
             <div className="mw-dashboard">
                 {/* 1. Header (Compact) with Selector */}
-                <div className="mw-header dashboard-header" style={{ alignItems: 'flex-start', gap: '12px' }}>
-                    <div style={{ flex: 1 }}>
-                        <div className="mw-eyebrow" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                <div className="mw-header dashboard-header">
+                    <div className="mw-header-info">
+                        <div className="mw-eyebrow mw-eyebrow-group">
                             <span>Monthly Insight</span>
-                            <span className="text-gray-500">•</span>
+                            <span className="mw-header-separator">•</span>
                             <select
                                 value={selectedValue}
                                 onChange={handleMonthChange}
                                 className="mw-month-select"
-                                style={{
-                                    background: 'rgba(255,255,255,0.05)',
-                                    border: '1px solid rgba(255,255,255,0.1)',
-                                    color: 'var(--color-amber-400)',
-                                    borderRadius: '4px',
-                                    padding: '2px 8px',
-                                    fontSize: '0.9em',
-                                    cursor: 'pointer',
-                                    outline: 'none'
-                                }}
                             >
                                 {monthOptions.map(opt => (
-                                    <option key={opt.value} value={opt.value} style={{ background: '#1a1a1a', color: '#fff' }}>
+                                    <option key={opt.value} value={opt.value} className="mw-month-option">
                                         {opt.label}
                                     </option>
                                 ))}
-                                <option value="all" style={{ background: '#1a1a1a', color: '#fff' }}>전체 기간 (All Time)</option>
+                                <option value="all" className="mw-month-option">전체 기간 (All Time)</option>
                             </select>
                         </div>
                         <h1 className="mw-headline">동호회의 주말, 외부 강습의 평일.</h1>
-                        <p style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)', marginTop: '4px' }}>
+                        <p className="mw-header-note">
                             * 매월 1일 지난 달의 데이터를 분석하여 업데이트됩니다.
                         </p>
                     </div>
 
                     <div className="mw-meta-box" onClick={() => setShowDetailModal(true)}>
-                        <div style={{ marginBottom: '2px' }}><span className="mw-highlight-dot">●</span> <strong>Data</strong>: {meta.uniqueVisitors.toLocaleString()} Visitors ({meta.totalLogs.toLocaleString()} Logs)</div>
+                        <div className="mw-meta-data-row"><span className="mw-highlight-dot">●</span> <strong>Data</strong>: {meta.uniqueVisitors.toLocaleString()} Visitors ({meta.totalLogs.toLocaleString()} Logs)</div>
                         <div><span className="mw-meta-sub">Range: {meta.range}</span></div>
                     </div>
                 </div>
@@ -263,7 +253,7 @@ const MonthlyWebzine = () => {
                         {/* 2. Hourly */}
                         <section className="mw-card">
                             <div className="hourly-header">
-                                <h3 className="mw-section-title mb-0" style={{ marginBottom: 0 }}>
+                                <h3 className="mw-section-title mb-0">
                                     2. 시간대별 패턴 <span className="metric-badge">조회/클릭</span>
                                 </h3>
                                 <button
@@ -281,10 +271,10 @@ const MonthlyWebzine = () => {
                             </div>
 
                             <div className="graph-container" onMouseLeave={() => setHoverHour(null)} key={viewMode}>
-                                <div className="graph-y-label" style={{ top: '0px' }}>
+                                <div className="graph-y-label graph-y-label-peak">
                                     Peak: {viewMode === 'percent' ? '100%' : `${Math.round(maxValHourly)}회`}
                                 </div>
-                                <svg width="100%" height="100%" viewBox={`0 0 ${hourlyW} ${hourlyH}`} preserveAspectRatio="none" style={{ overflow: 'visible' }}>
+                                <svg width="100%" height="100%" viewBox={`0 0 ${hourlyW} ${hourlyH}`} preserveAspectRatio="none" className="graph-svg-main">
                                     <line x1="0" y1={hourlyH * 0.25} x2={hourlyW} y2={hourlyH * 0.25} className="graph-line-grid" />
                                     <line x1="0" y1={hourlyH * 0.5} x2={hourlyW} y2={hourlyH * 0.5} className="graph-line-grid" />
                                     <line x1="0" y1={hourlyH * 0.75} x2={hourlyW} y2={hourlyH * 0.75} className="graph-line-grid" />
@@ -296,10 +286,8 @@ const MonthlyWebzine = () => {
                                     <polyline points={classPoints} className="graph-polyline graph-polyline-class" />
                                     <polyline points={eventPoints} className="graph-polyline graph-polyline-event" />
                                 </svg>
-
-                                {/* Interaction Layer */}
-                                <div className="graph-interaction-layer">
-                                    {dailyFlow.rawHourlyData.map((_: any, i: number) => (
+                                \n                                <div className="graph-interaction-layer">
+                                    {dailyFlow.rawHourlyData.map((_item: any, i: number) => (
                                         <div
                                             key={i}
                                             className="graph-hour-zone"
@@ -308,16 +296,12 @@ const MonthlyWebzine = () => {
                                         />
                                     ))}
                                 </div>
-
-                                {/* Tooltip & Line */}
-                                {hoverHour !== null && (
+                                \n                                {hoverHour !== null && (
                                     <>
                                         <div className="graph-hover-line" style={{ left: `${(hoverHour / 23) * 100}%` }} />
                                         <div className="graph-tooltip" style={{
                                             left: hoverHour > 16 ? 'auto' : `${(hoverHour / 23) * 100}%`,
-                                            right: hoverHour > 16 ? `${100 - (hoverHour / 23) * 100}%` : 'auto',
-                                            top: '-10px',
-                                            transform: 'translateY(-100%)'
+                                            right: hoverHour > 16 ? `${100 - (hoverHour / 23) * 100}%` : 'auto'
                                         }}>
                                             <span className="gt-time">{hoverHour.toString().padStart(2, '0')}:00</span>
                                             <div className="gt-row">
@@ -346,9 +330,9 @@ const MonthlyWebzine = () => {
                             </div>
 
                             <div className="hourly-legend">
-                                <div className="hourly-legend-item" style={{ opacity: 0.5, marginRight: 'auto' }}>* 시스템 로그 기반</div>
-                                <div className="hourly-legend-item"><div className="hl-dot" style={{ background: 'var(--color-blue-500)' }} /> 강습</div>
-                                <div className="hourly-legend-item"><div className="hl-dot" style={{ background: 'var(--color-rose-500)' }} /> 행사</div>
+                                <div className="hourly-legend-item legend-note">* 시스템 로그 기반</div>
+                                <div className="hourly-legend-item"><div className="hl-dot bg-blue-500" /> 강습</div>
+                                <div className="hourly-legend-item"><div className="hl-dot bg-rose-500" /> 행사</div>
                             </div>
                         </section>
 
@@ -365,7 +349,7 @@ const MonthlyWebzine = () => {
                                         <div className="lead-label text-blue-400">CLASS</div>
                                         <div className="lead-label-sub">4주 전 등록</div>
                                     </div>
-                                    <div style={{ textAlign: 'right' }}>
+                                    <div className="lead-item-right">
                                         <div className="lead-value">{leadTime.classD28}<span className="lead-unit text-blue-300">회</span></div>
                                         <div className="lead-caption text-blue-300">평균 조회</div>
                                     </div>
@@ -376,7 +360,7 @@ const MonthlyWebzine = () => {
                                         <div className="lead-label text-rose-400">EVENT</div>
                                         <div className="lead-label-sub">6주 전 등록</div>
                                     </div>
-                                    <div style={{ textAlign: 'right' }}>
+                                    <div className="lead-item-right">
                                         <div className="lead-value">{leadTime.eventD42}<span className="lead-unit text-rose-300">회</span></div>
                                         <div className="lead-caption text-rose-300">평균 조회</div>
                                     </div>
@@ -396,7 +380,7 @@ const MonthlyWebzine = () => {
                                         <div className={`rank-num ${index < 3 ? 'highlight' : ''}`}>{index + 1}</div>
 
                                         <div className="rank-content">
-                                            <div className="rank-type" style={{ color: item.type === 'class' ? colors.class : colors.event }}>
+                                            <div className="rank-type rank-type-label" style={{ color: item.type === 'class' ? colors.class : colors.event }}>
                                                 {item.type === 'board_post' ? 'INFO' : item.type}
                                             </div>
                                             <div className="rank-title">

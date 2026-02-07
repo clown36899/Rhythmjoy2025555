@@ -73,8 +73,6 @@ export default function MyActivitiesPage() {
         if (!user) return;
         setLoading(true);
         try {
-            console.log('[MyActivities] 🔄 Fetching all data parallelly...');
-
             // Parallel Fetch - each handled individually to prevent total failure
             const [eventsRes, postsRes, groupsRes, schedulesRes, userRes] = await Promise.all([
                 supabase.from('events').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
@@ -89,7 +87,6 @@ export default function MyActivitiesPage() {
                 console.error('[MyActivities] ❌ Events fetch error:', eventsRes.error);
             } else {
                 setEvents((eventsRes.data || []) as unknown as SupabaseEvent[]);
-                console.log(`[MyActivities] ✅ Fetched ${eventsRes.data?.length || 0} events/classes`);
             }
 
             // 2. Social Groups
@@ -97,7 +94,6 @@ export default function MyActivitiesPage() {
                 console.error('[MyActivities] ❌ Groups fetch error:', groupsRes.error);
             } else {
                 setSocialGroups(groupsRes.data || []);
-                console.log(`[MyActivities] ✅ Fetched ${groupsRes.data?.length || 0} groups`);
             }
 
             // 3. Social Schedules
@@ -105,7 +101,6 @@ export default function MyActivitiesPage() {
                 console.error('[MyActivities] ❌ Schedules fetch error:', schedulesRes.error);
             } else {
                 setSocialSchedules(schedulesRes.data || []);
-                console.log(`[MyActivities] ✅ Fetched ${schedulesRes.data?.length || 0} schedules`);
             }
 
             // 4. Board Posts
@@ -122,9 +117,7 @@ export default function MyActivitiesPage() {
                     dislikes: (post as any).dislikes || 0
                 }));
                 setPosts(normalizedPosts as StandardBoardPost[]);
-                console.log(`[MyActivities] ✅ Fetched ${postsRes.data?.length || 0} posts`);
             }
-
         } catch (error) {
             console.error('[MyActivities] 💥 Critical fetch failure:', error);
         } finally {
@@ -249,8 +242,8 @@ export default function MyActivitiesPage() {
 
                         {(currentTab === 'events' || currentTab === 'classes') && (
                             <div className="activity-tab-content">
-                                <div className="ELS-section no-margin-top">
-                                    <div className="ELS-header">
+                                <section className="activity-section activity-section-compact">
+                                    <div className="activity-section-header">
                                         <i className={`section-icon icon-events ${currentTab === 'events' ? "ri-calendar-event-fill" : "ri-book-open-fill"}`}></i>
                                         <span>{currentTab === 'events' ? '등록한 행사' : '등록한 강습'}</span>
                                     </div>
@@ -282,15 +275,15 @@ export default function MyActivitiesPage() {
                                             </div>
                                         );
                                     })()}
-                                </div>
+                                </section>
                             </div>
                         )}
 
                         {currentTab === 'groups' && (
                             <div className="activity-tab-content managed-groups-tab">
                                 {/* 1. My Groups (Top) */}
-                                <div className="ELS-section no-margin-top margin-bottom-24">
-                                    <div className="ELS-header">
+                                <section className="activity-section activity-section-compact activity-stats-group">
+                                    <div className="activity-section-header">
                                         <i className="ri-team-fill section-icon icon-groups"></i>
                                         <span>내 단체</span>
                                     </div>
@@ -325,11 +318,11 @@ export default function MyActivitiesPage() {
                                             ))}
                                         </div>
                                     )}
-                                </div>
+                                </section>
 
                                 {/* 2. My Schedules (Bottom) */}
-                                <div className="ELS-section margin-top-24">
-                                    <div className="ELS-header">
+                                <section className="activity-section">
+                                    <div className="activity-section-header">
                                         <i className="ri-calendar-check-fill section-icon icon-schedules"></i>
                                         <span>내가 등록한 일정</span>
                                     </div>
@@ -369,7 +362,7 @@ export default function MyActivitiesPage() {
                                             </div>
                                         </div>
                                     )}
-                                </div>
+                                </section>
                             </div>
                         )}
 
@@ -382,8 +375,8 @@ export default function MyActivitiesPage() {
                                 {/* My Impact Dashboard */}
                                 {/* My Impact Dashboard MOVED TO STATS TAB */}
 
-                                <div className="ELS-section no-margin-top">
-                                    <div className="ELS-header">
+                                <section className="activity-section activity-section-compact">
+                                    <div className="activity-section-header">
                                         <i className="ri-chat-3-fill section-icon icon-posts"></i>
                                         <span>내가 쓴 글</span>
                                     </div>
@@ -394,7 +387,7 @@ export default function MyActivitiesPage() {
                                             <p>작성한 게시글이 없습니다.</p>
                                         </div>
                                     ) : (
-                                        <div style={{ padding: '0 12px' }}>
+                                        <div className="activity-posts-container">
                                             <StandardPostList
                                                 posts={posts}
                                                 category="free"
@@ -403,7 +396,7 @@ export default function MyActivitiesPage() {
                                             />
                                         </div>
                                     )}
-                                </div>
+                                </section>
                             </div>
                         )}
                     </>

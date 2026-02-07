@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import './DebugLogPage.css';
 
 export default function DebugLogPage() {
     const navigate = useNavigate();
@@ -72,33 +73,33 @@ export default function DebugLogPage() {
 
             alert('초기화 완료. 메인으로 이동합니다.');
             window.location.href = '/';
-        } catch (e: any) {
-            alert('에러 발생: ' + e.message);
+        } catch (err: any) {
+            alert('에러 발생: ' + err.message);
         }
     };
 
     return (
-        <div style={{ padding: '20px', background: '#111', color: '#fff', minHeight: '100vh', fontFamily: 'monospace' }}>
-            <h1 style={{ fontSize: '20px', borderBottom: '1px solid #333', paddingBottom: '10px' }}>🕵️‍♂️ PWA Debugger</h1>
+        <div className="debug-page-container">
+            <h1 className="debug-title">🕵️‍♂️ PWA Debugger</h1>
 
-            <div style={{ display: 'flex', gap: '10px', marginBottom: '20px' }}>
-                <button onClick={refreshInfo} style={{ padding: '8px 12px', background: '#444', color: 'white', border: 'none', borderRadius: '4px' }}>
+            <div className="debug-action-bar">
+                <button onClick={refreshInfo} className="debug-btn">
                     새로고침
                 </button>
-                <button onClick={() => navigate('/')} style={{ padding: '8px 12px', background: '#444', color: 'white', border: 'none', borderRadius: '4px' }}>
+                <button onClick={() => navigate('/')} className="debug-btn">
                     메인으로
                 </button>
-                <button onClick={handleForceLogout} style={{ padding: '8px 12px', background: '#bd2424', color: 'white', border: 'none', borderRadius: '4px' }}>
+                <button onClick={handleForceLogout} className="debug-btn debug-btn-danger">
                     🔥 PWA 완전 초기화
                 </button>
             </div>
 
-            <section style={{ marginBottom: '20px' }}>
-                <h2 style={{ fontSize: '16px', color: '#888' }}>Service Workers ({swStatus.length})</h2>
-                {swStatus.length === 0 ? <p style={{ color: '#666' }}>No active service workers</p> : (
-                    <ul style={{ background: '#222', padding: '10px', borderRadius: '5px' }}>
+            <section className="debug-section">
+                <h2 className="debug-section-title">Service Workers ({swStatus.length})</h2>
+                {swStatus.length === 0 ? <p className="debug-empty-text">No active service workers</p> : (
+                    <ul className="debug-list">
                         {swStatus.map((sw, i) => (
-                            <li key={i} style={{ marginBottom: '5px' }}>
+                            <li key={i} className="debug-list-item">
                                 Scope: {sw.scope}<br />
                                 Status: {sw.active !== 'No' ? '✅ Active' : sw.waiting !== 'No' ? '⏳ Waiting' : '🔧 Installing'}
                             </li>
@@ -107,10 +108,10 @@ export default function DebugLogPage() {
                 )}
             </section>
 
-            <section style={{ marginBottom: '20px' }}>
-                <h2 style={{ fontSize: '16px', color: '#888' }}>Caches ({cacheKeys.length})</h2>
-                {cacheKeys.length === 0 ? <p style={{ color: '#666' }}>No caches found</p> : (
-                    <ul style={{ background: '#222', padding: '10px', borderRadius: '5px' }}>
+            <section className="debug-section">
+                <h2 className="debug-section-title">Caches ({cacheKeys.length})</h2>
+                {cacheKeys.length === 0 ? <p className="debug-empty-text">No caches found</p> : (
+                    <ul className="debug-list">
                         {cacheKeys.map((key, i) => (
                             <li key={i}>{key}</li>
                         ))}
@@ -118,19 +119,19 @@ export default function DebugLogPage() {
                 )}
             </section>
 
-            <section style={{ marginBottom: '20px' }}>
-                <h2 style={{ fontSize: '16px', color: '#888' }}>Auth State</h2>
-                <pre style={{ background: '#222', padding: '10px', borderRadius: '5px', overflowX: 'auto' }}>
+            <section className="debug-section">
+                <h2 className="debug-section-title">Auth State</h2>
+                <pre className="debug-pre">
                     {JSON.stringify(authState, null, 2)}
                 </pre>
             </section>
 
-            <section>
-                <h2 style={{ fontSize: '16px', color: '#888' }}>Logout Logs</h2>
-                <div style={{ background: '#222', padding: '10px', borderRadius: '5px', maxHeight: '300px', overflowY: 'auto' }}>
-                    {logs.length === 0 ? <p style={{ color: '#666' }}>No logs recorded</p> : (
+            <section className="debug-section">
+                <h2 className="debug-section-title">Logout Logs</h2>
+                <div className="debug-log-list">
+                    {logs.length === 0 ? <p className="debug-empty-text">No logs recorded</p> : (
                         logs.slice().reverse().map((log, i) => ( // 최신순
-                            <div key={i} style={{ borderBottom: '1px solid #333', padding: '4px 0', fontSize: '12px' }}>
+                            <div key={i} className="debug-log-item">
                                 {log}
                             </div>
                         ))

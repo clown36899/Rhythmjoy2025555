@@ -76,9 +76,12 @@
     align-items: flex-end;
     margin-bottom: 12px;
     gap: 8px;
-    /* Added gap */
     flex-wrap: wrap;
-    /* Allow wrapping for narrow mobiles */
+}
+
+.mw-header.dashboard-header {
+    align-items: flex-start;
+    gap: 12px;
 }
 
 .mw-eyebrow {
@@ -89,6 +92,29 @@
     letter-spacing: 1px;
     text-transform: uppercase;
     opacity: 0.9;
+}
+
+.mw-eyebrow-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.mw-month-select {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--color-amber-400);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 0.9em;
+    cursor: pointer;
+    outline: none;
+}
+
+.mw-month-option {
+    background: #1a1a1a;
+    color: #fff;
 }
 
 .mw-headline {
@@ -156,6 +182,36 @@
 
 .mw-meta-sub {
     opacity: 0.6;
+}
+
+.mw-meta-data-row {
+    margin-bottom: 2px;
+}
+
+.mw-header-info {
+    flex: 1;
+}
+
+.mw-header-note {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.4);
+    margin-top: 4px;
+}
+
+.mw-section-title.mb-0 {
+    margin-bottom: 0;
+}
+
+.graph-y-label-peak {
+    top: 0px;
+}
+
+.lead-item-right {
+    text-align: right;
+}
+
+.rank-type-label {
+    margin-bottom: 2px;
 }
 
 /* Cards */
@@ -549,6 +605,28 @@
     width: 6px;
     height: 6px;
     border-radius: 1px;
+}
+
+.hl-dot.bg-blue-500 {
+    background: var(--color-blue-500);
+}
+
+.hl-dot.bg-rose-500 {
+    background: var(--color-rose-500);
+}
+
+.legend-note {
+    opacity: 0.5;
+    margin-right: auto;
+}
+
+.graph-svg-main {
+    overflow: visible;
+}
+
+.mw-header-separator {
+    color: var(--text-tertiary);
+    opacity: 0.5;
 }
 
 /* Lead Time */

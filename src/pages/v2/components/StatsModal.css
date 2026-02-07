@@ -127,6 +127,8 @@
     background: var(--color-blue-500);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     border-radius: 1px;
+    left: var(--indicator-left, 0px);
+    width: var(--indicator-width, 0px);
 }
 
 .badge-beta {
@@ -172,6 +174,22 @@
         /* Unified Scroll on Mobile */
         padding-bottom: 60px;
     }
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.tab-content-full {
+    height: 100%;
+}
+
+.close-icon {
+    font-size: 1.25rem;
 }
 
 .loading-container {

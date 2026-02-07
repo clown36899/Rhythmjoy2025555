@@ -128,16 +128,20 @@
     padding: 2px 8px;
 }
 
-/* Event List Section */
-.ELS-section.no-margin-top {
+/* Activity Sections */
+.activity-section {
+    margin-top: 24px;
+}
+
+.activity-section-compact {
     margin-top: 0;
 }
 
-.ELS-section.margin-bottom-24 {
+.activity-stats-group {
     margin-bottom: 24px;
 }
 
-.ELS-header {
+.activity-section-header {
     padding: 0 16px;
     margin-bottom: 12px;
 }
@@ -243,6 +247,10 @@
 
 .evt-card-meta i {
     margin-right: 4px;
+}
+
+.activity-posts-container {
+    padding: 0 12px;
 }
 
 .my-activities-content .group-placeholder {

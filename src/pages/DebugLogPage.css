@@ -1,0 +1,91 @@
+/* DebugLogPage.css */
+
+.debug-page-container {
+    padding: 20px;
+    background-color: #111;
+    color: #fff;
+    min-height: 100vh;
+    font-family: monospace;
+}
+
+.debug-title {
+    font-size: 20px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 10px;
+}
+
+.debug-action-bar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.debug-btn {
+    padding: 8px 12px;
+    background-color: #444;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.debug-btn:hover {
+    background-color: #555;
+}
+
+.debug-btn-danger {
+    background-color: #bd2424;
+}
+
+.debug-btn-danger:hover {
+    background-color: #d32f2f;
+}
+
+.debug-section {
+    margin-bottom: 20px;
+}
+
+.debug-section-title {
+    font-size: 16px;
+    color: #888;
+}
+
+.debug-empty-text {
+    color: #666;
+}
+
+.debug-list {
+    background-color: #222;
+    padding: 10px;
+    border-radius: 5px;
+    list-style: none;
+}
+
+.debug-list-item {
+    margin-bottom: 5px;
+}
+
+.debug-pre {
+    background-color: #222;
+    padding: 10px;
+    border-radius: 5px;
+    overflow-x: auto;
+}
+
+.debug-log-list {
+    background-color: #222;
+    padding: 10px;
+    border-radius: 5px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.debug-log-item {
+    border-bottom: 1px solid #333;
+    padding: 4px 0;
+    font-size: 12px;
+}
+
+.debug-log-item:last-child {
+    border-bottom: none;
+}

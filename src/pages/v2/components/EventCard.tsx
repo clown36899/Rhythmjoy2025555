@@ -39,9 +39,6 @@ export const EventCard = memo(({
   onToggleFavorite,
   className = "", // Destructure className
 }: EventCardProps) => {
-  const highlightBorderColor =
-    event.category === "class" ? "var(--color-purple-600)" : "var(--color-blue-600)";
-
   // 1. Try explicit thumbnail
   // 2. Use optimized card thumbnail helper
   const explicitThumbnail = event.image_thumbnail;
@@ -188,15 +185,9 @@ export const EventCard = memo(({
       onClick={onClick}
       onMouseEnter={() => onMouseEnter?.(event.id)}
       onMouseLeave={onMouseLeave}
-      style={{
-        ...(isHighlighted ? { '--highlight-color': highlightBorderColor } as React.CSSProperties : {}),
-      }}
     >
       <div
         className={`ECARD-imageWrapper ${isHighlighted ? "is-active-qr" : ""}`}
-        style={{
-          "--highlight-color": isHighlighted ? highlightBorderColor : "transparent"
-        } as React.CSSProperties}
       >
         {thumbnailUrl ? (
           <>
@@ -230,9 +221,6 @@ export const EventCard = memo(({
         ) : (
           <div
             className="ECARD-placeholderBg"
-            style={{
-              backgroundImage: "url(/grunge.png)",
-            }}
           >
             <div
               className={`ECARD-absoluteInset0 ${event.category === "class"

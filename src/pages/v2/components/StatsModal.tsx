@@ -138,7 +138,7 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
 
             <div className={`stats-modal ${activeTab === 'monthly' || activeTab === 'scene' ? 'wide-mode' : ''}`}>
                 <button onClick={onClose} className="close-btn">
-                    <i className="ri-close-line text-xl"></i>
+                    <i className="ri-close-line close-icon"></i>
                 </button>
 
                 <div className="tabs-header">
@@ -165,7 +165,10 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
                         >
                             월간 빌보드
                         </h2>
-                        <div className="tab-indicator" style={indicatorStyle}></div>
+                        <div className="tab-indicator" style={{
+                            '--indicator-left': indicatorStyle.left,
+                            '--indicator-width': indicatorStyle.width
+                        } as React.CSSProperties}></div>
                     </div>
                 </div>
 
@@ -178,7 +181,7 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
                         onTouchMove={onTouchMove}
                         onTouchEnd={onTouchEnd}
                     >
-                        <div style={{ display: activeTab === 'my' ? 'block' : 'none' }}>
+                        <div className={`tab-content ${activeTab === 'my' ? 'active' : ''}`}>
                             <MyImpactCard
                                 user={{ id: userId, ...userProfile }}
                                 posts={posts}
@@ -201,11 +204,11 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
                             </p>
                         </div>
 
-                        <div style={{ display: activeTab === 'scene' ? 'block' : 'none', height: '100%' }}>
+                        <div className={`tab-content tab-content-full ${activeTab === 'scene' ? 'active' : ''}`}>
                             <SwingSceneStats />
                         </div>
 
-                        <div style={{ display: activeTab === 'monthly' ? 'block' : 'none', height: '100%' }}>
+                        <div className={`tab-content tab-content-full ${activeTab === 'monthly' ? 'active' : ''}`}>
                             <MonthlyWebzine />
                         </div>
                     </div>
