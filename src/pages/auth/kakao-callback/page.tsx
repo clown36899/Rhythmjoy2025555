@@ -17,7 +17,7 @@ export default function KakaoCallbackPage() {
         let cancelled = false;
 
         const handleCallback = async () => {
-            console.log('[Kakao Callback] 🚀 콜백 처리 시작');
+
 
             // Prevent execution if already processing (local guard)
             if (processingRef.current) {
@@ -25,17 +25,13 @@ export default function KakaoCallbackPage() {
                 return;
             }
             processingRef.current = true;
-            console.log('[Kakao Callback] processingRef 설정 완료');
+
 
             const code = searchParams.get('code');
             const error = searchParams.get('error');
             const errorDescription = searchParams.get('error_description');
 
-            console.log('[Kakao Callback] URL 파라미터:', {
-                hasCode: !!code,
-                hasError: !!error,
-                codePreview: code ? code.substring(0, 10) + '...' : null
-            });
+
 
             if (error) {
                 if (cancelled) return;
@@ -57,19 +53,17 @@ export default function KakaoCallbackPage() {
             }
 
             try {
-                console.log('[Kakao Callback] ✅ 인증 코드 수신:', code.substring(0, 10) + '...');
+
 
                 // 인증 코드는 1회용이므로 즉시 URL에서 제거 (중복 사용 방지)
                 window.history.replaceState({}, '', '/auth/kakao-callback');
-                console.log('[Kakao Callback] 🧹 URL에서 인증 코드 제거 완료');
+
 
                 // 2. 서버로 인증 코드 전송
                 const authEndpoint = '/api/kakao-login';
                 const redirectUri = `${window.location.origin}/auth/kakao-callback`;
 
-                console.log('[Kakao Callback] 📤 서버로 인증 코드 전송 시작');
-                console.log('[Kakao Callback] Endpoint:', authEndpoint);
-                console.log('[Kakao Callback] Redirect URI:', redirectUri);
+
 
                 const response = await fetch(authEndpoint, {
                     method: 'POST',
@@ -82,11 +76,7 @@ export default function KakaoCallbackPage() {
                     }),
                 });
 
-                console.log('[Kakao Callback] 📥 서버 응답 수신:', {
-                    status: response.status,
-                    statusText: response.statusText,
-                    ok: response.ok
-                });
+
 
                 if (cancelled) return;
 
@@ -107,21 +97,11 @@ export default function KakaoCallbackPage() {
 
                 if (cancelled) return;
 
-                console.log('[Kakao Callback] ✅ 서버 응답 수신 성공');
-                console.log('[Kakao Callback] 응답 데이터:', {
-                    hasSession: !!authData.session,
-                    email: authData.email,
-                    name: authData.name,
-                    isAdmin: authData.isAdmin
-                });
+
 
                 // 3. Supabase 세션 설정
                 if (authData.session) {
-                    console.log('[Kakao Callback] 🔐 Supabase 세션 설정 시작');
-                    console.log('[Kakao Callback] Access Token 존재:', !!authData.session.access_token);
-                    console.log('[Kakao Callback] Refresh Token 존재:', !!authData.session.refresh_token);
 
-                    console.log('[Kakao Callback] 🚀 setSession 호출 시작...');
 
                     // setSession에 타임아웃 추가 (무한 대기 방지)
                     const setSessionPromise = supabase.auth.setSession({
@@ -137,7 +117,7 @@ export default function KakaoCallbackPage() {
                     try {
                         const result = await Promise.race([setSessionPromise, timeoutPromise]);
                         sessionError = (result as any).error;
-                        console.log('[Kakao Callback] 🏁 setSession 호출 완료');
+
                     } catch (timeoutError) {
                         console.warn('[Kakao Callback] ⚠️ setSession 무한 대기 감지 - 강제 리다이렉트 진행');
                         // 타임아웃이지만 백그라운드에서 setSession은 계속 진행 중
@@ -151,21 +131,16 @@ export default function KakaoCallbackPage() {
                         throw new Error('세션 설정에 실패했습니다: ' + sessionError.message);
                     }
 
-                    console.log('[Kakao Callback] ✅ 세션 설정 함수 실행 완료');
-                    console.log('[Kakao Callback] 🎉 로그인 성공!');
+
 
                     // 4. 원래 페이지로 복귀
-                    console.log('[Kakao Callback] 📍 리다이렉트 준비 시작');
-                    const returnUrl = sessionStorage.getItem('kakao_login_return_url') || '/';
-                    console.log('[Kakao Callback] 복귀 URL:', returnUrl);
+
 
                     // Set flag to prevent EventList spinner during login
                     sessionStorage.setItem('just_logged_in', 'true');
                     sessionStorage.removeItem('kakao_login_return_url');
 
-                    console.log('[Kakao Callback] ➡️ navigate() 호출');
-                    navigate(returnUrl, { replace: true });
-                    console.log('[Kakao Callback] ✈️ navigate() 호출 완료');
+
 
                     // ✨ PWA 플리커링 방지: navigate 직후 플래그 제거
                     // navigate가 호출된 직후이므로 실제로는 페이지 전환이 이미 시작되어
@@ -197,7 +172,7 @@ export default function KakaoCallbackPage() {
                     alert(error.message || '알 수 없는 오류가 발생했습니다');
                 }
 
-                console.log('[Kakao Callback] ➡️ 홈으로 리다이렉트');
+
                 navigate('/', { replace: true });
             }
         };

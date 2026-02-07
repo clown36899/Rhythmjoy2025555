@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useMonthlyBillboard, type BillboardData } from '../../hooks/useMonthlyBillboard';
+import { useMonthlyBillboard, type BillboardData, type RankingItem } from '../../hooks/useMonthlyBillboard';
 import MonthlyLogDetailModal from './MonthlyLogDetailModal';
 import LocalLoading from '../../../components/LocalLoading';
 import './MonthlyWebzine.css';
@@ -102,7 +102,7 @@ const MonthlyWebzine = () => {
 
     const maxValHourly = useMemo(() => {
         if (sourceData.length === 0) return 1;
-        return Math.max(...sourceData.map((h: any) => Math.max(h.class, h.event)), 1);
+        return Math.max(...sourceData.map((h: { class: number, event: number }) => Math.max(h.class, h.event)), 1);
     }, [sourceData]);
 
     const hourlyW = 300;
@@ -110,22 +110,22 @@ const MonthlyWebzine = () => {
     const stepX = hourlyW / 23;
 
     const classPoints = useMemo(() => {
-        return sourceData.map((d: any, i: number) => `${i * stepX},${hourlyH - (d.class / maxValHourly) * (hourlyH - 10)}`).join(' ');
+        return sourceData.map((d: { class: number, event: number }, i: number) => `${i * stepX},${hourlyH - (d.class / maxValHourly) * (hourlyH - 10)}`).join(' ');
     }, [sourceData, maxValHourly, stepX, hourlyH]);
 
     const eventPoints = useMemo(() => {
-        return sourceData.map((d: any, i: number) => `${i * stepX},${hourlyH - (d.event / maxValHourly) * (hourlyH - 10)}`).join(' ');
+        return sourceData.map((d: { class: number, event: number }, i: number) => `${i * stepX},${hourlyH - (d.event / maxValHourly) * (hourlyH - 10)}`).join(' ');
     }, [sourceData, maxValHourly, stepX, hourlyH]);
 
     const classAreaPoints = useMemo(() => {
         if (sourceData.length === 0) return '';
-        const pts = sourceData.map((d: any, i: number) => `${i * stepX},${hourlyH - (d.class / maxValHourly) * (hourlyH - 10)}`).join(' ');
+        const pts = sourceData.map((d: { class: number, event: number }, i: number) => `${i * stepX},${hourlyH - (d.class / maxValHourly) * (hourlyH - 10)}`).join(' ');
         return `0,${hourlyH} ${pts} ${hourlyW},${hourlyH}`;
     }, [sourceData, maxValHourly, stepX, hourlyH, hourlyW]);
 
     const eventAreaPoints = useMemo(() => {
         if (sourceData.length === 0) return '';
-        const pts = sourceData.map((d: any, i: number) => `${i * stepX},${hourlyH - (d.event / maxValHourly) * (hourlyH - 10)}`).join(' ');
+        const pts = sourceData.map((d: { class: number, event: number }, i: number) => `${i * stepX},${hourlyH - (d.event / maxValHourly) * (hourlyH - 10)}`).join(' ');
         return `0,${hourlyH} ${pts} ${hourlyW},${hourlyH}`;
     }, [sourceData, maxValHourly, stepX, hourlyH, hourlyW]);
 
@@ -287,7 +287,7 @@ const MonthlyWebzine = () => {
                                     <polyline points={eventPoints} className="graph-polyline graph-polyline-event" />
                                 </svg>
                                 \n                                <div className="graph-interaction-layer">
-                                    {dailyFlow.rawHourlyData.map((_item: any, i: number) => (
+                                    {dailyFlow.rawHourlyData.map((_item: { hour: number, class: number, event: number }, i: number) => (
                                         <div
                                             key={i}
                                             className="graph-hour-zone"
@@ -375,7 +375,7 @@ const MonthlyWebzine = () => {
                             <h3 className="mw-section-title pl-1">4. {meta.monthKor} 조회수 (Top 20)</h3>
 
                             <div className="ranking-container scroll-list">
-                                {topContents.slice(0, 20).map((item: any, index: number) => (
+                                {topContents.slice(0, 20).map((item: RankingItem, index: number) => (
                                     <div key={index} className={`rank-row ${index < 3 ? 'top-tier' : ''}`}>
                                         <div className={`rank-num ${index < 3 ? 'highlight' : ''}`}>{index + 1}</div>
 

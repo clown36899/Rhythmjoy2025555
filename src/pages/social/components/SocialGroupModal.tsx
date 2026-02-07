@@ -79,14 +79,10 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
     }, [isOpen, editGroup]);
 
     const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        console.log('[SocialGroupModal] handleImageSelect called');
+
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
-            console.log('[SocialGroupModal] File selected:', {
-                name: file.name,
-                type: file.type,
-                size: file.size
-            });
+
 
             if (!isImageFile(file)) {
                 console.error('[SocialGroupModal] Invalid file type:', file.type);
@@ -94,10 +90,10 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
                 return;
             }
 
-            console.log('[SocialGroupModal] Starting FileReader...');
+
             const reader = new FileReader();
             reader.onload = (event) => {
-                console.log('[SocialGroupModal] FileReader onload - setting tempImageSrc and opening crop modal');
+
                 setTempImageSrc(event.target?.result as string);
                 setIsCropModalOpen(true);
             };
@@ -105,20 +101,12 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
                 console.error('[SocialGroupModal] FileReader error:', error);
             };
             reader.readAsDataURL(file);
-        } else {
-            console.log('[SocialGroupModal] No file selected');
         }
         e.target.value = '';
     };
 
     const handleCropComplete = (croppedFile: File, previewUrl: string, _isModified: boolean) => {
-        console.log('[SocialGroupModal] handleCropComplete called:', {
-            fileName: croppedFile.name,
-            fileSize: croppedFile.size,
-            fileType: croppedFile.type,
-            previewUrlLength: previewUrl?.length,
-            isModified: _isModified
-        });
+
         setImageFile(croppedFile);
         setImagePreview(previewUrl);
         setIsCropModalOpen(false);
@@ -151,14 +139,14 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
 
         setIsSubmitting(true);
         setLoadingMessage('삭제 중...');
-        console.log('[SocialGroupModal] Starting deletion process for group:', editGroup.id);
+
 
         try {
             const { data: { session } } = await supabase.auth.getSession();
             const token = session?.access_token;
-            console.log('[SocialGroupModal] Auth token obtained:', !!token);
 
-            console.log('[SocialGroupModal] Sending request to /.netlify/functions/delete-social-item');
+
+
             const response = await fetch('/.netlify/functions/delete-social-item', {
                 method: 'POST',
                 headers: {
@@ -172,7 +160,7 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
                 })
             });
 
-            console.log('[SocialGroupModal] Server response status:', response.status, response.statusText);
+
 
             if (!response.ok) {
                 const errData = await response.json();
@@ -180,8 +168,8 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
                 throw new Error(errData.error || errData.message || '삭제 요청 실패');
             }
 
-            const result = await response.json();
-            console.log('[SocialGroupModal] Success result:', result);
+            await response.json();
+
 
             alert('단체가 삭제되었습니다.');
             onSuccess(null);
@@ -406,10 +394,7 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
                         <div
                             className="image-preview-box"
                             onClick={() => {
-                                console.log('[SocialGroupModal] Image preview box clicked:', {
-                                    hasImagePreview: !!imagePreview,
-                                    imagePreviewLength: imagePreview?.length
-                                });
+
                                 // Always open crop modal (with existing image or null)
                                 setTempImageSrc(imagePreview);
                                 setIsCropModalOpen(true);
@@ -592,19 +577,15 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
                 imageUrl={tempImageSrc}
                 onCropComplete={handleCropComplete}
                 onChangeImage={() => {
-                    console.log('[SocialGroupModal] onChangeImage callback triggered');
+
                     fileInputRef.current?.click();
                 }}
                 onImageUpdate={(file: File) => {
-                    console.log('[SocialGroupModal] onImageUpdate callback triggered:', {
-                        fileName: file.name,
-                        fileSize: file.size,
-                        fileType: file.type
-                    });
+
                     // Convert file to data URL for preview
                     const reader = new FileReader();
                     reader.onload = (e) => {
-                        console.log('[SocialGroupModal] FileReader completed - updating tempImageSrc');
+
                         setTempImageSrc(e.target?.result as string);
                     };
                     reader.onerror = (error) => {

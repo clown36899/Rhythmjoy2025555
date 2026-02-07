@@ -107,7 +107,7 @@ export const detectPWAMode = (): { isPWA: boolean; displayMode: string | null } 
     const windowControlsMode = window.matchMedia('(display-mode: window-controls-overlay)').matches;
 
     // 2. iOS standalone 체크
-    const iosStandalone = (window.navigator as any).standalone === true;
+    const iosStandalone = (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
 
     // 3. URL 파라미터 체크 (manifest start_url fallback)
     const urlParams = new URLSearchParams(window.location.search);
@@ -146,7 +146,7 @@ export const trackPWAInstall = async (user?: { id: string }) => {
     // [FIX] 중복 추적 방지 (세션당 1회 제한)
     const storedInstallTrack = sessionStorage.getItem('pwa_install_tracked');
     if (storedInstallTrack) {
-        console.log('[Analytics] PWA install already tracked for this session, skipping.');
+
         return;
     }
     sessionStorage.setItem('pwa_install_tracked', 'true');
@@ -167,9 +167,7 @@ export const trackPWAInstall = async (user?: { id: string }) => {
             session_id: currentSessionId,
         });
 
-        if (SITE_ANALYTICS_CONFIG.ENV.LOG_TO_CONSOLE) {
-            console.log('[Analytics] PWA install tracked:', { userId, displayMode });
-        }
+
     } catch (error) {
         console.error('[Analytics] Failed to track PWA install:', error);
     }
@@ -214,10 +212,8 @@ export const initializeAnalyticsSession = async (user?: { id: string }, isAdmin?
             // These errors are usually RLS/401 issues that don't affect core functionality
         }
 
-        if (SITE_ANALYTICS_CONFIG.ENV.LOG_TO_CONSOLE) {
-            console.log('[Analytics] Session initialized:', { sessionId: currentSessionId, userId: user?.id, isAdmin, isPWA, displayMode });
-        }
-    } catch (error) {
+
+    } catch {
         // [IGNORE] Silence general errors for background analytics
     }
 };
@@ -272,27 +268,27 @@ export const trackEvent = (log: AnalyticsLog) => {
 
         // localhost, 127.0.0.1 차단
         if (hostname === 'localhost' || hostname === '127.0.0.1') {
-            console.log('[Analytics] 🛠️ Development mode (localhost) - Action skipped');
+
             return;
         }
 
         // .local 도메인 차단
         if (hostname.endsWith('.local') || hostname.includes('localhost')) {
-            console.log('[Analytics] 🛠️ Development mode (.local) - Action skipped');
+
             return;
         }
 
         // 로컬 네트워크 IP 대역 차단 (192.168.x.x, 172.16-31.x.x, 10.x.x.x)
         const ipPattern = /^(192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|10\.)/;
         if (ipPattern.test(hostname)) {
-            console.log('[Analytics] 🛠️ Development mode (local IP) - Action skipped');
+
             return;
         }
 
         // [관리자 IP 차단] 특정 IP 차단
         const blockedIPs = ['172.30.1.86'];
         if (blockedIPs.includes(hostname)) {
-            console.log('[Analytics] 🛡️ Admin IP detected - Action skipped');
+
             return;
         }
     }
@@ -334,9 +330,7 @@ export const trackEvent = (log: AnalyticsLog) => {
         page_url: window.location.pathname,
     };
 
-    if (SITE_ANALYTICS_CONFIG.ENV.LOG_TO_CONSOLE) {
-        console.log('[Analytics] Tracking:', logData);
-    }
+
 
     const performUpload = async () => {
         try {

@@ -26,7 +26,7 @@ const VideoThumbnailSection: React.FC<Props> = ({ onVideoClick }) => {
         const fetchRecentVideos = async () => {
             try {
                 // Revert to learning_resources as learning_videos table is missing (404)
-                console.log('[VideoThumbnailSection] Fetching from learning_resources...');
+
                 const { data, error } = await supabase
                     .from('learning_resources')
                     .select('*')
@@ -40,7 +40,7 @@ const VideoThumbnailSection: React.FC<Props> = ({ onVideoClick }) => {
                     throw error;
                 }
 
-                console.log('[VideoThumbnailSection] Raw Data:', data);
+
 
                 if (data && data.length > 0) {
                     const mappedVideos: VideoThumbnail[] = data.map((v: any) => ({

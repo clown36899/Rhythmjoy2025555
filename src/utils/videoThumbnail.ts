@@ -29,12 +29,12 @@ export async function getVideoThumbnailOptions(videoUrl: string): Promise<VideoT
       try {
         const res = await fetch(url, { method: 'HEAD', mode: 'cors' });
         return res.ok;
-      } catch (e) {
+      } catch {
         // HEAD 요청 실패 시 GET으로 재시도 (CORS 등 이유)
         try {
           const res = await fetch(url, { method: 'GET', mode: 'cors' });
           return res.ok;
-        } catch (e2) {
+        } catch {
           return false;
         }
       }
@@ -115,8 +115,8 @@ export async function getVideoThumbnail(videoUrl: string): Promise<string | null
   try {
     const response = await fetch(maxResUrl, { mode: 'cors' });
     if (response.ok) return maxResUrl;
-  } catch (e) {
-    console.log("MaxRes thumbnail not found or CORS error, trying HQ");
+  } catch {
+    // Ignore error
   }
 
   // 2. HQ 시도 (fallback)

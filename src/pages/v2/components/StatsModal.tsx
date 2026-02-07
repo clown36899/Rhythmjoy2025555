@@ -17,11 +17,17 @@ interface StatsModalProps {
 }
 
 
+
+interface UserProfile {
+    profile_image: string | null;
+    nickname: string | null;
+}
+
 export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' }: StatsModalProps) {
     const [events, setEvents] = useState<SupabaseEvent[]>([]);
     const [posts, setPosts] = useState<StandardBoardPost[]>([]);
     const [loading, setLoading] = useState(true);
-    const [userProfile, setUserProfile] = useState<any>(null);
+    const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
     const [activeTab, setActiveTab] = useState<'my' | 'scene' | 'monthly'>('my');
 
     // Swipe gesture state
@@ -110,7 +116,7 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
                 supabase.from('board_users').select('profile_image, nickname').eq('user_id', userId).maybeSingle()
             ]);
 
-            if (eventsRes.data) setEvents(eventsRes.data as any);
+            if (eventsRes.data) setEvents(eventsRes.data);
             if (postsRes.data) {
                 const profileImage = userRes.data?.profile_image || null;
                 const normalizedPosts = postsRes.data.map((post: any) => ({
@@ -118,7 +124,7 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
                     prefix: Array.isArray(post.prefix) ? post.prefix[0] : post.prefix,
                     author_profile_image: profileImage
                 }));
-                setPosts(normalizedPosts as any);
+                setPosts(normalizedPosts as StandardBoardPost[]);
             }
             if (userRes.data) setUserProfile(userRes.data);
         } catch (error) {

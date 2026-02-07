@@ -51,7 +51,7 @@ function HistoryTimelinePage() {
     } = useHistoryEngine({ userId: user?.id, isAdmin: !!isAdmin, isEditMode });
 
     useEffect(() => {
-        // console.log('🎬 [HistoryTimelinePage] Nodes from Engine:', nodes?.length);
+
     }, [nodes]);
 
     // 2. UI 상태 관리
@@ -93,7 +93,7 @@ function HistoryTimelinePage() {
     // 3. 리소스 데이터 로딩 (서랍용)
     const fetchResourceData = useCallback(async () => {
         try {
-            // console.log('🔄 [HistoryTimelinePage] fetchResourceData starting...');
+
             // 1. Categories (Folders) - These are still in learning_categories according to migrations
             const { data: catData, error: catError } = await supabase
                 .from('learning_categories')
@@ -159,7 +159,7 @@ function HistoryTimelinePage() {
                 documents: resources.filter(r => r.type === 'document' || r.type === 'person'),
                 videos: resources.filter(r => r.type === 'video')
             });
-            // console.log('✅ [HistoryTimelinePage] fetchResourceData complete');
+
         } catch (err) {
             console.error('❌ [HistoryTimelinePage] fetchResourceData failed:', err);
         }
@@ -225,7 +225,7 @@ function HistoryTimelinePage() {
     const handleCategoryChange = useCallback(() => setDrawerRefreshKey(k => k + 1), []);
     // Unused handlers removed
     const handleAddClick = useCallback(() => {
-        console.log('➕ [HistoryTimelinePage] onAddClick received');
+
         setUnifiedModalContext('drawer');
         setShowUnifiedModal(true);
     }, []);
@@ -286,7 +286,7 @@ function HistoryTimelinePage() {
         if (!isAdmin) return;
 
         // 1. 캔버스 사용 여부 확인 - Robust Check
-        console.log('🔍 [Delete] Checking usage for:', { id, type });
+
         const usedNodes = nodes.filter((n) => {
             const d = n.data;
             // Check ANY link to this ID (broad check for safety)
@@ -302,7 +302,7 @@ function HistoryTimelinePage() {
             );
             return nodeIdMatch;
         });
-        console.log('🔍 [Delete] Used in nodes count:', usedNodes.length);
+
 
         const isUsed = usedNodes.length > 0;
         let message = `정말 삭제하시겠습니까?\n\n(ID: ${id})`;
@@ -314,7 +314,7 @@ function HistoryTimelinePage() {
 
         try {
             let deletedData: any[] | null = null;
-            let deletedSource = '';
+
 
             // 🚀 Helper to try delete
             const tryDelete = async (table: string) => {
@@ -333,39 +333,39 @@ function HistoryTimelinePage() {
 
             if (type === 'general' || type === 'category' || type === 'folder') {
                 deletedData = await tryDelete('learning_categories');
-                if (deletedData) deletedSource = 'learning_categories';
+
 
                 if (!deletedData) {
-                    console.log('🔄 [Delete] Fallback: Checking learning_resources for folder...');
+
                     deletedData = await tryDelete('learning_resources');
-                    if (deletedData) deletedSource = 'learning_resources';
+
                 }
             } else if (type === 'document') {
                 deletedData = await tryDelete('learning_documents');
-                if (deletedData) deletedSource = 'learning_documents';
+
 
                 if (!deletedData) {
                     deletedData = await tryDelete('learning_resources');
-                    if (deletedData) deletedSource = 'learning_resources';
+
                 }
             } else {
                 // Resources
                 deletedData = await tryDelete('learning_resources');
-                if (deletedData) deletedSource = 'learning_resources';
+
 
                 if (!deletedData) {
-                    console.log('🔄 [Delete] Fallback: Checking learning_categories...');
+
                     deletedData = await tryDelete('learning_categories');
-                    if (deletedData) deletedSource = 'learning_categories';
+
                 }
             }
 
             // Final attempt: Try ALL tables if still nothing (ignoring type hint)
             if (!deletedData) {
-                console.log('🔄 [Delete] Desperate Fallback: Checking ALL tables...');
-                if (!deletedData) { deletedData = await tryDelete('learning_categories'); if (deletedData) deletedSource = 'learning_categories'; }
-                if (!deletedData) { deletedData = await tryDelete('learning_resources'); if (deletedData) deletedSource = 'learning_resources'; }
-                if (!deletedData) { deletedData = await tryDelete('learning_documents'); if (deletedData) deletedSource = 'learning_documents'; }
+
+                if (!deletedData) { deletedData = await tryDelete('learning_categories'); }
+                if (!deletedData) { deletedData = await tryDelete('learning_resources'); }
+                if (!deletedData) { deletedData = await tryDelete('learning_documents'); }
             }
 
             if (!deletedData || deletedData.length === 0) {
@@ -373,11 +373,11 @@ function HistoryTimelinePage() {
                 throw new Error('데이터베이스에서 해당 아이템을 찾을 수 없거나 삭제할 수 없습니다. (이미 삭제되었을 수 있음)');
             }
 
-            console.log(`✅ [Delete] Success from [${deletedSource}]:`, deletedData);
+
 
             // 3. Node 연쇄 삭제
             if (isUsed) {
-                console.log('🗑️ [Delete] Cascading delete to nodes:', usedNodes.map(n => n.id));
+
                 await handleDeleteNodes(usedNodes.map(n => n.id));
             }
 
@@ -408,10 +408,10 @@ function HistoryTimelinePage() {
     const handleMoveResource = useCallback(async (id: string, targetCategoryId: string | null, isUnclassified: boolean, _gridRow?: number, _gridColumn?: number, type?: string) => {
         if (!isAdmin) return;
         try {
-            console.log('🚚 [handleMoveResource] Called with:', { id, targetCategoryId, isUnclassified, type });
+
 
             if (type === 'CATEGORY' || type === 'folder' || type === 'general') {
-                console.log('🗂️ [handleMoveResource] Processing as FOLDER update');
+
                 // 🔥 FIX: Added is_unclassified column to learning_categories via migration
                 await supabase.from('learning_categories').update({ parent_id: targetCategoryId, is_unclassified: isUnclassified }).eq('id', id);
             } else if (type === 'document') {
@@ -434,7 +434,7 @@ function HistoryTimelinePage() {
         if (!isAdmin) return;
 
         try {
-            console.log('🔄 [Reorder] Starting...', { sourceId, targetId, position, gridRow, gridColumn });
+
 
             // 1. Snapshot ALL items from local state (Mixed Types)
             const allItems = [
@@ -466,7 +466,7 @@ function HistoryTimelinePage() {
             // Reorder is sorting amongst siblings.
 
             if (isRootContext) {
-                console.log('🏗️ [Reorder] Root Grid Context Detected');
+
                 // 2-A. Root Grid Logic
                 // Filter all Root items (null parent) in the target Column
                 const targetColIdx = gridColumn!;
@@ -529,7 +529,7 @@ function HistoryTimelinePage() {
                 await Promise.all(updates);
 
             } else {
-                console.log('📑 [Reorder] Folder List Context Detected');
+
                 // 2-B. Folder List Logic
                 if (!targetItem) {
                     console.warn('⚠️ [Reorder] Target not found for List Reorder');
@@ -686,13 +686,7 @@ function HistoryTimelinePage() {
     const prevShiftPressedRef = useRef(isShiftPressed);
     const prevSearchQueryRef = useRef(searchQuery); // 🔥 Added Ref
 
-    // console.log('🎬 [HistoryTimelinePage] Component Render', {
-    //     nodesCount: nodes.length,
-    //     loading,
-    //     isEditMode,
-    //     currentRootId,
-    //     handlersInitialized: handlersInitializedRef.current
-    // });
+
 
     // 🔥 Memoize Preview Handler
     const handlePreviewLinkedResource = useCallback((id: string, type: string, title: string) => {
@@ -709,12 +703,10 @@ function HistoryTimelinePage() {
         // Revert underscores to spaces for search
         const keyword = rawKeyword.replace(/_/g, ' ');
 
-        console.group('🔗 [HistoryTimelinePage] Resource Click Handler Debug');
-        console.log('Target Keyword (Raw):', rawKeyword);
-        console.log('Target Keyword (Normalized):', keyword);
+
 
         // 1. Try to find in current nodes first (Fastest)
-        console.log('🔍 Searching in visible nodes...', nodes.length);
+
         const lowerKeyword = keyword.toLowerCase();
 
         // Priority: Exact match -> Case-insensitive match
@@ -724,17 +716,14 @@ function HistoryTimelinePage() {
         }
 
         if (targetNode) {
-            console.log('✅ Found in visible nodes:', targetNode);
-            console.groupEnd();
+
             handleViewDetail(targetNode.data);
             return;
-        } else {
-            console.log('❌ Not found in visible nodes');
         }
 
         // 2. Try to find in Database (Global Search)
         try {
-            console.log('SEARCHING DB (history_nodes)...');
+
             // Check History Nodes
             // Try exact first
             let { data: nodeData } = await supabase
@@ -754,7 +743,7 @@ function HistoryTimelinePage() {
             }
 
             if (nodeData) {
-                console.log('✅ Found in history_nodes (DB):', nodeData);
+
                 const compatibleNodeData: HistoryNodeData = {
                     ...nodeData,
                     category: nodeData.category || 'default',
@@ -763,14 +752,12 @@ function HistoryTimelinePage() {
                     position_y: nodeData.position_y || 0,
                     node_behavior: nodeData.node_behavior || 'LEAF'
                 };
-                console.groupEnd();
+
                 handleViewDetail(compatibleNodeData);
                 return;
-            } else {
-                console.log('❌ Not found in history_nodes');
             }
 
-            console.log('SEARCHING DB (learning_resources)...');
+
             // Check Learning Resources
             let { data: resourceData } = await supabase
                 .from('learning_resources')
@@ -788,8 +775,7 @@ function HistoryTimelinePage() {
             }
 
             if (resourceData) {
-                console.log('✅ Found in learning_resources (DB):', resourceData);
-                console.groupEnd();
+
                 if (resourceData.type === 'video') {
                     handlePreviewLinkedResource(resourceData.id, 'video', resourceData.title);
                 } else if (resourceData.type === 'playlist') {
@@ -809,8 +795,6 @@ function HistoryTimelinePage() {
                     });
                 }
                 return;
-            } else {
-                console.log('❌ Not found in learning_resources');
             }
 
         } catch (err) {
@@ -823,21 +807,15 @@ function HistoryTimelinePage() {
     }, [nodes, handleViewDetail, handlePreviewLinkedResource]);
 
     useEffect(() => {
-        // console.log('🔄 [HistoryTimelinePage] useEffect Triggered', {
-        //     loading,
-        //     nodesLength: nodes.length,
-        //     handlersInitialized: handlersInitializedRef.current,
-        //     isEditMode,
-        //     searchQuery
-        // });
+
 
         // Guard: Wait for loading to finish and nodes to exist
         if (loading || allNodesRef.current.size === 0) { // 🔥 Fix: Use allNodesRef instead of nodes
-            // console.log('⏸️ [HistoryTimelinePage] Effect Skipped (Guard)', { loading, nodesLength: nodes.length });
+
             return;
         }
 
-        // console.log('💉 [HistoryTimelinePage] Injecting Handlers into', allNodesRef.current.size, 'nodes');
+
 
         // 1. Always inject handlers into Master Refs (This operation is cheap)
         allNodesRef.current.forEach(node => {
@@ -866,15 +844,10 @@ function HistoryTimelinePage() {
             prevShiftPressedRef.current !== isShiftPressed ||
             prevSearchQueryRef.current !== searchQuery; // 🔥 Fix: Detect Search Change
 
-        // console.log('🔍 [HistoryTimelinePage Debug]', {
-        //     searchQuery,
-        //     prevQuery: prevSearchQueryRef.current,
-        //     shouldSync,
-        //     currentRootId
-        // });
+
 
         if (shouldSync) {
-            // console.log('🎨 [HistoryTimelinePage Debug] Calling syncVisualization');
+
             const filters = searchQuery ? { search: searchQuery } : undefined;
             syncVisualization(currentRootId, filters);
             handlersInitializedRef.current = true;
@@ -909,7 +882,7 @@ function HistoryTimelinePage() {
             // Only save if it looks valid (not 0,0,0 usually)
             if (currentView.zoom > 0) {
                 viewportHistoryRef.current.set(prevIdKey, currentView);
-                console.log(`💾 [Viewport] Saved history for [${prevIdKey}]:`, currentView);
+
             }
         }
 
@@ -919,7 +892,7 @@ function HistoryTimelinePage() {
         // 2. Restore Viewport (Priority 1)
         const savedView = viewportHistoryRef.current.get(currentIdKey);
         if (savedView) {
-            console.log(`♻️ [Viewport] Restoring history for [${currentIdKey}]:`, savedView);
+
             rfInstance.setViewport(savedView, { duration: 0 });
             hasAppliedDefaultViewRef.current = true;
             setIsViewportReady(true);
@@ -960,7 +933,7 @@ function HistoryTimelinePage() {
         // 4. Fallback Auto-Fit (Priority 3 - Folders / Search)
         // If we fall through here, simply fit view
         requestAnimationFrame(() => {
-            console.log('🖼️ [Viewport] Auto-Fit (Fallback/Nav)');
+
             rfInstance.fitView({ padding: 0.1 });
             setIsViewportReady(true);
         });
@@ -979,8 +952,8 @@ function HistoryTimelinePage() {
         if (!window.confirm(message)) return;
 
         try {
-            console.log(`🎬 [Viewport] Saving to ${key}...`, viewport);
-            const { data, error } = await supabase
+
+            const { error } = await supabase
                 .from('app_settings')
                 .upsert({
                     key,
@@ -993,7 +966,7 @@ function HistoryTimelinePage() {
                 console.error('❌ [Viewport] Save failed (Supabase):', error);
                 throw error;
             }
-            console.log('✅ [Viewport] Save success:', data);
+
             alert('저장되었습니다.');
         } catch (err: any) {
             console.error('❌ [Viewport] Save failed (Catch):', err);
@@ -1387,7 +1360,7 @@ function HistoryTimelinePage() {
             {showPersonModal && (
                 <PersonCreateModal
                     context={unifiedModalContext}
-                    onClose={() => { console.log('👤 [HistoryTimelinePage] Person Modal Closing'); setShowPersonModal(false); }}
+                    onClose={() => { setShowPersonModal(false); }}
                     onSuccess={async (resource: any) => {
                         setDrawerRefreshKey(k => k + 1);
                         if (unifiedModalContext === 'canvas') {
@@ -1414,7 +1387,7 @@ function HistoryTimelinePage() {
             {showCanvasModal && (
                 <CanvasCreateModal
                     context={unifiedModalContext}
-                    onClose={() => { console.log('🚪 [HistoryTimelinePage] Canvas Modal Closing'); setShowCanvasModal(false); }}
+                    onClose={() => { setShowCanvasModal(false); }}
                     onSuccess={async (resource: any) => {
                         setDrawerRefreshKey(k => k + 1);
                         if (unifiedModalContext === 'canvas') {
@@ -1468,7 +1441,7 @@ function HistoryTimelinePage() {
                     context={unifiedModalContext}
                     onClose={() => setShowUnifiedModal(false)}
                     onCreateFolder={() => {
-                        console.log('📂 [HistoryTimelinePage] onCreateFolder called');
+
                         if (unifiedModalContext === 'canvas') {
                             setShowFolderModal(true);
                         } else {
@@ -1480,7 +1453,7 @@ function HistoryTimelinePage() {
                     onCreatePerson={() => setShowPersonModal(true)}
                     onCreateCanvas={() => setShowCanvasModal(true)}
                     onCreateGeneral={async () => {
-                        console.log('✨ [HistoryTimelinePage] onCreateGeneral called');
+
                         if (unifiedModalContext === 'canvas' && rfInstance) {
                             const reactFlowBounds = document.querySelector('.history-timeline-canvas')?.getBoundingClientRect();
                             const position = rfInstance.project({
@@ -1499,7 +1472,7 @@ function HistoryTimelinePage() {
                         }
                     }}
                     onCreateArrow={async () => {
-                        console.log('➡️ [HistoryTimelinePage] onCreateArrow called');
+
                         if (unifiedModalContext === 'canvas' && rfInstance) {
                             const reactFlowBounds = document.querySelector('.history-timeline-canvas')?.getBoundingClientRect();
                             const position = rfInstance.project({

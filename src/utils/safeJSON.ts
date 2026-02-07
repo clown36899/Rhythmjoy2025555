@@ -3,7 +3,7 @@
  * JSON.parse 에러를 처리하여 크래시 방지
  */
 
-export const safeJSONParse = <T = any>(
+export const safeJSONParse = <T = unknown>(
     jsonString: string | null | undefined,
     fallback: T = [] as T
 ): T => {
@@ -25,7 +25,7 @@ export const safeJSONParse = <T = any>(
 /**
  * 배열 JSON 파싱 (타입 안전)
  */
-export const parseJSONArray = <T = any>(
+export const parseJSONArray = <T = unknown>(
     jsonString: string | null | undefined
 ): T[] => {
     return safeJSONParse<T[]>(jsonString, []);
@@ -34,7 +34,7 @@ export const parseJSONArray = <T = any>(
 /**
  * 객체 JSON 파싱 (타입 안전)
  */
-export const parseJSONObject = <T = Record<string, any>>(
+export const parseJSONObject = <T = Record<string, unknown>>(
     jsonString: string | null | undefined,
     fallback: T = {} as T
 ): T => {

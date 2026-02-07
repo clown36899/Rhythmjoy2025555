@@ -83,15 +83,14 @@ export function useEventModal(): UseEventModalReturn {
     // 4. 이벤트 삭제 핸들러
     const handleDeleteEvent = useCallback(async (eventId: number | string, password?: string) => {
         // Double confirm removal: The caller (UI) handles confirmation.
-        console.log('%c🔥 [useEventModal/Legacy] handleDeleteEvent Triggered!', 'background: #222; color: #ff5555; font-size: 14px');
-        console.log('[useEventModal] ID:', eventId, 'Password Provided:', !!password);
+
 
         try {
-            console.log('[useEventModal] Setting isDeleting to TRUE');
+
             setIsDeleting(true);
             const { data: { session } } = await supabase.auth.getSession();
             const token = session?.access_token;
-            console.log('[useEventModal] Got auth token, starting fetch...');
+
 
             const response = await fetch('/.netlify/functions/delete-event', {
                 method: 'POST',
@@ -102,7 +101,7 @@ export function useEventModal(): UseEventModalReturn {
                 body: JSON.stringify({ eventId, password })
             });
 
-            console.log('[useEventModal] Fetch returned, status:', response.status);
+
 
             if (!response.ok) {
                 const errorData = await response.json();
@@ -117,23 +116,23 @@ export function useEventModal(): UseEventModalReturn {
                 throw new Error(errorData.error || `Server returned ${response.status}`);
             }
 
-            console.log('[useEventModal] Deletion successful');
+
             alert("삭제되었습니다.");
 
             // Clean up state
-            console.log('[useEventModal] Cleaning up state...');
+
             setSelectedEvent(null);
             setShowEditModal(false);
             setEventToEdit(null);
 
             // 다른 컴포넌트에 삭제 이벤트 알림
-            console.log('[useEventModal] Dispatching eventDeleted');
+
             window.dispatchEvent(new CustomEvent("eventDeleted", { detail: { eventId } }));
         } catch (error: any) {
             console.error("이벤트 삭제 중 오류 발생:", error);
             alert("삭제 실패: " + (error.message || "알 수 없는 오류"));
         } finally {
-            console.log('[useEventModal] Setting isDeleting to FALSE');
+
             setIsDeleting(false);
         }
     }, []);

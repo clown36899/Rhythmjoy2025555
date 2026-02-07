@@ -207,8 +207,7 @@ const SocialPage: React.FC = () => {
       const weekStartStr = getLocalDateString(weekStart);
       const weekEndStr = getLocalDateString(weekEnd);
 
-      console.log(`[SocialPage] Fetching events from ${weekStartStr} to ${weekEndStr}`);
-      console.log(`[SocialPage] Current View Date: ${currentViewDate.toISOString()}`);
+
 
       // Fetch events overlapping with this week
       const { data, error } = await supabase
@@ -225,7 +224,7 @@ const SocialPage: React.FC = () => {
       }
 
       if (data) {
-        console.log(`[SocialPage] Raw events fetched: ${data.length}`);
+
         // Filter events that actually overlap with the week range
         const filtered = data.filter(e => {
           const effectiveStart = e.start_date || e.date || "";
@@ -234,7 +233,7 @@ const SocialPage: React.FC = () => {
           const overlaps = effectiveEnd >= weekStartStr && effectiveStart <= weekEndStr;
           return overlaps;
         });
-        console.log(`[SocialPage] Filtered events (overlap): ${filtered.length}`, filtered);
+
         setEventsThisWeek(filtered);
       }
       setLoadingEvents(false);
@@ -244,7 +243,7 @@ const SocialPage: React.FC = () => {
 
 
   const handleEditSchedule = useCallback(async (schedule: SocialSchedule) => {
-    console.log('📝 [Edit Schedule Clicked]', schedule);
+
 
     if (!user) {
       alert("로그인이 필요합니다.");
@@ -349,7 +348,7 @@ const SocialPage: React.FC = () => {
 
   // Handlers
   const handleScheduleClick = useCallback((schedule: SocialSchedule) => {
-    console.log('🔍 [Schedule Clicked]', schedule);
+
     socialDetailModal.open({
       schedule,
       onCopy: handleCopySchedule,
@@ -542,14 +541,14 @@ const SocialPage: React.FC = () => {
         <SocialScheduleModal
           isOpen={isScheduleModalOpen}
           onClose={() => {
-            console.log('🔒 Modal Closing...');
+
             setIsScheduleModalOpen(false);
             setEditSchedule(null);
             setCopySchedule(null);
             setTargetGroupId(null);
           }}
           onSuccess={() => {
-            console.log('✅ Modal Success!');
+
             refreshSchedules();
             setIsScheduleModalOpen(false);
             setEditSchedule(null);

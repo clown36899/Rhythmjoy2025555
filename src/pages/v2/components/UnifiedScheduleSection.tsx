@@ -9,7 +9,7 @@ import "../../../styles/components/UnifiedScheduleSection.css";
 interface UnifiedScheduleSectionProps {
     todaySchedules: SocialSchedule[];
     futureSchedules: SocialSchedule[];
-    onEventClick?: (event: any) => void;
+    onEventClick?: (event: SocialSchedule) => void;
     onRefresh?: () => void;
 }
 
@@ -117,10 +117,10 @@ export const UnifiedScheduleSection: React.FC<UnifiedScheduleSectionProps> = ({
             openModal('socialDetail', {
                 schedule: scheduleItem,
                 isAdmin: isOwner || isAdmin,
-                onEdit: (s: any) => openModal('socialSchedule', {
+                onEdit: (s: SocialSchedule) => openModal('socialSchedule', {
                     editSchedule: s,
                     groupId: s.group_id,
-                    onSuccess: (data: any) => {
+                    onSuccess: (data: SocialSchedule | null) => {
                         onRefresh?.();
                         if (data) openDetail(data);
                     }

@@ -2,11 +2,12 @@
 import { useState, useCallback } from "react";
 import { supabase } from "../../../lib/supabase";
 import type { Event as AppEvent } from "../../../lib/supabase";
+import type { User } from "@supabase/supabase-js";
 import { useModalActions } from "../../../contexts/ModalContext";
 
 interface UseEventActionsProps {
     adminType: "super" | "sub" | null;
-    user: any; // User type from AuthContext
+    user: User | null; // User type from AuthContext
     signInWithKakao: () => void;
 }
 
@@ -48,7 +49,7 @@ export function useEventActions({ adminType, user, signInWithKakao }: UseEventAc
         }
 
         // 3. 소셜 이벤트 여부 확인
-        const isSocial = String(event.id).startsWith('social-') || (event as any).is_social_integrated;
+        const isSocial = String(event.id).startsWith('social-') || (event as AppEvent & { is_social_integrated?: boolean }).is_social_integrated;
 
         if (isSocial) {
             // 소셜 스케줄 수정을 위해 SocialScheduleModal 호출
@@ -61,7 +62,7 @@ export function useEventActions({ adminType, user, signInWithKakao }: UseEventAc
                     ...event,
                     id: socialId // 숫자형 ID로 복원하여 전달 (SocialSchedule 타입 기대치 충족)
                 },
-                groupId: (event as any).group_id || null,
+                groupId: (event as AppEvent & { group_id?: number }).group_id || null,
                 onSuccess: () => {
                     // 성공 시 이벤트 리스트 갱신을 위해 커스텀 이벤트 발생
                     window.dispatchEvent(new CustomEvent('eventUpdated'));
@@ -85,7 +86,7 @@ export function useEventActions({ adminType, user, signInWithKakao }: UseEventAc
     const [deleteProgress, setDeleteProgress] = useState(0);
 
     const deleteEvent = async (eventId: number | string, password: string | null = null): Promise<boolean> => {
-        console.log('%c🚀 [useEventActions/V2] deleteEvent Triggered!', 'background: #222; color: #55ff55; font-size: 14px');
+
         if (isDeleting) return false; // Prevent double click
 
         // Double Confirmation Removed
@@ -128,9 +129,10 @@ export function useEventActions({ adminType, user, signInWithKakao }: UseEventAc
             window.dispatchEvent(new CustomEvent("eventDeleted", { detail: { eventId } }));
 
             return true;
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Delete error:', error);
-            alert("삭제 실패: " + (error.message || "알 수 없는 오류"));
+            const message = error instanceof Error ? error.message : "알 수 없는 오류";
+            alert("삭제 실패: " + message);
             return false;
         } finally {
             setIsDeleting(false);
@@ -140,7 +142,7 @@ export function useEventActions({ adminType, user, signInWithKakao }: UseEventAc
 
     const handleDeleteClick = useCallback(async (event: AppEvent, e?: React.MouseEvent): Promise<boolean> => {
         e?.stopPropagation();
-        console.log('%c🚀 [useEventActions/V2] handleDeleteClick Triggered!', 'background: #222; color: #55ff55; font-size: 14px');
+
 
         // 1. Super Admin Request
         if (adminType === "super") {

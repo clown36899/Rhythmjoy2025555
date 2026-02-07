@@ -1,5 +1,5 @@
 export const authLogger = {
-    log: (message: string, data?: any) => {
+    log: (message: string, data?: unknown) => {
         try {
             const logs = JSON.parse(localStorage.getItem('auth_debug_logs') || '[]');
             const timestamp = new Date().toISOString();

@@ -85,13 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     try {
       // 🔍 DEBUG: Log all metadata to understand what Supabase provides
-      console.log('[ensureBoardUser] 🔍 Full User Object Debug:', {
-        userId: userObj.id,
-        email: userObj.email,
-        app_metadata: userObj.app_metadata,
-        user_metadata: userObj.user_metadata,
-        identities: userObj.identities,
-      });
+
 
       const metadata = userObj.user_metadata || {};
       const nickname = metadata.name || metadata.full_name || userObj.email?.split('@')[0] || 'User';
@@ -106,7 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (socialIdentity) {
         provider = socialIdentity.provider;
-        console.log('[ensureBoardUser] ✅ Provider from identities:', provider);
+
       }
       // 2. Check App Metadata Providers array
       else if (userObj.app_metadata?.providers) {
@@ -114,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const socialProvider = providers.find((p: string) => p !== 'email');
         if (socialProvider) {
           provider = socialProvider;
-          console.log('[ensureBoardUser] ✅ Provider from app_metadata.providers:', provider);
+
         }
       }
 
@@ -122,29 +116,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (provider === 'email') {
         if (userObj.app_metadata?.provider && userObj.app_metadata.provider !== 'email') {
           provider = userObj.app_metadata.provider;
-          console.log('[ensureBoardUser] ✅ Provider from app_metadata.provider:', provider);
+
         } else if (metadata.kakao_id || metadata.iss?.includes('kakao') || userObj.email?.includes('kakao')) {
           provider = 'kakao';
-          console.log('[ensureBoardUser] 🔍 Inferred Kakao from metadata/email');
+
         } else if (profileImage?.includes('googleusercontent.com')) {
           provider = 'google';
-          console.log('[ensureBoardUser] 🔍 Inferred Google from profile image');
+
         } else if (profileImage?.includes('kakaocdn.net') || profileImage?.includes('kakao.com')) {
           provider = 'kakao';
-          console.log('[ensureBoardUser] 🔍 Inferred Kakao from profile image');
+
         } else if (metadata.iss && metadata.iss.includes('google')) {
           provider = 'google';
-          console.log('[ensureBoardUser] 🔍 Inferred Google from iss metadata');
+
         }
       }
 
-      console.log(`[ensureBoardUser] 🎯 Final provider decision: "${provider}" for user ${userObj.id}`);
+
 
       // Capture personal info from metadata
       const realName = metadata.real_name || metadata.full_name || metadata.name || null;
       const phoneNumber = metadata.phone_number || null;
 
-      console.log('[AuthContext] 🕵️ Metadata received:', { realName, phoneNumber });
+
 
       const { data: existingUser } = await supabase
         .from('board_users')
@@ -171,7 +165,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (effectiveProvider !== 'email' && (!existingUser.provider || existingUser.provider === 'email')) {
           updateData.provider = effectiveProvider;
-          console.log(`[AuthContext] 🛠️ Correcting provider for user ${userObj.id}: ${existingUser.provider} -> ${effectiveProvider}`);
+
         }
 
         // 2. 실명 보충 (DB가 비어있을 때만)
@@ -198,7 +192,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // If user was withdrawn, RESURRECT them
         if (isWithdrawn) {
-          console.log('[AuthContext] 🧟‍♂️ Resurrecting withdrawn user:', userObj.id);
+
           updateData.status = 'active';
           updateData.deleted_at = null;
           updateData.nickname = nickname + '_' + Math.floor(Math.random() * 10000);
@@ -211,7 +205,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         );
 
         if (hasChanges || isWithdrawn) {
-          console.log('[AuthContext] 🔄 Updating board_users with corrected data:', Object.keys(updateData));
+
           const { error: updateError } = await supabase
             .from('board_users')
             .update(updateData)
@@ -253,7 +247,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (cached) {
       try {
         return JSON.parse(cached);
-      } catch (e) {
+      } catch {
         return null;
       }
     }
@@ -287,7 +281,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     }
     keysToRemove.forEach(key => {
-      console.log('[AuthContext] 🗑️ Removing process-specific key:', key);
+
       localStorage.removeItem(key);
     });
 
@@ -315,7 +309,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // 만료되거나 손상된 세션 정리 (좀비 토큰 제거)
   const cleanupStaleSession = async (forceReload = false) => {
-    console.log('[AuthContext] 🧹 Cleaning up stale session (Zombie Token Removal)');
+
 
     try {
       authLogger.log('[AuthContext] 🧹 Cleaning up stale session (Zombie Token Removal)');
@@ -328,7 +322,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // 2. 데이터 및 상태 삭제
     wipeLocalData();
 
-    console.log('[AuthContext] ✅ Stale session cleaned up');
+
 
     // 3. 강제 리로드가 필요하면 실행 (심각한 오류 상황)
     if (forceReload) {
@@ -465,7 +459,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUserProfile(newProfile);
         localStorage.setItem(`${storagePrefix}userProfile`, JSON.stringify(newProfile));
       }
-    } catch (e) {
+    } catch {
       // console.warn('[AuthContext] Profile load delayed, using fallback:', e.message);
       // Fallback on error/timeout
       const fallbackProfile = {
@@ -503,8 +497,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!validSession) {
       console.warn('[AuthContext] 🕵️‍♂️ Session became invalid during validation');
       await cleanupStaleSession();
-    } else {
-      console.log('[AuthContext] 🕵️‍♂️ Session is valid');
     }
   }, []);
 
@@ -516,7 +508,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // 하루에 한 번만 체크 (혹은 구독 정보가 없을 때)
       if (!lastSubscribe || now - parseInt(lastSubscribe) > 86400000) {
-        console.log('[AuthContext] 🔔 Admin PWA detected - Attempting auto-push subscription for testing');
+
         subscribeToPush()
           .then(() => {
             localStorage.setItem(`${storagePrefix}last_push_subscribe`, String(now));
@@ -535,7 +527,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // 🔥 접두사 붙인 로그아웃 플래그 확인
     const isLoggingOutFlag = localStorage.getItem(`${storagePrefix}isLoggingOut`);
     if (isLoggingOutFlag) {
-      console.log(`[AuthContext] 🧹 Enforcing cleanup after logout reload (${storagePrefix})`);
+
       authLogger.log(`[AuthContext] 🧹 Enforcing cleanup after logout reload (${storagePrefix})`);
 
       // 상태를 true로 설정하여 자식 컴포넌트들이 로그아웃 직후임을 알게 함
@@ -682,7 +674,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const logs = JSON.parse(localStorage.getItem('logout_debug_logs') || '[]');
       logs.push(`${new Date().toISOString().split('T')[1].slice(0, 12)} - ${msg}`);
       localStorage.setItem('logout_debug_logs', JSON.stringify(logs));
-      console.log(msg);
+
     };
 
     // 이전 로그 초기화
@@ -798,11 +790,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     sessionStorage.setItem('kakao_login_start_time', String(Date.now())); // Track start time
     try {
       // 로그인 전에 스크롤 위치 저장 (익명 게시판은 내부 컨테이너 스크롤 사용)
-      const boardContainer = document.querySelector('.board-posts-container');
-      const scrollY = boardContainer ? boardContainer.scrollTop : window.scrollY;
-      console.log('[AuthContext] Saving scroll position before login:', scrollY, 'from:', boardContainer ? 'container' : 'window');
 
-      console.log('[signInWithKakao] 카카오 로그인 시작 (리다이렉트 방식)');
+
 
       // SDK 초기화 및 로그인 실행
       // loginWithKakao는 리다이렉트를 수행하므로, 여기서 await를 해도 돌아오지 않을 수 있음
@@ -828,8 +817,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signInWithGoogle = useCallback(async () => {
-    console.log('[signInWithGoogle] 🚀 Starting Google login process');
-    console.log('[signInWithGoogle] Current origin:', window.location.origin);
+
 
     setIsAuthProcessing(true);
     try {
@@ -844,7 +832,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
       };
 
-      console.log('[signInWithGoogle] Auth options:', JSON.stringify(authOptions, null, 2));
+
 
 
       // [DEBUG] 모바일 환경 리다이렉트 문제 확인용
@@ -852,10 +840,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       //   alert(`Login Redirect URL:\n${authOptions.options.redirectTo}`);
       // }
 
-      const { data, error } = await supabase.auth.signInWithOAuth(authOptions);
+      const { error } = await supabase.auth.signInWithOAuth(authOptions);
 
-      console.log('[signInWithGoogle] Response data:', data);
-      console.log('[signInWithGoogle] Response error:', error);
+
 
       if (error) {
         console.error('[signInWithGoogle] ❌ Supabase returned error:', {
@@ -867,7 +854,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw error;
       }
 
-      console.log('[signInWithGoogle] ✅ OAuth request successful, redirecting...');
+
     } catch (error: any) {
       console.error('[signInWithGoogle] 💥 Caught error:', {
         message: error.message,
@@ -884,7 +871,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (import.meta.env.DEV) {
       return () => {
         // 실제 로그인은 하지 않고, UI에서 관리자 모드 활성화만 트리거
-        console.log('[개발 프리패스] 활성화됨 - UI 전용 모드');
+
       };
     }
     return undefined;

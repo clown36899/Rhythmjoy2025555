@@ -409,6 +409,7 @@
     text-overflow: ellipsis;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     color: var(--text-secondary);
     width: 100%;
@@ -698,6 +699,7 @@
     /* white-space: nowrap; -> Allow wrap or ellipsis? */
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     padding: 0 1px;
 }

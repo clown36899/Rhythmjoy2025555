@@ -38,6 +38,21 @@ interface SceneStats {
     };
 }
 
+interface StatAccumulator {
+    types: { [key: string]: number };
+    genres: { [key: string]: number };
+    items: StatItem[];
+}
+
+interface MonthlyStat {
+    month: string;
+    classes: number;
+    events: number;
+    socials: number;
+    posts: number;
+    total: number;
+}
+
 export default function SwingSceneStats() {
     const [stats, setStats] = useState<SceneStats | null>(null);
     const [loading, setLoading] = useState(true);
@@ -95,12 +110,12 @@ export default function SwingSceneStats() {
 
 
             // 2. Process Data
-            const monthlyDict: { [key: string]: any } = {};
+            const monthlyDict: { [key: string]: MonthlyStat } = {};
             const globalGenreDict: { [name: string]: number } = {};
             const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
 
             const initDow = () => {
-                const dict: any = {};
+                const dict: { [key: string]: StatAccumulator } = {};
                 dayNames.forEach(d => dict[d] = {
                     types: { '강습': 0, '행사': 0, '소셜': 0, '게시글': 0 },
                     genres: { '소셜': 0 },
@@ -305,20 +320,20 @@ export default function SwingSceneStats() {
             const sortedGenres = Object.entries(globalGenreDict).sort((a, b) => b[1] - a[1]).map(e => e[0]);
             const top5Genres = sortedGenres.slice(0, 5);
 
-            const buildWeeklyStats = (dict: any) => {
+            const buildWeeklyStats = (dict: { [key: string]: StatAccumulator }) => {
                 return dayNames.map(day => {
                     const data = dict[day];
-                    const total = Object.values(data.types).reduce((a: number, b: any) => a + (Number(b) || 0), 0);
+                    const total = Object.values(data.types).reduce((a: number, b: number) => a + (Number(b) || 0), 0);
                     const typeBreakdown = [
                         { name: '강습', count: Number(data.types['강습']) || 0 },
                         { name: '행사', count: Number(data.types['행사']) || 0 },
                         { name: '소셜', count: Number(data.types['소셜']) || 0 },
                         { name: '게시글', count: Number(data.types['게시글']) || 0 }
                     ];
-                    const genreBreakdown: any[] = [];
+                    const genreBreakdown: { name: string; count: number }[] = [];
                     let othersCount = Number(data.genres['소셜']) || 0;
                     top5Genres.forEach(g => genreBreakdown.push({ name: g, count: Number(data.genres[g]) || 0 }));
-                    Object.entries(data.genres).forEach(([name, count]: [string, any]) => {
+                    Object.entries(data.genres).forEach(([name, count]: [string, number]) => {
                         if (name !== '소셜' && !top5Genres.includes(name)) othersCount += (Number(count) || 0);
                     });
                     genreBreakdown.push({ name: '소셜', count: othersCount });

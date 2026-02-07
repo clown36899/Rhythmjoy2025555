@@ -25,19 +25,11 @@ export async function resizeImage(
     const startTime = performance.now();
     const isDataUrl = typeof fileOrDataUrl === 'string';
 
-    console.log(`[🖼️ 리사이즈 ${targetSize}px, mode: ${mode}] 시작`, {
-      source: isDataUrl ? 'base64' : 'File',
-      fileName: isDataUrl ? fileName : (fileOrDataUrl as File).name,
-      dataSize: isDataUrl ? `${(fileOrDataUrl.length / 1024).toFixed(0)}KB` : `${((fileOrDataUrl as File).size / 1024).toFixed(0)}KB`,
-      fileType: isDataUrl ? 'base64' : (fileOrDataUrl as File).type
-    });
+
 
     function processImage(this: HTMLImageElement) {
-      const elapsed = performance.now() - startTime;
-      console.log(`[🖼️ 리사이즈 ${targetSize}px] 이미지 로드 완료 (${elapsed.toFixed(0)}ms)`, {
-        originalWidth: this.width,
-        originalHeight: this.height
-      });
+
+
 
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
@@ -70,10 +62,7 @@ export async function resizeImage(
         }
       }
 
-      console.log(`[🖼️ 리사이즈 ${targetSize}px] Canvas 설정`, {
-        targetWidth: Math.round(width),
-        targetHeight: Math.round(height)
-      });
+
 
       canvas.width = width;
       canvas.height = height;
@@ -83,18 +72,14 @@ export async function resizeImage(
       ctx.fillRect(0, 0, width, height);
 
       ctx.drawImage(this, 0, 0, width, height);
-      console.log(`[🖼️ 리사이즈 ${targetSize}px] Canvas에 이미지 그리기 완료`);
+
 
       // WebP 지원 여부에 따라 형식 결정
       const useWebP = supportsWebP();
       const mimeType = useWebP ? 'image/webp' : 'image/jpeg';
       const extension = useWebP ? 'webp' : 'jpg';
 
-      console.log(`[🖼️ 리사이즈 ${targetSize}px] 출력 형식`, {
-        useWebP,
-        mimeType,
-        quality
-      });
+
 
       // 파일명 결정 - 확장자를 WebP로 강제 변경
       const baseFileName = isDataUrl
@@ -110,22 +95,15 @@ export async function resizeImage(
             return;
           }
 
-          const elapsed = performance.now() - startTime;
-          console.log(`[🖼️ 리사이즈 ${targetSize}px] Blob 생성 완료 (${elapsed.toFixed(0)}ms)`, {
-            blobSize: `${(blob.size / 1024).toFixed(0)}KB`,
-            blobType: blob.type
-          });
+
+
 
           const resizedFile = new File([blob], finalFileName, {
             type: mimeType,
             lastModified: Date.now(),
           });
 
-          console.log(`[🖼️ 리사이즈 ${targetSize}px] ✅ 완료 (총 ${elapsed.toFixed(0)}ms)`, {
-            fileName: resizedFile.name,
-            fileSize: `${(resizedFile.size / 1024).toFixed(0)}KB`,
-            fileType: resizedFile.type
-          });
+
 
           resolve(resizedFile);
         },
@@ -165,7 +143,7 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => resolve(img);
-    img.onerror = (e) => reject(new Error('Image load failed'));
+    img.onerror = () => reject(new Error('Image load failed'));
     img.src = src;
   });
 }
@@ -241,7 +219,7 @@ export async function createResizedImages(
   _onProgress?: (progress: number, step: string) => void,
   fileName: string = 'image.jpg'
 ): Promise<ResizedImages> {
-  const startTime = performance.now();
+
   const isDataUrl = typeof fileOrDataUrl === 'string';
   let objectUrl: string | null = null;
 
@@ -270,7 +248,7 @@ export async function createResizedImages(
 
     if (objectUrl) URL.revokeObjectURL(objectUrl);
 
-    console.log(`[🎨 이미지 리사이즈] 완료 (총 ${(performance.now() - startTime).toFixed(0)}ms)`);
+
 
     return { micro, thumbnail, medium, full };
   } catch (error) {

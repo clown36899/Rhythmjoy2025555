@@ -18,7 +18,7 @@ const DEFAULT_THUMBNAILS = {
 /**
  * Supabase Storage URL에 이미지 변환 파라미터를 추가합니다.
  */
-export function getOptimizedImageUrl(url: string | any | undefined | null, _width: number, _quality = 80): string | undefined {
+export function getOptimizedImageUrl(url: string | { [key: string]: any } | undefined | null, _width: number, _quality = 80): string | undefined {
   if (!url) return undefined;
 
   // Handle object structure if passed (e.g. { url: '...', isThumbnail: true }) or structured image objects
