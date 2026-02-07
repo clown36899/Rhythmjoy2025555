@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
+import LocalLoading from '../../../components/LocalLoading';
 
 interface StatItem {
     type: '강습' | '행사' | '소셜' | '게시글';
@@ -408,9 +409,8 @@ export default function SwingSceneStats() {
 
     if (loading || !stats) {
         return (
-            <div className="loading-container" style={{ padding: '60px 0' }}>
-                <i className="ri-loader-4-line loading-spinner"></i>
-                <p className="loading-text">데이터 집계 중...</p>
+            <div style={{ padding: '60px 0' }}>
+                <LocalLoading message="데이터 집계 중..." size="lg" />
             </div>
         );
     }

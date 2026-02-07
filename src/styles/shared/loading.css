@@ -35,3 +35,74 @@
     background-color: var(--bg-base);
     color: var(--text-primary);
 }
+
+/* --- Refactored BEM Styles (2026-02-07) --- */
+
+/* Container Variants */
+.loading__container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.loading__container--block {
+    flex-direction: column;
+    width: 100%;
+    padding: 2rem 0;
+    min-height: 100px;
+}
+
+.loading__container--inline {
+    display: inline-flex;
+    flex-direction: row;
+    gap: 8px;
+}
+
+/* Spinner Base */
+.loading__spinner {
+    animation: spin 0.8s linear infinite;
+    display: inline-block;
+    line-height: 1;
+}
+
+/* Size Variants */
+.loading__spinner--sm {
+    font-size: 1.2rem;
+}
+
+.loading__spinner--md {
+    font-size: 2.0rem;
+}
+
+.loading__spinner--lg {
+    font-size: 3.0rem;
+}
+
+/* Color Variants */
+.loading__spinner--primary {
+    color: var(--color-blue-500);
+}
+
+.loading__spinner--white {
+    color: #ffffff;
+}
+
+.loading__spinner--gray {
+    color: var(--text-tertiary);
+}
+
+/* Text Styles */
+.loading__text {
+    font-weight: 500;
+    color: var(--text-tertiary);
+}
+
+.loading__container--block .loading__text {
+    margin-top: 1rem;
+    font-size: var(--text-sm);
+}
+
+.loading__container--inline .loading__text {
+    margin-top: 0;
+    font-size: 0.85rem;
+}

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
+import LocalLoading from './LocalLoading';
 import "./BoardPrefixManagementModal.css";
 
 export interface BoardPrefix {
@@ -259,8 +260,7 @@ export default function BoardPrefixManagementModal({
         <div className="bpm-content">
           {loading ? (
             <div className="bpm-loading">
-              <i className="bpm-loading-icon ri-loader-4-line"></i>
-              <p className="bpm-loading-text">로딩 중...</p>
+              <LocalLoading message="로딩 중..." size="lg" />
             </div>
           ) : (
             <div className="bpm-content-inner">

@@ -1,5 +1,6 @@
 import type { FC } from 'react';
 import { createPortal } from 'react-dom';
+import LocalLoading from './LocalLoading';
 import '../styles/components/GlobalLoadingOverlay.css';
 
 interface GlobalLoadingOverlayProps {
@@ -14,7 +15,7 @@ const GlobalLoadingOverlay: FC<GlobalLoadingOverlayProps> = ({ isLoading, messag
 
     return createPortal(
         <div className="global-loading-overlay">
-            <i className="ri-loader-4-line loading-spinner"></i>
+            <LocalLoading size="lg" color="white" />
             <p className="global-loading-text">{message}</p>
 
             {typeof progress === 'number' && (

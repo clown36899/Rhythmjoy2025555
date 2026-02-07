@@ -4,6 +4,7 @@ import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { resizeImage } from '../../../utils/imageResize';
 import { retryOperation } from '../../../utils/asyncUtils';
+import LocalLoading from '../../../components/LocalLoading';
 import './QuickMemoEditor.css';
 
 interface QuickMemoEditorProps {
@@ -504,7 +505,7 @@ export default function QuickMemoEditor({
                             className="memo-submit-btn-compact"
                             disabled={isSubmitting}
                         >
-                            {isSubmitting ? <i className="ri-loader-4-line spin"></i> : <i className="ri-send-plane-fill"></i>}
+                            {isSubmitting ? <LocalLoading inline size="sm" color="white" /> : <i className="ri-send-plane-fill"></i>}
                             <span>{editData ? '수정' : '등록'}</span>
                         </button>
                     </div>

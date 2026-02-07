@@ -18,6 +18,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import { useLoading } from '../../../contexts/LoadingContext';
 import { retryOperation } from '../../../utils/asyncUtils';
 import { useViewTracking } from '../../../hooks/useViewTracking';
+import LocalLoading from '../../../components/LocalLoading';
 
 registerLocale("ko", ko);
 
@@ -1858,7 +1859,7 @@ export default function EventDetailModal({
                     title="삭제하기"
                     disabled={isDeleting}
                   >
-                    {isDeleting ? <i className="ri-loader-4-line EDM-actionIcon is-spin"></i> : <i className="ri-delete-bin-line EDM-actionIcon"></i>}
+                    {isDeleting ? <LocalLoading inline size="sm" color="white" /> : <i className="ri-delete-bin-line EDM-actionIcon"></i>}
                   </button>
                 )}
 

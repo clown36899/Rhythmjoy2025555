@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../../../lib/supabase';
+import LocalLoading from '../../../components/LocalLoading';
 import './BoardManagementModal.css'; // Use dedicated CSS
 
 interface BoardManagementModalProps {
@@ -236,8 +237,7 @@ export default function BoardManagementModal({ isOpen, onClose, onUpdate }: Boar
                 <div className="bmm-content">
                     {loading ? (
                         <div className="bmm-loading">
-                            <i className="ri-loader-4-line ri-spin" style={{ fontSize: '24px', marginBottom: '8px' }}></i>
-                            <div>로딩 중...</div>
+                            <LocalLoading message="로딩 중..." size="lg" />
                         </div>
                     ) : (
                         <table className="bmm-table">

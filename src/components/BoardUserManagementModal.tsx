@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import LocalLoading from './LocalLoading';
 import "./BoardUserManagementModal.css";
 
 interface BoardUserManagementModalProps {
@@ -135,8 +136,7 @@ export default function BoardUserManagementModal({
         <div className="boum-content">
           {loading ? (
             <div className="boum-loading">
-              <i className="boum-loading-icon ri-loader-4-line"></i>
-              <p className="boum-loading-text">로딩 중...</p>
+              <LocalLoading message="로딩 중..." size="lg" />
             </div>
           ) : filteredUsers.length === 0 ? (
             <div className="boum-empty">

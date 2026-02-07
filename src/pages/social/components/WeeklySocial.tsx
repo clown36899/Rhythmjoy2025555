@@ -4,6 +4,7 @@ import { getLocalDateString, getKSTDay, getDayName } from '../../v2/utils/eventL
 import { useEventModal } from '../../../hooks/useEventModal';
 import EventDetailModal from '../../v2/components/EventDetailModal';
 import SocialScheduleModal from './SocialScheduleModal';
+import LocalLoading from '../../../components/LocalLoading';
 import './WeeklySocial.css';
 
 interface WeeklySocialProps {
@@ -319,10 +320,7 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                         {/* LIST VIEW */}
                         {viewType === 'list' && (
                             isLoading ? (
-                                <div style={{ padding: '40px 0', textAlign: 'center', color: 'var(--text-muted)' }}>
-                                    <i className="ri-loader-4-line ri-spin" style={{ fontSize: '2rem', marginBottom: '8px', display: 'block' }}></i>
-                                    <div>일정을 불러오는 중...</div>
-                                </div>
+                                <LocalLoading message="일정을 불러오는 중..." size="lg" />
                             ) : (
                                 filteredItemsForView.length > 0 ? (
                                     (() => {

@@ -4,6 +4,7 @@ import { supabase } from "../../../lib/supabase";
 import { useModalHistory } from "../../../hooks/useModalHistory";
 import { useAuth } from "../../../contexts/AuthContext";
 import { sanitizeAddressForMap } from "../../../utils/mapUtils";
+import LocalLoading from "../../../components/LocalLoading";
 import "./VenueDetailModal.css";
 
 interface Venue {
@@ -109,8 +110,7 @@ export default function VenueDetailModal({ venueId, onClose, onSelect, onEdit }:
             <div className="room-modal-overlay" onClick={onClose}>
                 <div className="room-modal-container" onClick={(e) => e.stopPropagation()}>
                     <div className="room-detail-page-loading">
-                        <i className="ri-loader-4-line ri-spin"></i>
-                        <p>로딩 중...</p>
+                        <LocalLoading message="로딩 중..." size="lg" />
                     </div>
                 </div>
             </div>,

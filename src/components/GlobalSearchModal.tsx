@@ -2,6 +2,7 @@ import { useState, useEffect, memo, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../lib/supabase';
 import EventDetailModal from '../pages/v2/components/EventDetailModal';
+import LocalLoading from './LocalLoading';
 
 import ShopDetailModal from '../pages/shopping/components/ShopDetailModal';
 import type { Event } from '../lib/supabase';
@@ -228,8 +229,7 @@ export default memo(function GlobalSearchModal({ isOpen, onClose, searchQuery }:
                 <div className="search-modal-content">
                     {loading ? (
                         <div className="search-loading">
-                            <i className="ri-loader-4-line animate-spin"></i>
-                            <p>검색 중...</p>
+                            <LocalLoading message="검색 중..." size="md" />
                         </div>
                     ) : totalResults === 0 ? (
                         <div className="search-empty">

@@ -4,25 +4,30 @@ import '../styles/shared/loading.css';
 interface LocalLoadingProps {
     message?: string;
     inline?: boolean;
+    size?: 'sm' | 'md' | 'lg';
+    color?: 'primary' | 'white' | 'gray';
+    className?: string;
 }
 
 const LocalLoading: React.FC<LocalLoadingProps> = ({
-    message = '로딩 중...',
-    inline = false
+    message,
+    inline = false,
+    size = 'md',
+    color = 'primary',
+    className = ''
 }) => {
-    if (inline) {
-        return (
-            <div className="loading-inline" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-                <i className="ri-loader-4-line loading-spinner" style={{ fontSize: '1.2rem' }}></i>
-                <span className="loading-text" style={{ marginTop: 0, fontSize: '0.85rem' }}>{message}</span>
-            </div>
-        );
-    }
+    // Determine container class
+    const containerClass = inline
+        ? 'loading__container loading__container--inline'
+        : 'loading__container loading__container--block';
+
+    // Determine spinner class
+    const spinnerClass = `loading__spinner loading__spinner--${size} loading__spinner--${color}`;
 
     return (
-        <div className="loading-container" style={{ padding: '2rem 0' }}>
-            <i className="ri-loader-4-line loading-spinner"></i>
-            {message && <p className="loading-text">{message}</p>}
+        <div className={`${containerClass} ${className}`}>
+            <i className={`ri-loader-4-line ${spinnerClass}`}></i>
+            {message && <span className="loading__text">{message}</span>}
         </div>
     );
 };

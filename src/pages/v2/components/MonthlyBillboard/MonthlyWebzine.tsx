@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useMonthlyBillboard, type BillboardData } from '../../hooks/useMonthlyBillboard';
 import MonthlyLogDetailModal from './MonthlyLogDetailModal';
+import LocalLoading from '../../../components/LocalLoading';
 import './MonthlyWebzine.css';
 
 // --- Premium Dark Mode Colors (Used for Chart Logic & Dynamic Styles) ---
@@ -132,9 +133,7 @@ const MonthlyWebzine = () => {
     if (loading || !data) {
         return (
             <div className="mw-loading-container">
-
-                <i className="ri-loader-4-line loading-spinner"></i>
-                <p className="loading-text">데이터 분석 중...</p>
+                <LocalLoading message="데이터 분석 중..." size="lg" color="white" />
             </div>
         );
     }

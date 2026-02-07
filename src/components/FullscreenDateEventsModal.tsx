@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { supabase } from "../lib/supabase";
 import type { Event as AppEvent } from "../lib/supabase";
 import { useModalHistory } from "../hooks/useModalHistory";
+import LocalLoading from "./LocalLoading";
 import "../styles/domains/events.css";
 import "../styles/components/DateEventsModal.css";
 
@@ -129,7 +130,7 @@ export default function FullscreenDateEventsModal({
         <div className="DEM-body">
           {loading ? (
             <div className="DEM-empty">
-              <i className="ri-loader-4-line is-spin" style={{ fontSize: '2rem' }}></i>
+              <LocalLoading size="lg" />
             </div>
           ) : events.length === 0 ? (
             <div className="DEM-empty">

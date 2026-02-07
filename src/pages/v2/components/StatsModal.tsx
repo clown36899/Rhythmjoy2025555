@@ -5,6 +5,7 @@ import type { Event as SupabaseEvent } from '../../../lib/supabase';
 import type { StandardBoardPost } from '../../../types/board';
 import SwingSceneStats from './SwingSceneStats';
 import MonthlyWebzine from './MonthlyBillboard/MonthlyWebzine';
+import LocalLoading from '../../../components/LocalLoading';
 import './StatsModal.css';
 
 
@@ -169,9 +170,7 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
                 </div>
 
                 {loading ? (
-                    <div className="loading-container">
-                        <i className="ri-loader-4-line loading-spinner"></i>
-                    </div>
+                    <LocalLoading size="lg" />
                 ) : (
                     <div
                         className={`content-area ${activeTab === 'monthly' || activeTab === 'scene' ? 'wide-content' : ''}`}

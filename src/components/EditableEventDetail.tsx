@@ -11,6 +11,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import "../styles/domains/events.css"; // 2026 Pure Semantic CSS: Events Domain
 import "../styles/components/EditableEventDetail.css";
 import GlobalLoadingOverlay from './GlobalLoadingOverlay';
+import LocalLoading from './LocalLoading';
 
 // Register locale
 registerLocale("ko", ko);
@@ -778,7 +779,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                 className={`EED-actionBtn is-delete ${isDeleting ? 'is-loading' : ''}`}
                                 disabled={isDeleting}
                             >
-                                {isDeleting ? <i className="ri-loader-4-line EED-spin"></i> : <i className="ri-delete-bin-line"></i>}
+                                {isDeleting ? <LocalLoading inline size="sm" color="white" /> : <i className="ri-delete-bin-line"></i>}
                             </button>
                         )}
 

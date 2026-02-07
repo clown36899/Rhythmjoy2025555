@@ -2,6 +2,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { NAVIGATION_ITEMS } from '../config/navigation';
 import '../styles/components/BottomNavigation.css';
+import '../styles/shared/loading.css';
 import {
     prefetchSocialPage,
     prefetchBoardPage,
@@ -57,9 +58,9 @@ export function BottomNavigation({ pageAction, onPageActionClick }: BottomNaviga
             const overlay = document.createElement('div');
             overlay.className = 'refresh-overlay';
             overlay.innerHTML = `
-        <div class="refresh-content">
-          <i class="ri-loader-4-line refresh-loader"></i>
-          <div class="refresh-text">새로고침 중...</div>
+        <div class="refresh-content loading__container loading__container--block">
+          <i class="ri-loader-4-line refresh-loader loading__spinner loading__spinner--lg loading__spinner--white"></i>
+          <div class="refresh-text loading__text">새로고침 중...</div>
         </div>
       `;
             document.body.appendChild(overlay);

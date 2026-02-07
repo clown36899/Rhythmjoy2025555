@@ -4,6 +4,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import type { BoardComment } from '../../../lib/supabase';
 import CommentForm from './CommentForm';
 import CommentItem from './CommentItem';
+import LocalLoading from '../../../components/LocalLoading';
 import './comment.css';
 
 interface CommentSectionProps {
@@ -225,8 +226,7 @@ export default function CommentSection({ postId, category }: CommentSectionProps
             <div className="comment-list">
                 {loading ? (
                     <div className="comment-loading">
-                        <i className="ri-loader-4-line"></i>
-                        <p>댓글을 불러오는 중...</p>
+                        <LocalLoading message="댓글을 불러오는 중..." size="md" />
                     </div>
                 ) : comments.length === 0 ? (
                     null /* User requested to remove empty space when no comments */

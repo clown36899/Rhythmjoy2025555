@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
+import LocalLoading from '../../../components/LocalLoading';
 import './VenueSelectList.css';
 
 interface Venue {
@@ -67,8 +68,7 @@ export default function VenueSelectList({ activeCategory, onVenueClick }: VenueS
     if (loading) {
         return (
             <div className="venue-select-loading">
-                <i className="ri-loader-4-line ri-spin"></i>
-                <p>장소 목록을 불러오는 중...</p>
+                <LocalLoading message="장소 목록을 불러오는 중..." size="md" />
             </div>
         );
     }
