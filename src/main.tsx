@@ -33,6 +33,7 @@ import App from './App.tsx'
 import GlobalErrorBoundary from './components/GlobalErrorBoundary';
 import { ModalRegistry } from './components/ModalRegistry';
 import { initGAWithEngagement } from './lib/analytics';
+import LocalLoading from './components/LocalLoading';
 
 // Pages - HomePage stays static for instant first paint
 import HomePageV2 from './pages/v2/Page';
@@ -61,6 +62,7 @@ const AdminPushTestPage = lazy(() => import('./components/admin/AdminPushTest').
 
 const BillboardFallback = () => (
   <div className="full-screen-fallback">
+    <LocalLoading message="로딩 중..." />
   </div>
 );
 

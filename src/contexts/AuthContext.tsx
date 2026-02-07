@@ -533,10 +533,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     let isMounted = true;
 
     // 🔥 접두사 붙인 로그아웃 플래그 확인
-    const isLoggingOut = localStorage.getItem(`${storagePrefix}isLoggingOut`);
-    if (isLoggingOut) {
+    const isLoggingOutFlag = localStorage.getItem(`${storagePrefix}isLoggingOut`);
+    if (isLoggingOutFlag) {
       console.log(`[AuthContext] 🧹 Enforcing cleanup after logout reload (${storagePrefix})`);
       authLogger.log(`[AuthContext] 🧹 Enforcing cleanup after logout reload (${storagePrefix})`);
+
+      // 상태를 true로 설정하여 자식 컴포넌트들이 로그아웃 직후임을 알게 함
+      setIsLoggingOut(true);
+
+      // 플래그 제거 (상태로 전이됨)
       localStorage.removeItem(`${storagePrefix}isLoggingOut`);
 
       // 저장소에 좀비 토큰이 부활했더라도, 메모리상에서는 확실히 날려버림

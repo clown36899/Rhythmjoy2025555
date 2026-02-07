@@ -130,6 +130,7 @@
     font-size: 1rem;
 }
 
+/*
 @keyframes spin {
     from {
         transform: rotate(0deg);
@@ -139,10 +140,13 @@
         transform: rotate(360deg);
     }
 }
+*/
 
+/*
 .ri-spin {
     animation: spin 1s linear infinite;
 }
+*/
 
 /* Mobile */
 @media (max-width: 640px) {

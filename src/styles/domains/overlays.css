@@ -816,6 +816,7 @@
     .LM-btn-google {
         background-color: #FFFFFF;
         color: #000;
+        border: 1px solid #999;
     }
 
     .LM-btn-google svg {

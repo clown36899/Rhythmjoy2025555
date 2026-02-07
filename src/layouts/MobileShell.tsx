@@ -121,9 +121,9 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
     // [Standard Fix] Logout guard: Don't show login prompt immediately after logging out
     const isPWA = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
     const storagePrefix = isPWA ? 'pwa-' : '';
-    const isLoggingOut = localStorage.getItem(`${storagePrefix}isLoggingOut`) === 'true';
+    const isLoggingOutLocal = localStorage.getItem(`${storagePrefix}isLoggingOut`) === 'true';
 
-    if (isLoggingOut) {
+    if (isLoggingOut || isLoggingOutLocal) {
       // Consume the flag and mark as shown to prevent popup for this session
       localStorage.removeItem(`${storagePrefix}isLoggingOut`);
       sessionStorage.setItem('hasShownLoginPrompt', 'true');
@@ -140,7 +140,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
     // Show login modal immediately
     loginModal.open({ message: '댄스빌보드 로그인' });
     sessionStorage.setItem('hasShownLoginPrompt', 'true');
-  }, [user, isEventsPage, loginModal.isOpen, loginModal.open, isAuthCheckComplete]);
+  }, [user, isEventsPage, loginModal.isOpen, loginModal.open, isAuthCheckComplete, isLoggingOut]);
 
   // 🔄 Global Scroll Reset on Route Change
   useEffect(() => {

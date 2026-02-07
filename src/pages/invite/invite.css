@@ -27,7 +27,6 @@
 
 /* ===== 로딩 상태 ===== */
 .invite-loading-spinner {
-  animation: spin 1s linear infinite;
   border-radius: 9999px;
   height: var(--spacing-16);
   width: var(--spacing-16);
@@ -201,8 +200,7 @@
 
 .invite-input:focus {
   outline: none;
-  ring: 2px;
-  ring-color: #a855f7;
+  box-shadow: 0 0 0 2px #a855f7;
   border-color: transparent;
 }
 
@@ -245,7 +243,6 @@
 }
 
 .invite-button-spinner {
-  animation: spin 1s linear infinite;
   border-radius: 9999px;
   height: 1.25rem;
   width: 1.25rem;
@@ -312,6 +309,7 @@
 }
 
 /* ===== 애니메이션 ===== */
+/*
 @keyframes spin {
   from {
     transform: rotate(0deg);
@@ -320,3 +318,4 @@
     transform: rotate(360deg);
   }
 }
+*/

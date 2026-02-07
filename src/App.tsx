@@ -17,6 +17,7 @@ import { PwaNotificationModal } from './components/PwaNotificationModal';
 import { useState } from 'react';
 import { notificationStore } from './lib/notificationStore';
 import { useModalActions } from './contexts/ModalContext';
+import LocalLoading from './components/LocalLoading';
 import './styles/devtools.css';
 
 function AppContent() {
@@ -210,7 +211,7 @@ function AppContent() {
     <>
       <Suspense fallback={
         <div className="full-screen-fallback">
-          {/* Spinner removed for login optimization */}
+          <LocalLoading />
         </div>
       }>
         <MobileShell />

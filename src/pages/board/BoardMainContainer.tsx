@@ -15,6 +15,7 @@ import AnonymousWriteModal from './components/AnonymousWriteModal';
 import BoardDetailModal from './components/BoardDetailModal';
 import { useModal } from '../../hooks/useModal';
 import HistoryTimelinePage from '../history/HistoryTimelinePage';
+import LocalLoading from '../../components/LocalLoading';
 import './board.css';
 
 // Hooks
@@ -310,10 +311,7 @@ export default function BoardMainContainer() {
                 }}
             >
                 {loading ? (
-                    <div className="board-loading-container">
-                        <i className="ri-loader-4-line board-loading-spinner"></i>
-                        <p className="board-loading-text">로딩 중...</p>
-                    </div>
+                    <LocalLoading message="로딩 중..." />
                 ) : category === 'dev-log' ? (
                     <DevLog />
                 ) : category === 'history' ? (

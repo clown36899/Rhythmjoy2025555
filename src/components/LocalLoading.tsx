@@ -3,13 +3,11 @@ import '../styles/shared/loading.css';
 
 interface LocalLoadingProps {
     message?: string;
-    height?: string | number;
     inline?: boolean;
 }
 
 const LocalLoading: React.FC<LocalLoadingProps> = ({
     message = '로딩 중...',
-    height = '200px',
     inline = false
 }) => {
     if (inline) {
@@ -22,7 +20,7 @@ const LocalLoading: React.FC<LocalLoadingProps> = ({
     }
 
     return (
-        <div className="loading-container" style={{ minHeight: typeof height === 'number' ? `${height}px` : height }}>
+        <div className="loading-container" style={{ padding: '2rem 0' }}>
             <i className="ri-loader-4-line loading-spinner"></i>
             {message && <p className="loading-text">{message}</p>}
         </div>
