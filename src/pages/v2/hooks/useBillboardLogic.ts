@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "../../../lib/supabase";
 import type { BillboardSettings } from "../../../hooks/useBillboardSettings";
+import type { Event as AppEvent } from "../../../lib/supabase";
 
 interface UseBillboardLogicProps {
     settings: BillboardSettings;
@@ -14,7 +15,7 @@ export function useBillboardLogic({ settings, fromQR, setCurrentMonth, setHighli
     const [isBillboardOpen, setIsBillboardOpen] = useState(false);
     const [isBillboardSettingsOpen, setIsBillboardSettingsOpen] = useState(false);
     const [billboardImages, setBillboardImages] = useState<string[]>([]);
-    const [billboardEvents, setBillboardEvents] = useState<any[]>([]);
+    const [billboardEvents, setBillboardEvents] = useState<AppEvent[]>([]);
     const inactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     // Inactivity Timer Logic
@@ -116,13 +117,13 @@ export function useBillboardLogic({ settings, fromQR, setCurrentMonth, setHighli
         setIsBillboardSettingsOpen(false);
     }, []);
 
-    const handleBillboardEventClick = useCallback((event: any) => {
+    const handleBillboardEventClick = useCallback((event: AppEvent) => {
         setIsBillboardOpen(false);
         if (event && event.id) {
             const eventDate = event.start_date || event.date;
             if (eventDate) setCurrentMonth(new Date(eventDate));
             // [Optimization] Removed artificial 100ms delay
-            setHighlightEvent({ id: event.id, nonce: Date.now() });
+            setHighlightEvent({ id: Number(event.id), nonce: Date.now() });
         }
     }, [setCurrentMonth, setHighlightEvent]);
 

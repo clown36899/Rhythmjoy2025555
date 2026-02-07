@@ -61,7 +61,7 @@ export const HorizontalScrollNav = forwardRef<HTMLDivElement, HorizontalScrollNa
 
     // Clone the child element and attach the ref to it
     const childWithRef = isValidElement(children)
-        ? cloneElement(children as React.ReactElement<any>, { ref: scrollContainerRef })
+        ? cloneElement(children as React.ReactElement<{ ref: React.Ref<HTMLDivElement> }>, { ref: scrollContainerRef })
         : children;
 
     return (

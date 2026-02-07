@@ -13,6 +13,18 @@ interface VideoThumbnail {
     created_at: string;
 }
 
+interface LearningResource {
+    id: string;
+    title: string;
+    type: string;
+    metadata: {
+        youtube_video_id: string;
+        duration?: number;
+    };
+    created_at: string;
+    is_public?: boolean;
+}
+
 interface Props {
     onVideoClick: (videoId: string) => void;
 }
@@ -43,7 +55,7 @@ const VideoThumbnailSection: React.FC<Props> = ({ onVideoClick }) => {
 
 
                 if (data && data.length > 0) {
-                    const mappedVideos: VideoThumbnail[] = data.map((v: any) => ({
+                    const mappedVideos: VideoThumbnail[] = data.map((v: LearningResource) => ({
                         id: v.id,
                         title: v.title,
                         metadata: {

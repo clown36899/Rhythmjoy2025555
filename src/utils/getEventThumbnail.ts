@@ -15,10 +15,18 @@ const DEFAULT_THUMBNAILS = {
   medium: `${DEFAULT_THUMBNAIL_BASE}/default_medium.webp`,
 };
 
+export interface ImageObject {
+  url?: string;
+  thumbnail?: string;
+  medium?: string;
+  full?: string;
+  micro?: string;
+}
+
 /**
  * Supabase Storage URL에 이미지 변환 파라미터를 추가합니다.
  */
-export function getOptimizedImageUrl(url: string | { [key: string]: any } | undefined | null, _width: number, _quality = 80): string | undefined {
+export function getOptimizedImageUrl(url: string | ImageObject | undefined | null, _width: number, _quality = 80): string | undefined {
   if (!url) return undefined;
 
   // Handle object structure if passed (e.g. { url: '...', isThumbnail: true }) or structured image objects

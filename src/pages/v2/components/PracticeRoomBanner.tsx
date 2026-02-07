@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useModal } from '../../../hooks/useModal';
 import { useBoardData } from '../../../contexts/BoardDataContext';
 import { logUserInteraction } from '../../../lib/analytics';
-import { getOptimizedImageUrl } from '../../../utils/getEventThumbnail';
+import { getOptimizedImageUrl, type ImageObject } from '../../../utils/getEventThumbnail';
 import { HorizontalScrollNav } from './HorizontalScrollNav';
 import './PracticeRoomBanner.css';
 
@@ -12,7 +12,7 @@ interface PracticeRoom {
     name: string;
     address: string;
     image?: string; // Specialized thumbnail field
-    images: (string | any)[];
+    images: (string | ImageObject)[];
     // description: string; // Removed or optional as it's not in the lite RPC
     category: string;
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 import LocalLoading from '../../../components/LocalLoading';
+import type { ImageObject } from '../../../utils/getEventThumbnail';
 import './VenueSelectList.css';
 
 interface Venue {
@@ -9,7 +10,7 @@ interface Venue {
     address: string;
     phone?: string;
     description: string;
-    images: (string | any)[];
+    images: (string | ImageObject)[];
     category: string;
 }
 

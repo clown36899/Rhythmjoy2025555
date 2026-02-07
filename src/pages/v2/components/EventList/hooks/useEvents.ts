@@ -82,7 +82,7 @@ export function useEvents({ isAdminMode }: UseEventsProps) {
 
             // Map social schedules to event format
             const mappedSocialEvents: Event[] = (socialResult.data || []).map(s => ({
-                id: `social-${s.id}` as any, // Unique ID to avoid collisions with events table
+                id: `social-${s.id}` as string | number, // Cast to explicitly match Event.id type
                 title: s.title,
                 date: s.date || null,
                 start_date: s.date || null,
@@ -92,7 +92,7 @@ export function useEvents({ isAdminMode }: UseEventsProps) {
                 organizer: (Array.isArray(s.social_groups) ? (s.social_groups[0] as any)?.name : (s.social_groups as any)?.name) ||
                     (Array.isArray(s.board_users) ? (s.board_users[0] as any)?.nickname : (s.board_users as any)?.nickname) ||
                     '단체소셜',
-                category: s.v2_category as any || 'club',
+                category: (s.v2_category || 'club') as string,
                 genre: s.v2_genre || '',
                 image: s.image_full || s.image_url || '',
                 image_micro: s.image_micro,
@@ -105,10 +105,10 @@ export function useEvents({ isAdminMode }: UseEventsProps) {
                 description: s.description,
                 link1: s.link_url,
                 link_name1: s.link_name,
-                board_users: Array.isArray(s.board_users) ? s.board_users[0] : s.board_users,
+                board_users: Array.isArray(s.board_users) ? s.board_users : [s.board_users],
                 // Additional fields for compatibility
                 is_social_integrated: true
-            } as any));
+            } as Event));
 
             const combinedList = [...(eventsResult.data || []), ...mappedSocialEvents] as Event[];
             setEvents(combinedList);

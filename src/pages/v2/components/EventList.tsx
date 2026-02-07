@@ -99,7 +99,7 @@ const EventList: React.FC<EventListProps> = ({
 
     return events.filter(event => {
       // 소셜 스케줄(통합 이벤트)은 신규 등록 섹션에서 제외
-      if ((event as any).is_social_integrated) return false;
+      if (event.is_social_integrated) return false;
       if (typeof event.id === 'string' && event.id.startsWith('social-')) return false;
 
       if (!event.created_at) return false;
@@ -339,13 +339,13 @@ const EventList: React.FC<EventListProps> = ({
                 start_time: e.time,
                 place_name: e.location,
                 image_url: e.image,
-                image_medium: (e as any).image_medium || e.image, // ✅ 실제 썸네일 필드 참조
-                image_thumbnail: (e as any).image_thumbnail || e.image, // ✅ 실제 썸네일 필드 참조
+                image_medium: e.image_medium || e.image,
+                image_thumbnail: e.image_thumbnail || e.image,
                 user_id: e.user_id,
                 created_at: e.created_at,
                 updated_at: '',
                 description: e.description,
-                board_users: (e as any).board_users,
+                board_users: e.board_users,
                 is_mapped_event: true,
                 scope: e.scope
               } as any));
@@ -407,13 +407,13 @@ const EventList: React.FC<EventListProps> = ({
                 start_time: e.time,
                 place_name: e.location,
                 image_url: e.image,
-                image_medium: (e as any).image_medium || e.image,
-                image_thumbnail: (e as any).image_thumbnail || e.image,
+                image_medium: e.image_medium || e.image,
+                image_thumbnail: e.image_thumbnail || e.image,
                 user_id: e.user_id,
                 created_at: e.created_at,
                 updated_at: '',
                 description: e.description,
-                board_users: (e as any).board_users,
+                board_users: e.board_users,
                 is_mapped_event: true,
                 scope: e.scope
               } as any));
@@ -458,7 +458,7 @@ const EventList: React.FC<EventListProps> = ({
           selectedClubGenre={searchParams.get('club_genre')}
           onEventClick={(e) => {
             // 🎯 오늘의 일정 섹션에서 ID가 'event-123' 형태가 된 경우 복원
-            if ((e as any).is_mapped_event) {
+            if ('is_mapped_event' in e && (e as any).is_mapped_event) {
               const idStr = String((e as any).id);
               if (idStr.startsWith('event-')) {
                 const originalId = idStr.replace('event-', '');
@@ -497,7 +497,7 @@ const EventList: React.FC<EventListProps> = ({
       <VenueSelectModal
         isOpen={isVenueModalOpen}
         onClose={() => setIsVenueModalOpen(false)}
-        onSelect={(venue: any) => {
+        onSelect={(venue: { name: string; link?: string }) => {
           window.dispatchEvent(new CustomEvent('venue_selected', { detail: venue }));
         }}
         onManualInput={(name: string, link: string) => {

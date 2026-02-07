@@ -25,6 +25,7 @@ export interface Event extends Omit<BaseEvent, 'description' | 'video_url' | 'or
     scope?: 'domestic' | 'overseas' | null;
     is_social_integrated?: boolean;
     day_of_week?: number | null;
+    board_users?: any[];
 }
 
 export interface GenreWeightSettings {
