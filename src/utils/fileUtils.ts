@@ -15,13 +15,13 @@ export const sanitizeFileName = (fileName: string): string => {
     );
 
     // 영문, 숫자, 하이픈, 언더스코어만 남기고 나머지는 제거
-    normalized = normalized.replace(/[^a-zA-Z0-9\-_]/g, "");
+    normalized = normalized.replace(/[^a-zA-Z0-9-_]/g, "");
 
     // 연속된 특수문자 제거
-    normalized = normalized.replace(/[\-_]+/g, "_");
+    normalized = normalized.replace(/[-_]+/g, "_");
 
     // 앞뒤 특수문자 제거
-    normalized = normalized.replace(/^[\-_]+|[\-_]+$/g, "");
+    normalized = normalized.replace(/^[-_]+|[-_]+$/g, "");
 
     return normalized || "image";
 };

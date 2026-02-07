@@ -210,7 +210,7 @@ export default function QuickMemoEditor({
                 }
             }
 
-            let imageUrls = { image: null as string | null, image_thumbnail: null as string | null };
+            const imageUrls = { image: null as string | null, image_thumbnail: null as string | null };
 
             if (imageFile) {
                 const timestamp = Date.now();

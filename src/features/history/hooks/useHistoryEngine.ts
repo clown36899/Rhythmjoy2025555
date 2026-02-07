@@ -102,7 +102,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
         //     totalEdges: allEdgesRef.current.size
         // });
 
-        let allNodes = Array.from(allNodesRef.current.values());
+        const allNodes = Array.from(allNodesRef.current.values());
         const allEdges = Array.from(allEdgesRef.current.values());
 
         // 1. 검색 및 필터링 적용
@@ -762,8 +762,8 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
             const oldParentId = node.data.parent_node_id ? String(node.data.parent_node_id) : null;
             const targetParentIdStr = newParentId ? String(newParentId) : null;
 
-            let newWidth = node.width || Number(node.style?.width);
-            let newHeight = node.height || Number(node.style?.height);
+            const newWidth = node.width || Number(node.style?.width);
+            const newHeight = node.height || Number(node.style?.height);
 
             if (oldParentId !== targetParentIdStr) {
                 const getAbs = (n: any) => {
@@ -1378,7 +1378,7 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
             const { data: parentData, error } = await supabase.from('history_nodes').insert(newNodeData).select(HISTORY_NODE_SELECT).single();
             if (error) throw error;
 
-            let updatedParent = mapDbNodeToRFNode(parentData, {
+            const updatedParent = mapDbNodeToRFNode(parentData, {
                 onNavigate: handleNavigate,
                 onSelectionChange: (sid: string, selected: boolean) => {
                     setNodes(nds => nds.map(node => node.id === sid ? { ...node, selected } : node));

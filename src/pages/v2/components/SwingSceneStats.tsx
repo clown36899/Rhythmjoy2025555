@@ -314,7 +314,7 @@ export default function SwingSceneStats() {
                         { name: '소셜', count: Number(data.types['소셜']) || 0 },
                         { name: '게시글', count: Number(data.types['게시글']) || 0 }
                     ];
-                    let genreBreakdown: any[] = [];
+                    const genreBreakdown: any[] = [];
                     let othersCount = Number(data.genres['소셜']) || 0;
                     top5Genres.forEach(g => genreBreakdown.push({ name: g, count: Number(data.genres[g]) || 0 }));
                     Object.entries(data.genres).forEach(([name, count]: [string, any]) => {

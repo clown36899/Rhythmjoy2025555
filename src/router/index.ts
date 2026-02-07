@@ -17,13 +17,14 @@ export const navigatePromise = new Promise<NavigateFunction>((resolve) => {
 
 export function AppRoutes() {
   const element = useRoutes(routes);
-  if (!window.REACT_APP_NAVIGATE) {
-    const navigate = useNavigate();
-    useEffect(() => {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (!window.REACT_APP_NAVIGATE) {
       window.REACT_APP_NAVIGATE = navigate;
       navigateResolver(window.REACT_APP_NAVIGATE);
-    });
-  }
+    }
+  }, [navigate]);
   return element;
 }
 //수정

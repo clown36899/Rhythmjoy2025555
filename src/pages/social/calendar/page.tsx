@@ -117,7 +117,7 @@ export default function SocialCalendarPage() {
           item.event_dates.forEach((d: string) => processDate(d));
         } else if (item.start_date && item.end_date) {
           // Loop through range
-          let loopDate = new Date(item.start_date);
+          const loopDate = new Date(item.start_date);
           const endDate = new Date(item.end_date);
           while (loopDate <= endDate) {
             processDate(loopDate.toISOString().split('T')[0]);

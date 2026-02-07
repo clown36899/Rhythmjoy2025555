@@ -420,7 +420,7 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                                                     className="week-grid-add-btn"
                                                     onClick={(e) => {
                                                         e.stopPropagation();
-                                                        onAddSchedule && onAddSchedule(date);
+                                                        onAddSchedule?.(date);
                                                     }}
                                                 >
                                                     <i className="ri-add-line"></i>

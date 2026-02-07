@@ -122,7 +122,7 @@ export const EditablePreviewCard: React.FC<EditablePreviewCardProps> = ({
                         }`}
                     onClick={(e) => {
                         e.stopPropagation();
-                        !readOnly && onEditCategory?.();
+                        if (!readOnly) onEditCategory?.();
                     }}
                     title={!readOnly ? "카테고리 변경" : undefined}
                 >
@@ -222,7 +222,7 @@ export const EditablePreviewCard: React.FC<EditablePreviewCardProps> = ({
                             className={`ECARD-genre ECARD-genre-${event.category} ${getGenreColor(event.genre || '').replace('card-genre-', 'ECARD-genre-')} ${!readOnly ? 'EPC-editableSection' : ''}`}
                             onClick={(e) => {
                                 e.stopPropagation();
-                                !readOnly && onEditStart?.('genre');
+                                if (!readOnly) onEditStart?.('genre');
                             }}
                             title={!readOnly ? "장르 편집" : undefined}
                             style={{ minHeight: '1.2em', cursor: !readOnly ? 'text' : 'default' }}

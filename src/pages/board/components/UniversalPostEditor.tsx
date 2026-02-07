@@ -214,7 +214,7 @@ export default function UniversalPostEditor({
                 }
             }
 
-            let imageUrls = {
+            const imageUrls = {
                 image: null as string | null,
                 image_thumbnail: null as string | null,
             };

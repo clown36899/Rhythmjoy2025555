@@ -11,7 +11,8 @@
     "build:analyze": "ANALYZE=true vite build",
     "preview": "vite preview --host",
     "test": "vitest",
-    "test:ui": "vitest --ui"
+    "test:ui": "vitest --ui",
+    "lint": "eslint ."
   },
   "dependencies": {
     "@netlify/functions": "^5.0.1",

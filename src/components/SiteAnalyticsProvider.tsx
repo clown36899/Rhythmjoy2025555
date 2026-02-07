@@ -34,7 +34,7 @@ export const SiteAnalyticsProvider: React.FC<{ children: React.ReactNode }> = ({
             const target = event.target as HTMLElement;
 
             // 클릭된 요소 또는 그 부모 중 data-analytics-id를 가진 요소 탐색
-            let tracker = target.closest('[data-analytics-id]') as HTMLElement;
+            const tracker = target.closest('[data-analytics-id]') as HTMLElement;
 
             // [PHASE 2] 자동 트래킹: data-analytics-id가 없더라도 <a> 태그이고 외부 링크인 경우 트래킹 시도
             if (!tracker && target.closest('a')) {

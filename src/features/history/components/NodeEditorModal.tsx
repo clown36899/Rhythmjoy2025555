@@ -490,7 +490,7 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
         e.preventDefault();
 
         // Prepare Images Metadata
-        let imagesMetadata: any[] = [];
+        const imagesMetadata: any[] = [];
 
         // If there are previews, we need to handle them
         if (imagePreviews.length > 0) {
@@ -686,9 +686,9 @@ export const NodeEditorModal: React.FC<NodeEditorModalProps> = ({ node, onSave, 
                                 onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                                 disabled={!!node}
                                 style={{
-                                    cursor: !!node ? 'not-allowed' : 'pointer',
-                                    opacity: !!node ? 0.7 : 1,
-                                    backgroundColor: !!node ? 'rgba(255, 255, 255, 0.05)' : undefined
+                                    cursor: node ? 'not-allowed' : 'pointer',
+                                    opacity: node ? 0.7 : 1,
+                                    backgroundColor: node ? 'rgba(255, 255, 255, 0.05)' : undefined
                                 }}
                             >
                                 <option value="general">일반 (폴더)</option>

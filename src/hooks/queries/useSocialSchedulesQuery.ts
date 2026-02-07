@@ -6,7 +6,7 @@ export const useSocialSchedulesQuery = (groupId?: number) => {
     return useQuery({
         queryKey: groupId ? ['social-schedules', groupId] : ['social-schedules'],
         queryFn: async () => {
-            let selectFields = `
+            const selectFields = `
         id, group_id, title, date, day_of_week, start_time, 
         place_name, address, venue_id, description, 
         image_url, image_micro, image_thumbnail, image_medium, image_full,

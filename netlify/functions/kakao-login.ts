@@ -66,7 +66,7 @@ export const handler: Handler = async (event) => {
     const { access_token: kakaoAccessToken, refresh_token: kakaoRefreshToken, id_token: kakaoIdToken } = tokenData;
 
     // 2. 카카오 사용자 정보 조회 (OIDC 최적화 적용 및 실명/전화번호 추출)
-    let kakaoId: BigInt | number | string = '';
+    let kakaoId: bigint | number | string = '';
     let email: string = '';
     let nickname: string = '';
     let profileImage: string | null = null;
@@ -136,7 +136,9 @@ export const handler: Handler = async (event) => {
       try {
         const { data: authUser } = await supabaseAdmin.auth.admin.getUserById(userId);
         if (authUser?.user?.email) email = authUser.user.email;
-      } catch (e) { }
+      } catch (e) {
+        // 이미 가입된 경우 등 무시
+      }
     } else {
       const randomPassword = crypto.randomBytes(16).toString('hex');
       const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({

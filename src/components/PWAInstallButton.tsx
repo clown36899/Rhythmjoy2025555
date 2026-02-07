@@ -125,7 +125,15 @@ export const PWAInstallButton = () => {
                         });
                     }, 300);
 
-                    let verifyInterval: NodeJS.Timeout;
+                    // API 확인용 루프 (혹시 모를 대기용)
+                    const verifyInterval = setInterval(async () => {
+                        try {
+                            // nothing
+                        } catch (e) {
+                            // ignore
+                        }
+                    }, 2000);
+
                     let isFinishCalled = false;
 
                     // 설치 완료 처리 함수
@@ -173,14 +181,7 @@ export const PWAInstallButton = () => {
                     };
                     window.addEventListener('appinstalled', handleAppInstalled);
 
-                    // API 확인용 루프 (혹시 모를 대기용)
-                    verifyInterval = setInterval(async () => {
-                        try {
-                            // nothing
-                        } catch (e) {
-                            // ignore
-                        }
-                    }, 2000);
+
 
                     // 60초 타임아웃
                     setTimeout(() => {

@@ -196,7 +196,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
         setLoadingMessage('모집 공고 저장 중...');
 
         try {
-            let imageUrl = recruitImagePreview;
+            const imageUrl = recruitImagePreview;
 
             if (recruitImageFile) {
                 setLoadingMessage('이미지 최적화 중...');

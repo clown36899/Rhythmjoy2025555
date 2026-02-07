@@ -13,7 +13,7 @@ const mapScheduleToEvent = (schedule: any): UnifiedSocialEvent | null => {
     if (dow === null || dow === undefined) return null;
 
     const imageUrl = schedule.image_url;
-    let imageUrlThumbnail = schedule.image_thumbnail || imageUrl;
+    const imageUrlThumbnail = schedule.image_thumbnail || imageUrl;
 
     return {
         id: `schedule-${schedule.id}`,

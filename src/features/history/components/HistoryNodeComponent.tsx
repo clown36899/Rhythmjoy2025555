@@ -189,7 +189,7 @@ function HistoryNodeComponent({ data, selected }: NodeProps<HistoryNodeData>) {
 
         if (data.isSelectionMode) {
             e.stopPropagation();
-            data.onSelectionChange && data.onSelectionChange(String(data.id), !data.isSelected);
+            data.onSelectionChange?.(String(data.id), !data.isSelected);
             return;
         }
 

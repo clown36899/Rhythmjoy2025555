@@ -154,9 +154,9 @@ Deno.serve(async (req) => {
             summary: { success: successCount, failure: failureCount },
             results: results.map(r => ({
                 status: r.status,
-                // @ts-ignore
+                // @ts-expect-error - r.reason might exist on rejected promise
                 statusCode: r.status === 'rejected' ? r.reason?.statusCode : 200,
-                // @ts-ignore
+                // @ts-expect-error - r.reason might exist on rejected promise
                 error: r.status === 'rejected' ? (r.reason?.body || r.reason?.message) : null
             }))
         }), {

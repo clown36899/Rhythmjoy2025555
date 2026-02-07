@@ -126,7 +126,7 @@ export default function CommentSection({ postId, category }: CommentSectionProps
                 if (error) throw error;
 
                 // 1+1 Fetching for comments
-                let profileMap: Record<string, string> = {};
+                const profileMap: Record<string, string> = {};
                 if (data && data.length > 0) {
                     const userIds = Array.from(new Set(data.map(c => c.user_id).filter(Boolean)));
                     if (userIds.length > 0) {

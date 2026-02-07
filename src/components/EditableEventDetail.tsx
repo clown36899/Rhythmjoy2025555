@@ -502,7 +502,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                                                                 key={option}
                                                                                 onClick={(e) => {
                                                                                     e.preventDefault(); e.stopPropagation();
-                                                                                    let newGenres = isActive ? currentGenres.filter(g => g !== option) : [...currentGenres.filter(g => !(option === '파티' && g === '대회' || option === '대회' && g === '파티')), option];
+                                                                                    const newGenres = isActive ? currentGenres.filter(g => g !== option) : [...currentGenres.filter(g => !(option === '파티' && g === '대회' || option === '대회' && g === '파티')), option];
                                                                                     onUpdate('genre', newGenres.join(','));
                                                                                 }}
                                                                                 className={`EED-genreBtn ${isActive ? 'is-active' : ''}`}

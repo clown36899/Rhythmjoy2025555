@@ -175,7 +175,7 @@ export function useBoardInteractions({ user, category, isRealAdmin, loadPosts, s
 
             setPosts(prev => prev.map(p => {
                 if (p.id === postId) {
-                    let nl = isLiked ? Math.max(0, (p as any).likes - 1) : (p as any).likes + 1;
+                    const nl = isLiked ? Math.max(0, (p as any).likes - 1) : (p as any).likes + 1;
                     let nd = (p as any).dislikes || 0;
                     if (!isLiked && isDisliked) nd = Math.max(0, nd - 1);
                     return { ...p, likes: nl, dislikes: nd };
@@ -238,7 +238,7 @@ export function useBoardInteractions({ user, category, isRealAdmin, loadPosts, s
 
             setPosts(prev => prev.map(p => {
                 if (p.id === postId) {
-                    let nd = isDisliked ? Math.max(0, (p as any).dislikes - 1) : (p as any).dislikes + 1;
+                    const nd = isDisliked ? Math.max(0, (p as any).dislikes - 1) : (p as any).dislikes + 1;
                     let nl = (p as any).likes || 0;
                     if (!isDisliked && isLiked) nl = Math.max(0, nl - 1);
                     return { ...p, dislikes: nd, likes: nl, is_hidden: nd >= 20 ? true : p.is_hidden };

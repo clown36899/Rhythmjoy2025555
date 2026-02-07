@@ -972,7 +972,11 @@ export const CategoryManager = memo(forwardRef<CategoryManagerHandle, CategoryMa
                                     e.stopPropagation(); // 토글 클릭 시 선택되지 않게 방지
                                     setExpandedIds(prev => {
                                         const next = new Set(prev);
-                                        next.has(category.id) ? next.delete(category.id) : next.add(category.id);
+                                        if (next.has(category.id)) {
+                                            next.delete(category.id);
+                                        } else {
+                                            next.add(category.id);
+                                        }
                                         localStorage.setItem('category_expanded_ids', JSON.stringify(Array.from(next)));
                                         return next;
                                     });
@@ -1177,7 +1181,7 @@ export const CategoryManager = memo(forwardRef<CategoryManagerHandle, CategoryMa
                         else if (ix < 0.5) pos = 'left';
                         else pos = 'right';
 
-                        let lPos: 'before' | 'after' = (pos === 'top' || pos === 'left') ? 'before' : 'after';
+                        const lPos: 'before' | 'after' = (pos === 'top' || pos === 'left') ? 'before' : 'after';
 
                         const proxInd = { targetId: nearestItem.id, position: pos, logicalPosition: lPos, isProximity: true } as any;
 

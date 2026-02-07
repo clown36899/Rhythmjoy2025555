@@ -40,11 +40,9 @@ const SocialDetailModal: React.FC<SocialDetailModalProps> = ({
         setIsHighResLoaded(false);
     }, [schedule]);
 
-    if (!isOpen || !schedule) return null;
-
     // Image Source Logic
-    const thumbnailSrc = schedule.image_micro || schedule.image_thumbnail || schedule.image_medium || schedule.image_url;
-    const highResSrc = schedule.image_medium || schedule.image_url;
+    const thumbnailSrc = schedule?.image_micro || schedule?.image_thumbnail || schedule?.image_medium || schedule?.image_url;
+    const highResSrc = schedule?.image_medium || schedule?.image_url;
 
     // Preload HighRes
     React.useEffect(() => {
@@ -57,6 +55,8 @@ const SocialDetailModal: React.FC<SocialDetailModalProps> = ({
             setIsHighResLoaded(true);
         }
     }, [highResSrc, thumbnailSrc]);
+
+    if (!isOpen || !schedule) return null;
 
     const handleShare = async () => {
         const s = schedule as any;

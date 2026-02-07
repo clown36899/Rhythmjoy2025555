@@ -431,8 +431,6 @@ export default memo(function EventRegistrationModal({
       } catch (error) {
         console.error("Failed to load image:", error);
         alert("이미지를 불러오는데 실패했습니다.");
-      } finally {
-
       }
     }
     // Reset input value to allow selecting same file again
@@ -580,7 +578,7 @@ export default memo(function EventRegistrationModal({
             editEventData?.image_full
           ].filter(url => !!url);
 
-          let fileToUpload = imageFile;
+          const fileToUpload = imageFile;
 
           // 1. 이미지가 수정되지 않았지만(fileToUpload 없음), 기존 이미지는 있고 micro 버전이 없는 경우 (레거시 데이터 복구)
           // 원본 이미지를 다운로드하여 fileToUpload로 설정 -> 아래 로직에서 4가지 버전 생성 및 업로드 수행

@@ -86,21 +86,19 @@ const isBot = () => {
         navigator.webdriver ||
         !navigator.languages ||
         navigator.languages.length === 0 ||
-        // @ts-ignore
         (navigator.plugins && navigator.plugins.length === 0) ||
-        // @ts-ignore
         window.outerWidth === 0 || window.outerHeight === 0;
 
     if (isHeadless) return true;
 
     // 3. 특정 브라우저 속성 체크 (봇이 흔히 위장하는 방식 필터링)
-    // @ts-ignore
+    // @ts-expect-error - Vendor specific properties
     if (window._phantom || window.callPhantom || window.__setter__ || window.Buffer || window.emit) {
         return true;
     }
 
     // 4. Chrome Headless 특정 속성 (모바일 에뮬레이션 등 제외한 순수 봇 감지)
-    // @ts-ignore
+    // @ts-expect-error - chrome property check
     if (userAgent.includes('chrome') && !window.chrome) {
         return true;
     }

@@ -378,7 +378,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
                     .map((i: any) => i.user_id)
                     .filter((id: any) => id && id.length > 20); // Check for valid UUID-like strings
 
-                let installUserMap = new Map<string, string>();
+                const installUserMap = new Map<string, string>();
                 if (installUserIds.length > 0) {
                     try {
                         const uniqueIds = Array.from(new Set(installUserIds));
@@ -529,7 +529,7 @@ export default function SiteAnalyticsModal({ isOpen, onClose }: { isOpen: boolea
             // Safety: limit to 365 days
             let loops = 0;
             // Create a working date copy to avoid side effects if dStart is used elsewhere
-            let curr = new Date(dStart);
+            const curr = new Date(dStart);
             while (curr <= dEnd && loops < 366) {
                 trendDates.push(getKRDateString(curr));
                 curr.setDate(curr.getDate() + 1);

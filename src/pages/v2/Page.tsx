@@ -7,7 +7,7 @@ const EventRegistrationModal = lazy(() => import("../../components/EventRegistra
 
 import VenueDetailModal from "../practice/components/VenueDetailModal";
 import CalendarSearchModal from "./components/CalendarSearchModal";
-import VideoThumbnailSection from "./components/VideoThumbnailSection";
+
 import { useModalActions, useModalState } from "../../contexts/ModalContext";
 import { useUserInteractions } from "../../hooks/useUserInteractions";
 import { registerLocale } from "react-datepicker";
@@ -22,16 +22,13 @@ import { useCalendarState } from "./hooks/useCalendarState";
 import { useDeepLinkLogic } from "./hooks/useDeepLinkLogic";
 
 import "./styles/Page.css";
-import { useGlobalPlayer } from "../../contexts/GlobalPlayerContext";
 
 export default function HomePageV2() {
     // --------------------------------------------------------------------------------
     // 1. Core Hooks & Context
     // --------------------------------------------------------------------------------
     const [searchParams, setSearchParams] = useSearchParams();
-    const view = searchParams.get('view');
     const { isAdmin, user, signInWithKakao } = useAuth();
-    const { openPlayer } = useGlobalPlayer();
     const { openModal, closeModal } = useModalActions();
     const { modalStack } = useModalState();
 
@@ -266,13 +263,7 @@ export default function HomePageV2() {
                 </div>
 
                 {/* Library Section Hidden as per request */}
-                {false && view !== 'favorites' && (
-                    <VideoThumbnailSection
-                        onVideoClick={(videoId) => {
-                            openPlayer({ id: videoId, type: 'video', title: 'Video Player' });
-                        }}
-                    />
-                )}
+
 
                 {qrLoading ? (
                     <div className="home-loading-container"><div className="home-loading-text">이벤트 로딩 중...</div></div>

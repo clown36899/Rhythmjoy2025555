@@ -83,7 +83,7 @@ export default function BillboardUserManagementModal({
 
   const loadEvents = async () => {
     try {
-      let query = supabase
+      const query = supabase
         .from('events')
         .select('id, title, start_date, end_date, date, image_full, image, video_url');
 

@@ -66,7 +66,7 @@ export function useBoardPosts({ category, postsPerPage, isAdminChecked, isRealAd
             if (error) throw error;
 
             // 1+1 Fetching Strategy: Fetch all profiles in one go if not anonymous
-            let profileMap: Record<string, string> = {};
+            const profileMap: Record<string, string> = {};
             if (!isAnon && data && data.length > 0) {
                 const userIds = Array.from(new Set(data.map((p: any) => p.user_id).filter(Boolean)));
                 if (userIds.length > 0) {

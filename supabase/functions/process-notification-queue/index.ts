@@ -64,8 +64,8 @@ Deno.serve(async (req) => {
                     .update({ status: 'processing' })
                     .eq('id', item.id);
 
-                let { title, body, category, payload, event_id } = item;
-                let { url, userId, genre, image, content } = payload || {};
+                const { title, body, category, payload, event_id } = item;
+                const { url, userId, genre, image, content } = payload || {};
 
                 // [Feature] 발송 직전 최신 데이터 동기화
                 if (event_id) {

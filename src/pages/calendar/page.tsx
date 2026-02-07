@@ -228,11 +228,14 @@ export default function CalendarPage() {
             const fetchEvent = async () => {
                 try {
                     // Try events table first
-                    let { data, error } = await supabase
+                    const result = await supabase
                         .from('events')
                         .select('*')
                         .eq('id', eventId)
                         .maybeSingle();
+
+                    let { data } = result;
+                    const { error } = result;
 
                     let isSocial = false;
 
@@ -495,7 +498,7 @@ export default function CalendarPage() {
                     isOpen={!!eventModal.selectedEvent}
                     onClose={eventModal.closeAllModals}
                     isAdminMode={isAdmin}
-                    // @ts-ignore - adminType prop mismatch fix pending in component
+                    // @ts-expect-error - adminType prop mismatch fix pending in component
                     adminType={adminType}
                     onDelete={(id: any) => eventModal.handleDeleteEvent(typeof id === 'number' ? id : id.id)}
                     onEdit={(event: any) => eventModal.handleEditClick(event)}
@@ -509,7 +512,7 @@ export default function CalendarPage() {
                             }
                             return;
                         }
-                        eventModal.selectedEvent && toggleEventFavorite(eventModal.selectedEvent.id);
+                        if (eventModal.selectedEvent) toggleEventFavorite(eventModal.selectedEvent.id);
                     }}
                     onOpenVenueDetail={handleVenueClick}
                 />
@@ -571,7 +574,6 @@ export default function CalendarPage() {
                         isOpen={eventModal.showEditModal}
                         onClose={() => eventModal.setShowEditModal(false)}
                         selectedDate={new Date(eventModal.eventToEdit.date || eventModal.eventToEdit.start_date || new Date())}
-                        // @ts-ignore - editEventData prop check pending
                         editEventData={eventModal.eventToEdit}
                         onEventCreated={() => { }} // Edit mode doesn't use this but it's required by interface
                         isDeleting={eventModal.isDeleting}

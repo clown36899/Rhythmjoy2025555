@@ -12,7 +12,7 @@ export async function getVideoThumbnailOptions(videoUrl: string): Promise<VideoT
 
   // YouTube 썸네일 추출 (일반 영상 및 쇼츠)
   const youtubeMatch = videoUrl.match(
-    /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|(?:shorts\/))|(?:.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/
+    /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|(?:shorts\/))|(?:.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/
   );
 
   if (youtubeMatch && youtubeMatch[1]) {
@@ -104,7 +104,7 @@ export async function getVideoThumbnail(videoUrl: string): Promise<string | null
 
   // YouTube ID 추출
   const youtubeMatch = videoUrl.match(
-    /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|(?:shorts\/))|(?:.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/
+    /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|(?:shorts\/))|(?:.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/
   );
 
   if (!youtubeMatch || !youtubeMatch[1]) return null;

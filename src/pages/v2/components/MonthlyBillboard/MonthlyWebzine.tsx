@@ -70,7 +70,7 @@ const MonthlyWebzine = () => {
         // Requirement: "Normally analyzes previous month on the 1st". 
         // We will show options starting from Previous Month back to 12 months ago.
 
-        let d = new Date();
+        const d = new Date();
         d.setDate(1); // Safety
         d.setMonth(d.getMonth() - 1); // Start from previous month
 

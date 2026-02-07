@@ -18,7 +18,7 @@ export const NodeDetailModal: React.FC<NodeDetailModalProps> = ({ nodeData, onCl
     // Extract YouTube ID for embedding if available
     const getYoutubeId = (url: string | undefined) => {
         if (!url) return null;
-        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&?]*).*/;
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
         const match = url.match(regExp);
         return (match && match[2].length === 11) ? match[2] : null;
     };
