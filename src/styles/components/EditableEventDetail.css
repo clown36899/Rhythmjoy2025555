@@ -364,7 +364,9 @@
 }
 
 .EED-category.is-default {
-    background: var(--color-gray-600);
+    background: var(--bg-surface-4);
+    color: var(--text-primary);
+    border: 1px solid var(--border-glass-strong);
 }
 
 /* Genre Colors */
@@ -437,8 +439,9 @@
 }
 
 .genre-color-gray {
-    background: var(--color-gray-500) !important;
-    border-color: var(--color-gray-400) !important;
+    background: var(--bg-surface-3) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border-glass) !important;
 }
 
 .EED-genre {
@@ -617,6 +620,17 @@
     box-shadow: var(--shadow-md);
     opacity: 0;
     transition: opacity 0.2s, transform 0.2s;
+}
+
+.EED-editBadge.is-static {
+    opacity: 1;
+}
+
+.EED-editBadge.is-floating {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    z-index: 5;
 }
 
 .EED-infoItem:hover .EED-editBadge,

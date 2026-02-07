@@ -115,7 +115,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
     eventDates = [],
     setEventDates,
     imagePosition = { x: 0, y: 0 },
-    onImagePositionChange,
+    // onImagePositionChange, // 위치 이동 기능 제거로 인해 사용되지 않음
     videoUrl,
     onVideoChange,
     onVenueSelectClick,
@@ -166,7 +166,8 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
     // const [customGenreInput, setCustomGenreInput] = useState(""); // Removed
     // const [showCustomGenreInput, setShowCustomGenreInput] = useState(false); // Removed
 
-    // Repositioning State
+    // Repositioning State - 기능을 제거하되 코드는 유지
+    /*
     const [isRepositioning, setIsRepositioning] = useState(false);
     const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null);
     const [startPos, setStartPos] = useState<{ x: number; y: number } | null>(null);
@@ -235,6 +236,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
             window.removeEventListener('mouseup', handleGlobalUp);
         };
     }, [isRepositioning]);
+    */
 
 
     const detailImageUrl = event.image || getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
@@ -290,64 +292,49 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
             <div className="EED-modalWrapper" onClick={(e) => e.stopPropagation()}>
                 <div className="EED-scrollArea">
                     {/* Image Area */}
-                    <div
-                        className="EED-imageArea"
-                        onClick={(e) => { e.stopPropagation(); onImageUpload(); }}
-                    >
+                    <div className="EED-imageArea">
                         {hasImage || videoUrl ? (
                             <>
                                 <div className="EED-imageBlur" style={{ backgroundImage: `url(${detailImageUrl})` }} />
                                 <img
-                                    ref={imageRef}
                                     src={detailImageUrl}
                                     alt={event.title}
-                                    className={`EED-image ${isRepositioning ? 'is-moving' : ''}`}
+                                    className="EED-image"
                                     style={{
                                         transform: `translate3d(${imagePosition.x}%, ${imagePosition.y}%, 0)`,
-                                        transition: isRepositioning ? 'none' : 'transform 0.2s ease-out'
+                                        transition: 'transform 0.2s ease-out'
                                     }}
-                                    onMouseDown={isRepositioning ? handleMouseDown : undefined}
-                                    onTouchStart={isRepositioning ? handleMouseDown : undefined}
                                 />
                                 <div className="EED-imageGradient" />
 
-                                {isRepositioning ? (
-                                    <div className="EED-repositionOverlay">
+                                <div className="EED-imageControls">
+                                    <div className="EED-imageControlGroup">
                                         <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                setIsRepositioning(false);
-                                            }}
-                                            className="EED-repositionBtn"
+                                            onClick={(e) => { e.stopPropagation(); onImageUpload(); }}
+                                            className="EED-imageControlBtn"
                                         >
-                                            완료
+                                            <i className="ri-image-edit-line"></i> 이미지 변경
                                         </button>
-                                        <div className="EED-repositionHint">드래그하여 위치 이동</div>
-                                    </div>
-                                ) : (
-                                    <div className="EED-imageControls">
-                                        <div className="EED-imageControlGroup">
-                                            <button
-                                                onClick={(e) => { e.stopPropagation(); onImageUpload(); }}
-                                                className="EED-imageControlBtn"
-                                            >
-                                                <i className="ri-image-edit-line"></i> 이미지 변경
-                                            </button>
+                                        {/* 위치 이동 기능 제거됨 */}
+                                        {/* 
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); setIsRepositioning(true); }}
                                                 className="EED-imageControlBtn"
                                             >
                                                 <i className="ri-drag-move-2-line"></i> 위치 이동
                                             </button>
+                                            */}
+                                        {/* 동영상 기능 일시 숨김 */}
+                                        {/* 
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); setTempVideoUrl(videoUrl || ""); setActiveModal('video'); }}
                                                 className={`EED-imageControlBtn ${videoUrl ? 'is-active' : ''}`}
                                             >
                                                 <i className="ri-youtube-line"></i> {videoUrl ? '동영상 수정' : '동영상 등록'}
                                             </button>
-                                        </div>
+                                            */}
                                     </div>
-                                )}
+                                </div>
                             </>
                         ) : (
                             <div className="EED-uploadContainer">
@@ -358,6 +345,8 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                     <span className="EED-uploadTitle">대표 이미지</span>
                                     <span className="EED-uploadSubtitle">클릭하여 업로드</span>
                                 </div>
+                                {/* 동영상 등록 숨김 처리 */}
+                                {/* 
                                 <div className="EED-uploadDivider"></div>
                                 <div className="EED-uploadOption" onClick={(e) => { e.stopPropagation(); setTempVideoUrl(videoUrl || ""); setActiveModal('video'); }}>
                                     <div className="EED-uploadIcon">
@@ -368,6 +357,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                         <span className="EED-uploadVideoRequired">(선택, 유튜브만 가능)</span>
                                     </div>
                                 </div>
+                                */}
                             </div>
                         )}
 
