@@ -229,3 +229,61 @@
 }
 
 /* 다크 모드 오버라이드 제거 - 브랜드 색상 유지를 위해 삭제됨 */
+
+/* --- Refactored Semantic Styles (2026-02-07) --- */
+
+.pwa-button-wrapper {
+    position: relative;
+    overflow: hidden;
+}
+
+.pwa-progress-bar-absolute {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    transition: width 0.3s ease;
+    z-index: 0;
+}
+
+.pwa-content-layer {
+    position: relative;
+    z-index: 1;
+}
+
+.ios-notification-desc {
+    padding: 0 20px 20px;
+    text-align: center;
+    font-size: 15px;
+    color: #e4e4e7;
+    line-height: 1.5;
+}
+
+.notification-icon-highlight {
+    color: #FEE500;
+    margin-right: 6px;
+}
+
+.manual-install-btn-wrapper {
+    padding: 0 20px 20px;
+}
+
+.manual-install-btn {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 12px;
+    border-radius: 12px;
+}
+
+.manual-install-note {
+    margin-top: 12px;
+    font-size: 13px;
+    color: #fb7185;
+    text-align: center;
+}
+
+.ios-share-icon {
+    color: #3b82f6;
+}

@@ -200,7 +200,6 @@ export const PWAInstallButton = () => {
                     (window as any).deferredPrompt = null;
                 }
             } catch (error) {
-                console.error('설치 프롬프트 실행 중 오류:', error);
                 setIsInstalling(false);
                 setInstallProgress(0);
                 setShowInstructions(true);
@@ -210,8 +209,6 @@ export const PWAInstallButton = () => {
             // iOS는 수동 설치만 가능하므로 안내 표시
             if (isIOS) {
                 setShowInstructions(true);
-            } else {
-                console.warn('⚠️ [PWAInstallButton] No install prompt available');
             }
         }
     };
@@ -220,26 +217,17 @@ export const PWAInstallButton = () => {
         <>
             <div
                 onClick={isInstalling ? undefined : (isInstalled ? handleOpenApp : handleInstallClick)}
-                className={`pwa-install-button ${isInstalling ? 'installing' : ''} ${isInstalled ? 'installed' : ''}`}
-                style={{ position: 'relative', overflow: 'hidden', cursor: isInstalling ? 'default' : 'pointer' }}
+                className={`pwa-install-button pwa-button-wrapper ${isInstalling ? 'installing' : ''} ${isInstalled ? 'installed' : ''}`}
+                style={{ cursor: isInstalling ? 'default' : 'pointer' }}
             >
                 {isInstalling && (
                     <div
-                        className="pwa-install-progress"
-                        style={{
-                            position: 'absolute',
-                            left: 0,
-                            top: 0,
-                            bottom: 0,
-                            width: `${installProgress}%`,
-                            background: 'linear-gradient(90deg, #667eea, #764ba2)',
-                            transition: 'width 0.3s ease',
-                            zIndex: 0
-                        }}
+                        className="pwa-progress-bar pwa-progress-bar-absolute"
+                        style={{ width: `${installProgress}%` }}
                     />
                 )}
-                <i className={isInstalled ? "ri-external-link-line" : "ri-download-cloud-line"} style={{ position: 'relative', zIndex: 1 }}></i>
-                <span className="manual-label-wrapper" style={{ position: 'relative', zIndex: 1 }}>
+                <i className={`${isInstalled ? "ri-external-link-line" : "ri-download-cloud-line"} pwa-content-layer`}></i>
+                <span className="manual-label-wrapper pwa-content-layer">
                     {isInstalling ? (
                         <>
                             <span className="translated-part">Installing... {installProgress}%</span>
@@ -275,20 +263,14 @@ export const PWAInstallButton = () => {
 
                         <div className="ios-install-content">
                             {/* 알림 기능 안내 문구 */}
-                            <div className="ios-install-desc" style={{
-                                padding: '0 20px 20px',
-                                textAlign: 'center',
-                                fontSize: '15px',
-                                color: '#e4e4e7',
-                                lineHeight: '1.5'
-                            }}>
-                                <i className="ri-notification-3-fill" style={{ color: '#FEE500', marginRight: '6px' }}></i>
+                            <div className="ios-notification-desc">
+                                <i className="ri-notification-3-fill notification-icon-highlight"></i>
                                 <strong>알림 기능</strong>을 사용하려면<br />앱 설치가 필요합니다.
                             </div>
 
                             {/* [버튼 영역] Android/PC는 버튼 무조건 표시 (앱 열기 대응) */}
                             {!isIOS && (
-                                <div style={{ padding: '0 20px 20px' }}>
+                                <div className="manual-install-btn-wrapper">
                                     <div
                                         onClick={() => {
                                             // 설치된 상태면 열기 (handleInstallClick 내부 로직)
@@ -297,36 +279,17 @@ export const PWAInstallButton = () => {
                                             // 프롬프트가 실행되면 모달 닫기
                                             if (promptEvent || isInstalled) setShowInstructions(false);
                                         }}
-                                        className={`pwa-install-button ${isInstalling ? 'installing' : ''} ${isInstalled ? 'installed' : ''}`}
-                                        style={{
-                                            position: 'relative',
-                                            overflow: 'hidden',
-                                            cursor: 'pointer',
-                                            width: '100%',
-                                            maxWidth: 'none',
-                                            margin: '0',
-                                            padding: '12px', // 기본 패딩 확인
-                                            borderRadius: '12px',
-                                        }}
+                                        className={`pwa-install-button manual-install-btn pwa-button-wrapper ${isInstalling ? 'installing' : ''} ${isInstalled ? 'installed' : ''}`}
                                     >
                                         {/* CSS 클래스 스타일 상속을 위해 추가 스타일 최소화 */}
                                         {isInstalling && (
                                             <div
-                                                className="pwa-install-progress"
-                                                style={{
-                                                    position: 'absolute',
-                                                    left: 0,
-                                                    top: 0,
-                                                    bottom: 0,
-                                                    width: `${installProgress}%`,
-                                                    background: 'linear-gradient(90deg, #667eea, #764ba2)',
-                                                    transition: 'width 0.3s ease',
-                                                    zIndex: 0
-                                                }}
+                                                className="pwa-progress-bar pwa-progress-bar-absolute"
+                                                style={{ width: `${installProgress}%` }}
                                             />
                                         )}
-                                        <i className={isInstalled ? "ri-external-link-line" : "ri-download-cloud-line"} style={{ position: 'relative', zIndex: 1 }}></i>
-                                        <span className="manual-label-wrapper" style={{ position: 'relative', zIndex: 1 }}>
+                                        <i className={`${isInstalled ? "ri-external-link-line" : "ri-download-cloud-line"} pwa-content-layer`}></i>
+                                        <span className="manual-label-wrapper pwa-content-layer">
                                             {isInstalling ? (
                                                 <>
                                                     <span className="translated-part">Installing... {installProgress}%</span>
@@ -351,7 +314,7 @@ export const PWAInstallButton = () => {
 
                                     {/* 설치 프롬프트가 없을 때만 수동 안내 유도 메시지 */}
                                     {!isInstalled && !promptEvent && (
-                                        <p style={{ marginTop: '12px', fontSize: '13px', color: '#fb7185', textAlign: 'center' }}>
+                                        <p className="manual-install-note">
                                             * 자동 설치가 지원되지 않는 환경입니다.<br />아래 수동 설치 방법을 참고해주세요.
                                         </p>
                                     )}
@@ -366,7 +329,7 @@ export const PWAInstallButton = () => {
                                             <div className="ios-install-step">
                                                 <div className="ios-install-step-number">1</div>
                                                 <div className="ios-install-step-text">
-                                                    Safari 하단의 <i className="ri-upload-2-line" style={{ color: '#3b82f6' }}></i> <strong>공유</strong> 버튼을 누르세요
+                                                    Safari 하단의 <i className="ri-upload-2-line ios-share-icon"></i> <strong>공유</strong> 버튼을 누르세요
                                                 </div>
                                             </div>
                                             <div className="ios-install-step">

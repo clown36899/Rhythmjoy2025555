@@ -59,7 +59,6 @@ const BillboardLayoutV7: React.FC = () => {
                     }
 
                     scrollContainer.scrollTop = topPos;
-                    console.log("V7: Found Today and scrolled to exact topPos:", topPos);
                 }
             } else if (retryCount < maxRetries) {
                 retryCount++;
@@ -88,26 +87,8 @@ const BillboardLayoutV7: React.FC = () => {
     };
 
     return (
-        <div className="v7-viewport-container" ref={containerRef} style={{
-            width: '100%',
-            height: '100%',
-            overflow: 'hidden',
-            backgroundColor: '#000',
-            display: 'flex',
-            justifyContent: 'center',
-            alignItems: 'flex-start',
-            top: 0,
-            left: 0,
-            position: 'fixed'
-        }}>
-            <div className="v7-static-root" style={{
-                width: `${TARGET_WIDTH}px`,
-                height: `${TARGET_HEIGHT}px`,
-                transform: `scale(${scale})`,
-                transformOrigin: 'top center',
-                flexShrink: 0,
-                position: 'relative'
-            }}>
+        <div className="v7-viewport-container" ref={containerRef}>
+            <div className="v7-static-root v7-scale-root" style={{ transform: `scale(${scale})` }}>
                 {/* Header */}
                 <div className="v7-static-header">
                     <div className="v7-brand-mark">SOCIAL & EVENTS</div>
@@ -115,8 +96,8 @@ const BillboardLayoutV7: React.FC = () => {
 
                 <div className="v7-split-container">
                     {/* Left: Full Calendar */}
-                    <div className="v7-col-left" style={{ padding: 0, overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: '100%', padding: '10px' }}>
+                    <div className="v7-col-left">
+                        <div className="v7-calendar-wrapper">
                             <FullEventCalendar
                                 currentMonth={currentMonth}
                                 selectedDate={null}
@@ -146,12 +127,12 @@ const BillboardLayoutV7: React.FC = () => {
                                             {getImageUrl(item) ? (
                                                 <img src={getImageUrl(item)} alt="" className="v7-card-thumb" />
                                             ) : (
-                                                <div style={{ width: '100%', height: '100%', background: '#333' }}></div>
+                                                <div className="v7-thumb-placeholder"></div>
                                             )}
                                         </div>
                                         <div className="v7-card-content">
                                             <div className="v7-card-top">
-                                                <span className="v7-card-tag" style={{ background: item.type === 'event' ? '#e54d4d' : '#f1c40f', color: '#000' }}>
+                                                <span className={`v7-card-tag ${item.type === 'event' ? 'v7-tag-event' : 'v7-tag-regular'}`}>
                                                     {formatDate(item.sortDate)}
                                                 </span>
                                                 <span className="v7-card-time">{item.time?.substring(0, 5)}</span>
@@ -165,7 +146,7 @@ const BillboardLayoutV7: React.FC = () => {
                                     </div>
                                 ))
                             ) : (
-                                <div style={{ color: '#666', fontSize: '1.2rem', textAlign: 'center', gridColumn: 'span 3', padding: '50px' }}>
+                                <div className="v7-empty-state">
                                     예정된 일정이 없습니다.
                                 </div>
                             )}
