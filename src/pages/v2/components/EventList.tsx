@@ -332,23 +332,22 @@ const EventList: React.FC<EventListProps> = ({
             const todayEventsAsSocial = events
               .filter(e => e.category === 'event' && (e.end_date || e.date || "") >= todayStr && (e.start_date || e.date || "") <= todayStr)
               .map(e => ({
-                id: Number(e.id) * 10000, // Keep multiplication for UI/Key collision prevention
-                group_id: -1, // Flag as Event
+                id: `event-${e.id}`, // ✅ ID 충돌 방지를 위해 접두어 도입
+                group_id: -1,
                 title: e.title,
                 date: e.date,
                 start_time: e.time,
                 place_name: e.location,
                 image_url: e.image,
-                image_medium: e.image,
-                image_thumbnail: e.image,
+                image_medium: (e as any).image_medium || e.image, // ✅ 실제 썸네일 필드 참조
+                image_thumbnail: (e as any).image_thumbnail || e.image, // ✅ 실제 썸네일 필드 참조
                 user_id: e.user_id,
                 created_at: e.created_at,
                 updated_at: '',
                 description: e.description,
-
-                board_users: (e as any).board_users, // Preserve author info
-                is_mapped_event: true, // Use flag to recover ID on click
-                scope: e.scope // 👈 Scope 추가
+                board_users: (e as any).board_users,
+                is_mapped_event: true,
+                scope: e.scope
               } as any));
 
             // B. One-time Social Schedules (Date match) - Filter to only show 'social' category (not club)
@@ -401,22 +400,22 @@ const EventList: React.FC<EventListProps> = ({
                 return eDate >= weekStartStr && eDate <= twoWeeksEndStr;
               })
               .map(e => ({
-                id: Number(e.id) * 10000,
+                id: `event-${e.id}`, // ✅ ID 충돌 방지
                 group_id: -1,
                 title: e.title,
                 date: e.date,
                 start_time: e.time,
                 place_name: e.location,
                 image_url: e.image,
-                image_medium: e.image,
-                image_thumbnail: e.image,
+                image_medium: (e as any).image_medium || e.image,
+                image_thumbnail: (e as any).image_thumbnail || e.image,
                 user_id: e.user_id,
                 created_at: e.created_at,
                 updated_at: '',
                 description: e.description,
                 board_users: (e as any).board_users,
                 is_mapped_event: true,
-                scope: e.scope // 👈 Scope 추가
+                scope: e.scope
               } as any));
 
             // Filter socialSchedules to only show 'social' category (not club) in the summary bar
@@ -458,11 +457,11 @@ const EventList: React.FC<EventListProps> = ({
           selectedClassGenre={searchParams.get('class_genre')}
           selectedClubGenre={searchParams.get('club_genre')}
           onEventClick={(e) => {
-            // 🎯 오늘의 일정 섹션에서 ID가 10,000배(예: 220 -> 2200000)가 된 경우 복원
+            // 🎯 오늘의 일정 섹션에서 ID가 'event-123' 형태가 된 경우 복원
             if ((e as any).is_mapped_event) {
-              const idNum = Number((e as any).id);
-              if (!isNaN(idNum)) {
-                const originalId = Math.floor(idNum / 10000);
+              const idStr = String((e as any).id);
+              if (idStr.startsWith('event-')) {
+                const originalId = idStr.replace('event-', '');
                 const originalEvent = events.find(ev => String(ev.id) === String(originalId));
                 if (originalEvent) {
                   onEventClick?.(originalEvent);
@@ -478,9 +477,9 @@ const EventList: React.FC<EventListProps> = ({
               onEventHover(null);
               return;
             }
-            // If ID is inflated (mapped event), scale it back for lookup
-            const idNum = Number(id);
-            const lookupId = (!isNaN(idNum) && idNum > 1000000) ? Math.floor(idNum / 10000) : id;
+            // ID가 'event-123' 형태인 경우 원본 ID 추출하여 검색
+            const idStr = String(id);
+            const lookupId = idStr.startsWith('event-') ? idStr.replace('event-', '') : id;
             const found = events.find(ev => String(ev.id) === String(lookupId));
             onEventHover(found ?? null);
           }}

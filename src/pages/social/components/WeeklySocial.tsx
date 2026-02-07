@@ -27,6 +27,7 @@ interface DisplayItem {
     sub: string;
     category?: string;
     image_micro?: string;
+    image_thumbnail?: string; // ✅ 추가
     originalEvent: any;
 }
 
@@ -66,12 +67,13 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
             return {
                 id: String(s.id),
                 title: s.title,
-                image: s.image_thumbnail || s.image_url, // Prefer thumbnail 
+                image: s.image_url,
                 date: dateStr,
                 time: s.start_time,
                 sub: `${s.start_time ? s.start_time.substring(0, 5) : ''} ${s.place_name || ''}`,
                 category: 'social', // Mostly social here
                 image_micro: s.image_micro,
+                image_thumbnail: s.image_thumbnail, // ✅ 추가
                 originalEvent: { ...s, id: `social-${s.id}` }
             };
         });
@@ -341,7 +343,7 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                                                 <div className="daily-items-list">
                                                     {grouped[date].map(item => (
                                                         <div key={item.id} className="daily-item-row" onClick={() => eventModal.setSelectedEvent(item.originalEvent)}>
-                                                            <img src={item.image || '/logo.png'} alt={item.title} className="daily-item-thumb" onError={e => e.currentTarget.src = '/logo.png'} />
+                                                            <img src={item.image_thumbnail || item.image || '/logo.png'} alt={item.title} className="daily-item-thumb" onError={e => e.currentTarget.src = '/logo.png'} />
                                                             <div className="daily-item-info">
                                                                 <div className="daily-item-title">{item.title}</div>
                                                                 <div className="daily-item-sub">{item.sub}</div>
@@ -396,9 +398,9 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                                                                 e.stopPropagation();
                                                                 eventModal.setSelectedEvent(item.originalEvent);
                                                             }}>
-                                                            {(item.image || item.image_micro) ? (
+                                                            {(item.image_micro || item.image_thumbnail || item.image) ? (
                                                                 <div className="event-card-img-wrapper">
-                                                                    <img src={item.image || item.image_micro} alt="" />
+                                                                    <img src={item.image_micro || item.image_thumbnail || item.image} alt="" />
                                                                 </div>
                                                             ) : (
                                                                 <div className={`calendar-fullscreen-placeholder ${categoryColor} event-card-placeholder`}>

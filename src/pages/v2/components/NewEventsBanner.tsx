@@ -169,7 +169,6 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                             src={eventThumbnail}
                                             alt={event.title}
                                             className="NEB-image"
-                                            loading="lazy"
                                         />
                                         <div className="NEB-overlay"></div>
                                     </div>

@@ -203,7 +203,6 @@ export const UnifiedScheduleSection: React.FC<UnifiedScheduleSectionProps> = ({
                                         <img
                                             src={item.image_thumbnail || item.image_medium || item.image_url || ''}
                                             alt={item.title}
-                                            loading="lazy"
                                         />
                                     ) : (
                                         <div className="USS-placeholder">
