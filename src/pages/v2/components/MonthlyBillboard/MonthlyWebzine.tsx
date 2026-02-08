@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useMonthlyBillboard, type BillboardData, type RankingItem } from '../../hooks/useMonthlyBillboard';
 import MonthlyLogDetailModal from './MonthlyLogDetailModal';
-import LocalLoading from '../../../components/LocalLoading';
+import LocalLoading from '../../../../components/LocalLoading';
 import './MonthlyWebzine.css';
 
 // --- Premium Dark Mode Colors (Used for Chart Logic & Dynamic Styles) ---
