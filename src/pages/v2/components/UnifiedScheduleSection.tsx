@@ -4,6 +4,7 @@ import { getLocalDateString, getKSTDay } from '../utils/eventListUtils';
 import { HorizontalScrollNav } from './HorizontalScrollNav';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useModalActions } from '../../../contexts/ModalContext';
+import { useNavigate } from 'react-router-dom';
 import "../../../styles/components/UnifiedScheduleSection.css";
 
 interface UnifiedScheduleSectionProps {
@@ -19,6 +20,7 @@ export const UnifiedScheduleSection: React.FC<UnifiedScheduleSectionProps> = ({
     onEventClick,
     onRefresh
 }) => {
+    const navigate = useNavigate();
     const { openModal } = useModalActions();
     const { isAdmin, user } = useAuth();
     const scrollerRef = useRef<HTMLDivElement>(null);
@@ -166,7 +168,11 @@ export const UnifiedScheduleSection: React.FC<UnifiedScheduleSectionProps> = ({
                 </div>
                 <button
                     className="manual-label-wrapper"
-                    onClick={() => window.location.href = '/calendar'}
+                    onClick={() => {
+                        // "소셜 탭이 선택된 상태로 바로가야한다" -> /calendar?category=social
+                        // CalendarPage.tsx handles scrollToToday=true to scroll to today
+                        navigate('/calendar?category=social&scrollToToday=true');
+                    }}
                     style={{
                         marginLeft: 'auto',
                         background: 'transparent',

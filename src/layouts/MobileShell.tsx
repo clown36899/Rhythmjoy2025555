@@ -405,7 +405,10 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                     </button>
                     <button
                       className="calendar-today-header-btn"
-                      onClick={() => window.dispatchEvent(new CustomEvent('goToToday'))}
+                      onClick={() => {
+                        console.log('[MobileShell] Today button clicked, dispatching goToToday');
+                        window.dispatchEvent(new CustomEvent('goToToday'));
+                      }}
                     >
                       오늘
                     </button>

@@ -346,7 +346,18 @@
 }
 
 .weekly-social-container .calendar-date-number-today .day-number {
-    color: var(--text-primary);
+    background: #3b82f6 !important;
+    /* Blue 500 */
+    color: white !important;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 2px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    font-weight: bold;
 }
 
 .weekly-social-container .week-view-cell-body {
@@ -498,6 +509,150 @@
 .nav-btn.today-btn:hover {
     background: var(--color-primary);
     color: white;
+}
+
+/* Mini Calendar Popup */
+.mini-calendar-popup {
+    position: fixed;
+    /* absolute -> fixed: overflow 이슈 해결 */
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    margin-top: 0;
+    background: #1f1f1f;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 16px;
+    width: 300px;
+    z-index: 99999;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    animation: fadeIn 0.15s ease-out;
+}
+
+/* Add Overlay for better UX */
+.mini-calendar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 99998;
+    animation: fadeIn 0.15s ease-out;
+}
+
+.weekly-social-container .week-nav-group {
+    position: relative;
+    /* 팝업 기준점 */
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 4px;
+    border-radius: 20px;
+    z-index: 1;
+    /* 네비게이션 그룹 자체도 약간 높임 */
+}
+
+.mini-calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.mini-cal-title {
+    flex: 1;
+    text-align: center;
+}
+
+.mini-calendar-footer {
+    display: flex;
+    justify-content: center;
+    margin-top: 12px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mini-cal-today-btn {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    border: none;
+    padding: 6px 16px;
+    border-radius: 16px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.mini-cal-today-btn:hover {
+    background: var(--color-primary);
+    color: white;
+}
+
+.mini-calendar-header button {
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mini-calendar-header button:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+.mini-calendar-weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    margin-bottom: 8px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+.mini-calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+}
+
+.mini-calendar-cell {
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.mini-calendar-cell:not(.empty):hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+.mini-calendar-cell.today {
+    color: var(--color-primary);
+    font-weight: 700;
+}
+
+.mini-calendar-cell.selected-week {
+    background: rgba(59, 130, 246, 0.2);
+    color: var(--color-blue-300);
+}
+
+.mini-calendar-cell.empty {
+    cursor: default;
 }
 
 .weekly-social-container .calendar-date-sunday {

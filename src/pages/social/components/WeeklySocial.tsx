@@ -249,6 +249,73 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
 
 
 
+    // Calendar Popup State
+    const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+    const [calendarBaseDate, setCalendarBaseDate] = useState<Date>(new Date());
+
+    // Toggle Calendar
+    const toggleCalendar = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!isCalendarOpen) {
+            setCalendarBaseDate(new Date(weekViewDate)); // Open with current view date
+        }
+        setIsCalendarOpen(!isCalendarOpen);
+    };
+
+    // Calendar Navigation
+    const handlePrevMonth = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        const newDate = new Date(calendarBaseDate);
+        newDate.setMonth(newDate.getMonth() - 1);
+        setCalendarBaseDate(newDate);
+    };
+
+    const handleNextMonth = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        const newDate = new Date(calendarBaseDate);
+        newDate.setMonth(newDate.getMonth() + 1);
+        setCalendarBaseDate(newDate);
+    };
+
+    const handleDateSelect = (dateStr: string) => {
+        const selected = new Date(dateStr);
+        setWeekViewDate(selected);
+        onWeekChange?.(selected);
+        setIsCalendarOpen(false);
+    };
+
+    // Close calendar on outside click
+    React.useEffect(() => {
+        const handleClickOutside = () => setIsCalendarOpen(false);
+        if (isCalendarOpen) {
+            document.addEventListener('click', handleClickOutside);
+        }
+        return () => document.removeEventListener('click', handleClickOutside);
+    }, [isCalendarOpen]);
+
+    // Generate Mini Calendar Grid
+    const miniCalendarGrid = useMemo(() => {
+        const year = calendarBaseDate.getFullYear();
+        const month = calendarBaseDate.getMonth();
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
+
+        const days = [];
+        // Pending days from prev month
+        const startDayOfWeek = firstDay.getDay(); // 0(Sun) ~ 6(Sat)
+        for (let i = 0; i < startDayOfWeek; i++) {
+            days.push(null);
+        }
+
+        // Days of current month
+        for (let i = 1; i <= lastDay.getDate(); i++) {
+            const d = new Date(year, month, i);
+            days.push(getLocalDateString(d));
+        }
+
+        return days;
+    }, [calendarBaseDate]);
+
     return (
         <section className="weekly-social-container">
 
@@ -263,13 +330,70 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                         <div className="view-toggle-container">
                             {/* Week Navigation - Only Visible in Week View */}
                             {viewType === 'week' && (
-                                <div className="week-nav-group">
+                                <div className="week-nav-group" style={{ position: 'relative' }}>
                                     <button className="nav-btn" onClick={handlePrevWeek}>&lt;</button>
-                                    <span className="nav-date-display">
+                                    <span
+                                        className="nav-date-display"
+                                        onClick={toggleCalendar}
+                                        style={{ cursor: 'pointer' }}
+                                    >
                                         {weekViewDate.getFullYear()}년 {weekViewDate.getMonth() + 1}월
                                     </span>
                                     <button className="nav-btn" onClick={handleNextWeek}>&gt;</button>
                                     <button className="nav-btn today-btn" onClick={handleToday}>오늘</button>
+
+                                    {/* Mini Calendar Popup & Overlay */}
+                                    {isCalendarOpen && (
+                                        <>
+                                            <div className="mini-calendar-overlay" onClick={() => setIsCalendarOpen(false)}></div>
+                                            <div className="mini-calendar-popup" onClick={e => e.stopPropagation()}>
+                                                <div className="mini-calendar-header">
+                                                    <button onClick={handlePrevMonth}>&lt;</button>
+                                                    <span className="mini-cal-title">
+                                                        {calendarBaseDate.getFullYear()}.{String(calendarBaseDate.getMonth() + 1).padStart(2, '0')}
+                                                    </span>
+                                                    <button onClick={handleNextMonth}>&gt;</button>
+                                                </div>
+                                                <div className="mini-calendar-weekdays">
+                                                    <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
+                                                </div>
+                                                <div className="mini-calendar-grid">
+                                                    {miniCalendarGrid.map((dateStr, idx) => {
+                                                        if (!dateStr) return <div key={`empty-${idx}`} className="mini-calendar-cell empty"></div>;
+
+                                                        const dateObj = new Date(dateStr);
+                                                        const dayNum = dateObj.getDate();
+                                                        const isToday = dateStr === getLocalDateString();
+                                                        // Check if in current view week
+                                                        const isInViewWeek = weekGridDates.includes(dateStr);
+
+                                                        return (
+                                                            <div
+                                                                key={dateStr}
+                                                                className={`mini-calendar-cell ${isToday ? 'today' : ''} ${isInViewWeek ? 'selected-week' : ''}`}
+                                                                onClick={() => handleDateSelect(dateStr)}
+                                                            >
+                                                                {dayNum}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                                <div className="mini-calendar-footer">
+                                                    <button
+                                                        className="mini-cal-today-btn"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            const today = getLocalDateString();
+                                                            handleDateSelect(today);
+                                                            setCalendarBaseDate(new Date()); // Reset calendar view to this month
+                                                        }}
+                                                    >
+                                                        오늘
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             )}
 
@@ -479,7 +603,9 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                         <span>
                             정기소셜일정은 언제든 취소될 수 있습니다.
                             <br />
-                            <strong>금주의 소셜</strong>은 확정된 일정입니다.
+                            메인화면에 노출되지 않습니다.
+                            <br />
+                            <strong>금주의 소셜</strong>만 확정 노출됩니다.
                         </span>
                     </div>
 
