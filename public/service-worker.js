@@ -1,5 +1,5 @@
-// 빌보드 PWA 서비스 워커 (Version: 20260206 - V37/Z-Index Standardization)
-const CACHE_NAME = 'rhythmjoy-cache-v37';
+// 빌보드 PWA 서비스 워커 (Version: 20260209 - V38/Social Redirect Logic)
+const CACHE_NAME = 'rhythmjoy-cache-v38';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();

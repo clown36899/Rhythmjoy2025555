@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import EventList from "./components/EventList";
 
 // Lazy loading으로 성능 최적화 - 큰 모달 컴포넌트들
@@ -28,6 +28,7 @@ export default function HomePageV2() {
     // 1. Core Hooks & Context
     // --------------------------------------------------------------------------------
     const [searchParams, setSearchParams] = useSearchParams();
+    const navigate = useNavigate();
     const { isAdmin, user, signInWithKakao } = useAuth();
     const { openModal, closeModal } = useModalActions();
     const { modalStack } = useModalState();
@@ -177,6 +178,12 @@ export default function HomePageV2() {
                     window.dispatchEvent(new CustomEvent('createEventForDate', {
                         detail: { source: 'floatingBtn', calendarMode }
                     }));
+                },
+                onSelectPublic: () => {
+                    closeModal('registrationChoice');
+                    const dateStr = selectedDate ? selectedDate.toISOString().split('T')[0] : '';
+                    const url = dateStr ? `/social?action=register_social&date=${dateStr}` : '/social?action=register_social';
+                    navigate(url);
                 }
             });
         }

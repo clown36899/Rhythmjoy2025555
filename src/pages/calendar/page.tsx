@@ -583,6 +583,12 @@ export default function CalendarPage() {
                     setShowChoiceModal(false);
                     setShowRegisterModal(true);
                 }}
+                onSelectPublic={() => {
+                    setShowChoiceModal(false);
+                    const dateStr = selectedDate ? selectedDate.toISOString().split('T')[0] : '';
+                    const url = dateStr ? `/social?action=register_social&date=${dateStr}` : '/social?action=register_social';
+                    navigate(url);
+                }}
             />
 
             {/* Register Modal (New Event) */}

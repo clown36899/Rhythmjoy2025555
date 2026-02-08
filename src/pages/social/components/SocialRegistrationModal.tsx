@@ -23,14 +23,14 @@ const SocialRegistrationModal: React.FC<SocialRegistrationModalProps> = ({
         <div className="srm-overlay" onClick={onClose}>
             <div className="srm-content" onClick={e => e.stopPropagation()}>
                 <div className="srm-header">
-                    <h2 className="srm-title">소셜 일정 등록</h2>
+                    <h2 className="srm-title">일정 등록</h2>
                     <button className="srm-close-btn" onClick={onClose}><i className="ri-close-line"></i></button>
                 </div>
 
                 <div className="srm-body">
                     <p className="srm-desc">
                         <i className="ri-information-fill"></i>
-                        소셜일정을 등록하려면 단체(주최자)를 선택해야 합니다.<br />
+                        일정을 등록하려면 단체를 선택해야 합니다.<br />
                         <span className="srm-desc-sub">
                             비밀번호로 추가하시려면 하단에 등록단체 리스트에서 일정등록 버튼으로 등록해주세요.
                         </span>

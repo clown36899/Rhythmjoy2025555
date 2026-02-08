@@ -100,11 +100,17 @@ const SocialPage: React.FC = () => {
   const navigate = useNavigate();
   useEffect(() => {
     const action = searchParams.get('action');
+    const dateParam = searchParams.get('date');
+
     if (action === 'register_social') {
+      if (dateParam) {
+        setSelectedDateForAdd(dateParam);
+      }
       setIsRegistrationModalOpen(true);
       // Clean up URL
       const newParams = new URLSearchParams(searchParams);
       newParams.delete('action');
+      newParams.delete('date');
       navigate({ search: newParams.toString() }, { replace: true });
     }
   }, [location.search, navigate]);
