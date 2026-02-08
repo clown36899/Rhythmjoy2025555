@@ -489,7 +489,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                             className={`ssm-tab ${activeTab === 'recruit' ? 'active' : ''}`}
                             onClick={() => setActiveTab('recruit')}
                         >
-                            신규(민간인)
+                            원데이 일반인모집
                         </button>
                     </div>
                 )}

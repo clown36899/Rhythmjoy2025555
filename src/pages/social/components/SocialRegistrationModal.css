@@ -14,6 +14,8 @@
     z-index: 2000;
     /* High z-index to sit above other elements */
     padding: 20px;
+    padding-bottom: 10vh;
+    /* Optical center adjustment */
 }
 
 .srm-content {
@@ -83,16 +85,19 @@
 }
 
 .srm-desc i {
-    margin-right: 6px;
-    color: var(--color-info);
+    margin-right: 8px;
+    color: var(--color-primary, #3b82f6);
+    font-size: 1.1rem;
+    vertical-align: text-bottom;
 }
 
 .srm-desc-sub {
     font-size: 0.85rem;
     color: var(--text-tertiary);
     display: block;
-    margin-top: 6px;
-    padding-left: 22px;
+    margin-top: 4px;
+    padding-left: 24px;
+    opacity: 0.8;
 }
 
 .srm-section-title {
@@ -119,7 +124,7 @@
 .srm-create-btn {
     width: 100%;
     padding: 16px;
-    background: var(--bg-surface-glass);
+    background: transparent;
     border: 1px dashed var(--border-glass);
     border-radius: 12px;
     color: var(--text-secondary);
@@ -160,6 +165,19 @@
 .admin-add-item-btn.is-full-width {
     width: 100%;
     justify-content: center;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    font-weight: 600;
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
+    transition: all 0.2s;
+}
+
+.admin-add-item-btn.is-full-width:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 12px rgba(37, 99, 235, 0.3);
 }
 
 .srm-alert-text {

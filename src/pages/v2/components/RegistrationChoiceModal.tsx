@@ -7,23 +7,29 @@ interface RegistrationChoiceModalProps {
     onClose: () => void;
     onSelectMain: () => void;
     onSelectSocial?: () => void;
+    onSelectPublic?: () => void; // Optional handler for public recruitment
 }
 
 const RegistrationChoiceModal: React.FC<RegistrationChoiceModalProps> = ({
     isOpen,
     onClose,
     onSelectMain,
-    onSelectSocial
+    onSelectPublic
 }) => {
     const navigate = useNavigate();
 
     // Default handler if not provided
     const handleSocialSelect = () => {
-        if (onSelectSocial) {
-            onSelectSocial();
+        onClose();
+        navigate('/social');
+    };
+
+    const handlePublicSelect = () => {
+        if (onSelectPublic) {
+            onSelectPublic();
         } else {
-            onClose();
-            navigate('/social?action=register_social');
+            // 임시 알림
+            alert('준비 중입니다.');
         }
     };
 
@@ -55,7 +61,18 @@ const RegistrationChoiceModal: React.FC<RegistrationChoiceModalProps> = ({
                         </div>
                         <div className="choice-text-content">
                             <span className="choice-label">소셜 일정 등록</span>
-                            <span className="choice-desc">동호회 소셜 출빠정보 등록</span>
+                            <span className="choice-desc">DJ 명 필수</span>
+                        </div>
+                        <i className="ri-arrow-right-s-line" style={{ color: '#6b7280' }}></i>
+                    </button>
+
+                    <button className="choice-option-btn public" onClick={handlePublicSelect}>
+                        <div className="choice-icon-wrapper">
+                            <i className="ri-user-heart-line"></i>
+                        </div>
+                        <div className="choice-text-content">
+                            <span className="choice-label">민간인 모집 원데이등록</span>
+                            <span className="choice-desc">댄서대상이 아닌 신규모집등록</span>
                         </div>
                         <i className="ri-arrow-right-s-line" style={{ color: '#6b7280' }}></i>
                     </button>

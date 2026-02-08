@@ -265,8 +265,11 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                             {viewType === 'week' && (
                                 <div className="week-nav-group">
                                     <button className="nav-btn" onClick={handlePrevWeek}>&lt;</button>
-                                    <button className="nav-btn today" onClick={handleToday}>이번주</button>
+                                    <span className="nav-date-display">
+                                        {weekViewDate.getFullYear()}년 {weekViewDate.getMonth() + 1}월
+                                    </span>
                                     <button className="nav-btn" onClick={handleNextWeek}>&gt;</button>
+                                    <button className="nav-btn today-btn" onClick={handleToday}>오늘</button>
                                 </div>
                             )}
 

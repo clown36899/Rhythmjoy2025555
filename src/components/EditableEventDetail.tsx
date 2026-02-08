@@ -452,7 +452,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                                                 }}
                                                                 className={`EED-sheetBtn ${event.category === 'class' ? 'is-active' : ''}`}
                                                             >
-                                                                <span>강습</span>
+                                                                <span>외강</span>
                                                                 {event.category === 'class' && <i className="ri-check-line"></i>}
                                                             </button>
                                                             <button

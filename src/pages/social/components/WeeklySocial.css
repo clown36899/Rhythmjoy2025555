@@ -446,7 +446,59 @@
     font-size: clamp(14px, 5vw, 20px);
 }
 
+.week-nav-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 4px;
+    border-radius: 20px;
+}
 
+.nav-date-display {
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 0.95rem;
+    padding: 0 8px;
+    min-width: 80px;
+    text-align: center;
+}
+
+.nav-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    font-size: 1rem;
+}
+
+.nav-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+}
+
+.nav-btn.today-btn {
+    width: auto;
+    border-radius: 16px;
+    padding: 0 12px;
+    font-size: 0.85rem;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    margin-left: 4px;
+    font-weight: 500;
+}
+
+.nav-btn.today-btn:hover {
+    background: var(--color-primary);
+    color: white;
+}
 
 .weekly-social-container .calendar-date-sunday {
     color: var(--color-red-500);
