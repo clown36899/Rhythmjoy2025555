@@ -73,7 +73,7 @@ export default function BillboardPreviewPage({ forcedVersion }: Props) {
         <div className="billboard-preview-root-fully-responsive">
             {/* Navigation to Catalog */}
             <button
-                onClick={() => navigate(`/billboard/${userId}/preview/catalog`)}
+                onClick={() => navigate(`/billboard/${userId}/preview/catalog`, { replace: true })}
                 className="billboard-catalog-button"
             >
                 <i className="fas fa-th-large"></i> CATALOG
@@ -86,6 +86,32 @@ export default function BillboardPreviewPage({ forcedVersion }: Props) {
                             version === '8' ? <BillboardLayoutV8 /> :
                                 <BillboardLayoutV7 />}
             </div>
+
+            {/* Floating Back Button (Bottom-Right) */}
+            <button
+                onClick={() => navigate(-1)}
+                style={{
+                    position: 'fixed',
+                    bottom: '20px',
+                    right: '20px',
+                    zIndex: 9999,
+                    background: 'rgba(0, 0, 0, 0.6)',
+                    color: '#fff',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    borderRadius: '50px',
+                    padding: '10px 20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    cursor: 'pointer',
+                    backdropFilter: 'blur(5px)',
+                    fontSize: '0.9rem',
+                    fontWeight: 600,
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
+                }}
+            >
+                <i className="fas fa-arrow-left"></i> BACK
+            </button>
         </div>
     );
 }

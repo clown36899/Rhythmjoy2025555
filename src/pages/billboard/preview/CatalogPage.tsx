@@ -66,6 +66,33 @@ export default function BillboardCatalogPage() {
                     </p>
                 </footer>
             </div>
+            {/* ... existing content ... */}
+
+            {/* Floating Back Button */}
+            <button
+                onClick={() => navigate(-1)}
+                style={{
+                    position: 'fixed',
+                    bottom: '20px',
+                    right: '20px',
+                    zIndex: 9999,
+                    background: 'rgba(0, 0, 0, 0.6)',
+                    color: '#fff',
+                    border: '1px solid rgba(255, 255, 255, 0.3)',
+                    borderRadius: '50px',
+                    padding: '10px 20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    cursor: 'pointer',
+                    backdropFilter: 'blur(5px)',
+                    fontSize: '0.9rem',
+                    fontWeight: 600,
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)'
+                }}
+            >
+                <i className="fas fa-arrow-left"></i> BACK
+            </button>
         </div>
     );
 }

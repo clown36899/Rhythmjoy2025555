@@ -274,6 +274,10 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                                         <i className="ri-bar-chart-box-line"></i>
                                         <span className="SD-adminStatsText">운영 통합 통계</span>
                                     </div>
+                                    <div className="SD-submenuItem" onClick={() => handleNavigation(`/billboard/${user?.id}/preview`)}>
+                                        <i className="ri-tv-2-line"></i>
+                                        <span>Billboard (Preview)</span>
+                                    </div>
                                     <div className="SD-submenuItem" onClick={() => {
                                         const newValue = !showDevTools;
                                         setShowDevTools(newValue);
