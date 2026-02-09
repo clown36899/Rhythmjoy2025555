@@ -52,7 +52,7 @@ export const NoticeTicker: React.FC = () => {
                 .eq('is_hidden', false)
                 .eq('prefix.name', '전광판') // '전광판' 말머리만 필터링
                 .order('created_at', { ascending: false })
-                .limit(50);
+                .limit(10);
 
             if (error) throw error;
 
@@ -103,7 +103,7 @@ export const NoticeTicker: React.FC = () => {
                         if (!error && data && !(data as any).is_hidden) {
                             const prefixName = (data.prefix as any)?.name;
                             if (prefixName === '전광판') {
-                                setNotices(prev => [normalizeNotice(data), ...prev].slice(0, 50));
+                                setNotices(prev => [normalizeNotice(data), ...prev].slice(0, 10));
                             }
                         }
                     } else if (payload.eventType === 'UPDATE') {
@@ -134,7 +134,7 @@ export const NoticeTicker: React.FC = () => {
                                         if (exists) {
                                             return prev.map(n => n.id === newPost.id ? normalizeNotice(data) : n);
                                         } else {
-                                            return [normalizeNotice(data), ...prev].slice(0, 50);
+                                            return [normalizeNotice(data), ...prev].slice(0, 10);
                                         }
                                     });
                                 } else {
