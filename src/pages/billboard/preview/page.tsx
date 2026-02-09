@@ -74,28 +74,7 @@ export default function BillboardPreviewPage({ forcedVersion }: Props) {
             {/* Navigation to Catalog */}
             <button
                 onClick={() => navigate(`/billboard/${userId}/preview/catalog`)}
-                style={{
-                    position: 'fixed',
-                    top: '20px',
-                    left: '20px',
-                    zIndex: 9999,
-                    background: 'rgba(25, 25, 25, 0.7)',
-                    backdropFilter: 'blur(10px)',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    color: '#fff',
-                    padding: '10px 18px',
-                    borderRadius: '50px',
-                    fontSize: '14px',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    boxShadow: '0 4px 15px rgba(0,0,0,0.3)',
-                    transition: 'all 0.2s'
-                }}
-                onMouseOver={(e) => e.currentTarget.style.background = 'rgba(229, 77, 77, 0.9)'}
-                onMouseOut={(e) => e.currentTarget.style.background = 'rgba(25, 25, 25, 0.7)'}
+                className="billboard-catalog-button"
             >
                 <i className="fas fa-th-large"></i> CATALOG
             </button>

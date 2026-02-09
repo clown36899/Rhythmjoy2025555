@@ -65,7 +65,7 @@ const BillboardLayout: React.FC = () => {
     return (
         <div className="vertical-wall-root">
             {/* 1. OVERLAY HUD (Top) */}
-            <div className="wall-hud-header">
+            {/* <div className="wall-hud-header">
                 <div className="hud-time-block">
                     <div className="h-time">{currentTime.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false })}</div>
                     <div className="h-date">{currentTime.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric', weekday: 'short' })}</div>
@@ -74,7 +74,7 @@ const BillboardLayout: React.FC = () => {
                     <div className="h-logo">DANCE BILLBOARD</div>
                     <div className="h-tag">SITE REVIEW SERVICE</div>
                 </div>
-            </div>
+            </div> */}
 
             {/* 2. THE WALL: Vertical Portrait Cards, Zero Gaps */}
             <div className="vertical-mosaic-grid">

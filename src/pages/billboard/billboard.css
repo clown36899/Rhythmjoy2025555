@@ -3,165 +3,38 @@
 @scope (.billboard-page) {
 
   /* ===== 페이지 컨테이너 ===== */
+  /* ===== 페이지 컨테이너 ===== */
+  /* ===== 페이지 컨테이너 ===== */
   :scope {
     overflow: hidden;
-    width: 100vw;
-    height: 100vh;
+    width: 100dvw;
+    height: 100dvh;
     position: relative;
     /* Dynamic Props from React */
     --scale: 1;
-    --qr-size: 150px;
-    --qr-margin-bottom: 8px;
-    --qr-padding: 12px;
-    --title-font-size: 48px;
-    --date-location-font-size: 24px;
+
+    /* vmin 단위 기반의 반응형 변수 정의 (무한 축소/확대 지원) */
+    --title-font-size: 6vmin;
+    --date-location-font-size: 3.5vmin;
+    --qr-label-font-size: 2vmin;
+
+    /* QR 코드 크기 */
+    --qr-size: 14vmin;
+    --qr-padding: 1vmin;
+    --qr-margin-bottom: 1vmin;
+
+    /* 여백 및 레이아웃 */
+    --spacing-base: 1vmin;
     --transition-duration: 500ms;
   }
 
-  /* ===== 로딩 화면 ===== */
-  .billboard-loading-container {
-    position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    background-color: #000000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .billboard-loading-content {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--spacing-6);
-  }
-
-  .billboard-spinner-container {
-    position: relative;
-    width: var(--spacing-20);
-    height: var(--spacing-20);
-  }
-
-  .billboard-spinner-bg {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    border: 4px solid var(--color-gray-700);
-    border-radius: 9999px;
-  }
-
-  .billboard-spinner {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    border: 4px solid transparent;
-    border-top-color: white;
-    border-right-color: transparent;
-    border-bottom-color: transparent;
-    border-left-color: transparent;
-    border-radius: 9999px;
-    animation: spin 1s linear infinite;
-  }
-
-  .billboard-loading-text {
-    color: white;
-    font-size: 1.25rem;
-
-    font-weight: 300;
-    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  }
-
-  /* ===== 에러 화면 ===== */
-  .billboard-error-container {
-    position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    background-color: #000000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .billboard-error-text {
-    color: #ef4444;
-    font-size: 1.5rem;
-    text-align: center;
-    padding: var(--spacing-8);
-  }
-
-  /* ===== 빈 화면 ===== */
-  .billboard-empty-container {
-    position: fixed;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    background-color: #000000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .billboard-empty-content {
-    color: white;
-    font-size: 1.5rem;
-    text-align: center;
-  }
-
-  .billboard-empty-username {
-    margin-bottom: var(--spacing-4);
-  }
-
-  .billboard-empty-message {
-    color: #9ca3af;
-    font-size: 1.125rem;
-  }
-
-  /* ===== 이미지 스타일 ===== */
-  .billboard-image {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-  }
-
-  .billboard-youtube-container {
-    width: 100%;
-    height: 100%;
-    position: absolute;
-    top: 0;
-    left: 0;
-    z-index: 2;
-    opacity: var(--video-opacity);
-    transition: opacity 0.8s ease-in-out;
-  }
-
-  /* ===== 가변 레이아웃 컨테이너 ===== */
-  .portrait-container {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: var(--container-width);
-    height: var(--container-height);
-    transform: translate(-50%, -50%) rotate(var(--rotation));
-    opacity: var(--opacity);
-    pointer-events: var(--pointer-events);
-    transition: opacity var(--transition-duration) ease-in-out;
-    z-index: var(--z-index);
-  }
-
+  /* ... (중략) ... */
   /* ===== 정보 레이어 ===== */
   .billboard-top-info {
     position: absolute;
     width: 100%;
-    padding: calc(42px * var(--scale)) 42px;
+    /* 상단 패딩: vmin + Safe Area */
+    padding: calc(3vmin + env(safe-area-inset-top)) 4vmin;
     top: 0;
     z-index: 10;
     display: flex;
@@ -172,58 +45,25 @@
     justify-content: space-between;
   }
 
-  .billboard-progress-container {
-    position: relative;
+  .billboard-status-badge {
+    position: absolute;
+    top: calc(3vmin + env(safe-area-inset-top));
+    right: 4vmin;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: rgba(255, 255, 255, 0.9);
+    padding: 0.8vmin 1.5vmin;
+    border-radius: 2vmin;
+    font-size: 1.8vmin;
+    font-weight: 500;
+    backdrop-filter: blur(4px);
     display: flex;
     align-items: center;
-    justify-content: center;
-    width: calc(96px * var(--scale));
-    height: calc(96px * var(--scale));
+    gap: 0.5vmin;
+    z-index: 20;
+    /* 다른 요소 위에 표시 */
   }
 
-  .billboard-pulse-outer {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    border-radius: 9999px;
-    background-color: rgba(255, 255, 255, 0.15);
-    animation: billboard-pulse 3s ease-in-out infinite;
-  }
-
-  .billboard-pulse-inner {
-    position: absolute;
-    border-radius: 9999px;
-    width: calc(72px * var(--scale));
-    height: calc(72px * var(--scale));
-    top: calc(12px * var(--scale));
-    left: calc(12px * var(--scale));
-    background-color: rgba(255, 255, 255, 0.25);
-    animation: billboard-pulse-inner 3s ease-in-out infinite;
-  }
-
-  .billboard-slide-number {
-    position: relative;
-    color: white;
-    font-weight: 700;
-    z-index: var(--z-10);
-    font-size: calc(20px * var(--scale));
-  }
-
-  .billboard-status-badge {
-    background-color: rgba(0, 0, 0, 0.7);
-    color: white;
-    padding-left: 0.75rem;
-    padding-right: 0.75rem;
-    padding-top: 0.25rem;
-    padding-bottom: 0.25rem;
-    border-radius: var(--radius-md);
-    font-size: 0.75rem;
-    position: relative;
-    width: max-content;
-  }
-
+  /* ... (중략) ... */
   /* ===== 하단 정보 레이어 ===== */
   .billboard-bottom-info {
     position: absolute;
@@ -234,11 +74,11 @@
     flex-direction: column;
     justify-content: flex-end;
     z-index: var(--z-10);
-    padding-bottom: env(safe-area-inset-bottom);
-    padding-left: calc(32px * var(--scale));
-    padding-right: calc(32px * var(--scale));
-    padding-bottom: calc(40px * var(--scale));
-    padding-top: calc(80px * var(--scale));
+    /* 하단 패딩: vmin + Safe Area */
+    padding-bottom: calc(5vmin + env(safe-area-inset-bottom));
+    padding-left: 4vmin;
+    padding-right: 4vmin;
+    padding-top: 10vmin;
   }
 
   .info-background {
@@ -249,6 +89,8 @@
     display: flex;
     align-items: flex-end;
     width: 100%;
+    gap: 3vmin;
+    /* 텍스트와 QR 사이 간격 */
   }
 
   .billboard-info-wrapper-between {
@@ -264,7 +106,11 @@
     flex-direction: column;
     align-items: flex-start;
     justify-content: flex-end;
-    gap: var(--spacing-2);
+    gap: 0.5vmin;
+    flex: 1;
+    /* 남는 공간 차지 */
+    min-width: 0;
+    /* Flex item text overflow 허용 */
   }
 
   .billboard-title {
@@ -278,8 +124,8 @@
     line-clamp: 3;
     -webkit-box-orient: vertical;
     margin: 0;
-    margin-bottom: 0.25rem;
-    font-size: var(--title-font-size-px);
+    margin-bottom: 0.5vmin;
+    font-size: var(--title-font-size);
     opacity: 0;
     animation: zoomInUp 1.3s cubic-bezier(0.34, 1.56, 0.64, 1) 0s forwards;
   }
@@ -288,27 +134,29 @@
     color: #60a5fa;
     font-weight: 600;
     line-height: 1.2;
-    font-size: var(--date-location-font-size-px);
+    font-size: var(--date-location-font-size);
     opacity: 0;
     animation: slideInLeft 1s cubic-bezier(0.34, 1.56, 0.64, 1) 1.5s forwards;
   }
 
   .billboard-date-icon {
     display: inline-block;
-    margin-right: calc(var(--date-location-font-size-px) * 0.3);
+    margin-right: 0.8vmin;
+    font-size: 0.9em;
   }
 
   .billboard-location {
     color: #d1d5db;
     line-height: 1.2;
-    font-size: var(--date-location-font-size-px);
+    font-size: var(--date-location-font-size);
     opacity: 0;
     animation: slideInRight 1s cubic-bezier(0.34, 1.56, 0.64, 1) 2.2s forwards;
   }
 
   .billboard-location-icon {
     display: inline-block;
-    margin-right: calc(var(--date-location-font-size-px) * 0.3);
+    margin-right: 0.8vmin;
+    font-size: 0.9em;
   }
 
   .billboard-qr-container {
@@ -316,7 +164,8 @@
     flex-direction: column;
     align-items: center;
     flex-shrink: 0;
-    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.7));
+    filter: drop-shadow(0 0.5vmin 1vmin rgba(0, 0, 0, 0.7));
+    width: var(--qr-size);
   }
 
   .billboard-qr-label {
@@ -324,16 +173,25 @@
     font-weight: 700;
     text-align: center;
     white-space: nowrap;
-    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+    text-shadow: 0 0.2vmin 0.5vmin rgba(0, 0, 0, 0.8);
     font-size: var(--qr-label-font-size);
-    margin-bottom: var(--qr-label-margin-bottom);
-    width: var(--qr-size-px);
+    margin-bottom: var(--qr-margin-bottom);
+    width: 100%;
+    /* container width(18vmin) 기준 100% */
   }
 
   .billboard-qr-wrapper {
     background-color: white;
-    border-radius: var(--radius-lg);
+    border-radius: 2vmin;
     padding: var(--qr-padding);
+    width: 100%;
+    /* container width(18vmin) 기준 100% */
+    height: auto;
+    aspect-ratio: 1/1;
+    /* 정사각형 유지 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   /* ===== 장식 요소들 ===== */
@@ -439,8 +297,9 @@
   }
 
   .billboard-qr-wrapper canvas {
-    width: var(--qr-size-px) !important;
-    height: var(--qr-size-px) !important;
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain;
   }
 }
 

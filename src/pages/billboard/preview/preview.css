@@ -220,3 +220,39 @@ body:has(.billboard-preview-mode),
     font-family: 'Inter', sans-serif;
     letter-spacing: -0.5px;
 }
+
+/* [NEW] Refactored from Inline Styles */
+.billboard-preview-root-fully-responsive {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.billboard-catalog-button {
+    position: fixed;
+    top: 4px;
+    left: 20px;
+    z-index: 9999;
+    background: rgba(25, 25, 25, 0.7);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #fff;
+    padding: 0px 18px;
+    border-radius: 50px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    transition: all 0.2s;
+}
+
+.billboard-catalog-button:hover {
+    background: rgba(229, 77, 77, 0.9);
+}
+
+.billboard-catalog-button:active {
+    transform: scale(0.95);
+}

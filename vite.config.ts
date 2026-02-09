@@ -167,7 +167,7 @@ export default defineConfig({
     // API 프록시 설정 (Express 서버로 전달)
     proxy: {
       '/api': {
-        target: 'http://localhost:3001',
+        target: 'http://localhost:8888', // Netlify Dev로 전달 (Functions 처리)
         changeOrigin: true,
       },
       // Netlify Functions 프록시 (로컬 개발용)

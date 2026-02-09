@@ -56,12 +56,12 @@ const BillboardLayoutV1: React.FC = () => {
     return (
         <div className="vertical-wall-root">
             {/* HUD Header */}
-            <div className="wall-hud-header">
+            {/* <div className="wall-hud-header">
                 <div className="hud-brand-block">
                     <div className="h-logo">DANCE BILLBOARD</div>
                     <div className="h-tag">KOREA </div>
                 </div>
-            </div>
+            </div> */}
 
             {/* Mosaic Grid */}
             <div className="vertical-mosaic-grid">

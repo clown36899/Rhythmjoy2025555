@@ -48,9 +48,6 @@ export default function BillboardPage() {
   const scale = 1; // 고정 스케일 (원래 크기 유지)
   const [videoLoadedMap, setVideoLoadedMap] = useState<Record<number, boolean>>({}); // 비디오 로딩 상태
   const [needsRotation, setNeedsRotation] = useState(false); // 화면 회전 필요 여부
-  const [qrSize, setQrSize] = useState(144); // QR 코드 크기
-  const [titleFontSize, setTitleFontSize] = useState(56); // 제목 폰트 크기
-  const [dateLocationFontSize, setDateLocationFontSize] = useState(31); // 날짜+장소 폰트 크기
   const slideTimerRef = useRef<NodeJS.Timeout | null>(null); // 슬라이드 전환 타이머
   const slideStartTimeRef = useRef<number>(0); // 슬라이드 시작 시간
   const videoTimeoutRef = useRef<NodeJS.Timeout | null>(null); // 영상 재생 타임아웃 타이머
@@ -108,51 +105,20 @@ export default function BillboardPage() {
     };
   }, []);
 
-  // 화면 비율 감지 및 하단 정보 영역 크기 계산
+  // 화면 비율 감지 (가로/세로 모드)
   useEffect(() => {
-    let debounceTimer: NodeJS.Timeout;
-
-    const calculateSizes = () => {
+    const checkOrientation = () => {
       const isLandscape = window.innerWidth > window.innerHeight;
       setNeedsRotation(isLandscape);
-
-      // 화면 높이의 10% 계산 (회전 여부에 따라) - 제목+QR 영역
-      const effectiveHeight = isLandscape ? window.innerWidth : window.innerHeight;
-      const maxHeight = effectiveHeight * 0.1;
-
-      // QR 코드 크기: 최대 높이의 80% 정도, 최소 60px, 최대 150px
-      const calculatedQrSize = Math.min(150, Math.max(60, maxHeight * 0.8));
-      setQrSize(calculatedQrSize);
-
-      // 제목 폰트 크기: QR 크기에 비례, 최소 20px, 최대 60px
-      // 제목 폰트 크기: 화면 너비에 비례하여 더 크게 설정
-      const effectiveWidth = isLandscape ? window.innerHeight : window.innerWidth;
-      const calculatedFontSize = Math.min(80, Math.max(36, effectiveWidth * 0.075));
-      setTitleFontSize(calculatedFontSize);
-
-      // 날짜+장소 영역: 화면 높이의 8%
-      const dateLocationMax = effectiveHeight * 0.08;
-
-      // 날짜+장소 폰트 크기: 영역의 30% 정도, 최소 18px, 최대 36px
-      const dateLocationFont = Math.min(36, Math.max(18, dateLocationMax * 0.3));
-      setDateLocationFontSize(dateLocationFont);
-
-      log(`[빌보드] 크기 계산: ${isLandscape ? '가로' : '세로'}, 제목영역: ${Math.round(maxHeight)}px (QR:${Math.round(calculatedQrSize)}px, 폰트:${Math.round(calculatedFontSize)}px), 날짜영역: ${Math.round(dateLocationMax)}px (폰트:${Math.round(dateLocationFont)}px)`);
     };
 
-    const handleResize = () => {
-      clearTimeout(debounceTimer);
-      debounceTimer = setTimeout(calculateSizes, 100);
-    };
-
-    calculateSizes();
-    window.addEventListener('resize', handleResize);
-    window.addEventListener('orientationchange', handleResize);
+    checkOrientation();
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', checkOrientation);
 
     return () => {
-      clearTimeout(debounceTimer);
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('orientationchange', handleResize);
+      window.removeEventListener('resize', checkOrientation);
+      window.removeEventListener('orientationchange', checkOrientation);
     };
   }, []);
 
@@ -1489,7 +1455,7 @@ export default function BillboardPage() {
                   <div className="billboard-qr-wrapper">
                     <QRCodeCanvas
                       value={`${window.location.origin}/v2?event=${event.id}&category=${event.category}&from=qr`}
-                      size={Math.round(qrSize)}
+                      size={256}
                       level="M"
                       includeMargin={false}
                     />
@@ -1509,13 +1475,7 @@ export default function BillboardPage() {
       <link rel="preconnect" href="https://www.youtube.com" />
       <link rel="preconnect" href="https://i.ytimg.com" />
       <div className="billboard-page" style={{
-        ['--scale' as any]: scale,
-        ['--title-font-size-px' as any]: `${titleFontSize}px`,
-        ['--date-location-font-size-px' as any]: `${dateLocationFontSize}px`,
-        ['--qr-size-px' as any]: `${qrSize}px`,
-        ['--qr-label-font-size' as any]: `${Math.max(12, qrSize * 0.15)}px`,
-        ['--qr-label-margin-bottom' as any]: `${qrSize * 0.05}px`,
-        ['--qr-padding' as any]: `${qrSize * 0.08}px`,
+        ['--scale' as any]: 1,
         ['--transition-duration' as any]: `${settings?.transition_duration ?? 500}ms`,
       } as any}>
         {/* 현재 + 다음 슬라이드만 DOM에 유지 (부드러운 전환 + 메모리 최적화) */}

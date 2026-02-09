@@ -14,6 +14,11 @@
     X-Frame-Options = "ALLOW-FROM https://xn--o39an51adfcu1bv3f00ah0j.com"
 
 [[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+[[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200

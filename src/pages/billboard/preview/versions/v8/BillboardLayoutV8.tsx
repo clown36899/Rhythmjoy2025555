@@ -222,12 +222,7 @@ export default function BillboardLayoutV8() {
     return (
         <div className="v8-wall-root">
             {/* HUD Header */}
-            <div className="v8-wall-hud-header">
-                <div className="v8-hud-brand-block">
-                    <div className="v8-h-logo">DANCE BILLBOARD</div>
-                    <div className="v8-h-tag">SHOW SOCIAL</div>
-                </div>
-            </div>
+
 
             {/* Split Layout */}
             <div className="v8-split-layout">
