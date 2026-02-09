@@ -155,8 +155,7 @@
 
     .USS-time {
         background: var(--bg-surface-2);
-        backdrop-filter: blur(4px);
-        -webkit-backdrop-filter: blur(4px);
+        /* backdrop-filter removed for performance */
         color: var(--color-yellow-600);
         /* 라이트 모드 가독성을 위해 조금 더 진한 노랑 */
         font-size: 0.65rem;
@@ -189,8 +188,7 @@
         color: var(--color-yellow-600);
         font-weight: 800;
         background: var(--bg-surface-2);
-        backdrop-filter: blur(4px);
-        -webkit-backdrop-filter: blur(4px);
+        /* backdrop-filter removed for performance */
         padding: 2px 6px;
         border-radius: 4px;
         border: 1px solid var(--border-glass-subtle);
@@ -256,7 +254,9 @@
 
     .USS-ddayBadge.is-today {
         background: linear-gradient(135deg, var(--color-red-500), var(--color-red-600)) !important;
-        animation: uss-dday-pulse 2s infinite;
+        /* animation removed for battery saving */
+        box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.3);
+        /* Static highlight instead */
     }
 
     .USS-ddayBadge.is-next {
@@ -271,7 +271,7 @@
         font-weight: 900;
         padding: 1px 5px;
         border-radius: 4px;
-        animation: uss-pulsescale 2s infinite;
+        /* animation removed for battery saving */
         white-space: nowrap;
         margin-left: 4px;
         /* 텍스트와 간격 추가 */

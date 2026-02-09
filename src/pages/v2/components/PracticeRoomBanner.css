@@ -54,7 +54,7 @@
     overscroll-behavior-x: contain;
 
     /* Performance */
-    will-change: scroll-position;
+    /* will-change removed for memory optimization */
 
     /* Touch action */
     touch-action: pan-x pan-y;
