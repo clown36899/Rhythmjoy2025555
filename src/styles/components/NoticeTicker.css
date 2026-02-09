@@ -1,0 +1,128 @@
+/* 전광판 컨테이너 */
+.notice-ticker-container {
+    width: 100%;
+    background: var(--bg-surface-glass);
+    border-bottom: 1px solid var(--border-glass);
+    height: 40px;
+    position: relative;
+    z-index: 51;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+}
+
+/* 래퍼: 트랙을 감싸는 역할 */
+.notice-ticker-wrapper {
+    width: 100%;
+    overflow: hidden;
+    display: flex;
+}
+
+/* 트랙: 실제로 움직이는 부분 */
+.notice-ticker-track {
+    display: flex;
+    white-space: nowrap;
+    /* 애니메이션: 왼쪽으로 이동 */
+    animation: marquee 120s linear infinite;
+    /* 마우스 호버 시 멈춤 (옵션) */
+}
+
+.notice-ticker-container:hover .notice-ticker-track {
+    animation-play-state: paused;
+}
+
+/* 개별 아이템 */
+.notice-ticker-item {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 60px;
+    flex-shrink: 0;
+    cursor: pointer;
+    transition: opacity 0.2s;
+}
+
+.notice-ticker-item:hover {
+    opacity: 0.7;
+}
+
+/* 배지 */
+.notice-ticker-badge {
+    flex-shrink: 0;
+    font-size: 11px;
+    padding: 2px 7px;
+    border-radius: 4px;
+    margin-right: 8px;
+    font-weight: 700;
+    color: #fff;
+    white-space: nowrap;
+}
+
+/* 텍스트 (제목: 내용) */
+.notice-ticker-text {
+    font-size: 14px;
+    color: var(--text-primary);
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+}
+
+.notice-ticker-title-part {
+    font-weight: 700;
+    margin-right: 6px;
+}
+
+.notice-ticker-content-part {
+    font-weight: 400;
+    color: var(--text-secondary);
+    /* 내용은 살짝 연하게? 아님 동일하게? -> 가독성 위해 일단 상속/동일하게 하되, 약간 구분 */
+    color: var(--text-primary);
+}
+
+/* 애니메이션 키프레임 */
+@keyframes marquee {
+    0% {
+        transform: translateX(0);
+    }
+
+    100% {
+        /* 트랙 전체 길이의 50%만큼 이동 (데이터를 2배로 복제했으므로) */
+        /* JS에서 데이터 길이에 따라 유동적으로 할 수 없으므로, 
+       트랙 내부 컨텐츠가 정확히 2벌 복제되어 있다고 가정하고 -50% 이동 */
+        transform: translateX(-50%);
+    }
+}
+
+/* 모바일 대응 */
+@media screen and (max-width: 768px) {
+    .notice-ticker-container {
+        height: 38px;
+    }
+
+    .notice-ticker-item {
+        margin-right: 40px;
+    }
+
+    .notice-ticker-text {
+        font-size: 13px;
+    }
+}
+
+/* [MobileShell Integration] */
+.shell-header.has-ticker {
+    flex-direction: column !important;
+    height: auto !important;
+    align-items: stretch !important;
+    padding-top: env(safe-area-inset-top) !important;
+    gap: 0 !important;
+}
+
+.shell-header.has-ticker .notice-ticker-container {
+    order: 2;
+    background: rgba(var(--bg-base-rgb), 0.9);
+}
+
+.shell-header.has-ticker .header-content-inner {
+    order: 1;
+    height: 60px;
+    width: 100%;
+}

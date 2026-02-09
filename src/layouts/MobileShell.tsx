@@ -17,6 +17,7 @@ import NotificationSettingsModal from '../components/NotificationSettingsModal';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { useLoading } from '../contexts/LoadingContext';
 import '../styles/components/MobileShell.css';
+import { NoticeTicker } from '../components/NoticeTicker';
 
 interface MobileShellProps {
   isAdmin?: boolean;
@@ -294,7 +295,9 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
     <div className={`shell-container ${isWideLayout ? 'layout-wide' : 'layout-compact'} ${isFullscreen ? 'fullscreen-mode' : ''}`}>
       {/* Global Fixed Header */}
       {!isFullscreen && (
-        <header className="shell-header global-header-fixed">
+        <header className={`shell-header global-header-fixed ${isEventsPage ? 'has-ticker' : ''}`}>
+          {/* Main Page Ticker */}
+          {isEventsPage && <NoticeTicker />}
           <div className="header-content-inner">
             {/* Left/Center Content based on Route */}
             <div className="header-left-content">
@@ -493,7 +496,9 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
         </header >
       )}
 
-      <Outlet context={{ category, isFullscreen }} />
+      <div style={{ paddingTop: isEventsPage ? '36px' : '0' }}>
+        <Outlet context={{ category, isFullscreen }} />
+      </div>
 
       {/* Bottom Navigation */}
       {!isFullscreen && (
