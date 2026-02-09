@@ -35,10 +35,25 @@ export const HorizontalScrollNav = forwardRef<HTMLDivElement, HorizontalScrollNa
         // Initial check
         checkScrollability();
 
-        const handleScroll = () => checkScrollability();
-        const handleResize = () => checkScrollability();
+        let ticking = false;
+        const handleScroll = () => {
+            if (!ticking) {
+                window.requestAnimationFrame(() => {
+                    checkScrollability();
+                    ticking = false;
+                });
+                ticking = true;
+            }
+        };
 
-        container.addEventListener('scroll', handleScroll);
+        // Throttle resize as well 
+        let resizeTimeout: NodeJS.Timeout;
+        const handleResize = () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(checkScrollability, 150);
+        };
+
+        container.addEventListener('scroll', handleScroll, { passive: true });
         window.addEventListener('resize', handleResize);
 
         // Also check after a short delay to account for dynamic content
@@ -48,6 +63,7 @@ export const HorizontalScrollNav = forwardRef<HTMLDivElement, HorizontalScrollNa
             container.removeEventListener('scroll', handleScroll);
             window.removeEventListener('resize', handleResize);
             clearTimeout(timer);
+            clearTimeout(resizeTimeout);
         };
     }, [checkScrollability]);
 

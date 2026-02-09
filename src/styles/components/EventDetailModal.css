@@ -293,7 +293,7 @@
     }
 
     .EDM-categoryBadge.is-event {
-        background: linear-gradient(135deg, var(--color-blue-400), var(--color-blue-600));
+        background: var(--color-blue-500);
     }
 
     .EDM-defaultThumb {

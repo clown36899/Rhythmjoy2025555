@@ -1267,17 +1267,7 @@ export default function EventDetailModal({
                               </span>
                             </div>
                           )}
-                          {/* 크게보기 버튼 */}
-                          <button
-                            onClick={() => setShowFullscreenImage(true)}
-                            className="EDM-fullscreenBtn"
-                          >
-                            <span className="manual-label-wrapper">
-                              <span className="translated-part">Full View</span>
-                              <span className="fixed-part ko" translate="no">크게 보기</span>
-                              <span className="fixed-part en" translate="no">Full View</span>
-                            </span>
-                          </button>
+
 
                           {/* 즐겨찾기 버튼 (이미지 좌측 하단 - 원본 위치 복구) */}
                           {onToggleFavorite && (

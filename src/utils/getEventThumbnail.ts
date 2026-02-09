@@ -39,9 +39,7 @@ export function getOptimizedImageUrl(url: string | ImageObject | undefined | nul
 
   // Supabase Storage URL인지 확인
   if (actualUrl.includes('/storage/v1/object/public/')) {
-    // '/object/public/' -> '/render/image/public/' 로 변경하여 변환 엔진 강제 사용 (Potentially failing, reverting to direct URL)
-    // const renderUrl = actualUrl.replace('/storage/v1/object/public/', '/storage/v1/render/image/public/');
-    // return `${renderUrl}?width=${width}&format=webp&quality=${quality}&resize=contain`;
+    // Supabase Image Transformation Logic Removed by User Request
     return actualUrl;
   }
 
