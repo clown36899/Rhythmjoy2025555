@@ -92,7 +92,7 @@ export const EventPreviewRow: React.FC<EventPreviewRowProps> = ({
             <HorizontalScrollNav>
                 <div className="ELS-scroller">
                     {events.length > 0 ? (
-                        events.map(e => (
+                        events.map((e, index) => (
                             <EventCard
                                 key={e.id}
                                 event={e}
@@ -104,6 +104,7 @@ export const EventPreviewRow: React.FC<EventPreviewRowProps> = ({
                                 isFavorite={effectiveFavoriteIds.has(e.id)}
                                 onToggleFavorite={(ev: React.MouseEvent) => handleToggleFavorite(e.id, ev)}
                                 isHighlighted={highlightEventId === e.id}
+                                loading={index < 4 ? "eager" : "lazy"}
                             />
                         ))
                     ) : (

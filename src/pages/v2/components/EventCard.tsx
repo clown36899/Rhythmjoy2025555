@@ -21,6 +21,7 @@ interface EventCardProps {
   isFavorite?: boolean;
   onToggleFavorite?: (e: React.MouseEvent) => void;
   className?: string; // Add className prop
+  loading?: "lazy" | "eager";
 }
 
 export const EventCard = memo(({
@@ -38,6 +39,7 @@ export const EventCard = memo(({
   isFavorite = false,
   onToggleFavorite,
   className = "", // Destructure className
+  loading = "lazy",
 }: EventCardProps) => {
   // 1. Try explicit thumbnail
   // 2. Use optimized card thumbnail helper
@@ -195,7 +197,7 @@ export const EventCard = memo(({
               src={thumbnailUrl}
               alt={event.title}
               className="ECARD-image"
-              loading="lazy"
+              loading={loading}
               decoding="async"
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
