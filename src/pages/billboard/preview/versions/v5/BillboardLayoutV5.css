@@ -6,6 +6,8 @@
     font-family: 'Pretendard', sans-serif;
     display: flex;
     overflow: hidden;
+    padding-top: env(safe-area-inset-top);
+    box-sizing: border-box;
 }
 
 /* Hero Section (Left) */
