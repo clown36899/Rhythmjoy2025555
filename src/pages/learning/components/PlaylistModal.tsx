@@ -1,6 +1,9 @@
-import React, { useEffect } from 'react';
-import LearningDetailPage from '../detail/Page';
+import React, { useEffect, Suspense, lazy } from 'react';
+// import LearningDetailPage from '../detail/Page'; // Static import removed
 import './PlaylistModal.css';
+
+// Lazy load the page component to avoid duplication warning
+const LearningDetailPage = lazy(() => import('../detail/Page'));
 
 interface Props {
     playlistId: string;
@@ -56,11 +59,13 @@ export const PlaylistModal = ({
                 onClick={isMinimized ? undefined : onClose}
             >
                 <div className={`pm-modal-content ${isMinimized ? 'minimized' : ''}`} onClick={e => e.stopPropagation()}>
-                    <LearningDetailPage
-                        playlistId={playlistId}
-                        onClose={handleMinimizeAction}
-                        isEditMode={isEditMode}
-                    />
+                    <Suspense fallback={<div className="pm-loading">Loading...</div>}>
+                        <LearningDetailPage
+                            playlistId={playlistId}
+                            onClose={handleMinimizeAction}
+                            isEditMode={isEditMode}
+                        />
+                    </Suspense>
                 </div>
             </div>
 
