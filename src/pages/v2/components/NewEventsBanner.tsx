@@ -171,6 +171,14 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                             className="NEB-image"
                                         />
                                         <div className="NEB-overlay"></div>
+                                        {/* Full Image Preview Thumbnail */}
+                                        <div className="NEB-mini-thumbnail">
+                                            <img
+                                                src={eventThumbnail}
+                                                alt="Full Preview"
+                                                className="NEB-mini-image"
+                                            />
+                                        </div>
                                     </div>
 
                                     <div className="NEB-content">
