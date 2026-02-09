@@ -9,7 +9,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        z-index: var(--z-modal-stack-3, 10003);
+        z-index: var(--z-modal-base, 10003);
         backdrop-filter: blur(var(--blur-glass, 12px));
         -webkit-backdrop-filter: blur(var(--blur-glass, 12px));
         padding: var(--spacing-4, 16px);
