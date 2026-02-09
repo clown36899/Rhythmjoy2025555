@@ -64,8 +64,13 @@ export const QuickNoticeInput: React.FC = () => {
     return (
         <form className="quick-notice-form" onSubmit={handleSubmit}>
             <input
-                type="text"
+                type="search" // 'text' 대신 'search'를 쓰면 일부 OS에서 '이동/검색' 키가 나오고 자동완성이 줄어듦
                 className="quick-notice-input"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck={false}
+                name="quick_notice_msg" // 비밀번호 필드로 오인받지 않도록 명시적 네이밍
                 placeholder="전광판에 띄울 한마디를 입력하세요 (로그인 필요)"
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
