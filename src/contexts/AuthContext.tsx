@@ -621,14 +621,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
             // [FIX] Ensure board_users record exists (especially for Google/Apple login)
             // 익명 함수 내부에서 비동기 호출 (async context inside callback)
-            (async () => {
-              try {
-                await ensureBoardUser(currentUser);
-                await refreshUserProfile();
-              } catch (err) {
-                console.error('[AuthContext] Failed to ensure board user:', err);
-              }
-            })();
+            // [FIX] Ensure board_users record exists (especially for Google/Apple login)
+            // 비동기로 실행하되, await를 제거하여 UI 블로킹 방지 (Fire & Forget)
+            ensureBoardUser(currentUser)
+              .then(() => refreshUserProfile())
+              .catch(err => {
+                console.warn('[AuthContext] Background user sync failed:', err);
+              });
           }
         }
       } else if (event === 'USER_UPDATED' && !session) {

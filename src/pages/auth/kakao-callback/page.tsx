@@ -134,13 +134,11 @@ export default function KakaoCallbackPage() {
 
 
                     // 4. 원래 페이지로 복귀
-
+                    const returnUrl = sessionStorage.getItem('kakao_login_return_url') || '/';
+                    sessionStorage.removeItem('kakao_login_return_url');
 
                     // Set flag to prevent EventList spinner during login
                     sessionStorage.setItem('just_logged_in', 'true');
-                    sessionStorage.removeItem('kakao_login_return_url');
-
-
 
                     // ✨ PWA 플리커링 방지: navigate 직후 플래그 제거
                     // navigate가 호출된 직후이므로 실제로는 페이지 전환이 이미 시작되어
@@ -151,6 +149,10 @@ export default function KakaoCallbackPage() {
                     // [Optimization] Flow-owner explicitly clears processing state
                     // This ensures the spinner stays active until navigation is fully triggered.
                     setIsAuthProcessing(false);
+
+                    // 성공적으로 이동
+                    console.log('[Kakao Callback] ✅ 로그인 성공, 이동:', returnUrl);
+                    navigate(returnUrl, { replace: true });
                 } else {
                     console.error('[Kakao Callback] ❌ 세션 정보 없음');
                     throw new Error('서버 응답에 세션 정보가 없습니다');
@@ -177,10 +179,9 @@ export default function KakaoCallbackPage() {
             }
         };
 
-        // Strict Mode에서의 이중 호출 방지를 위한 Debounce
-        // 개발 모드(import.meta.env.DEV)에서는 Strict Mode로 인해 300ms 지연 필요
-        // 실제 배포 모드(PROD)에서는 지연 없이 즉시 실행하여 속도 향상
-        const delay = import.meta.env.DEV ? 300 : 0;
+        // Strict Mode에서의 이중 호출 방지를 위한 Debounce였으나,
+        // 사용자 경험을 위해 즉시 실행으로 변경 (Ref로 중복 방지됨)
+        const delay = 0;
 
         uniqueTimer = setTimeout(() => {
             handleCallback();
