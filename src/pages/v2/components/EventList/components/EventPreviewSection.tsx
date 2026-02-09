@@ -8,6 +8,7 @@ import ShoppingBanner from "../../ShoppingBanner";
 import type { Event } from "../../../utils/eventListUtils";
 import type { SocialSchedule } from "../../../../social/types";
 import { UnifiedScheduleSection } from "../../UnifiedScheduleSection";
+import { QuickNoticeInput } from "../../../../../components/QuickNoticeInput";
 import { EventPreviewRow } from "./EventPreviewRow";
 import { NewEventsBanner } from "../../NewEventsBanner";
 
@@ -139,9 +140,12 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
             <UnifiedScheduleSection
                 todaySchedules={todaySocialSchedules || []}
                 futureSchedules={thisWeekSocialSchedules || []}
-                onEventClick={onEventClick}
+                onEventClick={onEventClick as any}
                 onRefresh={refreshSocialSchedules}
             />
+
+            {/* Quick Notice Input */}
+            <QuickNoticeInput />
 
             {/* 1.5 Newly Registered Events Section (24 hours) */}
             {newlyRegisteredEvents.length > 0 && (

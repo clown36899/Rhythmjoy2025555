@@ -1,0 +1,53 @@
+.quick-notice-form {
+    display: flex;
+    border: 1px solid var(--border-light);
+    border-radius: 33px;
+    margin: 10px;
+    gap: 8px;
+    padding: 10px 16px;
+    background-color: var(--card-bg);
+    align-items: center;
+}
+
+.quick-notice-input {
+    flex: 1;
+    height: 40px;
+    padding: 0 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 14px;
+    background-color: var(--input-bg);
+    color: var(--text-color);
+    min-width: 0;
+    /* Flex item overflow 방지 */
+}
+
+.quick-notice-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+}
+
+.quick-notice-btn {
+    height: 40px;
+    padding: 0 16px;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.2s;
+}
+
+.quick-notice-btn:disabled {
+    background-color: var(--disabled-bg, #ccc);
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.quick-notice-btn:hover:not(:disabled) {
+    background-color: var(--primary-hover, #4f46e5);
+    /* 예시 */
+}
