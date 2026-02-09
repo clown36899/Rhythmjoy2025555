@@ -98,7 +98,7 @@
         white-space: nowrap;
         flex-shrink: 1;
         min-width: 0;
-        transition: all var(--transition-normal);
+        transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
     }
 
     .ELS-viewAllBtn:hover {
@@ -130,7 +130,7 @@
         max-width: 105px !important;
         /* Match legacy exactly */
         min-width: 85px !important;
-        transition: width 0.2s ease;
+        /* transition: width 0.2s ease; removed for reflow optimization */
     }
 
     .ELS-cardCompact {
