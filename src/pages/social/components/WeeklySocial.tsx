@@ -345,21 +345,21 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                                     {/* Mini Calendar Popup & Overlay */}
                                     {isCalendarOpen && (
                                         <>
-                                            <div className="mini-calendar-overlay" onClick={() => setIsCalendarOpen(false)}></div>
-                                            <div className="mini-calendar-popup" onClick={e => e.stopPropagation()}>
-                                                <div className="mini-calendar-header">
+                                            <div className="social-mini-calendar-overlay" onClick={() => setIsCalendarOpen(false)}></div>
+                                            <div className="social-mini-calendar-popup" onClick={e => e.stopPropagation()}>
+                                                <div className="social-mini-calendar-header">
                                                     <button onClick={handlePrevMonth}>&lt;</button>
-                                                    <span className="mini-cal-title">
+                                                    <span className="social-mini-cal-title">
                                                         {calendarBaseDate.getFullYear()}.{String(calendarBaseDate.getMonth() + 1).padStart(2, '0')}
                                                     </span>
                                                     <button onClick={handleNextMonth}>&gt;</button>
                                                 </div>
-                                                <div className="mini-calendar-weekdays">
+                                                <div className="social-mini-calendar-weekdays">
                                                     <span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span>
                                                 </div>
-                                                <div className="mini-calendar-grid">
+                                                <div className="social-mini-calendar-grid">
                                                     {miniCalendarGrid.map((dateStr, idx) => {
-                                                        if (!dateStr) return <div key={`empty-${idx}`} className="mini-calendar-cell empty"></div>;
+                                                        if (!dateStr) return <div key={`empty-${idx}`} className="social-mini-calendar-cell empty"></div>;
 
                                                         const dateObj = new Date(dateStr);
                                                         const dayNum = dateObj.getDate();
@@ -370,7 +370,7 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                                                         return (
                                                             <div
                                                                 key={dateStr}
-                                                                className={`mini-calendar-cell ${isToday ? 'today' : ''} ${isInViewWeek ? 'selected-week' : ''}`}
+                                                                className={`social-mini-calendar-cell ${isToday ? 'today' : ''} ${isInViewWeek ? 'selected-week' : ''}`}
                                                                 onClick={() => handleDateSelect(dateStr)}
                                                             >
                                                                 {dayNum}
@@ -378,9 +378,9 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                                                         );
                                                     })}
                                                 </div>
-                                                <div className="mini-calendar-footer">
+                                                <div className="social-mini-calendar-footer">
                                                     <button
-                                                        className="mini-cal-today-btn"
+                                                        className="social-mini-cal-today-btn"
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             const today = getLocalDateString();
@@ -499,7 +499,7 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                                     // Filter items for this specific date
                                     const dayItems = filteredItemsForView.filter(item => item.date === date);
 
-                                    const dateNumberClass = `calendar-date-number-fullscreen ${isToday ? "calendar-date-number-today" : dayOfWeek === 0 ? "calendar-date-sunday" : dayOfWeek === 6 ? "calendar-date-saturday" : ""}`;
+                                    const dateNumberClass = `social-date-number-fullscreen ${isToday ? "social-date-number-today" : dayOfWeek === 0 ? "social-date-sunday" : dayOfWeek === 6 ? "social-date-saturday" : ""}`;
 
                                     return (
                                         <div key={date} className="week-view-cell">
@@ -518,23 +518,23 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                                                 {dayItems.map(item => {
                                                     const categoryColor = getEventColor(item.id);
                                                     return (
-                                                        <div key={item.id} className="calendar-fullscreen-event-card"
+                                                        <div key={item.id} className="social-fullscreen-event-card"
                                                             onClick={(e) => {
                                                                 e.stopPropagation();
                                                                 eventModal.setSelectedEvent(item.originalEvent);
                                                             }}>
                                                             {(item.image_micro || item.image_thumbnail || item.image) ? (
-                                                                <div className="event-card-img-wrapper">
+                                                                <div className="social-event-card-img-wrapper">
                                                                     <img src={item.image_micro || item.image_thumbnail || item.image} alt="" />
                                                                 </div>
                                                             ) : (
-                                                                <div className={`calendar-fullscreen-placeholder ${categoryColor} event-card-placeholder`}>
+                                                                <div className={`social-fullscreen-placeholder ${categoryColor} social-event-card-placeholder`}>
                                                                     <span>
                                                                         {item.title.charAt(0)}
                                                                     </span>
                                                                 </div>
                                                             )}
-                                                            <div className="event-card-title">
+                                                            <div className="social-event-card-title">
                                                                 {item.title}
                                                             </div>
                                                         </div>

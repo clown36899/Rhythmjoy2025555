@@ -792,7 +792,7 @@
   box-shadow: var(--shadow-sm);
   font-size: 12px;
   font-weight: 800;
-  width: auto;
+  width: 89%;
   min-width: 20px;
   max-width: 100%;
   white-space: nowrap;
