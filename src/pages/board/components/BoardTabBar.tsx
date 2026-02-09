@@ -146,7 +146,6 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
                                 className={`board-tab-item ${activeCategory === cat.id ? 'active' : ''}`}
                                 onClick={() => onCategoryChange(cat.id as BoardCategory)}
                             >
-                                <i className={`${cat.icon} board-tab-icon`}></i>
                                 <span className="board-tab-label">{cat.label}</span>
                                 {cat.isWip && <span className="tab-wip-badge">준비중</span>}
                             </button>
