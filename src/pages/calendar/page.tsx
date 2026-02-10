@@ -526,14 +526,8 @@ export default function CalendarPage() {
                     onMonthChange={handleMonthChange}
                     onDataLoaded={() => {
                         console.log('📡 [CalendarPage] Validating data loaded signal.');
-                        if (isNavigatingToToday) {
-                            console.log('🚀 [CalendarPage] Data loaded. Executing delayed scroll to today.');
-                            // 렌더링 사이클 확보를 위해 약간의 지연 후 실행
-                            setTimeout(() => {
-                                handleScrollToToday();
-                                setIsNavigatingToToday(false);
-                            }, 100);
-                        }
+                        // [Fix] Removed setTimeout to prevent race conditions.
+                        // MutationObserver (in useEffect) will handle scrolling once DOM is ready.
                     }}
                     viewMode={viewMode}
                     onViewModeChange={setViewMode}
