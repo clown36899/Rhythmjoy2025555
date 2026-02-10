@@ -38,30 +38,41 @@ import LocalLoading from './components/LocalLoading';
 // Pages - HomePage stays static for instant first paint
 import HomePageV2 from './pages/v2/Page';
 
-// Lazy Loaded Pages
-const SocialPage = lazy(() => import('./pages/social/page'));
-const PracticePage = lazy(() => import('./pages/practice/page'));
-const BoardPage = lazy(() => import('./pages/board/page'));
-const ShoppingPage = lazy(() => import('./pages/shopping/page'));
-const GuidePage = lazy(() => import('./pages/guide/page'));
-const PrivacyPage = lazy(() => import('./pages/privacy/page'));
-const BillboardPage = lazy(() => import('./pages/billboard/page'));
-const BillboardPreviewPage = lazy(() => import('./pages/billboard/preview/page'));
-const BillboardCatalogPage = lazy(() => import('./pages/billboard/preview/CatalogPage'));
-const CalendarPage = lazy(() => import('./pages/calendar/page'));
-const MyActivitiesPage = lazy(() => import('./pages/user/MyActivitiesPage'));
-const ArchiveLayout = lazy(() => import('./layouts/ArchiveLayout'));
-const LearningPage = lazy(() => import('./pages/learning/Page'));
-const LearningDetailPage = lazy(() => import('./pages/learning/detail/Page'));
-const HistoryTimelinePage = lazy(() => import('./pages/history/HistoryTimelinePage'));
-const KakaoCallbackPage = lazy(() => import('./pages/auth/kakao-callback/page'));
-const SiteMapPage = lazy(() => import('./pages/sitemap/SiteMapPage'));
-const MainV2TestPage = lazy(() => import('./pages/test/MainV2TestPage'));
-const SurveyTestPage = lazy(() => import('./pages/test/SurveyTestPage'));
-const AdminPushTestPage = lazy(() => import('./components/admin/AdminPushTest').then(m => ({ default: m.AdminPushTest })));
-const ForumPage = lazy(() => import('./pages/forum/ForumPage'));
-const BpmTapperPage = lazy(() => import('./pages/bpm-tapper/BpmTapperPage'));
-const MetronomePage = lazy(() => import('./pages/metronome/MetronomePage'));
+// 배포 후 구버전 청크 로드 실패 시 1회 재시도 후 리로드하는 래퍼
+function lazyWithRetry(importFn: () => Promise<any>) {
+  return lazy(() =>
+    importFn().catch(() => {
+      // 1회 재시도 (캐시 무효화를 위해 timestamp 쿼리 추가는 Vite에서 불필요 - 해시가 다름)
+      // 재시도 실패 시 에러를 그대로 throw → handleChunkError가 처리
+      return importFn();
+    })
+  );
+}
+
+// Lazy Loaded Pages (with retry)
+const SocialPage = lazyWithRetry(() => import('./pages/social/page'));
+const PracticePage = lazyWithRetry(() => import('./pages/practice/page'));
+const BoardPage = lazyWithRetry(() => import('./pages/board/page'));
+const ShoppingPage = lazyWithRetry(() => import('./pages/shopping/page'));
+const GuidePage = lazyWithRetry(() => import('./pages/guide/page'));
+const PrivacyPage = lazyWithRetry(() => import('./pages/privacy/page'));
+const BillboardPage = lazyWithRetry(() => import('./pages/billboard/page'));
+const BillboardPreviewPage = lazyWithRetry(() => import('./pages/billboard/preview/page'));
+const BillboardCatalogPage = lazyWithRetry(() => import('./pages/billboard/preview/CatalogPage'));
+const CalendarPage = lazyWithRetry(() => import('./pages/calendar/page'));
+const MyActivitiesPage = lazyWithRetry(() => import('./pages/user/MyActivitiesPage'));
+const ArchiveLayout = lazyWithRetry(() => import('./layouts/ArchiveLayout'));
+const LearningPage = lazyWithRetry(() => import('./pages/learning/Page'));
+const LearningDetailPage = lazyWithRetry(() => import('./pages/learning/detail/Page'));
+const HistoryTimelinePage = lazyWithRetry(() => import('./pages/history/HistoryTimelinePage'));
+const KakaoCallbackPage = lazyWithRetry(() => import('./pages/auth/kakao-callback/page'));
+const SiteMapPage = lazyWithRetry(() => import('./pages/sitemap/SiteMapPage'));
+const MainV2TestPage = lazyWithRetry(() => import('./pages/test/MainV2TestPage'));
+const SurveyTestPage = lazyWithRetry(() => import('./pages/test/SurveyTestPage'));
+const AdminPushTestPage = lazyWithRetry(() => import('./components/admin/AdminPushTest').then(m => ({ default: m.AdminPushTest })));
+const ForumPage = lazyWithRetry(() => import('./pages/forum/ForumPage'));
+const BpmTapperPage = lazyWithRetry(() => import('./pages/bpm-tapper/BpmTapperPage'));
+const MetronomePage = lazyWithRetry(() => import('./pages/metronome/MetronomePage'));
 
 const BillboardFallback = () => (
   <div className="full-screen-fallback">

@@ -1,23 +1,33 @@
-// 빌보드 PWA 서비스 워커 (Version: 20260209 - V38/Social Redirect Logic)
-const CACHE_NAME = 'rhythmjoy-cache-v38';
+// 빌보드 PWA 서비스 워커 (Version: 20260210 - V39/Chunk Error Recovery)
+const CACHE_NAME = 'rhythmjoy-cache-v39';
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
-  // 🔥 중요: event.waitUntil을 제거하여 캐시 삭제가 완료될 때까지 기다리지 않음
-  caches.keys().then(keys => Promise.all(keys.map(key => caches.delete(key))))
-    .catch(err => console.warn('[SW] Cache clear failed (non-fatal):', err));
-
-  event.waitUntil(self.clients.claim());
+  // 캐시 삭제 완료를 보장한 후 clients.claim 실행
+  event.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(keys.map(key => caches.delete(key))))
+      .then(() => console.log('[SW] All caches cleared'))
+      .catch(err => console.warn('[SW] Cache clear failed:', err))
+      .then(() => self.clients.claim())
+  );
 });
 
-// Fetch 이벤트 핸들러 - Supabase API는 항상 네트워크 우선
+// Fetch 이벤트 핸들러 - 네트워크 우선, 캐시 없음 (SPA 특성상 index.html만 중요)
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
-  if (url.hostname.includes('supabase.co')) {
+  // Supabase API, chrome-extension 등 외부 요청은 무시
+  if (url.hostname.includes('supabase.co') || !url.protocol.startsWith('http')) {
     return;
+  }
+  // navigate 요청(페이지 이동)은 항상 네트워크 우선 → index.html 최신 보장
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).catch(() => caches.match('/index.html'))
+    );
   }
 });
 

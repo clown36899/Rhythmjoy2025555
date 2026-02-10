@@ -252,20 +252,85 @@
   <script type="text/javascript"
     src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
-  <!-- PWA Service Worker 등록 -->
+  <!-- PWA Service Worker 등록 + 버전 체크 -->
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        // 배포 시마다 버전을 바꿔주면 브라우저가 새 파일을 즉시 인식합니다.
-        const swUrl = '/service-worker.js?v=20260205_v37';
+        const swUrl = '/service-worker.js?v=20260210_v39';
         navigator.serviceWorker.register(swUrl)
           .then(reg => {
-            console.log('[PWA] Service Worker registered (v37)');
-            // 새 버전 발견 시 백그라운드 업데이트 자동 실행
-            reg.update();
+            console.log('[PWA] Service Worker registered (v39)');
+
+            // SW 업데이트 감지: 새 SW가 설치되면 사용자에게 알림
+            reg.addEventListener('updatefound', () => {
+              const newWorker = reg.installing;
+              if (!newWorker) return;
+              newWorker.addEventListener('statechange', () => {
+                // 새 SW가 waiting 상태 = 업데이트 준비 완료
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  showUpdateToast(reg);
+                }
+              });
+            });
+
+            // 주기적 SW 업데이트 체크 (5분마다)
+            setInterval(() => reg.update(), 5 * 60 * 1000);
           })
           .catch(err => console.error('[PWA] Service Worker failed:', err));
+
+        // 새 SW가 제어권을 가져가면 자동 리로드
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (window.__SW_UPDATING) {
+            window.location.reload();
+          }
+        });
       });
+    }
+
+    // version.json 폴링: 배포 감지 (3분마다)
+    (function () {
+      var currentBuild = '__BUILD_TIME__';
+      if (!currentBuild || currentBuild === '__BUILD_' + 'TIME__') return; // dev 모드 무시
+
+      setInterval(function () {
+        fetch('/version.json?t=' + Date.now())
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            if (data.buildTime && data.buildTime !== currentBuild) {
+              console.log('[Version] New build detected:', data.buildTime);
+              // SW 업데이트 트리거
+              if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.getRegistration().then(function (reg) {
+                  if (reg) reg.update();
+                });
+              } else {
+                showUpdateToast(null);
+              }
+            }
+          })
+          .catch(function () { /* 네트워크 오류 무시 */ });
+      }, 3 * 60 * 1000);
+    })();
+
+    // 업데이트 알림 토스트
+    function showUpdateToast(reg) {
+      if (document.getElementById('sw-update-toast')) return;
+      var toast = document.createElement('div');
+      toast.id = 'sw-update-toast';
+      toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a1a2e;color:#fff;padding:14px 20px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.4);z-index:2147483647;display:flex;align-items:center;gap:12px;font-size:14px;font-family:Pretendard,sans-serif;max-width:90vw;';
+      toast.innerHTML = '<span>새 버전이 있습니다</span><button onclick="applyUpdate()" style="background:#4f46e5;color:#fff;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;white-space:nowrap;">업데이트</button><button onclick="this.parentElement.remove()" style="background:none;color:#888;border:none;cursor:pointer;font-size:18px;padding:0 4px;">&times;</button>';
+      document.body.appendChild(toast);
+      window.__SW_REG = reg;
+    }
+
+    function applyUpdate() {
+      window.__SW_UPDATING = true;
+      var reg = window.__SW_REG;
+      if (reg && reg.waiting) {
+        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+      } else {
+        window.location.reload();
+      }
     }
   </script>
 </body>
