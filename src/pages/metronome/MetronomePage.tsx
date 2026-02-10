@@ -1,18 +1,33 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import './metronome.css';
+import { supabase } from '../../lib/supabase';
+import type { MetronomePreset } from '../../lib/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 
 const MetronomePage: React.FC = () => {
+    const { user, isAdmin } = useAuth();
+
     // State
     const [isPlaying, setIsPlaying] = useState(false);
     const [bpm, setBpm] = useState(120);
     const [beatsPerMeasure, setBeatsPerMeasure] = useState(4);
     const [subdivision, setSubdivision] = useState(1); // 1: Quarter, 2: 8th, 3: Triplet, 4: 16th
     const [swingFactor, setSwingFactor] = useState(0); // 0~100 (Timing ratio for pairs)
-    const [swingAccent, setSwingAccent] = useState(50); // 0~100 (Off-beat volume: 0=ghost, 100=accent)
+    const [offbeat13Accent, setOffbeat13Accent] = useState(50); // 0~100 (1& 3& volume: 0=ghost, 100=accent)
+    const [offbeat24Accent, setOffbeat24Accent] = useState(50); // 0~100 (2& 4& volume: 0=ghost, 100=accent)
+    const [downbeat13Accent, setDownbeat13Accent] = useState(100); // 0~100 (1, 3 on-beat emphasis: Default 100%)
+    const [backbeatAccent, setBackbeatAccent] = useState(50); // 0~100 (Backbeat 2&4 emphasis: 0=weak, 100=strong)
+    const [triplet2ndAccent, setTriplet2ndAccent] = useState(50); // [NEW] 3연음 2번째 음 강도
+    const [triplet3rdSwing, setTriplet3rdSwing] = useState(0);   // [NEW] 3연음 3번째 음 뒤로 밀기 (0~100)
     const [visualBeat, setVisualBeat] = useState(-1);
     const [showInfo, setShowInfo] = useState(false);
     const [rhythmName, setRhythmName] = useState('Straight');
     const [showRhythmList, setShowRhythmList] = useState(false);
+
+    // [New] Dynamic Preset Management
+    const [userPresets, setUserPresets] = useState<MetronomePreset[]>([]);
+    const [activeUserPreset, setActiveUserPreset] = useState<MetronomePreset | null>(null);
+    const [isSaving, setIsSaving] = useState(false);
     const [soundId, setSoundId] = useState<'classic' | 'wood' | 'elec' | 'perc' | 'brush'>('brush');
     const [beatVolumes, setBeatVolumes] = useState<number[]>(() => Array(4).fill(3));
 
@@ -27,7 +42,7 @@ const MetronomePage: React.FC = () => {
         { id: 'light-swing', name: 'Light Swing', info: '부드러운 스윙 (60:40)' },
         { id: 'swing', name: 'Standard Swing', info: '표준 재즈 스윙 (67:33)' },
         { id: 'triplet-shuffle', name: 'Triplet Shuffle', info: '3연음 셔플 (강-약-중)' },
-        { id: 'hard-shuffle', name: 'Hard Shuffle', info: '하드 셔플 (100% 스윙)' },
+        { id: 'hard-shuffle', name: 'Hard Shuffle', info: '하드 셔플 (67:33)' },
     ] as const;
 
     // Real-time Update Refs
@@ -35,7 +50,12 @@ const MetronomePage: React.FC = () => {
     const beatsRef = useRef(beatsPerMeasure);
     const subRef = useRef(subdivision);
     const swingRef = useRef(swingFactor);
-    const accentRef = useRef(swingAccent);
+    const offbeat13Ref = useRef(offbeat13Accent);
+    const offbeat24Ref = useRef(offbeat24Accent);
+    const downbeat13Ref = useRef(downbeat13Accent);
+    const backbeatRef = useRef(backbeatAccent);
+    const triplet2ndRef = useRef(triplet2ndAccent);
+    const triplet3rdSwingRef = useRef(triplet3rdSwing);
     const soundIdRef = useRef(soundId);
     const beatVolumesRef = useRef<number[]>(Array(4).fill(3));
 
@@ -44,7 +64,12 @@ const MetronomePage: React.FC = () => {
     useEffect(() => { beatsRef.current = beatsPerMeasure; }, [beatsPerMeasure]);
     useEffect(() => { subRef.current = subdivision; }, [subdivision]);
     useEffect(() => { swingRef.current = swingFactor; }, [swingFactor]);
-    useEffect(() => { accentRef.current = swingAccent; }, [swingAccent]);
+    useEffect(() => { offbeat13Ref.current = offbeat13Accent; }, [offbeat13Accent]);
+    useEffect(() => { offbeat24Ref.current = offbeat24Accent; }, [offbeat24Accent]);
+    useEffect(() => { downbeat13Ref.current = downbeat13Accent; }, [downbeat13Accent]);
+    useEffect(() => { backbeatRef.current = backbeatAccent; }, [backbeatAccent]);
+    useEffect(() => { triplet2ndRef.current = triplet2ndAccent; }, [triplet2ndAccent]);
+    useEffect(() => { triplet3rdSwingRef.current = triplet3rdSwing; }, [triplet3rdSwing]);
     useEffect(() => { soundIdRef.current = soundId; }, [soundId]);
     useEffect(() => { beatVolumesRef.current = beatVolumes; }, [beatVolumes]);
 
@@ -63,7 +88,7 @@ const MetronomePage: React.FC = () => {
 
     // Sound synthesis — fixed pitch for all beats, volume-only dynamics
     const playClick = useCallback((time: number, volume: number = 1.0) => {
-        if (!audioContextRef.current || volume < 0.01) return;
+        if (!audioContextRef.current || volume <= 0) return;
 
         volume = Math.max(0, Math.min(1.0, volume));
 
@@ -73,31 +98,57 @@ const MetronomePage: React.FC = () => {
         envelope.gain.setValueAtTime(0, time);
 
         if (soundIdRef.current === 'brush') {
-            // Drum brush: filtered white noise for "cha" swish sound
-            const duration = 0.12;
+            // Professional snare drum synthesis (based on Web Audio API best practices)
+            // Layer 1: Snare body (tonal component) - Triangle oscillators
+            const osc1 = ctx.createOscillator();
+            const osc2 = ctx.createOscillator();
+            osc1.type = 'triangle';
+            osc2.type = 'triangle';
+            osc1.frequency.setValueAtTime(185, time); // Lower fundamental
+            osc2.frequency.setValueAtTime(349, time); // Higher harmonic
+
+            const bodyGain = ctx.createGain();
+            bodyGain.gain.setValueAtTime(0, time);
+            bodyGain.gain.linearRampToValueAtTime(volume * 0.3, time + 0.001);
+            bodyGain.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
+
+            osc1.connect(bodyGain);
+            osc2.connect(bodyGain);
+            bodyGain.connect(ctx.destination);
+
+            // Layer 2: Snare rattle (noise component) - Highpass filtered noise
+            const duration = 0.15;
             const bufferSize = Math.floor(ctx.sampleRate * duration);
             const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
             const data = noiseBuffer.getChannelData(0);
             for (let i = 0; i < bufferSize; i++) {
                 data[i] = Math.random() * 2 - 1;
             }
+
             const noise = ctx.createBufferSource();
             noise.buffer = noiseBuffer;
 
-            const filter = ctx.createBiquadFilter();
-            filter.type = 'bandpass';
-            filter.frequency.setValueAtTime(3500, time);
-            filter.Q.setValueAtTime(0.8, time);
+            const highpass = ctx.createBiquadFilter();
+            highpass.type = 'highpass';
+            highpass.frequency.setValueAtTime(2000, time); // Remove low frequencies
+            highpass.Q.setValueAtTime(1.0, time);
 
-            envelope.gain.linearRampToValueAtTime(volume * 0.7, time + 0.004);
-            envelope.gain.exponentialRampToValueAtTime(0.001, time + duration);
+            const snareGain = ctx.createGain();
+            snareGain.gain.setValueAtTime(0, time);
+            snareGain.gain.linearRampToValueAtTime(volume * 0.7, time + 0.002);
+            snareGain.gain.exponentialRampToValueAtTime(0.001, time + 0.12);
 
-            noise.connect(filter);
-            filter.connect(envelope);
-            envelope.connect(ctx.destination);
+            noise.connect(highpass);
+            highpass.connect(snareGain);
+            snareGain.connect(ctx.destination);
 
+            // Start all components
+            osc1.start(time);
+            osc1.stop(time + 0.1);
+            osc2.start(time);
+            osc2.stop(time + 0.1);
             noise.start(time);
-            noise.stop(time + duration + 0.02);
+            noise.stop(time + duration);
             return;
         }
 
@@ -154,44 +205,61 @@ const MetronomePage: React.FC = () => {
 
         const sub = subRef.current;
         const beats = beatsRef.current;
-        const accentFactor = accentRef.current / 100; // 0 (on-beat strong) → 1 (off-beat strong)
+        const offbeat13Factor = offbeat13Ref.current / 100; // 1& 3& accent
+        const offbeat24Factor = offbeat24Ref.current / 100; // 2& 4& accent
+        const downbeat13Factor = downbeat13Ref.current / 100; // 1, 3 on-beat accent (0~1.0)
+        const backbeatFactor = backbeatRef.current / 100; // 2, 4 on-beat accent (0~1.0)
+        const triplet2ndFactor = triplet2ndRef.current / 100; // [NEW] 3연음 2번째 음 강도
+        const triplet3rdSwingValue = triplet3rdSwingRef.current / 100; // [NEW] 3연음 3번째 음 오프셋 (0~1.0)
 
-        let volume = 0.8;
+        let adjustedTime = time;
+        let volume = 0;
 
         if (sub === 1) {
-            // No subdivision — all beats equal
-            volume = 0.8;
+            // No subdivision
+            const quarterBeatIdx = beatIndex % beats;
+            const is13 = quarterBeatIdx % 2 === 0;
+            const factor = is13 ? downbeat13Factor : backbeatFactor;
+            volume = factor;
         } else if (sub === 3) {
-            // Triplet subdivision — 3-note accent pattern (volume only)
+            // Triplet subdivision — 3-note accent pattern
             const posInTriplet = beatIndex % 3;
             const quarterBeatIdx = Math.floor(beatIndex / 3) % beats;
-            const isBackbeat = beats >= 4 && quarterBeatIdx % 2 !== 0;
 
             if (posInTriplet === 0) {
-                // 1st note: Downbeat
-                const base = 0.45 + (1 - accentFactor) * 0.45;
-                volume = isBackbeat ? Math.min(1.0, base * 1.15) : base;
+                // 1st note: On-beat
+                const is13 = quarterBeatIdx % 2 === 0;
+                const factor = is13 ? downbeat13Factor : backbeatFactor;
+                volume = factor;
             } else if (posInTriplet === 1) {
-                // 2nd note: Middle (ghost in shuffle, medium in swing)
-                volume = 0.05 + accentFactor * 0.45;
+                // 2nd note: User controlled volume
+                volume = triplet2ndFactor;
             } else {
-                // 3rd note: Pickup
-                volume = 0.15 + accentFactor * 0.55;
+                // 3rd note: Pickup (Off-beat)
+                const is13Offbeat = quarterBeatIdx % 2 === 0;
+                const factor = is13Offbeat ? offbeat13Factor : offbeat24Factor;
+                volume = factor;
+
+                // [NEW] Push 3rd note back (Swing/Offset)
+                // Max offset is half of the triplet gap
+                const secondsPerTriplet = (60.0 / bpmRef.current) / 3.0;
+                adjustedTime += triplet3rdSwingValue * secondsPerTriplet * 0.8;
             }
         } else {
             // sub=2 or sub=4 — pair-based accent (volume only)
-            const isOffBeat = beatIndex % 2 !== 0;
+            const posInSubBeat = beatIndex % sub;
             const quarterBeatIdx = Math.floor(beatIndex / sub) % beats;
-            const isBackbeat = beats >= 4 && quarterBeatIdx % 2 !== 0;
 
-            if (isOffBeat) {
-                volume = 0.08 + accentFactor * 0.72;
+            if (posInSubBeat === 0) {
+                // Main beat (1, 2, 3, 4...)
+                const is13 = quarterBeatIdx % 2 === 0;
+                const factor = is13 ? downbeat13Factor : backbeatFactor;
+                volume = factor;
             } else {
-                const base = 0.4 + (1 - accentFactor) * 0.5;
-                volume = base;
-                if (isBackbeat) {
-                    volume = Math.min(1.0, volume * (1.0 + accentFactor * 0.3));
-                }
+                // Sub-beats (Off-beats)
+                const is13Offbeat = quarterBeatIdx % 2 === 0;
+                const factor = is13Offbeat ? offbeat13Factor : offbeat24Factor;
+                volume = factor;
             }
         }
 
@@ -203,7 +271,12 @@ const MetronomePage: React.FC = () => {
             volume *= beatLevel / 3; // 3=100%, 2=67%, 1=33%, 0=mute
         }
 
-        playClick(time, volume);
+        // Final safety check: Absolute silence for 0
+        if (volume < 0.001) {
+            volume = 0;
+        }
+
+        playClick(adjustedTime, volume);
     }, [playClick]);
 
     const scheduler = useCallback(() => {
@@ -246,7 +319,10 @@ const MetronomePage: React.FC = () => {
         if (!audioContextRef.current) return;
 
         const currentTime = audioContextRef.current.currentTime;
-        while (notesInQueueRef.current.length > 0 && notesInQueueRef.current[0].time < currentTime) {
+        // Compensate for display/React rendering latency by checking slightly ahead
+        const visualOffset = 0.025; // 25ms lookahead
+
+        while (notesInQueueRef.current.length > 0 && notesInQueueRef.current[0].time < currentTime + visualOffset) {
             setVisualBeat(notesInQueueRef.current[0].beat);
             notesInQueueRef.current.shift();
         }
@@ -294,10 +370,6 @@ const MetronomePage: React.FC = () => {
         }
     }, [isPlaying, startEngine, stopEngine]);
 
-    // Helper to release preset on manual change
-    const releasePreset = useCallback(() => {
-        setRhythmName('Manual');
-    }, []);
 
     // Click beat indicator to cycle volume: 3(loud)→2(mid)→1(ghost)→0(mute)→3
     const cycleBeatVolume = useCallback((index: number, e: React.MouseEvent) => {
@@ -312,7 +384,9 @@ const MetronomePage: React.FC = () => {
 
     // UI Handlers
     const handleBpmChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setBpm(parseInt(e.target.value));
+        const val = parseInt(e.target.value);
+        setBpm(val);
+        bpmRef.current = val; // Direct sync for immediate response
     };
 
     // Listen for Global Header Info Button
@@ -321,6 +395,153 @@ const MetronomePage: React.FC = () => {
         window.addEventListener('openMetronomeInfo', handleOpenInfo);
         return () => window.removeEventListener('openMetronomeInfo', handleOpenInfo);
     }, []);
+
+    // [New] User and Presets Fetching
+    useEffect(() => {
+        if (user) {
+            fetchUserPresets(user.id);
+        }
+    }, [user]);
+
+    const fetchUserPresets = async (userId: string) => {
+        const { data, error } = await supabase
+            .from('metronome_presets')
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
+
+        if (data && !error) {
+            setUserPresets(data);
+        }
+    };
+
+    const applyUserPreset = useCallback((preset: MetronomePreset) => {
+        stopEngine();
+
+        setBpm(preset.bpm);
+        bpmRef.current = preset.bpm;
+        setBeatsPerMeasure(preset.beats);
+        beatsRef.current = preset.beats;
+        setSubdivision(preset.subdivision);
+        subRef.current = preset.subdivision;
+        setSwingFactor(preset.swing_factor);
+        swingRef.current = preset.swing_factor;
+        setOffbeat13Accent(preset.offbeat_13_accent);
+        offbeat13Ref.current = preset.offbeat_13_accent;
+        setOffbeat24Accent(preset.offbeat_24_accent);
+        offbeat24Ref.current = preset.offbeat_24_accent;
+        setDownbeat13Accent(preset.downbeat_13_accent);
+        downbeat13Ref.current = preset.downbeat_13_accent;
+        setBackbeatAccent(preset.backbeat_accent);
+        backbeatRef.current = preset.backbeat_accent;
+        const safeSoundId = preset.sound_id as 'classic' | 'wood' | 'elec' | 'perc' | 'brush';
+        setSoundId(safeSoundId);
+        soundIdRef.current = safeSoundId;
+        setRhythmName(preset.name);
+
+        if (preset.beat_volumes) {
+            setBeatVolumes(preset.beat_volumes);
+            beatVolumesRef.current = preset.beat_volumes;
+        }
+        setTriplet2ndAccent(preset.triplet_2nd_accent ?? 50);
+        triplet2ndRef.current = preset.triplet_2nd_accent ?? 50;
+        setTriplet3rdSwing(preset.triplet_3rd_swing ?? 0);
+        triplet3rdSwingRef.current = preset.triplet_3rd_swing ?? 0;
+
+        setActiveUserPreset(preset); // Track active preset for updates
+
+        // isSaving is used in the save action UI to prevent double click
+        console.log('[Preset] Applied:', preset.name, isSaving ? '(saving...)' : '');
+
+        setShowRhythmList(false);
+        setTimeout(() => startEngine(), 50);
+    }, [stopEngine, startEngine, isSaving]);
+
+    const saveCurrentPreset = async () => {
+        if (!user || !isAdmin) {
+            alert('관리자만 저장할 수 있습니다.');
+            return;
+        }
+
+        let name = rhythmName;
+        // [Safety] 이름이 'Manual'이거나 빈 값인 경우 기본 이름 제안
+        if (name === 'Manual' || !name) {
+            name = 'My Preset';
+        }
+
+        let targetId = activeUserPreset?.id;
+
+        // 현재 리듬 이름과 동일한 프리셋이 유저 프리셋 목록에 있다면 무조건 그 ID를 타겟으로 함 (중복 방지 핵심)
+        const existing = userPresets.find(p => p.name === name);
+        if (existing) {
+            targetId = existing.id;
+        }
+
+        // 여전히 타겟 ID가 없다면 (완전 신규 이름인 경우) 확인 프롬프트
+        if (!targetId) {
+            const inputName = prompt('프리셋 이름을 입력하세요:', name);
+            if (!inputName) return;
+            name = inputName;
+
+            // 입력받은 새 이름이 기존 목록에 있는지 다시 확인
+            const duplicate = userPresets.find(p => p.name === name);
+            if (duplicate) {
+                targetId = duplicate.id;
+            }
+        }
+
+        setIsSaving(true);
+        const presetData = {
+            user_id: user.id,
+            name,
+            bpm,
+            beats: beatsPerMeasure,
+            subdivision,
+            swing_factor: swingFactor,
+            offbeat_13_accent: offbeat13Accent,
+            offbeat_24_accent: offbeat24Accent,
+            downbeat_13_accent: downbeat13Accent,
+            backbeat_accent: backbeatAccent,
+            triplet_2nd_accent: triplet2ndAccent,
+            triplet_3rd_swing: triplet3rdSwing,
+            sound_id: soundId,
+            beat_volumes: beatVolumes
+        };
+
+        const { data, error } = await supabase
+            .from('metronome_presets')
+            .upsert(targetId ? { id: targetId, ...presetData } : presetData)
+            .select()
+            .single();
+
+        setIsSaving(false);
+        if (error) {
+            alert('저장 중 오류가 발생했습니다: ' + error.message);
+        } else {
+            await fetchUserPresets(user.id);
+            if (data) {
+                setActiveUserPreset(data);
+                setRhythmName(data.name);
+            }
+        }
+    };
+
+    const deletePreset = async (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!confirm('정말 삭제하시겠습니까?')) return;
+
+        const { error } = await supabase
+            .from('metronome_presets')
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            alert('삭제 중 오류가 발생했습니다: ' + error.message);
+        } else if (user) {
+            fetchUserPresets(user.id);
+            if (activeUserPreset?.id === id) setActiveUserPreset(null);
+        }
+    };
 
     // Auto-stop on unmount
     useEffect(() => {
@@ -359,25 +580,24 @@ const MetronomePage: React.FC = () => {
                 newSub = 3; newSwing = 0; newAccent = 15; name = 'Triplet Shuffle';
                 break;
             case 'hard-shuffle':
-                newSub = 2; newSwing = 100; newAccent = 10; name = 'Hard Shuffle';
+                newSub = 2; newSwing = 67; newAccent = 10; name = 'Hard Shuffle';
                 break;
         }
 
         setSubdivision(newSub);
         setSwingFactor(newSwing);
-        setSwingAccent(newAccent);
+        setOffbeat13Accent(newAccent);
+        setOffbeat24Accent(newAccent);
+        setDownbeat13Accent(100); // Default downbeat
+        setBackbeatAccent(50); // Default backbeat
+        setTriplet2ndAccent(50); // Reset triplet 2nd note volume
+        setTriplet3rdSwing(0);   // Reset triplet 3rd note timing
         setRhythmName(name);
+        setActiveUserPreset(null); // Clear user preset tracking for static presets
 
         // Reset manual volume adjustments to default (3)
         const totalBeats = beatsPerMeasure * newSub;
         const newVolumes = Array(totalBeats).fill(3);
-
-        // Light Swing, Standard Swing & Hard Shuffle: soften off-beats after 1st and 3rd beats (4/4 time)
-        // This creates the classic swing feel with ghost notes on weak off-beats
-        if ((type === 'light-swing' || type === 'swing' || type === 'hard-shuffle') && beatsPerMeasure === 4 && newSub === 2) {
-            newVolumes[1] = 1; // & after beat 1 (ghost note)
-            newVolumes[5] = 1; // & after beat 3 (ghost note)
-        }
 
         setBeatVolumes(newVolumes);
         beatVolumesRef.current = newVolumes;
@@ -385,7 +605,11 @@ const MetronomePage: React.FC = () => {
         // Immediate Sync for the Audio Engine
         subRef.current = newSub;
         swingRef.current = newSwing;
-        accentRef.current = newAccent;
+        offbeat13Ref.current = newAccent;
+        offbeat24Ref.current = newAccent;
+        backbeatRef.current = 50;
+        triplet2ndRef.current = 50;
+        triplet3rdSwingRef.current = 0;
 
         setShowInfo(false);
         setShowRhythmList(false);
@@ -476,36 +700,80 @@ const MetronomePage: React.FC = () => {
                                     const totalIdx = beatIdx * subdivision + subIdx;
                                     const isCurrent = visualBeat === totalIdx;
                                     const isMainBeat = subIdx === 0;
-                                    const volLevel = beatVolumes[totalIdx] ?? 3;
+
+                                    // Calculate visual scale (0.0 ~ 1.0) for 100% synchronization
+                                    let visualScale = 1.0;
+
+                                    let accentValue = 100;
+                                    if (isMainBeat) {
+                                        const quarterBeatIdx = beatIdx % beatsPerMeasure;
+                                        const is13 = quarterBeatIdx % 2 === 0;
+                                        accentValue = is13 ? downbeat13Accent : backbeatAccent;
+                                    } else if (subdivision === 3) {
+                                        if (subIdx === 1) {
+                                            accentValue = triplet2ndAccent;
+                                        } else {
+                                            const is13Offbeat = beatIdx % 2 === 0;
+                                            accentValue = is13Offbeat ? offbeat13Accent : offbeat24Accent;
+                                        }
+                                    } else if (subdivision > 1) {
+                                        const is13Offbeat = beatIdx % 2 === 0;
+                                        accentValue = is13Offbeat ? offbeat13Accent : offbeat24Accent;
+                                    }
+
+                                    // Base scale from accent slider (0~100)
+                                    visualScale = accentValue / 100;
+
+                                    // Apply manual volume multiplier (beatVolumes: 0~3)
+                                    const bVol = beatVolumes[totalIdx] ?? 3;
+                                    visualScale *= (bVol / 3);
+
+                                    // Clamp to absolute 0
+                                    if (visualScale < 0.01) visualScale = 0;
+
                                     const isLastInGroup = subIdx === subdivision - 1;
 
-                                    // Calculate dynamic spacing based on swing ratio
+                                    // Calculate dynamic spacing based on swing ratio or triplet offset
                                     let marginRight = '0px';
                                     if (!isLastInGroup) {
-                                        if (subdivision > 1 && subdivision !== 3 && swingFactor > 0) {
+                                        if (subdivision === 3) {
+                                            // [NEW] Triplet offset visualization
+                                            const base = 10;
+                                            marginRight = subIdx === 0
+                                                ? `${base}px`
+                                                : `${base + (triplet3rdSwing * 0.25)}px`; // Push 3rd note back
+                                        } else if (subdivision > 1 && swingFactor > 0) {
                                             const isFirstOfPair = subIdx % 2 === 0;
-                                            const baseGap = 6;
-                                            const maxSwingGap = 20;
-                                            const swingRatio = swingFactor / 100;
-
-                                            if (isFirstOfPair) {
-                                                const extraGap = maxSwingGap * swingRatio;
-                                                marginRight = `${baseGap + extraGap}px`;
-                                            } else {
-                                                const reducedGap = maxSwingGap * swingRatio * 0.7;
-                                                marginRight = `${Math.max(2, baseGap - reducedGap)}px`;
-                                            }
-                                        } else {
-                                            marginRight = '6px';
+                                            const base = subdivision === 2 ? 14 : 10;
+                                            marginRight = isFirstOfPair
+                                                ? `${base + (swingFactor * 0.2)}px`
+                                                : `${base - (swingFactor * 0.15)}px`;
+                                        } else if (subdivision > 1) {
+                                            marginRight = subdivision === 2 ? '14px' : '10px';
                                         }
+                                    } else if (subdivision === 3 && triplet3rdSwing > 0) {
+                                        // Triplet 3rd note: Reduce gap to next group to show it's "late"
+                                        marginRight = `${-(triplet3rdSwing * 0.1)}px`;
                                     }
 
                                     return (
                                         <div
                                             key={subIdx}
-                                            className={`beat-indicator vol-${volLevel} ${isCurrent ? 'is-active' : ''} ${!isMainBeat ? 'is-sub' : ''}`}
-                                            onClick={(e) => cycleBeatVolume(totalIdx, e)}
-                                            style={{ marginRight }}
+                                            className={`beat-indicator ${visualScale === 0 ? 'vol-0' : ''} ${isCurrent ? 'is-active' : ''} ${!isMainBeat ? 'is-offbeat' : ''}`}
+                                            onClick={(e) => {
+                                                cycleBeatVolume(totalIdx, e);
+                                            }}
+                                            style={{
+                                                marginRight,
+                                                transform: isCurrent && visualScale > 0
+                                                    ? `scale(${0.65 + visualScale * 1.3})` // Max scale 1.95 (Active, 100%)
+                                                    : `scale(${0.45 + visualScale * 0.95})`, // Max scale 1.4 (Idle, 100%)
+                                                opacity: isCurrent && visualScale > 0
+                                                    ? 0.5 + visualScale * 0.5
+                                                    : 0.15 + visualScale * 0.65,
+                                                background: visualScale === 0 ? 'transparent' : undefined,
+                                                transition: isCurrent ? 'none' : 'transform 0.1s ease, opacity 0.1s ease'
+                                            }}
                                         />
                                     );
                                 })}
@@ -557,16 +825,59 @@ const MetronomePage: React.FC = () => {
 
                                 {showRhythmList && (
                                     <div className="rhythm-dropdown-list">
+                                        <div className="user-presets-header">기본 프리셋</div>
                                         {presets.map(p => (
                                             <button
                                                 key={p.id}
                                                 className={`dropdown-item ${rhythmName === p.name ? 'active' : ''}`}
                                                 onClick={() => applyPreset(p.id)}
                                             >
-                                                <span className="dropdown-item-name">{p.name}</span>
-                                                <span className="dropdown-item-info">{p.info}</span>
+                                                <div className="dropdown-item-content">
+                                                    <span className="dropdown-item-name">{p.name}</span>
+                                                    <span className="dropdown-item-info">{p.info}</span>
+                                                </div>
                                             </button>
                                         ))}
+
+                                        {userPresets.length > 0 && (
+                                            <>
+                                                <div className="dropdown-divider" />
+                                                <div className="user-presets-header">내 프리셋</div>
+                                                {userPresets.map(p => (
+                                                    <div
+                                                        key={p.id}
+                                                        className={`dropdown-item ${rhythmName === p.name ? 'active' : ''}`}
+                                                        onClick={() => applyUserPreset(p)}
+                                                    >
+                                                        <div className="dropdown-item-content">
+                                                            <span className="dropdown-item-name">{p.name}</span>
+                                                            <span className="dropdown-item-info">{p.bpm} BPM / {p.beats}박</span>
+                                                        </div>
+                                                        <button
+                                                            className="preset-delete-btn"
+                                                            onClick={(e) => deletePreset(p.id, e)}
+                                                            title="삭제"
+                                                        >
+                                                            <i className="ri-close-line"></i>
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </>
+                                        )}
+
+                                        {isAdmin && (
+                                            <>
+                                                <div className="dropdown-divider" />
+                                                <button
+                                                    className="dropdown-item save-btn"
+                                                    onClick={saveCurrentPreset}
+                                                    disabled={isSaving}
+                                                >
+                                                    <i className={isSaving ? "ri-loader-4-line spin" : "ri-save-line"}></i>
+                                                    <span>{isSaving ? '저장 중...' : '현재 설정 저장'}</span>
+                                                </button>
+                                            </>
+                                        )}
                                     </div>
                                 )}
                             </div>
@@ -579,9 +890,10 @@ const MetronomePage: React.FC = () => {
                                     className="setting-select"
                                     value={beatsPerMeasure}
                                     onChange={(e) => {
-                                        setBeatsPerMeasure(parseInt(e.target.value));
+                                        const val = parseInt(e.target.value);
+                                        setBeatsPerMeasure(val);
+                                        beatsRef.current = val; // Direct sync
                                         currentSubBeatRef.current = 0;
-                                        releasePreset();
                                     }}
                                 >
                                     <option value="2">2/4</option>
@@ -607,9 +919,8 @@ const MetronomePage: React.FC = () => {
                                     onChange={(e) => {
                                         const newSub = parseInt(e.target.value);
                                         setSubdivision(newSub);
-                                        setSwingFactor(0);
+                                        subRef.current = newSub; // Direct sync
                                         currentSubBeatRef.current = 0;
-                                        releasePreset();
                                     }}
                                 >
                                     <option value="1">4분 음표 (Quarter)</option>
@@ -635,39 +946,142 @@ const MetronomePage: React.FC = () => {
                                             className="tempo-slider swing"
                                             min="0"
                                             max="100"
+                                            step="1"
                                             value={swingFactor}
                                             onChange={(e) => {
-                                                setSwingFactor(parseInt(e.target.value));
-                                                releasePreset();
+                                                const val = parseInt(e.target.value);
+                                                setSwingFactor(val);
+                                                swingRef.current = val; // Direct sync
                                             }}
                                         />
                                     </div>
                                 )}
 
-                                {/* Off-beat Accent — always shown when sub > 1 */}
+                                {/* 1& 3& Accent */}
                                 <div className="swing-group">
                                     <div className="swing-header">
-                                        <label className="setting-label">Off-beat Accent (오프비트 강도)</label>
-                                        <span className="swing-value intensity">{swingAccent}%</span>
+                                        <label className="setting-label">1& 3& Accent (Off-beat)</label>
+                                        <span className="swing-value intensity">{offbeat13Accent}%</span>
                                     </div>
                                     <input
                                         type="range"
                                         className="tempo-slider accent"
                                         min="0"
                                         max="100"
-                                        value={swingAccent}
+                                        value={offbeat13Accent}
                                         onChange={(e) => {
-                                            setSwingAccent(parseInt(e.target.value));
-                                            releasePreset();
+                                            const val = parseInt(e.target.value);
+                                            setOffbeat13Accent(val);
+                                            offbeat13Ref.current = val; // Immediate sync for sound
                                         }}
                                     />
                                 </div>
 
-                                <p className="swing-hint">
-                                    {subdivision === 3
-                                        ? '3연음 강약: 0%=중간 음 고스트(셔플 느낌), 100%=오프비트 강조(스윙 느낌)'
-                                        : `Swing: 긴-짧 비율 (50:50=균등, 67:33=트리플렛). Accent: 0%=셔플(고스트) ↔ 100%=스윙(강조)`}
-                                </p>
+                                {/* 2& 4& Accent */}
+                                <div className="swing-group">
+                                    <div className="swing-header">
+                                        <label className="setting-label">2& 4& Accent (Off-beat)</label>
+                                        <span className="swing-value intensity">{offbeat24Accent}%</span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        className="tempo-slider accent"
+                                        min="0"
+                                        max="100"
+                                        value={offbeat24Accent}
+                                        onChange={(e) => {
+                                            const val = parseInt(e.target.value);
+                                            setOffbeat24Accent(val);
+                                            offbeat24Ref.current = val; // Immediate sync for sound
+                                        }}
+                                    />
+                                </div>
+
+                                {/* 1 & 3 Accent (On-beat) */}
+                                <div className="swing-group">
+                                    <div className="swing-header">
+                                        <label className="setting-label">1 & 3 Accent (On-beat)</label>
+                                        <span className="swing-value intensity">{downbeat13Accent}%</span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        className="tempo-slider accent downbeat"
+                                        min="0"
+                                        max="100"
+                                        step="1"
+                                        value={downbeat13Accent}
+                                        onChange={(e) => {
+                                            const val = parseInt(e.target.value);
+                                            setDownbeat13Accent(val);
+                                            downbeat13Ref.current = val; // Immediate sync for sound
+                                        }}
+                                    />
+                                </div>
+
+                                {/* Backbeat Accent */}
+                                <div className="swing-group">
+                                    <div className="swing-header">
+                                        <label className="setting-label">Backbeat Accent (2박, 4박)</label>
+                                        <span className="swing-value intensity">{backbeatAccent}%</span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        className="tempo-slider accent"
+                                        min="0"
+                                        max="100"
+                                        value={backbeatAccent}
+                                        onChange={(e) => {
+                                            const val = parseInt(e.target.value);
+                                            setBackbeatAccent(val);
+                                            backbeatRef.current = val; // Immediate sync for sound
+                                        }}
+                                    />
+                                </div>
+
+                                {/* [NEW] Triplet Specific Controls (Only show when subdivision is 3) */}
+                                {subdivision === 3 && (
+                                    <>
+                                        <div className="swing-group triplet-extra">
+                                            <div className="swing-header">
+                                                <label className="setting-label">Triplet 2nd Note Vol</label>
+                                                <span className="swing-value intensity">{triplet2ndAccent}%</span>
+                                            </div>
+                                            <input
+                                                type="range"
+                                                className="tempo-slider accent triplet-2nd"
+                                                min="0"
+                                                max="100"
+                                                step="1"
+                                                value={triplet2ndAccent}
+                                                onChange={(e) => {
+                                                    const val = parseInt(e.target.value);
+                                                    setTriplet2ndAccent(val);
+                                                    triplet2ndRef.current = val;
+                                                }}
+                                            />
+                                        </div>
+
+                                        <div className="swing-group triplet-extra">
+                                            <div className="swing-header">
+                                                <label className="setting-label">Triplet 3rd Note Offset</label>
+                                                <span className="swing-value intensity">{triplet3rdSwing}%</span>
+                                            </div>
+                                            <input
+                                                type="range"
+                                                className="tempo-slider accent triplet-3rd"
+                                                min="0"
+                                                max="100"
+                                                step="1"
+                                                value={triplet3rdSwing}
+                                                onChange={(e) => {
+                                                    const val = parseInt(e.target.value);
+                                                    setTriplet3rdSwing(val);
+                                                    triplet3rdSwingRef.current = val;
+                                                }}
+                                            />
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         )}
                     </div>

@@ -170,6 +170,25 @@ export interface EventFavorite {
   created_at: string;
 }
 
+export interface MetronomePreset {
+  id: string;
+  user_id: string;
+  name: string;
+  bpm: number;
+  beats: number;
+  subdivision: number;
+  swing_factor: number;
+  offbeat_13_accent: number;
+  offbeat_24_accent: number;
+  downbeat_13_accent: number;
+  backbeat_accent: number;
+  triplet_2nd_accent: number;
+  triplet_3rd_swing: number;
+  sound_id: string;
+  beat_volumes: number[];
+  created_at: string;
+}
+
 // 세션 검증 결과 캐싱 및 락킹을 위한 변수
 let lastValidationTime = 0;
 const VALIDATION_CACHE_TIME = 60000; // 60초
