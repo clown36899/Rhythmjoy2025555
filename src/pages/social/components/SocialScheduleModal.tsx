@@ -326,10 +326,6 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
             return;
         }
 
-        if (!linkUrl.trim()) {
-            alert('관련 링크 URL을 입력해주세요.');
-            return;
-        }
 
         if (!imagePreview && !imageFile) {
             alert('일정 포스터 이미지를 등록해주세요.');
@@ -641,7 +637,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                                 />
                             </div>
                             <div className="form-item is-grow">
-                                <label>관련 링크 URL *</label>
+                                <label>관련 링크 URL</label>
                                 <input
                                     type="url"
                                     value={linkUrl}
