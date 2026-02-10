@@ -458,76 +458,51 @@ const MetronomePage: React.FC = () => {
     }, [stopEngine, startEngine, isSaving]);
 
     const saveCurrentPreset = async () => {
-        if (!user || !isAdmin) {
-            alert('관리자만 저장할 수 있습니다.');
-            return;
-        }
+        if (!user || !isAdmin || isSaving) return;
 
-        let name = rhythmName;
-        // [Safety] 이름이 'Manual'이거나 빈 값인 경우 기본 이름 제안
-        if (name === 'Manual' || !name) {
-            name = 'My Preset';
-        }
-
-        let targetId = activeUserPreset?.id;
-
-        // 현재 리듬 이름과 동일한 프리셋이 유저 프리셋 목록에 있다면 무조건 그 ID를 타겟으로 함 (중복 방지 핵심)
-        const existing = userPresets.find(p => p.name === name);
-        if (existing) {
-            targetId = existing.id;
-        }
-
-        // 여전히 타겟 ID가 없다면 (완전 신규 이름인 경우) 확인 프롬프트
-        if (!targetId) {
-            const inputName = prompt('프리셋 이름을 입력하세요:', name);
-            if (!inputName) return;
-            name = inputName;
-
-            // 입력받은 새 이름이 기존 목록에 있는지 다시 확인
-            const duplicate = userPresets.find(p => p.name === name);
-            if (duplicate) {
-                targetId = duplicate.id;
-            }
-        }
+        const nameToSave = activeUserPreset?.name || rhythmName.trim() || 'My Preset';
 
         setIsSaving(true);
-        const presetData = {
-            user_id: user.id,
-            name,
-            bpm,
-            beats: beatsPerMeasure,
-            subdivision,
-            swing_factor: swingFactor,
-            offbeat_13_accent: offbeat13Accent,
-            offbeat_24_accent: offbeat24Accent,
-            downbeat_13_accent: downbeat13Accent,
-            backbeat_accent: backbeatAccent,
-            triplet_2nd_accent: triplet2ndAccent,
-            triplet_3rd_swing: triplet3rdSwing,
-            sound_id: soundId,
-            beat_volumes: beatVolumes
-        };
+        try {
+            const { data, error } = await supabase
+                .from('metronome_presets')
+                .upsert({
+                    user_id: user.id,
+                    name: nameToSave,
+                    bpm,
+                    beats: beatsPerMeasure,
+                    subdivision,
+                    swing_factor: swingFactor,
+                    offbeat_13_accent: offbeat13Accent,
+                    offbeat_24_accent: offbeat24Accent,
+                    downbeat_13_accent: downbeat13Accent,
+                    backbeat_accent: backbeatAccent,
+                    triplet_2nd_accent: triplet2ndAccent,
+                    triplet_3rd_swing: triplet3rdSwing,
+                    sound_id: soundId,
+                    beat_volumes: beatVolumes
+                }, { onConflict: 'user_id,name' })
+                .select()
+                .single();
 
-        const { data, error } = await supabase
-            .from('metronome_presets')
-            .upsert(targetId ? { id: targetId, ...presetData } : presetData)
-            .select()
-            .single();
+            if (error) throw error;
 
-        setIsSaving(false);
-        if (error) {
-            alert('저장 중 오류가 발생했습니다: ' + error.message);
-        } else {
             await fetchUserPresets(user.id);
             if (data) {
                 setActiveUserPreset(data);
                 setRhythmName(data.name);
             }
+        } catch (err: any) {
+            console.error('[MetronomeSave] Error:', err);
+            alert('저장 실패: ' + err.message);
+        } finally {
+            setIsSaving(false);
         }
     };
 
     const deletePreset = async (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
+        if (!user || !isAdmin) return;
         if (!confirm('정말 삭제하시겠습니까?')) return;
 
         const { error } = await supabase
@@ -825,25 +800,37 @@ const MetronomePage: React.FC = () => {
 
                                 {showRhythmList && (
                                     <div className="rhythm-dropdown-list">
-                                        <div className="user-presets-header">기본 프리셋</div>
-                                        {presets.map(p => (
-                                            <button
-                                                key={p.id}
-                                                className={`dropdown-item ${rhythmName === p.name ? 'active' : ''}`}
-                                                onClick={() => applyPreset(p.id)}
-                                            >
-                                                <div className="dropdown-item-content">
-                                                    <span className="dropdown-item-name">{p.name}</span>
-                                                    <span className="dropdown-item-info">{p.info}</span>
+                                        {presets.map(p => {
+                                            const saved = userPresets.find(up => up.name === p.name);
+                                            return (
+                                                <div
+                                                    key={p.id}
+                                                    className={`dropdown-item ${rhythmName === p.name ? 'active' : ''}`}
+                                                    onClick={() => saved ? applyUserPreset(saved) : applyPreset(p.id)}
+                                                >
+                                                    <div className="dropdown-item-content">
+                                                        <span className="dropdown-item-name">{p.name}</span>
+                                                        <span className="dropdown-item-info">
+                                                            {saved ? `${saved.bpm} BPM / ${saved.beats}박 (수정됨)` : p.info}
+                                                        </span>
+                                                    </div>
+                                                    {isAdmin && saved && (
+                                                        <button
+                                                            className="preset-delete-btn"
+                                                            onClick={(e) => deletePreset(saved.id, e)}
+                                                            title="기본값으로 초기화"
+                                                        >
+                                                            <i className="ri-close-line"></i>
+                                                        </button>
+                                                    )}
                                                 </div>
-                                            </button>
-                                        ))}
+                                            );
+                                        })}
 
-                                        {userPresets.length > 0 && (
+                                        {userPresets.filter(up => !presets.some(p => p.name === up.name)).length > 0 && (
                                             <>
                                                 <div className="dropdown-divider" />
-                                                <div className="user-presets-header">내 프리셋</div>
-                                                {userPresets.map(p => (
+                                                {userPresets.filter(up => !presets.some(p => p.name === up.name)).map(p => (
                                                     <div
                                                         key={p.id}
                                                         className={`dropdown-item ${rhythmName === p.name ? 'active' : ''}`}
@@ -853,13 +840,15 @@ const MetronomePage: React.FC = () => {
                                                             <span className="dropdown-item-name">{p.name}</span>
                                                             <span className="dropdown-item-info">{p.bpm} BPM / {p.beats}박</span>
                                                         </div>
-                                                        <button
-                                                            className="preset-delete-btn"
-                                                            onClick={(e) => deletePreset(p.id, e)}
-                                                            title="삭제"
-                                                        >
-                                                            <i className="ri-close-line"></i>
-                                                        </button>
+                                                        {isAdmin && (
+                                                            <button
+                                                                className="preset-delete-btn"
+                                                                onClick={(e) => deletePreset(p.id, e)}
+                                                                title="삭제"
+                                                            >
+                                                                <i className="ri-close-line"></i>
+                                                            </button>
+                                                        )}
                                                     </div>
                                                 ))}
                                             </>
