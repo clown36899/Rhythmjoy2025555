@@ -152,7 +152,7 @@ export default function DateEventsModal({
                                     >
                                         <div className="DEM-thumbnail">
                                             {imageUrl ? (
-                                                <img src={imageUrl} alt={event.title} loading="lazy" />
+                                                <img src={imageUrl} alt={event.title} loading="lazy" draggable="false" />
                                             ) : (
                                                 <div className="DEM-fallback">
                                                     <i className="ri-calendar-event-line"></i>

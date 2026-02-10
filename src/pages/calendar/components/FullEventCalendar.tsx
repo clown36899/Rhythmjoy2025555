@@ -603,6 +603,7 @@ export default memo(function FullEventCalendar({
                               className="calendar-fullscreen-image"
                               loading="lazy"
                               decoding="async"
+                              draggable="false"
                             />
                           </div>
                         ) : (
