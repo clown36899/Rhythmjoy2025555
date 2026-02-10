@@ -7,14 +7,13 @@
     box-sizing: border-box;
     overflow: hidden;
     position: relative;
-    /* 글로벌 헤더 높이만큼 띄우되, 내부 헤더가 사라졌으므로 여백 최소화 */
     padding-top: calc(var(--header-height, 51px) + 5px + env(safe-area-inset-top));
     padding-bottom: calc(100px + env(safe-area-inset-bottom));
     padding-left: 20px;
     padding-right: 20px;
 }
 
-/* Global Header Support (Inline Title Button) */
+/* Global Header Support */
 .header-events-content {
     display: flex;
     align-items: center;
@@ -70,6 +69,8 @@
     overflow: hidden;
     box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.5);
     animation: modalSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    max-height: 80vh;
+    overflow-y: auto;
 }
 
 .modal-header {
@@ -103,7 +104,7 @@
     padding: 12px 24px 32px;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 16px;
 }
 
 .info-item {
@@ -118,6 +119,7 @@
     background: rgba(245, 158, 11, 0.1);
     padding: 10px;
     border-radius: 14px;
+    flex-shrink: 0;
 }
 
 .info-item p {
@@ -134,6 +136,111 @@
     margin-bottom: 2px;
 }
 
+.info-item p em {
+    color: var(--color-amber-500);
+    font-style: normal;
+    font-weight: 700;
+}
+
+/* P4: Swing vs Shuffle comparison section */
+.info-section-title {
+    font-size: 0.85rem;
+    font-weight: 900;
+    color: var(--text-primary);
+    padding-top: 8px;
+    border-top: 1px solid var(--border-glass);
+    margin: 0;
+}
+
+.rhythm-compare-card {
+    background: rgba(245, 158, 11, 0.06);
+    border: 1px solid rgba(245, 158, 11, 0.15);
+    border-radius: 16px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rhythm-compare-card.shuffle-card {
+    background: rgba(14, 165, 233, 0.06);
+    border-color: rgba(14, 165, 233, 0.15);
+}
+
+.compare-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.compare-label {
+    font-size: 0.85rem;
+    font-weight: 900;
+    padding: 2px 10px;
+    border-radius: 8px;
+}
+
+.compare-label.swing-label {
+    color: var(--color-amber-500);
+    background: rgba(245, 158, 11, 0.15);
+}
+
+.compare-label.shuffle-label {
+    color: var(--color-sky-500);
+    background: rgba(14, 165, 233, 0.15);
+}
+
+.compare-detail {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    font-weight: 600;
+}
+
+.compare-pattern {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    font-size: 1.1rem;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    padding: 4px 0;
+}
+
+.note-loud {
+    color: var(--text-primary);
+    font-size: 1.15rem;
+}
+
+.note-soft {
+    color: var(--text-tertiary);
+    opacity: 0.6;
+}
+
+.note-ghost {
+    color: var(--text-tertiary);
+    opacity: 0.3;
+    font-size: 0.9rem;
+}
+
+.note-dash {
+    color: var(--text-tertiary);
+    opacity: 0.25;
+    font-size: 0.8rem;
+    letter-spacing: -3px;
+}
+
+.note-gap {
+    width: 12px;
+}
+
+.compare-desc {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    font-weight: 600;
+}
+
+/* Preset items (legacy support) */
 .preset-item {
     display: flex;
     gap: 12px;
@@ -211,18 +318,14 @@
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    /* 상단부터 차례로 배치하여 스크롤 유도 */
     gap: 2.5vh;
-    /* 가용 공간에 따른 유동적 간격 */
     min-height: 0;
     padding: 10px 0;
     box-sizing: border-box;
     overflow-y: auto;
-    /* 내용이 많아지면 내부 스크롤 허용 */
     -webkit-overflow-scrolling: touch;
 }
 
-/* 스크롤바 숨김 */
 .metronome-content::-webkit-scrollbar {
     display: none;
 }
@@ -237,27 +340,95 @@
     width: 100%;
 }
 
+/* P3: Beat group visualization */
 .metronome-visualizer {
     width: 100%;
     display: flex;
     justify-content: center;
-    gap: 12px;
+    gap: 8px;
     padding: 1vh 0;
 }
 
+.beat-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
 .beat-indicator {
-    width: clamp(10px, 2.2vh, 16px);
-    height: clamp(10px, 2.2vh, 16px);
+    width: clamp(14px, 2.8vh, 20px);
+    height: clamp(14px, 2.8vh, 20px);
     border-radius: 50%;
     background: var(--bg-surface-3);
     transition: all 0.1s ease;
     opacity: 0.2;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    position: relative;
 }
 
-.beat-indicator.is-active {
+/* Larger touch target */
+.beat-indicator::before {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: -8px;
+    right: -8px;
+    bottom: -8px;
+}
+
+.beat-indicator:active {
+    transform: scale(0.85) !important;
+}
+
+/* Sub-beat indicator (smaller dot) */
+.beat-indicator.is-sub {
+    width: clamp(8px, 1.6vh, 12px);
+    height: clamp(8px, 1.6vh, 12px);
+}
+
+/* Volume level idle states */
+.beat-indicator.vol-3 { opacity: 0.55; }
+.beat-indicator.vol-2 { opacity: 0.3; transform: scale(0.8); }
+.beat-indicator.vol-1 { opacity: 0.15; transform: scale(0.6); }
+.beat-indicator.vol-0 {
+    opacity: 0.08;
+    transform: scale(0.45);
+    background: transparent;
+    border: 1.5px dashed var(--text-tertiary);
+}
+
+/* Sub-beat idle volume */
+.beat-indicator.is-sub.vol-3 { opacity: 0.4; }
+.beat-indicator.is-sub.vol-2 { opacity: 0.22; transform: scale(0.75); }
+.beat-indicator.is-sub.vol-1 { opacity: 0.1; transform: scale(0.55); }
+.beat-indicator.is-sub.vol-0 { opacity: 0.06; transform: scale(0.4); }
+
+/* Active (playing) states per volume level */
+.beat-indicator.vol-3.is-active {
     opacity: 1;
-    transform: scale(1.3);
+    transform: scale(1.35);
     background: var(--color-amber-500);
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.4);
+}
+
+.beat-indicator.vol-2.is-active {
+    opacity: 0.7;
+    transform: scale(1.1);
+    background: var(--color-amber-500);
+}
+
+.beat-indicator.vol-1.is-active {
+    opacity: 0.4;
+    transform: scale(0.85);
+    background: var(--color-amber-500);
+}
+
+.beat-indicator.vol-0.is-active {
+    opacity: 0.15;
+    transform: scale(0.55);
+    background: var(--text-tertiary);
+    border-color: var(--text-tertiary);
 }
 
 /* Control Card */
@@ -401,6 +572,7 @@
     font-style: italic;
     opacity: 0.7;
     margin-top: 5px;
+    line-height: 1.5;
 }
 
 .tempo-slider.swing::-webkit-slider-thumb {
@@ -419,7 +591,6 @@
     padding: 2vh 0;
     flex-shrink: 0;
     margin-top: auto;
-    /* 가능한 아래쪽으로 배치 */
 }
 
 .play-btn {
@@ -468,7 +639,6 @@
     width: 100%;
     margin: 10px 0 15px 0;
     min-width: 0;
-    /* Container flex-shrink safety */
 }
 
 /* Sound Selector Bar */
@@ -481,7 +651,6 @@
     border-radius: 50px;
     border: 1px solid var(--border-glass);
     flex-shrink: 1;
-    /* Allow to shrink on narrow screens */
     margin: 0;
     min-width: 0;
 }
@@ -523,7 +692,6 @@
     flex: 1;
     margin: 0;
     min-width: 0;
-    /* Allow flex child to shrink below content size */
 }
 
 .rhythm-selector-main {
@@ -595,10 +763,22 @@
     background: transparent;
     color: var(--text-secondary);
     text-align: left;
-    font-size: 0.9rem;
-    font-weight: 700;
     cursor: pointer;
     transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.dropdown-item-name {
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.dropdown-item-info {
+    font-size: 0.7rem;
+    color: var(--text-tertiary);
+    font-weight: 500;
 }
 
 .dropdown-item:hover,
@@ -610,6 +790,10 @@
 .dropdown-item.active {
     background: rgba(245, 158, 11, 0.1);
     color: var(--color-amber-500);
+}
+
+.dropdown-item.active .dropdown-item-info {
+    color: rgba(245, 158, 11, 0.6);
 }
 
 @keyframes dropdownFadeIn {
