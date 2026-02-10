@@ -17,7 +17,7 @@ import NotificationSettingsModal from '../components/NotificationSettingsModal';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { useLoading } from '../contexts/LoadingContext';
 import '../styles/components/MobileShell.css';
-import { NoticeTicker } from '../components/NoticeTicker.tsx';
+import NoticeTicker from '../components/NoticeTicker';
 
 interface MobileShellProps {
   isAdmin?: boolean;

@@ -13,7 +13,7 @@ interface BoardPostSimple {
     } | null;
 }
 
-export const NoticeTicker: React.FC = () => {
+export default function NoticeTicker() {
     const [notices, setNotices] = useState<BoardPostSimple[]>([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();

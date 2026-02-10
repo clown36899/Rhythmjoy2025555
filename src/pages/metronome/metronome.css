@@ -134,6 +134,63 @@
     margin-bottom: 2px;
 }
 
+.preset-item {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    padding: 12px;
+    background: var(--bg-surface-3);
+    border: 1px solid var(--border-glass);
+    border-radius: 16px;
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.preset-item:active {
+    transform: scale(0.97);
+    background: var(--bg-surface-2);
+}
+
+.preset-icon i {
+    font-size: 1.4rem;
+    color: var(--color-amber-500);
+    background: rgba(245, 158, 11, 0.1);
+    padding: 10px;
+    border-radius: 14px;
+    display: flex;
+}
+
+.preset-info {
+    flex: 1;
+}
+
+.preset-info strong {
+    display: block;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    font-weight: 850;
+    margin-bottom: 2px;
+}
+
+.preset-info p {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    line-height: 1.4;
+}
+
+.preset-apply {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--color-amber-500);
+    padding: 4px 10px;
+    background: rgba(245, 158, 11, 0.1);
+    border-radius: 8px;
+    border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
 @keyframes modalSlideUp {
     from {
         opacity: 0;
@@ -292,35 +349,66 @@
     appearance: none;
 }
 
-/* Swing/Shuffle */
-.swing-control {
+/* Swing/Accent Control Area */
+.swing-control-area {
     width: 100%;
-    padding: 15px;
-    background: rgba(255, 255, 255, 0.04);
-    border: 1px solid var(--border-glass-subtle);
-    border-radius: 16px;
+    margin-top: 5px;
+    padding: 20px;
+    background: var(--bg-surface-2);
+    border-radius: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    border: 1px solid var(--border-glass-strong);
+    box-sizing: border-box;
+}
+
+.swing-group {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    animation: fadeIn 0.3s ease;
+    width: 100%;
 }
 
 .swing-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 5px;
+    width: 100%;
 }
 
 .swing-value {
     font-size: 0.9rem;
-    font-weight: 950;
-    color: var(--color-purple-500);
+    font-weight: 850;
+    color: var(--color-amber-500);
+    background: rgba(245, 158, 11, 0.1);
+    padding: 2px 10px;
+    border-radius: 8px;
+    min-width: 45px;
+    text-align: center;
 }
 
-.swing-desc {
-    display: none;
-    /* 상단 도움말 패널로 통합하여 제거 */
+.swing-value.intensity {
+    color: var(--color-sky-500);
+    background: rgba(14, 165, 233, 0.1);
+}
+
+.swing-hint {
+    margin: 0;
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    text-align: center;
+    font-style: italic;
+    opacity: 0.7;
+    margin-top: 5px;
+}
+
+.tempo-slider.swing::-webkit-slider-thumb {
+    border-color: var(--color-amber-500) !important;
+}
+
+.tempo-slider.accent::-webkit-slider-thumb {
+    border-color: var(--color-sky-500) !important;
 }
 
 /* Footer Play Button Area */
@@ -345,7 +433,6 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.4);
 }
 
 .play-btn:active {
@@ -365,6 +452,149 @@
     from {
         opacity: 0;
         transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Sound Selector Bar */
+.sound-selector-bar {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin: 10px 0 15px 0;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 50px;
+    border: 1px solid var(--border-glass);
+}
+
+.sound-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 1px solid var(--border-glass);
+    background: var(--bg-surface-3);
+    color: var(--text-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 1.2rem;
+}
+
+.sound-btn:hover {
+    background: var(--bg-surface-2);
+    transform: translateY(-2px);
+}
+
+.sound-btn:active {
+    transform: scale(0.95);
+}
+
+.sound-btn.active {
+    background: var(--color-amber-500);
+    color: #000;
+    border-color: var(--color-amber-500);
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
+}
+
+/* Rhythm Selector Dropdown */
+.rhythm-selector-container {
+    position: relative;
+    width: 100%;
+    margin: 10px 0;
+}
+
+.rhythm-selector-main {
+    width: 100%;
+    padding: 14px 20px;
+    background: var(--bg-surface-3);
+    border: 1px solid var(--border-glass);
+    border-radius: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.rhythm-selector-main:active {
+    transform: scale(0.98);
+}
+
+.rhythm-selector-main.is-open {
+    border-color: var(--color-amber-500);
+    background: var(--bg-surface-2);
+}
+
+.selected-name {
+    font-size: 1rem;
+    font-weight: 850;
+    color: var(--color-amber-500);
+    letter-spacing: -0.3px;
+}
+
+.rhythm-selector-main i {
+    font-size: 1.2rem;
+    color: var(--text-tertiary);
+    transition: transform 0.3s ease;
+}
+
+.rhythm-selector-main.is-open i {
+    transform: rotate(180deg);
+}
+
+.rhythm-dropdown-list {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    background: var(--bg-surface-1);
+    border: 1px solid var(--border-glass-strong);
+    border-radius: 18px;
+    padding: 8px;
+    z-index: 100;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    animation: dropdownFadeIn 0.2s ease;
+}
+
+.dropdown-item {
+    width: 100%;
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    text-align: left;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.dropdown-item:hover,
+.dropdown-item:active {
+    background: var(--bg-surface-3);
+    color: var(--text-primary);
+}
+
+.dropdown-item.active {
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--color-amber-500);
+}
+
+@keyframes dropdownFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
     }
 
     to {
