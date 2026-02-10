@@ -2,10 +2,9 @@ import { Handler } from '@netlify/functions';
 import { createClient } from '@supabase/supabase-js';
 import fs from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// CJS Environment assumed (Netlify Functions default)
+// import.meta.url removed to prevent bundling warning/error
 
 export const handler: Handler = async (event, context) => {
     const supabaseUrl = process.env.VITE_PUBLIC_SUPABASE_URL;
@@ -19,7 +18,13 @@ export const handler: Handler = async (event, context) => {
     }
 
     const supabase = createClient(supabaseUrl, supabaseKey);
-    const thumbnailsDir = path.join(__dirname, '../../public/default-thumbnails');
+    // When bundled, __dirname points to the function location.
+    // We need to ensure public/default-thumbnails is included and findable.
+    // Usually, included_files puts them relative to the function or root.
+    // Let's try standard relative path from the function file.
+    const thumbnailsDir = path.resolve('./public/default-thumbnails');
+    console.log(`[upload-thumbnails] Searching for thumbnails in: ${thumbnailsDir}`);
+
 
     try {
         const files = fs.readdirSync(thumbnailsDir);
@@ -54,10 +59,10 @@ export const handler: Handler = async (event, context) => {
             statusCode: 200,
             body: JSON.stringify({ message: 'Upload complete', results })
         };
-    } catch (error) {
+    } catch (error: any) {
         return {
             statusCode: 500,
-            body: JSON.stringify({ error: error.message })
+            body: JSON.stringify({ error: error.message || 'Unknown error' })
         };
     }
 };

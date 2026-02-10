@@ -5,7 +5,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { createResizedImages, isImageFile } from '../../../utils/imageResize';
 import ImageCropModal from '../../../components/ImageCropModal';
 import { useLoading } from '../../../contexts/LoadingContext';
-import VenueSelectModal from '../../v2/components/VenueSelectModal';
+const VenueSelectModal = React.lazy(() => import('../../v2/components/VenueSelectModal'));
 import type { SocialSchedule } from '../types';
 import './SocialScheduleModal.css';
 
@@ -794,17 +794,19 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                 }}
             />
 
-            <VenueSelectModal
-                isOpen={showVenueModal}
-                onClose={() => setShowVenueModal(false)}
-                onSelect={handleVenueSelect}
-                onManualInput={(name, link) => {
-                    setPlaceName(name);
-                    setAddress(link);
-                    setVenueId(null);
-                    setShowVenueModal(false);
-                }}
-            />
+            <React.Suspense fallback={null}>
+                <VenueSelectModal
+                    isOpen={showVenueModal}
+                    onClose={() => setShowVenueModal(false)}
+                    onSelect={handleVenueSelect}
+                    onManualInput={(name, link) => {
+                        setPlaceName(name);
+                        setAddress(link);
+                        setVenueId(null);
+                        setShowVenueModal(false);
+                    }}
+                />
+            </React.Suspense>
         </div>,
         document.body
     );

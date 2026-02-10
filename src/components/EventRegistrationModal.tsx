@@ -10,7 +10,7 @@ import { downloadThumbnailAsBlob, getVideoThumbnail } from "../utils/videoThumbn
 import { useAuth } from "../contexts/AuthContext";
 import { logEvent } from "../lib/analytics";
 import ImageCropModal from "./ImageCropModal";
-import VenueSelectModal from "../pages/v2/components/VenueSelectModal";
+const VenueSelectModal = React.lazy(() => import("../pages/v2/components/VenueSelectModal"));
 import "../styles/domains/events.css";
 import "../styles/components/EventRegistrationModal.css";
 import { EditablePreviewCard } from "./EditablePreviewCard";
@@ -1129,21 +1129,23 @@ export default memo(function EventRegistrationModal({
         onImageUpdate={handleImageUpdate}
         originalImageUrl={tempImageSrc}
       />
-      <VenueSelectModal
-        isOpen={showVenueSelectModal}
-        onClose={() => setShowVenueSelectModal(false)}
-        onSelect={handleVenueSelect}
-        onManualInput={(name: string, link: string) => {
-          console.log('🔘 Manual input submitted:', name, link);
-          setShowVenueSelectModal(false);
-          // Update state directly instead of opening another modal
-          setLocation(name);
-          setLocationLink(link);
-          setVenueId(null);
-          setVenueName("");
-          setVenueCustomLink("");
-        }}
-      />
+      <React.Suspense fallback={null}>
+        <VenueSelectModal
+          isOpen={showVenueSelectModal}
+          onClose={() => setShowVenueSelectModal(false)}
+          onSelect={handleVenueSelect}
+          onManualInput={(name: string, link: string) => {
+            console.log('🔘 Manual input submitted:', name, link);
+            setShowVenueSelectModal(false);
+            // Update state directly instead of opening another modal
+            setLocation(name);
+            setLocationLink(link);
+            setVenueId(null);
+            setVenueName("");
+            setVenueCustomLink("");
+          }}
+        />
+      </React.Suspense>
     </div >,
     document.body
   );

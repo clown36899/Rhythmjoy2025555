@@ -25,7 +25,7 @@ import { EventFavoritesView } from "./EventList/components/EventFavoritesView";
 import { MyEventsView } from "./EventList/components/MyEventsView";
 import { EventPreviewSection } from "./EventList/components/EventPreviewSection";
 import { EventHorizontalListView } from "./EventList/components/EventHorizontalListView";
-import VenueSelectModal from "./VenueSelectModal";
+const VenueSelectModal = React.lazy(() => import("./VenueSelectModal"));
 
 // Utils
 import {
@@ -494,16 +494,18 @@ const EventList: React.FC<EventListProps> = ({
       )}
 
 
-      <VenueSelectModal
-        isOpen={isVenueModalOpen}
-        onClose={() => setIsVenueModalOpen(false)}
-        onSelect={(venue: { name: string; link?: string }) => {
-          window.dispatchEvent(new CustomEvent('venue_selected', { detail: venue }));
-        }}
-        onManualInput={(name: string, link: string) => {
-          window.dispatchEvent(new CustomEvent('venue_manual_input', { detail: { name, link } }));
-        }}
-      />
+      <React.Suspense fallback={null}>
+        <VenueSelectModal
+          isOpen={isVenueModalOpen}
+          onClose={() => setIsVenueModalOpen(false)}
+          onSelect={(venue: { name: string; link?: string }) => {
+            window.dispatchEvent(new CustomEvent('venue_selected', { detail: venue }));
+          }}
+          onManualInput={(name: string, link: string) => {
+            window.dispatchEvent(new CustomEvent('venue_manual_input', { detail: { name, link } }));
+          }}
+        />
+      </React.Suspense>
     </div>
   );
 };

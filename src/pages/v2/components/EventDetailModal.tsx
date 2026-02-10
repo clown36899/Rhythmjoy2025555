@@ -9,7 +9,7 @@ import { logEvent, logPageView } from '../../../lib/analytics';
 import "../../../styles/domains/events.css";
 import "../../../styles/components/EventDetailModal.css";
 import { useAuth } from '../../../contexts/AuthContext';
-import VenueSelectModal from './VenueSelectModal';
+const VenueSelectModal = React.lazy(() => import('./VenueSelectModal'));
 import ImageCropModal from '../../../components/ImageCropModal';
 import { createResizedImages } from '../../../utils/imageResize';
 import DatePicker, { registerLocale } from "react-datepicker";
@@ -1952,12 +1952,14 @@ export default function EventDetailModal({
           )
         )}
       {/* Venue Select Modal */}
-      <VenueSelectModal
-        isOpen={showVenueSelect}
-        onClose={() => setShowVenueSelect(false)}
-        onSelect={handleVenueSelect}
-        onManualInput={handleManualVenueInput}
-      />
+      <React.Suspense fallback={null}>
+        <VenueSelectModal
+          isOpen={showVenueSelect}
+          onClose={() => setShowVenueSelect(false)}
+          onSelect={handleVenueSelect}
+          onManualInput={handleManualVenueInput}
+        />
+      </React.Suspense>
 
       {/* Bottom Sheets Portal (Optimized Component) */}
       <EventEditBottomSheet

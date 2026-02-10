@@ -4,7 +4,7 @@ import { resizeImage } from '../../../utils/imageResize';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useModal } from '../../../hooks/useModal';
 import { useModalHistory } from '../../../hooks/useModalHistory';
-import VenueSelectModal from '../../v2/components/VenueSelectModal';
+const VenueSelectModal = React.lazy(() => import('../../v2/components/VenueSelectModal'));
 import '../../../styles/domains/events.css';
 import '../../../styles/components/SocialEventModal.css';
 
@@ -309,11 +309,13 @@ export default function SocialEventModal({ onClose, onEventCreated, preselectedD
           )}
         </div>
       </div>
-      <VenueSelectModal
-        isOpen={venueSelectModal.isOpen}
-        onClose={venueSelectModal.close}
-        onSelect={handleVenueSelect}
-      />
+      <React.Suspense fallback={null}>
+        <VenueSelectModal
+          isOpen={venueSelectModal.isOpen}
+          onClose={venueSelectModal.close}
+          onSelect={handleVenueSelect}
+        />
+      </React.Suspense>
     </>
   );
 }

@@ -5,8 +5,8 @@ import EventList from "./components/EventList";
 // Lazy loading으로 성능 최적화 - 큰 모달 컴포넌트들
 const EventRegistrationModal = lazy(() => import("../../components/EventRegistrationModal"));
 
-import VenueDetailModal from "../practice/components/VenueDetailModal";
-import CalendarSearchModal from "./components/CalendarSearchModal";
+const VenueDetailModal = lazy(() => import("../practice/components/VenueDetailModal"));
+const CalendarSearchModal = lazy(() => import("./components/CalendarSearchModal"));
 
 import { useModalActions, useModalState } from "../../contexts/ModalContext";
 import { useUserInteractions } from "../../hooks/useUserInteractions";
@@ -329,16 +329,18 @@ export default function HomePageV2() {
                     </Suspense>
                 )}
 
-                {selectedVenueId && (
-                    <VenueDetailModal venueId={selectedVenueId} onClose={closeVenueModal} />
-                )}
+                <Suspense fallback={null}>
+                    {selectedVenueId && (
+                        <VenueDetailModal venueId={selectedVenueId} onClose={closeVenueModal} />
+                    )}
 
-                <CalendarSearchModal
-                    isOpen={showInputModal}
-                    onClose={() => setShowInputModal(false)}
-                    onSelectEvent={(event) => setSelectedEvent(event)}
-                    searchMode="all"
-                />
+                    <CalendarSearchModal
+                        isOpen={showInputModal}
+                        onClose={() => setShowInputModal(false)}
+                        onSelectEvent={(event) => setSelectedEvent(event)}
+                        searchMode="all"
+                    />
+                </Suspense>
             </div>
         </div>
     );

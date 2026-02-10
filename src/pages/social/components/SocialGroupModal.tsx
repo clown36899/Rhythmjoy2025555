@@ -5,7 +5,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { createResizedImages, isImageFile } from '../../../utils/imageResize';
 import ImageCropModal from '../../../components/ImageCropModal';
 import { useLoading } from '../../../contexts/LoadingContext';
-import VenueSelectModal from '../../v2/components/VenueSelectModal';
+const VenueSelectModal = React.lazy(() => import('../../v2/components/VenueSelectModal'));
 import './SocialGroupModal.css';
 
 interface SocialGroupModalProps {
@@ -562,15 +562,17 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
     return (
         <>
             {mainModal}
-            <VenueSelectModal
-                isOpen={showVenueModal}
-                onClose={() => setShowVenueModal(false)}
-                onSelect={handleVenueSelect}
-                onManualInput={(name, _link) => {
-                    setAddress(name); // Use name for address in manual input
-                    setShowVenueModal(false);
-                }}
-            />
+            <React.Suspense fallback={null}>
+                <VenueSelectModal
+                    isOpen={showVenueModal}
+                    onClose={() => setShowVenueModal(false)}
+                    onSelect={handleVenueSelect}
+                    onManualInput={(name, _link) => {
+                        setAddress(name); // Use name for address in manual input
+                        setShowVenueModal(false);
+                    }}
+                />
+            </React.Suspense>
             <ImageCropModal
                 isOpen={isCropModalOpen}
                 onClose={() => setIsCropModalOpen(false)}
