@@ -7,11 +7,143 @@
     box-sizing: border-box;
     overflow: hidden;
     position: relative;
-    /* 시스템 헤더(51px)와 하단바(약 90px)를 완벽히 피하기 위한 보수적 패딩 */
-    padding-top: calc(var(--header-height, 51px) + 20px + env(safe-area-inset-top));
+    /* 글로벌 헤더 높이만큼 띄우되, 내부 헤더가 사라졌으므로 여백 최소화 */
+    padding-top: calc(var(--header-height, 51px) + 5px + env(safe-area-inset-top));
     padding-bottom: calc(100px + env(safe-area-inset-bottom));
     padding-left: 20px;
     padding-right: 20px;
+}
+
+/* Global Header Support (Inline Title Button) */
+.header-events-content {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.header-metronome-info-btn-inline {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    background: var(--bg-surface-2);
+    border: 1px solid var(--border-glass);
+    color: var(--text-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-left: 2px;
+}
+
+.header-metronome-info-btn-inline:active {
+    transform: scale(0.9);
+}
+
+.header-metronome-info-btn-inline i {
+    font-size: 1rem;
+}
+
+/* Guide Modal System */
+.metronome-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: fadeIn 0.3s ease;
+}
+
+.metronome-info-modal {
+    width: 100%;
+    max-width: 340px;
+    background: var(--bg-surface-glass);
+    border: 1px solid var(--border-glass-strong);
+    border-radius: 32px;
+    overflow: hidden;
+    box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.5);
+    animation: modalSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-header {
+    padding: 24px 24px 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 950;
+    color: var(--text-primary);
+}
+
+.modal-close-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: none;
+    background: var(--bg-surface-3);
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.modal-body {
+    padding: 12px 24px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.info-item {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.info-item i {
+    font-size: 1.4rem;
+    color: var(--color-amber-500);
+    background: rgba(245, 158, 11, 0.1);
+    padding: 10px;
+    border-radius: 14px;
+}
+
+.info-item p {
+    margin: 0;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    color: var(--text-secondary);
+}
+
+.info-item p strong {
+    display: block;
+    color: var(--text-primary);
+    font-weight: 800;
+    margin-bottom: 2px;
+}
+
+@keyframes modalSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(40px) scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
 }
 
 .metronome-content {
@@ -36,105 +168,6 @@
 /* 스크롤바 숨김 */
 .metronome-content::-webkit-scrollbar {
     display: none;
-}
-
-.metronome-header {
-    text-align: left;
-    flex-shrink: 0;
-    padding-left: 5px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.metronome-header-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
-}
-
-.title-group {
-    display: flex;
-    flex-direction: column;
-}
-
-.metronome-title {
-    font-size: clamp(1.3rem, 4vh, 1.7rem);
-    font-weight: 900;
-    margin: 0;
-    color: var(--text-primary);
-    line-height: 1.1;
-    letter-spacing: -0.05em;
-}
-
-.metronome-subtitle {
-    font-size: 0.85rem;
-    color: var(--text-tertiary);
-    font-weight: 600;
-    margin-top: 2px;
-}
-
-.info-toggle-btn {
-    width: 38px;
-    height: 38px;
-    border-radius: 12px;
-    background: var(--bg-surface-glass);
-    border: 1px solid var(--border-glass);
-    color: var(--text-tertiary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.info-toggle-btn:active {
-    transform: scale(0.9);
-}
-
-.info-toggle-btn.is-active {
-    background: var(--color-amber-500);
-    color: white;
-    border-color: var(--color-amber-500);
-}
-
-.info-toggle-btn i {
-    font-size: 1.4rem;
-}
-
-.metronome-guide-badge {
-    background: var(--bg-surface-glass);
-    border: 1px solid var(--border-glass);
-    padding: 15px;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    color: var(--text-secondary);
-    display: flex;
-    gap: 12px;
-    align-items: flex-start;
-    animation: fadeIn 0.3s ease;
-    backdrop-filter: blur(10px);
-}
-
-.metronome-guide-badge i {
-    font-size: 1.2rem;
-    color: var(--color-amber-500);
-    margin-top: 2px;
-}
-
-.info-text p {
-    margin-bottom: 6px;
-    line-height: 1.5;
-}
-
-.info-text p:last-child {
-    margin-bottom: 0;
-}
-
-.info-text strong {
-    color: var(--color-amber-500);
-    font-weight: 800;
 }
 
 /* Visual Beating Area */

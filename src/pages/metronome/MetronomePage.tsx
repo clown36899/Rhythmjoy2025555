@@ -145,42 +145,42 @@ const MetronomePage: React.FC = () => {
         setBpm(parseInt(e.target.value));
     };
 
+    // Listen for Global Header Info Button
     useEffect(() => {
-        return () => {
-            if (timerIDRef.current) window.clearInterval(timerIDRef.current);
-            if (requestAnimationFrameRef.current) cancelAnimationFrame(requestAnimationFrameRef.current);
-        };
+        const handleOpenInfo = () => setShowInfo(true);
+        window.addEventListener('openMetronomeInfo', handleOpenInfo);
+        return () => window.removeEventListener('openMetronomeInfo', handleOpenInfo);
     }, []);
 
     return (
         <div className="metronome-container">
             <div className="metronome-content">
-                <header className="metronome-header">
-                    <div className="metronome-header-top">
-                        <div className="title-group">
-                            <h2 className="metronome-title">메트로놈</h2>
-                            <p className="metronome-subtitle">정교한 리듬 엔진</p>
-                        </div>
-                        <button
-                            className={`info-toggle-btn ${showInfo ? 'is-active' : ''}`}
-                            onClick={() => setShowInfo(!showInfo)}
-                            aria-label="도움말 토글"
-                        >
-                            <i className={showInfo ? 'ri-close-line' : 'ri-question-line'}></i>
-                        </button>
-                    </div>
-
-                    {showInfo && (
-                        <div className="metronome-guide-badge info-panel">
-                            <i className="ri-information-line"></i>
-                            <div className="info-text">
-                                <p><strong>박자:</strong> 마디 당 맥박 수를 조절합니다.</p>
-                                <p><strong>분할:</strong> 한 박자를 8분, 16분 음표로 쪼갭니다.</p>
-                                <p><strong>셔플:</strong> 분할 모드에서 '바운스' 감각을 더합니다.</p>
+                {showInfo && (
+                    <div className="metronome-modal-overlay" onClick={() => setShowInfo(false)}>
+                        <div className="metronome-info-modal" onClick={e => e.stopPropagation()}>
+                            <div className="modal-header">
+                                <h3>메트로놈 활용 가이드</h3>
+                                <button className="modal-close-btn" onClick={() => setShowInfo(false)}>
+                                    <i className="ri-close-line"></i>
+                                </button>
+                            </div>
+                            <div className="modal-body">
+                                <div className="info-item">
+                                    <i className="ri-pulse-line"></i>
+                                    <p><strong>박자:</strong> 마디 당 맥박 수를 조절하여 곡의 성격에 맞는 리듬을 설정합니다.</p>
+                                </div>
+                                <div className="info-item">
+                                    <i className="ri-scissors-2-line"></i>
+                                    <p><strong>분할:</strong> 한 박자를 8분, 16분 음표로 쪼개어 더 정밀한 연습을 돕습니다.</p>
+                                </div>
+                                <div className="info-item">
+                                    <i className="ri-magic-line"></i>
+                                    <p><strong>셔플:</strong> 분할 모드에서 '바운스' 감각을 더해 스윙감을 익힐 수 있습니다.</p>
+                                </div>
                             </div>
                         </div>
-                    )}
-                </header>
+                    </div>
+                )}
 
                 <div className="metronome-display-area">
                     {/* Visual Indicators */}

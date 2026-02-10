@@ -17,7 +17,7 @@ import NotificationSettingsModal from '../components/NotificationSettingsModal';
 import { ThemeToggle } from '../components/ThemeToggle';
 import { useLoading } from '../contexts/LoadingContext';
 import '../styles/components/MobileShell.css';
-import { NoticeTicker } from '../components/NoticeTicker';
+import { NoticeTicker } from '../components/NoticeTicker.tsx';
 
 interface MobileShellProps {
   isAdmin?: boolean;
@@ -362,20 +362,32 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                     </div>
                   ) : (
                     /* Other Pages: Simple Title Text */
-                    <h1 className="header-title-simple">
-                      {(() => {
-                        if (isSocialPage) return '소셜';
-                        if (currentPath === '/forum') return '포럼';
-                        if (isBoardPage) return '게시판';
-                        if (currentPath === '/bpm-tapper') return 'BPM 측정기';
-                        if (isPracticePage) return '연습실';
-                        if (isShoppingPage) return '쇼핑';
-                        if (isGuidePage) return '안내';
-                        if (isArchivePage) return '자료실';
-                        if (isMyActivitiesPage) return '내 활동';
-                        return '댄스빌보드';
-                      })()}
-                    </h1>
+                    <>
+                      <h1 className="header-title-simple">
+                        {(() => {
+                          if (isSocialPage) return '소셜';
+                          if (currentPath === '/forum') return '포럼';
+                          if (isBoardPage) return '게시판';
+                          if (currentPath === '/bpm-tapper') return 'BPM 측정기';
+                          if (currentPath === '/metronome') return '메트로놈';
+                          if (isPracticePage) return '연습실';
+                          if (isShoppingPage) return '쇼핑';
+                          if (isGuidePage) return '안내';
+                          if (isArchivePage) return '자료실';
+                          if (isMyActivitiesPage) return '내 활동';
+                          return '댄스빌보드';
+                        })()}
+                      </h1>
+                      {currentPath === '/metronome' && (
+                        <button
+                          className="header-metronome-info-btn-inline"
+                          onClick={() => window.dispatchEvent(new CustomEvent('openMetronomeInfo'))}
+                          title="메트로놈 활용 가이드"
+                        >
+                          <i className="ri-question-line"></i>
+                        </button>
+                      )}
+                    </>
                   )}
 
                   {/* 이벤트·활동 페이지에 adminStats 표시 (Optional: Keep specifically for events page or strictly follow logic) */}
