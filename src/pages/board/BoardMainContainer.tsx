@@ -292,18 +292,22 @@ export default function BoardMainContainer() {
             className={`board-page-container ${category === 'history' ? 'is-history-mode' : ''}`}
             data-theme={category === 'history' ? 'dark' : undefined}
         >
-            <BoardTabBar
-                activeCategory={category}
-                onCategoryChange={handleCategoryChange}
-            />
-
-            {prefixes.length > 0 && (
-                <BoardPrefixTabBar
-                    prefixes={prefixes}
-                    selectedPrefixId={selectedPrefixId}
-                    onPrefixChange={setSelectedPrefixId}
+            {category !== 'history' && (
+                <BoardTabBar
+                    activeCategory={category}
+                    onCategoryChange={handleCategoryChange}
                 />
             )}
+
+            {
+                prefixes.length > 0 && (
+                    <BoardPrefixTabBar
+                        prefixes={prefixes}
+                        selectedPrefixId={selectedPrefixId}
+                        onPrefixChange={setSelectedPrefixId}
+                    />
+                )
+            }
 
             <div
                 className={`board-posts-container ${category === 'history' ? 'is-history' : ''} ${['free', 'notice', 'market', 'trade', 'anonymous'].includes(category || '') ? 'is-standard-board-v2' : ''} ${category === 'anonymous' ? 'is-anonymous-board' : ''}`}
@@ -311,7 +315,7 @@ export default function BoardMainContainer() {
                 onTouchMove={onTouchMove}
                 onTouchEnd={onTouchEnd}
                 style={{
-                    paddingTop: prefixes.length > 0 ? '96px' : '48px',
+                    paddingTop: category === 'history' ? (prefixes.length > 0 ? '56px' : '10px') : (prefixes.length > 0 ? '96px' : '48px'),
                     display: category === 'history' ? 'flex' : 'block',
                     flexDirection: 'column',
                     flex: 1
@@ -441,30 +445,34 @@ export default function BoardMainContainer() {
                 />
             </Suspense>
 
-            {isManagementOpen && (
-                <Suspense fallback={null}>
-                    <BoardManagementModal
-                        isOpen={isManagementOpen}
-                        onClose={() => setIsManagementOpen(false)}
-                        onUpdate={() => {
-                            refreshData(); // Refresh context data
-                            window.dispatchEvent(new Event('refreshBoardCategories'));
-                        }}
-                    />
-                </Suspense>
-            )}
+            {
+                isManagementOpen && (
+                    <Suspense fallback={null}>
+                        <BoardManagementModal
+                            isOpen={isManagementOpen}
+                            onClose={() => setIsManagementOpen(false)}
+                            onUpdate={() => {
+                                refreshData(); // Refresh context data
+                                window.dispatchEvent(new Event('refreshBoardCategories'));
+                            }}
+                        />
+                    </Suspense>
+                )
+            }
 
 
             {/* Board Detail Modal */}
-            {selectedPostId && (
-                <Suspense fallback={null}>
-                    <BoardDetailModal
-                        postId={selectedPostId}
-                        isOpen={true}
-                        onClose={handleCloseModal}
-                    />
-                </Suspense>
-            )}
-        </div>
+            {
+                selectedPostId && (
+                    <Suspense fallback={null}>
+                        <BoardDetailModal
+                            postId={selectedPostId}
+                            isOpen={true}
+                            onClose={handleCloseModal}
+                        />
+                    </Suspense>
+                )
+            }
+        </div >
     );
 }

@@ -1,0 +1,345 @@
+.metronome-container {
+    width: 100%;
+    height: 100svh;
+    background: var(--bg-base);
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    overflow: hidden;
+    position: relative;
+    /* 시스템 헤더(51px)와 하단바(약 90px)를 완벽히 피하기 위한 보수적 패딩 */
+    padding-top: calc(var(--header-height, 51px) + 20px + env(safe-area-inset-top));
+    padding-bottom: calc(100px + env(safe-area-inset-bottom));
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+.metronome-content {
+    width: 100%;
+    max-width: 450px;
+    height: 100%;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    /* 상단부터 차례로 배치하여 스크롤 유도 */
+    gap: 2.5vh;
+    /* 가용 공간에 따른 유동적 간격 */
+    min-height: 0;
+    padding: 10px 0;
+    box-sizing: border-box;
+    overflow-y: auto;
+    /* 내용이 많아지면 내부 스크롤 허용 */
+    -webkit-overflow-scrolling: touch;
+}
+
+/* 스크롤바 숨김 */
+.metronome-content::-webkit-scrollbar {
+    display: none;
+}
+
+.metronome-header {
+    text-align: left;
+    flex-shrink: 0;
+    padding-left: 5px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.metronome-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+}
+
+.title-group {
+    display: flex;
+    flex-direction: column;
+}
+
+.metronome-title {
+    font-size: clamp(1.3rem, 4vh, 1.7rem);
+    font-weight: 900;
+    margin: 0;
+    color: var(--text-primary);
+    line-height: 1.1;
+    letter-spacing: -0.05em;
+}
+
+.metronome-subtitle {
+    font-size: 0.85rem;
+    color: var(--text-tertiary);
+    font-weight: 600;
+    margin-top: 2px;
+}
+
+.info-toggle-btn {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    background: var(--bg-surface-glass);
+    border: 1px solid var(--border-glass);
+    color: var(--text-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.info-toggle-btn:active {
+    transform: scale(0.9);
+}
+
+.info-toggle-btn.is-active {
+    background: var(--color-amber-500);
+    color: white;
+    border-color: var(--color-amber-500);
+}
+
+.info-toggle-btn i {
+    font-size: 1.4rem;
+}
+
+.metronome-guide-badge {
+    background: var(--bg-surface-glass);
+    border: 1px solid var(--border-glass);
+    padding: 15px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+    animation: fadeIn 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+.metronome-guide-badge i {
+    font-size: 1.2rem;
+    color: var(--color-amber-500);
+    margin-top: 2px;
+}
+
+.info-text p {
+    margin-bottom: 6px;
+    line-height: 1.5;
+}
+
+.info-text p:last-child {
+    margin-bottom: 0;
+}
+
+.info-text strong {
+    color: var(--color-amber-500);
+    font-weight: 800;
+}
+
+/* Visual Beating Area */
+.metronome-display-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2vh;
+    flex-shrink: 0;
+    width: 100%;
+}
+
+.metronome-visualizer {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    padding: 1vh 0;
+}
+
+.beat-indicator {
+    width: clamp(10px, 2.2vh, 16px);
+    height: clamp(10px, 2.2vh, 16px);
+    border-radius: 50%;
+    background: var(--bg-surface-3);
+    transition: all 0.1s ease;
+    opacity: 0.2;
+}
+
+.beat-indicator.is-active {
+    opacity: 1;
+    transform: scale(1.3);
+    background: var(--color-amber-500);
+}
+
+/* Control Card */
+.tempo-control-card {
+    width: 100%;
+    background: var(--bg-surface-glass);
+    border: 1px solid var(--border-glass);
+    border-radius: 28px;
+    padding: clamp(15px, 2.5vh, 25px) 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: clamp(15px, 2.5vh, 25px);
+    backdrop-filter: blur(24px);
+    flex-shrink: 0;
+    box-sizing: border-box;
+}
+
+.tempo-value-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.tempo-number {
+    font-size: clamp(3rem, 10vh, 4.2rem);
+    font-weight: 950;
+    color: var(--text-primary);
+    line-height: 0.85;
+    font-variant-numeric: tabular-nums;
+}
+
+.tempo-label {
+    font-size: clamp(0.8rem, 1.8vh, 1rem);
+    font-weight: 800;
+    color: var(--color-amber-500);
+    margin-top: 5px;
+}
+
+.tempo-slider {
+    width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 6px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.1);
+    outline: none;
+}
+
+.tempo-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--text-primary);
+    border: 4px solid var(--color-amber-500);
+}
+
+/* Settings Grid */
+.rhythm-settings {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.setting-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.setting-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-tertiary);
+}
+
+.setting-select {
+    background: var(--bg-surface-2);
+    border: 1px solid var(--border-glass-strong);
+    color: var(--text-primary);
+    padding: 10px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    appearance: none;
+}
+
+/* Swing/Shuffle */
+.swing-control {
+    width: 100%;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-glass-subtle);
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    animation: fadeIn 0.3s ease;
+}
+
+.swing-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.swing-value {
+    font-size: 0.9rem;
+    font-weight: 950;
+    color: var(--color-purple-500);
+}
+
+.swing-desc {
+    display: none;
+    /* 상단 도움말 패널로 통합하여 제거 */
+}
+
+/* Footer Play Button Area */
+.metronome-footer {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 2vh 0;
+    flex-shrink: 0;
+    margin-top: auto;
+    /* 가능한 아래쪽으로 배치 */
+}
+
+.play-btn {
+    width: clamp(70px, 11vh, 85px);
+    height: clamp(70px, 11vh, 85px);
+    border-radius: 50%;
+    background: var(--color-amber-500);
+    border: none;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 10px 25px -5px rgba(245, 158, 11, 0.4);
+}
+
+.play-btn:active {
+    transform: scale(0.92);
+}
+
+.play-btn.is-playing {
+    background: var(--color-red-500);
+}
+
+.play-btn i {
+    font-size: clamp(2rem, 4.5vh, 2.8rem);
+}
+
+/* Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+[data-theme='dark'] .metronome-container {
+    background: #0f172a;
+}

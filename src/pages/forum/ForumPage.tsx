@@ -29,6 +29,14 @@ const ForumPage: React.FC = () => {
             icon: 'ri-pulse-fill',
             path: '/bpm-tapper',
             color: '#ec4899'
+        },
+        {
+            id: 'metronome',
+            title: '메트로놈',
+            description: '고정밀 리듬 연주',
+            icon: 'ri-timer-flash-fill',
+            path: '/metronome',
+            color: '#f59e0b'
         }
     ];
 
@@ -40,24 +48,18 @@ const ForumPage: React.FC = () => {
                     <p className="forum-hub-subtitle">원하는 서비스로 바로 연결됩니다</p>
                 </header>
 
-                <div className="forum-bento-grid">
+                <div className="forum-grid">
                     {menuItems.map((item) => (
                         <button
                             key={item.id}
-                            className={`forum-bento-card forum-bento-card--${item.id}`}
+                            className={`forum-icon-item forum-icon-item--${item.id}`}
                             onClick={() => navigate(item.path)}
+                            style={{ '--brand-color': item.color } as React.CSSProperties}
                         >
-                            <div className="bento-card-bg" style={{ '--card-color': item.color } as React.CSSProperties}></div>
-                            <div className="bento-card-content">
-                                <div className="bento-icon-wrapper">
-                                    <i className={`${item.icon} bento-icon`}></i>
-                                </div>
-                                <div className="bento-text-wrapper">
-                                    <h3 className="bento-title">{item.title}</h3>
-                                    <p className="bento-desc">{item.description}</p>
-                                </div>
+                            <div className="forum-icon-box">
+                                <i className={`${item.icon} forum-icon-glyph`}></i>
                             </div>
-                            <div className="bento-card-shine"></div>
+                            <span className="forum-icon-label">{item.title}</span>
                         </button>
                     ))}
                 </div>

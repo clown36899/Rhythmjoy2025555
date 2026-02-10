@@ -21,7 +21,7 @@ html {
 .calendar-tab-menu {
     position: fixed;
     top: auto;
-    bottom: calc(88px + env(safe-area-inset-bottom));
+    bottom: calc(70px + env(safe-area-inset-bottom));
     /* 안개 효과 위로 충분히 올림 */
     left: 50%;
     transform: translateX(-50%);

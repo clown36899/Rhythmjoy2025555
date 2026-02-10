@@ -5,31 +5,32 @@
     padding-left: 20px;
     padding-right: 20px;
     padding-bottom: calc(100px + env(safe-area-inset-bottom));
-    background: var(--bg-primary, #0f172a);
-    /* Dark base for premium feel */
+    background: var(--bg-base);
+    /* Respects global theme */
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
     overflow: hidden;
     position: relative;
+    transition: background-color 0.3s ease;
 }
 
-/* Background Atmosphere */
+/* Background Atmosphere (Aurora Effect) */
 .forum-hub-container::before {
     content: '';
     position: absolute;
     top: -10%;
     right: -10%;
-    width: 60%;
-    height: 60%;
-    background: radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, rgba(168, 85, 247, 0) 70%);
+    width: 70%;
+    height: 70%;
+    background: radial-gradient(circle, rgba(168, 85, 247, 0.12) 0%, rgba(168, 85, 247, 0) 70%);
     filter: blur(80px);
     z-index: 0;
 }
 
 .forum-hub-content {
     width: 100%;
-    max-width: 600px;
+    max-width: 500px;
     margin: 0 auto;
     height: 100%;
     display: flex;
@@ -39,211 +40,153 @@
 }
 
 .forum-hub-header {
-    margin-bottom: 24px;
-    animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    text-align: left;
+    margin-bottom: 30px;
+    padding-left: 10px;
+    animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .forum-hub-title {
     font-size: 1.8rem;
     font-weight: 850;
-    color: white;
+    color: var(--text-primary);
+    margin-bottom: 4px;
     letter-spacing: -0.04em;
-    margin-bottom: 2px;
+    transition: color 0.3s ease;
 }
 
 .forum-hub-subtitle {
     font-size: 0.95rem;
-    color: rgba(255, 255, 255, 0.5);
+    color: var(--text-tertiary);
+    /* Adjusted for theme */
     font-weight: 500;
 }
 
-/* Bento Grid Layout */
-.forum-bento-grid {
+/* iPhone Style Icons Grid */
+.forum-grid {
     display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    grid-template-rows: repeat(2, 1fr);
-    gap: 16px;
-    flex: 1;
-    min-height: 0;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px 12px;
+    padding: 10px;
+    justify-items: center;
+    align-content: flex-start;
 }
 
-.forum-bento-card {
-    position: relative;
-    border: none;
-    border-radius: 24px;
-    overflow: hidden;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    backdrop-filter: blur(10px);
+@media (max-width: 320px) {
+    .forum-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.forum-icon-item {
     display: flex;
     flex-direction: column;
-    padding: 24px;
-    text-align: left;
-    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    align-items: center;
+    gap: 10px;
+    background: none;
+    border: none;
+    padding: 0;
     cursor: pointer;
+    width: 100%;
+    max-width: 80px;
+    transition: transform 0.2s cubic-bezier(0.33, 1, 0.68, 1);
     appearance: none;
     -webkit-tap-highlight-color: transparent;
 }
 
-/* Specific Bento Areas */
-.forum-bento-card--board {
-    grid-row: span 2;
-    /* Vertical long card */
-    background: linear-gradient(180deg, rgba(168, 85, 247, 0.1) 0%, rgba(168, 85, 247, 0.02) 100%);
+.forum-icon-item:active {
+    transform: scale(0.92);
 }
 
-.forum-bento-card--library {
-    background: linear-gradient(180deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.02) 100%);
-}
-
-.forum-bento-card--bpm-tapper {
-    background: linear-gradient(180deg, rgba(236, 72, 153, 0.1) 0%, rgba(236, 72, 153, 0.02) 100%);
-}
-
-.bento-card-bg {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: radial-gradient(circle at 100% 0%, var(--card-color), transparent 60%);
-    opacity: 0.1;
-    z-index: 0;
-    transition: opacity 0.4s ease;
-}
-
-.forum-bento-card:hover .bento-card-bg {
-    opacity: 0.25;
-}
-
-.forum-bento-card:active {
-    transform: scale(0.97);
-}
-
-.bento-card-content {
+.forum-icon-box {
     position: relative;
-    z-index: 2;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-}
-
-.bento-icon-wrapper {
-    width: 48px;
-    height: 48px;
-    border-radius: 14px;
-    background: rgba(255, 255, 255, 0.05);
+    width: 62px;
+    height: 62px;
+    border-radius: 18px;
+    /* High-end rounded corner */
     display: flex;
     align-items: center;
     justify-content: center;
-    margin-bottom: auto;
-    /* Push icons to top */
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    overflow: hidden;
+    box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.1);
+    background: var(--bg-secondary, #f3f4f6);
+    transition: all 0.3s ease;
 }
 
-.bento-icon {
-    font-size: 24px;
-    color: white;
+/* Premium Icon Color Variation (Using styles from Bento UI preference) */
+.forum-icon-item--board .forum-icon-box {
+    background: linear-gradient(135deg, #a855f7, #7e22ce);
+    box-shadow: 0 8px 20px -6px rgba(168, 85, 247, 0.4);
 }
 
-/* Color variations for icons */
-.forum-bento-card--board .bento-icon {
-    color: #c084fc;
+.forum-icon-item--library .forum-icon-box {
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    box-shadow: 0 8px 20px -6px rgba(59, 130, 246, 0.4);
 }
 
-.forum-bento-card--library .bento-icon {
-    color: #60a5fa;
+.forum-icon-item--bpm-tapper .forum-icon-box {
+    background: linear-gradient(135deg, #ec4899, #be185d);
+    box-shadow: 0 8px 20px -6px rgba(236, 72, 153, 0.4);
 }
 
-.forum-bento-card--bpm-tapper .bento-icon {
-    color: #f472b6;
-}
-
-.bento-text-wrapper {
-    margin-top: 20px;
-}
-
-.bento-title {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: white;
-    margin-bottom: 6px;
-}
-
-.bento-desc {
-    font-size: 0.85rem;
-    color: rgba(255, 255, 255, 0.4);
-    line-height: 1.4;
-    font-weight: 400;
-}
-
-/* Interactions */
-.bento-card-shine {
+/* Glass shine on icons */
+.forum-icon-box::after {
+    content: '';
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
-    height: 100%;
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 50%);
-    z-index: 1;
-    opacity: 0.5;
+    height: 50%;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.18) 0%, rgba(255, 255, 255, 0) 100%);
+    pointer-events: none;
 }
 
-@keyframes slideUp {
+.forum-icon-glyph {
+    font-size: 30px;
+    color: white;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+}
+
+.forum-icon-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+    letter-spacing: -0.02em;
+    transition: color 0.3s ease;
+}
+
+/* Specific Theme Overrides for Premium Feel */
+[data-theme='dark'] .forum-hub-container {
+    background: #0f172a;
+    /* Keep the premium deep navy specifically for dark mode */
+}
+
+[data-theme='dark'] .forum-hub-container::before {
+    background: radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, rgba(168, 85, 247, 0) 70%);
+}
+
+[data-theme='light'] .forum-hub-container::before {
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, rgba(59, 130, 246, 0) 70%);
+}
+
+.forum-icon-box {
+    border: 1px solid var(--border-glass);
+    background: var(--bg-surface-glass);
+}
+
+@keyframes fadeIn {
     from {
         opacity: 0;
-        transform: translateY(20px);
+        transform: translateY(10px);
     }
 
     to {
         opacity: 1;
         transform: translateY(0);
-    }
-}
-
-/* Light Mode Adaptations */
-[data-theme='light'] .forum-hub-container {
-    background: #f8fafc;
-}
-
-[data-theme='light'] .forum-hub-title {
-    color: #1e293b;
-}
-
-[data-theme='light'] .forum-hub-subtitle {
-    color: #64748b;
-}
-
-[data-theme='light'] .forum-bento-card {
-    background: white;
-    border-color: #e2e8f0;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-}
-
-[data-theme='light'] .bento-title {
-    color: #1e293b;
-}
-
-[data-theme='light'] .bento-desc {
-    color: #64748b;
-}
-
-[data-theme='light'] .bento-icon-wrapper {
-    background: #f1f5f9;
-    border-color: #e2e8f0;
-}
-
-/* Responsive adjustments */
-@media (max-width: 400px) {
-    .forum-bento-grid {
-        gap: 12px;
-    }
-
-    .forum-bento-card {
-        padding: 16px;
-    }
-
-    .bento-title {
-        font-size: 1.1rem;
     }
 }
