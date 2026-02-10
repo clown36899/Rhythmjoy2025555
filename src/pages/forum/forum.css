@@ -1,0 +1,249 @@
+.forum-hub-container {
+    width: 100%;
+    height: 100svh;
+    padding-top: calc(70px + env(safe-area-inset-top));
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-bottom: calc(100px + env(safe-area-inset-bottom));
+    background: var(--bg-primary, #0f172a);
+    /* Dark base for premium feel */
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Background Atmosphere */
+.forum-hub-container::before {
+    content: '';
+    position: absolute;
+    top: -10%;
+    right: -10%;
+    width: 60%;
+    height: 60%;
+    background: radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, rgba(168, 85, 247, 0) 70%);
+    filter: blur(80px);
+    z-index: 0;
+}
+
+.forum-hub-content {
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    z-index: 1;
+}
+
+.forum-hub-header {
+    margin-bottom: 24px;
+    animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.forum-hub-title {
+    font-size: 1.8rem;
+    font-weight: 850;
+    color: white;
+    letter-spacing: -0.04em;
+    margin-bottom: 2px;
+}
+
+.forum-hub-subtitle {
+    font-size: 0.95rem;
+    color: rgba(255, 255, 255, 0.5);
+    font-weight: 500;
+}
+
+/* Bento Grid Layout */
+.forum-bento-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 16px;
+    flex: 1;
+    min-height: 0;
+}
+
+.forum-bento-card {
+    position: relative;
+    border: none;
+    border-radius: 24px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(10px);
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+    text-align: left;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    cursor: pointer;
+    appearance: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Specific Bento Areas */
+.forum-bento-card--board {
+    grid-row: span 2;
+    /* Vertical long card */
+    background: linear-gradient(180deg, rgba(168, 85, 247, 0.1) 0%, rgba(168, 85, 247, 0.02) 100%);
+}
+
+.forum-bento-card--library {
+    background: linear-gradient(180deg, rgba(59, 130, 246, 0.1) 0%, rgba(59, 130, 246, 0.02) 100%);
+}
+
+.forum-bento-card--bpm-tapper {
+    background: linear-gradient(180deg, rgba(236, 72, 153, 0.1) 0%, rgba(236, 72, 153, 0.02) 100%);
+}
+
+.bento-card-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: radial-gradient(circle at 100% 0%, var(--card-color), transparent 60%);
+    opacity: 0.1;
+    z-index: 0;
+    transition: opacity 0.4s ease;
+}
+
+.forum-bento-card:hover .bento-card-bg {
+    opacity: 0.25;
+}
+
+.forum-bento-card:active {
+    transform: scale(0.97);
+}
+
+.bento-card-content {
+    position: relative;
+    z-index: 2;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.bento-icon-wrapper {
+    width: 48px;
+    height: 48px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: auto;
+    /* Push icons to top */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.bento-icon {
+    font-size: 24px;
+    color: white;
+}
+
+/* Color variations for icons */
+.forum-bento-card--board .bento-icon {
+    color: #c084fc;
+}
+
+.forum-bento-card--library .bento-icon {
+    color: #60a5fa;
+}
+
+.forum-bento-card--bpm-tapper .bento-icon {
+    color: #f472b6;
+}
+
+.bento-text-wrapper {
+    margin-top: 20px;
+}
+
+.bento-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 6px;
+}
+
+.bento-desc {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.4);
+    line-height: 1.4;
+    font-weight: 400;
+}
+
+/* Interactions */
+.bento-card-shine {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 50%);
+    z-index: 1;
+    opacity: 0.5;
+}
+
+@keyframes slideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Light Mode Adaptations */
+[data-theme='light'] .forum-hub-container {
+    background: #f8fafc;
+}
+
+[data-theme='light'] .forum-hub-title {
+    color: #1e293b;
+}
+
+[data-theme='light'] .forum-hub-subtitle {
+    color: #64748b;
+}
+
+[data-theme='light'] .forum-bento-card {
+    background: white;
+    border-color: #e2e8f0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+[data-theme='light'] .bento-title {
+    color: #1e293b;
+}
+
+[data-theme='light'] .bento-desc {
+    color: #64748b;
+}
+
+[data-theme='light'] .bento-icon-wrapper {
+    background: #f1f5f9;
+    border-color: #e2e8f0;
+}
+
+/* Responsive adjustments */
+@media (max-width: 400px) {
+    .forum-bento-grid {
+        gap: 12px;
+    }
+
+    .forum-bento-card {
+        padding: 16px;
+    }
+
+    .bento-title {
+        font-size: 1.1rem;
+    }
+}

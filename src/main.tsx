@@ -59,6 +59,8 @@ const SiteMapPage = lazy(() => import('./pages/sitemap/SiteMapPage'));
 const MainV2TestPage = lazy(() => import('./pages/test/MainV2TestPage'));
 const SurveyTestPage = lazy(() => import('./pages/test/SurveyTestPage'));
 const AdminPushTestPage = lazy(() => import('./components/admin/AdminPushTest').then(m => ({ default: m.AdminPushTest })));
+const ForumPage = lazy(() => import('./pages/forum/ForumPage'));
+const BpmTapperPage = lazy(() => import('./pages/bpm-tapper/BpmTapperPage'));
 
 const BillboardFallback = () => (
   <div className="full-screen-fallback">
@@ -154,6 +156,8 @@ const router = createBrowserRouter([
       { path: "/guide", element: <GuidePage /> },
       { path: "/privacy", element: <PrivacyPage /> },
       { path: "/board/*", element: <BoardPage /> },
+      { path: "/forum", element: <ForumPage /> },
+      { path: "/bpm-tapper", element: <BpmTapperPage /> },
       { path: "/my-activities", element: <MyActivitiesPage /> },
       { path: "/auth/kakao-callback", element: <KakaoCallbackPage /> },
       { path: "/map", element: <SiteMapPage /> },

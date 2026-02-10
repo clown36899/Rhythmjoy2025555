@@ -365,7 +365,9 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                     <h1 className="header-title-simple">
                       {(() => {
                         if (isSocialPage) return '소셜';
-                        if (isBoardPage) return '포럼';
+                        if (currentPath === '/forum') return '포럼';
+                        if (isBoardPage) return '게시판';
+                        if (currentPath === '/bpm-tapper') return 'BPM 측정기';
                         if (isPracticePage) return '연습실';
                         if (isShoppingPage) return '쇼핑';
                         if (isGuidePage) return '안내';

@@ -30,7 +30,7 @@ export const NAVIGATION_ITEMS: NavigationItem[] = [
     {
         label: '포럼',
         labelEn: 'Forum',
-        path: '/board',
+        path: '/forum',
         icon: 'ri-chat-3-line',
         iconFilled: 'ri-chat-3-fill',
         activeColor: 'text-purple-500',
