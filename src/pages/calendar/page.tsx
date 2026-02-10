@@ -122,70 +122,70 @@ export default function CalendarPage() {
         // For now, syncing from useAuth is safest.
     }, [authIsAdmin]);
 
-    // 스크롤 로직을 분리하여 재사용
     const handleScrollToToday = useCallback(() => {
-        console.log('[CalendarPage] handleScrollToToday started. currentMonth:', currentMonth);
+        console.log('🚀 [CalendarPage] handleScrollToToday START. currentMonth:', currentMonth.toLocaleDateString());
+
         // 1. 활성 슬라이드 내의 오늘 날짜 요소 찾기
         const selector = '.calendar-month-slide[data-active-month="true"] .calendar-date-number-today';
-        console.log(`[CalendarPage] Searching for selector: ${selector}`);
         const todayEl = document.querySelector(selector) as HTMLElement;
-        console.log(`[CalendarPage] todayEl found?`, !!todayEl);
+
+        console.log(`🔎 [CalendarPage] Finding element "${selector}":`, todayEl ? 'FOUND ✅' : 'NOT FOUND ❌');
 
         if (!todayEl) {
-            console.log('[CalendarPage] todayEl not found with strict selector.');
-            // Fallback logging for debug: does it exist at all?
-            const fallbackEl = document.querySelector('.calendar-date-number-today');
-            console.log('[CalendarPage] Does ANY .calendar-date-number-today exist?', !!fallbackEl);
-            if (fallbackEl) console.log('[CalendarPage] Its parent class:', fallbackEl.parentElement?.className, 'Grandparent:', fallbackEl.parentElement?.parentElement?.className);
+            // 혹시 활성 슬라이드 속성이 아직 안 붙었을 수도 있으니 전체에서 검색
+            const fallbackEl = document.querySelector('.calendar-date-number-today') as HTMLElement;
+            console.log(`🔎 [CalendarPage] Fallback search (.calendar-date-number-today):`, fallbackEl ? 'FOUND ⚠️' : 'NOT FOUND ❌');
+
+            if (fallbackEl) {
+                console.log('   -> Parent classes:', fallbackEl.closest('.calendar-month-slide')?.className);
+            }
+            return false;
         }
 
-        if (todayEl) {
-            // 2. 스크롤 가능한 부모 찾기 (없으면 Window)
-            let scrollParent: HTMLElement | Window | null = todayEl.parentElement;
-            while (scrollParent instanceof HTMLElement) {
-                const style = window.getComputedStyle(scrollParent);
-                if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
-                    break;
-                }
-                if (scrollParent.tagName === 'BODY' || scrollParent.tagName === 'HTML') {
-                    scrollParent = window;
-                    break;
-                }
-                scrollParent = scrollParent.parentElement;
+        // 2. 스크롤 가능한 부모 찾기 (없으면 Window)
+        let scrollParent: HTMLElement | Window | null = todayEl.parentElement;
+        while (scrollParent instanceof HTMLElement) {
+            const style = window.getComputedStyle(scrollParent);
+            if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
+                break;
             }
-
-            if (!scrollParent) scrollParent = window;
-
-            const isWindow = scrollParent === window || scrollParent === document.body || scrollParent === document.documentElement;
-
-            // 3. 헤더 높이 계산 (Sticky Header Offset)
-            const headerEl = document.querySelector('.calendar-page-weekday-header') as HTMLElement;
-            const headerHeight = headerEl ? headerEl.offsetHeight : 0;
-            const stickyHeaderOffset = headerHeight + 100; // 헤더 + 탭 메뉴 등 여유 공간 (가림 방지)
-
-            // 4. 위치 계산 및 스크롤 실행
-            console.log('[CalendarPage] Found scroll parent:', isWindow ? 'Window' : (scrollParent as HTMLElement).className);
-            if (isWindow) {
-                const rect = todayEl.getBoundingClientRect();
-                const elementPosition = rect.top + window.pageYOffset;
-                const offsetPosition = elementPosition - stickyHeaderOffset;
-
-                console.log('[CalendarPage] Scrolling Window to:', offsetPosition);
-                window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
-            } else {
-                const parentEl = scrollParent as HTMLElement;
-                const childRect = todayEl.getBoundingClientRect();
-                const parentRect = parentEl.getBoundingClientRect();
-                const currentScroll = parentEl.scrollTop;
-                const relativeTop = childRect.top - parentRect.top;
-                const targetScroll = currentScroll + relativeTop - stickyHeaderOffset;
-
-                console.log('[CalendarPage] Scrolling Parent to:', targetScroll);
-                parentEl.scrollTo({ top: targetScroll, behavior: 'smooth' });
+            if (scrollParent.tagName === 'BODY' || scrollParent.tagName === 'HTML') {
+                scrollParent = window;
+                break;
             }
-            return true; // 성공
+            scrollParent = scrollParent.parentElement;
         }
-        return false; // 실패
+
+        if (!scrollParent) scrollParent = window;
+        const isWindow = scrollParent === window || scrollParent === document.body || scrollParent === document.documentElement;
+
+        console.log(`📜 [CalendarPage] Scroll container:`, isWindow ? 'WINDOW' : (scrollParent as HTMLElement).className);
+
+        // 3. 헤더 높이 계산 (Sticky Header Offset)
+        const headerEl = document.querySelector('.calendar-page-weekday-header') as HTMLElement;
+        const headerHeight = headerEl ? headerEl.offsetHeight : 0;
+        const stickyHeaderOffset = headerHeight + 100; // 헤더 + 여유 공간
+
+        // 4. 위치 계산 및 스크롤 실행
+        if (isWindow) {
+            const rect = todayEl.getBoundingClientRect();
+            const elementPosition = rect.top + window.pageYOffset;
+            const offsetPosition = elementPosition - stickyHeaderOffset;
+
+            console.log(`📍 [CalendarPage] Scrolling Window to ${Math.round(offsetPosition)} (rect.top: ${Math.round(rect.top)}, offset: ${stickyHeaderOffset})`);
+            window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+        } else {
+            const parentEl = scrollParent as HTMLElement;
+            const childRect = todayEl.getBoundingClientRect();
+            const parentRect = parentEl.getBoundingClientRect();
+            const currentScroll = parentEl.scrollTop;
+            const relativeTop = childRect.top - parentRect.top;
+            const targetScroll = currentScroll + relativeTop - stickyHeaderOffset;
+
+            console.log(`📍 [CalendarPage] Scrolling Element to ${Math.round(targetScroll)} (current: ${Math.round(currentScroll)}, relative: ${Math.round(relativeTop)})`);
+            parentEl.scrollTo({ top: targetScroll, behavior: 'smooth' });
+        }
+        return true; // 성공
     }, [currentMonth]);
 
     const [isNavigatingToToday, setIsNavigatingToToday] = useState(false);
@@ -231,15 +231,26 @@ export default function CalendarPage() {
         }
     }, [currentMonth, isNavigatingToToday, handleScrollToToday]);
 
-    // 초기 마운트 시 URL 파라미터 확인
+    // 초기 마운트 시 및 URL 파라미터 확인 후 스크롤
     useEffect(() => {
         const urlParams = new URLSearchParams(window.location.search);
         const shouldScrollToToday = urlParams.get('scrollToToday') === 'true';
+        const isDefaultEntry = !window.location.search || window.location.search === ''; // 파라미터 없을 때도 (메뉴 진입)
 
-        if (shouldScrollToToday) {
+        console.log('[CalendarPage] Initial Check. shouldScrollToToday:', shouldScrollToToday, 'isDefaultEntry:', isDefaultEntry);
+
+        // 오늘 날짜가 현재 달력에 있는지 확인
+        const today = new Date();
+        const isSameMonth = currentMonth.getFullYear() === today.getFullYear() &&
+            currentMonth.getMonth() === today.getMonth();
+
+        console.log('[CalendarPage] Month check. current:', currentMonth.getMonth(), 'today:', today.getMonth(), 'isSameMonth:', isSameMonth);
+
+        if (isSameMonth && (shouldScrollToToday || isDefaultEntry)) {
+            console.log('[CalendarPage] Attempting to scroll to today...');
             setIsNavigatingToToday(true);
         }
-    }, []);
+    }, [currentMonth]);
 
     // Handlers
     const handleMonthChange = useCallback((newMonth: Date) => {
@@ -513,6 +524,17 @@ export default function CalendarPage() {
                     selectedDate={selectedDate}
                     onDateSelect={handleDateSelect}
                     onMonthChange={handleMonthChange}
+                    onDataLoaded={() => {
+                        console.log('📡 [CalendarPage] Validating data loaded signal.');
+                        if (isNavigatingToToday) {
+                            console.log('🚀 [CalendarPage] Data loaded. Executing delayed scroll to today.');
+                            // 렌더링 사이클 확보를 위해 약간의 지연 후 실행
+                            setTimeout(() => {
+                                handleScrollToToday();
+                                setIsNavigatingToToday(false);
+                            }, 100);
+                        }
+                    }}
                     viewMode={viewMode}
                     onViewModeChange={setViewMode}
 

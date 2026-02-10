@@ -26,6 +26,7 @@ interface FullEventCalendarProps {
   hoveredEventId?: number | string | null;
   tabFilter?: 'all' | 'social-events' | 'classes' | 'overseas';
   seed?: number;
+  onDataLoaded?: () => void;
 }
 
 export default memo(function FullEventCalendar({
@@ -45,6 +46,7 @@ export default memo(function FullEventCalendar({
   highlightedEventId = null,
   tabFilter = 'all',
   seed = 42,
+  onDataLoaded,
 }: FullEventCalendarProps) {
   const { t } = useTranslation();
   const [events, setEvents] = useState<AppEvent[]>([]);
@@ -232,7 +234,8 @@ export default memo(function FullEventCalendar({
 
   // 월이 변경되거나 탭이 변경될 때 스크롤을 최상단으로 이동 (즉시 애니메이션 없이)
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'auto' });
+    // [Debug] 스크롤 문제 원인 파악을 위해 임시 비활성화
+    // window.scrollTo({ top: 0, behavior: 'auto' });
   }, [currentMonth, tabFilter]);
 
   // currentMonth가 변경될 때 년도 범위 업데이트
@@ -328,8 +331,29 @@ export default memo(function FullEventCalendar({
       }
     } catch (error) {
       console.error("Error:", error);
+    } finally {
+      // 데이터 로딩 완료 신호 전달
+      if (onEventsUpdate) onEventsUpdate();
+      // onEventsUpdate는 type이 (createdDate?: Date) => void 이므로 파라미터 없이 호출 가능
+      // 하지만 의미론적으로 분리하기 위해 onDataLoaded를 사용하는 것이 좋음.
+      // 일단 기존 인터페이스 호환성을 위해 onEventsUpdate를 활용하거나 새로 추가.
+      // 여기서는 새로 추가된 onDataLoaded를 사용한다고 가정하고 인터페이스 수정 필요.
+
     }
   }, [currentMonth]);
+
+  // 데이터 로딩 완료 및 렌더링 시점 감지
+  useEffect(() => {
+    // 이벤트나 소셜 스케줄이 로드된 후 부모에게 알림
+    // 빈 배열이라도 로딩이 끝났으면 호출해야 함 (fetchEvents가 실행된 후)
+    if (onDataLoaded) {
+      // 렌더링 사이클을 놓치지 않도록 약간의 지연
+      const timer = setTimeout(() => {
+        onDataLoaded();
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [events, socialSchedules, onDataLoaded]);
 
   // 하이라이트된 이벤트로 스크롤
   useEffect(() => {
