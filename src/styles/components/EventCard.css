@@ -97,9 +97,18 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background-image: url(/grunge.png);
-        background-size: cover;
-        background-position: center;
+        background: linear-gradient(135deg, var(--bg-surface-2) 0%, var(--bg-surface-3) 100%);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .ECARD-placeholderBg::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        opacity: 0.05;
+        background-image: radial-gradient(var(--text-primary) 1px, transparent 1px);
+        background-size: 12px 12px;
     }
 
     .ECARD-bgOverlay-purple {

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, lazy, Suspense } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { useBoardStaticData } from '../../contexts/BoardDataContext';
@@ -8,15 +8,22 @@ import BoardPrefixTabBar from './components/BoardPrefixTabBar';
 import AnonymousPostList from './components/AnonymousPostList';
 import StandardPostList from './components/StandardPostList';
 import type { AnonymousBoardPost, StandardBoardPost } from '../../types/board';
-import UniversalPostEditor from './components/UniversalPostEditor';
-import BoardManagementModal from './components/BoardManagementModal';
 import DevLog from './components/DevLog';
-import AnonymousWriteModal from './components/AnonymousWriteModal';
-import BoardDetailModal from './components/BoardDetailModal';
 import { useModal } from '../../hooks/useModal';
-import HistoryTimelinePage from '../history/HistoryTimelinePage';
+// import BoardManagementModal from './components/BoardManagementModal';
+// import UniversalPostEditor from './components/UniversalPostEditor';
+// import AnonymousWriteModal from './components/AnonymousWriteModal';
+// import BoardDetailModal from './components/BoardDetailModal';
+// import HistoryTimelinePage from '../history/HistoryTimelinePage';
 import LocalLoading from '../../components/LocalLoading';
 import './board.css';
+
+// Lazy Loaded Components for Optimization
+const BoardManagementModal = lazy(() => import('./components/BoardManagementModal'));
+const UniversalPostEditor = lazy(() => import('./components/UniversalPostEditor'));
+const AnonymousWriteModal = lazy(() => import('./components/AnonymousWriteModal'));
+const BoardDetailModal = lazy(() => import('./components/BoardDetailModal'));
+const HistoryTimelinePage = lazy(() => import('../history/HistoryTimelinePage'));
 
 // Hooks
 import { useBoardPosts } from './hooks/useBoardPosts';
@@ -316,7 +323,9 @@ export default function BoardMainContainer() {
                     <DevLog />
                 ) : category === 'history' ? (
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-                        <HistoryTimelinePage />
+                        <Suspense fallback={<LocalLoading message="타임라인 로딩 중..." />}>
+                            <HistoryTimelinePage />
+                        </Suspense>
                     </div>
                 ) : category === 'anonymous' ? (
                     <AnonymousPostList
@@ -402,51 +411,59 @@ export default function BoardMainContainer() {
 
 
 
-            <UniversalPostEditor
-                isOpen={editorModal.isOpen}
-                onClose={() => editorModal.close()}
-                onPostCreated={() => { loadPosts(); setCurrentPage(1); editorModal.close(); }}
-                category={category}
-                userNickname={user?.user_metadata?.name}
-            />
+            <Suspense fallback={null}>
+                <UniversalPostEditor
+                    isOpen={editorModal.isOpen}
+                    onClose={() => editorModal.close()}
+                    onPostCreated={() => { loadPosts(); setCurrentPage(1); editorModal.close(); }}
+                    category={category}
+                    userNickname={user?.user_metadata?.name}
+                />
+            </Suspense>
 
             {/* Anonymous Write Modal - Always mounted component that handles its own visibility */}
-            <AnonymousWriteModal
-                isOpen={writeModal.isOpen}
-                onClose={() => {
-                    writeModal.close();
-                    setEditingAnonymousData(null); // Clear data when closed
-                }}
-                onPostCreated={() => {
-                    loadPosts();
-                    writeModal.close();
-                    setEditingAnonymousData(null);
-                }}
-                category={category}
-                isAdmin={isRealAdmin}
-                editData={editingAnonymousData?.post}
-                providedPassword={editingAnonymousData?.password}
-            />
+            <Suspense fallback={null}>
+                <AnonymousWriteModal
+                    isOpen={writeModal.isOpen}
+                    onClose={() => {
+                        writeModal.close();
+                        setEditingAnonymousData(null); // Clear data when closed
+                    }}
+                    onPostCreated={() => {
+                        loadPosts();
+                        writeModal.close();
+                        setEditingAnonymousData(null);
+                    }}
+                    category={category}
+                    isAdmin={isRealAdmin}
+                    editData={editingAnonymousData?.post}
+                    providedPassword={editingAnonymousData?.password}
+                />
+            </Suspense>
 
             {isManagementOpen && (
-                <BoardManagementModal
-                    isOpen={isManagementOpen}
-                    onClose={() => setIsManagementOpen(false)}
-                    onUpdate={() => {
-                        refreshData(); // Refresh context data
-                        window.dispatchEvent(new Event('refreshBoardCategories'));
-                    }}
-                />
+                <Suspense fallback={null}>
+                    <BoardManagementModal
+                        isOpen={isManagementOpen}
+                        onClose={() => setIsManagementOpen(false)}
+                        onUpdate={() => {
+                            refreshData(); // Refresh context data
+                            window.dispatchEvent(new Event('refreshBoardCategories'));
+                        }}
+                    />
+                </Suspense>
             )}
 
 
             {/* Board Detail Modal */}
             {selectedPostId && (
-                <BoardDetailModal
-                    postId={selectedPostId}
-                    isOpen={true}
-                    onClose={handleCloseModal}
-                />
+                <Suspense fallback={null}>
+                    <BoardDetailModal
+                        postId={selectedPostId}
+                        isOpen={true}
+                        onClose={handleCloseModal}
+                    />
+                </Suspense>
             )}
         </div>
     );

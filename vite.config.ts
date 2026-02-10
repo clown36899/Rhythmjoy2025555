@@ -136,6 +136,8 @@ export default defineConfig({
           'ui-vendor': ['react-datepicker', 'qrcode.react'],
           'supabase': ['@supabase/supabase-js'],
           'date-fns': ['date-fns'],
+          'i18n-vendor': ['i18next', 'react-i18next'],
+          'query-vendor': ['@tanstack/react-query'],
         },
         // 파일명 최적화
         chunkFileNames: 'assets/[name]-[hash].js',
