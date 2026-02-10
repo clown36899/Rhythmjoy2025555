@@ -145,6 +145,15 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
 
   // 🔄 Global Scroll Reset on Route Change
   useEffect(() => {
+    // console.log(`[MobileShell] 경로 변경 감지: ${location.pathname}`);
+
+    // [Fix] /calendar 경로는 자체적인 스크롤 로직(오늘 날짜 이동)을 가지므로 초기화 제외
+    if (location.pathname === '/calendar') {
+      // console.log('[MobileShell] /calendar 경로이므로 전역 스크롤 리셋 건너뜀');
+      return;
+    }
+
+    // console.log('[MobileShell] 전역 스크롤 리셋 실행 (0, 0)');
     // 1. Reset Window Scroll (Standard Mode)
     window.scrollTo(0, 0);
 

@@ -87,26 +87,37 @@ export default function CalendarPage() {
     //     };
     // }, []);
 
+    // [Fix] 브라우저 자동 스크롤 복원 차단 (SPA에서 직접 제어하기 위함)
+    useEffect(() => {
+        if ('scrollRestoration' in window.history) {
+            console.log('[캘린더] 브라우저 스크롤 복원 모드 -> manual 설정');
+            window.history.scrollRestoration = 'manual';
+        }
+    }, []);
+
     // 모달 열렸을 때 배경 스크롤 방지
     useEffect(() => {
         const isAnyModalOpen = showRegisterModal || eventModal.showEditModal || eventModal.showPasswordModal || !!eventModal.selectedEvent;
+        // console.log(`[캘린더] 모달 상태 변경 -> 열림?: ${isAnyModalOpen}`);
 
         if (isAnyModalOpen) {
-            // 현재 스크롤 위치 저장
             const scrollY = window.scrollY;
+            // console.log(`[캘린더] 모달 오픈 - 현재 스크롤 저장: ${scrollY}`);
             document.body.style.position = 'fixed';
             document.body.style.top = `-${scrollY}px`;
             document.body.style.width = '100%';
             document.body.style.overflow = 'hidden';
         } else {
-            // 스크롤 위치 복원
-            const scrollY = document.body.style.top;
+            const savedTop = document.body.style.top;
             document.body.style.position = '';
             document.body.style.top = '';
             document.body.style.width = '';
             document.body.style.overflow = '';
-            if (scrollY) {
-                window.scrollTo(0, parseInt(scrollY || '0') * -1);
+
+            if (savedTop) {
+                const scrollY = Math.abs(parseInt(savedTop));
+                console.log(`[캘린더] 모달 닫힘 - 스크롤 위치 복구: ${scrollY}`);
+                window.scrollTo(0, scrollY);
             }
         }
     }, [showRegisterModal, eventModal.showEditModal, eventModal.showPasswordModal, eventModal.selectedEvent]);
@@ -172,19 +183,24 @@ export default function CalendarPage() {
             const elementPosition = rect.top + window.pageYOffset;
             const offsetPosition = elementPosition - stickyHeaderOffset;
 
-            console.log(`📍 [캘린더] WINDOW 스크롤 실행 -> 목표위치: ${Math.round(offsetPosition)} (현재요소위치: ${Math.round(rect.top)}, 오프셋: ${stickyHeaderOffset})`);
+            console.log(`📍 [캘린더] WINDOW 스크롤 실행 -> 목표: ${Math.round(offsetPosition)} (현재요소top: ${Math.round(rect.top)}, 오프셋: ${stickyHeaderOffset}, 문서전체높이: ${document.documentElement.scrollHeight})`);
 
-            // [Fix] 모바일 호환성을 위해 window.scrollTo 호출 방식 변경 및 강제성 부여
-            window.scrollTo({ top: offsetPosition, behavior: 'instant' }); // 'smooth' 대신 'instant'로 확실히 이동 후 애니메이션 여부는 CSS나 별도 로직에 맡김 (모바일 씹힘 방지)
+            window.scrollTo({ top: offsetPosition, behavior: 'instant' });
 
-            // 확인 사살 (0.1초 뒤 위치 확인)
+            // 확인 사살 (0.2초 뒤 위치 확인 - 모바일 렌더링 시간 고려)
             setTimeout(() => {
-                console.log(`📍 [캘린더] 스크롤 결과 확인 -> 현재위치: ${Math.round(window.scrollY)} (목표: ${Math.round(offsetPosition)})`);
-                if (Math.abs(window.scrollY - offsetPosition) > 50) {
-                    console.log(`⚠️ [캘린더] 스크롤 실패 감지! 재시도...`);
+                const currentY = Math.round(window.scrollY);
+                console.log(`📍 [캘린더] 스크롤 결과 확인 -> 현재: ${currentY}, 목표: ${Math.round(offsetPosition)}, 문서전체높이: ${document.documentElement.scrollHeight}`);
+
+                if (Math.abs(currentY - offsetPosition) > 50) {
+                    if (currentY === 0) {
+                        console.log(`⚠️ [캘린더] 스크롤이 0으로 리셋됨! 누군가 덮어썼거나 높이가 부족함. 재시도...`);
+                    } else {
+                        console.log(`⚠️ [캘린더] 목표 도달 실패. 재시도...`);
+                    }
                     window.scrollTo(0, offsetPosition);
                 }
-            }, 50);
+            }, 200);
 
         } else {
             const parentEl = scrollParent as HTMLElement;
