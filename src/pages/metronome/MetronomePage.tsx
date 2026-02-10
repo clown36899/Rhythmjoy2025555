@@ -372,10 +372,11 @@ const MetronomePage: React.FC = () => {
         const totalBeats = beatsPerMeasure * newSub;
         const newVolumes = Array(totalBeats).fill(3);
 
-        // Light Swing & Standard Swing: soften off-beats after 2nd and 4th beats (4/4 time)
-        if ((type === 'light-swing' || type === 'swing') && beatsPerMeasure === 4 && newSub === 2) {
-            newVolumes[3] = 1; // & after beat 2 (softest)
-            newVolumes[7] = 1; // & after beat 4 (softest)
+        // Light Swing, Standard Swing & Hard Shuffle: soften off-beats after 1st and 3rd beats (4/4 time)
+        // This creates the classic swing feel with ghost notes on weak off-beats
+        if ((type === 'light-swing' || type === 'swing' || type === 'hard-shuffle') && beatsPerMeasure === 4 && newSub === 2) {
+            newVolumes[1] = 1; // & after beat 1 (ghost note)
+            newVolumes[5] = 1; // & after beat 3 (ghost note)
         }
 
         setBeatVolumes(newVolumes);
