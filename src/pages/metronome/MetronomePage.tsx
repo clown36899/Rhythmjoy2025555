@@ -338,46 +338,49 @@ const MetronomePage: React.FC = () => {
                             onChange={handleBpmChange}
                         />
 
-                        {/* Sound Selector Bar */}
-                        <div className="sound-selector-bar">
-                            {sounds.map(s => (
+                        {/* Sound & Rhythm Selector Row */}
+                        <div className="selector-row">
+                            {/* Sound Selector Bar */}
+                            <div className="sound-selector-bar">
+                                {sounds.map(s => (
+                                    <button
+                                        key={s.id}
+                                        className={`sound-btn ${soundId === s.id ? 'active' : ''}`}
+                                        onClick={() => setSoundId(s.id)}
+                                        title={s.name}
+                                    >
+                                        <i className={s.icon}></i>
+                                    </button>
+                                ))}
+                            </div>
+
+                            {/* Rhythm Selector Dropdown */}
+                            <div className="rhythm-selector-container">
                                 <button
-                                    key={s.id}
-                                    className={`sound-btn ${soundId === s.id ? 'active' : ''}`}
-                                    onClick={() => setSoundId(s.id)}
-                                    title={s.name}
+                                    className={`rhythm-selector-main ${showRhythmList ? 'is-open' : ''}`}
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setShowRhythmList(!showRhythmList);
+                                    }}
                                 >
-                                    <i className={s.icon}></i>
+                                    <span className="selected-name">{rhythmName}</span>
+                                    <i className="ri-arrow-down-s-line"></i>
                                 </button>
-                            ))}
-                        </div>
 
-                        {/* Rhythm Selector Dropdown */}
-                        <div className="rhythm-selector-container">
-                            <button
-                                className={`rhythm-selector-main ${showRhythmList ? 'is-open' : ''}`}
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setShowRhythmList(!showRhythmList);
-                                }}
-                            >
-                                <span className="selected-name">{rhythmName}</span>
-                                <i className="ri-arrow-down-s-line"></i>
-                            </button>
-
-                            {showRhythmList && (
-                                <div className="rhythm-dropdown-list">
-                                    {presets.map(p => (
-                                        <button
-                                            key={p.id}
-                                            className={`dropdown-item ${rhythmName.includes(p.name) ? 'active' : ''}`}
-                                            onClick={() => applyPreset(p.id)}
-                                        >
-                                            {p.name}
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
+                                {showRhythmList && (
+                                    <div className="rhythm-dropdown-list">
+                                        {presets.map(p => (
+                                            <button
+                                                key={p.id}
+                                                className={`dropdown-item ${rhythmName.includes(p.name) ? 'active' : ''}`}
+                                                onClick={() => applyPreset(p.id)}
+                                            >
+                                                {p.name}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
 
                         <div className="rhythm-settings">

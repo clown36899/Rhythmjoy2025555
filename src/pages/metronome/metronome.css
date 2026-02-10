@@ -460,21 +460,31 @@
     }
 }
 
+/* Sound & Rhythm Selector Row */
+.selector-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    width: 100%;
+    margin: 10px 0 15px 0;
+}
+
 /* Sound Selector Bar */
 .sound-selector-bar {
     display: flex;
     justify-content: center;
-    gap: 12px;
-    margin: 10px 0 15px 0;
-    padding: 8px;
+    gap: 8px;
+    padding: 6px;
     background: rgba(255, 255, 255, 0.03);
     border-radius: 50px;
     border: 1px solid var(--border-glass);
+    flex-shrink: 0;
+    margin: 0;
 }
 
 .sound-btn {
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     border: 1px solid var(--border-glass);
     background: var(--bg-surface-3);
@@ -484,7 +494,7 @@
     justify-content: center;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    font-size: 1.2rem;
+    font-size: 1.1rem;
 }
 
 .sound-btn:hover {
@@ -506,8 +516,8 @@
 /* Rhythm Selector Dropdown */
 .rhythm-selector-container {
     position: relative;
-    width: 100%;
-    margin: 10px 0;
+    flex: 1;
+    margin: 0;
 }
 
 .rhythm-selector-main {
