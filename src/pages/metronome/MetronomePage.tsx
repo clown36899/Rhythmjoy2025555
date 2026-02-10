@@ -378,6 +378,10 @@ const MetronomePage: React.FC = () => {
         setSwingAccent(newAccent);
         setRhythmName(name);
 
+        // Reset manual volume adjustments to default (3)
+        const totalBeats = beatsPerMeasure * newSub;
+        setBeatVolumes(Array(totalBeats).fill(3));
+
         // Immediate Sync for the Audio Engine
         subRef.current = newSub;
         swingRef.current = newSwing;
@@ -473,11 +477,35 @@ const MetronomePage: React.FC = () => {
                                     const isCurrent = visualBeat === totalIdx;
                                     const isMainBeat = subIdx === 0;
                                     const volLevel = beatVolumes[totalIdx] ?? 3;
+                                    const isLastInGroup = subIdx === subdivision - 1;
+
+                                    // Calculate dynamic spacing based on swing ratio
+                                    let marginRight = '0px';
+                                    if (!isLastInGroup) {
+                                        if (subdivision > 1 && subdivision !== 3 && swingFactor > 0) {
+                                            const isFirstOfPair = subIdx % 2 === 0;
+                                            const baseGap = 6;
+                                            const maxSwingGap = 20;
+                                            const swingRatio = swingFactor / 100;
+
+                                            if (isFirstOfPair) {
+                                                const extraGap = maxSwingGap * swingRatio;
+                                                marginRight = `${baseGap + extraGap}px`;
+                                            } else {
+                                                const reducedGap = maxSwingGap * swingRatio * 0.7;
+                                                marginRight = `${Math.max(2, baseGap - reducedGap)}px`;
+                                            }
+                                        } else {
+                                            marginRight = '6px';
+                                        }
+                                    }
+
                                     return (
                                         <div
                                             key={subIdx}
                                             className={`beat-indicator vol-${volLevel} ${isCurrent ? 'is-active' : ''} ${!isMainBeat ? 'is-sub' : ''}`}
                                             onClick={(e) => cycleBeatVolume(totalIdx, e)}
+                                            style={{ marginRight }}
                                         />
                                     );
                                 })}
@@ -563,6 +591,14 @@ const MetronomePage: React.FC = () => {
                                     <option value="6">6/8 (2 group)</option>
                                 </select>
                             </div>
+
+                            <button
+                                className={`play-btn ${isPlaying ? 'is-playing' : ''}`}
+                                onClick={togglePlay}
+                            >
+                                <i className={isPlaying ? 'ri-stop-mini-fill' : 'ri-play-mini-fill'}></i>
+                            </button>
+
                             <div className="setting-group">
                                 <label className="setting-label">분할 (Subdivision)</label>
                                 <select
@@ -636,15 +672,6 @@ const MetronomePage: React.FC = () => {
                         )}
                     </div>
                 </div>
-
-                <footer className="metronome-footer">
-                    <button
-                        className={`play-btn ${isPlaying ? 'is-playing' : ''}`}
-                        onClick={togglePlay}
-                    >
-                        <i className={isPlaying ? 'ri-stop-mini-fill' : 'ri-play-mini-fill'}></i>
-                    </button>
-                </footer>
             </div>
         </div>
     );

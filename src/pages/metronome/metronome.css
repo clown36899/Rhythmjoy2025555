@@ -8,7 +8,7 @@
     overflow: hidden;
     position: relative;
     padding-top: calc(var(--header-height, 51px) + 5px + env(safe-area-inset-top));
-    padding-bottom: calc(100px + env(safe-area-inset-bottom));
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
     padding-left: 20px;
     padding-right: 20px;
 }
@@ -352,7 +352,8 @@
 .beat-group {
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 0;
+    /* Dynamic spacing controlled by inline styles */
 }
 
 .beat-indicator {
@@ -388,9 +389,20 @@
 }
 
 /* Volume level idle states */
-.beat-indicator.vol-3 { opacity: 0.55; }
-.beat-indicator.vol-2 { opacity: 0.3; transform: scale(0.8); }
-.beat-indicator.vol-1 { opacity: 0.15; transform: scale(0.6); }
+.beat-indicator.vol-3 {
+    opacity: 0.55;
+}
+
+.beat-indicator.vol-2 {
+    opacity: 0.3;
+    transform: scale(0.8);
+}
+
+.beat-indicator.vol-1 {
+    opacity: 0.15;
+    transform: scale(0.6);
+}
+
 .beat-indicator.vol-0 {
     opacity: 0.08;
     transform: scale(0.45);
@@ -399,10 +411,24 @@
 }
 
 /* Sub-beat idle volume */
-.beat-indicator.is-sub.vol-3 { opacity: 0.4; }
-.beat-indicator.is-sub.vol-2 { opacity: 0.22; transform: scale(0.75); }
-.beat-indicator.is-sub.vol-1 { opacity: 0.1; transform: scale(0.55); }
-.beat-indicator.is-sub.vol-0 { opacity: 0.06; transform: scale(0.4); }
+.beat-indicator.is-sub.vol-3 {
+    opacity: 0.4;
+}
+
+.beat-indicator.is-sub.vol-2 {
+    opacity: 0.22;
+    transform: scale(0.75);
+}
+
+.beat-indicator.is-sub.vol-1 {
+    opacity: 0.1;
+    transform: scale(0.55);
+}
+
+.beat-indicator.is-sub.vol-0 {
+    opacity: 0.06;
+    transform: scale(0.4);
+}
 
 /* Active (playing) states per volume level */
 .beat-indicator.vol-3.is-active {
@@ -441,7 +467,7 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: clamp(15px, 2.5vh, 25px);
+    gap: 0;
     backdrop-filter: blur(24px);
     flex-shrink: 0;
     box-sizing: border-box;
@@ -492,32 +518,47 @@
 .rhythm-settings {
     width: 100%;
     display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: flex-end;
+    gap: clamp(8px, 2vw, 12px);
 }
 
 .setting-group {
     display: flex;
     flex-direction: column;
     gap: 6px;
+    min-width: 0;
+    max-width: 150px;
 }
 
 .setting-label {
     font-size: 0.75rem;
     font-weight: 700;
     color: var(--text-tertiary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .setting-select {
     background: var(--bg-surface-2);
     border: 1px solid var(--border-glass-strong);
     color: var(--text-primary);
-    padding: 10px;
+    padding: 10px 8px;
     border-radius: 12px;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: 700;
     cursor: pointer;
     appearance: none;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-align: center;
+}
+
+.setting-select option {
+    text-align: left;
 }
 
 /* Swing/Accent Control Area */
@@ -594,9 +635,9 @@
 }
 
 .play-btn {
-    width: clamp(70px, 11vh, 85px);
-    height: clamp(70px, 11vh, 85px);
-    border-radius: 50%;
+    width: clamp(48px, 7vh, 60px);
+    height: clamp(48px, 7vh, 60px);
+    border-radius: 16px;
     background: var(--color-amber-500);
     border: none;
     color: white;
@@ -604,6 +645,7 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.25);
 }
 
 .play-btn:active {
@@ -615,7 +657,7 @@
 }
 
 .play-btn i {
-    font-size: clamp(2rem, 4.5vh, 2.8rem);
+    font-size: clamp(1.5rem, 3.5vh, 2.2rem);
 }
 
 /* Animations */
@@ -741,7 +783,7 @@
 .rhythm-dropdown-list {
     position: absolute;
     top: calc(100% + 8px);
-    left: 0;
+    left: -100px;
     right: 0;
     background: var(--bg-surface-1);
     border: 1px solid var(--border-glass-strong);
@@ -757,7 +799,7 @@
 
 .dropdown-item {
     width: 100%;
-    padding: 12px 16px;
+    padding: 5px 16px;
     border-radius: 12px;
     border: none;
     background: transparent;
