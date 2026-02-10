@@ -13,13 +13,11 @@ const MetronomePage: React.FC = () => {
     const [showInfo, setShowInfo] = useState(false);
     const [rhythmName, setRhythmName] = useState('Straight');
     const [showRhythmList, setShowRhythmList] = useState(false);
-    const [soundId, setSoundId] = useState<'classic' | 'wood' | 'elec' | 'perc' | 'brush'>('classic');
+    const [soundId, setSoundId] = useState<'classic' | 'wood' | 'elec' | 'perc' | 'brush'>('brush');
     const [beatVolumes, setBeatVolumes] = useState<number[]>(() => Array(4).fill(3));
 
     const sounds = [
         { id: 'classic', name: 'Classic', icon: 'ri-rhythm-line' },
-        { id: 'wood', name: 'Wood', icon: 'ri-hammer-line' },
-        { id: 'elec', name: 'Digital', icon: 'ri-broadcast-line' },
         { id: 'perc', name: 'Rimshot', icon: 'ri-focus-3-line' },
         { id: 'brush', name: 'Brush', icon: 'ri-sketching' },
     ] as const;
@@ -49,14 +47,6 @@ const MetronomePage: React.FC = () => {
     useEffect(() => { accentRef.current = swingAccent; }, [swingAccent]);
     useEffect(() => { soundIdRef.current = soundId; }, [soundId]);
     useEffect(() => { beatVolumesRef.current = beatVolumes; }, [beatVolumes]);
-
-    // Reset beat volumes when layout changes
-    useEffect(() => {
-        const total = beatsPerMeasure * subdivision;
-        const newVols = Array(total).fill(3);
-        setBeatVolumes(newVols);
-        beatVolumesRef.current = newVols;
-    }, [beatsPerMeasure, subdivision]);
 
     // Web Audio Refs
     const audioContextRef = useRef<AudioContext | null>(null);
@@ -380,7 +370,16 @@ const MetronomePage: React.FC = () => {
 
         // Reset manual volume adjustments to default (3)
         const totalBeats = beatsPerMeasure * newSub;
-        setBeatVolumes(Array(totalBeats).fill(3));
+        const newVolumes = Array(totalBeats).fill(3);
+
+        // Light Swing & Standard Swing: soften off-beats after 2nd and 4th beats (4/4 time)
+        if ((type === 'light-swing' || type === 'swing') && beatsPerMeasure === 4 && newSub === 2) {
+            newVolumes[3] = 1; // & after beat 2 (softest)
+            newVolumes[7] = 1; // & after beat 4 (softest)
+        }
+
+        setBeatVolumes(newVolumes);
+        beatVolumesRef.current = newVolumes;
 
         // Immediate Sync for the Audio Engine
         subRef.current = newSub;
