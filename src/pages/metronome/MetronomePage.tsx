@@ -24,10 +24,10 @@ const MetronomePage: React.FC = () => {
 
     const presets = [
         { id: 'straight', name: 'Straight', info: '기본 정박 (50:50)' },
-        { id: 'light-swing', name: 'Light Swing', info: '부드러운 스윙 (58:42)' },
+        { id: 'light-swing', name: 'Light Swing', info: '부드러운 스윙 (60:40)' },
         { id: 'swing', name: 'Standard Swing', info: '표준 재즈 스윙 (67:33)' },
         { id: 'triplet-shuffle', name: 'Triplet Shuffle', info: '3연음 셔플 (강-약-중)' },
-        { id: 'hard-shuffle', name: 'Hard Shuffle', info: '하드 셔플 (75:25)' },
+        { id: 'hard-shuffle', name: 'Hard Shuffle', info: '하드 셔플 (100% 스윙)' },
     ] as const;
 
     // Real-time Update Refs
@@ -350,7 +350,7 @@ const MetronomePage: React.FC = () => {
                 newSub = 1; newSwing = 0; newAccent = 50; name = 'Straight';
                 break;
             case 'light-swing':
-                newSub = 2; newSwing = 32; newAccent = 80; name = 'Light Swing';
+                newSub = 2; newSwing = 60; newAccent = 50; name = 'Light Swing';
                 break;
             case 'swing':
                 newSub = 2; newSwing = 67; newAccent = 85; name = 'Standard Swing';
