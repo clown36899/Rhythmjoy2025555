@@ -95,6 +95,26 @@ export default function CalendarPage() {
         }
     }, []);
 
+    // [Fix] 사용자 조작 감지 (자동 스크롤 재시도 시 방해 금지용)
+    const userInteractedRef = useRef(false);
+    useEffect(() => {
+        const handleInteraction = () => {
+            if (!userInteractedRef.current) {
+                // console.log('👤 [캘린더] 사용자 조작 감지됨');
+                userInteractedRef.current = true;
+            }
+        };
+        window.addEventListener('touchstart', handleInteraction, { passive: true });
+        window.addEventListener('wheel', handleInteraction, { passive: true });
+        window.addEventListener('mousedown', handleInteraction, { passive: true });
+
+        return () => {
+            window.removeEventListener('touchstart', handleInteraction);
+            window.removeEventListener('wheel', handleInteraction);
+            window.removeEventListener('mousedown', handleInteraction);
+        };
+    }, []);
+
     // 모달 열렸을 때 배경 스크롤 방지
     useEffect(() => {
         const isAnyModalOpen = showRegisterModal || eventModal.showEditModal || eventModal.showPasswordModal || !!eventModal.selectedEvent;
@@ -187,20 +207,25 @@ export default function CalendarPage() {
 
             window.scrollTo({ top: offsetPosition, behavior: 'instant' });
 
-            // 확인 사살 (0.2초 뒤 위치 확인 - 모바일 렌더링 시간 고려)
+            // 확인 사살 (0.25초 뒤 위치 확인 - 모바일 렌더링 및 레이아웃 요동 고려)
             setTimeout(() => {
+                // 사용자가 이미 직접 스크롤을 시작했다면 시스템이 개입하지 않음
+                if (userInteractedRef.current) {
+                    console.log('💡 [캘린더] 사용자 직접 조작이 감지되어 자동 스크롤 재시도를 취소합니다.');
+                    return;
+                }
+
                 const currentY = Math.round(window.scrollY);
                 console.log(`📍 [캘린더] 스크롤 결과 확인 -> 현재: ${currentY}, 목표: ${Math.round(offsetPosition)}, 문서전체높이: ${document.documentElement.scrollHeight}`);
 
                 if (Math.abs(currentY - offsetPosition) > 50) {
-                    if (currentY === 0) {
-                        console.log(`⚠️ [캘린더] 스크롤이 0으로 리셋됨! 누군가 덮어썼거나 높이가 부족함. 재시도...`);
-                    } else {
-                        console.log(`⚠️ [캘린더] 목표 도달 실패. 재시도...`);
+                    // 목표에 도달하지 않았는데 스크롤이 0이거나 문서 높이가 변했다면 튕긴 것으로 간주
+                    if (currentY === 0 || Math.abs(currentY - offsetPosition) > 100) {
+                        console.log(`⚠️ [캘린더] 시스템 리셋 또는 레이아웃 요동 감지. 최종 재시도합니다.`);
+                        window.scrollTo(0, offsetPosition);
                     }
-                    window.scrollTo(0, offsetPosition);
                 }
-            }, 200);
+            }, 250);
 
         } else {
             const parentEl = scrollParent as HTMLElement;
