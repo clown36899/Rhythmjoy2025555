@@ -284,24 +284,28 @@ export default function CalendarPage() {
         }
     }, [currentMonth, isNavigatingToToday, handleScrollToToday]);
 
-    // 초기 마운트 시 및 URL 파라미터 확인 후 스크롤
+    // [Smart Scroll] 달력 진입 및 달 이동 시 상황별 스크롤 분기
     useEffect(() => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const shouldScrollToToday = urlParams.get('scrollToToday') === 'true';
-        const isDefaultEntry = !window.location.search || window.location.search === ''; // 파라미터 없을 때도 (메뉴 진입)
+        // [Add] 달이 바뀌면 이전의 사용자 조작 기록을 초기화 (스와이프 제스처가 다음 달 스크롤 보정을 막지 않도록)
+        userInteractedRef.current = false;
 
-        console.log('[캘린더] 초기 진입 체크 -> 스크롤필요?:', shouldScrollToToday, '기본진입?:', isDefaultEntry);
-
-        // 오늘 날짜가 현재 달력에 있는지 확인
+        // 오늘 날짜 정보
         const today = new Date();
         const isSameMonth = currentMonth.getFullYear() === today.getFullYear() &&
             currentMonth.getMonth() === today.getMonth();
 
-        console.log('[캘린더] 월 확인 -> 현재:', currentMonth.getMonth() + 1, '월, 오늘:', today.getMonth() + 1, '월, 같은달?:', isSameMonth);
+        console.log(`[캘린더] 월 이동 감지 -> 현재: ${currentMonth.getMonth() + 1}월, 오늘: ${today.getMonth() + 1}월, 같은달?: ${isSameMonth}`);
 
-        if (isSameMonth && (shouldScrollToToday || isDefaultEntry)) {
-            console.log('[캘린더] 오늘 날짜로 이동 준비 (플래그 설정)...');
+        if (isSameMonth) {
+            // 1. 이번 달로 이동한 경우 (진입 포함) -> 오늘 날짜 위치로 이동 준비
+            console.log('[캘린더] 이번 달이므로 오늘 날짜 위치로 스크롤 준비...');
             setIsNavigatingToToday(true);
+        } else {
+            // 2. 다른 달로 이동한 경우 -> 페이지 최상단(0)으로 즉시 이동
+            console.log('[캘린더] 다른 달이므로 페이지 최상단(0)으로 이동합니다.');
+            window.scrollTo({ top: 0, behavior: 'instant' });
+            // 이동 중일 수도 있으니 플래그는 꺼둠
+            setIsNavigatingToToday(false);
         }
     }, [currentMonth]);
 
