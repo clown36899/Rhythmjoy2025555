@@ -97,10 +97,14 @@ export default function CalendarPage() {
 
     // [Fix] 사용자 조작 감지 (자동 스크롤 재시도 시 방해 금지용)
     const userInteractedRef = useRef(false);
+    const mountTimeRef = useRef(Date.now());
     useEffect(() => {
         const handleInteraction = () => {
+            // [Fix] 페이지 진입 시의 클릭(메뉴 클릭 등)이 오감지되지 않도록 500ms 유예
+            if (Date.now() - mountTimeRef.current < 500) return;
+
             if (!userInteractedRef.current) {
-                // console.log('👤 [캘린더] 사용자 조작 감지됨');
+                console.log('👤 [캘린더] 사용자 조작 감지됨 (자동 보정 중단)');
                 userInteractedRef.current = true;
             }
         };
@@ -205,13 +209,17 @@ export default function CalendarPage() {
 
             console.log(`📍 [캘린더] WINDOW 스크롤 실행 -> 목표: ${Math.round(offsetPosition)} (현재요소top: ${Math.round(rect.top)}, 오프셋: ${stickyHeaderOffset}, 문서전체높이: ${document.documentElement.scrollHeight})`);
 
-            window.scrollTo({ top: offsetPosition, behavior: 'instant' });
+            // [Fix] 시각적으로 스크롤되는 걸 보여주기 위해 100ms 지연 후 이동 시작
+            setTimeout(() => {
+                if (userInteractedRef.current) return;
+                window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+            }, 100);
 
-            // 확인 사살 (0.25초 뒤 위치 확인 - 모바일 렌더링 및 레이아웃 요동 고려)
+            // 확인 사살 (0.8초 뒤 위치 확인 - Smooth Scroll 애니메이션 및 레이아웃 요동 고려)
             setTimeout(() => {
                 // 사용자가 이미 직접 스크롤을 시작했다면 시스템이 개입하지 않음
                 if (userInteractedRef.current) {
-                    console.log('💡 [캘린더] 사용자 직접 조작이 감지되어 자동 스크롤 재시도를 취소합니다.');
+                    console.log('💡 [캘린더] 사용자 조작이 감지되어 자동 스크롤 보정을 중단합니다.');
                     return;
                 }
 
@@ -219,13 +227,13 @@ export default function CalendarPage() {
                 console.log(`📍 [캘린더] 스크롤 결과 확인 -> 현재: ${currentY}, 목표: ${Math.round(offsetPosition)}, 문서전체높이: ${document.documentElement.scrollHeight}`);
 
                 if (Math.abs(currentY - offsetPosition) > 50) {
-                    // 목표에 도달하지 않았는데 스크롤이 0이거나 문서 높이가 변했다면 튕긴 것으로 간주
+                    // 목표에 도달하지 않았는데 스크롤이 0이거나 문서 높이가 크게 변했다면(브라우저 리셋) 최종 보정
                     if (currentY === 0 || Math.abs(currentY - offsetPosition) > 100) {
-                        console.log(`⚠️ [캘린더] 시스템 리셋 또는 레이아웃 요동 감지. 최종 재시도합니다.`);
-                        window.scrollTo(0, offsetPosition);
+                        console.log(`⚠️ [캘린더] 스크롤 위치 어긋남 감지. 최종 보정합니다.`);
+                        window.scrollTo({ top: offsetPosition, behavior: 'auto' });
                     }
                 }
-            }, 250);
+            }, 800);
 
         } else {
             const parentEl = scrollParent as HTMLElement;
