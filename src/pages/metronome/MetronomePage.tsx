@@ -23,11 +23,11 @@ const MetronomePage: React.FC = () => {
     ] as const;
 
     const presets = [
-        { id: 'straight', name: 'Straight', info: '기본 정박' },
-        { id: 'light-swing', name: 'Light Swing', info: '부드러운 스윙 (58%)' },
-        { id: 'swing', name: 'Standard Swing', info: '기본 스윙 (66%)' },
-        { id: 'triplet-shuffle', name: 'Triplet Shuffle', info: '표준 셔플 (66.5%)' },
-        { id: 'hard-shuffle', name: 'Hard Shuffle', info: '파워 셔플 (75%)' },
+        { id: 'straight', name: 'Straight', info: '기본 정박 (50:50)', accentPattern: 'straight' as const },
+        { id: 'light-swing', name: 'Light Swing', info: '부드러운 스윙 (58:42, 약-강)', accentPattern: 'swing' as const },
+        { id: 'swing', name: 'Standard Swing', info: '표준 스윙 (67:33, 약-강)', accentPattern: 'swing' as const },
+        { id: 'triplet-shuffle', name: 'Triplet Shuffle', info: '트리플렛 셔플 (67:33, 강-약)', accentPattern: 'shuffle' as const },
+        { id: 'hard-shuffle', name: 'Hard Shuffle', info: '하드 셔플 (75:25, 강-약)', accentPattern: 'shuffle' as const },
     ] as const;
 
     // Real-time Update Refs
@@ -37,6 +37,7 @@ const MetronomePage: React.FC = () => {
     const swingRef = useRef(swingFactor);
     const accentRef = useRef(swingAccent);
     const soundIdRef = useRef(soundId);
+    const rhythmNameRef = useRef(rhythmName);
 
     // Sync Refs with State
     useEffect(() => { bpmRef.current = bpm; }, [bpm]);
@@ -45,6 +46,7 @@ const MetronomePage: React.FC = () => {
     useEffect(() => { swingRef.current = swingFactor; }, [swingFactor]);
     useEffect(() => { accentRef.current = swingAccent; }, [swingAccent]);
     useEffect(() => { soundIdRef.current = soundId; }, [soundId]);
+    useEffect(() => { rhythmNameRef.current = rhythmName; }, [rhythmName]);
 
     // Web Audio Refs
     const audioContextRef = useRef<AudioContext | null>(null);
@@ -60,36 +62,35 @@ const MetronomePage: React.FC = () => {
     const scheduleAheadTime = 0.1;
 
     // Oscillator Sounds with Sound Type Control (Real-time)
-    const playClick = useCallback((time: number, isAccent: boolean, volume: number = 1.0) => {
+    const playClick = useCallback((time: number, volume: number = 1.0) => {
         if (!audioContextRef.current) return;
 
         const osc = audioContextRef.current.createOscillator();
         const envelope = audioContextRef.current.createGain();
 
-        const targetVolume = isAccent ? 1.0 : volume;
-        envelope.gain.setValueAtTime(targetVolume, time);
+        envelope.gain.setValueAtTime(volume, time);
 
         // Sound Synthesis Logic - using ref for real-time updates
         switch (soundIdRef.current) {
             case 'wood':
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(isAccent ? 1000 : 700, time);
+                osc.frequency.setValueAtTime(volume > 0.6 ? 1000 : 700, time);
                 envelope.gain.exponentialRampToValueAtTime(0.001, time + 0.05);
                 break;
             case 'elec':
                 osc.type = 'triangle';
-                osc.frequency.setValueAtTime(isAccent ? 800 : 400, time);
+                osc.frequency.setValueAtTime(volume > 0.6 ? 800 : 400, time);
                 osc.frequency.exponentialRampToValueAtTime(80, time + 0.05);
                 envelope.gain.exponentialRampToValueAtTime(0.001, time + 0.12);
                 break;
             case 'perc':
                 osc.type = 'square';
-                osc.frequency.setValueAtTime(isAccent ? 1200 : 900, time);
+                osc.frequency.setValueAtTime(volume > 0.6 ? 1200 : 900, time);
                 envelope.gain.exponentialRampToValueAtTime(0.001, time + 0.03);
                 break;
             default:
                 osc.type = 'sine';
-                osc.frequency.setValueAtTime(isAccent ? 1200 : 800, time);
+                osc.frequency.setValueAtTime(volume > 0.6 ? 1200 : 800, time);
                 envelope.gain.exponentialRampToValueAtTime(0.001, time + 0.08);
                 break;
         }
@@ -104,16 +105,47 @@ const MetronomePage: React.FC = () => {
     const scheduleNote = useCallback((beatIndex: number, time: number) => {
         notesInQueueRef.current.push({ beat: beatIndex, time: time });
 
-        const isMainAccent = beatIndex === 0;
-        const isOffBeat = beatIndex % 2 !== 0; // In subdivision mode, odd indices are off-beats
+        const isOffBeat = beatIndex % 2 !== 0;
 
-        let volume = 0.7; // Default normal beat volume
-        if (isOffBeat && subRef.current > 1) {
-            // Map 0-100 accent to 0.1 - 1.0 volume
-            volume = (accentRef.current / 100) * 0.9 + 0.1;
+        let volume = 0.7;
+
+        // Check rhythm style
+        const currentRhythm = rhythmNameRef.current;
+        const isSwing = currentRhythm.includes('Swing');
+        const isShuffle = currentRhythm.includes('Shuffle');
+
+        if (subRef.current > 1) {
+            // Apply accent pattern based on rhythm style
+            if (isSwing) {
+                // Swing: 약-강 패턴 (off-beat accent)
+                if (isOffBeat) {
+                    volume = 1.0; // 두 번째 음표 강하게
+                } else {
+                    volume = 0.25; // 첫 번째 음표 약하게 (ghost)
+                }
+            } else if (isShuffle) {
+                // Shuffle: 강-약 패턴 (on-beat accent)
+                if (isOffBeat) {
+                    volume = 0.25; // 두 번째 음표 약하게 (ghost)
+                } else {
+                    volume = 1.0; // 첫 번째 음표 강하게
+                }
+            } else {
+                // Manual mode: slider controls accent pattern
+                // 0% = 강-약 (Shuffle style), 100% = 약-강 (Swing style)
+                const accentFactor = accentRef.current / 100; // 0.0 to 1.0
+
+                if (isOffBeat) {
+                    // Off-beat: 0.25 (at 0%) to 1.0 (at 100%)
+                    volume = 0.25 + (accentFactor * 0.75);
+                } else {
+                    // On-beat: 1.0 (at 0%) to 0.25 (at 100%)
+                    volume = 1.0 - (accentFactor * 0.75);
+                }
+            }
         }
 
-        playClick(time, isMainAccent, volume);
+        playClick(time, volume);
     }, [playClick]);
 
     const scheduler = useCallback(() => {
@@ -127,16 +159,20 @@ const MetronomePage: React.FC = () => {
 
             let actualDelay = subdivisionTime;
 
-            // Swing/Shuffle Timing Logic
+            // Swing/Shuffle Timing Logic (Corrected)
             if (subRef.current > 1 && swingRef.current > 0) {
                 const isFirstOfPair = currentSubBeatRef.current % 2 === 0;
-                // Swing timing adjustment (Up to 50% shift of subdivision time = 75% Ratio)
-                const swingShift = (subdivisionTime * (swingRef.current / 100)) * 0.5;
+
+                // Calculate swing ratio: 0.5 (straight) to 0.75 (hard shuffle)
+                const swingRatio = 0.5 + (swingRef.current / 100) * 0.25;
+                const pairTime = subdivisionTime * 2;
 
                 if (isFirstOfPair) {
-                    actualDelay += swingShift;
+                    // First note of pair: longer
+                    actualDelay = pairTime * swingRatio;
                 } else {
-                    actualDelay -= swingShift;
+                    // Second note of pair: shorter
+                    actualDelay = pairTime * (1 - swingRatio);
                 }
             }
 
@@ -244,19 +280,19 @@ const MetronomePage: React.FC = () => {
 
         switch (type) {
             case 'straight':
-                newSub = 1; newSwing = 0; newAccent = 70; name = 'Straight';
+                newSub = 1; newSwing = 0; newAccent = 50; name = 'Straight';
                 break;
             case 'light-swing':
-                newSub = 2; newSwing = 40; newAccent = 60; name = 'Light Swing';
+                newSub = 2; newSwing = 32; newAccent = 100; name = 'Light Swing';
                 break;
             case 'swing':
-                newSub = 2; newSwing = 64; newAccent = 65; name = 'Standard Swing';
+                newSub = 2; newSwing = 67; newAccent = 100; name = 'Standard Swing';
                 break;
             case 'triplet-shuffle':
-                newSub = 2; newSwing = 66; newAccent = 85; name = 'Triplet Shuffle';
+                newSub = 2; newSwing = 67; newAccent = 0; name = 'Triplet Shuffle';
                 break;
             case 'hard-shuffle':
-                newSub = 2; newSwing = 100; newAccent = 95; name = 'Hard Shuffle';
+                newSub = 2; newSwing = 100; newAccent = 0; name = 'Hard Shuffle';
                 break;
         }
 
@@ -443,7 +479,7 @@ const MetronomePage: React.FC = () => {
 
                                 <div className="swing-group">
                                     <div className="swing-header">
-                                        <label className="setting-label">Pulse Intensity (분할음 강도)</label>
+                                        <label className="setting-label">Accent Pattern (강약 패턴)</label>
                                         <span className="swing-value intensity">{swingAccent}%</span>
                                     </div>
                                     <input
@@ -458,7 +494,7 @@ const MetronomePage: React.FC = () => {
                                         }}
                                     />
                                 </div>
-                                <p className="swing-hint">Ratio는 리듬의 길이를, Intensity는 탄력을 결정합니다.</p>
+                                <p className="swing-hint">Ratio는 타이밍 비율을, Pattern은 강약 순서를 조정합니다. (0%=강약, 100%=약강)</p>
                             </div>
                         )}
                     </div>
