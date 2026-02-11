@@ -58,9 +58,9 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
     const billboardUserModal = useModal('billboardUserManagement');
     const adminFavoritesModal = useModal('adminFavorites');
     const adminSecureMembersModal = useModal('adminSecureMembers');
-    const thumbnailModal = useModal('defaultThumbnailSettings');
     const invitationModal = useModal('invitationManagement');
     const onlineUsersModal = useModal('onlineUsers');
+    const adminPushSubscribersModal = useModal('adminPushSubscribers');
     const genreWeightSettingsModal = useModal('genreWeightSettings');
     const noticeModal = useModal('globalNoticeEditor');
     const siteAnalyticsModal = useModal('siteAnalytics');
@@ -250,10 +250,6 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                                         <i className="ri-user-settings-line"></i>
                                         <span>빌보드 회원 관리</span>
                                     </div>
-                                    <div className="SD-submenuItem" onClick={() => thumbnailModal.open()}>
-                                        <i className="ri-image-line"></i>
-                                        <span>기본 썸네일 설정</span>
-                                    </div>
                                     <div className="SD-submenuItem" onClick={() => invitationModal.open()}>
                                         <i className="ri-mail-send-line"></i>
                                         <span>초대 관리</span>
@@ -265,6 +261,10 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                                     <div className="SD-submenuItem" onClick={() => onlineUsersModal.open()}>
                                         <i className="ri-user-line"></i>
                                         <span>현재 접속자</span>
+                                    </div>
+                                    <div className="SD-submenuItem" onClick={() => adminPushSubscribersModal.open()}>
+                                        <i className="ri-notification-badge-line"></i>
+                                        <span>알림 구독자 현황</span>
                                     </div>
                                     <div className="SD-submenuItem" onClick={() => noticeModal.open()}>
                                         <i className="ri-megaphone-line"></i>
