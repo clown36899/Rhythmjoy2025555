@@ -256,17 +256,16 @@
   <script>
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
-        const swUrl = '/service-worker.js?v=20260210_v39';
+        var swUrl = '/service-worker.js?v=20260212_v40';
         navigator.serviceWorker.register(swUrl)
-          .then(reg => {
-            console.log('[PWA] Service Worker registered (v39)');
+          .then(function(reg) {
+            console.log('[PWA] Service Worker registered (v40)');
 
             // SW 업데이트 감지: 새 SW가 설치되면 사용자에게 알림
-            reg.addEventListener('updatefound', () => {
-              const newWorker = reg.installing;
+            reg.addEventListener('updatefound', function() {
+              var newWorker = reg.installing;
               if (!newWorker) return;
-              newWorker.addEventListener('statechange', () => {
-                // 새 SW가 waiting 상태 = 업데이트 준비 완료
+              newWorker.addEventListener('statechange', function() {
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                   showUpdateToast(reg);
                 }
@@ -274,12 +273,26 @@
             });
 
             // 주기적 SW 업데이트 체크 (5분마다)
-            setInterval(() => reg.update(), 5 * 60 * 1000);
+            setInterval(function() { reg.update(); }, 5 * 60 * 1000);
           })
-          .catch(err => console.error('[PWA] Service Worker failed:', err));
+          .catch(function(err) { console.error('[PWA] Service Worker failed:', err); });
 
-        // 새 SW가 제어권을 가져가면 자동 리로드
-        navigator.serviceWorker.addEventListener('controllerchange', () => {
+        // SW가 SW_UPDATED 메시지를 보내면 자동 리로드 (배포 후 chunk 불일치 방지)
+        navigator.serviceWorker.addEventListener('message', function(event) {
+          if (event.data && event.data.type === 'SW_UPDATED') {
+            var lastSwReload = sessionStorage.getItem('sw_reload');
+            if (lastSwReload && Date.now() - parseInt(lastSwReload) < 10000) {
+              console.warn('[PWA] SW reload loop detected, skipping');
+              return;
+            }
+            console.log('[PWA] New SW activated, reloading for fresh assets...');
+            sessionStorage.setItem('sw_reload', Date.now().toString());
+            window.location.reload();
+          }
+        });
+
+        // 사용자가 업데이트 버튼 클릭 시 리로드
+        navigator.serviceWorker.addEventListener('controllerchange', function() {
           if (window.__SW_UPDATING) {
             window.location.reload();
           }

@@ -1,34 +1,66 @@
-// 빌보드 PWA 서비스 워커 (Version: 20260210 - V39/Chunk Error Recovery)
-const CACHE_NAME = 'rhythmjoy-cache-v39';
+// 빌보드 PWA 서비스 워커 (Version: 20260212 - V40/Stable Update)
+const CACHE_NAME = 'rhythmjoy-cache-v40';
 
 self.addEventListener('install', (event) => {
-  self.skipWaiting();
-});
-
-self.addEventListener('activate', (event) => {
-  // 캐시 삭제 완료를 보장한 후 clients.claim 실행
+  // index.html을 반드시 캐시한 후 skipWaiting (navigate fallback 보장)
   event.waitUntil(
-    caches.keys()
-      .then(keys => Promise.all(keys.map(key => caches.delete(key))))
-      .then(() => console.log('[SW] All caches cleared'))
-      .catch(err => console.warn('[SW] Cache clear failed:', err))
-      .then(() => self.clients.claim())
+    caches.open(CACHE_NAME)
+      .then(cache => cache.add('/index.html'))
+      .then(() => {
+        console.log('[SW] index.html pre-cached');
+        return self.skipWaiting();
+      })
   );
 });
 
-// Fetch 이벤트 핸들러 - 네트워크 우선, 캐시 없음 (SPA 특성상 index.html만 중요)
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys()
+      // 현재 캐시만 유지, 이전 버전 캐시만 삭제
+      .then(keys => Promise.all(
+        keys.filter(key => key !== CACHE_NAME).map(key => caches.delete(key))
+      ))
+      .then(() => console.log('[SW] Old caches cleared'))
+      .then(() => self.clients.claim())
+      .then(() => {
+        // 업데이트 완료 후 모든 클라이언트에 리로드 신호 전송
+        return self.clients.matchAll({ type: 'window' }).then(clients => {
+          clients.forEach(client => {
+            client.postMessage({ type: 'SW_UPDATED' });
+          });
+        });
+      })
+  );
+});
+
+// Fetch 이벤트 핸들러 - 네트워크 우선
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
-  // Supabase API, chrome-extension 등 외부 요청은 무시
-  if (url.hostname.includes('supabase.co') || !url.protocol.startsWith('http')) {
+
+  // 외부 요청 무시 (Supabase, chrome-extension, 다른 도메인)
+  if (!url.protocol.startsWith('http') || url.hostname !== self.location.hostname) {
     return;
   }
-  // navigate 요청(페이지 이동)은 항상 네트워크 우선 → index.html 최신 보장
+
+  // navigate 요청 → 네트워크 우선, 실패 시 캐시된 index.html
   if (event.request.mode === 'navigate') {
     event.respondWith(
-      fetch(event.request).catch(() => caches.match('/index.html'))
+      fetch(event.request)
+        .then(response => {
+          // 성공 시 index.html 캐시 갱신
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put('/index.html', clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match('/index.html'))
     );
+    return;
   }
+
+  // hashed assets (/assets/*) → 네트워크 전용, 실패 시 브라우저 기본 처리
+  // main.tsx의 handleChunkError가 404를 감지하여 리로드 처리
 });
 
 self.addEventListener('message', (event) => {
