@@ -17,7 +17,7 @@
     }
 
     .NEL-container {
-        background: var(--bg-surface-1, #121212);
+        background: var(--bg-surface-1);
         width: 100%;
         max-width: 650px;
         /* Slightly wider than DateEventsModal if needed */
@@ -27,7 +27,7 @@
         flex-direction: column;
         overflow: hidden;
         box-shadow: var(--shadow-premium);
-        border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.1));
+        border: 1px solid var(--border-glass);
         animation: nel-slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
     }
 
@@ -36,8 +36,8 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        border-bottom: 1px solid var(--border-glass-subtle, rgba(255, 255, 255, 0.05));
-        background: rgba(255, 255, 255, 0.02);
+        border-bottom: 1px solid var(--border-glass-subtle);
+        background: var(--bg-surface-glass);
     }
 
     .NEL-titleInfo {
@@ -56,8 +56,8 @@
 
     .NEL-badge {
         font-size: 0.7rem;
-        background: #3b82f6;
-        color: white;
+        background: var(--color-blue-500);
+        color: var(--text-inverse);
         padding: 2px 6px;
         border-radius: 4px;
         font-weight: 900;
@@ -73,9 +73,9 @@
     }
 
     .NEL-closeBtn {
-        background: var(--border-glass, rgba(255, 255, 255, 0.1));
+        background: var(--border-glass);
         border: none;
-        color: var(--text-primary, #ffffff);
+        color: var(--text-primary);
         width: 32px;
         height: 32px;
         border-radius: 50%;
@@ -107,14 +107,14 @@
     }
 
     .NEL-item {
-        background: var(--bg-surface-2, #1a1a1a);
+        background: var(--bg-surface-2);
         border-radius: var(--radius-xl, 16px);
         padding: var(--spacing-2, 8px);
         display: flex;
         flex-direction: column;
         gap: var(--spacing-1-5, 6px);
         cursor: pointer;
-        border: 1px solid var(--border-glass-subtle, rgba(255, 255, 255, 0.05));
+        border: 1px solid var(--border-glass-subtle);
         transition: transform 0.2s, background 0.2s;
         height: fit-content;
         min-width: 0;
@@ -130,7 +130,7 @@
         /* 신규 이벤트는 정방형이 정보 노출에 유리할 수 있음. 3/4와 비교 고민. */
         border-radius: var(--radius-md, 8px);
         overflow: hidden;
-        background: var(--bg-surface-3, #2a2a2a);
+        background: var(--bg-surface-3);
         position: relative;
     }
 

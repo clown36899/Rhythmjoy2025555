@@ -669,22 +669,17 @@ export default memo(function EventCalendar({
               style={{
                 gridColumn: `${segment.startCol + 1} / span ${segment.span}`,
                 gridRow: segment.weekRow + 1,
-                alignSelf: 'end',
-                marginBottom: `${laneOffset}px`,
-                height: `${barHeight}px`,
-                paddingLeft: '6px',
-                paddingRight: '6px',
+                '--lane-offset': `${laneOffset}px`,
+                '--bar-height': `${barHeight}px`,
                 opacity: segment.isFaded ? 0.2 : segment.isHovered ? 1 : 0.8,
                 zIndex: segment.isHovered ? 30 : 20,
-                overflow: 'hidden',
-                transition: 'all 0.2s',
-              }}
+              } as React.CSSProperties}
             >
               <span
                 className="ECAL-overlay-title"
                 style={{
-                  lineHeight: `${barHeight}px`,
-                }}
+                  lineHeight: 'var(--bar-height)',
+                } as React.CSSProperties}
               >
                 {segment.title}
               </span>
@@ -717,12 +712,9 @@ export default memo(function EventCalendar({
           onClick={(e) => handleDateClick(day, e.nativeEvent as PointerEvent)}
           className="ECAL-cell-fullscreen"
           style={{
-
-            minHeight: `${cellHeight}px`, // Restore min-height for expansion
-            height: '100%',
-            // Apply address bar buffer + safe area to the last row cells
+            '--cell-height': `${cellHeight}px`,
             paddingBottom: isLastRow ? 'calc(60px + env(safe-area-inset-bottom))' : undefined
-          }}
+          } as React.CSSProperties}
         >
           {/* 헤더: 날짜 숫자 */}
           <div className="ECAL-cell-fullscreen-header">
@@ -730,11 +722,6 @@ export default memo(function EventCalendar({
               className={`ECAL-date-number-fullscreen ${todayFlag ? "ECAL-date-number-today" : ""}`}
               style={{
                 opacity: isOtherMonth ? 0.3 : 1,
-                color: isOtherMonth ? '#6b7280' : '#e5e7eb', // gray-500 vs gray-200
-                fontSize: '12px',
-                fontWeight: 700,
-                width: todayFlag ? '20px' : undefined,
-                height: todayFlag ? '20px' : undefined,
               }}
             >
               <span style={{ marginRight: '2px' }}>{day.getDate()}</span>
@@ -769,7 +756,7 @@ export default memo(function EventCalendar({
                   }}
                 >
                   {/* 이미지 컨테이너 (순번 배지 포함) */}
-                  <div style={{ position: 'relative', width: '100%' }}>
+                  <div className="ECAL-fullscreen-image-wrapper">
                     {/* 이미지 (있으면 표시) */}
                     {thumbnailUrl ? (
                       <div className={`ECAL-fullscreen-image-container ${highlightedEventId === Number(event.id) ? 'ECAL-event-highlighted' : ''}`}>
@@ -783,7 +770,7 @@ export default memo(function EventCalendar({
                       </div>
                     ) : (
                       <div className={`ECAL-fullscreen-placeholder ${categoryColor} ${highlightedEventId === Number(event.id) ? 'ECAL-event-highlighted' : ''}`}>
-                        <span style={{ fontSize: '10px', color: 'white', fontWeight: 'bold' }}>
+                        <span className="ECAL-category-badge-text">
                           {event.title.charAt(0)}
                         </span>
                       </div>
@@ -904,10 +891,8 @@ export default memo(function EventCalendar({
               className={`ECAL-date-number ${todayFlag ? "ECAL-date-number-today" : ""}`}
               style={{
                 opacity: isOtherMonth ? 0.15 : undefined,
-                fontSize: todayFlag ? '11px' : `${dateFontSize}px`,
-                width: todayFlag ? '22px' : undefined,
-                height: todayFlag ? '22px' : undefined,
-              }}
+                '--date-font-size': `${dateFontSize}px`,
+              } as React.CSSProperties}
             >
               {day.getDate()}
             </span>
@@ -933,7 +918,6 @@ export default memo(function EventCalendar({
           {cellHeight > 55 && singleDayEvents.length > 0 && (
             <div
               className="ECAL-event-container-normal"
-              style={{ top: '28px', pointerEvents: 'none' }}
             >
               {singleDayEvents.slice(0, Math.floor((cellHeight - 30) / 16)).map((event) => {
                 const categoryColor = getEventColor(Number(event.id), event.category);
@@ -1109,15 +1093,11 @@ export default memo(function EventCalendar({
                 <div
                   className="ECAL-carousel-track"
                   style={{
-                    width: '300%',
-                    display: 'flex',
-                    transform: `translateX(calc(-33.3333% + ${externalDragOffset}px))`,
+                    '--drag-offset': `${externalDragOffset}px`,
                     transition: externalIsAnimating
                       ? "transform 0.3s ease-out"
                       : "none",
-                    height: '100%',
-                    minHeight: '100%'
-                  }}
+                  } as React.CSSProperties}
                 >
                   {/* 이전 달 */}
                   <div
@@ -1145,7 +1125,6 @@ export default memo(function EventCalendar({
                   <div
                     key={`${currentMonth.getFullYear()}-${currentMonth.getMonth()}`}
                     className="ECAL-month-slide"
-                    style={{ width: "33.3333%" }}
                   >
                     <div
                       className="ECAL-grid-container"
@@ -1167,7 +1146,6 @@ export default memo(function EventCalendar({
                   <div
                     key={`${nextMonth.getFullYear()}-${nextMonth.getMonth()}`}
                     className="ECAL-month-slide"
-                    style={{ width: "33.3333%" }}
                   >
                     <div
                       className="ECAL-grid-container"

@@ -52,7 +52,7 @@ const RegistrationChoiceModal: React.FC<RegistrationChoiceModalProps> = ({
                             <span className="choice-label">행사 ∙ 외강 ∙ 동호회강습 등록</span>
                             <span className="choice-desc">행사, 파티, 강습 등</span>
                         </div>
-                        <i className="ri-arrow-right-s-line" style={{ color: '#6b7280' }}></i>
+                        <i className="ri-arrow-right-s-line"></i>
                     </button>
 
                     <button className="choice-option-btn social" onClick={handleSocialSelect}>
@@ -63,7 +63,7 @@ const RegistrationChoiceModal: React.FC<RegistrationChoiceModalProps> = ({
                             <span className="choice-label">소셜 일정 등록</span>
                             <span className="choice-desc">DJ 명 필수</span>
                         </div>
-                        <i className="ri-arrow-right-s-line" style={{ color: '#6b7280' }}></i>
+                        <i className="ri-arrow-right-s-line"></i>
                     </button>
 
                     <button className="choice-option-btn public" onClick={handlePublicSelect}>

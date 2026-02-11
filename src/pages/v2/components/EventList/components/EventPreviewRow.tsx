@@ -53,7 +53,7 @@ export const EventPreviewRow: React.FC<EventPreviewRowProps> = ({
         <div className={`ELS-section ${className}`}>
             <div className="ELS-header">
                 <div className="ELS-titleGroup">
-                    {icon && <i className={`${icon} ELS-icon`} style={{ color: iconColor }}></i>}
+                    {icon && <i className={`${icon} ELS-icon`} style={{ '--els-icon-color': iconColor } as React.CSSProperties}></i>}
                     <span className="ELS-title">{title}</span>
                     {count !== undefined && <span className="ELS-countBadge">{count}</span>}
                     {rightElement}

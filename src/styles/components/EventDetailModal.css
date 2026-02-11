@@ -349,24 +349,29 @@
 
     .EDM-favoriteBtn {
         position: absolute;
-        /* Position and size are handled by inline styles in EDM for flexible layout */
+        bottom: -14px;
+        left: 0px;
+        width: 72px;
+        height: 72px;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
-        border-radius: var(--radius-full);
-        z-index: var(--z-elevate);
-        color: var(--text-inverse);
-        /* Force white for visibility over images */
-        transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        filter: drop-shadow(0 0 4px var(--bg-overlay));
-        /* Strong drop shadow for visibility on white bg */
+        border: none;
+        background: transparent;
+        z-index: 100;
+        color: var(--color-white);
+        transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
-    .EDM-favoriteBtn.is-active {
-        color: var(--color-red-500);
-        text-shadow: 0 0 8px rgba(239, 68, 68, 0.3);
-        /* Glassy glow */
+    .EDM-favoriteBtn i {
+        font-size: 40px;
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+    }
+
+    .EDM-favoriteBtn.is-active i {
+        color: var(--color-amber-400);
+        animation: edm-starPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     }
 
     /* Info Column Wrapper */

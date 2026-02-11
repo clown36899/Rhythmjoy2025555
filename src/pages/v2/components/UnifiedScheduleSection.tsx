@@ -167,26 +167,15 @@ export const UnifiedScheduleSection: React.FC<UnifiedScheduleSectionProps> = ({
                     )}
                 </div>
                 <button
-                    className="manual-label-wrapper"
+                    className="USS-viewAllBtn manual-label-wrapper"
                     onClick={() => {
-                        // "소셜 탭이 선택된 상태로 바로가야한다" -> /calendar?category=social
-                        // CalendarPage.tsx handles scrollToToday=true to scroll to today
                         navigate('/calendar?category=social&scrollToToday=true');
-                    }}
-                    style={{
-                        marginLeft: 'auto',
-                        background: 'transparent',
-                        border: 'none',
-                        color: 'rgba(255, 255, 255, 0.5)',
-                        fontSize: '0.8rem',
-                        cursor: 'pointer',
-                        padding: '4px'
                     }}
                 >
                     <span className="translated-part">View All</span>
                     <span className="fixed-part ko" translate="no">전체보기</span>
                     <span className="fixed-part en" translate="no">All</span>
-                    <span style={{ marginLeft: 'min(0.5vw, 4px)' }}>❯</span>
+                    <i className="ri-arrow-right-s-line USS-navIcon"></i>
                 </button>
             </div>
 

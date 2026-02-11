@@ -26,6 +26,29 @@
         border: 1px solid var(--border-glass-strong);
     }
 
+    .USS-viewAllBtn {
+        margin-left: auto;
+        background: transparent;
+        border: none;
+        color: var(--text-tertiary);
+        font-size: 0.8rem;
+        font-weight: 600;
+        cursor: pointer;
+        padding: 4px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        transition: color 0.2s;
+    }
+
+    .USS-viewAllBtn:hover {
+        color: var(--text-secondary);
+    }
+
+    .USS-navIcon {
+        font-size: 0.9rem;
+    }
+
     .USS-tabItem {
         cursor: pointer;
         padding: 2px 6px;

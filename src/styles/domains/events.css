@@ -4,6 +4,15 @@
    Shared Event Utilities & Categories
    ========================================================================== */
 
+.home-container {
+    width: 100%;
+    min-height: 100svh;
+    background-color: var(--bg-deep);
+    position: relative;
+    padding-bottom: 80px;
+    touch-action: pan-y;
+}
+
 /* Category Colors (Global within events.css scope) */
 .cat-bg-social {
     background-color: var(--color-rose-500) !important;
@@ -67,8 +76,32 @@
 
     .ELS-icon {
         font-size: 1.4rem;
-        /* Restored from legacy 1.4rem */
-        color: var(--text-tertiary);
+        color: var(--els-icon-color, var(--text-tertiary));
+    }
+
+    /* Section-specific icon colors (Semantic) */
+    :scope.ELS-section--favorites {
+        --els-icon-color: var(--color-yellow-400);
+    }
+
+    :scope.ELS-section--upcoming {
+        --els-icon-color: var(--color-orange-500);
+    }
+
+    :scope.ELS-section--global {
+        --els-icon-color: var(--color-blue-400);
+    }
+
+    :scope.ELS-section--classes {
+        --els-icon-color: var(--color-green-500);
+    }
+
+    :scope.ELS-section--club-lessons {
+        --els-icon-color: var(--color-gray-400);
+    }
+
+    :scope.ELS-section--club-regular {
+        --els-icon-color: var(--color-gray-500);
     }
 
     .ELS-countBadge {
@@ -280,8 +313,93 @@
     .ELS-grid {
         display: grid;
         grid-template-columns: repeat(5, 1fr);
-        gap: 6px;
+        gap: 10px;
+        padding: 0;
+    }
+
+    .ELS-gridContainer {
         padding: 0 8px;
+    }
+
+    .ELS-subHeader {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0 16px;
+        margin-bottom: 12px;
+        margin-top: 1rem;
+    }
+
+    .ELS-subHeader--large {
+        margin-top: 32px;
+    }
+
+    .ELS-subTitle {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text-tertiary);
+        margin: 0;
+        display: flex;
+        align-items: center;
+    }
+
+    .ELS-subTitle .ELS-countBadge {
+        margin-left: 6px;
+        top: 0;
+    }
+
+    /* Grid Banner Styles (New) */
+    .ELS-banner-card {
+        aspect-ratio: 1 / 1;
+        background: var(--bg-surface-2);
+        border: 2px dashed var(--border-glass);
+        border-radius: var(--radius-lg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .ELS-banner-card:hover {
+        background: var(--bg-surface-3);
+        border-color: var(--color-blue-500);
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .ELS-banner-card--primary {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%);
+        border-style: solid;
+        border-color: rgba(59, 130, 246, 0.3);
+    }
+
+    .ELS-banner-card--primary:hover {
+        border-color: var(--color-blue-400);
+    }
+
+    .ELS-banner-icon {
+        font-size: 2rem;
+        color: var(--text-tertiary);
+        transition: transform 0.2s ease;
+    }
+
+    .ELS-banner-card:hover .ELS-banner-icon {
+        color: var(--color-blue-500);
+        transform: scale(1.1);
+    }
+
+    .ELS-banner-label {
+        position: absolute;
+        bottom: 12px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text-secondary);
     }
 
     @media (max-width: 768px) {
@@ -307,6 +425,11 @@
         .ELS-title {
             font-size: 1.15rem;
         }
+    }
+
+    .ELS-banner-wrapper {
+        padding: 0 16px;
+        margin-top: 10px;
     }
 }
 

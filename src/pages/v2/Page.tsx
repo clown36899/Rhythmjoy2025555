@@ -253,7 +253,7 @@ export default function HomePageV2() {
     // 렌더링
     // --------------------------------------------------------------------------------
     return (
-        <div ref={containerRef} className="home-container" style={{ touchAction: "pan-y", minHeight: '100svh' }}>
+        <div ref={containerRef} className="home-container">
             <div className="home-main" ref={eventListElementRef}>
                 {/* Floating Side Stats Tab */}
                 <div className="stats-side-tab" onClick={async () => {

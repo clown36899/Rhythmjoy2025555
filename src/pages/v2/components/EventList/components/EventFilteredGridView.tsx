@@ -31,68 +31,61 @@ export function EventFilteredGridView({
     currentMonth
 }: EventFilteredGridViewProps) {
     return (
-        <div className="event-list-search-container evt-single-view-scroll evt-list-bg-container evt-single-view-container">
-            <div className="evt-grid-3-4-10">
-                {/* '전체 일정 보기' 배너 */}
-                {(selectedDate || (selectedCategory && selectedCategory !== 'all' && selectedCategory !== 'none')) && (
+        <div className="ELS-section evt-favorites-view-container">
+            <div className="ELS-gridContainer">
+                <div className="ELS-grid">
+                    {/* '전체 일정 보기' 배너 */}
+                    {(selectedDate || (selectedCategory && selectedCategory !== 'all' && selectedCategory !== 'none')) && (
+                        <div
+                            onClick={() => window.dispatchEvent(new CustomEvent('clearAllFilters'))}
+                            className="ELS-banner-card ELS-banner-card--primary"
+                            title="전체 일정 보기"
+                        >
+                            <i className="ri-arrow-go-back-line ELS-banner-icon"></i>
+                            <span className="ELS-banner-label">전체 일정 보기</span>
+                        </div>
+                    )}
+
+                    {sortedEvents.map((event) => (
+                        <EventCard
+                            key={event.id}
+                            event={event}
+                            onClick={() => onEventClick(event)}
+                            onMouseEnter={onEventHover}
+                            onMouseLeave={() => onEventHover?.(null)}
+                            isHighlighted={highlightEvent?.id === event.id}
+                            selectedDate={selectedDate}
+                            defaultThumbnailClass={defaultThumbnailClass}
+                            defaultThumbnailEvent={defaultThumbnailEvent}
+                            isFavorite={effectiveFavoriteIds.has(event.id)}
+                            onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
+                        />
+                    ))}
+
+                    {/* 등록 버튼 배너 */}
                     <div
-                        onClick={() => window.dispatchEvent(new CustomEvent('clearAllFilters'))}
-                        className="evt-cursor-pointer"
-                        title="전체 일정 보기"
+                        onClick={() => {
+                            const monthDate = currentMonth || new Date();
+                            const firstDayOfMonth = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
+                            window.dispatchEvent(new CustomEvent('createEventForDate', {
+                                detail: { source: 'banner', monthIso: firstDayOfMonth.toISOString() }
+                            }));
+                        }}
+                        className="ELS-banner-card"
                     >
-                        <div className="evt-add-banner-legacy evt-radius-sm">
-                            <div className="evt-icon-absolute-center">
-                                <i className="ri-arrow-go-back-line event-list-view-all-icon"></i>
-                                <span className="event-list-view-all-text">전체 일정 보기</span>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {sortedEvents.map((event) => (
-                    <EventCard
-                        key={event.id}
-                        event={event}
-                        onClick={() => onEventClick(event)}
-                        onMouseEnter={onEventHover}
-                        onMouseLeave={() => onEventHover?.(null)}
-                        isHighlighted={highlightEvent?.id === event.id}
-                        selectedDate={selectedDate}
-                        defaultThumbnailClass={defaultThumbnailClass}
-                        defaultThumbnailEvent={defaultThumbnailEvent}
-                        isFavorite={effectiveFavoriteIds.has(event.id)}
-                        onToggleFavorite={(e) => handleToggleFavorite(event.id, e)}
-                    />
-                ))}
-
-                {/* 등록 버튼 배너 */}
-                <div
-                    onClick={() => {
-                        const monthDate = currentMonth || new Date();
-                        const firstDayOfMonth = new Date(monthDate.getFullYear(), monthDate.getMonth(), 1);
-                        window.dispatchEvent(new CustomEvent('createEventForDate', {
-                            detail: { source: 'banner', monthIso: firstDayOfMonth.toISOString() }
-                        }));
-                    }}
-                    className="evt-cursor-pointer"
-                >
-                    <div className="evt-add-banner-card">
-                        <div className="evt-add-banner-icon">
-                            <i className="ri-add-line event-list-add-icon"></i>
-                        </div>
+                        <i className="ri-add-line ELS-banner-icon"></i>
+                        <span className="ELS-banner-label">새 일정 등록</span>
                     </div>
                 </div>
             </div>
 
             {sortedEvents.length === 0 && (
-                <div className="event-list-empty-container">
-                    <p className="event-list-empty-text">
-                        {selectedDate && selectedCategory === "class"
-                            ? "강습이 없습니다"
-                            : selectedDate && selectedCategory === "event"
-                                ? "행사가 없습니다"
-                                : "해당 조건에 맞는 이벤트가 없습니다"}
-                    </p>
+                <div className="ELS-empty">
+                    {selectedDate && selectedCategory === "class"
+                        ? "강습이 없습니다"
+                        : selectedDate && selectedCategory === "event"
+                            ? "행사가 없습니다"
+                            : "해당 조건에 맞는 이벤트가 없습니다"}
                 </div>
             )}
             <Footer />

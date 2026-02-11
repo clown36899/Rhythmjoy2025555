@@ -18,7 +18,7 @@
 
 .NEB-icon {
     font-size: 1.25rem;
-    color: #fbbf24;
+    color: var(--color-amber-400);
 }
 
 .NEB-title {
@@ -29,7 +29,7 @@
 }
 
 .NEB-badge {
-    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+    background: linear-gradient(135deg, var(--color-amber-400) 0%, var(--color-amber-500) 100%);
     color: var(--text-inverse);
     font-size: 0.65rem;
     font-weight: 700;
@@ -39,9 +39,9 @@
 }
 
 .NEB-infoBtn {
-    background: rgba(59, 130, 246, 0.2);
-    border: 1px solid rgba(59, 130, 246, 0.4);
-    color: #60a5fa;
+    background: var(--bg-surface-glass);
+    border: 1px solid var(--border-glass);
+    color: var(--color-blue-400);
     width: 20px;
     height: 20px;
     border-radius: 50%;
@@ -55,9 +55,9 @@
 }
 
 .NEB-infoBtn:hover {
-    background: rgba(59, 130, 246, 0.3);
-    border-color: rgba(59, 130, 246, 0.6);
-    color: #93c5fd;
+    background: var(--bg-hover);
+    border-color: var(--color-blue-400);
+    color: var(--color-blue-400);
     transform: scale(1.1);
 }
 
@@ -110,6 +110,7 @@
 .NEB-track {
     display: flex;
     transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateX(var(--neb-offset, 0%));
 }
 
 .NEB-slide {
@@ -143,13 +144,14 @@
     left: 0;
     right: 0;
     padding: 24px;
-    z-index: 1;
+    z-index: 5;
+    /* mini-thumbnail 보다는 위에 있어야 함 */
     color: var(--color-white);
 }
 
 .NEB-category {
     display: inline-block;
-    background: rgba(59, 130, 246, 0.9);
+    background: var(--color-blue-500);
     color: var(--color-white);
     font-size: 0.75rem;
     font-weight: 600;
@@ -160,7 +162,7 @@
 
 .NEB-genre {
     font-size: 0.85rem;
-    color: #fbbf24;
+    color: var(--color-amber-400);
     font-weight: 600;
     margin-bottom: 6px;
 }
@@ -170,7 +172,7 @@
     font-weight: 700;
     margin: 0 0 12px 0;
     line-height: 1.3;
-    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    text-shadow: 0 2px 12px rgba(0, 0, 0, 1);
 }
 
 .NEB-info {
@@ -178,13 +180,14 @@
     align-items: center;
     gap: 6px;
     font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.9);
+    color: var(--color-white);
     margin-bottom: 6px;
+    opacity: 0.95;
 }
 
 .NEB-info i {
     font-size: 1rem;
-    color: #fbbf24;
+    color: var(--color-amber-400);
 }
 
 .NEB-navBtn {
@@ -235,62 +238,188 @@
     right: 16px;
 }
 
+/* 유실된 Mini Thumbnail 스타일 복구 */
+.NEB-mini-thumbnail {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    width: 80px;
+    /* 기존 60px에서 사용자 피드백 반영 확대 */
+    height: auto;
+    aspect-ratio: 3 / 4;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 2px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.6);
+    z-index: 2;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.NEB-mini-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.NEB-slide:hover .NEB-mini-thumbnail {
+    transform: scale(1.05) translateY(-5px);
+    border-color: var(--color-white);
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.7);
+}
+
+/* Indicators 스타일 복원 */
 .NEB-indicators {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
     display: flex;
-    justify-content: center;
     gap: 8px;
-    padding: 12px 0 0 0;
+    z-index: 10;
 }
 
 .NEB-indicator {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: var(--bg-surface-3);
-    border: none;
-    cursor: pointer;
-    transition: all 0.3s;
+    background: rgba(255, 255, 255, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     padding: 0;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.NEB-indicator:hover {
+    background: rgba(255, 255, 255, 0.5);
 }
 
 .NEB-indicator.is-active {
-    background: #fbbf24;
     width: 24px;
     border-radius: 4px;
+    background: var(--color-white);
+    box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 }
 
-/* 반응형 */
-@media (max-width: 640px) {
-    .NEB-eventTitle {
-        font-size: 1.2rem;
-    }
-
-    .NEB-content {
-        padding: 16px;
-    }
-
-    .NEB-navBtn i {
-        font-size: 1.4rem;
-    }
+/* 안내 모달 스타일 */
+.NEB-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(8px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: NEB-fadeIn 0.25s ease-out;
 }
 
-/* Mini Thumbnail for Full Image Preview */
-.NEB-mini-thumbnail {
-    position: absolute;
-    top: 12px;
-    right: 28px;
-    width: clamp(89px, 20vw, 200px);
-    aspect-ratio: 3 / 4;
-    border-radius: 6px;
-    overflow: hidden;
-    z-index: 5;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-    background: #000;
-}
-
-.NEB-mini-image {
+.NEB-modal {
+    background: var(--bg-surface-1);
+    border: 1px solid var(--border-glass);
+    border-radius: 20px;
+    padding: 28px;
     width: 100%;
-    height: 100%;
-    object-fit: contain;
+    max-width: 340px;
+    box-shadow: var(--shadow-2xl);
+    text-align: center;
+    animation: NEB-slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.NEB-modal-title {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 18px;
+}
+
+.NEB-modal-content {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 24px;
+    text-align: left;
+}
+
+.NEB-highlight {
+    color: var(--color-blue-400);
+    font-weight: 700;
+    margin-bottom: 12px;
+    text-align: center;
+    background: rgba(59, 130, 246, 0.1);
+    padding: 8px;
+    border-radius: 8px;
+}
+
+.NEB-modal-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    background: var(--bg-surface-2);
+    border-radius: 12px;
+    padding: 16px;
+    border: 1px solid var(--border-glass);
+}
+
+.NEB-modal-list li {
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.82rem;
+    color: var(--text-tertiary);
+}
+
+.NEB-modal-list li:last-child {
+    margin-bottom: 0;
+}
+
+.NEB-modal-list i {
+    color: var(--color-blue-500);
+    font-size: 1rem;
+}
+
+.NEB-modal-close {
+    background: var(--color-blue-600);
+    color: var(--color-white);
+    border: none;
+    padding: 12px 0;
+    width: 100%;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.NEB-modal-close:hover {
+    background: var(--color-blue-500);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
+}
+
+@keyframes NEB-fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes NEB-slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
