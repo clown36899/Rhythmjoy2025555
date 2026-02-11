@@ -55,7 +55,7 @@ export default memo(function FullEventCalendar({
   const [yearRangeBase, setYearRangeBase] = useState(new Date().getFullYear());
 
   // React Query 통합: 수동 fetch 대신 훅 사용
-  const { data: calendarData, refetch: refetchCalendarData } = useCalendarEventsQuery(currentMonth);
+  const { data: calendarData, refetch: refetchCalendarData, isLoading } = useCalendarEventsQuery(currentMonth);
 
   // 쿼리 데이터와 연동
   useEffect(() => {
@@ -306,33 +306,29 @@ export default memo(function FullEventCalendar({
   }, [refetchCalendarData]);
 
   // 데이터 로딩 완료 및 렌더링 시점 감지
-  useEffect(() => {
-    // 이벤트나 소셜 스케줄이 로드된 후 부모에게 알림
-    // 빈 배열이라도 로딩이 끝났으면 호출해야 함 (fetchEvents가 실행된 후)
-    if (onDataLoaded) {
-      // 렌더링 사이클을 놓치지 않도록 약간의 지연
-      const timer = setTimeout(() => {
+  useLayoutEffect(() => {
+    // isLoading이 false이고, 데이터가 존재하며, 높이가 계산되었을 때 알림
+    if (onDataLoaded && !isLoading && calendarData && containerHeight) {
+      // requestAnimationFrame을 사용하여 브라우저가 레이아웃을 마친 후 호출
+      requestAnimationFrame(() => {
         onDataLoaded();
-      }, 50);
-      return () => clearTimeout(timer);
+      });
     }
-  }, [events, socialSchedules, onDataLoaded]);
+  }, [isLoading, calendarData, containerHeight, onDataLoaded]);
 
-  // 하이라이트된 이벤트로 스크롤
+  // 하이라이트된 이벤트로 스크롤 (setTimeout 대신 RAF 사용 검토 가능하나 일단 유지/최적화)
   useEffect(() => {
     if (highlightedEventId) {
-      setTimeout(() => {
+      requestAnimationFrame(() => {
         const eventCard = document.querySelector(`[data-event-id="${highlightedEventId}"]`);
-
         if (eventCard) {
-          // Try simple scrollIntoView first
           eventCard.scrollIntoView({
             behavior: 'smooth',
             block: 'center',
             inline: 'nearest'
           });
         }
-      }, 300);
+      });
     }
   }, [highlightedEventId]);
 

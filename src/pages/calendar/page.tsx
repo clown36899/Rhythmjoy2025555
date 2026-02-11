@@ -99,12 +99,12 @@ export default function CalendarPage() {
     const userInteractedRef = useRef(false);
     const mountTimeRef = useRef(Date.now());
     useEffect(() => {
-        const handleInteraction = () => {
-            // [Fix] 페이지 진입 시의 클릭(메뉴 클릭 등)이 오감지되지 않도록 500ms 유예
-            if (Date.now() - mountTimeRef.current < 500) return;
+        const handleInteraction = (e: Event) => {
+            // [Fix] 페이지 진입 시의 클릭/전환 지연을 고려해 유예 시간을 2초로 연장
+            if (Date.now() - mountTimeRef.current < 2000) return;
 
             if (!userInteractedRef.current) {
-                console.log('👤 [캘린더] 사용자 조작 감지됨 (자동 보정 중단)');
+                console.log(`👤 [캘린더] 사용자 조작 감지됨 (${e.type}) - 자동 보정 중단`);
                 userInteractedRef.current = true;
             }
         };
@@ -209,31 +209,50 @@ export default function CalendarPage() {
 
             console.log(`📍 [캘린더] WINDOW 스크롤 실행 -> 목표: ${Math.round(offsetPosition)} (현재요소top: ${Math.round(rect.top)}, 오프셋: ${stickyHeaderOffset}, 문서전체높이: ${document.documentElement.scrollHeight})`);
 
-            // [Fix] 시각적으로 스크롤되는 걸 보여주기 위해 100ms 지연 후 이동 시작
-            setTimeout(() => {
-                if (userInteractedRef.current) return;
-                window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
-            }, 100);
-
-            // 확인 사살 (0.8초 뒤 위치 확인 - Smooth Scroll 애니메이션 및 레이아웃 요동 고려)
-            setTimeout(() => {
-                // 사용자가 이미 직접 스크롤을 시작했다면 시스템이 개입하지 않음
-                if (userInteractedRef.current) {
-                    console.log('💡 [캘린더] 사용자 조작이 감지되어 자동 스크롤 보정을 중단합니다.');
-                    return;
-                }
-
-                const currentY = Math.round(window.scrollY);
-                console.log(`📍 [캘린더] 스크롤 결과 확인 -> 현재: ${currentY}, 목표: ${Math.round(offsetPosition)}, 문서전체높이: ${document.documentElement.scrollHeight}`);
-
-                if (Math.abs(currentY - offsetPosition) > 50) {
-                    // 목표에 도달하지 않았는데 스크롤이 0이거나 문서 높이가 크게 변했다면(브라우저 리셋) 최종 보정
-                    if (currentY === 0 || Math.abs(currentY - offsetPosition) > 100) {
-                        console.log(`⚠️ [캘린더] 스크롤 위치 어긋남 감지. 최종 보정합니다.`);
-                        window.scrollTo({ top: offsetPosition, behavior: 'auto' });
+            // [Fix] setTimeout 대신 더블 RAF 사용하여 브라우저 레이아웃/페인트 직후 실행
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    if (userInteractedRef.current) {
+                        console.log(`💡 [캘린더] 사용자 조작 감지됨 (${userInteractedRef.current}) - 스크롤 취소`);
+                        return;
                     }
-                }
-            }, 800);
+
+                    // [Fix] 문서 전체 높이가 스크롤 목표보다 작으면 스크롤이 무시됨. 
+                    // 임시로 높이를 확보하여 스크롤 공간 마련
+                    const currentHeight = document.documentElement.scrollHeight;
+                    const requiredHeight = offsetPosition + window.innerHeight + 100;
+
+                    if (currentHeight < requiredHeight) {
+                        console.log(`📏 [캘린더] 문서 높이 부족(${currentHeight} < ${Math.round(requiredHeight)}). 임시 높이 할당.`);
+                        document.body.style.minHeight = `${Math.round(requiredHeight)}px`;
+                    }
+
+                    // 레이아웃 강제 플러시
+                    void document.body.offsetHeight;
+
+                    window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+
+                    // [Add] 위치 보정 및 높이 복구
+                    setTimeout(() => {
+                        if (!userInteractedRef.current) {
+                            const currentY = window.scrollY;
+                            if (Math.abs(currentY - offsetPosition) > 50) {
+                                console.log(`⚠️ [캘린더] 스크롤 미달 감지 (현재:${currentY}, 목표:${Math.round(offsetPosition)}). 최종 보정 실행.`);
+                                window.scrollTo({ top: offsetPosition, behavior: 'auto' });
+                            }
+                        }
+                        // 임시 높이 제거
+                        document.body.style.minHeight = '';
+                    }, 800);
+
+                    // 성공 시 URL 정리
+                    const urlParams = new URLSearchParams(window.location.search);
+                    if (urlParams.get('scrollToToday') === 'true') {
+                        const newUrl = window.location.pathname + window.location.search.replace(/[&?]scrollToToday=true/, '');
+                        window.history.replaceState({}, '', newUrl);
+                    }
+                });
+            });
 
         } else {
             const parentEl = scrollParent as HTMLElement;
@@ -249,52 +268,25 @@ export default function CalendarPage() {
         return true; // 성공
     }, [currentMonth]);
 
-    const [isNavigatingToToday, setIsNavigatingToToday] = useState(false);
+    // [Fix] State 대신 Ref를 사용하여 렌더링 사이클 지연으로 인한 스크롤 무시 방지
+    const shouldScrollToTodayRef = useRef(false);
 
-    // 월 변경 등 렌더링 후 스크롤 로직 실행 (MutationObserver 활용)
+    // 초기 상태 설정
     useEffect(() => {
-        console.log(`[캘린더] 상태 체크 -> 오늘날짜이동중?: ${isNavigatingToToday}`);
-        if (isNavigatingToToday) {
-            console.log('[캘린더] 즉시 스크롤 보류. 화면 변경(Mutation) 대기 중...');
-
-            // 2. 없으면 DOM 변경 감지 (렌더링 대기)
-            const observer = new MutationObserver((mutations) => {
-                console.log('[캘린더] 화면 변경 감지! 변경 수:', mutations.length);
-                mutations.slice(0, 3).forEach(m => console.log('  -> 변경 타입:', m.type, m.attributeName, (m.target as Element).className));
-
-                // RAF로 한 프레임 지연 실행하여 페인팅 후 스크롤
-                requestAnimationFrame(() => {
-                    if (handleScrollToToday()) {
-                        console.log('[캘린더] 화면 감지 후 스크롤 성공! 감시 종료.');
-                        setIsNavigatingToToday(false);
-                        observer.disconnect();
-                        // 성공 시 URL 정리
-                        const urlParams = new URLSearchParams(window.location.search);
-                        if (urlParams.get('scrollToToday') === 'true') {
-                            const newUrl = window.location.pathname + window.location.search.replace(/[&?]scrollToToday=true/, '');
-                            window.history.replaceState({}, '', newUrl);
-                        }
-                    }
-                });
-            });
-
-            observer.observe(document.body, {
-                childList: true,
-                subtree: true,
-                attributes: true, // 속성 변경 감지 추가
-                attributeFilter: ['data-active-month', 'class'] // 감지할 속성 필터링
-            });
-
-            return () => {
-                console.log('[캘린더] 감시 종료 (Cleanup).');
-                observer.disconnect();
-            };
+        const today = new Date();
+        const isSameMonth = currentMonth.getFullYear() === today.getFullYear() &&
+            currentMonth.getMonth() === today.getMonth();
+        if (isSameMonth) {
+            shouldScrollToTodayRef.current = true;
         }
-    }, [currentMonth, isNavigatingToToday, handleScrollToToday]);
+    }, []); // 마운트 시 최초 1회만
+
+    // 월 변경 등 렌더링 후 스크롤 로직 실행 (MutationObserver 제거됨)
+    // 부모인 CalendarPage에서는 전역적인 상태 감시보다는 FullEventCalendar의 알림에 의존합니다.
 
     // [Smart Scroll] 달력 진입 및 달 이동 시 상황별 스크롤 분기
     useEffect(() => {
-        // [Add] 달이 바뀌면 이전의 사용자 조작 기록을 초기화 (스와이프 제스처가 다음 달 스크롤 보정을 막지 않도록)
+        // [Add] 달이 바뀌면 이전의 사용자 조작 기록을 초기화
         userInteractedRef.current = false;
 
         // 오늘 날짜 정보
@@ -305,15 +297,12 @@ export default function CalendarPage() {
         console.log(`[캘린더] 월 이동 감지 -> 현재: ${currentMonth.getMonth() + 1}월, 오늘: ${today.getMonth() + 1}월, 같은달?: ${isSameMonth}`);
 
         if (isSameMonth) {
-            // 1. 이번 달로 이동한 경우 (진입 포함) -> 오늘 날짜 위치로 이동 준비
-            console.log('[캘린더] 이번 달이므로 오늘 날짜 위치로 스크롤 준비...');
-            setIsNavigatingToToday(true);
+            // 이번 달로 이동한 경우 -> 스크롤 예약
+            shouldScrollToTodayRef.current = true;
         } else {
-            // 2. 다른 달로 이동한 경우 -> 페이지 최상단(0)으로 즉시 이동
-            console.log('[캘린더] 다른 달이므로 페이지 최상단(0)으로 이동합니다.');
+            // 다른 달로 이동한 경우 -> 페이지 최상단(0)으로 즉시 이동
+            shouldScrollToTodayRef.current = false;
             window.scrollTo({ top: 0, behavior: 'instant' });
-            // 이동 중일 수도 있으니 플래그는 꺼둠
-            setIsNavigatingToToday(false);
         }
     }, [currentMonth]);
 
@@ -462,9 +451,9 @@ export default function CalendarPage() {
                 // 같은 달이면 즉시 위치 이동
                 handleScrollToToday();
             } else {
+                // 다른 달이면 이동 예약 후 월 변경
+                shouldScrollToTodayRef.current = true;
                 handleMonthChange(today);
-                // 다른 달이면 렌더링 대기 후 이동 (Observer가 감지)
-                setIsNavigatingToToday(true);
             }
         };
 
@@ -590,9 +579,11 @@ export default function CalendarPage() {
                     onDateSelect={handleDateSelect}
                     onMonthChange={handleMonthChange}
                     onDataLoaded={() => {
-                        console.log('📡 [CalendarPage] Validating data loaded signal.');
-                        // [Fix] Removed setTimeout to prevent race conditions.
-                        // MutationObserver (in useEffect) will handle scrolling once DOM is ready.
+                        console.log('📡 [CalendarPage] Data and Layout ready.');
+                        if (shouldScrollToTodayRef.current) {
+                            handleScrollToToday();
+                            shouldScrollToTodayRef.current = false;
+                        }
                     }}
                     viewMode={viewMode}
                     onViewModeChange={setViewMode}
