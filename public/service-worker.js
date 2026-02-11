@@ -1,5 +1,5 @@
-// 빌보드 PWA 서비스 워커 (Version: 20260212 - V40/Stable Update)
-const CACHE_NAME = 'rhythmjoy-cache-v40';
+// 빌보드 PWA 서비스 워커 (Version: 20260212 - V41/Badge Lifecycle Fix)
+const CACHE_NAME = 'rhythmjoy-cache-v41';
 
 self.addEventListener('install', (event) => {
   // index.html을 반드시 캐시한 후 skipWaiting (navigate fallback 보장)
@@ -192,30 +192,33 @@ self.addEventListener('push', (event) => {
     }
   }
 
-  // [Feature] DB에 알림 저장
+  // [Feature] DB 저장 및 알림/배지 표시 통합 제어
   event.waitUntil((async () => {
-    const dbId = await saveToDB(notificationData);
+    try {
+      const dbId = await saveToDB(notificationData);
 
-    // 알림 표시 (표시 시점에 DB ID를 데이터에 포함)
-    await self.registration.showNotification(notificationData.title, {
-      body: notificationData.body,
-      icon: notificationData.icon,
-      image: notificationData.image, // [NEW] 큰 이미지 표시
-      badge: notificationData.badge,
-      tag: notificationData.tag,
-      data: { ...notificationData.data, dbId: dbId }, // DB ID 추가
-      vibrate: [200, 100, 200],
-      requireInteraction: true,
-      silent: false,
-      renotify: true
-    });
+      // 1. 알림 표시 (DB ID 포함)
+      await self.registration.showNotification(notificationData.title, {
+        body: notificationData.body,
+        icon: notificationData.icon,
+        image: notificationData.image,
+        badge: notificationData.badge,
+        tag: notificationData.tag,
+        data: { ...notificationData.data, dbId: dbId },
+        vibrate: [200, 100, 200],
+        requireInteraction: true,
+        silent: false,
+        renotify: true
+      });
+
+      // 2. 앱 배지 설정
+      if (navigator.setAppBadge) {
+        await navigator.setAppBadge(1);
+      }
+    } catch (err) {
+      console.error('[SW] Push processing failed:', err);
+    }
   })());
-
-  // [Feature] 앱 아이콘 배지 설정 (Native Badging API)
-  if (navigator.setAppBadge) {
-    // 숫자를 1로 설정 (단순 알림 'ON' 의미)
-    navigator.setAppBadge(1).catch(e => console.error('[SW] Badge Error:', e));
-  }
 
   // [Debug] 창에 메시지 보내기 (Admin 테스트용)
   self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clients => {

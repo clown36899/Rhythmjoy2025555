@@ -192,12 +192,6 @@ function AppContent() {
     // C. 유저 상호작용(터치/클릭) 시 즉시 청소 (제스처 요구사항 대응 & 확실한 트리거)
     const handleInteraction = () => {
       clearNotifications();
-      // 한 번 청소하면 리스너 제거 (불필요한 호출 방지) 
-      // 다만, 사용자가 알림을 늦게 받을 수도 있으므로 완전 제거보다는 
-      // 잦은 호출 방지용 디바운스가 낫지만, 여기선 "앱 진입 후 첫 동작"에 집중.
-      // 하지만 앱 사용 중에도 알림이 올 수 있으므로 제거하지 않는 게 나을 수도?
-      // -> 아니오, 앱 사용중엔 포그라운드 알림이 오지 않거나 무시됨. 
-      // 배지 클리어는 "확인했다"는 의미이므로 계속 유지해도 무방함.
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);

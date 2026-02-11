@@ -203,7 +203,7 @@
     #sw-update-overlay {
       position: fixed;
       inset: 0;
-      background: rgba(0,0,0,0.5);
+      background: rgba(0, 0, 0, 0.5);
       z-index: 2147483647;
       display: flex;
       align-items: flex-end;
@@ -211,6 +211,7 @@
       -webkit-backdrop-filter: blur(4px);
       backdrop-filter: blur(4px);
     }
+
     .sw-update-sheet {
       width: 100%;
       max-width: 420px;
@@ -224,29 +225,34 @@
       transform: translateY(0);
       transition: transform 0.3s ease;
     }
+
     .sw-update-handle {
       width: 36px;
       height: 4px;
       border-radius: 2px;
-      background: rgba(255,255,255,0.2);
+      background: rgba(255, 255, 255, 0.2);
       margin-bottom: 8px;
     }
+
     .sw-update-icon {
       font-size: 40px;
       line-height: 1;
     }
+
     .sw-update-title {
       font-family: Pretendard, sans-serif;
       font-size: 18px;
       font-weight: 700;
       color: #fff;
     }
+
     .sw-update-desc {
       font-family: Pretendard, sans-serif;
       font-size: 14px;
-      color: rgba(255,255,255,0.6);
+      color: rgba(255, 255, 255, 0.6);
       margin-bottom: 8px;
     }
+
     .sw-update-btn {
       width: 100%;
       padding: 14px;
@@ -260,17 +266,19 @@
       cursor: pointer;
       -webkit-tap-highlight-color: transparent;
     }
+
     .sw-update-btn:active {
       opacity: 0.85;
       transform: scale(0.98);
     }
+
     .sw-update-later {
       width: 100%;
       padding: 12px;
       border: none;
       border-radius: 12px;
       background: transparent;
-      color: rgba(255,255,255,0.45);
+      color: rgba(255, 255, 255, 0.45);
       font-family: Pretendard, sans-serif;
       font-size: 14px;
       cursor: pointer;
@@ -336,17 +344,17 @@
       // 페이지 로드 시점에 기존 컨트롤러 존재 여부 기록 (최초 설치 vs 업데이트 판별)
       var hadController = !!navigator.serviceWorker.controller;
 
-      window.addEventListener('load', function() {
-        var swUrl = '/service-worker.js?v=20260212_v40';
+      window.addEventListener('load', function () {
+        var swUrl = '/service-worker.js?v=20260212_v41';
         navigator.serviceWorker.register(swUrl)
-          .then(function(reg) {
+          .then(function (reg) {
             console.log('[PWA] Service Worker registered (v40)');
 
             // SW 업데이트 감지: 새 SW가 설치되면 사용자에게 알림
-            reg.addEventListener('updatefound', function() {
+            reg.addEventListener('updatefound', function () {
               var newWorker = reg.installing;
               if (!newWorker) return;
-              newWorker.addEventListener('statechange', function() {
+              newWorker.addEventListener('statechange', function () {
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                   showUpdateToast(reg);
                 }
@@ -354,12 +362,12 @@
             });
 
             // 주기적 SW 업데이트 체크 (5분마다)
-            setInterval(function() { reg.update(); }, 5 * 60 * 1000);
+            setInterval(function () { reg.update(); }, 5 * 60 * 1000);
           })
-          .catch(function(err) { console.error('[PWA] Service Worker failed:', err); });
+          .catch(function (err) { console.error('[PWA] Service Worker failed:', err); });
 
         // SW가 SW_UPDATED 메시지를 보내면 자동 리로드 (배포 후 chunk 불일치 방지)
-        navigator.serviceWorker.addEventListener('message', function(event) {
+        navigator.serviceWorker.addEventListener('message', function (event) {
           if (event.data && event.data.type === 'SW_UPDATED') {
             // 최초 설치 시에는 리로드 불필요 (이전 SW가 없었으므로 chunk 불일치 없음)
             if (!hadController) return;
@@ -375,7 +383,7 @@
         });
 
         // 사용자가 업데이트 버튼 클릭 시 리로드
-        navigator.serviceWorker.addEventListener('controllerchange', function() {
+        navigator.serviceWorker.addEventListener('controllerchange', function () {
           if (window.__SW_UPDATING) {
             window.location.reload();
           }
@@ -417,17 +425,17 @@
       overlay.id = 'sw-update-overlay';
       overlay.innerHTML =
         '<div class="sw-update-sheet">' +
-          '<div class="sw-update-handle"></div>' +
-          '<div class="sw-update-icon">&#x1f680;</div>' +
-          '<div class="sw-update-title">새 버전이 준비되었습니다</div>' +
-          '<div class="sw-update-desc">더 나은 경험을 위해 업데이트해 주세요.</div>' +
-          '<button class="sw-update-btn" onclick="applyUpdate()">지금 업데이트</button>' +
-          '<button class="sw-update-later" onclick="dismissUpdate()">나중에</button>' +
+        '<div class="sw-update-handle"></div>' +
+        '<div class="sw-update-icon">&#x1f680;</div>' +
+        '<div class="sw-update-title">새 버전이 준비되었습니다</div>' +
+        '<div class="sw-update-desc">더 나은 경험을 위해 업데이트해 주세요.</div>' +
+        '<button class="sw-update-btn" onclick="applyUpdate()">지금 업데이트</button>' +
+        '<button class="sw-update-later" onclick="dismissUpdate()">나중에</button>' +
         '</div>';
       document.body.appendChild(overlay);
 
       // 배경 탭하면 닫기
-      overlay.addEventListener('click', function(e) {
+      overlay.addEventListener('click', function (e) {
         if (e.target === overlay) dismissUpdate();
       });
     }
@@ -436,7 +444,7 @@
       var el = document.getElementById('sw-update-overlay');
       if (el) {
         el.querySelector('.sw-update-sheet').style.transform = 'translateY(100%)';
-        setTimeout(function() { el.remove(); }, 300);
+        setTimeout(function () { el.remove(); }, 300);
       }
     }
 
