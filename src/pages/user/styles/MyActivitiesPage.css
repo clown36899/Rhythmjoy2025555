@@ -6,8 +6,6 @@
     padding-bottom: calc(80px + env(safe-area-inset-bottom));
 }
 
-/* Header is handled by MobileShell.css classes */
-
 .my-activities-content {
     padding-top: 60px;
     max-width: 650px;
@@ -15,122 +13,88 @@
     width: 100%;
 }
 
-/* Tabs removed for exact replica of Favorites view */
+/* ============================================================
+   TABS - Modern scrollable pill style
+   ============================================================ */
 .activity-tabs-container {
     display: flex;
-    margin: 16px 8px;
-    gap: 4px;
-    flex-wrap: wrap;
+    margin: 12px 12px 16px;
+    gap: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding: 2px 0;
+}
+
+.activity-tabs-container::-webkit-scrollbar {
+    display: none;
 }
 
 .activity-tab-btn {
-    flex: 1;
-    padding: 8px 4px;
+    flex: 0 0 auto;
+    padding: 7px 16px;
     text-align: center;
     font-weight: 500;
-    background: transparent;
-    border: none;
+    background: var(--bg-surface-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: 20px;
     cursor: pointer;
     font-size: 13px;
-    color: var(--text-tertiary);
-    /* gray-400 */
-    transition: color 0.2s, border-bottom 0.2s;
-    border-bottom: 2px solid transparent;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
 }
 
-.activity-tab-btn.tab-groups {
-    flex: 1.2;
-    font-size: 12px;
-    padding: 8px 2px;
-}
-
-.activity-tab-btn.tab-stats {
-    flex: 0.8;
-    min-width: 50px;
+.activity-tab-btn:active {
+    transform: scale(0.96);
 }
 
 .activity-tab-btn.active {
-    color: var(--color-blue-500);
-    /* blue-500 */
-    border-bottom-color: var(--color-blue-500);
+    background: var(--color-blue-500);
+    color: white;
+    border-color: var(--color-blue-500);
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
 }
 
-/* Empty State */
+/* Remove old tab-specific overrides */
+.activity-tab-btn.tab-groups,
+.activity-tab-btn.tab-stats {
+    flex: 0 0 auto;
+    font-size: 13px;
+    padding: 7px 16px;
+    min-width: unset;
+}
+
+/* ============================================================
+   EMPTY STATE - Clean and modern
+   ============================================================ */
 .activity-empty-state {
     text-align: center;
-    padding: 80px 0;
+    padding: 60px 20px;
     color: var(--text-muted);
-    /* gray-500 */
+}
+
+.activity-empty-state p {
+    font-size: 14px;
+    margin: 0;
+    color: var(--text-tertiary);
 }
 
 .activity-empty-icon {
-    font-size: 2.25rem;
-    /* text-4xl */
+    font-size: 2.5rem;
     margin-bottom: 12px;
     display: block;
+    opacity: 0.4;
 }
 
-/* Event Grid Layout */
-.activity-event-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    /* 2 columns on mobile */
-    gap: 8px;
-    /* Match EventList styling */
-}
-
-@media (min-width: 640px) {
-    .activity-event-grid {
-        grid-template-columns: repeat(4, 1fr);
-        /* 4 columns on desktop table like favorites */
-    }
-}
-
-/* Loading */
-.activity-loading-container {
-    display: flex;
-    justify-content: center;
-    padding-top: 80px;
-    padding-bottom: 80px;
-}
-
-/* Ensure EventCard respects grid width */
-.event-card-container {
-    width: 100%;
-}
-
-/* Group Card Compact Overrides */
-.my-activities-content .group-wide-card {
-    margin-bottom: 12px;
-}
-
-.my-activities-content .group-wide-image {
-    width: 60px;
-    height: 60px;
-    min-width: 60px;
-    /* Override min-width 120px */
-}
-
-.my-activities-content .group-wide-info {
-    padding: 8px 12px;
-}
-
-.my-activities-content .group-wide-name {
-    font-size: 15px;
-}
-
-.my-activities-content .group-wide-footer {
-    margin-top: 4px;
-}
-
-.my-activities-content .admin-edit-btn {
-    font-size: 11px;
-    padding: 2px 8px;
-}
-
-/* Activity Sections */
+/* ============================================================
+   SECTION HEADERS
+   ============================================================ */
 .activity-section {
-    margin-top: 24px;
+    margin-top: 20px;
 }
 
 .activity-section-compact {
@@ -138,80 +102,22 @@
 }
 
 .activity-stats-group {
-    margin-bottom: 24px;
+    margin-bottom: 20px;
 }
 
 .activity-section-header {
+    display: flex;
+    align-items: center;
     padding: 0 16px;
     margin-bottom: 12px;
-}
-
-/* Section Title (Stats) */
-.evt-v2-section-title {
-    padding: 0 4px;
-    margin-bottom: 12px;
-}
-
-/* Managed Groups Grid */
-.managed-groups-grid {
-    padding: 0 8px;
-}
-
-/* Managed Schedules List */
-.managed-schedules-list {
-    padding: 0 8px;
-}
-
-.evt-card-v2-single {
-    display: flex;
-    width: 100%;
-    max-width: none;
-    margin-bottom: 12px;
-    background: var(--bg-card);
-    border: 1px solid var(--border-subtle);
-    border-radius: 12px;
-    overflow: hidden;
-}
-
-.evt-card-img-wrapper {
-    width: 80px;
-    height: 80px;
-    flex-shrink: 0;
-}
-
-.evt-card-info {
-    padding: 10px 12px;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-}
-
-.evt-card-title {
-    font-size: 14px;
-    font-weight: bold;
-    margin-bottom: 4px;
+    font-size: 15px;
+    font-weight: 600;
     color: var(--text-primary);
-}
-
-.evt-card-meta {
-    font-size: 12px;
-    color: var(--text-tertiary);
-}
-
-.evt-card-date {
-    font-size: 11px;
-    color: var(--color-cyan-400);
-    margin-top: 4px;
-}
-
-/* Tab Content & Icons */
-.activity-tab-content.stats-view {
-    padding: 0 12px;
 }
 
 .section-icon {
     margin-right: 6px;
+    font-size: 16px;
 }
 
 .section-icon.icon-stats {
@@ -234,9 +140,129 @@
     color: var(--color-orange-500);
 }
 
-/* Card Images & Icons */
+/* ============================================================
+   STATS TAB
+   ============================================================ */
+.activity-tab-content.stats-view {
+    padding: 0 12px;
+}
+
+/* Section Title (Stats) */
+.my-activities-content .evt-v2-section-title {
+    padding: 0 4px;
+    margin-bottom: 12px;
+}
+
+/* ============================================================
+   EVENT GRID LAYOUT (generic fallback)
+   ============================================================ */
+.activity-event-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+@media (min-width: 640px) {
+    .activity-event-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}
+
+/* Loading */
+.activity-loading-container {
+    display: flex;
+    justify-content: center;
+    padding-top: 80px;
+    padding-bottom: 80px;
+}
+
+/* Ensure EventCard respects grid width */
+.event-card-container {
+    width: 100%;
+}
+
+/* ============================================================
+   GROUP CARDS - Polished
+   ============================================================ */
+.managed-groups-grid {
+    padding: 0 8px;
+}
+
+.my-activities-content .group-wide-card {
+    margin-bottom: 10px;
+    border-radius: 12px;
+    border: 1px solid var(--border-subtle);
+    overflow: hidden;
+    transition: box-shadow 0.2s ease;
+}
+
+.my-activities-content .group-wide-image {
+    width: 64px;
+    height: 64px;
+    min-width: 64px;
+}
+
 .my-activities-content .group-wide-image img {
-    border-radius: 8px;
+    border-radius: 0;
+}
+
+.my-activities-content .group-wide-info {
+    padding: 10px 12px;
+}
+
+.my-activities-content .group-wide-name {
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.my-activities-content .group-wide-footer {
+    margin-top: 6px;
+}
+
+.my-activities-content .admin-edit-btn {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 6px;
+    background: var(--bg-surface-3);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.my-activities-content .admin-edit-btn:active {
+    transform: scale(0.96);
+}
+
+.my-activities-content .group-placeholder {
+    font-size: 20px;
+    color: var(--text-muted);
+}
+
+/* ============================================================
+   SCHEDULE CARDS (social schedules)
+   ============================================================ */
+.managed-schedules-list {
+    padding: 0 8px;
+}
+
+.evt-card-v2-single {
+    display: flex;
+    width: 100%;
+    max-width: none;
+    margin-bottom: 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: box-shadow 0.2s ease;
+}
+
+.evt-card-img-wrapper {
+    width: 80px;
+    height: 80px;
+    flex-shrink: 0;
 }
 
 .evt-card-img {
@@ -245,14 +271,46 @@
     object-fit: cover;
 }
 
+.evt-card-info {
+    padding: 10px 12px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+}
+
+.evt-card-title {
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.evt-card-meta {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
 .evt-card-meta i {
     margin-right: 4px;
 }
 
-.activity-posts-container {
-    padding: 0 12px;
+.evt-card-date {
+    font-size: 11px;
+    color: var(--color-cyan-400);
+    margin-top: 4px;
 }
 
-.my-activities-content .group-placeholder {
-    font-size: 20px;
+/* ============================================================
+   POSTS TAB
+   ============================================================ */
+.activity-posts-container {
+    padding: 0 8px;
 }

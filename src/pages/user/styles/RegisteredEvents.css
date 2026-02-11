@@ -1,11 +1,11 @@
-/* RegisteredEvents.css */
+/* RegisteredEvents.css - 내 활동 페이지 이벤트/강습 그리드 */
 
 .managed-events-container,
 .managed-classes-container {
     padding: 0 8px;
 }
 
-/* Base grid - 2 columns on mobile, 4 on larger screens */
+/* Base grid - 2 columns */
 .my-activities-view-container .managed-events-grid,
 .my-activities-view-container .managed-classes-grid {
     display: grid;
@@ -13,197 +13,150 @@
     gap: 12px;
 }
 
-/* Mobile specific: Vertical list with horizontal cards */
+/* ============================================================
+   MOBILE: Horizontal list cards (image left, text right)
+   ============================================================ */
 @media (max-width: 639px) {
 
-    /* ==========================================================================
-       1. REGISTERED EVENTS (managed-events-grid)
-       ========================================================================== */
-    .my-activities-view-container .managed-events-grid {
-        grid-template-columns: 1fr !important;
-        gap: 16px !important;
-    }
-
-    .my-activities-view-container .managed-events-grid .card-container,
-    .my-activities-view-container .managed-events-grid .card-category-event,
-    .my-activities-view-container .managed-events-grid .card-category-class {
-        display: flex !important;
-        flex-direction: row !important;
-        align-items: center !important;
-        background: var(--bg-card) !important;
-        border-radius: 8px !important;
-        overflow: hidden !important;
-        height: 80px !important;
-        width: 100% !important;
-        max-width: none !important;
-        border: 1px solid var(--border-default) !important;
-        margin-bottom: 0 !important;
-        padding: 0 !important;
-        flex: none !important;
-    }
-
-    .my-activities-view-container .managed-events-grid .card-image-wrapper,
-    .my-activities-view-container .managed-events-grid .card-image-wrapper-event,
-    .my-activities-view-container .managed-events-grid .card-image-wrapper-class {
-        width: 80px !important;
-        height: 80px !important;
-        aspect-ratio: 1/1 !important;
-        flex-shrink: 0 !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        border-radius: 0 !important;
-    }
-
-    .my-activities-view-container .managed-events-grid .card-image {
-        border-radius: 0 !important;
-        width: 100% !important;
-        height: 100% !important;
-        object-fit: cover !important;
-    }
-
-    .my-activities-view-container .managed-events-grid .card-text-container,
-    .my-activities-view-container .managed-events-grid .card-text-container-event,
-    .my-activities-view-container .managed-events-grid .card-text-container-class {
-        padding: 0 12px !important;
-        flex: 1 !important;
-        display: flex !important;
-        flex-direction: column !important;
-        justify-content: center !important;
-        text-align: left !important;
-        overflow: hidden !important;
-        background: transparent !important;
-    }
-
-    .my-activities-view-container .managed-events-grid .card-title-text,
-    .my-activities-view-container .managed-events-grid .card-title-text-event,
-    .my-activities-view-container .managed-events-grid .card-title-text-class {
-        font-size: 13px !important;
-        margin: 0 0 4px 0 !important;
-        display: -webkit-box !important;
-        -webkit-line-clamp: 1 !important;
-        line-clamp: 1 !important;
-        -webkit-box-orient: vertical !important;
-        overflow: hidden !important;
-        color: var(--text-primary) !important;
-        background: transparent !important;
-    }
-
-    .my-activities-view-container .managed-events-grid .card-date-text,
-    .my-activities-view-container .managed-events-grid .card-date-text-event,
-    .my-activities-view-container .managed-events-grid .card-date-text-class {
-        font-size: 11px !important;
-        color: var(--text-tertiary) !important;
-        line-height: 1.3 !important;
-        background: transparent !important;
-    }
-
-    .my-activities-view-container .managed-events-grid .card-date-container,
-    .my-activities-view-container .managed-events-grid .card-date-container-class {
-        margin: 0 !important;
-        padding: 0 !important;
-        background: transparent !important;
-    }
-
-    .my-activities-view-container .managed-events-grid .card-badge,
-    .my-activities-view-container .managed-events-grid .card-genre-text {
-        display: none !important;
-    }
-
-    /* ==========================================================================
-       2. REGISTERED CLASSES (managed-classes-grid) - COMPLETELY INDEPENDENT
-       ========================================================================== */
+    /* Single column for horizontal cards */
+    .my-activities-view-container .managed-events-grid,
     .my-activities-view-container .managed-classes-grid {
-        grid-template-columns: 1fr !important;
-        gap: 16px !important;
+        grid-template-columns: 1fr;
+        gap: 10px;
     }
 
-    .my-activities-view-container .managed-classes-grid .card-container,
-    .my-activities-view-container .managed-classes-grid .card-category-event,
-    .my-activities-view-container .managed-classes-grid .card-category-class {
+    /* Card container → horizontal flex row */
+    .my-activities-view-container .managed-events-grid .ECARD-container,
+    .my-activities-view-container .managed-classes-grid .ECARD-container {
         display: flex !important;
         flex-direction: row !important;
-        align-items: center !important;
-        background: var(--bg-card) !important;
-        border-radius: 8px !important;
-        overflow: hidden !important;
-        height: 80px !important;
+        align-items: stretch !important;
+        background: var(--bg-card);
+        border-radius: 12px;
+        overflow: hidden;
         width: 100% !important;
         max-width: none !important;
-        border: 1px solid var(--border-default) !important;
-        margin-bottom: 0 !important;
+        border: 1px solid var(--border-subtle);
         padding: 0 !important;
         flex: none !important;
     }
 
-    .my-activities-view-container .managed-classes-grid .card-image-wrapper,
-    .my-activities-view-container .managed-classes-grid .card-image-wrapper-event,
-    .my-activities-view-container .managed-classes-grid .card-image-wrapper-class {
-        width: 80px !important;
-        height: 80px !important;
-        aspect-ratio: 1/1 !important;
+    /* Image wrapper → fixed square thumbnail */
+    .my-activities-view-container .managed-events-grid .ECARD-imageWrapper,
+    .my-activities-view-container .managed-classes-grid .ECARD-imageWrapper {
+        width: 88px !important;
+        min-width: 88px !important;
+        height: auto !important;
+        aspect-ratio: 1 / 1 !important;
         flex-shrink: 0 !important;
         margin: 0 !important;
         padding: 0 !important;
         border-radius: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
     }
 
-    .my-activities-view-container .managed-classes-grid .card-image {
+    .my-activities-view-container .managed-events-grid .ECARD-image,
+    .my-activities-view-container .managed-classes-grid .ECARD-image {
         border-radius: 0 !important;
         width: 100% !important;
         height: 100% !important;
         object-fit: cover !important;
     }
 
-    .my-activities-view-container .managed-classes-grid .card-text-container,
-    .my-activities-view-container .managed-classes-grid .card-text-container-event,
-    .my-activities-view-container .managed-classes-grid .card-text-container-class {
-        padding: 0 12px !important;
+    /* Text container → fills remaining space */
+    .my-activities-view-container .managed-events-grid .ECARD-textContainer,
+    .my-activities-view-container .managed-classes-grid .ECARD-textContainer {
+        padding: 10px 12px !important;
         flex: 1 !important;
         display: flex !important;
         flex-direction: column !important;
         justify-content: center !important;
         text-align: left !important;
         overflow: hidden !important;
-        background: transparent !important;
+        gap: 3px !important;
+        min-width: 0;
     }
 
-    .my-activities-view-container .managed-classes-grid .card-title-text,
-    .my-activities-view-container .managed-classes-grid .card-title-text-event,
-    .my-activities-view-container .managed-classes-grid .card-title-text-class {
-        font-size: 13px !important;
-        margin: 0 0 4px 0 !important;
-        display: -webkit-box !important;
-        -webkit-line-clamp: 1 !important;
-        line-clamp: 1 !important;
-        -webkit-box-orient: vertical !important;
-        overflow: hidden !important;
-        color: var(--text-primary) !important;
-        background: transparent !important;
-    }
-
-    .my-activities-view-container .managed-classes-grid .card-date-text,
-    .my-activities-view-container .managed-classes-grid .card-date-text-event,
-    .my-activities-view-container .managed-classes-grid .card-date-text-class {
-        font-size: 11px !important;
-        color: var(--text-tertiary) !important;
-        line-height: 1.3 !important;
-        background: transparent !important;
-    }
-
-    .my-activities-view-container .managed-classes-grid .card-date-container,
-    .my-activities-view-container .managed-classes-grid .card-date-container-class {
+    /* Title - single line */
+    .my-activities-view-container .managed-events-grid .ECARD-title,
+    .my-activities-view-container .managed-classes-grid .ECARD-title {
+        font-size: 14px !important;
+        font-weight: 600 !important;
         margin: 0 !important;
-        padding: 0 !important;
-        background: transparent !important;
+        -webkit-line-clamp: 2 !important;
+        line-clamp: 2 !important;
+        color: var(--text-primary) !important;
     }
 
-    .my-activities-view-container .managed-classes-grid .card-badge,
-    .my-activities-view-container .managed-classes-grid .card-genre-text {
+    /* Genre chip - smaller */
+    .my-activities-view-container .managed-events-grid .ECARD-genre,
+    .my-activities-view-container .managed-classes-grid .ECARD-genre {
+        font-size: 10px !important;
+        padding: 1px 5px !important;
+        order: -1;
+    }
+
+    /* Date */
+    .my-activities-view-container .managed-events-grid .ECARD-dateContainer,
+    .my-activities-view-container .managed-classes-grid .ECARD-dateContainer {
+        margin: 0 !important;
+        gap: 4px !important;
+    }
+
+    .my-activities-view-container .managed-events-grid .ECARD-date,
+    .my-activities-view-container .managed-classes-grid .ECARD-date {
+        font-size: 11px !important;
+        padding: 1px 6px !important;
+    }
+
+    /* Hide badges & d-day in horizontal mode */
+    .my-activities-view-container .managed-events-grid .ECARD-badge,
+    .my-activities-view-container .managed-classes-grid .ECARD-badge,
+    .my-activities-view-container .managed-events-grid .ECARD-ddayBadge,
+    .my-activities-view-container .managed-classes-grid .ECARD-ddayBadge {
         display: none !important;
+    }
+
+    /* Hide date indicator dot */
+    .my-activities-view-container .managed-events-grid .ECARD-dateIndicator,
+    .my-activities-view-container .managed-classes-grid .ECARD-dateIndicator {
+        display: none !important;
+    }
+
+    /* Disable hover transforms */
+    .my-activities-view-container .managed-events-grid .ECARD-container:hover .ECARD-imageWrapper,
+    .my-activities-view-container .managed-classes-grid .ECARD-container:hover .ECARD-imageWrapper {
+        transform: none !important;
+        box-shadow: none !important;
+    }
+
+    /* Favorite button positioning */
+    .my-activities-view-container .managed-events-grid .ECARD-favoriteBtn,
+    .my-activities-view-container .managed-classes-grid .ECARD-favoriteBtn {
+        display: none !important;
+    }
+
+    /* Placeholder background for no-image */
+    .my-activities-view-container .managed-events-grid .ECARD-placeholderBg,
+    .my-activities-view-container .managed-classes-grid .ECARD-placeholderBg {
+        border-radius: 0 !important;
     }
 }
 
+/* ============================================================
+   DESKTOP: 3 columns grid with standard vertical cards
+   ============================================================ */
 @media (min-width: 640px) {
+
+    .my-activities-view-container .managed-events-grid,
+    .my-activities-view-container .managed-classes-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+    }
+}
+
+@media (min-width: 900px) {
 
     .my-activities-view-container .managed-events-grid,
     .my-activities-view-container .managed-classes-grid {
