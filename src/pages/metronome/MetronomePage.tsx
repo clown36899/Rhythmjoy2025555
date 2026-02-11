@@ -396,18 +396,15 @@ const MetronomePage: React.FC = () => {
         return () => window.removeEventListener('openMetronomeInfo', handleOpenInfo);
     }, []);
 
-    // [New] User and Presets Fetching
+    // [Fix] 관리자가 저장한 프리셋을 모든 사용자가 볼 수 있도록 전체 조회
     useEffect(() => {
-        if (user) {
-            fetchUserPresets(user.id);
-        }
-    }, [user]);
+        fetchAllPresets();
+    }, []);
 
-    const fetchUserPresets = async (userId: string) => {
+    const fetchAllPresets = async () => {
         const { data, error } = await supabase
             .from('metronome_presets')
             .select('*')
-            .eq('user_id', userId)
             .order('created_at', { ascending: false });
 
         if (data && !error) {
@@ -487,7 +484,7 @@ const MetronomePage: React.FC = () => {
 
             if (error) throw error;
 
-            await fetchUserPresets(user.id);
+            await fetchAllPresets();
             if (data) {
                 setActiveUserPreset(data);
                 setRhythmName(data.name);
@@ -512,8 +509,8 @@ const MetronomePage: React.FC = () => {
 
         if (error) {
             alert('삭제 중 오류가 발생했습니다: ' + error.message);
-        } else if (user) {
-            fetchUserPresets(user.id);
+        } else {
+            fetchAllPresets();
             if (activeUserPreset?.id === id) setActiveUserPreset(null);
         }
     };
