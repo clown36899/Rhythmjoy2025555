@@ -198,6 +198,84 @@
     [data-theme="light"] .global-header {
       background-color: var(--header-bg-color);
     }
+
+    /* SW Update Bottom Sheet */
+    #sw-update-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.5);
+      z-index: 2147483647;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      -webkit-backdrop-filter: blur(4px);
+      backdrop-filter: blur(4px);
+    }
+    .sw-update-sheet {
+      width: 100%;
+      max-width: 420px;
+      background: #1a1a2e;
+      border-radius: 20px 20px 0 0;
+      padding: 12px 24px calc(env(safe-area-inset-bottom, 16px) + 16px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      transform: translateY(0);
+      transition: transform 0.3s ease;
+    }
+    .sw-update-handle {
+      width: 36px;
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.2);
+      margin-bottom: 8px;
+    }
+    .sw-update-icon {
+      font-size: 40px;
+      line-height: 1;
+    }
+    .sw-update-title {
+      font-family: Pretendard, sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .sw-update-desc {
+      font-family: Pretendard, sans-serif;
+      font-size: 14px;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 8px;
+    }
+    .sw-update-btn {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      color: #fff;
+      font-family: Pretendard, sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .sw-update-btn:active {
+      opacity: 0.85;
+      transform: scale(0.98);
+    }
+    .sw-update-later {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 12px;
+      background: transparent;
+      color: rgba(255,255,255,0.45);
+      font-family: Pretendard, sans-serif;
+      font-size: 14px;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
   </style>
 </head>
 
@@ -255,7 +333,10 @@
   <!-- PWA Service Worker 등록 + 버전 체크 -->
   <script>
     if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
+      // 페이지 로드 시점에 기존 컨트롤러 존재 여부 기록 (최초 설치 vs 업데이트 판별)
+      var hadController = !!navigator.serviceWorker.controller;
+
+      window.addEventListener('load', function() {
         var swUrl = '/service-worker.js?v=20260212_v40';
         navigator.serviceWorker.register(swUrl)
           .then(function(reg) {
@@ -280,6 +361,8 @@
         // SW가 SW_UPDATED 메시지를 보내면 자동 리로드 (배포 후 chunk 불일치 방지)
         navigator.serviceWorker.addEventListener('message', function(event) {
           if (event.data && event.data.type === 'SW_UPDATED') {
+            // 최초 설치 시에는 리로드 불필요 (이전 SW가 없었으므로 chunk 불일치 없음)
+            if (!hadController) return;
             var lastSwReload = sessionStorage.getItem('sw_reload');
             if (lastSwReload && Date.now() - parseInt(lastSwReload) < 10000) {
               console.warn('[PWA] SW reload loop detected, skipping');
@@ -325,15 +408,36 @@
       }, 3 * 60 * 1000);
     })();
 
-    // 업데이트 알림 토스트
+    // 업데이트 바텀시트
     function showUpdateToast(reg) {
-      if (document.getElementById('sw-update-toast')) return;
-      var toast = document.createElement('div');
-      toast.id = 'sw-update-toast';
-      toast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1a1a2e;color:#fff;padding:14px 20px;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.4);z-index:2147483647;display:flex;align-items:center;gap:12px;font-size:14px;font-family:Pretendard,sans-serif;max-width:90vw;';
-      toast.innerHTML = '<span>새 버전이 있습니다</span><button onclick="applyUpdate()" style="background:#4f46e5;color:#fff;border:none;padding:8px 16px;border-radius:8px;cursor:pointer;font-size:13px;white-space:nowrap;">업데이트</button><button onclick="this.parentElement.remove()" style="background:none;color:#888;border:none;cursor:pointer;font-size:18px;padding:0 4px;">&times;</button>';
-      document.body.appendChild(toast);
+      if (document.getElementById('sw-update-overlay')) return;
       window.__SW_REG = reg;
+
+      var overlay = document.createElement('div');
+      overlay.id = 'sw-update-overlay';
+      overlay.innerHTML =
+        '<div class="sw-update-sheet">' +
+          '<div class="sw-update-handle"></div>' +
+          '<div class="sw-update-icon">&#x1f680;</div>' +
+          '<div class="sw-update-title">새 버전이 준비되었습니다</div>' +
+          '<div class="sw-update-desc">더 나은 경험을 위해 업데이트해 주세요.</div>' +
+          '<button class="sw-update-btn" onclick="applyUpdate()">지금 업데이트</button>' +
+          '<button class="sw-update-later" onclick="dismissUpdate()">나중에</button>' +
+        '</div>';
+      document.body.appendChild(overlay);
+
+      // 배경 탭하면 닫기
+      overlay.addEventListener('click', function(e) {
+        if (e.target === overlay) dismissUpdate();
+      });
+    }
+
+    function dismissUpdate() {
+      var el = document.getElementById('sw-update-overlay');
+      if (el) {
+        el.querySelector('.sw-update-sheet').style.transform = 'translateY(100%)';
+        setTimeout(function() { el.remove(); }, 300);
+      }
     }
 
     function applyUpdate() {
