@@ -178,8 +178,8 @@ export default function CalendarPage() {
             const rect = todayEl.getBoundingClientRect();
             const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
 
-            // 목표 Y: 현재 스크롤 + 오늘 요소 위치 - 화면 높이의 1/3
-            const targetY = scrollTop + rect.top - (window.innerHeight / 3);
+            // 목표 Y: 현재 스크롤 + 오늘 요소 위치 - 화면 높이의 1/5 (약 20% 지점)
+            const targetY = scrollTop + rect.top - (window.innerHeight / 5);
 
             console.log(`🚀 [캘린더] 오늘 위치 정밀 스크롤 (Target Y: ${targetY})`);
             window.scrollTo({
