@@ -148,7 +148,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                 <div className="NEB-slider">
                     <div
                         className="NEB-track"
-                        style={{ '--neb-offset': `-${currentIndex * 100}%` } as React.CSSProperties}
+                        style={{ transform: `translateX(-${currentIndex * 100}%)` }}
                     >
                         {events.map((event) => {
                             // 큰 배너이므로 고해상도 이미지 우선 사용
@@ -245,22 +245,74 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
             </div >
 
             {/* Info Modal */}
-            {showInfoModal && (
-                <div className="NEB-modal-overlay" onClick={() => setShowInfoModal(false)}>
-                    <div className="NEB-modal" onClick={e => e.stopPropagation()}>
-                        <h3 className="NEB-modal-title">📢 신규 등록 노출 기준</h3>
-                        <div className="NEB-modal-content">
-                            <p className="NEB-highlight">등록 후 72시간 동안 이 섹션에 노출됩니다.</p>
-                            <ul className="NEB-modal-list">
-                                <li><i className="ri-timer-flash-line"></i> 자동 슬라이드: 5초마다 전환</li>
-                                <li><i className="ri-pause-circle-line"></i> 마우스 호버 시 일시정지</li>
-                                <li><i className="ri-arrow-left-right-line"></i> 스와이프 및 버튼 전환 가능</li>
-                            </ul>
+            {
+                showInfoModal && (
+                    <div className="neb-modal-overlay" onClick={() => setShowInfoModal(false)}>
+                        <div className="neb-modal" onClick={e => e.stopPropagation()}>
+                            <h3 className="neb-modal-title">📢 신규 등록 노출 기준</h3>
+                            <div className="neb-modal-content">
+                                <p className="neb-highlight">등록 후 72시간 동안 이 섹션에 노출됩니다.</p>
+                                <ul className="neb-modal-list">
+                                    <li>자동 슬라이드: 5초마다 전환</li>
+                                    <li>마우스 호버 시 일시정지</li>
+                                    <li>좌우 화살표로 수동 전환 가능</li>
+                                </ul>
+                            </div>
+                            <button className="neb-modal-close" onClick={() => setShowInfoModal(false)}>확인</button>
                         </div>
-                        <button className="NEB-modal-close" onClick={() => setShowInfoModal(false)}>확인</button>
+                        <style>{`
+                        .neb-modal-overlay {
+                            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+                            background: rgba(0,0,0,0.6); backdrop-filter: blur(4px);
+                            z-index: 9999;
+                            display: flex; align-items: center; justify-content: center;
+                            padding: 20px;
+                            animation: fadeIn 0.2s ease-out;
+                        }
+                        .neb-modal {
+                            background: #1a1a1a;
+                            border: 1px solid rgba(255,255,255,0.1);
+                            border-radius: 16px;
+                            padding: 24px;
+                            width: 100%; max-width: 320px;
+                            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+                            text-align: center;
+                            transform: translateY(0);
+                            animation: slideUp 0.2s ease-out;
+                        }
+                        .neb-modal-title {
+                            font-size: 18px; font-weight: 700; color: #fff; margin-bottom: 16px;
+                        }
+                        .neb-modal-content {
+                            font-size: 14px; color: #ccc; line-height: 1.6; margin-bottom: 24px; text-align: left;
+                        }
+                        .neb-highlight {
+                            color: #fbbf24; font-weight: 600; margin-bottom: 12px; text-align: center;
+                        }
+                        .neb-modal-list {
+                            list-style: none; padding: 0; margin: 0;
+                            background: rgba(255,255,255,0.03); border-radius: 8px; padding: 12px;
+                        }
+                        .neb-modal-list li {
+                            margin-bottom: 4px; display: flex; align-items: center; gap: 6px;
+                            font-size: 13px; color: #aaa;
+                        }
+                        .neb-modal-list li::before {
+                            content: "•"; color: #666;
+                        }
+                        .neb-modal-list li:last-child { margin-bottom: 0; }
+                        .neb-modal-close {
+                            background: #3b82f6; color: #fff; border: none; padding: 10px 0; width: 100%;
+                            border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 15px;
+                            transition: background 0.2s;
+                        }
+                        .neb-modal-close:hover { background: #2563eb; }
+                        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+                        @keyframes slideUp { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+                    `}</style>
                     </div>
-                </div>
-            )}
+                )
+            }
         </>
     );
 };
