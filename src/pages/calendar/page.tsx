@@ -175,8 +175,17 @@ export default function CalendarPage() {
                 return;
             }
 
-            console.log('🚀 [캘린더] 표준 scrollIntoView 실행');
-            todayEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            const rect = todayEl.getBoundingClientRect();
+            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+
+            // 목표 Y: 현재 스크롤 + 오늘 요소 위치 - 화면 높이의 1/3
+            const targetY = scrollTop + rect.top - (window.innerHeight / 3);
+
+            console.log(`🚀 [캘린더] 오늘 위치 정밀 스크롤 (Target Y: ${targetY})`);
+            window.scrollTo({
+                top: Math.max(0, targetY),
+                behavior: 'smooth'
+            });
 
             // URL 정리
             const urlParams = new URLSearchParams(window.location.search);
@@ -232,6 +241,26 @@ export default function CalendarPage() {
         setCurrentMonth(newMonth);
         setSelectedDate(null);
     }, []);
+
+    // [New] 탭 클릭 핸들러 (사용자 요청 단순화 정책)
+    const handleTabClick = (filter: 'all' | 'social-events' | 'classes' | 'overseas') => {
+        // 사용자 조작 플래그 초기화하여 스크롤 허용
+        userInteractedRef.current = false;
+
+        const today = new Date();
+        const isTodayMonth = currentMonth.getFullYear() === today.getFullYear() &&
+            currentMonth.getMonth() === today.getMonth();
+
+        if (isTodayMonth) {
+            // 이번 달인 경우: 데이터 로딩 후 오늘 위치로 스크롤 예약
+            shouldScrollToTodayRef.current = true;
+        } else {
+            // 다른 달인 경우: 즉시 최상단(0)으로 이동
+            shouldScrollToTodayRef.current = false;
+            window.scrollTo({ top: 0, behavior: 'instant' });
+        }
+        setTabFilter(filter);
+    };
 
     // URL 파라미터에서 'id' 읽어서 이벤트 상세 모달 열기 (Deep Link)
     useEffect(() => {
@@ -452,10 +481,7 @@ export default function CalendarPage() {
             <div className="calendar-tab-menu">
                 <button
                     className={`calendar-tab-btn ${tabFilter === 'all' ? 'active' : ''}`}
-                    onClick={() => {
-                        window.dispatchEvent(new CustomEvent('beforeCalendarTabChange'));
-                        setTabFilter('all');
-                    }}
+                    onClick={() => handleTabClick('all')}
                 >
                     <i className="ri-calendar-line"></i>
                     <div className="tab-label-wrapper">
@@ -466,10 +492,7 @@ export default function CalendarPage() {
                 </button>
                 <button
                     className={`calendar-tab-btn ${tabFilter === 'social-events' ? 'active' : ''}`}
-                    onClick={() => {
-                        window.dispatchEvent(new CustomEvent('beforeCalendarTabChange'));
-                        setTabFilter('social-events');
-                    }}
+                    onClick={() => handleTabClick('social-events')}
                 >
                     <div className="tab-label-wrapper">
                         <span className="translated-part">{t('socialEvents')}</span>
@@ -479,10 +502,7 @@ export default function CalendarPage() {
                 </button>
                 <button
                     className={`calendar-tab-btn ${tabFilter === 'classes' ? 'active' : ''}`}
-                    onClick={() => {
-                        window.dispatchEvent(new CustomEvent('beforeCalendarTabChange'));
-                        setTabFilter('classes');
-                    }}
+                    onClick={() => handleTabClick('classes')}
                 >
                     <i className="ri-graduation-cap-fill"></i>
                     <div className="tab-label-wrapper">
@@ -493,10 +513,7 @@ export default function CalendarPage() {
                 </button>
                 <button
                     className={`calendar-tab-btn ${tabFilter === 'overseas' ? 'active' : ''}`}
-                    onClick={() => {
-                        window.dispatchEvent(new CustomEvent('beforeCalendarTabChange'));
-                        setTabFilter('overseas');
-                    }}
+                    onClick={() => handleTabClick('overseas')}
                 >
                     <span style={{ fontSize: '1.25rem', lineHeight: 1 }}>🌏</span>
                     <div className="tab-label-wrapper">

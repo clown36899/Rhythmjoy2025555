@@ -84,37 +84,6 @@ export default memo(function FullEventCalendar({
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerHeight, setContainerHeight] = useState<number | undefined>(undefined);
 
-  // [Scroll Anchoring] 스크롤 고정 관련 상태
-  const lastTabFilterRef = useRef(tabFilter);
-  const anchorRef = useRef<{ date: string; top: number } | null>(null);
-
-  // 1. 탭 변경 직전의 앵커 위치 캡처
-  const captureScrollAnchor = useCallback(() => {
-    if (!containerRef.current) return;
-
-    // 활성 슬라이드 내의 셀들 중 가장 상단에 보이는 것 찾기
-    const activeSlide = containerRef.current.querySelector('[data-active-month="true"]');
-    if (!activeSlide) return;
-
-    const cells = Array.from(activeSlide.querySelectorAll('.calendar-cell-fullscreen'));
-
-    // 뷰포트 내 헤더(약 120~150px) 아래에서 가장 먼저 보이는 셀 찾기
-    const headerBottom = 150;
-    const anchorCell = cells.find(cell => {
-      const rect = cell.getBoundingClientRect();
-      return rect.bottom > headerBottom;
-    });
-
-    if (anchorCell) {
-      const date = anchorCell.getAttribute('data-date');
-      const rect = anchorCell.getBoundingClientRect();
-      if (date) {
-        anchorRef.current = { date, top: rect.top };
-        // console.log(`⚓ [Anchor Capture] Date: ${date}, Top: ${rect.top}`);
-      }
-    }
-  }, []);
-
   // 실제 필요한 주 수 계산 (전체 달력 모드용)
   const getActualWeeksCount = (date: Date) => {
     const year = date.getFullYear();
@@ -277,22 +246,9 @@ export default memo(function FullEventCalendar({
 
   // 월이 변경되거나 탭이 변경될 때 스크롤 처리
   useEffect(() => {
-    // 탭 변경 시의 캡처는 이벤트를 통해 처리하므로 여기서는 lastTabFilterRef만 업데이트
-    lastTabFilterRef.current = tabFilter;
-
     // [Debug] 스크롤 문제 원인 파악을 위해 임시 비활성화
     // window.scrollTo({ top: 0, behavior: 'auto' });
   }, [currentMonth, tabFilter]);
-
-  // 탭 변경 직전 이벤트 리스너 등록
-  useEffect(() => {
-    const handleBeforeChange = () => {
-      // console.log('🔔 [Event Received] beforeCalendarTabChange - Capturing anchor...');
-      captureScrollAnchor();
-    };
-    window.addEventListener('beforeCalendarTabChange', handleBeforeChange);
-    return () => window.removeEventListener('beforeCalendarTabChange', handleBeforeChange);
-  }, [captureScrollAnchor]);
 
   // currentMonth가 변경될 때 년도 범위 업데이트
   useEffect(() => {
@@ -362,25 +318,6 @@ export default memo(function FullEventCalendar({
     if (!isLoading && calendarData && containerHeight && containerHeight > 0) {
       // 브라우저가 이번 레이아웃을 완전히 마친 직후에 실행
       requestAnimationFrame(() => {
-        // [Scroll Anchoring] 저장된 앵커가 있다면 위치 복원
-        if (anchorRef.current) {
-          const { date, top: oldTop } = anchorRef.current;
-          // 활성 슬라이드 내의 해당 날짜 셀 찾기 (다른 달의 같은 날짜와 혼동 방지)
-          const activeSlide = containerRef.current?.querySelector('[data-active-month="true"]');
-          const cell = activeSlide?.querySelector(`.calendar-cell-fullscreen[data-date="${date}"]`);
-
-          if (cell) {
-            const newRect = cell.getBoundingClientRect();
-            const diff = newRect.top - oldTop;
-
-            if (Math.abs(diff) > 0.5 && Math.abs(diff) < window.innerHeight) {
-              // console.log(`🔄 [Anchor Restore] Date: ${date}, Diff: ${diff}, Adjusting scroll...`);
-              window.scrollBy({ top: diff, behavior: 'instant' });
-            }
-          }
-          anchorRef.current = null; // 처리 후 초기화
-        }
-
         if (onDataLoaded) {
           onDataLoaded();
         }
