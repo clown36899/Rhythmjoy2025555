@@ -452,7 +452,10 @@ export default function CalendarPage() {
             <div className="calendar-tab-menu">
                 <button
                     className={`calendar-tab-btn ${tabFilter === 'all' ? 'active' : ''}`}
-                    onClick={() => setTabFilter('all')}
+                    onClick={() => {
+                        window.dispatchEvent(new CustomEvent('beforeCalendarTabChange'));
+                        setTabFilter('all');
+                    }}
                 >
                     <i className="ri-calendar-line"></i>
                     <div className="tab-label-wrapper">
@@ -463,7 +466,10 @@ export default function CalendarPage() {
                 </button>
                 <button
                     className={`calendar-tab-btn ${tabFilter === 'social-events' ? 'active' : ''}`}
-                    onClick={() => setTabFilter('social-events')}
+                    onClick={() => {
+                        window.dispatchEvent(new CustomEvent('beforeCalendarTabChange'));
+                        setTabFilter('social-events');
+                    }}
                 >
                     <div className="tab-label-wrapper">
                         <span className="translated-part">{t('socialEvents')}</span>
@@ -473,7 +479,10 @@ export default function CalendarPage() {
                 </button>
                 <button
                     className={`calendar-tab-btn ${tabFilter === 'classes' ? 'active' : ''}`}
-                    onClick={() => setTabFilter('classes')}
+                    onClick={() => {
+                        window.dispatchEvent(new CustomEvent('beforeCalendarTabChange'));
+                        setTabFilter('classes');
+                    }}
                 >
                     <i className="ri-graduation-cap-fill"></i>
                     <div className="tab-label-wrapper">
@@ -484,7 +493,10 @@ export default function CalendarPage() {
                 </button>
                 <button
                     className={`calendar-tab-btn ${tabFilter === 'overseas' ? 'active' : ''}`}
-                    onClick={() => setTabFilter('overseas')}
+                    onClick={() => {
+                        window.dispatchEvent(new CustomEvent('beforeCalendarTabChange'));
+                        setTabFilter('overseas');
+                    }}
                 >
                     <span style={{ fontSize: '1.25rem', lineHeight: 1 }}>🌏</span>
                     <div className="tab-label-wrapper">

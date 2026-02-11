@@ -976,13 +976,14 @@
   overflow: hidden;
   width: 100%;
   position: relative;
-  height: var(--container-height, auto);
-  transition: height 0.3s ease-in-out;
+  /* height: var(--container-height, auto); - Removed fixed height for window scroll stability */
+  min-height: 50vh;
+  transition: min-height 0.3s ease-in-out;
 }
 
 .calendar-mode-fullscreen {
-  overflow-y: hidden;
-  /* Disable container scroll */
+  overflow-y: visible !important;
+  /* Allow vertical overflow and window scroll visibility */
   overflow-x: hidden;
 }
 
