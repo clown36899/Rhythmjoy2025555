@@ -17,6 +17,7 @@ import { PwaNotificationModal } from './components/PwaNotificationModal';
 import { useState } from 'react';
 import { notificationStore } from './lib/notificationStore';
 import { useModalActions } from './contexts/ModalContext';
+import { getCalendarRange, fetchCalendarEvents } from './hooks/queries/useCalendarEventsQuery';
 import LocalLoading from './components/LocalLoading';
 import './styles/devtools.css';
 
@@ -28,6 +29,28 @@ function AppContent() {
 
   // Sync queries with Supabase Realtime
   useRealtimeSync();
+
+  // [Cache] 달력 데이터 사전 페칭 (Prefetching)
+  useEffect(() => {
+    const prefetchCalendar = async () => {
+      // 현재 날짜 기준 3개월치(이전, 현재, 다음) 미리 가져오기
+      const now = new Date();
+      const { startDateStr, endDateStr } = getCalendarRange(now);
+
+      try {
+        await queryClient.prefetchQuery({
+          queryKey: ['calendar-events', startDateStr, endDateStr],
+          queryFn: () => fetchCalendarEvents(startDateStr, endDateStr),
+          staleTime: 1000 * 60 * 5, // 5분
+        });
+        // console.log('[App] Calendar data prefetched successfully');
+      } catch (err) {
+        console.warn('[App] Calendar prefetch failed:', err);
+      }
+    };
+
+    prefetchCalendar();
+  }, []);
 
   const { user, isAdmin } = useAuth();
   const [showPwaModal, setShowPwaModal] = useState(false);

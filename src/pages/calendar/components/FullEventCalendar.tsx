@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, memo, useMemo, useRef, useLayoutEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { supabase } from "../../../lib/supabase";
 import type { Event as AppEvent } from "../../../lib/supabase";
+import { useCalendarEventsQuery } from "../../../hooks/queries/useCalendarEventsQuery";
 import EventRegistrationModal from "../../../components/EventRegistrationModal";
 import DateEventsModal from "./DateEventsModal";
 import "../styles/FullEventCalendar.css";
@@ -53,6 +53,18 @@ export default memo(function FullEventCalendar({
   const [socialSchedules, setSocialSchedules] = useState<any[]>([]);
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [yearRangeBase, setYearRangeBase] = useState(new Date().getFullYear());
+
+  // React Query 통합: 수동 fetch 대신 훅 사용
+  const { data: calendarData, refetch: refetchCalendarData } = useCalendarEventsQuery(currentMonth);
+
+  // 쿼리 데이터와 연동
+  useEffect(() => {
+    if (calendarData) {
+      setEvents(calendarData.events);
+      setSocialSchedules(calendarData.socialSchedules);
+      if (onEventsUpdate) onEventsUpdate();
+    }
+  }, [calendarData, onEventsUpdate]);
 
   // Date Events Modal state
   const [showDateModal, setShowDateModal] = useState(false);
@@ -246,10 +258,7 @@ export default memo(function FullEventCalendar({
     }
   }, [currentMonth, yearRangeBase]);
 
-  // 이벤트 데이터 로드
-  useEffect(() => {
-    fetchEvents();
-  }, [currentMonth]);
+  // 이벤트 데이터 로드 (React Query가 처리하므로 불필요한 useEffect 제거)
 
   // Height measurement effect
   useLayoutEffect(() => {
@@ -278,8 +287,8 @@ export default memo(function FullEventCalendar({
 
   // 이벤트 삭제 감지를 위한 이벤트 리스너 추가
   useEffect(() => {
-    const handleEventDeleted = () => fetchEvents();
-    const handleEventChanged = () => fetchEvents();
+    const handleEventDeleted = () => refetchCalendarData();
+    const handleEventChanged = () => refetchCalendarData();
 
     window.addEventListener("eventDeleted", handleEventDeleted);
     window.addEventListener("eventUpdated", handleEventChanged);
@@ -287,60 +296,14 @@ export default memo(function FullEventCalendar({
 
     return () => {
       window.removeEventListener("eventDeleted", handleEventDeleted);
+      window.removeEventListener("eventUpdated", handleEventChanged);
+      window.removeEventListener("eventCreated", handleEventChanged);
     };
-  }, []);
+  }, [refetchCalendarData]);
 
-  const fetchEvents = useCallback(async () => {
-    try {
-      const startOfRange = new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1);
-      const endOfRange = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 2, 0);
-      const startDateStr = startOfRange.toISOString().split('T')[0];
-      const endDateStr = endOfRange.toISOString().split('T')[0];
-      const columns = "id,title,date,start_date,end_date,event_dates,category,image_micro,image_thumbnail,image_medium,scope";
-
-      // Fetch V2 events
-      const eventsPromise = supabase
-        .from("events")
-        .select(columns)
-        .or(`and(start_date.gte.${startDateStr},start_date.lte.${endDateStr}),and(end_date.gte.${startDateStr},end_date.lte.${endDateStr}),and(date.gte.${startDateStr},date.lte.${endDateStr})`)
-        .order("start_date", { ascending: true, nullsFirst: false })
-        .order("date", { ascending: true, nullsFirst: false });
-
-      // Fetch social schedules (excluding regular schedules with day_of_week)
-      const socialSchedulesPromise = supabase
-        .from("social_schedules")
-        .select("id,title,date,image_micro,image_thumbnail,image_medium,day_of_week,place_name,venue_id,v2_category")
-        .gte("date", startDateStr)
-        .lte("date", endDateStr)
-        .order("date", { ascending: true });
-
-      const [eventsResult, socialResult] = await Promise.all([eventsPromise, socialSchedulesPromise]);
-
-      if (eventsResult.error) {
-        console.error("Error fetching events:", eventsResult.error);
-      } else {
-        // console.log("📅 [FullEventCalendar] Fetched events:", eventsResult.data?.length);
-        setEvents((eventsResult.data || []) as AppEvent[]);
-      }
-
-      if (socialResult.error) {
-        console.error("Error fetching social schedules:", socialResult.error);
-      } else {
-        // console.log("📅 [FullEventCalendar] Fetched social schedules:", socialResult.data?.length);
-        setSocialSchedules(socialResult.data || []);
-      }
-    } catch (error) {
-      console.error("Error:", error);
-    } finally {
-      // 데이터 로딩 완료 신호 전달
-      if (onEventsUpdate) onEventsUpdate();
-      // onEventsUpdate는 type이 (createdDate?: Date) => void 이므로 파라미터 없이 호출 가능
-      // 하지만 의미론적으로 분리하기 위해 onDataLoaded를 사용하는 것이 좋음.
-      // 일단 기존 인터페이스 호환성을 위해 onEventsUpdate를 활용하거나 새로 추가.
-      // 여기서는 새로 추가된 onDataLoaded를 사용한다고 가정하고 인터페이스 수정 필요.
-
-    }
-  }, [currentMonth]);
+  const fetchEvents = useCallback(() => {
+    refetchCalendarData();
+  }, [refetchCalendarData]);
 
   // 데이터 로딩 완료 및 렌더링 시점 감지
   useEffect(() => {
