@@ -100,11 +100,11 @@ export default function CalendarPage() {
     const mountTimeRef = useRef(Date.now());
     useEffect(() => {
         const handleInteraction = (e: Event) => {
-            // [Fix] 페이지 진입 시의 클릭/전환 지연을 고려해 유예 시간을 2초로 연장
-            if (Date.now() - mountTimeRef.current < 2000) return;
+            // [Fix] 페이지 진입 직후의 클릭이 스크롤을 방해하지 않도록 1초 유예
+            if (Date.now() - mountTimeRef.current < 1000) return;
 
             if (!userInteractedRef.current) {
-                console.log(`👤 [캘린더] 사용자 조작 감지됨 (${e.type}) - 자동 보정 중단`);
+                console.log(`👤 [캘린더] 사용자 조작 감지 (${e.type}) - 스크롤 중단`);
                 userInteractedRef.current = true;
             }
         };
@@ -158,114 +158,35 @@ export default function CalendarPage() {
     }, [authIsAdmin]);
 
     const handleScrollToToday = useCallback(() => {
-        console.log('🚀 [캘린더] 오늘 날짜 이동 시작. 현재월:', currentMonth.toLocaleDateString());
-
         // 1. 활성 슬라이드 내의 오늘 날짜 요소 찾기
         const selector = '.calendar-month-slide[data-active-month="true"] .calendar-date-number-today';
         const todayEl = document.querySelector(selector) as HTMLElement;
 
-        console.log(`🔎 [캘린더] 요소 찾기 "${selector}":`, todayEl ? '성공 ✅' : '실패 ❌');
-
         if (!todayEl) {
-            // 혹시 활성 슬라이드 속성이 아직 안 붙었을 수도 있으니 전체에서 검색
-            const fallbackEl = document.querySelector('.calendar-date-number-today') as HTMLElement;
-            console.log(`🔎 [캘린더] 대체 검색 (.calendar-date-number-today):`, fallbackEl ? '성공 ⚠️' : '실패 ❌');
-
-            if (fallbackEl) {
-                console.log('   -> 부모 클래스:', fallbackEl.closest('.calendar-month-slide')?.className);
-            }
+            console.log(`🔎 [캘린더] 오늘 요소를 찾을 수 없습니다: ${selector}`);
             return false;
         }
 
-        // 2. 스크롤 가능한 부모 찾기 (없으면 Window)
-        let scrollParent: HTMLElement | Window | null = todayEl.parentElement;
-        while (scrollParent instanceof HTMLElement) {
-            const style = window.getComputedStyle(scrollParent);
-            if (style.overflowY === 'auto' || style.overflowY === 'scroll') {
-                break;
+        // [Simple Fix] 모든 복잡한 계산을 제거하고 표준 API 사용
+        // FullEventCalendar.css에 추가된 scroll-margin-top과 연동됩니다.
+        requestAnimationFrame(() => {
+            if (userInteractedRef.current) {
+                console.log('� [캘린더] 사용자 조작 감지 - 스크롤 취소');
+                return;
             }
-            if (scrollParent.tagName === 'BODY' || scrollParent.tagName === 'HTML') {
-                scrollParent = window;
-                break;
+
+            console.log('🚀 [캘린더] 표준 scrollIntoView 실행');
+            todayEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            // URL 정리
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('scrollToToday') === 'true') {
+                const newUrl = window.location.pathname + window.location.search.replace(/[&?]scrollToToday=true/, '');
+                window.history.replaceState({}, '', newUrl);
             }
-            scrollParent = scrollParent.parentElement;
-        }
+        });
 
-        if (!scrollParent) scrollParent = window;
-        const isWindow = scrollParent === window || scrollParent === document.body || scrollParent === document.documentElement;
-
-        console.log(`📜 [캘린더] 스크롤 컨테이너:`, isWindow ? 'WINDOW (전체화면)' : (scrollParent as HTMLElement).className);
-
-        // 3. 헤더 높이 계산 (Sticky Header Offset)
-        const headerEl = document.querySelector('.calendar-page-weekday-header') as HTMLElement;
-        const headerHeight = headerEl ? headerEl.offsetHeight : 0;
-        const stickyHeaderOffset = headerHeight + 100; // 헤더 + 여유 공간
-
-        // 4. 위치 계산 및 스크롤 실행
-        if (isWindow) {
-            const rect = todayEl.getBoundingClientRect();
-            const elementPosition = rect.top + window.pageYOffset;
-            const offsetPosition = elementPosition - stickyHeaderOffset;
-
-            console.log(`📍 [캘린더] WINDOW 스크롤 실행 -> 목표: ${Math.round(offsetPosition)} (현재요소top: ${Math.round(rect.top)}, 오프셋: ${stickyHeaderOffset}, 문서전체높이: ${document.documentElement.scrollHeight})`);
-
-            // [Fix] setTimeout 대신 더블 RAF 사용하여 브라우저 레이아웃/페인트 직후 실행
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    if (userInteractedRef.current) {
-                        console.log(`💡 [캘린더] 사용자 조작 감지됨 (${userInteractedRef.current}) - 스크롤 취소`);
-                        return;
-                    }
-
-                    // [Fix] 문서 전체 높이가 스크롤 목표보다 작으면 스크롤이 무시됨. 
-                    // 임시로 높이를 확보하여 스크롤 공간 마련
-                    const currentHeight = document.documentElement.scrollHeight;
-                    const requiredHeight = offsetPosition + window.innerHeight + 100;
-
-                    if (currentHeight < requiredHeight) {
-                        console.log(`📏 [캘린더] 문서 높이 부족(${currentHeight} < ${Math.round(requiredHeight)}). 임시 높이 할당.`);
-                        document.body.style.minHeight = `${Math.round(requiredHeight)}px`;
-                    }
-
-                    // 레이아웃 강제 플러시
-                    void document.body.offsetHeight;
-
-                    window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
-
-                    // [Add] 위치 보정 및 높이 복구
-                    setTimeout(() => {
-                        if (!userInteractedRef.current) {
-                            const currentY = window.scrollY;
-                            if (Math.abs(currentY - offsetPosition) > 50) {
-                                console.log(`⚠️ [캘린더] 스크롤 미달 감지 (현재:${currentY}, 목표:${Math.round(offsetPosition)}). 최종 보정 실행.`);
-                                window.scrollTo({ top: offsetPosition, behavior: 'auto' });
-                            }
-                        }
-                        // 임시 높이 제거
-                        document.body.style.minHeight = '';
-                    }, 800);
-
-                    // 성공 시 URL 정리
-                    const urlParams = new URLSearchParams(window.location.search);
-                    if (urlParams.get('scrollToToday') === 'true') {
-                        const newUrl = window.location.pathname + window.location.search.replace(/[&?]scrollToToday=true/, '');
-                        window.history.replaceState({}, '', newUrl);
-                    }
-                });
-            });
-
-        } else {
-            const parentEl = scrollParent as HTMLElement;
-            const childRect = todayEl.getBoundingClientRect();
-            const parentRect = parentEl.getBoundingClientRect();
-            const currentScroll = parentEl.scrollTop;
-            const relativeTop = childRect.top - parentRect.top;
-            const targetScroll = currentScroll + relativeTop - stickyHeaderOffset;
-
-            console.log(`📍 [캘린더] 요소 내부 스크롤 실행 -> 목표위치: ${Math.round(targetScroll)} (현재스크롤: ${Math.round(currentScroll)}, 상대위치: ${Math.round(relativeTop)})`);
-            parentEl.scrollTo({ top: targetScroll, behavior: 'smooth' });
-        }
-        return true; // 성공
+        return true;
     }, [currentMonth]);
 
     // [Fix] State 대신 Ref를 사용하여 렌더링 사이클 지연으로 인한 스크롤 무시 방지
@@ -443,6 +364,10 @@ export default function CalendarPage() {
         };
 
         const handleGoToToday = () => {
+            console.log('🔘 [캘린더] 오늘 버튼 클릭 - 스크롤 실행');
+            // 버튼 클릭 시에는 사용자 조작 기록을 초기화하여 즉시 스크롤이 작동하도록 함
+            userInteractedRef.current = false;
+
             const today = new Date();
             const isSameMonth = currentMonth.getFullYear() === today.getFullYear() &&
                 currentMonth.getMonth() === today.getMonth();

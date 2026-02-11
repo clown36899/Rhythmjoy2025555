@@ -15,8 +15,7 @@
     "noEmit": true,
     /* Linting */
     "noUncheckedSideEffectImports": true,
-    "types": [],
-    "typeRoots": []
+    "types": []
   },
   "include": [
     "vite.config.ts"

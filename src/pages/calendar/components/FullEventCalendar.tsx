@@ -305,16 +305,18 @@ export default memo(function FullEventCalendar({
     refetchCalendarData();
   }, [refetchCalendarData]);
 
-  // 데이터 로딩 완료 및 렌더링 시점 감지
+  // [Pure Fix] 데이터 로딩 완료 및 레이아웃(높이)이 DOM에 실제 반영된 시점 감지
   useLayoutEffect(() => {
-    // isLoading이 false이고, 데이터가 존재하며, 높이가 계산되었을 때 알림
-    if (onDataLoaded && !isLoading && calendarData && containerHeight) {
-      // requestAnimationFrame을 사용하여 브라우저가 레이아웃을 마친 후 호출
+    // 1. 로딩이 끝났고
+    // 2. 데이터가 있으며
+    // 3. 실제 측정된 높이가 0보다 클 때 (레이아웃 완료)
+    if (onDataLoaded && !isLoading && calendarData && containerHeight && containerHeight > 0) {
+      // 브라우저가 이번 레이아웃을 완전히 마친 직후에 실행하기 위해 단일 RAF 사용
       requestAnimationFrame(() => {
         onDataLoaded();
       });
     }
-  }, [isLoading, calendarData, containerHeight, onDataLoaded]);
+  }, [isLoading, !!calendarData, containerHeight, onDataLoaded]);
 
   // 하이라이트된 이벤트로 스크롤 (setTimeout 대신 RAF 사용 검토 가능하나 일단 유지/최적화)
   useEffect(() => {

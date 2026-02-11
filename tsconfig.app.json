@@ -19,8 +19,7 @@
     "jsx": "react-jsx",
     /* Linting */
     "noUncheckedSideEffectImports": true,
-    "types": [],
-    "typeRoots": []
+    "types": []
   },
   "include": [
     "src"
