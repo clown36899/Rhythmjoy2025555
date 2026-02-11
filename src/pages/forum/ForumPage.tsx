@@ -10,7 +10,7 @@ const ForumPage: React.FC = () => {
             id: 'board',
             title: '게시판',
             description: '자유로운 소통 공간',
-            icon: 'ri-chat-3-fill',
+            icon: 'ri-chat-3-line',
             path: '/board?category=free',
             color: '#a855f7'
         },
@@ -18,7 +18,7 @@ const ForumPage: React.FC = () => {
             id: 'library',
             title: '라이브러리',
             description: '자료 보관소',
-            icon: 'ri-book-open-fill',
+            icon: 'ri-book-open-line',
             path: '/board?category=history',
             color: '#3b82f6'
         },
@@ -26,7 +26,7 @@ const ForumPage: React.FC = () => {
             id: 'bpm-tapper',
             title: 'BPM 측정기',
             description: '실시간 비트 측정',
-            icon: 'ri-pulse-fill',
+            icon: 'ri-pulse-line',
             path: '/bpm-tapper',
             color: '#ec4899'
         },
@@ -34,7 +34,7 @@ const ForumPage: React.FC = () => {
             id: 'metronome',
             title: '메트로놈',
             description: '고정밀 리듬 연주',
-            icon: 'ri-timer-flash-fill',
+            icon: 'ri-timer-flash-line',
             path: '/metronome',
             color: '#f59e0b'
         }
