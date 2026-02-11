@@ -128,7 +128,7 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
     return (
         <div className="board-tab-outer">
             <div className="board-tab-bar">
-                <div className="board-tab-scroller" ref={scrollerRef}>
+                <div className="board-tab-scroller" ref={scrollerRef} role="tablist">
                     {categories.map((cat, index) => (
                         <div key={cat.id} style={{ display: 'flex', alignItems: 'center' }}>
                             {index > 0 && (
@@ -138,6 +138,8 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
                                 ref={el => { tabRefs.current[cat.id] = el; }}
                                 className={`board-tab-item ${activeCategory === cat.id ? 'active' : ''}`}
                                 onClick={() => onCategoryChange(cat.id as BoardCategory)}
+                                role="tab"
+                                aria-selected={activeCategory === cat.id}
                             >
                                 <span className="board-tab-label">{cat.label}</span>
                                 {cat.isWip && <span className="tab-wip-badge">준비중</span>}

@@ -25,6 +25,12 @@ export interface SocialGroup {
   recruit_image?: string;   // 신규 모집 이미지 URL
 }
 
+// 1-1. 소셜 장소 (Place)
+export interface SocialPlace extends Omit<SocialGroup, 'id'> {
+  id: number | string;
+  imageUrl?: string; // 카멜케이스 지원
+}
+
 // 2. 소셜 일정 (Schedule) 타입
 export interface SocialSchedule {
   id: number | string;

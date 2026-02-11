@@ -134,7 +134,7 @@ export default function StandardPostList({
                         }}
                     >
                         {post.author_profile_image ? (
-                            <img src={post.author_profile_image} alt="author" className="board-post-author-avatar" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover' }} referrerPolicy="no-referrer" />
+                            <img src={post.author_profile_image} alt="author" className="board-post-author-avatar" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'cover' }} referrerPolicy="no-referrer" loading="lazy" />
                         ) : (
                             <span style={{ fontSize: '10px', fontWeight: 'bold' }}>
                                 {(post.author_nickname || post.author_name || '?').charAt(0)}

@@ -20,7 +20,7 @@ export default function LoginModal({ isOpen, onClose, message }: LoginModalProps
     if (!isOpen) return null;
 
     return (
-        <div className="LoginModal" onClick={onClose}>
+        <div className="LoginModal" onClick={onClose} role="dialog" aria-modal="true">
             <div className="LM-container" onClick={e => e.stopPropagation()}>
                 <div className="LM-header">
                     <button className="LM-closeBtn" onClick={onClose}>

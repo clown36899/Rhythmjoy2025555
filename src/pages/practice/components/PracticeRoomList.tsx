@@ -444,6 +444,7 @@ export default function PracticeRoomList({
                         src={getOptimizedImageUrl(room.images[0], 200)}
                         alt={room.name}
                         className="prl-card-image"
+                        loading="lazy"
                       />
                     </div>
                   )}

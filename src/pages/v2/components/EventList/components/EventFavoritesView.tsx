@@ -236,7 +236,7 @@ export function EventFavoritesView({
                                             <div style={{ padding: '16px', display: 'flex', gap: '16px', alignItems: 'center' }}>
                                                 <div className="evt-image-box-60">
                                                     {group.image_thumbnail || group.image_url ? (
-                                                        <img src={group.image_thumbnail || group.image_url} alt={group.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                                        <img src={group.image_thumbnail || group.image_url} alt={group.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />
                                                     ) : (
                                                         <div className="evt-image-placeholder"><i className="ri-team-line"></i></div>
                                                     )}
@@ -283,7 +283,7 @@ export function EventFavoritesView({
                                             </div>
                                             {room.images && room.images.length > 0 && (
                                                 <div className="prl-card-image-wrapper">
-                                                    <img src={getOptimizedImageUrl(room.images[0], 200) || '/placeholder-room.jpg'} alt={room.name} className="prl-card-image" />
+                                                    <img src={getOptimizedImageUrl(room.images[0], 200) || '/placeholder-room.jpg'} alt={room.name} className="prl-card-image" loading="lazy" />
                                                 </div>
                                             )}
                                         </div>
@@ -311,7 +311,7 @@ export function EventFavoritesView({
                                         <div key={shop.id} onClick={() => window.open(shop.link, '_blank')} className="evt-list-item-card">
                                             <div style={{ padding: '16px', display: 'flex', gap: '16px', alignItems: 'center' }}>
                                                 <div className="evt-image-box-60">
-                                                    {shop.image && <img src={shop.image} alt={shop.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />}
+                                                    {shop.image && <img src={shop.image} alt={shop.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} loading="lazy" />}
                                                 </div>
                                                 <div style={{ flex: 1, minWidth: 0 }}>
                                                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>

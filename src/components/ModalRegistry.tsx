@@ -1,4 +1,4 @@
-import { memo, lazy, Suspense } from 'react';
+import { memo, lazy, Suspense, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useModalContext } from '../contexts/ModalContext';
 
@@ -138,6 +138,18 @@ const MODAL_COMPONENTS: Record<string, any> = {
  */
 export const ModalRegistry = memo(function ModalRegistry() {
     const { modalStack, getModalProps, closeModal } = useModalContext();
+
+    // ESC 키로 모달 닫기
+    useEffect(() => {
+        const handleEsc = (e: KeyboardEvent) => {
+            if (e.key === 'Escape' && modalStack.length > 0) {
+                const topModalId = modalStack[modalStack.length - 1];
+                closeModal(topModalId);
+            }
+        };
+        window.addEventListener('keydown', handleEsc);
+        return () => window.removeEventListener('keydown', handleEsc);
+    }, [modalStack, closeModal]);
 
     const modals = modalStack.map(modalId => {
         const ModalComponent = MODAL_COMPONENTS[modalId];

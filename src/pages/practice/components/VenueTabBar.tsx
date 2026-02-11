@@ -117,13 +117,15 @@ export default function VenueTabBar({ activeCategory, onCategoryChange, prefixCa
 
     return (
         <div className="venue-tab-bar">
-            <div className="venue-tab-scroller" ref={scrollerRef}>
+            <div className="venue-tab-scroller" ref={scrollerRef} role="tablist">
                 {categories.filter(cat => !excludeCategories.includes(cat.id)).map((cat, index) => (
                     <button
                         key={cat.id}
                         ref={el => { tabRefs.current[index] = el; }}
                         className={`venue-tab-item ${activeCategory === cat.id ? 'active' : ''}`}
                         onClick={() => onCategoryChange(cat.id as VenueCategory)}
+                        role="tab"
+                        aria-selected={activeCategory === cat.id}
                     >
                         <i className={`${cat.icon} venue-tab-icon`}></i>
                         <span className="venue-tab-label">{cat.label}</span>

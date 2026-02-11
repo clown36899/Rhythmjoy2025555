@@ -75,7 +75,7 @@ export default function PlaceList({ places, onPlaceSelect }: PlaceListProps) {
             >
               {/* 이미지 영역 */}
               {place.imageUrl ? (
-                <img src={place.imageUrl} alt={place.name} className="pl-card-image" />
+                <img src={place.imageUrl} alt={place.name} className="pl-card-image" loading="lazy" />
               ) : (
                 <div className="pl-card-placeholder">
                   <i className="ri-map-pin-2-line"></i>

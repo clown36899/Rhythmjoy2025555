@@ -1125,6 +1125,8 @@ export default function EventDetailModal({
       {createPortal(
         <div
           className="EventDetailModal EDM-overlay"
+          role="dialog"
+          aria-modal="true"
           onTouchMove={(e) => {
             if (e.target === e.currentTarget) {
               e.preventDefault();
