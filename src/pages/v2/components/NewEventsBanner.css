@@ -279,7 +279,7 @@
     position: absolute;
     top: 12px;
     right: 28px;
-    width: 89px;
+    width: clamp(89px, 20vw, 200px);
     aspect-ratio: 3 / 4;
     border-radius: 6px;
     overflow: hidden;
