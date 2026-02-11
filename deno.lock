@@ -100,6 +100,7 @@
         "npm:jsdom@^27.0.1",
         "npm:mobile-drag-drop@^3.0.0-rc.0",
         "npm:node-fetch@^3.3.2",
+        "npm:pg@^8.18.0",
         "npm:qrcode.react@^4.2.0",
         "npm:qrcode@^1.5.4",
         "npm:react-datepicker@^8.9.0",

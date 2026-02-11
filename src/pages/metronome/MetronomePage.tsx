@@ -539,23 +539,25 @@ const MetronomePage: React.FC = () => {
         let newSub = 1;
         let newSwing = 0;
         let newAccent = 50;
+        let newDownbeat = 100;
+        let newBackbeat = 50;
         let name = 'Straight';
 
         switch (type) {
             case 'straight':
-                newSub = 1; newSwing = 0; newAccent = 50; name = 'Straight';
+                newSub = 1; newSwing = 0; newAccent = 50; newDownbeat = 100; newBackbeat = 100; name = 'Straight';
                 break;
             case 'light-swing':
-                newSub = 2; newSwing = 60; newAccent = 50; name = 'Light Swing';
+                newSub = 2; newSwing = 60; newAccent = 50; newDownbeat = 100; newBackbeat = 50; name = 'Light Swing';
                 break;
             case 'swing':
-                newSub = 2; newSwing = 67; newAccent = 85; name = 'Standard Swing';
+                newSub = 2; newSwing = 67; newAccent = 85; newDownbeat = 100; newBackbeat = 50; name = 'Standard Swing';
                 break;
             case 'triplet-shuffle':
-                newSub = 3; newSwing = 0; newAccent = 15; name = 'Triplet Shuffle';
+                newSub = 3; newSwing = 0; newAccent = 15; newDownbeat = 100; newBackbeat = 50; name = 'Triplet Shuffle';
                 break;
             case 'hard-shuffle':
-                newSub = 2; newSwing = 67; newAccent = 10; name = 'Hard Shuffle';
+                newSub = 2; newSwing = 67; newAccent = 10; newDownbeat = 100; newBackbeat = 50; name = 'Hard Shuffle';
                 break;
         }
 
@@ -563,26 +565,26 @@ const MetronomePage: React.FC = () => {
         setSwingFactor(newSwing);
         setOffbeat13Accent(newAccent);
         setOffbeat24Accent(newAccent);
-        setDownbeat13Accent(100); // Default downbeat
-        setBackbeatAccent(50); // Default backbeat
-        setTriplet2ndAccent(50); // Reset triplet 2nd note volume
-        setTriplet3rdSwing(0);   // Reset triplet 3rd note timing
+        setDownbeat13Accent(newDownbeat);
+        setBackbeatAccent(newBackbeat);
+        setTriplet2ndAccent(50);
+        setTriplet3rdSwing(0);
         setRhythmName(name);
-        setActiveUserPreset(null); // Clear user preset tracking for static presets
+        setActiveUserPreset(null);
 
-        // Reset manual volume adjustments to default (3)
         const totalBeats = beatsPerMeasure * newSub;
         const newVolumes = Array(totalBeats).fill(3);
 
         setBeatVolumes(newVolumes);
         beatVolumesRef.current = newVolumes;
 
-        // Immediate Sync for the Audio Engine
+        // Immediate Sync
         subRef.current = newSub;
         swingRef.current = newSwing;
         offbeat13Ref.current = newAccent;
         offbeat24Ref.current = newAccent;
-        backbeatRef.current = 50;
+        downbeat13Ref.current = newDownbeat;
+        backbeatRef.current = newBackbeat;
         triplet2ndRef.current = 50;
         triplet3rdSwingRef.current = 0;
 
