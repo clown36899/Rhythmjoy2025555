@@ -134,7 +134,7 @@ export default function AdminPushSubscribersModal({ isOpen, onClose }: AdminPush
     if (!isOpen) return null;
 
     return (
-        <div className="boum-overlay">
+        <div className="apsm-overlay" onClick={onClose}>
             <div className="apsm-container" translate="no">
                 <div className="apsm-header">
                     <div className="apsm-header-top">

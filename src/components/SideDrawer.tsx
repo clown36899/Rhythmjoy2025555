@@ -61,6 +61,7 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
     const invitationModal = useModal('invitationManagement');
     const onlineUsersModal = useModal('onlineUsers');
     const adminPushSubscribersModal = useModal('adminPushSubscribers');
+    const adminPwaInstallsModal = useModal('adminPwaInstalls');
     const genreWeightSettingsModal = useModal('genreWeightSettings');
     const noticeModal = useModal('globalNoticeEditor');
     const siteAnalyticsModal = useModal('siteAnalytics');
@@ -265,6 +266,10 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                                     <div className="SD-submenuItem" onClick={() => adminPushSubscribersModal.open()}>
                                         <i className="ri-notification-badge-line"></i>
                                         <span>알림 구독자 현황</span>
+                                    </div>
+                                    <div className="SD-submenuItem" onClick={() => adminPwaInstallsModal.open()}>
+                                        <i className="ri-app-store-line"></i>
+                                        <span>PWA 설치 현황</span>
                                     </div>
                                     <div className="SD-submenuItem" onClick={() => noticeModal.open()}>
                                         <i className="ri-megaphone-line"></i>

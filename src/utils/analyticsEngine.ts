@@ -143,13 +143,12 @@ export const trackPWAInstall = async (user?: { id: string }) => {
         userId = session?.user?.id;
     }
 
-    // [FIX] 중복 추적 방지 (세션당 1회 제한)
-    const storedInstallTrack = sessionStorage.getItem('pwa_install_tracked');
+    // [FIX] 중복 추적 방지 (기기당 1회 제한으로 강화)
+    const storedInstallTrack = localStorage.getItem('pwa_install_tracked_v2');
     if (storedInstallTrack) {
-
         return;
     }
-    sessionStorage.setItem('pwa_install_tracked', 'true');
+    localStorage.setItem('pwa_install_tracked_v2', 'true');
 
     try {
         await supabase.from('pwa_installs').insert({
@@ -207,14 +206,18 @@ export const initializeAnalyticsSession = async (user?: { id: string }, isAdmin?
             onConflict: 'session_id'
         });
 
-        if (error) {
-            // [IGNORE] Silence ALL errors for background analytics to keep console clean
-            // These errors are usually RLS/401 issues that don't affect core functionality
+        // [RETROACTIVE PWA TRACKING] 
+        // PWA 모드로 접속했는데 아직 pwa_installs 기록이 없는 경우 자동으로 기록
+        if (isPWA && !localStorage.getItem('pwa_install_tracked_v2')) {
+            // console.log('[Analytics] PWA mode detected but no install record. Tracking now...');
+            trackPWAInstall(user);
         }
 
-
+        if (error) {
+            // [IGNORE] Silence ALL errors for background analytics
+        }
     } catch {
-        // [IGNORE] Silence general errors for background analytics
+        // [IGNORE] Silence general errors
     }
 };
 

@@ -202,6 +202,15 @@ export const saveSubscriptionToSupabase = async (subscription: PushSubscription,
         console.error("Failed to save subscription to Supabase:", error);
         throw error;
     }
+
+    // [BRIDGE] 알림 신청 시 PWA 설치 로그가 없으면 즉시 생성 (데이터 일관성 확보)
+    try {
+        const { trackPWAInstall } = await import('../utils/analyticsEngine');
+        await trackPWAInstall({ id: user.id });
+    } catch (e) {
+        console.warn('[Push] Failed to link PWA install log:', e);
+    }
+
     console.log('[Push] Subscription saved to Supabase');
     return true;
 }
