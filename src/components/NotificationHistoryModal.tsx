@@ -286,7 +286,17 @@ export default function NotificationHistoryModal({
                                         </div>
                                         <div style={{ flex: 1 }}>
                                             <div style={{ color: 'white', fontWeight: 600, fontSize: '0.95rem', marginBottom: '4px' }}>{n.title}</div>
-                                            <div style={{ color: '#94a3b8', fontSize: '0.85rem', lineHeight: '1.4', marginBottom: '8px' }}>{n.body}</div>
+                                            <div style={{
+                                                color: '#94a3b8',
+                                                fontSize: '0.85rem',
+                                                lineHeight: '1.4',
+                                                marginBottom: '8px',
+                                                display: '-webkit-box',
+                                                WebkitLineClamp: 2,
+                                                WebkitBoxOrient: 'vertical',
+                                                overflow: 'hidden',
+                                                textOverflow: 'ellipsis'
+                                            }}>{n.body}</div>
                                             <div style={{ color: '#64748b', fontSize: '0.75rem' }}>{formatTime(n.received_at)}</div>
                                         </div>
                                     </div>
