@@ -5,7 +5,7 @@ import { useMonthlyBillboard } from '../hooks/useMonthlyBillboard';
 import './SwingSceneStats.css';
 
 interface StatItem {
-    type: '강습' | '행사' | '소셜' | '동호회';
+    type: '강습' | '행사' | '동호회 이벤트+소셜';
     title: string;
     date: string; // Activity Date
     createdAt: string; // Registration Date
@@ -143,7 +143,7 @@ export default function SwingSceneStats() {
             const initDow = () => {
                 const dict: { [key: string]: StatAccumulator } = {};
                 dayNames.forEach(d => dict[d] = {
-                    types: { '강습': 0, '행사': 0, '소셜': 0, '동호회': 0 },
+                    types: { '강습': 0, '행사': 0, '동호회 이벤트+소셜': 0 },
                     genres: {}, // Initialize empty
                     items: [] as StatItem[]
                 });
@@ -183,7 +183,7 @@ export default function SwingSceneStats() {
                 }
 
                 const type = e.category === 'club' ? 'clubs' : e.category === 'class' ? 'classes' : 'events';
-                const typeKr = type === 'clubs' ? '동호회' : type === 'classes' ? '강습' : '행사';
+                const typeKr = type === 'clubs' ? '동호회 이벤트+소셜' : type === 'classes' ? '강습' : '행사';
 
                 // Update Monthly Trend (Activity-based)
                 if (targetDates.length > 0) {
@@ -230,8 +230,8 @@ export default function SwingSceneStats() {
                         dowMonthly[dowKey].items.push(item);
                     }
 
-                    // 장르 파싱: 강습/행사만 장르 집계 (동호회 제외는 이 루프 밖에서 체크했거나 typeKr로 필터링)
-                    if (typeKr === '동호회') return;
+                    // 장르 파싱: 강습/행사만 장르 집계
+                    if (typeKr === '동호회 이벤트+소셜') return;
 
                     const GENRE_EXCLUDE = ['정규강습', '팀원모집', '-']; // '기타'는 제외하지 않음, '소셜'은 장르가 아님
                     const eventGenres = e.genre
@@ -297,7 +297,7 @@ export default function SwingSceneStats() {
                 const dowKey = dayNames[dowIndex];
 
                 const item: StatItem = {
-                    type: '소셜',
+                    type: '동호회 이벤트+소셜',
                     title: s.title || '제목 없음',
                     date: s.day_of_week ? '매주 반복' : (s.date || '-'),
                     createdAt: s.created_at.split('T')[0],
@@ -305,7 +305,7 @@ export default function SwingSceneStats() {
                     day: dowKey
                 };
 
-                dowTotal[dowKey].types['소셜']++;
+                dowTotal[dowKey].types['동호회 이벤트+소셜']++;
                 dowTotal[dowKey].items.push(item);
 
                 // For "New" filter (This Month), use created_at for socials 
@@ -314,7 +314,7 @@ export default function SwingSceneStats() {
                 const isRecent = dCreated >= oneMonthAgo;
 
                 if (isRecent) {
-                    dowMonthly[dowKey].types['소셜']++;
+                    dowMonthly[dowKey].types['동호회 이벤트+소셜']++;
                     dowMonthly[dowKey].items.push(item);
                 }
 
@@ -340,8 +340,7 @@ export default function SwingSceneStats() {
                     const typeBreakdown = [
                         { name: '강습', count: Number(data.types['강습']) || 0 },
                         { name: '행사', count: Number(data.types['행사']) || 0 },
-                        { name: '소셜', count: Number(data.types['소셜']) || 0 },
-                        { name: '동호회', count: Number(data.types['동호회']) || 0 },
+                        { name: '동호회 이벤트+소셜', count: Number(data.types['동호회 이벤트+소셜']) || 0 },
                     ];
 
                     // Genre Breakdown: Normalized to total class+event count to avoid over-100% bars
@@ -567,8 +566,7 @@ export default function SwingSceneStats() {
                                         {/* Using percentage for accurate height proportion */}
                                         <div className="bar-segment" style={{ height: `${(m.classes / maxMonthly) * 100}%`, minHeight: m.classes > 0 ? '1px' : '0', background: COLORS.classes }}></div>
                                         <div className="bar-segment" style={{ height: `${(m.events / maxMonthly) * 100}%`, minHeight: m.events > 0 ? '1px' : '0', background: COLORS.events }}></div>
-                                        <div className="bar-segment" style={{ height: `${(m.socials / maxMonthly) * 100}%`, minHeight: m.socials > 0 ? '1px' : '0', background: COLORS.socials }}></div>
-                                        <div className="bar-segment" style={{ height: `${(m.clubs / maxMonthly) * 100}%`, minHeight: m.clubs > 0 ? '1px' : '0', background: COLORS.clubs }}></div>
+                                        <div className="bar-segment" style={{ height: `${((m.socials + m.clubs) / maxMonthly) * 100}%`, minHeight: (m.socials + m.clubs) > 0 ? '1px' : '0', background: COLORS.socials }}></div>
                                     </div>
                                     <span className="axis-label">{m.month.split('-')[1]}월</span>
                                 </div>
@@ -577,8 +575,7 @@ export default function SwingSceneStats() {
                         <div className="legend-grid">
                             <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.classes }}></span> 강습</div>
                             <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.events }}></span> 행사</div>
-                            <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.socials }}></span> 소셜</div>
-                            <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.clubs }}></span> 동호회</div>
+                            <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.socials }}></span> 동호회 이벤트+소셜</div>
                         </div>
 
                         <div className="chart-info-footer">
@@ -618,7 +615,7 @@ export default function SwingSceneStats() {
                                                 style={{
                                                     height: `${(tb.count / maxDay) * 100}%`,
                                                     minHeight: tb.count > 0 ? '1px' : '0',
-                                                    background: [COLORS.classes, COLORS.events, COLORS.socials, COLORS.clubs][idx]
+                                                    background: [COLORS.classes, COLORS.events, COLORS.socials][idx]
                                                 }}></div>
                                         ))}
                                     </div>
@@ -630,12 +627,11 @@ export default function SwingSceneStats() {
                         <div className="legend-grid">
                             <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.classes }}></span> 강습</div>
                             <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.events }}></span> 행사</div>
-                            <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.socials }}></span> 소셜</div>
-                            <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.clubs }}></span> 동호회</div>
+                            <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.socials }}></span> 동호회 이벤트+소셜</div>
                         </div>
 
                         <div className="chart-desc">
-                            <p>• 소셜은 <strong>{getTypePeak('소셜')}요일</strong>, 행사는 <strong>{getTypePeak('행사')}요일</strong>에 가장 활발합니다.</p>
+                            <p>• <strong>동호회 이벤트+소셜</strong> 항목은 <strong>{getTypePeak('동호회 이벤트+소셜')}요일</strong>, 행사는 <strong>{getTypePeak('행사')}요일</strong>에 가장 활발합니다.</p>
                         </div>
 
                         {inspectTypeDay && (
@@ -798,7 +794,7 @@ const DataInspectorModal = ({ day, items, sortBy, onClose }: { day: string, item
                                         <td className="inspector-td">
                                             <span className={`type-badge ${item.type === '강습' ? 'class' :
                                                 item.type === '행사' ? 'event' :
-                                                    item.type === '동호회' ? 'club' : 'social'
+                                                    item.type === '동호회 이벤트+소셜' ? 'social' : 'social'
                                                 }`}>{item.type}</span>
                                         </td>
                                         <td className="inspector-td">{item.title}</td>
@@ -831,6 +827,6 @@ const GENRE_COLORS: { [key: string]: string } = {
     '버번': 'var(--color-rose-500)'
 };
 
-const COLORS = { classes: 'var(--color-blue-500)', events: 'var(--color-amber-400)', socials: 'var(--color-emerald-500)', clubs: 'var(--color-purple-500)' };
+const COLORS = { classes: 'var(--color-blue-500)', events: 'var(--color-amber-400)', socials: 'var(--color-emerald-500)' };
 
 
