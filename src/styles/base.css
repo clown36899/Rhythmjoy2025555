@@ -43,12 +43,15 @@
     --color-gray-700: #374151;
     --color-gray-800: #1f2937;
     --color-gray-900: #111827;
+    --color-slate-500: #64748b;
+    --color-slate-600: #475569;
     --color-black: #000000;
     --color-white: #ffffff;
 
     /* 전체 색상 팔레트 (확장) */
     --color-amber-400: #fbbf24;
     --color-amber-500: #f59e0b;
+    --color-amber-600: #d97706;
     --color-yellow-500: #eab308;
     --color-lime-400: #a3e635;
     --color-lime-500: #84cc16;
@@ -56,20 +59,24 @@
     --color-emerald-500: #10b981;
     --color-teal-400: #2dd4bf;
     --color-teal-500: #14b8a6;
+    --color-teal-600: #0d9488;
     --color-cyan-400: #22d3ee;
     --color-cyan-500: #06b6d4;
     --color-sky-400: #38bdf8;
     --color-sky-500: #0ea5e9;
+    --color-sky-600: #0284c7;
     --color-indigo-400: #818cf8;
     --color-indigo-500: #6366f1;
     --color-violet-400: #a78bfa;
     --color-violet-500: #8b5cf6;
+    --color-violet-600: #7c3aed;
     --color-fuchsia-400: #e879f9;
     --color-fuchsia-500: #d946ef;
     --color-pink-400: #f472b6;
     --color-pink-500: #ec4899;
     --color-rose-400: #fb7185;
     --color-rose-500: #f43f5e;
+    --color-rose-600: #e11d48;
 
     /* 장르 색상 변수 */
     --genre-red-400: var(--color-red-400);

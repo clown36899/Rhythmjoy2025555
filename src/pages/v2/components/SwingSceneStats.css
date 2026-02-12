@@ -110,6 +110,13 @@
     font-weight: 700;
 }
 
+.card-hint {
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+    font-weight: 400;
+}
+
 /* Chart Components */
 .chart-container {
     display: flex;

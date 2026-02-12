@@ -144,7 +144,7 @@ export default function SwingSceneStats() {
                 const dict: { [key: string]: StatAccumulator } = {};
                 dayNames.forEach(d => dict[d] = {
                     types: { '강습': 0, '행사': 0, '소셜': 0, '동호회': 0 },
-                    genres: { '소셜': 0 },
+                    genres: {}, // Initialize empty
                     items: [] as StatItem[]
                 });
                 return dict;
@@ -218,36 +218,40 @@ export default function SwingSceneStats() {
                         title: e.title || '제목 없음',
                         date: targetDates[0] + (targetDates.length > 1 ? ` 외 ${targetDates.length - 1}건` : ''),
                         createdAt: e.created_at.split('T')[0],
-                        genre: e.genre || '소셜',
+                        genre: e.genre || '',
                         day: dowKey
                     };
 
                     dowTotal[dowKey].types[typeKr]++;
                     dowTotal[dowKey].items.push(item);
 
-                    // For "This Month" filter in Weekly Stats
-                    // In this Test Mode (Dec Only), we can just count it. 
-                    // But to respect the logic: "Recent Registration"
                     if (dCreated >= oneMonthAgo) {
                         dowMonthly[dowKey].types[typeKr]++;
                         dowMonthly[dowKey].items.push(item);
                     }
 
-                    // 장르 파싱: 기능 태그(정규강습, 팀원모집 등)를 제외하고 실제 댄스 장르만 집계
-                    const GENRE_EXCLUDE = ['정규강습', '팀원모집', '-', '기타'];
+                    // 장르 파싱: 강습/행사만 장르 집계 (동호회 제외는 이 루프 밖에서 체크했거나 typeKr로 필터링)
+                    if (typeKr === '동호회') return;
+
+                    const GENRE_EXCLUDE = ['정규강습', '팀원모집', '-']; // '기타'는 제외하지 않음, '소셜'은 장르가 아님
                     const eventGenres = e.genre
-                        ? e.genre.split(',').map((g: string) => g.trim()).filter((g: string) => g && !GENRE_EXCLUDE.includes(g))
+                        ? e.genre.split(',').map((g: string) => g.trim()).filter((g: string) => g && !GENRE_EXCLUDE.includes(g) && g !== '소셜')
                         : [];
 
                     if (eventGenres.length > 0) {
                         eventGenres.forEach((g: string) => {
-                            globalGenreDict[g] = (globalGenreDict[g] || 0) + 1;
-                            dowTotal[dowKey].genres[g] = (dowTotal[dowKey].genres[g] || 0) + 1;
-                            if (dCreated >= oneMonthAgo) dowMonthly[dowKey].genres[g] = (dowMonthly[dowKey].genres[g] || 0) + 1;
+                            // 대회, 워크샵, 파티 통합 + 행사의 '기타'도 '행사'로 통합
+                            let mappedGenre = g;
+                            if (['대회', '워크샵', '파티'].includes(g)) {
+                                mappedGenre = '행사';
+                            } else if (typeKr === '행사' && g === '기타') {
+                                mappedGenre = '행사';
+                            }
+
+                            globalGenreDict[mappedGenre] = (globalGenreDict[mappedGenre] || 0) + 1;
+                            dowTotal[dowKey].genres[mappedGenre] = (dowTotal[dowKey].genres[mappedGenre] || 0) + 1;
+                            if (dCreated >= oneMonthAgo) dowMonthly[dowKey].genres[mappedGenre] = (dowMonthly[dowKey].genres[mappedGenre] || 0) + 1;
                         });
-                    } else {
-                        dowTotal[dowKey].genres['소셜']++;
-                        if (dCreated >= oneMonthAgo) dowMonthly[dowKey].genres['소셜']++;
                     }
                 });
             });
@@ -314,22 +318,8 @@ export default function SwingSceneStats() {
                     dowMonthly[dowKey].items.push(item);
                 }
 
-                // 소셜 장르 파싱: 동일하게 기능 태그 제외
-                const SOCIAL_GENRE_EXCLUDE = ['정규강습', '팀원모집', '-', '기타'];
-                const socialGenres = s.v2_genre
-                    ? s.v2_genre.split(',').map((g: string) => g.trim()).filter((g: string) => g && !SOCIAL_GENRE_EXCLUDE.includes(g))
-                    : [];
-
-                if (socialGenres.length > 0) {
-                    socialGenres.forEach((g: string) => {
-                        globalGenreDict[g] = (globalGenreDict[g] || 0) + 1;
-                        dowTotal[dowKey].genres[g] = (dowTotal[dowKey].genres[g] || 0) + 1;
-                        if (isRecent) dowMonthly[dowKey].genres[g] = (dowMonthly[dowKey].genres[g] || 0) + 1;
-                    });
-                } else {
-                    dowTotal[dowKey].genres['소셜']++;
-                    if (isRecent) dowMonthly[dowKey].genres['소셜']++;
-                }
+                // 소셜/동호회는 장르 집계 제외 (사용자 요청)
+                // 위에서 socials.forEach로 돌고 있는 것은 '소셜' 테이블 데이터임.
 
                 // Removed duplicate increment
                 if (isRecent) {
@@ -345,20 +335,29 @@ export default function SwingSceneStats() {
                 return dayNames.map(day => {
                     const data = dict[day];
                     const total = Object.values(data.types).reduce((a: number, b: number) => a + (Number(b) || 0), 0);
+                    const typeCountForGenre = (Number(data.types['강습']) || 0) + (Number(data.types['행사']) || 0);
+
                     const typeBreakdown = [
                         { name: '강습', count: Number(data.types['강습']) || 0 },
                         { name: '행사', count: Number(data.types['행사']) || 0 },
                         { name: '소셜', count: Number(data.types['소셜']) || 0 },
                         { name: '동호회', count: Number(data.types['동호회']) || 0 },
                     ];
+
+                    // Genre Breakdown: Normalized to total class+event count to avoid over-100% bars
                     const genreBreakdown: { name: string; count: number }[] = [];
-                    let othersCount = Number(data.genres['소셜']) || 0;
-                    top5Genres.forEach(g => genreBreakdown.push({ name: g, count: Number(data.genres[g]) || 0 }));
-                    Object.entries(data.genres).forEach(([name, count]: [string, number]) => {
-                        if (name !== '소셜' && !top5Genres.includes(name)) othersCount += (Number(count) || 0);
+                    const top8Genres = sortedGenres.slice(0, 8);
+
+                    top8Genres.forEach(g => {
+                        const rawCount = Number(data.genres[g]) || 0;
+                        // 정규화: (해당 장르 건수 / 전체 장르 발생 합계) * (강습+행사 총 개수)
+                        // 이렇게 하면 세그먼트의 합이 정확히 typeCountForGenre가 됨
+                        const totalGenreOccurrences = Object.values(data.genres).reduce((a, b) => a + b, 0) || 1;
+                        const normalizedCount = (rawCount / totalGenreOccurrences) * typeCountForGenre;
+                        genreBreakdown.push({ name: g, count: normalizedCount });
                     });
-                    genreBreakdown.push({ name: '소셜', count: othersCount });
-                    const topGenre = sortedGenres.find(g => (Number(data.genres[g]) || 0) > 0) || '소셜';
+
+                    const topGenre = sortedGenres.find(g => (Number(data.genres[g]) || 0) > 0) || '';
                     return { day, count: total, typeBreakdown, genreBreakdown, topGenre, items: data.items };
                 });
             };
@@ -413,7 +412,7 @@ export default function SwingSceneStats() {
                 monthly: months.map(m => monthlyDict[m]),
                 totalWeekly,
                 monthlyWeekly,
-                topGenresList: [...top5Genres, '소셜'],
+                topGenresList: sortedGenres.slice(0, 8),
                 summary: {
                     totalItems,
                     monthlyAverage: refinedAverage,
@@ -476,7 +475,14 @@ export default function SwingSceneStats() {
 
     const getGenreColor = (name: string, index: number) => {
         if (GENRE_COLORS[name]) return GENRE_COLORS[name];
-        const palette = ['var(--color-teal-500)', 'var(--color-violet-500)', 'var(--color-rose-500)', 'var(--color-amber-400)', 'var(--color-blue-500)'];
+        // 팔레트 중복 최소화를 위해 선명한 색상 위주로 폴백 구성
+        const palette = [
+            'var(--color-lime-500)',
+            'var(--color-fuchsia-500)',
+            'var(--color-cyan-500)',
+            'var(--color-indigo-400)',
+            'var(--color-pink-500)'
+        ];
         return palette[index % palette.length];
     };
 
@@ -486,7 +492,7 @@ export default function SwingSceneStats() {
 
     const handleShare = async () => {
         if (!stats) return;
-        const text = `📊 스윙씬 통계 요약 (From 댄스빌보드)\n\n- 최근 1년 등록: ${stats.summary.totalItems}건\n- 월평균 등록: ${stats.summary.monthlyAverage}건\n- 가장 활발한 요일: ${stats.summary.topDay}요일\n\n더 자세한 스윙씬 트렌드는 댄스빌보드에서 확인하세요!\nhttps://swingenjoy.com?modal=stats`;
+        const text = `📊 스윙씬 통계 요약 (From 댄스빌보드)\n\n- 최근 1년 활동: ${stats.summary.totalItems}건\n- 월평균 이벤트: ${stats.summary.monthlyAverage}건\n- 가장 활발한 요일: ${stats.summary.topDay}요일\n\n더 자세한 스윙씬 트렌드는 댄스빌보드에서 확인하세요!\nhttps://swingenjoy.com?modal=stats`;
 
         if (navigator.share) {
             try {
@@ -523,16 +529,19 @@ export default function SwingSceneStats() {
 
                     <div className="stats-card-grid">
                         <div className="stats-card">
-                            <div className="card-label">최근 1년</div>
+                            <div className="card-label">최근 1년 활동</div>
                             <div className="card-value">{stats.summary.totalItems}건</div>
+                            <div className="card-hint">시작일 기준</div>
                         </div>
                         <div className="stats-card">
-                            <div className="card-label">월평균 등록</div>
+                            <div className="card-label">월평균 이벤트</div>
                             <div className="card-value">{stats.summary.monthlyAverage}건</div>
+                            <div className="card-hint">시작일 기준</div>
                         </div>
                         <div className="stats-card">
                             <div className="card-label">최고 활성</div>
                             <div className="card-value">{stats.summary.topDay}요일</div>
+                            <div className="card-hint">누적 통계</div>
                         </div>
                     </div>
 
@@ -640,7 +649,7 @@ export default function SwingSceneStats() {
                     <div className="spacer-52"></div> {/* Spacer to align with Section 2 */}
 
                     <div className="stats-section">
-                        <h4 className="section-title"><i className="ri-medal-2-line"></i> 요일별 장르 비중</h4>
+                        <h4 className="section-title"><i className="ri-medal-2-line"></i> 외부강습 요일별 장르 비중</h4>
 
                         <div className="chart-container">
                             {currentWeekly.map((d, i) => (
@@ -808,9 +817,18 @@ const DataInspectorModal = ({ day, items, sortBy, onClose }: { day: string, item
 };
 
 const GENRE_COLORS: { [key: string]: string } = {
-    '린디합': 'var(--color-blue-600)', '발보아': 'var(--color-amber-500)', '지터벅': 'var(--color-emerald-500)', '블루스': 'var(--color-indigo-600)',
-    '솔로재즈': 'var(--color-rose-600)', '샤그': 'var(--color-orange-600)', '탭댄스': 'var(--color-cyan-500)', '웨스트코스트스윙': 'var(--color-violet-500)',
-    '슬로우린디': 'var(--color-indigo-500)', '버번': 'var(--color-rose-500)', '소셜': 'var(--bg-surface-3)'
+    '린디합': 'var(--color-blue-600)',
+    '솔로재즈': 'var(--color-rose-600)',
+    '발보아': 'var(--color-amber-500)',
+    '블루스': 'var(--color-sky-400)',
+    '행사': 'var(--color-teal-600)',
+    '기타': 'var(--color-slate-500)',
+    '지터벅': 'var(--color-emerald-500)',
+    '샤그': 'var(--color-lime-500)',
+    '탭댄스': 'var(--color-cyan-500)',
+    '웨스트코스트스윙': 'var(--color-violet-400)',
+    '슬로우린디': 'var(--color-indigo-500)',
+    '버번': 'var(--color-rose-500)'
 };
 
 const COLORS = { classes: 'var(--color-blue-500)', events: 'var(--color-amber-400)', socials: 'var(--color-emerald-500)', clubs: 'var(--color-purple-500)' };
