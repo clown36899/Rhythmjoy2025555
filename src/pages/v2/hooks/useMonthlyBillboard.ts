@@ -60,26 +60,14 @@ export const useMonthlyBillboard = () => {
         return `monthly_billboard_cache_${target.year}_${target.month}`;
     };
 
+    console.log('[빌보드 디버그] 🔄 useMonthlyBillboard 훅 렌더링됨', {
+        loading,
+        hasData: !!data,
+        target: targetDate
+    });
+
     useEffect(() => {
-        const cacheKey = getCacheKey(targetDate);
-        const cached = localStorage.getItem(cacheKey);
-
-        if (cached) {
-            try {
-                const { timestamp, data, v } = JSON.parse(cached);
-                const now = new Date().getTime();
-                // 1 Hour Cache + Version Invalidation (v11_selector)
-                if (v === 'v11_selector' && now - timestamp < 3600 * 1000) {
-                    setData(data);
-                    setLoading(false);
-                    return; // Cache hit
-                }
-            } catch (e) {
-                console.error('Cache parse failed', e);
-            }
-        }
-
-        // If no cache, fetch
+        console.log('[빌보드 디버그] 🏁 데이터 로드 시작 (캐시를 사용하지 않고 항상 서버에서 가져옵니다)', { targetDate });
         setLoading(true);
         fetchMonthlyData(targetDate);
     }, [targetDate]);
@@ -131,17 +119,52 @@ export const useMonthlyBillboard = () => {
 
             if (eError) throw eError;
 
-            // 2. Fetch Analyzed Data via RPC
+            // 2. RPC를 통한 분석 데이터 페칭 (상세 로깅 포함)
+            console.log('[빌보드 디버그] 🚀 월간 데이터 요청 시작...', {
+                대상: target,
+                시작일: startStr,
+                종료일: endStr
+            });
+
+            const { data: { session } } = await supabase.auth.getSession();
+            console.log('[빌보드 디버그] 🔑 현재 사용자 세션 상태:', {
+                권한: session?.user?.role || '익명(anon)',
+                로그인여부: !!session,
+                이메일: session?.user?.email,
+                최근로그인: session?.user?.last_sign_in_at
+            });
+
             const { data: rpcData, error: rpcError } = await supabase
                 .rpc('get_monthly_webzine_stats', {
                     start_date: startStr,
                     end_date: endStr
                 });
 
-            if (rpcError) throw rpcError;
+            if (rpcError) {
+                console.error('[빌보드 디버그] ❌ RPC 요청 에러 발생:', {
+                    에러코드: rpcError.code,
+                    메시지: rpcError.message,
+                    상세: rpcError.details,
+                    힌트: rpcError.hint
+                });
+                throw rpcError;
+            }
 
-            // --- Analysis & Transformation ---
+            console.log('[빌보드 디버그] ✅ 서버에서 수신된 원본 데이터:', rpcData);
             const stats = rpcData as any;
+
+            if (stats?.meta?.distribution) {
+                console.log('[빌보드 디버그] 📊 1월 데이터 타입별 분포:', stats.meta.distribution);
+                const missingCount = stats.meta.totalLogs - Object.values(stats.meta.distribution as Record<string, number>).reduce((a, b) => a + b, 0);
+                if (missingCount > 0) {
+                    console.log(`[빌보드 디버그] ⚠️ 분석되지 않은 기타 데이터: ${missingCount} 건`);
+                }
+            }
+
+            // --- 데이터 가공 및 변환 ---
+            if (!stats || !stats.meta) {
+                console.warn('[빌보드 디버그] ⚠️ 서버가 빈 데이터나 잘못된 구조를 반환했습니다:', stats);
+            }
 
             // Meta
             const uniqueVisitors = stats.meta.uniqueVisitors;
@@ -185,34 +208,43 @@ export const useMonthlyBillboard = () => {
             const weekendClassDrop = 0;
 
             // B. Daily Flow (Hourly)
-            const hours = Array(24).fill(0).map((_, i) => ({ hour: i, class: 0, event: 0 }));
+            // 1. 시간대별 데이터 매핑 (KST 기준)
+            const rawHourMap: Record<number, { class: number, event: number }> = {};
+            for (let i = 0; i < 24; i++) rawHourMap[i] = { class: 0, event: 0 };
+
             let totalClassViews = 0;
             let totalEventViews = 0;
 
-            if (stats.hourlyStats && Array.isArray(stats.hourlyStats)) {
-                stats.hourlyStats.forEach((h: any) => {
-                    const hourIdx = h.hour;
-                    if (hourIdx >= 0 && hourIdx < 24) {
-                        hours[hourIdx].class = h.class_count;
-                        hours[hourIdx].event = h.event_count;
-                        totalClassViews += h.class_count;
-                        totalEventViews += h.event_count;
-                    }
-                });
-            }
-
-            // Uniform Peak Finding
-            let maxClassH = 11, maxClassValRaw = 0;
-            let maxEventH = 19, maxEventValRaw = 0;
-
-            hours.forEach(h => {
-                if (h.class > maxClassValRaw) { maxClassValRaw = h.class; maxClassH = h.hour; }
-                if (h.event > maxEventValRaw) { maxEventValRaw = h.event; maxEventH = h.hour; }
+            stats.hourlyStats?.forEach((h: any) => {
+                const hr = parseInt(h.hour);
+                if (hr >= 0 && hr < 24) {
+                    rawHourMap[hr] = {
+                        class: h.class_count || 0,
+                        event: h.event_count || 0
+                    };
+                    totalClassViews += h.class_count || 0;
+                    totalEventViews += h.event_count || 0;
+                }
             });
+
+            const rawHourlyData = Object.keys(rawHourMap).sort((a, b) => Number(a) - Number(b)).map(h => ({
+                hour: Number(h),
+                ...rawHourMap[Number(h)]
+            }));
+
+            // Peak 계산
+            let classPeak = 0, eventPeak = 0;
+            let classMax = -1, eventMax = -1;
+            rawHourlyData.forEach(d => {
+                if (d.class > classMax) { classMax = d.class; classPeak = d.hour; }
+                if (d.event > eventMax) { eventMax = d.event; eventPeak = d.hour; }
+            });
+
+            console.log('[빌보드 디버그] 🕒 시간대별 피크 탐지:', { 강습피크: classPeak, 행사피크: eventPeak });
 
             // Normalize for visual rendering
             const combinedViews = totalClassViews + totalEventViews;
-            const normalizedHours = hours.map(h => ({
+            const normalizedHours = rawHourlyData.map(h => ({
                 hour: h.hour,
                 class: combinedViews > 0 ? (h.class / combinedViews) * 100 : 0,
                 event: combinedViews > 0 ? (h.event / combinedViews) * 100 : 0
@@ -240,34 +272,27 @@ export const useMonthlyBillboard = () => {
                     visitorTrafficDays: visitorTrafficCounts
                 },
                 dailyFlow: {
-                    classPeakHour: maxClassH,
-                    eventPeakHour: maxEventH,
                     hourlyData: normalizedHours,
-                    rawHourlyData: hours
+                    rawHourlyData,
+                    classPeakHour: classPeak,
+                    eventPeakHour: eventPeak
                 },
-                leadTime: {
-                    classD28: 5.9,
-                    classD7: 0.3,
-                    eventD42: 36.5,
-                    eventD14: 10.8
+                leadTime: stats.leadTime || {
+                    classD28: 0,
+                    classD7: 0,
+                    eventD42: 0,
+                    eventD14: 0
                 },
                 topContents: sortedRanking
             };
 
+            console.log('[빌보드 디버그] ✨ 데이터 가공 완료:', result.meta);
             setData(result);
             setLoading(false);
 
-            // Save Cache
-            try {
-                const cacheKey = getCacheKey(target);
-                localStorage.setItem(cacheKey, JSON.stringify({
-                    timestamp: new Date().getTime(),
-                    data: result,
-                    v: 'v11_selector'
-                }));
-            } catch (e) {
-                console.error('Cache save failed', e);
-            }
+            console.log('[빌보드 디버그] ✨ 데이터 가공 및 상태 업데이트 완료');
+            setData(result);
+            setLoading(false);
 
         } catch (error) {
             console.error('Fetch Monthly Billboard Error:', error);

@@ -173,7 +173,10 @@ const MonthlyWebzine = () => {
                     </div>
 
                     <div className="mw-meta-box" onClick={() => setShowDetailModal(true)}>
-                        <div className="mw-meta-data-row"><span className="mw-highlight-dot">●</span> <strong>Data</strong>: {meta.uniqueVisitors.toLocaleString()} Visitors ({meta.totalLogs.toLocaleString()} Logs)</div>
+                        <div className="mw-meta-data-row">
+                            <span className="mw-highlight-dot">●</span>
+                            <strong>Data</strong>: {meta.uniqueVisitors.toLocaleString()} Visitors ({meta.totalLogs.toLocaleString()} Logs)
+                        </div>
                         <div><span className="mw-meta-sub">Range: {meta.range}</span></div>
                     </div>
                 </div>
@@ -266,8 +269,8 @@ const MonthlyWebzine = () => {
 
                             <div className="mw-desc-sm">
                                 데이터 기준: <strong>시간당 평균 조회·클릭 (Views/hr)</strong><br />
-                                <strong>{getHourLabel(dailyFlow.classPeakHour)}({dailyFlow.classPeakHour}시)</strong>은 강습 활동,
-                                <strong> {getHourLabel(dailyFlow.eventPeakHour)}({dailyFlow.eventPeakHour}시)</strong>는 행사 패턴이 활발합니다.
+                                🕒 <strong>{getHourLabel(dailyFlow.classPeakHour)}({dailyFlow.classPeakHour}시)</strong>은 강습 활동,
+                                <strong> {getHourLabel(dailyFlow.eventPeakHour)}({dailyFlow.eventPeakHour}시)</strong>는 행사 패턴이 가장 활발합니다.
                             </div>
 
                             <div className="graph-container" onMouseLeave={() => setHoverHour(null)} key={viewMode}>
@@ -286,7 +289,7 @@ const MonthlyWebzine = () => {
                                     <polyline points={classPoints} className="graph-polyline graph-polyline-class" />
                                     <polyline points={eventPoints} className="graph-polyline graph-polyline-event" />
                                 </svg>
-                                \n                                <div className="graph-interaction-layer">
+                                <div className="graph-interaction-layer">
                                     {dailyFlow.rawHourlyData.map((_item: { hour: number, class: number, event: number }, i: number) => (
                                         <div
                                             key={i}
@@ -296,29 +299,37 @@ const MonthlyWebzine = () => {
                                         />
                                     ))}
                                 </div>
-                                \n                                {hoverHour !== null && (
+                                {hoverHour !== null && (
                                     <>
                                         <div className="graph-hover-line" style={{ left: `${(hoverHour / 23) * 100}%` }} />
                                         <div className="graph-tooltip" style={{
-                                            left: hoverHour > 16 ? 'auto' : `${(hoverHour / 23) * 100}%`,
-                                            right: hoverHour > 16 ? `${100 - (hoverHour / 23) * 100}%` : 'auto'
+                                            left: hoverHour > 18 ? 'auto' : `${(hoverHour / 23) * 100}%`,
+                                            right: hoverHour > 18 ? `${100 - (hoverHour / 23) * 100}%` : 'auto',
+                                            transform: hoverHour > 18 ? 'translateY(-10px)' : `translateX(${hoverHour < 5 ? '0' : '-50%'}) translateY(-10px)`
                                         }}>
-                                            <span className="gt-time">{hoverHour.toString().padStart(2, '0')}:00</span>
-                                            <div className="gt-row">
-                                                <span className="gt-label">강습</span>
-                                                <span className="gt-val class">
-                                                    {viewMode === 'count'
-                                                        ? `${dailyFlow.rawHourlyData[hoverHour].class}회`
-                                                        : `${dailyFlow.hourlyData[hoverHour].class.toFixed(1)}%`}
-                                                </span>
+                                            <div className="gt-header">
+                                                <span className="gt-time">{hoverHour.toString().padStart(2, '0')}:00</span>
+                                                <span className="gt-label-main">수치 분석</span>
                                             </div>
-                                            <div className="gt-row">
-                                                <span className="gt-label">행사</span>
-                                                <span className="gt-val event">
-                                                    {viewMode === 'count'
-                                                        ? `${dailyFlow.rawHourlyData[hoverHour].event}회`
-                                                        : `${dailyFlow.hourlyData[hoverHour].event.toFixed(1)}%`}
-                                                </span>
+                                            <div className="gt-body">
+                                                <div className="gt-row">
+                                                    <span className="gt-dot bg-blue-500" />
+                                                    <span className="gt-label">강습</span>
+                                                    <span className="gt-val class">
+                                                        {viewMode === 'count'
+                                                            ? `${dailyFlow.rawHourlyData[hoverHour].class.toLocaleString()}회`
+                                                            : `${dailyFlow.hourlyData[hoverHour].class.toFixed(1)}%`}
+                                                    </span>
+                                                </div>
+                                                <div className="gt-row">
+                                                    <span className="gt-dot bg-rose-500" />
+                                                    <span className="gt-label">행사</span>
+                                                    <span className="gt-val event">
+                                                        {viewMode === 'count'
+                                                            ? `${dailyFlow.rawHourlyData[hoverHour].event.toLocaleString()}회`
+                                                            : `${dailyFlow.hourlyData[hoverHour].event.toFixed(1)}%`}
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
                                     </>

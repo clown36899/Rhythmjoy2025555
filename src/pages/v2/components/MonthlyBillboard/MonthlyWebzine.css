@@ -223,10 +223,10 @@
     display: flex;
     flex-direction: column;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
+    /* 수치/툴팁 잘림 방지를 위해 visible로 변경 */
     min-height: 0;
     min-width: 0;
-    /* CRITICAL */
 }
 
 .mw-card.flex-1 {
@@ -362,30 +362,45 @@
 
 .lc-active-dot {
     position: absolute;
-    width: 8px;
-    height: 8px;
+    width: 10px;
+    height: 10px;
     background: var(--color-amber-400);
+    border: 2px solid #000;
     border-radius: 50%;
-    border: 2px solid var(--bg-card);
-    box-shadow: 0 0 8px rgba(251, 191, 36, 0.5);
+    box-shadow: 0 0 12px rgba(251, 191, 36, 0.8);
     transition: bottom 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-    z-index: 5;
+    z-index: 10;
 }
 
 .lc-tooltip {
     position: absolute;
-    background: rgba(0, 0, 0, 0.85);
-    color: var(--text-primary);
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-size: 10px;
-    font-weight: 800;
+    background: var(--color-amber-400);
+    color: #000;
+    padding: 6px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 900;
     white-space: nowrap;
-    z-index: 15;
+    z-index: 9999;
+    /* 최상단 고정 */
     pointer-events: none;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(4px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.7);
+    transform: translateX(-50%);
+    left: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.lc-tooltip::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 4px solid var(--color-amber-400);
 }
 
 .lc-legend {
@@ -458,10 +473,13 @@
 }
 
 .graph-container {
-    height: 60px;
+    height: 70px;
+    /* 가독성을 위해 높이 약간 상향 */
     position: relative;
     width: 100%;
     margin-bottom: 4px;
+    overflow: visible;
+    /* 툴팁 노출 보장 */
 }
 
 .graph-line-grid {
@@ -521,7 +539,8 @@
     position: absolute;
     inset: 0;
     display: flex;
-    z-index: 10;
+    z-index: 50;
+    /* 인터랙션 레이어 우선순위 조정 */
 }
 
 .graph-hour-zone {
@@ -542,49 +561,73 @@
 
 .graph-tooltip {
     position: absolute;
-    background: rgba(0, 0, 0, 0.9);
-    padding: 8px 10px;
-    border-radius: 8px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(8px);
-    z-index: 20;
+    bottom: 100%;
+    /* 그래프 상단에 띄우기 (잘림 방지 핵심) */
+    background: rgba(10, 10, 15, 0.95);
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: 1px solid rgba(251, 191, 36, 0.4);
+    backdrop-filter: blur(12px);
+    z-index: 9999;
+    /* 모든 요소의 최상단 */
     pointer-events: none;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-    min-width: 80px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.8);
+    min-width: 130px;
+    transform: translateY(-10px);
+    transition: left 0.1s ease-out, right 0.1s ease-out;
+}
+
+.gt-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .gt-time {
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 800;
     color: var(--color-amber-400);
-    margin-bottom: 4px;
-    display: block;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    padding-bottom: 2px;
+}
+
+.gt-label-main {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    font-weight: 500;
 }
 
 .gt-row {
     display: flex;
-    justify-content: space-between;
+    align-items: center;
     gap: 8px;
-    font-size: 10px;
-    margin-top: 2px;
+    font-size: 12px;
+    margin-top: 4px;
+}
+
+.gt-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
 }
 
 .gt-label {
     color: var(--text-tertiary);
+    flex: 1;
 }
 
 .gt-val {
-    font-weight: 700;
+    font-weight: 800;
+    font-family: 'Inter', sans-serif;
 }
 
 .gt-val.class {
-    color: var(--color-blue-500);
+    color: var(--color-blue-400);
 }
 
 .gt-val.event {
-    color: var(--color-rose-500);
+    color: var(--color-rose-400);
 }
 
 .hourly-legend {

@@ -134,15 +134,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 
 
-      // Capture personal info from metadata
-      const realName = metadata.real_name || metadata.full_name || metadata.name || null;
-      const phoneNumber = metadata.phone_number || null;
+      // Capture personal info from metadata - real_name, phone_number removed
 
 
 
       const { data: existingUser } = await supabase
         .from('board_users')
-        .select('user_id, status, nickname, real_name, phone_number, provider, profile_image, kakao_id, gender')
+        .select('user_id, status, nickname, provider, profile_image, kakao_id, gender')
         .eq('user_id', userObj.id)
         .maybeSingle();
 
@@ -166,16 +164,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         if (effectiveProvider !== 'email' && (!existingUser.provider || existingUser.provider === 'email')) {
           updateData.provider = effectiveProvider;
 
-        }
-
-        // 2. 실명 보충 (DB가 비어있을 때만)
-        if (realName && !existingUser.real_name) {
-          updateData.real_name = realName;
-        }
-
-        // 3. 전화번호 보충 (DB가 비어있을 때만)
-        if (phoneNumber && !existingUser.phone_number) {
-          updateData.phone_number = phoneNumber;
         }
 
         // 4. 프로필 이미지 보충
@@ -220,8 +208,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           user_id: userObj.id,
           nickname: nickname + '_' + Math.floor(Math.random() * 10000),
           profile_image: profileImage,
-          real_name: realName,
-          phone_number: phoneNumber,
           email: userObj.email,
           provider: provider,
           kakao_id: metadata.kakao_id || null,

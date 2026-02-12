@@ -13,8 +13,6 @@ interface BoardUser {
     id: number;
     user_id: string;
     nickname: string;
-    real_name: string | null;
-    phone_number: string | null;
     email: string | null;
     provider: string | null;
     created_at: string;
@@ -43,7 +41,7 @@ export default function AdminSecureMembersModal({ isOpen, onClose }: AdminSecure
             setLoading(true);
             const { data, error } = await supabase
                 .from('board_users')
-                .select('id, user_id, nickname, real_name, phone_number, email, provider, profile_image, created_at')
+                .select('id, user_id, nickname, email, provider, profile_image, created_at')
                 .order('created_at', { ascending: false });
 
             if (error) throw error;
@@ -63,7 +61,6 @@ export default function AdminSecureMembersModal({ isOpen, onClose }: AdminSecure
         const term = searchTerm.toLowerCase();
         const filtered = users.filter(user =>
             user.nickname.toLowerCase().includes(term) ||
-            (user.real_name && user.real_name.toLowerCase().includes(term)) ||
             (user.email && user.email.toLowerCase().includes(term))
         );
         setFilteredUsers(filtered);
@@ -116,8 +113,7 @@ export default function AdminSecureMembersModal({ isOpen, onClose }: AdminSecure
                                 <thead>
                                     <tr className="boum-table-head">
                                         <th className="boum-table-header">가입경로</th>
-                                        <th className="boum-table-header">닉네임/실명</th>
-                                        <th className="boum-table-header">연락처</th>
+                                        <th className="boum-table-header">닉네임</th>
                                         <th className="boum-table-header">이메일</th>
                                         <th className="boum-table-header">가입일</th>
                                     </tr>
@@ -154,12 +150,8 @@ export default function AdminSecureMembersModal({ isOpen, onClose }: AdminSecure
                                                     </div>
                                                     <div className="secure-nickname-group">
                                                         <span className="boum-nickname">{user.nickname}</span>
-                                                        <span className="secure-realname">{user.real_name || '-'}</span>
                                                     </div>
                                                 </div>
-                                            </td>
-                                            <td className="boum-table-cell secure-cell-phone">
-                                                {user.phone_number || '-'}
                                             </td>
                                             <td className="boum-table-cell secure-cell-email">
                                                 {user.email || '-'}
