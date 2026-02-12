@@ -101,25 +101,42 @@ export default function SwingSceneStats() {
             // 1. Fetch data (Fetch enough history to cover 12 months)
             const dateFilter = twelveMonthsAgo.toISOString(); // Use ISO for accurate comparison
 
-            // 1. Fetch data with improved filtering
+            // Paginated fetch helper (Supabase 1000건 제한 우회)
+            const fetchAll = async (tableName: string, query: () => any) => {
+                let all: any[] = [];
+                let page = 0;
+                const PAGE_SIZE = 1000;
+                let hasMore = true;
+                while (hasMore) {
+                    const { data, error } = await query()
+                        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
+                    if (error) throw error;
+                    if (data && data.length > 0) {
+                        all = all.concat(data);
+                        console.log(`[SwingSceneStats] ${tableName}: page ${page + 1} → ${data.length}건 (누적 ${all.length}건)`);
+                        hasMore = data.length === PAGE_SIZE;
+                        page++;
+                    } else {
+                        hasMore = false;
+                    }
+                }
+                console.log(`[SwingSceneStats] ${tableName}: 총 ${all.length}건 로드 완료 (${page}페이지)`);
+                return all;
+            };
+
+            // 1. Fetch data with improved filtering + pagination
             // Fetch items where (Created in last 12m) OR (Starts in last 12m)
-            const [eventsRes, socialsRes, postsRes] = await Promise.all([
-                supabase.from('events')
+            const [events, socials, posts] = await Promise.all([
+                fetchAll('events', () => supabase.from('events')
                     .select('id, category, genre, created_at, date, start_date, event_dates, title')
-                    .or(`created_at.gte.${dateFilter},start_date.gte.${dateFilter},date.gte.${dateFilter}`),
-                supabase.from('social_schedules')
+                    .or(`created_at.gte.${dateFilter},start_date.gte.${dateFilter},date.gte.${dateFilter}`)),
+                fetchAll('social_schedules', () => supabase.from('social_schedules')
                     .select('id, v2_category, v2_genre, created_at, date, day_of_week, title')
-                    .or(`created_at.gte.${dateFilter},date.gte.${dateFilter}`),
-                supabase.from('board_posts')
+                    .or(`created_at.gte.${dateFilter},date.gte.${dateFilter}`)),
+                fetchAll('board_posts', () => supabase.from('board_posts')
                     .select('id, category, created_at, title')
-                    .gte('created_at', dateStr)
+                    .gte('created_at', dateStr))
             ]);
-
-            const events = eventsRes.data || [];
-            const socials = socialsRes.data || [];
-            const posts = postsRes.data || [];
-
-
 
 
             // 2. Process Data
