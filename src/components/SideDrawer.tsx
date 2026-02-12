@@ -10,6 +10,7 @@ import {
     verifySubscriptionOwnership
 } from '../lib/pushNotifications';
 import { SITE_MENU_SECTIONS, MENU_LABELS_EN } from '../config/menuConfig';
+import { useOnlineUsers } from '../hooks/useOnlineUsers';
 import '../styles/domains/overlays.css';
 
 interface SideDrawerProps {
@@ -32,6 +33,10 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
     const [isAdminExpanded, setIsAdminExpanded] = useState(true);
     const [boardCategories, setBoardCategories] = useState<BoardCategory[]>([]);
     const [memberCount, setMemberCount] = useState<number | null>(null);
+    const [pwaCount, setPwaCount] = useState<number | null>(null);
+    const [pushCount, setPushCount] = useState<number | null>(null);
+    const { totalCount: onlineCount } = useOnlineUsers();
+
     const [showDevTools, setShowDevTools] = useState(() => {
         return localStorage.getItem('showDevTools') === 'true';
     });
@@ -60,8 +65,7 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
     const adminSecureMembersModal = useModal('adminSecureMembers');
     const invitationModal = useModal('invitationManagement');
     const onlineUsersModal = useModal('onlineUsers');
-    const adminPushSubscribersModal = useModal('adminPushSubscribers');
-    const adminPwaInstallsModal = useModal('adminPwaInstalls');
+    const adminAppStatusModal = useModal('adminAppStatus');
     const genreWeightSettingsModal = useModal('genreWeightSettings');
     const noticeModal = useModal('globalNoticeEditor');
     const siteAnalyticsModal = useModal('siteAnalytics');
@@ -93,17 +97,22 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
     };
 
     useEffect(() => {
-        if (isAdmin && isOpen) fetchMemberCount();
+        if (isAdmin && isOpen) fetchAdminStats();
     }, [isAdmin, isOpen]);
 
-    const fetchMemberCount = async () => {
+    const fetchAdminStats = async () => {
         try {
-            const { count, error } = await supabase
-                .from('board_users')
-                .select('*', { count: 'exact', head: true });
-            if (!error && count !== null) setMemberCount(count);
+            const [memberRes, pwaRes, pushRes] = await Promise.all([
+                supabase.from('board_users').select('*', { count: 'exact', head: true }),
+                supabase.from('pwa_installs').select('*', { count: 'exact', head: true }),
+                supabase.from('user_push_subscriptions').select('*', { count: 'exact', head: true })
+            ]);
+
+            if (!memberRes.error) setMemberCount(memberRes.count);
+            if (!pwaRes.error) setPwaCount(pwaRes.count);
+            if (!pushRes.error) setPushCount(pushRes.count);
         } catch (e) {
-            console.error('Failed to fetch member count', e);
+            console.error('Failed to fetch admin stats', e);
         }
     };
 
@@ -222,7 +231,7 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                     </div>
 
                     {isAdmin && (
-                        <div translate="no">
+                        <div translate="no" className="SD-adminWrapper">
                             <div className="SD-menuItem SD-isExpandable SD-adminToggle" onClick={() => setIsAdminExpanded(!isAdminExpanded)}>
                                 <i className="ri-admin-line"></i>
                                 <span>ADMIN ONLY</span>
@@ -230,67 +239,90 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                             </div>
 
                             {isAdminExpanded && (
-                                <div className="SD-submenu">
-                                    <div className="SD-submenuItem" onClick={() => adminFavoritesModal.open()}>
-                                        <i className="ri-heart-pulse-line"></i>
-                                        <span>즐겨찾기 현황</span>
+                                <div className="SD-adminContainer">
+                                    {/* Admin Summary Dashboard Grid */}
+                                    <div className="SD-adminGrid">
+                                        <div className="SD-adminGridItem" onClick={() => adminSecureMembersModal.open()}>
+                                            <span className="SD-gridVal">{memberCount ?? '-'}</span>
+                                            <span className="SD-gridLabel">회원</span>
+                                        </div>
+                                        <div className="SD-adminGridItem" onClick={() => onlineUsersModal.open()}>
+                                            <span className="SD-gridVal" style={{ color: '#34d399' }}>{onlineCount}</span>
+                                            <span className="SD-gridLabel">온라인</span>
+                                        </div>
+                                        <div className="SD-adminGridItem" onClick={() => adminAppStatusModal.open({ initialTab: 'pwa' })}>
+                                            <span className="SD-gridVal" style={{ color: '#fbbf24' }}>{pwaCount ?? '-'}</span>
+                                            <span className="SD-gridLabel">앱 설치</span>
+                                        </div>
+                                        <div className="SD-adminGridItem" onClick={() => adminAppStatusModal.open({ initialTab: 'push' })}>
+                                            <span className="SD-gridVal" style={{ color: '#f87171' }}>{pushCount ?? '-'}</span>
+                                            <span className="SD-gridLabel">알림 구독</span>
+                                        </div>
                                     </div>
-                                    <div className="SD-submenuItem" onClick={() => adminSecureMembersModal.open()}>
-                                        <i className="ri-shield-user-line"></i>
-                                        <span>회원관리 {memberCount !== null ? `(${memberCount}명)` : ''}</span>
+
+                                    {/* Category: Monitoring & Status */}
+                                    <div className="SD-adminSubGroup">
+                                        <div className="SD-subGroupTitle">모니터링 & 현황</div>
+                                        <div className="SD-submenuItem" onClick={() => siteAnalyticsModal.open()}>
+                                            <i className="ri-bar-chart-box-line"></i>
+                                            <span>운영 통합 통계</span>
+                                        </div>
+                                        <div className="SD-submenuItem" onClick={() => adminFavoritesModal.open()}>
+                                            <i className="ri-heart-pulse-line"></i>
+                                            <span>즐겨찾기 현황</span>
+                                        </div>
                                     </div>
-                                    <div className="SD-submenuItem" onClick={() => boardManagementModal.open()}>
-                                        <i className="ri-layout-masonry-line"></i>
-                                        <span>게시판 관리</span>
+
+                                    {/* Category: Content & Display */}
+                                    <div className="SD-adminSubGroup">
+                                        <div className="SD-subGroupTitle">콘텐츠 & 게시판</div>
+                                        <div className="SD-submenuItem" onClick={() => boardManagementModal.open()}>
+                                            <i className="ri-layout-masonry-line"></i>
+                                            <span>게시판 관리</span>
+                                        </div>
+                                        <div className="SD-submenuItem" onClick={() => boardPrefixModal.open()}>
+                                            <i className="ri-text-spacing"></i>
+                                            <span>머릿말 관리</span>
+                                        </div>
+                                        <div className="SD-submenuItem" onClick={() => noticeModal.open()}>
+                                            <i className="ri-megaphone-line"></i>
+                                            <span>공지사항 관리</span>
+                                        </div>
+                                        <div className="SD-submenuItem" onClick={() => genreWeightSettingsModal.open()}>
+                                            <i className="ri-equalizer-line"></i>
+                                            <span>강습 노출 확률 설정</span>
+                                        </div>
                                     </div>
-                                    <div className="SD-submenuItem" onClick={() => boardPrefixModal.open()}>
-                                        <i className="ri-text-spacing"></i>
-                                        <span>머릿말 관리</span>
+
+                                    {/* Category: User & Security */}
+                                    <div className="SD-adminSubGroup">
+                                        <div className="SD-subGroupTitle">회원 & 보안</div>
+                                        <div className="SD-submenuItem" onClick={() => billboardUserModal.open()}>
+                                            <i className="ri-user-settings-line"></i>
+                                            <span>빌보드 회원 관리</span>
+                                        </div>
+                                        <div className="SD-submenuItem" onClick={() => invitationModal.open()}>
+                                            <i className="ri-mail-send-line"></i>
+                                            <span>초대 관리</span>
+                                        </div>
                                     </div>
-                                    <div className="SD-submenuItem" onClick={() => billboardUserModal.open()}>
-                                        <i className="ri-user-settings-line"></i>
-                                        <span>빌보드 회원 관리</span>
-                                    </div>
-                                    <div className="SD-submenuItem" onClick={() => invitationModal.open()}>
-                                        <i className="ri-mail-send-line"></i>
-                                        <span>초대 관리</span>
-                                    </div>
-                                    <div className="SD-submenuItem" onClick={() => genreWeightSettingsModal.open()}>
-                                        <i className="ri-equalizer-line"></i>
-                                        <span>강습 노출 확률 설정</span>
-                                    </div>
-                                    <div className="SD-submenuItem" onClick={() => onlineUsersModal.open()}>
-                                        <i className="ri-user-line"></i>
-                                        <span>현재 접속자</span>
-                                    </div>
-                                    <div className="SD-submenuItem" onClick={() => adminPushSubscribersModal.open()}>
-                                        <i className="ri-notification-badge-line"></i>
-                                        <span>알림 구독자 현황</span>
-                                    </div>
-                                    <div className="SD-submenuItem" onClick={() => adminPwaInstallsModal.open()}>
-                                        <i className="ri-app-store-line"></i>
-                                        <span>PWA 설치 현황</span>
-                                    </div>
-                                    <div className="SD-submenuItem" onClick={() => noticeModal.open()}>
-                                        <i className="ri-megaphone-line"></i>
-                                        <span>공지사항 관리</span>
-                                    </div>
-                                    <div className="SD-submenuItem" onClick={() => siteAnalyticsModal.open()}>
-                                        <i className="ri-bar-chart-box-line"></i>
-                                        <span className="SD-adminStatsText">운영 통합 통계</span>
-                                    </div>
-                                    <div className="SD-submenuItem" onClick={() => handleNavigation(`/billboard/${user?.id}/preview/catalog`)}>
-                                        <i className="ri-tv-2-line"></i>
-                                        <span>Billboard (Catalog)</span>
-                                    </div>
-                                    <div className="SD-submenuItem" onClick={() => {
-                                        const newValue = !showDevTools;
-                                        setShowDevTools(newValue);
-                                        localStorage.setItem('showDevTools', String(newValue));
-                                        window.dispatchEvent(new CustomEvent('toggleDevTools', { detail: newValue }));
-                                    }}>
-                                        <i className={showDevTools ? "ri-bug-fill" : "ri-bug-line"}></i>
-                                        <span>DevTools {showDevTools ? 'ON' : 'OFF'}</span>
+
+                                    {/* Category: System & Misc */}
+                                    <div className="SD-adminSubGroup">
+                                        <div className="SD-subGroupTitle">시스템 & 기타</div>
+                                        <div className="SD-submenuItem" onClick={() => handleNavigation(`/billboard/${user?.id}/preview/catalog`)}>
+                                            <i className="ri-tv-2-line"></i>
+                                            <span>Billboard (Catalog)</span>
+                                        </div>
+                                        <div className="SD-submenuItem" onClick={() => {
+                                            const newValue = !showDevTools;
+                                            setShowDevTools(newValue);
+                                            localStorage.setItem('showDevTools', String(newValue));
+                                            window.dispatchEvent(new CustomEvent('toggleDevTools', { detail: newValue }));
+                                        }}>
+                                            <i className={showDevTools ? "ri-bug-fill" : "ri-bug-line"}></i>
+                                            <span>DevTools {showDevTools ? 'ON' : 'OFF'}</span>
+                                        </div>
                                     </div>
                                 </div>
                             )}

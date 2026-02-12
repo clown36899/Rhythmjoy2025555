@@ -143,15 +143,13 @@ export const trackPWAInstall = async (user?: { id: string }) => {
         userId = session?.user?.id;
     }
 
-    // [FIX] 중복 추적 방지 (기기당 1회 제한으로 강화)
-    const storedInstallTrack = localStorage.getItem('pwa_install_tracked_v2');
-    if (storedInstallTrack) {
+    // [FIX] 중복 추적 방지 (기기당 1회 제한)
+    if (localStorage.getItem('pwa_install_tracked_v2')) {
         return;
     }
-    localStorage.setItem('pwa_install_tracked_v2', 'true');
 
     try {
-        await supabase.from('pwa_installs').insert({
+        const { error } = await supabase.from('pwa_installs').insert({
             user_id: userId || null,
             fingerprint: fingerprint || null,
             installed_at: new Date().toISOString(),
@@ -166,9 +164,12 @@ export const trackPWAInstall = async (user?: { id: string }) => {
             session_id: currentSessionId,
         });
 
-
+        // INSERT 성공 시에만 플래그 설정 (실패 시 다음 세션에서 재시도)
+        if (!error) {
+            localStorage.setItem('pwa_install_tracked_v2', 'true');
+        }
     } catch (error) {
-        console.error('[Analytics] Failed to track PWA install:', error);
+        // 플래그 미설정 → 다음 세션에서 자동 재시도
     }
 };
 

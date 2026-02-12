@@ -65,8 +65,7 @@ const GenreWeightSettingsModal = lazy(() => import('../components/GenreWeightSet
 const SiteAnalyticsModal = lazy(() => import('../components/SiteAnalyticsModal'));
 const AdminPushTestModal = lazy(() => import('../components/AdminPushTestModal'));
 const OnlineUsersModal = lazy(() => import('../components/OnlineUsersModal').then(module => ({ default: module.OnlineUsersModal })));
-const AdminPushSubscribersModal = lazy(() => import('../components/AdminPushSubscribersModal'));
-const AdminPwaInstallsModal = lazy(() => import('../components/AdminPwaInstallsModal'));
+const AdminAppStatusModal = lazy(() => import('../components/AdminAppStatusModal'));
 
 /**
  * 모든 모달 컴포넌트를 ID로 매핑
@@ -133,8 +132,7 @@ const MODAL_COMPONENTS: Record<string, any> = {
     'siteAnalytics': SiteAnalyticsModal,
     'adminPushTest': AdminPushTestModal,
     'newEventsList': NewEventsListModal,
-    'adminPushSubscribers': AdminPushSubscribersModal,
-    'adminPwaInstalls': AdminPwaInstallsModal,
+    'adminAppStatus': AdminAppStatusModal,
 };
 
 /**
