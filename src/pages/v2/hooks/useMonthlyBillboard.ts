@@ -57,20 +57,7 @@ export const useMonthlyBillboard = (initialTarget?: { year: number, month: numbe
     const [data, setData] = useState<BillboardData | null>(null);
     const [loading, setLoading] = useState(true);
 
-    // Cache Key Generator
-    const getCacheKey = (target: { year: number, month: number } | 'all') => {
-        if (target === 'all') return 'monthly_billboard_cache_all';
-        return `monthly_billboard_cache_${target.year}_${target.month}`;
-    };
-
-    console.log('[빌보드 디버그] 🔄 useMonthlyBillboard 훅 렌더링됨', {
-        loading,
-        hasData: !!data,
-        target: targetDate
-    });
-
     useEffect(() => {
-        console.log('[빌보드 디버그] 🏁 데이터 로드 시작 (캐시를 사용하지 않고 항상 서버에서 가져옵니다)', { targetDate });
         setLoading(true);
         fetchMonthlyData(targetDate);
     }, [targetDate]);
@@ -82,7 +69,6 @@ export const useMonthlyBillboard = (initialTarget?: { year: number, month: numbe
             const pad = (n: number) => n.toString().padStart(2, '0');
 
             if (target === 'all') {
-                // All Time Logic (Start from Jan 2025 for better analysis)
                 const now = new Date();
                 startStr = '2025-01-01T00:00:00+09:00';
                 endStr = now.toISOString();
@@ -94,7 +80,6 @@ export const useMonthlyBillboard = (initialTarget?: { year: number, month: numbe
                 eventStartStr = '2025-01-01';
                 eventEndStr = now.toISOString();
             } else {
-                // Specific Month Logic
                 const { year, month } = target;
                 const endD = new Date(year, month + 1, 0);
 
@@ -122,21 +107,7 @@ export const useMonthlyBillboard = (initialTarget?: { year: number, month: numbe
 
             if (eError) throw eError;
 
-            // 2. RPC를 통한 분석 데이터 페칭 (상세 로깅 포함)
-            console.log('[빌보드 디버그] 🚀 월간 데이터 요청 시작...', {
-                대상: target,
-                시작일: startStr,
-                종료일: endStr
-            });
-
-            const { data: { session } } = await supabase.auth.getSession();
-            console.log('[빌보드 디버그] 🔑 현재 사용자 세션 상태:', {
-                권한: session?.user?.role || '익명(anon)',
-                로그인여부: !!session,
-                이메일: session?.user?.email,
-                최근로그인: session?.user?.last_sign_in_at
-            });
-
+            // 2. RPC를 통한 분석 데이터 페칭
             const { data: rpcData, error: rpcError } = await supabase
                 .rpc('get_monthly_webzine_stats', {
                     p_start_date: startStr,
@@ -144,29 +115,14 @@ export const useMonthlyBillboard = (initialTarget?: { year: number, month: numbe
                 });
 
             if (rpcError) {
-                console.error('[빌보드 디버그] ❌ RPC 요청 에러 발생:', {
-                    에러코드: rpcError.code,
-                    메시지: rpcError.message,
-                    상세: rpcError.details,
-                    힌트: rpcError.hint
-                });
+                console.error('[Billboard] RPC error:', rpcError.message);
                 throw rpcError;
             }
 
-            console.log('[빌보드 디버그] ✅ 서버에서 수신된 원본 데이터:', rpcData);
             const stats = rpcData as any;
 
-            if (stats?.meta?.distribution) {
-                console.log('[빌보드 디버그] 📊 1월 데이터 타입별 분포:', stats.meta.distribution);
-                const missingCount = stats.meta.totalLogs - Object.values(stats.meta.distribution as Record<string, number>).reduce((a, b) => a + b, 0);
-                if (missingCount > 0) {
-                    console.log(`[빌보드 디버그] ⚠️ 분석되지 않은 기타 데이터: ${missingCount} 건`);
-                }
-            }
-
-            // --- 데이터 가공 및 변환 ---
             if (!stats || !stats.meta) {
-                console.warn('[빌보드 디버그] ⚠️ 서버가 빈 데이터나 잘못된 구조를 반환했습니다:', stats);
+                console.warn('[Billboard] Empty or invalid data from server');
             }
 
             // Meta
@@ -211,7 +167,6 @@ export const useMonthlyBillboard = (initialTarget?: { year: number, month: numbe
             const weekendClassDrop = 0;
 
             // B. Daily Flow (Hourly)
-            // 1. 시간대별 데이터 매핑 (KST 기준)
             const rawHourMap: Record<number, { class: number, event: number }> = {};
             for (let i = 0; i < 24; i++) rawHourMap[i] = { class: 0, event: 0 };
 
@@ -242,8 +197,6 @@ export const useMonthlyBillboard = (initialTarget?: { year: number, month: numbe
                 if (d.class > classMax) { classMax = d.class; classPeak = d.hour; }
                 if (d.event > eventMax) { eventMax = d.event; eventPeak = d.hour; }
             });
-
-            console.log('[빌보드 디버그] 🕒 시간대별 피크 탐지:', { 강습피크: classPeak, 행사피크: eventPeak });
 
             // Normalize for visual rendering
             const combinedViews = totalClassViews + totalEventViews;
@@ -291,16 +244,11 @@ export const useMonthlyBillboard = (initialTarget?: { year: number, month: numbe
                 topContents: sortedRanking
             };
 
-            console.log('[빌보드 디버그] ✨ 데이터 가공 완료:', result.meta);
-            setData(result);
-            setLoading(false);
-
-            console.log('[빌보드 디버그] ✨ 데이터 가공 및 상태 업데이트 완료');
             setData(result);
             setLoading(false);
 
         } catch (error) {
-            console.error('Fetch Monthly Billboard Error:', error);
+            console.error('[Billboard] Fetch error:', error);
             setLoading(false);
         }
     };

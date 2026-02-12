@@ -5,7 +5,7 @@ import { useMonthlyBillboard } from '../hooks/useMonthlyBillboard';
 import './SwingSceneStats.css';
 
 interface StatItem {
-    type: '강습' | '행사' | '소셜' | '게시글';
+    type: '강습' | '행사' | '소셜' | '동호회';
     title: string;
     date: string; // Activity Date
     createdAt: string; // Registration Date
@@ -28,7 +28,7 @@ interface SceneStats {
         classes: number;
         events: number;
         socials: number;
-        posts: number;
+        clubs: number;
         total: number;
         registrations: number;
     }[];
@@ -53,7 +53,7 @@ interface MonthlyStat {
     classes: number;
     events: number;
     socials: number;
-    posts: number;
+    clubs: number;
     total: number;
     registrations: number;
 }
@@ -91,8 +91,6 @@ export default function SwingSceneStats() {
         try {
             const twelveMonthsAgo = new Date();
             twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
-            const dateStr = twelveMonthsAgo.toISOString().split('T')[0];
-
             const oneMonthAgo = new Date();
             oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
 
@@ -126,16 +124,14 @@ export default function SwingSceneStats() {
 
             // 1. Fetch data with improved filtering + pagination
             // Fetch items where (Created in last 12m) OR (Starts in last 12m)
-            const [events, socials, posts] = await Promise.all([
+            // 게시글(board_posts)은 스윙씬 통계에서 제외 — 행사/강습/소셜만 집계
+            const [events, socials] = await Promise.all([
                 fetchAll('events', () => supabase.from('events')
                     .select('id, category, genre, created_at, date, start_date, event_dates, title')
                     .or(`created_at.gte.${dateFilter},start_date.gte.${dateFilter},date.gte.${dateFilter}`)),
                 fetchAll('social_schedules', () => supabase.from('social_schedules')
                     .select('id, v2_category, v2_genre, created_at, date, day_of_week, title')
-                    .or(`created_at.gte.${dateFilter},date.gte.${dateFilter}`)),
-                fetchAll('board_posts', () => supabase.from('board_posts')
-                    .select('id, category, created_at, title')
-                    .gte('created_at', dateStr))
+                    .or(`created_at.gte.${dateFilter},date.gte.${dateFilter}`))
             ]);
 
 
@@ -147,7 +143,7 @@ export default function SwingSceneStats() {
             const initDow = () => {
                 const dict: { [key: string]: StatAccumulator } = {};
                 dayNames.forEach(d => dict[d] = {
-                    types: { '강습': 0, '행사': 0, '소셜': 0, '게시글': 0 },
+                    types: { '강습': 0, '행사': 0, '소셜': 0, '동호회': 0 },
                     genres: { '소셜': 0 },
                     items: [] as StatItem[]
                 });
@@ -163,7 +159,7 @@ export default function SwingSceneStats() {
                 d.setMonth(d.getMonth() - i);
                 const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
                 months.push(key);
-                monthlyDict[key] = { month: key, classes: 0, events: 0, socials: 0, posts: 0, total: 0, registrations: 0 };
+                monthlyDict[key] = { month: key, classes: 0, events: 0, socials: 0, clubs: 0, total: 0, registrations: 0 };
             }
 
             // Events
@@ -186,8 +182,8 @@ export default function SwingSceneStats() {
                     if (primaryDate) targetDates.push(primaryDate);
                 }
 
-                const type = (e.category === 'class' || e.category === 'club') ? 'classes' : 'events';
-                const typeKr = type === 'classes' ? '강습' : '행사';
+                const type = e.category === 'club' ? 'clubs' : e.category === 'class' ? 'classes' : 'events';
+                const typeKr = type === 'clubs' ? '동호회' : type === 'classes' ? '강습' : '행사';
 
                 // Update Monthly Trend (Activity-based)
                 if (targetDates.length > 0) {
@@ -237,17 +233,17 @@ export default function SwingSceneStats() {
                         dowMonthly[dowKey].items.push(item);
                     }
 
-                    if (e.genre) {
-                        e.genre.split(',').forEach((g: string) => {
-                            const trimmed = g.trim().replace('정규강습', '').trim();
-                            if (trimmed && trimmed !== '-') {
-                                globalGenreDict[trimmed] = (globalGenreDict[trimmed] || 0) + 1;
-                                dowTotal[dowKey].genres[trimmed] = (dowTotal[dowKey].genres[trimmed] || 0) + 1;
-                                if (dCreated >= oneMonthAgo) dowMonthly[dowKey].genres[trimmed] = (dowMonthly[dowKey].genres[trimmed] || 0) + 1;
-                            } else {
-                                dowTotal[dowKey].genres['소셜']++;
-                                if (dCreated >= oneMonthAgo) dowMonthly[dowKey].genres['소셜']++;
-                            }
+                    // 장르 파싱: 기능 태그(정규강습, 팀원모집 등)를 제외하고 실제 댄스 장르만 집계
+                    const GENRE_EXCLUDE = ['정규강습', '팀원모집', '-', '기타'];
+                    const eventGenres = e.genre
+                        ? e.genre.split(',').map((g: string) => g.trim()).filter((g: string) => g && !GENRE_EXCLUDE.includes(g))
+                        : [];
+
+                    if (eventGenres.length > 0) {
+                        eventGenres.forEach((g: string) => {
+                            globalGenreDict[g] = (globalGenreDict[g] || 0) + 1;
+                            dowTotal[dowKey].genres[g] = (dowTotal[dowKey].genres[g] || 0) + 1;
+                            if (dCreated >= oneMonthAgo) dowMonthly[dowKey].genres[g] = (dowMonthly[dowKey].genres[g] || 0) + 1;
                         });
                     } else {
                         dowTotal[dowKey].genres['소셜']++;
@@ -318,20 +314,19 @@ export default function SwingSceneStats() {
                     dowMonthly[dowKey].items.push(item);
                 }
 
-                let hasGenre = false;
-                if (s.v2_genre) {
-                    s.v2_genre.split(',').forEach((g: string) => {
-                        const trimmed = g.trim().replace('정규강습', '').trim();
-                        if (trimmed && trimmed !== '-') {
-                            hasGenre = true;
-                            globalGenreDict[trimmed] = (globalGenreDict[trimmed] || 0) + 1;
-                            dowTotal[dowKey].genres[trimmed] = (dowTotal[dowKey].genres[trimmed] || 0) + 1;
-                            if (isRecent) dowMonthly[dowKey].genres[trimmed] = (dowMonthly[dowKey].genres[trimmed] || 0) + 1;
-                        }
-                    });
-                }
+                // 소셜 장르 파싱: 동일하게 기능 태그 제외
+                const SOCIAL_GENRE_EXCLUDE = ['정규강습', '팀원모집', '-', '기타'];
+                const socialGenres = s.v2_genre
+                    ? s.v2_genre.split(',').map((g: string) => g.trim()).filter((g: string) => g && !SOCIAL_GENRE_EXCLUDE.includes(g))
+                    : [];
 
-                if (!hasGenre) {
+                if (socialGenres.length > 0) {
+                    socialGenres.forEach((g: string) => {
+                        globalGenreDict[g] = (globalGenreDict[g] || 0) + 1;
+                        dowTotal[dowKey].genres[g] = (dowTotal[dowKey].genres[g] || 0) + 1;
+                        if (isRecent) dowMonthly[dowKey].genres[g] = (dowMonthly[dowKey].genres[g] || 0) + 1;
+                    });
+                } else {
                     dowTotal[dowKey].genres['소셜']++;
                     if (isRecent) dowMonthly[dowKey].genres['소셜']++;
                 }
@@ -339,33 +334,6 @@ export default function SwingSceneStats() {
                 // Removed duplicate increment
                 if (isRecent) {
                     // handled above
-                }
-            });
-
-            // Posts
-            posts.forEach(p => {
-                const d = new Date(p.created_at);
-                const monKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-                const dowKey = dayNames[d.getDay()];
-                const item: StatItem = {
-                    type: '게시글',
-                    title: p.title || '제목 없음',
-                    date: p.created_at.split('T')[0],
-                    createdAt: p.created_at.split('T')[0],
-                    genre: '-',
-                    day: dowKey
-                };
-
-                if (monthlyDict[monKey]) {
-                    monthlyDict[monKey].posts++;
-                    monthlyDict[monKey].total++;
-                    monthlyDict[monKey].registrations++;
-                }
-
-                if (d >= oneMonthAgo) {
-                    dowMonthly[dowKey].types['게시글']++;
-                    // Removed: dowMonthly[dowKey].genres['기타']++;
-                    dowMonthly[dowKey].items.push(item);
                 }
             });
 
@@ -381,7 +349,7 @@ export default function SwingSceneStats() {
                         { name: '강습', count: Number(data.types['강습']) || 0 },
                         { name: '행사', count: Number(data.types['행사']) || 0 },
                         { name: '소셜', count: Number(data.types['소셜']) || 0 },
-                        { name: '게시글', count: Number(data.types['게시글']) || 0 }
+                        { name: '동호회', count: Number(data.types['동호회']) || 0 },
                     ];
                     const genreBreakdown: { name: string; count: number }[] = [];
                     let othersCount = Number(data.genres['소셜']) || 0;
@@ -398,7 +366,7 @@ export default function SwingSceneStats() {
             const totalWeekly = buildWeeklyStats(dowTotal);
             const monthlyWeekly = buildWeeklyStats(dowMonthly);
 
-            const totalItems = events.length + socials.length + posts.length;
+            const totalItems = events.length + socials.length;
 
             // Calculate Active Months Average (Excluding incomplete current month for accuracy)
             const calculateAccurateAverage = () => {
@@ -467,7 +435,7 @@ export default function SwingSceneStats() {
                 localStorage.setItem('swing_scene_stats_cache', JSON.stringify({
                     timestamp: new Date().getTime(),
                     data: stats,
-                    v: 'v3'
+                    v: 'v5'
                 }));
             } catch (e) {
                 console.error('Cache save failed', e);
@@ -514,7 +482,7 @@ export default function SwingSceneStats() {
 
     // Data Inspector Helper
     const getTypeItems = (day: string | null) => day ? currentWeekly.find(d => d.day === day)?.items || [] : [];
-    const getGenreItems = (day: string | null) => day ? (currentWeekly.find(d => d.day === day)?.items || []).filter(i => i.type !== '게시글') : [];
+    const getGenreItems = (day: string | null) => day ? (currentWeekly.find(d => d.day === day)?.items || []) : [];
 
     const handleShare = async () => {
         if (!stats) return;
@@ -591,7 +559,7 @@ export default function SwingSceneStats() {
                                         <div className="bar-segment" style={{ height: `${(m.classes / maxMonthly) * 100}%`, minHeight: m.classes > 0 ? '1px' : '0', background: COLORS.classes }}></div>
                                         <div className="bar-segment" style={{ height: `${(m.events / maxMonthly) * 100}%`, minHeight: m.events > 0 ? '1px' : '0', background: COLORS.events }}></div>
                                         <div className="bar-segment" style={{ height: `${(m.socials / maxMonthly) * 100}%`, minHeight: m.socials > 0 ? '1px' : '0', background: COLORS.socials }}></div>
-                                        <div className="bar-segment" style={{ height: `${(m.posts / maxMonthly) * 100}%`, minHeight: m.posts > 0 ? '1px' : '0', background: COLORS.posts }}></div>
+                                        <div className="bar-segment" style={{ height: `${(m.clubs / maxMonthly) * 100}%`, minHeight: m.clubs > 0 ? '1px' : '0', background: COLORS.clubs }}></div>
                                     </div>
                                     <span className="axis-label">{m.month.split('-')[1]}월</span>
                                 </div>
@@ -601,7 +569,7 @@ export default function SwingSceneStats() {
                             <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.classes }}></span> 강습</div>
                             <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.events }}></span> 행사</div>
                             <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.socials }}></span> 소셜</div>
-                            <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.posts }}></span> 게시글</div>
+                            <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.clubs }}></span> 동호회</div>
                         </div>
 
                         <div className="chart-info-footer">
@@ -641,7 +609,7 @@ export default function SwingSceneStats() {
                                                 style={{
                                                     height: `${(tb.count / maxDay) * 100}%`,
                                                     minHeight: tb.count > 0 ? '1px' : '0',
-                                                    background: [COLORS.classes, COLORS.events, COLORS.socials, COLORS.posts][idx]
+                                                    background: [COLORS.classes, COLORS.events, COLORS.socials, COLORS.clubs][idx]
                                                 }}></div>
                                         ))}
                                     </div>
@@ -654,7 +622,7 @@ export default function SwingSceneStats() {
                             <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.classes }}></span> 강습</div>
                             <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.events }}></span> 행사</div>
                             <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.socials }}></span> 소셜</div>
-                            <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.posts }}></span> 게시글</div>
+                            <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.clubs }}></span> 동호회</div>
                         </div>
 
                         <div className="chart-desc">
@@ -821,7 +789,7 @@ const DataInspectorModal = ({ day, items, sortBy, onClose }: { day: string, item
                                         <td className="inspector-td">
                                             <span className={`type-badge ${item.type === '강습' ? 'class' :
                                                 item.type === '행사' ? 'event' :
-                                                    item.type === '소셜' ? 'social' : 'post'
+                                                    item.type === '동호회' ? 'club' : 'social'
                                                 }`}>{item.type}</span>
                                         </td>
                                         <td className="inspector-td">{item.title}</td>
@@ -845,6 +813,6 @@ const GENRE_COLORS: { [key: string]: string } = {
     '슬로우린디': 'var(--color-indigo-500)', '버번': 'var(--color-rose-500)', '소셜': 'var(--bg-surface-3)'
 };
 
-const COLORS = { classes: 'var(--color-blue-500)', events: 'var(--color-amber-400)', socials: 'var(--color-emerald-500)', posts: 'var(--color-purple-500)' };
+const COLORS = { classes: 'var(--color-blue-500)', events: 'var(--color-amber-400)', socials: 'var(--color-emerald-500)', clubs: 'var(--color-purple-500)' };
 
 
