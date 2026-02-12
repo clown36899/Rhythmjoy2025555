@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import './i18n'
 import './index.css'
+import { isPWAMode } from './lib/pwaDetect'
 
 // Mobile Drag & Drop Polyfill
 import { polyfill } from 'mobile-drag-drop';
@@ -222,9 +223,8 @@ function RootApp() {
     // 데스크탑은 회전/리사이즈 자유, 모바일 PWA만 세로 모드 고정
     const lockMobileOrientation = async () => {
       const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-      const isPWA = window.matchMedia('(display-mode: standalone)').matches;
 
-      if (isMobile && isPWA) {
+      if (isMobile && isPWAMode()) {
         // iOS 등 JS Lock 미지원 기기를 위한 CSS 타겟팅 클래스 추가
         document.body.classList.add('mobile-pwa');
 

@@ -9,6 +9,7 @@ import {
     verifySubscriptionOwnership
 } from '../lib/pushNotifications';
 import { useAuth } from '../contexts/AuthContext';
+import { isPWAMode } from '../lib/pwaDetect';
 import GlobalLoadingOverlay from './GlobalLoadingOverlay';
 import '../styles/domains/settings.css';
 
@@ -45,11 +46,9 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
         if (!isOpen) return;
 
         const checkPWA = () => {
-            const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
-                (window.navigator as any).standalone === true ||
-                new URLSearchParams(window.location.search).get('utm_source') === 'pwa';
-            setIsRunningInPWA(isStandalone);
-            return isStandalone;
+            const pwa = isPWAMode();
+            setIsRunningInPWA(pwa);
+            return pwa;
         };
 
         checkPWA();

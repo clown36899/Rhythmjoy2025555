@@ -9,6 +9,7 @@ import SideDrawer from '../components/SideDrawer';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../lib/supabase';
 import { logUserInteraction } from '../lib/analytics';
+import { isPWAMode } from '../lib/pwaDetect';
 import GlobalLoadingOverlay from '../components/GlobalLoadingOverlay';
 import GlobalNoticePopup from '../components/GlobalNoticePopup';
 import { useGlobalPlayer } from '../contexts/GlobalPlayerContext';
@@ -120,7 +121,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
     if (user) return;
 
     // [Standard Fix] Logout guard: Don't show login prompt immediately after logging out
-    const isPWA = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
+    const isPWA = isPWAMode();
     const storagePrefix = isPWA ? 'pwa-' : '';
     const isLoggingOutLocal = localStorage.getItem(`${storagePrefix}isLoggingOut`) === 'true';
 

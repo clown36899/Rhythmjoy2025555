@@ -13,6 +13,7 @@ import { SiteAnalyticsProvider } from './components/SiteAnalyticsProvider';
 import { InAppBrowserGuard } from './components/InAppBrowserGuard';
 import { GlobalPlayerProvider } from './contexts/GlobalPlayerContext';
 import { getPushSubscription, saveSubscriptionToSupabase, subscribeToPush, getPushPreferences } from './lib/pushNotifications';
+import { isPWAMode } from './lib/pwaDetect';
 import { PwaNotificationModal } from './components/PwaNotificationModal';
 import { useState } from 'react';
 import { notificationStore } from './lib/notificationStore';
@@ -85,7 +86,7 @@ function AppContent() {
 
       // 이미 '안 보기'를 선택했는지 확인
       const isDismissed = localStorage.getItem('pwa_prompt_dismissed') === 'true';
-      const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone;
+      const isStandalone = isPWAMode();
 
       console.log('[App] PWA Check:', { isAdmin, isDismissed, isStandalone });
 

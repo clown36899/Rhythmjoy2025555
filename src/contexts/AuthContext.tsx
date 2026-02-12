@@ -6,7 +6,7 @@ import { initKakaoSDK, loginWithKakao, logoutKakao } from '../utils/kakaoAuth';
 import { authLogger } from '../utils/authLogger';
 
 import { setUserProperties, logEvent, setUserId, setAdminStatus } from '../lib/analytics';
-import { subscribeToPush } from '../lib/pushNotifications';
+import { isPWAMode } from '../lib/pwaDetect';
 
 
 
@@ -65,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   // 🔥 [개선] 모든 저장소 키에 환경별 접두사 부여 (완전 격리)
-  const isStandalone = typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches;
+  const isStandalone = isPWAMode();
   const storagePrefix = isStandalone ? 'pwa-' : 'browser-';
 
   if (typeof window !== 'undefined') {
@@ -253,9 +253,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // 로컬 데이터 및 상태 완전 초기화 (signOut 호출 없음)
   const wipeLocalData = () => {
     // 1. 현재 환경에 맞는 Supabase 세션 키 결정
-    const isStandalone = typeof window !== 'undefined' &&
-      (window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone);
-    const currentStorageKey = isStandalone ? 'sb-pwa-auth-token' : 'sb-browser-auth-token';
+    const currentStorageKey = isPWAMode() ? 'sb-pwa-auth-token' : 'sb-browser-auth-token';
 
     // 2. localStorage에서 현재 프로세스의 Supabase 관련 항목만 제거
     const keysToRemove: string[] = [];
@@ -485,26 +483,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await cleanupStaleSession();
     }
   }, []);
-
-  // [PWA Push] Admin 전용 자동 구독 로직
-  useEffect(() => {
-    if (user && isAdmin && isStandalone) {
-      const lastSubscribe = localStorage.getItem(`${storagePrefix}last_push_subscribe`);
-      const now = Date.now();
-
-      // 하루에 한 번만 체크 (혹은 구독 정보가 없을 때)
-      if (!lastSubscribe || now - parseInt(lastSubscribe) > 86400000) {
-
-        subscribeToPush()
-          .then(() => {
-            localStorage.setItem(`${storagePrefix}last_push_subscribe`, String(now));
-          })
-          .catch(err => {
-            console.warn('[AuthContext] Push subscription attempt failed (expected on some devices):', err);
-          });
-      }
-    }
-  }, [user, isAdmin, isStandalone, storagePrefix]);
 
   // 1. 초기 세션 마운트 시 검증
   useEffect(() => {

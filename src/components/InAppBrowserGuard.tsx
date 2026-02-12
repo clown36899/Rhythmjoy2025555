@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { isPWAMode } from '../lib/pwaDetect';
 
 export const InAppBrowserGuard: React.FC = () => {
     const [isIOS, setIsIOS] = useState(false);
@@ -9,11 +10,9 @@ export const InAppBrowserGuard: React.FC = () => {
         const userAgent = navigator.userAgent.toLowerCase();
         const targetUrl = window.location.href;
 
-        // Check if running in PWA mode (standalone)
-        const isPWA = window.matchMedia('(display-mode: standalone)').matches;
-
+        // Check if running in PWA mode
         // If already in PWA, don't do anything
-        if (isPWA) {
+        if (isPWAMode()) {
             return;
         }
 
