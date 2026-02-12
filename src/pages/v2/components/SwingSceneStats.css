@@ -113,12 +113,15 @@
 /* Chart Components */
 .chart-container {
     display: flex;
+    flex-direction: row;
+    /* Ensure horizontal row */
     align-items: flex-end;
-    justify-content: space-between;
-    flex: 1;
-    min-height: 0;
-    margin-top: var(--spacing-3);
-    padding-bottom: var(--spacing-2);
+    justify-content: space-around;
+    height: 180px;
+    /* Fixed height for consistency */
+    flex-shrink: 0;
+    margin-top: var(--spacing-4);
+    padding-bottom: var(--spacing-4);
     border-bottom: 1px solid var(--border-glass-subtle);
 }
 
@@ -133,14 +136,24 @@
 }
 
 .stacked-bar {
-    width: 16px;
-    height: 100%;
+    width: 24px;
+    /* Increased for visibility */
+    height: 140px;
+    /* Fixed height for consistent scaling */
     display: flex;
     flex-direction: column-reverse;
     gap: 1px;
     border-radius: var(--radius-xs);
     overflow: hidden;
-    justify-content: flex-start;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.bar-info-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    margin-bottom: var(--spacing-2);
 }
 
 @media (min-width: 375px) {
@@ -155,14 +168,19 @@
 }
 
 .total-label {
-    font-size: 0.55rem;
+    font-size: 0.65rem;
     color: var(--text-primary);
-    margin-bottom: var(--spacing-1);
     font-weight: 600;
 }
 
+.reg-label {
+    font-size: 0.6rem;
+    color: var(--color-sky-400);
+    font-weight: 500;
+}
+
 .axis-label {
-    font-size: 0.625rem;
+    font-size: 0.7rem;
     color: var(--text-muted);
     margin-top: var(--spacing-2);
     flex-shrink: 0;
@@ -190,6 +208,45 @@
     height: 8px;
     border-radius: 2px;
     flex-shrink: 0;
+}
+
+.chart-info-footer {
+    margin-top: var(--spacing-4);
+    padding-top: var(--spacing-3);
+    border-top: 1px dashed var(--border-glass-subtle);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2);
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+}
+
+.info-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    min-width: 32px;
+    text-align: center;
+}
+
+.info-label.total {
+    background: var(--bg-surface-3);
+    color: var(--text-primary);
+}
+
+.info-label.reg {
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--color-sky-400);
+}
+
+.info-text {
+    font-size: 0.7rem;
+    color: var(--text-muted);
 }
 
 /* Tabs & Buttons */
@@ -284,6 +341,78 @@
 
 .spacer-30 {
     height: 30px;
+}
+
+.title-sub {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--text-tertiary);
+    margin-left: 6px;
+}
+
+/* Promo Analysis Section */
+.promo-analysis-section {
+    background: var(--bg-surface-2);
+    padding: var(--spacing-4) var(--spacing-5);
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--border-glass-subtle);
+    margin-top: var(--spacing-2);
+}
+
+.promo-chart-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-5);
+    margin: var(--spacing-4) 0;
+}
+
+.promo-bar-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-3);
+}
+
+.promo-bar-item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-1-5);
+}
+
+.promo-label-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.promo-value {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.promo-bar-bg {
+    height: 8px;
+    background: var(--bg-surface-3);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.promo-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.promo-bar-fill.early {
+    background: var(--color-blue-500);
+}
+
+.promo-bar-fill.mid {
+    background: var(--color-teal-500);
+}
+
+.promo-bar-fill.late {
+    background: var(--color-amber-500);
 }
 
 .legend-grid.three-cols {

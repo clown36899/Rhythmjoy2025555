@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 import LocalLoading from '../../../components/LocalLoading';
+import { useMonthlyBillboard } from '../hooks/useMonthlyBillboard';
 import './SwingSceneStats.css';
 
 interface StatItem {
     type: '강습' | '행사' | '소셜' | '게시글';
     title: string;
-    date: string; // Activity Date or Created Date
+    date: string; // Activity Date
+    createdAt: string; // Registration Date
     genre: string;
     day: string;
 }
@@ -28,6 +30,7 @@ interface SceneStats {
         socials: number;
         posts: number;
         total: number;
+        registrations: number;
     }[];
     totalWeekly: DayStats[];    // 12 months
     monthlyWeekly: DayStats[];  // Latest 1 month
@@ -52,11 +55,13 @@ interface MonthlyStat {
     socials: number;
     posts: number;
     total: number;
+    registrations: number;
 }
 
 export default function SwingSceneStats() {
     const [stats, setStats] = useState<SceneStats | null>(null);
     const [loading, setLoading] = useState(true);
+    const { data: billboard } = useMonthlyBillboard('all' as any); // All-time for stability
     const [weeklyTab, setWeeklyTab] = useState<'total' | 'monthly'>('total');
     const [monthlyRange, setMonthlyRange] = useState<'6m' | '1y'>('6m');
     const [inspectTypeDay, setInspectTypeDay] = useState<string | null>(null);
@@ -69,7 +74,7 @@ export default function SwingSceneStats() {
                 const { timestamp, data, v } = JSON.parse(cached);
                 const now = new Date().getTime();
                 // 1 Hour Cache + Version Invalidation
-                if (v === 'v3' && now - timestamp < 3600 * 1000) {
+                if (v === 'v4' && now - timestamp < 3600 * 1000) {
                     setStats(data);
                     setLoading(false);
                     return;
@@ -94,13 +99,20 @@ export default function SwingSceneStats() {
 
 
             // 1. Fetch data (Fetch enough history to cover 12 months)
-            // Using 'dateStr' (12 months ago) as base.
-            const queryDateStr = dateStr;
+            const dateFilter = twelveMonthsAgo.toISOString(); // Use ISO for accurate comparison
 
+            // 1. Fetch data with improved filtering
+            // Fetch items where (Created in last 12m) OR (Starts in last 12m)
             const [eventsRes, socialsRes, postsRes] = await Promise.all([
-                supabase.from('events').select('category, genre, created_at, date, event_dates, title').gte('created_at', queryDateStr),
-                supabase.from('social_schedules').select('v2_category, v2_genre, created_at, date, day_of_week, title').gte('created_at', queryDateStr),
-                supabase.from('board_posts').select('category, created_at, title').gte('created_at', queryDateStr)
+                supabase.from('events')
+                    .select('id, category, genre, created_at, date, start_date, event_dates, title')
+                    .or(`created_at.gte.${dateFilter},start_date.gte.${dateFilter},date.gte.${dateFilter}`),
+                supabase.from('social_schedules')
+                    .select('id, v2_category, v2_genre, created_at, date, day_of_week, title')
+                    .or(`created_at.gte.${dateFilter},date.gte.${dateFilter}`),
+                supabase.from('board_posts')
+                    .select('id, category, created_at, title')
+                    .gte('created_at', dateStr)
             ]);
 
             const events = eventsRes.data || [];
@@ -134,7 +146,7 @@ export default function SwingSceneStats() {
                 d.setMonth(d.getMonth() - i);
                 const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
                 months.push(key);
-                monthlyDict[key] = { month: key, classes: 0, events: 0, socials: 0, posts: 0, total: 0 };
+                monthlyDict[key] = { month: key, classes: 0, events: 0, socials: 0, posts: 0, total: 0, registrations: 0 };
             }
 
             // Events
@@ -142,29 +154,37 @@ export default function SwingSceneStats() {
                 // TEST DEBUG: Strict Check for Dec 2025 - REMOVED for Production
                 const dCreated = new Date(e.created_at);
 
-
-                // Monthly: Based on Created At (Registration Trend)
-                const monKey = `${dCreated.getFullYear()}-${String(dCreated.getMonth() + 1).padStart(2, '0')}`;
-                const type = (e.category === 'class' || e.category === 'club') ? 'classes' : 'events';
-                const typeKr = type === 'classes' ? '강습' : '행사';
-
-                if (monthlyDict[monKey]) {
-                    monthlyDict[monKey][type]++;
-                    monthlyDict[monKey].total++;
+                // Update Registration Trend (Supply)
+                const regMonKey = `${dCreated.getFullYear()}-${String(dCreated.getMonth() + 1).padStart(2, '0')}`;
+                if (monthlyDict[regMonKey]) {
+                    monthlyDict[regMonKey].registrations++;
                 }
 
-                // Weekly: Based on Activity Date (STRICT ACTIVITY ONLY)
+                // Weekly & Monthly: Based on Activity Date (STRICT ACTIVITY ONLY)
                 const targetDates: string[] = [];
                 if (e.event_dates && e.event_dates.length > 0) {
                     e.event_dates.forEach((d: string) => targetDates.push(d));
-                } else if (e.date) {
-                    targetDates.push(e.date);
+                } else {
+                    const primaryDate = e.start_date || e.date;
+                    if (primaryDate) targetDates.push(primaryDate);
                 }
 
-                if (targetDates.length === 0) {
+                const type = (e.category === 'class' || e.category === 'club') ? 'classes' : 'events';
+                const typeKr = type === 'classes' ? '강습' : '행사';
 
-                    return;
+                // Update Monthly Trend (Activity-based)
+                if (targetDates.length > 0) {
+                    const dFirstActivity = new Date(targetDates[0]);
+                    if (!isNaN(dFirstActivity.getTime())) {
+                        const activityMonKey = `${dFirstActivity.getFullYear()}-${String(dFirstActivity.getMonth() + 1).padStart(2, '0')}`;
+                        if (monthlyDict[activityMonKey]) {
+                            monthlyDict[activityMonKey][type]++;
+                            monthlyDict[activityMonKey].total++;
+                        }
+                    }
                 }
+
+                if (targetDates.length === 0) return;
 
                 // UNIQUE DAY LOGIC: Count each Day-of-Week only ONCE per event
                 const uniqueDays = new Set<string>();
@@ -184,6 +204,7 @@ export default function SwingSceneStats() {
                         type: typeKr,
                         title: e.title || '제목 없음',
                         date: targetDates[0] + (targetDates.length > 1 ? ` 외 ${targetDates.length - 1}건` : ''),
+                        createdAt: e.created_at.split('T')[0],
                         genre: e.genre || '소셜',
                         day: dowKey
                     };
@@ -220,12 +241,27 @@ export default function SwingSceneStats() {
 
             // Socials
             socials.forEach(s => {
-                // Monthly: Created At (Registration)
+                // Monthly: Created At (Supply Tracker)
                 const dCreated = new Date(s.created_at);
-                const monKey = `${dCreated.getFullYear()}-${String(dCreated.getMonth() + 1).padStart(2, '0')}`;
-                if (monthlyDict[monKey]) {
-                    monthlyDict[monKey].socials++;
-                    monthlyDict[monKey].total++;
+                const regMonKey = `${dCreated.getFullYear()}-${String(dCreated.getMonth() + 1).padStart(2, '0')}`;
+                if (monthlyDict[regMonKey]) {
+                    monthlyDict[regMonKey].registrations++;
+                }
+
+                // Monthly: Based on Activity Date (Activity Trend) - USER REQUEST
+                const dActivity = s.date ? new Date(s.date) : null;
+                if (dActivity && !isNaN(dActivity.getTime())) {
+                    const monKey = `${dActivity.getFullYear()}-${String(dActivity.getMonth() + 1).padStart(2, '0')}`;
+                    if (monthlyDict[monKey]) {
+                        monthlyDict[monKey].socials++;
+                        monthlyDict[monKey].total++;
+                    }
+                } else if (s.day_of_week !== null) {
+                    // Recurring
+                    if (monthlyDict[regMonKey]) {
+                        monthlyDict[regMonKey].socials++;
+                        monthlyDict[regMonKey].total++;
+                    }
                 }
 
                 // Weekly: Activity Date
@@ -247,6 +283,7 @@ export default function SwingSceneStats() {
                     type: '소셜',
                     title: s.title || '제목 없음',
                     date: s.day_of_week ? '매주 반복' : (s.date || '-'),
+                    createdAt: s.created_at.split('T')[0],
                     genre: s.v2_genre || '소셜',
                     day: dowKey
                 };
@@ -293,22 +330,20 @@ export default function SwingSceneStats() {
                 const d = new Date(p.created_at);
                 const monKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
                 const dowKey = dayNames[d.getDay()];
-                if (monthlyDict[monKey]) {
-                    monthlyDict[monKey].posts++;
-                    monthlyDict[monKey].total++;
-                }
-                dowTotal[dowKey].types['게시글']++;
-                // Removed: dowTotal[dowKey].genres['기타']++; -> Posts should not contribute to Genre Stats
-
                 const item: StatItem = {
                     type: '게시글',
                     title: p.title || '제목 없음',
                     date: p.created_at.split('T')[0],
+                    createdAt: p.created_at.split('T')[0],
                     genre: '-',
                     day: dowKey
                 };
 
-                dowTotal[dowKey].items.push(item);
+                if (monthlyDict[monKey]) {
+                    monthlyDict[monKey].posts++;
+                    monthlyDict[monKey].total++;
+                    monthlyDict[monKey].registrations++;
+                }
 
                 if (d >= oneMonthAgo) {
                     dowMonthly[dowKey].types['게시글']++;
@@ -518,7 +553,10 @@ export default function SwingSceneStats() {
 
                     <div className="stats-section">
                         <div className="stats-header">
-                            <h4 className="section-title"><i className="ri-bar-chart-fill"></i> 월별 추이</h4>
+                            <h4 className="section-title">
+                                <i className="ri-bar-chart-fill"></i> 월별 활동 추이
+                                <span className="title-sub">(시작일 기준)</span>
+                            </h4>
                             <div className="tab-group">
                                 <button onClick={() => setMonthlyRange('6m')} className={`tab-btn ${monthlyRange === '6m' ? 'active' : ''}`}>6개월</button>
                                 <button onClick={() => setMonthlyRange('1y')} className={`tab-btn ${monthlyRange === '1y' ? 'active' : ''}`}>1년</button>
@@ -527,12 +565,16 @@ export default function SwingSceneStats() {
                         <div className="chart-container">
                             {currentMonthly.map((m, i) => (
                                 <div key={i} className="bar-wrapper">
-                                    {m.total > 0 && <span className="total-label">{m.total}</span>}
+                                    <div className="bar-info-group">
+                                        {m.total > 0 && <span className="total-label">{m.total}</span>}
+                                        {m.registrations > 0 && <span className="reg-label">+{m.registrations}</span>}
+                                    </div>
                                     <div className="stacked-bar">
-                                        <div className="bar-segment" style={{ height: (m.classes / maxMonthly) * 150, background: COLORS.classes }}></div>
-                                        <div className="bar-segment" style={{ height: (m.events / maxMonthly) * 150, background: COLORS.events }}></div>
-                                        <div className="bar-segment" style={{ height: (m.socials / maxMonthly) * 150, background: COLORS.socials }}></div>
-                                        <div className="bar-segment" style={{ height: (m.posts / maxMonthly) * 150, background: COLORS.posts }}></div>
+                                        {/* Using percentage for accurate height proportion */}
+                                        <div className="bar-segment" style={{ height: `${(m.classes / maxMonthly) * 100}%`, minHeight: m.classes > 0 ? '1px' : '0', background: COLORS.classes }}></div>
+                                        <div className="bar-segment" style={{ height: `${(m.events / maxMonthly) * 100}%`, minHeight: m.events > 0 ? '1px' : '0', background: COLORS.events }}></div>
+                                        <div className="bar-segment" style={{ height: `${(m.socials / maxMonthly) * 100}%`, minHeight: m.socials > 0 ? '1px' : '0', background: COLORS.socials }}></div>
+                                        <div className="bar-segment" style={{ height: `${(m.posts / maxMonthly) * 100}%`, minHeight: m.posts > 0 ? '1px' : '0', background: COLORS.posts }}></div>
                                     </div>
                                     <span className="axis-label">{m.month.split('-')[1]}월</span>
                                 </div>
@@ -543,6 +585,17 @@ export default function SwingSceneStats() {
                             <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.events }}></span> 행사</div>
                             <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.socials }}></span> 소셜</div>
                             <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.posts }}></span> 게시글</div>
+                        </div>
+
+                        <div className="chart-info-footer">
+                            <div className="info-item">
+                                <span className="info-label total">숫자</span>
+                                <span className="info-text">이벤트 시작일 기준으로</span>
+                            </div>
+                            <div className="info-item">
+                                <span className="info-label reg">+N</span>
+                                <span className="info-text">신규 정보 등록 건수</span>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -567,7 +620,12 @@ export default function SwingSceneStats() {
                                     {d.count > 0 && <span className="total-label" style={{ color: inspectTypeDay === d.day ? 'var(--color-blue-400)' : 'var(--text-primary)' }}>{d.count}</span>}
                                     <div className="stacked-bar">
                                         {d.typeBreakdown.map((tb, idx) => (
-                                            <div key={idx} className="bar-segment" style={{ height: (tb.count / maxDay) * 150, background: [COLORS.classes, COLORS.events, COLORS.socials, COLORS.posts][idx] }}></div>
+                                            <div key={idx} className="bar-segment"
+                                                style={{
+                                                    height: `${(tb.count / maxDay) * 100}%`,
+                                                    minHeight: tb.count > 0 ? '1px' : '0',
+                                                    background: [COLORS.classes, COLORS.events, COLORS.socials, COLORS.posts][idx]
+                                                }}></div>
                                         ))}
                                     </div>
                                     <span className="axis-label" style={{ color: inspectTypeDay === d.day ? 'var(--color-blue-400)' : 'var(--text-muted)' }}>{d.day}</span>
@@ -605,7 +663,13 @@ export default function SwingSceneStats() {
                                     {d.count > 0 && <span className="total-label" style={{ color: inspectGenreDay === d.day ? 'var(--color-blue-400)' : 'var(--text-primary)' }}>{d.count}</span>}
                                     <div className="stacked-bar">
                                         {d.genreBreakdown.map((gb, idx) => (
-                                            <div key={idx} className="bar-segment" style={{ height: (gb.count / maxDay) * 150, width: '100%', background: getGenreColor(gb.name, idx) }}></div>
+                                            <div key={idx} className="bar-segment"
+                                                style={{
+                                                    height: `${(gb.count / maxDay) * 100}%`,
+                                                    minHeight: gb.count > 0 ? '1px' : '0',
+                                                    width: '100%',
+                                                    background: getGenreColor(gb.name, idx)
+                                                }}></div>
                                         ))}
                                     </div>
                                     <span className="axis-label" style={{ color: inspectGenreDay === d.day ? 'var(--color-blue-400)' : 'var(--text-muted)' }}>{d.day}</span>
@@ -632,13 +696,62 @@ export default function SwingSceneStats() {
                     </div>
 
                     <div className="spacer-30"></div>
+
+                    {billboard?.leadTime && (
+                        <div className="promo-analysis-section">
+                            <h4 className="section-title"><i className="ri-flashlight-line"></i> 홍보 시작 시점별 조회 도달율</h4>
+                            <p className="touch-hint" style={{ textAlign: 'left', marginTop: 0 }}>* 등록일부터 행사 시작일까지의 준비 기간별 분석</p>
+
+                            <div className="promo-chart-container">
+                                {/* Class bars */}
+                                <div className="promo-bar-group">
+                                    <div className="card-label" style={{ textAlign: 'left' }}>정규 강습</div>
+                                    <div className="promo-bar-item">
+                                        <div className="promo-label-row"><span>얼리버드 (21일 전)</span> <span className="promo-value">{billboard.leadTime.classEarly} pv</span></div>
+                                        <div className="promo-bar-bg"><div className="promo-bar-fill early" style={{ width: `${Math.min(100, (billboard.leadTime.classEarly / Math.max(1, billboard.leadTime.classEarly, billboard.leadTime.classMid, billboard.leadTime.classLate)) * 100)}%` }}></div></div>
+                                    </div>
+                                    <div className="promo-bar-item">
+                                        <div className="promo-label-row"><span>적기 홍보 (7~21일)</span> <span className="promo-value">{billboard.leadTime.classMid} pv</span></div>
+                                        <div className="promo-bar-bg"><div className="promo-bar-fill mid" style={{ width: `${Math.min(100, (billboard.leadTime.classMid / Math.max(1, billboard.leadTime.classEarly, billboard.leadTime.classMid, billboard.leadTime.classLate)) * 100)}%` }}></div></div>
+                                    </div>
+                                    <div className="promo-bar-item">
+                                        <div className="promo-label-row"><span>긴급 등록 (7일 이내)</span> <span className="promo-value">{billboard.leadTime.classLate} pv</span></div>
+                                        <div className="promo-bar-bg"><div className="promo-bar-fill late" style={{ width: `${Math.min(100, (billboard.leadTime.classLate / Math.max(1, billboard.leadTime.classEarly, billboard.leadTime.classMid, billboard.leadTime.classLate)) * 100)}%` }}></div></div>
+                                    </div>
+                                </div>
+
+                                {/* Event bars */}
+                                <div className="promo-bar-group">
+                                    <div className="card-label" style={{ textAlign: 'left' }}>파티 및 이벤트</div>
+                                    <div className="promo-bar-item">
+                                        <div className="promo-label-row"><span>얼리버드 (35일 전)</span> <span className="promo-value">{billboard.leadTime.eventEarly} pv</span></div>
+                                        <div className="promo-bar-bg"><div className="promo-bar-fill early" style={{ width: `${Math.min(100, (billboard.leadTime.eventEarly / Math.max(1, billboard.leadTime.eventEarly, billboard.leadTime.eventMid, billboard.leadTime.eventLate)) * 100)}%` }}></div></div>
+                                    </div>
+                                    <div className="promo-bar-item">
+                                        <div className="promo-label-row"><span>적기 홍보 (14~35일)</span> <span className="promo-value">{billboard.leadTime.eventMid} pv</span></div>
+                                        <div className="promo-bar-bg"><div className="promo-bar-fill mid" style={{ width: `${Math.min(100, (billboard.leadTime.eventMid / Math.max(1, billboard.leadTime.eventEarly, billboard.leadTime.eventMid, billboard.leadTime.eventLate)) * 100)}%` }}></div></div>
+                                    </div>
+                                    <div className="promo-bar-item">
+                                        <div className="promo-label-row"><span>긴급 등록 (14일 이내)</span> <span className="promo-value">{billboard.leadTime.eventLate} pv</span></div>
+                                        <div className="promo-bar-bg"><div className="promo-bar-fill late" style={{ width: `${Math.min(100, (billboard.leadTime.eventLate / Math.max(1, billboard.leadTime.eventEarly, billboard.leadTime.eventMid, billboard.leadTime.eventLate)) * 100)}%` }}></div></div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <p className="touch-hint" style={{ textAlign: 'left', lineHeight: 1.4 }}>
+                                * 리드타임이 길수록 잠재 고객 노출 기회가 많아집니다.<br />
+                                * 강습은 최소 21일 전, 이벤트는 35일 전 등록을 권장합니다.
+                            </p>
+                        </div>
+                    )}
+
+                    <div className="spacer-30"></div>
                 </div>
             </div>
         </div>
     );
 
 }
-
 
 const DataInspectorModal = ({ day, items, sortBy, onClose }: { day: string, items: StatItem[], sortBy: 'type' | 'genre', onClose: () => void }) => {
     const sortedItems = [...items].sort((a, b) => {
@@ -681,7 +794,8 @@ const DataInspectorModal = ({ day, items, sortBy, onClose }: { day: string, item
                                     <th className={`inspector-th ${sortBy === 'type' ? 'highlight-type' : ''}`}>구분</th>
                                     <th className="inspector-th">제목</th>
                                     <th className={`inspector-th ${sortBy === 'genre' ? 'highlight-genre' : ''}`}>장르</th>
-                                    <th className="inspector-th align-right">날짜</th>
+                                    <th className="inspector-th date-header">등록일</th>
+                                    <th className="inspector-th date-header">활동일</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -695,7 +809,8 @@ const DataInspectorModal = ({ day, items, sortBy, onClose }: { day: string, item
                                         </td>
                                         <td className="inspector-td">{item.title}</td>
                                         <td className={`inspector-td ${sortBy === 'genre' ? 'genre-highlight' : 'genre-dim'}`}>{item.genre}</td>
-                                        <td className="inspector-td date">{item.date}</td>
+                                        <td className="inspector-td date registration">{item.createdAt}</td>
+                                        <td className="inspector-td date activity">{item.date}</td>
                                     </tr>
                                 ))}
                             </tbody>

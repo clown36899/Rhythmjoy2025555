@@ -27,10 +27,12 @@ export interface BillboardData {
         rawHourlyData: { hour: number; class: number; event: number }[];
     };
     leadTime: {
-        classD28: number;
-        classD7: number;
-        eventD42: number;
-        eventD14: number;
+        classEarly: number;
+        classMid: number;
+        classLate: number;
+        eventEarly: number;
+        eventMid: number;
+        eventLate: number;
     };
     topContents: RankingItem[];
 }
@@ -43,9 +45,10 @@ export interface RankingItem {
     variation?: string;
 }
 
-export const useMonthlyBillboard = () => {
-    // Default: Previous Month
+export const useMonthlyBillboard = (initialTarget?: { year: number, month: number } | 'all') => {
+    // Default: Previous Month or Initial Target
     const [targetDate, setTargetDate] = useState<{ year: number, month: number } | 'all'>(() => {
+        if (initialTarget) return initialTarget;
         const now = new Date();
         now.setMonth(now.getMonth() - 1); // Go back 1 month
         return { year: now.getFullYear(), month: now.getMonth() };
@@ -79,16 +82,16 @@ export const useMonthlyBillboard = () => {
             const pad = (n: number) => n.toString().padStart(2, '0');
 
             if (target === 'all') {
-                // All Time Logic (Start from Jan 2026)
+                // All Time Logic (Start from Jan 2025 for better analysis)
                 const now = new Date();
-                startStr = '2026-01-01T00:00:00+09:00';
+                startStr = '2025-01-01T00:00:00+09:00';
                 endStr = now.toISOString();
 
                 monthLabel = 'ALL TIME';
                 monthKor = '전체';
-                rangeStr = `Since 2026 - ${monthNames[now.getMonth()]} ${now.getFullYear()}`;
+                rangeStr = `Since 2025 - ${monthNames[now.getMonth()]} ${now.getFullYear()}`;
 
-                eventStartStr = '2026-01-01';
+                eventStartStr = '2025-01-01';
                 eventEndStr = now.toISOString();
             } else {
                 // Specific Month Logic
@@ -136,8 +139,8 @@ export const useMonthlyBillboard = () => {
 
             const { data: rpcData, error: rpcError } = await supabase
                 .rpc('get_monthly_webzine_stats', {
-                    start_date: startStr,
-                    end_date: endStr
+                    p_start_date: startStr,
+                    p_end_date: endStr
                 });
 
             if (rpcError) {
@@ -278,10 +281,12 @@ export const useMonthlyBillboard = () => {
                     eventPeakHour: eventPeak
                 },
                 leadTime: stats.leadTime || {
-                    classD28: 0,
-                    classD7: 0,
-                    eventD42: 0,
-                    eventD14: 0
+                    classEarly: 0,
+                    classMid: 0,
+                    classLate: 0,
+                    eventEarly: 0,
+                    eventMid: 0,
+                    eventLate: 0
                 },
                 topContents: sortedRanking
             };
