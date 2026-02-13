@@ -345,10 +345,10 @@
       var hadController = !!navigator.serviceWorker.controller;
 
       window.addEventListener('load', function () {
-        var swUrl = '/service-worker.js?v=20260214_v43';
+        var swUrl = '/service-worker.js?v=20260214_v44';
         navigator.serviceWorker.register(swUrl)
           .then(function (reg) {
-            console.log('[PWA] Service Worker registered (v43)');
+            console.log('[PWA] Service Worker registered (v44)');
 
             // SW 업데이트 감지: 새 SW가 설치되면 사용자에게 알림
             reg.addEventListener('updatefound', function () {
