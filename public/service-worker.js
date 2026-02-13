@@ -1,5 +1,5 @@
-// 빌보드 PWA 서비스 워커 (Version: 20260212 - V41/Badge Lifecycle Fix)
-const CACHE_NAME = 'rhythmjoy-cache-v41';
+// 빌보드 PWA 서비스 워커 (Version: 20260213 - V42/Auth Stability & minimal-ui Fix)
+const CACHE_NAME = 'rhythmjoy-cache-v42';
 
 self.addEventListener('install', (event) => {
   // index.html을 반드시 캐시한 후 skipWaiting (navigate fallback 보장)
