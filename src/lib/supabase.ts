@@ -230,14 +230,25 @@ export const validateAndRecoverSession = async (): Promise<any> => {
       }
 
       // 에러 발생 시 세션 정리 (Refresh 한도 초과 등)
+      const urlParams = new URLSearchParams(window.location.search);
+      const hash = window.location.hash;
+      const hasAuthParams = urlParams.has('code') || urlParams.has('error') || hash.includes('access_token=') || hash.includes('refresh_token=');
+
       if (error) {
         authLogger.log('[Supabase] ❌ Session validation error:', error);
-        if (error.message?.includes('token_revoked') || error.message?.includes('Refresh Token has been revoked')) {
+
+        // 인증 파라미터가 없을 때만 강제 클린업 수행 (인증 중 리프레시 실패 대응)
+        if (!hasAuthParams && (error.message?.includes('token_revoked') || error.message?.includes('Refresh Token has been revoked'))) {
           console.error('[Supabase] 🗑️ Token revoked - clearing local session');
           await supabase.auth.signOut({ scope: 'local' });
           return null;
         }
-        return session; // 일반 에러는 일단 로컬 세션 유지
+
+        if (hasAuthParams) {
+          authLogger.log('[Supabase] 🛡️ Auth params detected - Delaying session cleanup');
+        }
+
+        return session; // 일반 에러 또는 인증 중에는 일단 로컬 세션 유지
       }
 
       // 세션이 없으면 null 반환

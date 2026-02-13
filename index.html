@@ -376,9 +376,13 @@
               console.warn('[PWA] SW reload loop detected, skipping');
               return;
             }
-            // 인증 콜백 중(/auth/)에는 흐름 방해를 막기 위해 자동 리로드 하지 않음
-            if (window.location.pathname.includes('/auth/')) {
-              console.log('[PWA] Auth in progress, delaying SW reload');
+            // 인증 콜백 중(/auth/) 또는 URL에 인증 파라미터가 있을 때는 흐름 방해를 막기 위해 자동 리로드 하지 않음
+            var urlParams = new URLSearchParams(window.location.search);
+            var hash = window.location.hash;
+            var hasAuthParams = urlParams.has('code') || urlParams.has('error') || hash.includes('access_token=') || hash.includes('refresh_token=');
+
+            if (window.location.pathname.includes('/auth/') || hasAuthParams) {
+              console.log('[PWA] Auth in progress or params detected, delaying SW reload');
               return;
             }
             console.log('[PWA] New SW activated, reloading for fresh assets...');
@@ -390,8 +394,12 @@
         // 사용자가 업데이트 버튼 클릭 시 리로드
         navigator.serviceWorker.addEventListener('controllerchange', function () {
           if (window.__SW_UPDATING) {
-            // 인증 콜백 중에는 리로드 방어
-            if (window.location.pathname.includes('/auth/')) return;
+            // 인증 콜백 중 또는 파라미터 감지 시 리로드 방어
+            var urlParams = new URLSearchParams(window.location.search);
+            var hash = window.location.hash;
+            var hasAuthParams = urlParams.has('code') || urlParams.has('error') || hash.includes('access_token=') || hash.includes('refresh_token=');
+
+            if (window.location.pathname.includes('/auth/') || hasAuthParams) return;
             window.location.reload();
           }
         });

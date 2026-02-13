@@ -42,17 +42,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthCheckComplete, setIsAuthCheckComplete] = useState(false); // Track initial session check completion
 
   const [isAuthProcessing, setIsAuthProcessing] = useState(() => {
-    // Check if login is in progress from sessionStorage
-    const inProgress = sessionStorage.getItem('kakao_login_in_progress') === 'true';
+    // Check if login is in progress from sessionStorage (Kakao or Google)
+    const kakaoInProgress = sessionStorage.getItem('kakao_login_in_progress') === 'true';
+    const googleInProgress = sessionStorage.getItem('google_login_in_progress') === 'true';
+    const inProgress = kakaoInProgress || googleInProgress;
+
     if (inProgress) {
       // Check if login has been stuck for too long (> 60 seconds)
-      const startTime = sessionStorage.getItem('kakao_login_start_time');
+      const startTime = sessionStorage.getItem(kakaoInProgress ? 'kakao_login_start_time' : 'google_login_start_time');
       if (startTime) {
         const elapsed = Date.now() - parseInt(startTime);
         if (elapsed > 60000) {
           // Clear stuck login state
           sessionStorage.removeItem('kakao_login_in_progress');
+          sessionStorage.removeItem('google_login_in_progress');
           sessionStorage.removeItem('kakao_login_start_time');
+          sessionStorage.removeItem('google_login_start_time');
           return false;
         }
       }
@@ -243,6 +248,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const cancelAuth = () => {
     console.warn('[AuthContext] 인증 프로세스 수동 취소됨');
     setIsAuthProcessing(false);
+    sessionStorage.removeItem('kakao_login_in_progress');
+    sessionStorage.removeItem('google_login_in_progress');
+    sessionStorage.removeItem('kakao_login_start_time');
+    sessionStorage.removeItem('google_login_start_time');
   };
 
   // 로컬 데이터 및 상태 완전 초기화 (signOut 호출 없음)
@@ -480,6 +489,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // 1. 초기 세션 마운트 시 검증
   useEffect(() => {
     let isMounted = true;
+    let safetyTimeoutId: any = null;
 
     // 🔥 통합 로그아웃 플래그 확인
     const isLoggingOutFlag = localStorage.getItem('isLoggingOut');
@@ -489,15 +499,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // 상태를 true로 설정하여 자식 컴포넌트들이 로그아웃 직후임을 알게 함
       setIsLoggingOut(true);
+      setIsAuthProcessing(false);
 
       // 플래그 제거 (상태로 전이됨)
       localStorage.removeItem('isLoggingOut');
 
       // 저장소에 좀비 토큰이 부활했더라도, 메모리상에서는 확실히 날려버림
       supabase.auth.signOut({ scope: 'local' }).then(() => {
-        if (isMounted) setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+          setIsAuthCheckComplete(true); // 로그아웃 직후에도 상태 체크 완료임을 명시
+        }
       });
-      return;
+      return () => { isMounted = false; };
     }
 
     const timeoutId = setTimeout(async () => {
@@ -509,6 +523,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setLoading(false);
       }
     }, 10000);
+
+    // 🛡️ Safety Net: 아무리 길어도 8~15초면 스피너를 강제 해제 (iOS stuck 방어)
+    const urlParams = new URLSearchParams(window.location.search);
+    const hash = window.location.hash;
+    const hasAuthParams = urlParams.has('code') || urlParams.has('error') || hash.includes('access_token=') || hash.includes('refresh_token=');
+    const safetyTimeoutMillis = hasAuthParams ? 15000 : 8000;
+
+    safetyTimeoutId = setTimeout(() => {
+      if (isMounted && isAuthProcessing) {
+        authLogger.log(`[AuthContext] 🛡️ Safety Net triggered (${safetyTimeoutMillis}ms) - Forcing spinner off`);
+        setIsAuthProcessing(false);
+        sessionStorage.removeItem('kakao_login_in_progress');
+        sessionStorage.removeItem('google_login_in_progress');
+      }
+    }, safetyTimeoutMillis);
 
     validateAndRecoverSession()
       .then(async (recoveredSession: Session | null) => {
@@ -535,14 +564,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       })
       .finally(() => {
         setIsAuthCheckComplete(true);
-        // [Optimization] Global spinner auto-clear removed. 
-        // Each specific login flow (like KakaoCallback) is now responsible for clearing its own loading state.
-        // The 60s safety timeout in the constructor remains as a fallback.
       });
 
     return () => {
       isMounted = false;
       clearTimeout(timeoutId);
+      if (safetyTimeoutId) clearTimeout(safetyTimeoutId);
     };
   }, []); // 의존성 없음 - 초기 마운트 시 1회 실행
 
@@ -558,6 +585,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (event === 'SIGNED_OUT') {
         wipeLocalData();
       } else if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+        // [Safety Fix] 어떤 시그널이든 세션 관련 확정이 오면 무조건 로딩은 풉니다.
+        // 유저 정보가 없더라도(=로그아웃 상태 로딩 완료) 로딩창이 걷혀야 무한 로딩을 막습니다.
+        if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
+          setIsAuthProcessing(false);
+          sessionStorage.removeItem('kakao_login_in_progress');
+          sessionStorage.removeItem('google_login_in_progress');
+        }
+
         const eventKey = `${event}-${currentUser?.id || 'none'}`;
         if (lastProcessedEvent.current === eventKey) return;
         lastProcessedEvent.current = eventKey;
@@ -775,6 +810,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 
     setIsAuthProcessing(true);
+    sessionStorage.setItem('google_login_in_progress', 'true');
+    sessionStorage.setItem('google_login_start_time', String(Date.now()));
+
     try {
       const authOptions = {
         provider: 'google' as const,
@@ -806,6 +844,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           name: error.name,
           stack: error.stack
         });
+        sessionStorage.removeItem('google_login_in_progress');
+        sessionStorage.removeItem('google_login_start_time');
         throw error;
       }
 
@@ -819,6 +859,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
       alert(`구글 로그인 실패:\n${error.message || '알 수 없는 오류'}`);
       setIsAuthProcessing(false);
+      sessionStorage.removeItem('google_login_in_progress');
+      sessionStorage.removeItem('google_login_start_time');
     }
   }, []);
 
