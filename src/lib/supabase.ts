@@ -16,15 +16,7 @@ const supabaseAnonKey = import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY || 'placeh
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-    // 🔥 PWA와 브라우저 세션 분리: 스토리지를 공유하면서 발생하는 좀비 세션 문제 해결
-    storageKey: typeof window !== 'undefined' ?
-      (() => {
-        const isStandalone = isPWAMode();
-        const key = isStandalone ? 'sb-pwa-auth-token' : 'sb-browser-auth-token';
-        console.log(`[Supabase Init] Mode: ${isStandalone ? 'PWA' : 'Browser'}, Key: ${key}`);
-        return key;
-      })()
-      : 'sb-auth-token',
+    storageKey: 'sb-auth-token',
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
