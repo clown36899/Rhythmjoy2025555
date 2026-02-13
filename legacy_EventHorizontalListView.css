@@ -1,7 +1,7 @@
 /* EventHorizontalListView.css - V2와 완전 격리된 전체보기 전용 스타일 */
 
 .event-list-search-container.evt-single-view-container {
-    padding: 0 0 100px 0;
+    padding: 0 0 100px 0px;
     min-height: 100vh;
     background-color: #000000;
 }
