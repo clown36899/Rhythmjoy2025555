@@ -1,5 +1,5 @@
-// 빌보드 PWA 서비스 워커 (Version: 20260213 - V42/Auth Stability & minimal-ui Fix)
-const CACHE_NAME = 'rhythmjoy-cache-v42';
+// 빌보드 PWA 서비스 워커 (Version: 20260214 - V43/Auth Stability & Safari Fix)
+const CACHE_NAME = 'rhythmjoy-cache-v43';
 
 self.addEventListener('install', (event) => {
   // index.html을 반드시 캐시한 후 skipWaiting (navigate fallback 보장)
@@ -36,6 +36,20 @@ self.addEventListener('activate', (event) => {
 // Fetch 이벤트 핸들러 - 네트워크 우선
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
+
+  // [Auth Stability] 인증 관련 요청은 무조건 네트워크로 직접 연결 (간섭 방지)
+  const isAuthRequest = url.search.includes('code=') ||
+    url.search.includes('error=') ||
+    url.hash.includes('access_token=') ||
+    url.hash.includes('refresh_token=');
+
+  if (isAuthRequest) {
+    console.log('[SW] 🛡️ Auth request detected (code/token/error). Bypassing SW fetch handler to avoid interference.', {
+      url: url.href,
+      mode: event.request.mode
+    });
+    return; // 브라우저가 직접 네트워크 요청을 처리하게 함
+  }
 
   // 외부 요청 무시 (Supabase, chrome-extension, 다른 도메인)
   if (!url.protocol.startsWith('http') || url.hostname !== self.location.hostname) {

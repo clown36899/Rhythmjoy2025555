@@ -63,7 +63,9 @@ export default function KakaoCallbackPage() {
                 const authEndpoint = '/api/kakao-login';
                 const redirectUri = `${window.location.origin}/auth/kakao-callback`;
 
-
+                // [iOS Fix] fetch에 타임아웃 추가 (AbortController)
+                const controller = new AbortController();
+                const fetchTimeoutId = setTimeout(() => controller.abort(), 10000);
 
                 const response = await fetch(authEndpoint, {
                     method: 'POST',
@@ -74,7 +76,10 @@ export default function KakaoCallbackPage() {
                         code: code,
                         redirectUri,
                     }),
+                    signal: controller.signal
                 });
+
+                clearTimeout(fetchTimeoutId);
 
 
 

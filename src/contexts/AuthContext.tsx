@@ -1,7 +1,7 @@
 import { createContext, useContext, useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { supabase, validateAndRecoverSession } from '../lib/supabase';
-import type { User, Session } from '@supabase/supabase-js';
+import type { User, Session, AuthChangeEvent } from '@supabase/supabase-js';
 import { initKakaoSDK, loginWithKakao, logoutKakao } from '../utils/kakaoAuth';
 import { authLogger } from '../utils/authLogger';
 
@@ -486,89 +486,93 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  // 1. 초기 세션 마운트 시 검증
+  // 1. 초기 세션 검증 및 PWA/로그아웃 상태 복구
   useEffect(() => {
+    authLogger.log('[AuthContext] 🔌 Initializing AuthContext useEffect...');
     let isMounted = true;
-    let safetyTimeoutId: any = null;
+    let safetyTimeoutId: NodeJS.Timeout | null = null;
 
-    // 🔥 통합 로그아웃 플래그 확인
-    const isLoggingOutFlag = localStorage.getItem('isLoggingOut');
-    if (isLoggingOutFlag) {
+    // 로그아웃 직후 리로드된 상태인지 확인
+    const isLoggingOutFromStorage = localStorage.getItem('isLoggingOut') === 'true';
 
-      authLogger.log('[AuthContext] 🧹 Enforcing cleanup after logout reload');
-
-      // 상태를 true로 설정하여 자식 컴포넌트들이 로그아웃 직후임을 알게 함
+    if (isLoggingOutFromStorage) {
+      authLogger.log('[AuthContext] 🛫 Logout redirect detected - cleaning up...');
       setIsLoggingOut(true);
       setIsAuthProcessing(false);
-
-      // 플래그 제거 (상태로 전이됨)
       localStorage.removeItem('isLoggingOut');
 
-      // 저장소에 좀비 토큰이 부활했더라도, 메모리상에서는 확실히 날려버림
       supabase.auth.signOut({ scope: 'local' }).then(() => {
         if (isMounted) {
+          setIsLoggingOut(false);
           setLoading(false);
-          setIsAuthCheckComplete(true); // 로그아웃 직후에도 상태 체크 완료임을 명시
+          setIsAuthCheckComplete(true);
         }
       });
       return () => { isMounted = false; };
     }
 
-    const timeoutId = setTimeout(async () => {
-      if (isMounted && loading) {
-        console.warn('[AuthContext] ⏱️ Session check timeout - keeping local session');
-        // 타임아웃은 네트워크 지연일 뿐이므로 로그아웃하지 않음
-        // 진짜 세션 에러는 .catch() 블록에서 처리됨
-        authLogger.log('[AuthContext] ⏱️ Session check timeout - keeping local session');
-        setLoading(false);
-      }
-    }, 10000);
-
-    // 🛡️ Safety Net: 아무리 길어도 8~15초면 스피너를 강제 해제 (iOS stuck 방어)
+    // 🛡️ Safety Net
     const urlParams = new URLSearchParams(window.location.search);
     const hash = window.location.hash;
     const hasAuthParams = urlParams.has('code') || urlParams.has('error') || hash.includes('access_token=') || hash.includes('refresh_token=');
     const safetyTimeoutMillis = hasAuthParams ? 15000 : 8000;
 
+    authLogger.log('[AuthContext] 🛡️ Initial URL Analysis:', {
+      path: window.location.pathname,
+      hasCode: urlParams.has('code'),
+      hasError: urlParams.has('error'),
+      hasTokenInHash: hash.includes('access_token='),
+      hasAuthParams,
+      userAgent: navigator.userAgent
+    });
+
+    authLogger.log('[AuthContext] 🛡️ Setting safety net timer:', { safetyTimeoutMillis });
+
     safetyTimeoutId = setTimeout(() => {
-      if (isMounted && isAuthProcessing) {
-        authLogger.log(`[AuthContext] 🛡️ Safety Net triggered (${safetyTimeoutMillis}ms) - Forcing spinner off`);
+      if (isMounted && (isAuthProcessing || isLoggingOut)) {
+        authLogger.log(`[AuthContext] 🛡️ Safety Net triggered (${safetyTimeoutMillis}ms) - Forcing all spinners off`);
         setIsAuthProcessing(false);
+        setIsLoggingOut(false);
         sessionStorage.removeItem('kakao_login_in_progress');
         sessionStorage.removeItem('google_login_in_progress');
       }
     }, safetyTimeoutMillis);
 
-    validateAndRecoverSession()
-      .then(async (recoveredSession: Session | null) => {
+    const checkInitialSession = async () => {
+      authLogger.log('[AuthContext] 🔍 Starting validateAndRecoverSession()...');
+      try {
+        const recoveredSession = await validateAndRecoverSession();
         if (!isMounted) return;
-        clearTimeout(timeoutId);
+
+        authLogger.log('[AuthContext] 📥 Recovery result:', { hasSession: !!recoveredSession, userId: recoveredSession?.user?.id });
 
         if (recoveredSession) {
-          const currentUser = recoveredSession.user;
           setSession(recoveredSession);
-          setUser(currentUser);
-          // Admin 체크를 백그라운드에서 실행 (await 제거)
-          refreshAdminStatus(currentUser);
-          setUserId(currentUser.id);
+          setUser(recoveredSession.user);
+          refreshAdminStatus(recoveredSession.user);
+          setUserId(recoveredSession.user.id);
         }
-        setLoading(false);
-      })
-      .catch(async (error: any) => {
+
+        if (!hasAuthParams) {
+          setIsAuthProcessing(false);
+        }
+      } catch (error) {
         if (!isMounted) return;
-        clearTimeout(timeoutId);
         authLogger.log('[AuthContext] 💥 Session init error:', error);
-        console.error('[AuthContext] 💥 Session init error:', error);
         await cleanupStaleSession();
-        setLoading(false);
-      })
-      .finally(() => {
-        setIsAuthCheckComplete(true);
-      });
+        setIsAuthProcessing(false);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+          setIsAuthCheckComplete(true);
+        }
+      }
+    };
+
+    checkInitialSession();
 
     return () => {
       isMounted = false;
-      clearTimeout(timeoutId);
       if (safetyTimeoutId) clearTimeout(safetyTimeoutId);
     };
   }, []); // 의존성 없음 - 초기 마운트 시 1회 실행
@@ -577,18 +581,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase.auth.onAuthStateChange(async (event: AuthChangeEvent, session: Session | null) => {
       const currentUser = session?.user ?? null;
 
       authLogger.log('[AuthContext] 🔄 Auth state changed:', { event, userEmail: currentUser?.email });
 
       if (event === 'SIGNED_OUT') {
         wipeLocalData();
+        setIsLoggingOut(false);
       } else if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
-        // [Safety Fix] 어떤 시그널이든 세션 관련 확정이 오면 무조건 로딩은 풉니다.
-        // 유저 정보가 없더라도(=로그아웃 상태 로딩 완료) 로딩창이 걷혀야 무한 로딩을 막습니다.
+        // [Safety Fix] 어떤 시그널이든 세션 관련 확정이 오면 로딩은 풉니다.
         if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
           setIsAuthProcessing(false);
+          setIsLoggingOut(false);
           sessionStorage.removeItem('kakao_login_in_progress');
           sessionStorage.removeItem('google_login_in_progress');
         }
@@ -599,22 +604,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         setSession(session);
         setUser(currentUser);
-        refreshAdminStatus(currentUser); // await 제거 - 백그라운드 실행
 
         if (currentUser) {
-          setUserProperties({ login_status: 'logged_in' });
+          refreshAdminStatus(currentUser);
           setUserId(currentUser.id);
+          setUserProperties({ login_status: 'logged_in' });
+
           if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
             logEvent('Auth', 'Login', 'Success');
-            // [Optimization] Global spinner auto-clear removed.
-            // Component-level flows (e.g. KakaoCallbackPage) now handle their own cleanup
-            // after completing their specific redirect/navigation tasks.
-            // setIsAuthProcessing(false) and sessionStorage removal moved to flow owners.
-
-            // [FIX] Ensure board_users record exists (especially for Google/Apple login)
-            // 익명 함수 내부에서 비동기 호출 (async context inside callback)
-            // [FIX] Ensure board_users record exists (especially for Google/Apple login)
-            // 비동기로 실행하되, await를 제거하여 UI 블로킹 방지 (Fire & Forget)
             ensureBoardUser(currentUser)
               .then(() => refreshUserProfile())
               .catch(err => {
@@ -629,18 +626,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(currentUser);
         if (currentUser) {
           setUserId(currentUser.id);
-          refreshAdminStatus(currentUser); // await 제거 - 백그라운드 실행
+          refreshAdminStatus(currentUser);
         } else {
           setUserId(null);
         }
-        // [Optimization] Removed global setIsAuthProcessing(false) fallback
       }
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [refreshAdminStatus]); // refreshAdminStatus가 useCallback 덕분에 안정적임
+  }, [refreshAdminStatus]);
 
 
 

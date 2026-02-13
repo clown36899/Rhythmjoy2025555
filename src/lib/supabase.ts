@@ -13,6 +13,8 @@ const supabaseAnonKey = import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY || 'placeh
 //   adminEmail: import.meta.env.VITE_ADMIN_EMAIL || '없음'
 // });
 
+const isSafari = typeof navigator !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     storage: typeof window !== 'undefined' ? window.localStorage : undefined,
@@ -20,8 +22,17 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
-    flowType: 'pkce', // 프로덕션 환경에서 세션 유지를 위해 필수
-  },
+    flowType: 'pkce',
+    // Safari용 Dummy Lock: navigator.locks 결함으로 인한 Deadlock 원천 차단
+    lockTerminatedContext: false,
+    ...(isSafari ? {
+      // navigator.locks를 사용하지 않도록 더미 락 제공 (함수 시그니처 준수)
+      lock: async (name: string, _timeout: number, fn: () => Promise<any>) => {
+        authLogger.log(`[Supabase] 🔓 Safari: Bypassing Lock (${name})`);
+        return fn();
+      }
+    } : {})
+  } as any,
   realtime: {
     params: {
       eventsPerSecond: 10,
@@ -183,32 +194,58 @@ let validationPromise: Promise<any> | null = null;
  * @returns 유효한 세션 또는 null
  */
 export const validateAndRecoverSession = async (): Promise<any> => {
-  // 1. 이미 검증이 진행 중이라면 해당 프로미스 반환 (중복 호출 방지/락킹)
+  // 1. 이미 검증이 진행 중이라면 해당 프로미스 반환 (중복 호출 방지)
   if (validationPromise) {
-    authLogger.log('[Supabase] 🔄 Waiting for existing validation promise...');
+    authLogger.log('[Supabase] 🔄 Already validating, returning existing promise');
     return validationPromise;
   }
 
-  // 검증 프로세스를 프로미스 변수에 할당하여 락킹 시작
   validationPromise = (async () => {
     let localSession: any = null;
-
+    const now = Date.now();
     try {
-      const now = Date.now();
+      authLogger.log('[Supabase] 🚀 validateAndRecoverSession started');
 
-      // 1. 단기 캐시 확인 (60초 이내면 서버 호출 없이 로컬 세션 반환)
-      const { data: { session: cachedSession } } = await supabase.auth.getSession();
+      // [Safari Fix] 사파리에서 localStorage 로드가 늦어지는 'Ghost Storage' 현상 대응
+      if (typeof window !== 'undefined') {
+        const checkToken = () => !!localStorage.getItem('sb-auth-token');
+
+        if (!checkToken()) {
+          authLogger.log('[Supabase] ⏳ Safari: Token not found yet. Waiting 300ms and retrying...');
+          await new Promise(resolve => setTimeout(resolve, 300));
+        }
+
+        if (checkToken()) {
+          authLogger.log('[Supabase] ✅ Safari: Token ignited/detected successfully');
+        } else {
+          authLogger.log('[Supabase] ℹ️ Safari: No token in storage after wait');
+        }
+      }
+
+      authLogger.log('[Supabase] 🔍 Calling supabase.auth.getSession() with 4s timeout...');
+      const firstGetSession = Promise.race([
+        supabase.auth.getSession(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('Initial getSession timeout')), 4000))
+      ]);
+
+      let cachedSession = null;
+      try {
+        const result = await firstGetSession as any;
+        cachedSession = result.data?.session;
+      } catch (e) {
+        authLogger.log('[Supabase] ⏱️ Initial getSession timed out/failed (Possible deadlock)');
+      }
+
       localSession = cachedSession;
+      authLogger.log('[Supabase] 📥 First getSession() result:', { hasSession: !!localSession });
 
       if (localSession && (now - lastValidationTime < VALIDATION_CACHE_TIME)) {
-        authLogger.log('[Supabase] ⚡ Using cached session validation (Short-circuit)');
+        authLogger.log('[Supabase] ⚡ Using short-circuit cache');
         return localSession;
       }
 
-      // console.log('[Supabase] 🔍 Validating session with server...');
-
-
-      // 🔥 getSession()에도 타임아웃 추가 (모바일에서 무한 대기 방지)
+      // 3. 서버 실시간 세션 확인 (타임아웃 포함)
+      authLogger.log('[Supabase] 🌐 Racing getSession() with 5s timeout...');
       const getSessionWithTimeout = Promise.race([
         supabase.auth.getSession(),
         new Promise((_, reject) =>
@@ -217,75 +254,55 @@ export const validateAndRecoverSession = async (): Promise<any> => {
       ]);
 
       let session = localSession;
-      let error;
+      let error = null;
+
       try {
         const result = await getSessionWithTimeout as any;
         if (result.data?.session) {
           session = result.data.session;
+          authLogger.log('[Supabase] ✅ Server session retrieved');
         }
         error = result.error;
-      } catch (timeoutError) {
-        console.warn('[Supabase] ⏱️ getSession() timeout - utilizing local session');
-        session = localSession;
+      } catch (timeoutErr) {
+        authLogger.log('[Supabase] ⏱️ getSession timeout - using local session');
       }
 
-      // 에러 발생 시 세션 정리 (Refresh 한도 초과 등)
-      const urlParams = new URLSearchParams(window.location.search);
-      const hash = window.location.hash;
-      const hasAuthParams = urlParams.has('code') || urlParams.has('error') || hash.includes('access_token=') || hash.includes('refresh_token=');
-
+      // 4. 에러 핸들링
       if (error) {
-        authLogger.log('[Supabase] ❌ Session validation error:', error);
+        authLogger.log('[Supabase) ❌ Session error:', error);
+        const urlParams = new URLSearchParams(window.location.search);
+        const hash = window.location.hash;
+        const hasAuthParams = urlParams.has('code') || urlParams.has('error') || hash.includes('access_token=') || hash.includes('refresh_token=');
 
-        // 인증 파라미터가 없을 때만 강제 클린업 수행 (인증 중 리프레시 실패 대응)
         if (!hasAuthParams && (error.message?.includes('token_revoked') || error.message?.includes('Refresh Token has been revoked'))) {
-          console.error('[Supabase] 🗑️ Token revoked - clearing local session');
+          authLogger.log('[Supabase] 🗑️ Token revoked - clearing local');
           await supabase.auth.signOut({ scope: 'local' });
           return null;
         }
-
-        if (hasAuthParams) {
-          authLogger.log('[Supabase] 🛡️ Auth params detected - Delaying session cleanup');
-        }
-
-        return session; // 일반 에러 또는 인증 중에는 일단 로컬 세션 유지
+        return session;
       }
 
-      // 세션이 없으면 null 반환
       if (!session) {
-        console.log('[Supabase] ℹ️ No session found');
+        authLogger.log('[Supabase] ℹ️ No session after all checks');
         return null;
       }
 
-      // 세션 만료 체크
+      // 5. 세션 만료 및 갱신 체크
       if (session.expires_at) {
         const expiresAt = new Date(session.expires_at * 1000);
-        const now = new Date();
-
-        // 만료되었거나 곧 만료(1분 이내)되면 갱신 시도
-        if (expiresAt.getTime() - now.getTime() < 60000) {
-          authLogger.log('[Supabase] ⏰ Session expiring soon, attempting refresh...');
+        if (expiresAt.getTime() - Date.now() < 60000) {
+          authLogger.log('[Supabase) ⏰ Refreshing expiring session...');
           const { data, error: refreshError } = await supabase.auth.refreshSession();
-
-          if (refreshError) {
-            authLogger.log('[Supabase] ❌ Session refresh failed:', refreshError);
-            if (refreshError.message?.includes('token_revoked') || refreshError.message?.includes('Refresh Token has been revoked')) {
-              await supabase.auth.signOut({ scope: 'local' });
-              return null;
-            }
-            return session;
+          if (!refreshError && data.session) {
+            authLogger.log('[Supabase] ✅ Session refreshed');
+            lastValidationTime = Date.now();
+            return data.session;
           }
-
-          console.log('[Supabase] ✅ Session refreshed successfully');
-          lastValidationTime = Date.now();
-          return data.session;
         }
       }
 
-      // [중요] 로컬 스토리지의 토큰 위변조 여부 확인을 위해 getUser() 호출
-      // console.log('[Supabase] 🔐 Verifying token with server (getUser)...');
-
-
+      // 6. 최종 서버 유저 검증 (타임아웃 포함)
+      authLogger.log('[Supabase] 🔐 Verifying user with server...');
       const getUserWithTimeout = Promise.race([
         supabase.auth.getUser(),
         new Promise((_, reject) =>
@@ -295,41 +312,24 @@ export const validateAndRecoverSession = async (): Promise<any> => {
 
       try {
         const { error: userError } = await getUserWithTimeout as any;
-
         if (userError) {
-          console.error('[Supabase] ❌ Token validation failed on server:', userError);
-          const isAuthError = (userError as any).status === 401 ||
-            (userError as any).status === 403 ||
-            userError.message?.toLowerCase().includes('invalid') ||
-            userError.message?.toLowerCase().includes('expired') ||
-            userError.message?.toLowerCase().includes('not found') ||
-            userError.message?.toLowerCase().includes('revoked');
-
-          if (isAuthError) {
-            authLogger.log('[Supabase] 🗑️ Clearing invalid/expired session', { message: userError.message });
+          authLogger.log('[Supabase] ❌ User verification failed:', userError);
+          const isFatal = (userError as any).status === 401 || (userError as any).status === 403;
+          if (isFatal) {
             await supabase.auth.signOut({ scope: 'local' });
             return null;
           }
         }
-      } catch (timeoutError) {
-        console.warn('[Supabase] ⏱️ getUser() timeout - proceeding with local session');
-        return session;
+      } catch (e) {
+        authLogger.log('[Supabase] ⏱️ getUser timeout - proceeding');
       }
 
-      // console.log('[Supabase] ✅ Session is valid and verified by server');
       lastValidationTime = Date.now();
       return session;
     } catch (e) {
-      console.error('[Supabase] 💥 Session recovery failed (General Error):', e);
-      // [FIX] 알 수 없는 에러(네트워크 등) 발생 시 무조건 로그아웃 하지 않고, 로컬 세션이 있으면 유지
-      // (보안 토큰이 만료되었더라도 오프라인 모드로 진입하는 것이 UX상 유리)
-      if (localSession) {
-        console.warn('[Supabase] 🛡️ Fallback to local session due to recovery failure');
-        return localSession;
-      }
-      return null;
+      authLogger.log('[Supabase] 💥 recovery failed:', e);
+      return localSession;
     } finally {
-      // 락 해제
       validationPromise = null;
     }
   })();
