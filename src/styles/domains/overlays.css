@@ -3,947 +3,957 @@
 /* ==========================================================================
    SideDrawer Scope (SD-)
    ========================================================================== */
-@scope (.SideDrawer) {
-    :scope {
-        --sd-width: 85%;
-        --sd-max-width: 340px;
-        --sd-transition: transform 0.3s cubic-bezier(0.19, 1, 0.22, 1);
+/* ==========================================================================
+   SideDrawer (SD-)
+   ========================================================================== */
+.SideDrawer {
+    --sd-width: 85%;
+    --sd-max-width: 340px;
+    --sd-transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100vw;
-        height: 100vh;
-        background-color: rgba(0, 0, 0, 0.6);
-        z-index: 9999;
-        backdrop-filter: blur(4px);
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 9999;
+    /* 극한 최적화: Safari 부하가 큰 블러 효과 완전 제거 */
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.2s;
+    will-change: opacity;
+}
+
+.SideDrawer.is-open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+.SideDrawer .SD-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: var(--sd-width);
+    max-width: var(--sd-max-width);
+    height: 100dvh;
+    /* 배경색: 다크모드 기준 블랙에 가깝게, 글래스 효과 */
+    background-color: var(--bg-base);
+    /* 만약 bg-base가 #000이면 완전 검정 */
+
+    box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+    /* 그림자 더 부드럽게 */
+    display: flex;
+    flex-direction: column;
+    transform: translateX(-100%);
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    border-right: 1px solid var(--border-glass-subtle);
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    z-index: calc(var(--z-header) + 1);
+
+    /* GPU 가속 힌트 및 Safari 깜빡임 방지 */
+    will-change: transform;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+}
+
+/* 다크모드 대응을 위한 미세 조정 (CSS 변수 활용) */
+@media (prefers-color-scheme: dark) {
+    .SideDrawer .SD-container {
+        background-color: #050505;
+        /* 완전 블랙보다는 살짝 밝은 */
+    }
+}
+
+.SideDrawer .SD-container.is-open {
+    transform: translateX(0);
+}
+
+.SideDrawer .SD-header {
+    padding: 24px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    /* 배경 투명화 + 보더 글래스 */
+    border-bottom: 1px solid var(--border-glass-subtle);
+    background-color: transparent;
+}
+
+.SideDrawer .SD-userProfile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.SideDrawer .SD-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background-color: var(--bg-surface-3);
+    /* 플레이스홀더 배경 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-inverse);
+    font-size: 24px;
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 1px solid var(--border-glass-subtle);
+    /* 아바타 보더 추가 */
+}
+
+.SideDrawer .SD-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.SideDrawer .SD-avatar.is-placeholder {
+    background-color: var(--bg-surface-2);
+    color: var(--text-tertiary);
+}
+
+.SideDrawer .SD-userInfo {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.SideDrawer .SD-username {
+    color: var(--text-primary);
+    font-weight: 700;
+    font-size: 16px;
+    line-height: 1.2;
+}
+
+.SideDrawer .SD-email {
+    color: var(--text-tertiary);
+    font-size: 11px;
+    margin-top: 2px;
+}
+
+.SideDrawer .SD-loginPrompt {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    flex: 1;
+}
+
+.SideDrawer .SD-closeBtn {
+    background: rgba(255, 255, 255, 0.05);
+    /* 닫기 버튼 배경 미세하게 추가 */
+    border: 1px solid var(--border-glass-subtle);
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    color: var(--text-primary);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.SideDrawer .SD-closeBtn:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.SideDrawer .SD-nav {
+    flex: 1;
+    overflow-y: auto;
+    /* 스크롤바 숨기기 (선택사항) */
+    scrollbar-width: none;
+}
+
+.SideDrawer .SD-nav::-webkit-scrollbar {
+    display: none;
+}
+
+.SideDrawer .SD-sectionTitle {
+    padding: 20px 24px 8px 24px;
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--text-tertiary);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.6;
+}
+
+.SideDrawer .SD-divider {
+    height: 1px;
+    background-color: var(--border-glass-subtle);
+    margin: 8px 24px;
+}
+
+.SideDrawer .SD-menuItem {
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: background-color 0.2s;
+    border-radius: 0;
+    /* 라운드 제거 혹은 유지 */
+}
+
+.SideDrawer .SD-menuItem:active {
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+.SideDrawer .SD-menuItem i {
+    font-size: 20px;
+    color: var(--text-secondary);
+    /* 아이콘 밝게 */
+    width: 24px;
+    text-align: center;
+    opacity: 0.9;
+}
+
+.SideDrawer .SD-menuItem span {
+    font-size: 15px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+}
+
+.SideDrawer .SD-expandIcon {
+    margin-left: auto;
+    font-size: 18px !important;
+    transition: transform 0.2s ease;
+    opacity: 0.5;
+}
+
+.SideDrawer .SD-submenu {
+    background-color: rgba(0, 0, 0, 0.2);
+    /* 뎁스감을 위한 어두운 배경 */
+    box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.1);
+    /* 안쪽 그림자 추가 */
+    animation: sd-slideDown 0.3s ease-out;
+    overflow: hidden;
+}
+
+@keyframes sd-slideDown {
+    from {
+        max-height: 0;
         opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.2s ease-out;
-        /* Faster fade out */
     }
 
-    :scope.is-open {
+    to {
+        max-height: 1000px;
         opacity: 1;
-        pointer-events: auto;
     }
+}
 
-    .SD-container {
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: var(--sd-width);
-        max-width: var(--sd-max-width);
-        height: 100dvh;
-        /* 배경색: 다크모드 기준 블랙에 가깝게, 글래스 효과 */
-        background-color: var(--bg-base);
-        /* 만약 bg-base가 #000이면 완전 검정 */
+.SideDrawer .SD-submenuItem {
+    padding: 12px 24px 12px 64px;
+    /* 인덴트 유지 */
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: color 0.2s;
+    font-size: 14px;
+    position: relative;
+}
 
-        box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
-        /* 그림자 더 부드럽게 */
-        display: flex;
-        flex-direction: column;
-        transform: translateX(-100%);
-        transition: var(--sd-transition);
-        border-right: 1px solid var(--border-glass-subtle);
-        padding-top: env(safe-area-inset-top);
-        padding-bottom: env(safe-area-inset-bottom);
-        z-index: calc(var(--z-header) + 1);
-    }
+.SideDrawer .SD-submenuItem::before {
+    content: '';
+    position: absolute;
+    left: 42px;
+    /* 라인 위치 */
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background-color: var(--border-glass-subtle);
+    /* 연결선 */
+    opacity: 0.5;
+}
 
-    /* 다크모드 대응을 위한 미세 조정 (CSS 변수 활용) */
-    @media (prefers-color-scheme: dark) {
-        .SD-container {
-            background-color: #050505;
-            /* 완전 블랙보다는 살짝 밝은 */
-        }
-    }
+.SideDrawer .SD-submenuItem:hover {
+    color: var(--text-primary);
+}
 
-    .SD-container.is-open {
-        transform: translateX(0);
-    }
+.SideDrawer .SD-statusDot {
+    font-size: 9px;
+    font-weight: 800;
+    padding: 2px 5px;
+    border-radius: 4px;
+    background: var(--bg-surface-3);
+    color: var(--text-tertiary);
+    margin-left: 8px;
+}
 
-    .SD-header {
-        padding: 24px 20px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        /* 배경 투명화 + 보더 글래스 */
-        border-bottom: 1px solid var(--border-glass-subtle);
-        background-color: transparent;
-    }
+.SideDrawer .SD-statusDot.is-active {
+    background: var(--color-blue-600);
+    color: white;
+}
 
-    .SD-userProfile {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-    }
+.SideDrawer .SD-adminStatsText {
+    font-weight: 700;
+    color: #60a5fa;
+}
 
-    .SD-avatar {
-        width: 48px;
-        height: 48px;
-        border-radius: 50%;
-        background-color: var(--bg-surface-3);
-        /* 플레이스홀더 배경 */
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--text-inverse);
-        font-size: 24px;
-        overflow: hidden;
-        flex-shrink: 0;
-        border: 1px solid var(--border-glass-subtle);
-        /* 아바타 보더 추가 */
-    }
+.SideDrawer .SD-badge {
+    background-color: #f97316;
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    margin-left: 6px;
+    font-weight: 700;
+    vertical-align: middle;
+}
 
-    .SD-avatar img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
+/* PWA 섹션 스타일 개선 */
+.SideDrawer .SD-pwaSection {
+    padding: 10px 20px 20px 20px;
+    background: transparent;
+    /* 배경 제거 */
+    border-bottom: 1px solid var(--border-glass-subtle);
+}
 
-    .SD-avatar.is-placeholder {
-        background-color: var(--bg-surface-2);
-        color: var(--text-tertiary);
-    }
+.SideDrawer .SD-pwaContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.03);
+    /* 아주 연한 흰색 투명도 */
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px solid var(--border-glass-subtle);
+}
 
-    .SD-userInfo {
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-    }
+.SideDrawer .SD-footer {
+    padding: 24px;
+    border-top: 1px solid var(--border-glass-subtle);
+    background: transparent;
+}
 
-    .SD-username {
-        color: var(--text-primary);
-        font-weight: 700;
-        font-size: 16px;
-        line-height: 1.2;
-    }
+.SideDrawer .SD-logoutBtn {
+    width: 100%;
+    padding: 12px;
+    background-color: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-glass-subtle);
+    border-radius: 8px;
+    color: #ef4444;
+    /* 레드 */
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    margin-bottom: 16px;
+    transition: all 0.2s;
+}
 
-    .SD-email {
-        color: var(--text-tertiary);
-        font-size: 11px;
-        margin-top: 2px;
-    }
+.SideDrawer .SD-logoutBtn:hover {
+    background-color: rgba(239, 68, 68, 0.1);
+    border-color: rgba(239, 68, 68, 0.3);
+}
 
-    .SD-loginPrompt {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        cursor: pointer;
-        flex: 1;
-    }
+.SideDrawer .SD-version {
+    text-align: center;
+    color: var(--text-tertiary);
+    font-size: 11px;
+    opacity: 0.5;
+}
 
-    .SD-closeBtn {
-        background: rgba(255, 255, 255, 0.05);
-        /* 닫기 버튼 배경 미세하게 추가 */
-        border: 1px solid var(--border-glass-subtle);
-        border-radius: 50%;
-        width: 32px;
-        height: 32px;
-        color: var(--text-primary);
-        font-size: 18px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s;
-    }
+.SideDrawer .SD-disabledMenuItem {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
 
-    .SD-closeBtn:hover {
-        background: rgba(255, 255, 255, 0.1);
-    }
+.SideDrawer .SD-profileEditBtn {
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--text-tertiary);
+    background: transparent;
+    border: 1px solid var(--border-glass-subtle);
+    border-radius: 4px;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    align-self: flex-start;
+}
 
-    .SD-nav {
-        flex: 1;
-        overflow-y: auto;
-        /* 스크롤바 숨기기 (선택사항) */
-        scrollbar-width: none;
-    }
+.SideDrawer .SD-profileEditBtn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+    border-color: var(--text-tertiary);
+}
 
-    .SD-nav::-webkit-scrollbar {
-        display: none;
-    }
+.SideDrawer .SD-menuItem i.SD-favoriteIcon {
+    color: #facc15;
+}
 
-    .SD-sectionTitle {
-        padding: 20px 24px 8px 24px;
-        font-size: 10px;
-        font-weight: 800;
-        color: var(--text-tertiary);
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-        opacity: 0.6;
-    }
+/* 골드 */
+.SideDrawer .SD-menuItem.SD-adminToggle {
+    color: #fca5a5;
+}
 
-    .SD-divider {
-        height: 1px;
-        background-color: var(--border-glass-subtle);
-        margin: 8px 24px;
-    }
+/* 연한 레드 */
+.SideDrawer .SD-menuItem i.SD-lensIcon {
+    color: #fb923c;
+}
 
-    .SD-menuItem {
-        padding: 14px 24px;
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        color: var(--text-primary);
-        cursor: pointer;
-        transition: background-color 0.2s;
-        border-radius: 0;
-        /* 라운드 제거 혹은 유지 */
-    }
+/* 오렌지 */
 
-    .SD-menuItem:active {
-        background-color: rgba(255, 255, 255, 0.03);
-    }
+.SideDrawer .SD-lockIcon {
+    margin-left: auto;
+    font-size: 14px;
+    color: var(--text-disabled);
+}
 
-    .SD-menuItem i {
-        font-size: 20px;
-        color: var(--text-secondary);
-        /* 아이콘 밝게 */
-        width: 24px;
-        text-align: center;
-        opacity: 0.9;
-    }
+.SideDrawer .SD-isClickable {
+    cursor: pointer;
+    flex: 1;
+}
 
-    .SD-menuItem span {
-        font-size: 15px;
-        font-weight: 500;
-        display: flex;
-        align-items: center;
-    }
+/* Admin Dashboard Grid & Categories */
+.SideDrawer .SD-adminWrapper {
+    margin-top: 10px;
+}
 
-    .SD-expandIcon {
-        margin-left: auto;
-        font-size: 18px !important;
-        transition: transform 0.2s ease;
-        opacity: 0.5;
-    }
+.SideDrawer .SD-adminContainer {
+    padding: 4px 16px 20px 16px;
+}
 
-    .SD-submenu {
-        background-color: rgba(0, 0, 0, 0.2);
-        /* 뎁스감을 위한 어두운 배경 */
-        box-shadow: inset 0 4px 8px rgba(0, 0, 0, 0.1);
-        /* 안쪽 그림자 추가 */
-        animation: sd-slideDown 0.3s ease-out;
-        overflow: hidden;
-    }
+.SideDrawer .SD-adminGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-bottom: 20px;
+}
 
-    @keyframes sd-slideDown {
-        from {
-            max-height: 0;
-            opacity: 0;
-        }
+.SideDrawer .SD-adminGridItem {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-glass-subtle);
+    border-radius: 12px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
 
-        to {
-            max-height: 1000px;
-            opacity: 1;
-        }
-    }
+.SideDrawer .SD-adminGridItem:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+}
 
-    .SD-submenuItem {
-        padding: 12px 24px 12px 64px;
-        /* 인덴트 유지 */
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        color: var(--text-secondary);
-        cursor: pointer;
-        transition: color 0.2s;
-        font-size: 14px;
-        position: relative;
-    }
+.SideDrawer .SD-gridVal {
+    font-size: 18px;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 4px;
+    color: var(--text-primary);
+}
 
-    .SD-submenuItem::before {
-        content: '';
-        position: absolute;
-        left: 42px;
-        /* 라인 위치 */
-        top: 0;
-        bottom: 0;
-        width: 1px;
-        background-color: var(--border-glass-subtle);
-        /* 연결선 */
-        opacity: 0.5;
-    }
+.SideDrawer .SD-gridLabel {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
 
-    .SD-submenuItem:hover {
-        color: var(--text-primary);
-    }
+.SideDrawer .SD-adminSubGroup {
+    margin-bottom: 18px;
+}
 
-    .SD-statusDot {
-        font-size: 9px;
-        font-weight: 800;
-        padding: 2px 5px;
-        border-radius: 4px;
-        background: var(--bg-surface-3);
-        color: var(--text-tertiary);
-        margin-left: 8px;
-    }
+.SideDrawer .SD-subGroupTitle {
+    font-size: 10px;
+    font-weight: 800;
+    color: var(--text-tertiary);
+    padding: 0 8px 8px 12px;
+    opacity: 0.5;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
 
-    .SD-statusDot.is-active {
-        background: var(--color-blue-600);
-        color: white;
-    }
+.SideDrawer .SD-adminSubGroup .SD-submenuItem {
+    padding: 10px 12px 10px 42px;
+    border-radius: 10px;
+    font-size: 13.5px;
+    margin-bottom: 2px;
+    gap: 14px;
+}
 
-    .SD-adminStatsText {
-        font-weight: 700;
-        color: #60a5fa;
-    }
+.SideDrawer .SD-adminSubGroup .SD-submenuItem:hover {
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--text-primary);
+}
 
-    .SD-badge {
-        background-color: #f97316;
-        color: white;
-        font-size: 10px;
-        padding: 2px 6px;
-        border-radius: 10px;
-        margin-left: 6px;
-        font-weight: 700;
-        vertical-align: middle;
-    }
-
-    /* PWA 섹션 스타일 개선 */
-    .SD-pwaSection {
-        padding: 10px 20px 20px 20px;
-        background: transparent;
-        /* 배경 제거 */
-        border-bottom: 1px solid var(--border-glass-subtle);
-    }
-
-    .SD-pwaContainer {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        background: rgba(255, 255, 255, 0.03);
-        /* 아주 연한 흰색 투명도 */
-        padding: 16px;
-        border-radius: 12px;
-        border: 1px solid var(--border-glass-subtle);
-    }
-
-    .SD-footer {
-        padding: 24px;
-        border-top: 1px solid var(--border-glass-subtle);
-        background: transparent;
-    }
-
-    .SD-logoutBtn {
-        width: 100%;
-        padding: 12px;
-        background-color: rgba(255, 255, 255, 0.03);
-        border: 1px solid var(--border-glass-subtle);
-        border-radius: 8px;
-        color: #ef4444;
-        /* 레드 */
-        font-weight: 600;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 8px;
-        cursor: pointer;
-        margin-bottom: 16px;
-        transition: all 0.2s;
-    }
-
-    .SD-logoutBtn:hover {
-        background-color: rgba(239, 68, 68, 0.1);
-        border-color: rgba(239, 68, 68, 0.3);
-    }
-
-    .SD-version {
-        text-align: center;
-        color: var(--text-tertiary);
-        font-size: 11px;
-        opacity: 0.5;
-    }
-
-    .SD-disabledMenuItem {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-
-    .SD-profileEditBtn {
-        margin-top: 6px;
-        font-size: 11px;
-        color: var(--text-tertiary);
-        background: transparent;
-        border: 1px solid var(--border-glass-subtle);
-        border-radius: 4px;
-        padding: 4px 10px;
-        cursor: pointer;
-        transition: all 0.2s;
-        align-self: flex-start;
-    }
-
-    .SD-profileEditBtn:hover {
-        background: rgba(255, 255, 255, 0.05);
-        color: var(--text-primary);
-        border-color: var(--text-tertiary);
-    }
-
-    .SD-menuItem i.SD-favoriteIcon {
-        color: #facc15;
-    }
-
-    /* 골드 */
-    .SD-menuItem.SD-adminToggle {
-        color: #fca5a5;
-    }
-
-    /* 연한 레드 */
-    .SD-menuItem i.SD-lensIcon {
-        color: #fb923c;
-    }
-
-    /* 오렌지 */
-
-    .SD-lockIcon {
-        margin-left: auto;
-        font-size: 14px;
-        color: var(--text-disabled);
-    }
-
-    .SD-isClickable {
-        cursor: pointer;
-        flex: 1;
-    }
-
-    /* Admin Dashboard Grid & Categories */
-    .SD-adminWrapper {
-        margin-top: 10px;
-    }
-
-    .SD-adminContainer {
-        padding: 4px 16px 20px 16px;
-    }
-
-    .SD-adminGrid {
-        display: grid;
-        grid-template-columns: repeat(2, 1fr);
-        gap: 10px;
-        margin-bottom: 20px;
-    }
-
-    .SD-adminGridItem {
-        background: rgba(255, 255, 255, 0.03);
-        border: 1px solid var(--border-glass-subtle);
-        border-radius: 12px;
-        padding: 12px;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: all 0.3s ease;
-    }
-
-    .SD-adminGridItem:hover {
-        background: rgba(255, 255, 255, 0.08);
-        border-color: rgba(255, 255, 255, 0.2);
-        transform: translateY(-2px);
-    }
-
-    .SD-gridVal {
-        font-size: 18px;
-        font-weight: 800;
-        line-height: 1;
-        margin-bottom: 4px;
-        color: var(--text-primary);
-    }
-
-    .SD-gridLabel {
-        font-size: 10px;
-        color: var(--text-tertiary);
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
-
-    .SD-adminSubGroup {
-        margin-bottom: 18px;
-    }
-
-    .SD-subGroupTitle {
-        font-size: 10px;
-        font-weight: 800;
-        color: var(--text-tertiary);
-        padding: 0 8px 8px 12px;
-        opacity: 0.5;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
-
-    .SD-adminSubGroup .SD-submenuItem {
-        padding: 10px 12px 10px 42px;
-        border-radius: 10px;
-        font-size: 13.5px;
-        margin-bottom: 2px;
-        gap: 14px;
-    }
-
-    .SD-adminSubGroup .SD-submenuItem:hover {
-        background: rgba(255, 255, 255, 0.04);
-        color: var(--text-primary);
-    }
-
-    .SD-adminSubGroup .SD-submenuItem i {
-        font-size: 18px;
-        opacity: 0.7;
-        width: 20px;
-    }
+.SideDrawer .SD-adminSubGroup .SD-submenuItem i {
+    font-size: 18px;
+    opacity: 0.7;
+    width: 20px;
 }
 
 /* ==========================================================================
    PWAInstallModal Scope (PWIM-)
    ========================================================================== */
-@scope (.PWAInstallModal) {
-    :scope {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(0, 0, 0, 0.75);
-        backdrop-filter: blur(4px);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: var(--z-modal-ultra, 10000);
-        padding: 1rem;
-        animation: pwim-fadeIn 0.2s ease;
+/* ==========================================================================
+   PWAInstallModal (PWIM-)
+   ========================================================================== */
+.PWAInstallModal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.75);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: var(--z-modal-ultra, 10000);
+    padding: 1rem;
+    animation: pwim-fadeIn 0.2s ease;
+}
+
+.PWAInstallModal .PWIM-container {
+    background: var(--bg-modal);
+    border: 1px solid var(--border-subtle);
+    border-radius: 20px;
+    max-width: 500px;
+    width: 100%;
+    max-height: 90vh;
+    overflow: hidden;
+    box-shadow: var(--shadow-elevated);
+    animation: pwim-slideUp 0.3s ease;
+    display: flex;
+    flex-direction: column;
+}
+
+.PWAInstallModal .PWIM-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.PWAInstallModal .PWIM-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+.PWAInstallModal .PWIM-closeBtn {
+    background: rgba(255, 255, 255, 0.2);
+    border: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    color: white;
+}
+
+.PWAInstallModal .PWIM-tabs {
+    display: flex;
+    gap: 0.5rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.PWAInstallModal .PWIM-tab {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border: none;
+    border-radius: 10px;
+    background: white;
+    color: #6b7280;
+    font-weight: 600;
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.PWAInstallModal .PWIM-tab.is-active {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+.PWAInstallModal .PWIM-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem;
+}
+
+.PWAInstallModal .PWIM-instructions {
+    animation: pwim-fadeIn 0.3s ease;
+}
+
+.PWAInstallModal .PWIM-platformBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+    border-radius: 20px;
+    color: #667eea;
+    font-weight: 600;
+    font-size: 0.875rem;
+    margin-bottom: 1.5rem;
+}
+
+.PWAInstallModal .PWIM-steps {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    counter-reset: pwim-step;
+}
+
+.PWAInstallModal .PWIM-stepItem {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    counter-increment: pwim-step;
+    position: relative;
+}
+
+.PWAInstallModal .PWIM-stepItem:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: 20px;
+    top: 45px;
+    bottom: -20px;
+    width: 2px;
+    background: linear-gradient(to bottom, #e5e7eb, transparent);
+}
+
+.PWAInstallModal .PWIM-stepIcon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.PWAInstallModal .PWIM-stepIcon::before {
+    content: counter(pwim-step);
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #ff6b6b;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.PWAInstallModal .PWIM-stepContent strong {
+    display: block;
+    font-size: 1rem;
+    color: #1f2937;
+    margin-bottom: 0.25rem;
+}
+
+.PWAInstallModal .PWIM-stepContent p {
+    margin: 0;
+    color: #6b7280;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.PWAInstallModal .PWIM-divider {
+    display: flex;
+    align-items: center;
+    margin: 1.5rem 0;
+    color: #9ca3af;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.PWAInstallModal .PWIM-divider::before,
+.PWAInstallModal .PWIM-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, transparent, #e5e7eb, transparent);
+}
+
+.PWAInstallModal .PWIM-divider span {
+    padding: 0 1rem;
+}
+
+.PWAInstallModal .PWIM-note {
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.1));
+    border-left: 4px solid #3b82f6;
+    border-radius: 8px;
+    display: flex;
+    gap: 0.75rem;
+    align-items: flex-start;
+}
+
+.PWAInstallModal .PWIM-note.is-success {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(22, 163, 74, 0.1));
+    border-left-color: #22c55e;
+}
+
+.PWAInstallModal .PWIM-note p {
+    margin: 0;
+    color: #1f2937;
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.PWAInstallModal .PWIM-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+    background: #f8f9fa;
+}
+
+.PWAInstallModal .PWIM-actionBtn {
+    width: 100%;
+    padding: 0.875rem;
+    border: none;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+@keyframes pwim-fadeIn {
+    from {
+        opacity: 0;
     }
 
-    .PWIM-container {
-        background: var(--bg-modal);
-        border: 1px solid var(--border-subtle);
-        border-radius: 20px;
-        max-width: 500px;
-        width: 100%;
-        max-height: 90vh;
-        overflow: hidden;
-        box-shadow: var(--shadow-elevated);
-        animation: pwim-slideUp 0.3s ease;
-        display: flex;
-        flex-direction: column;
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes pwim-slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
     }
 
-    .PWIM-header {
-        padding: 1.5rem;
-        border-bottom: 1px solid var(--border-subtle);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@media (prefers-color-scheme: dark) {
+    .PWAInstallModal .PWIM-container {
+        background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
     }
 
-    .PWIM-header h2 {
-        margin: 0;
-        font-size: 1.25rem;
-        font-weight: 700;
+    .PWAInstallModal .PWIM-tabs,
+    .PWAInstallModal .PWIM-footer {
+        background: #111827;
     }
 
-    .PWIM-closeBtn {
-        background: rgba(255, 255, 255, 0.2);
-        border: none;
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        color: white;
+    .PWAInstallModal .PWIM-tab {
+        background: #374151;
+        color: #d1d5db;
     }
 
-    .PWIM-tabs {
-        display: flex;
-        gap: 0.5rem;
-        padding: 1rem;
-        background: #f8f9fa;
-        border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    .PWAInstallModal .PWIM-stepContent strong {
+        color: #f3f4f6;
     }
 
-    .PWIM-tab {
-        flex: 1;
-        padding: 0.75rem 1rem;
-        border: none;
-        border-radius: 10px;
-        background: white;
-        color: #6b7280;
-        font-weight: 600;
-        font-size: 0.875rem;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.5rem;
-    }
-
-    .PWIM-tab.is-active {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-    }
-
-    .PWIM-content {
-        flex: 1;
-        overflow-y: auto;
-        padding: 1.5rem;
-    }
-
-    .PWIM-instructions {
-        animation: pwim-fadeIn 0.3s ease;
-    }
-
-    .PWIM-platformBadge {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.5rem 1rem;
-        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
-        border-radius: 20px;
-        color: #667eea;
-        font-weight: 600;
-        font-size: 0.875rem;
-        margin-bottom: 1.5rem;
-    }
-
-    .PWIM-steps {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-        counter-reset: pwim-step;
-    }
-
-    .PWIM-stepItem {
-        display: flex;
-        gap: 1rem;
-        margin-bottom: 1.5rem;
-        counter-increment: pwim-step;
-        position: relative;
-    }
-
-    .PWIM-stepItem:not(:last-child)::after {
-        content: '';
-        position: absolute;
-        left: 20px;
-        top: 45px;
-        bottom: -20px;
-        width: 2px;
-        background: linear-gradient(to bottom, #e5e7eb, transparent);
-    }
-
-    .PWIM-stepIcon {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        flex-shrink: 0;
-        position: relative;
-    }
-
-    .PWIM-stepIcon::before {
-        content: counter(pwim-step);
-        position: absolute;
-        top: -8px;
-        right: -8px;
-        width: 20px;
-        height: 20px;
-        border-radius: 50%;
-        background: #ff6b6b;
-        color: white;
-        font-size: 0.75rem;
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .PWIM-stepContent strong {
-        display: block;
-        font-size: 1rem;
-        color: #1f2937;
-        margin-bottom: 0.25rem;
-    }
-
-    .PWIM-stepContent p {
-        margin: 0;
-        color: #6b7280;
-        font-size: 0.875rem;
-        line-height: 1.5;
-    }
-
-    .PWIM-divider {
-        display: flex;
-        align-items: center;
-        margin: 1.5rem 0;
+    .PWAInstallModal .PWIM-stepContent p,
+    .PWAInstallModal .PWIM-note p {
         color: #9ca3af;
-        font-size: 0.875rem;
-        font-weight: 600;
+    }
+}
+
+@media (max-width: 640px) {
+    .PWAInstallModal .PWIM-container {
+        border-radius: 20px 20px 0 0;
+        margin-top: auto;
+        max-height: 95vh;
     }
 
-    .PWIM-divider::before,
-    .PWIM-divider::after {
-        content: '';
-        flex: 1;
-        height: 1px;
-        background: linear-gradient(to right, transparent, #e5e7eb, transparent);
-    }
-
-    .PWIM-divider span {
-        padding: 0 1rem;
-    }
-
-    .PWIM-note {
-        margin-top: 1.5rem;
-        padding: 1rem;
-        background: linear-gradient(135deg, rgba(59, 130, 246, 0.1), rgba(37, 99, 235, 0.1));
-        border-left: 4px solid #3b82f6;
-        border-radius: 8px;
-        display: flex;
-        gap: 0.75rem;
-        align-items: flex-start;
-    }
-
-    .PWIM-note.is-success {
-        background: linear-gradient(135deg, rgba(34, 197, 94, 0.1), rgba(22, 163, 74, 0.1));
-        border-left-color: #22c55e;
-    }
-
-    .PWIM-note p {
-        margin: 0;
-        color: #1f2937;
-        font-size: 0.875rem;
-        line-height: 1.5;
-    }
-
-    .PWIM-footer {
-        padding: 1rem 1.5rem;
-        border-top: 1px solid rgba(0, 0, 0, 0.1);
-        background: #f8f9fa;
-    }
-
-    .PWIM-actionBtn {
-        width: 100%;
-        padding: 0.875rem;
-        border: none;
-        border-radius: 10px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        font-weight: 600;
-        font-size: 1rem;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-
-    @keyframes pwim-fadeIn {
-        from {
-            opacity: 0;
-        }
-
-        to {
-            opacity: 1;
-        }
-    }
-
-    @keyframes pwim-slideUp {
-        from {
-            transform: translateY(20px);
-            opacity: 0;
-        }
-
-        to {
-            transform: translateY(0);
-            opacity: 1;
-        }
-    }
-
-    @media (prefers-color-scheme: dark) {
-        .PWIM-container {
-            background: linear-gradient(135deg, #1f2937 0%, #111827 100%);
-        }
-
-        .PWIM-tabs,
-        .PWIM-footer {
-            background: #111827;
-        }
-
-        .PWIM-tab {
-            background: #374151;
-            color: #d1d5db;
-        }
-
-        .PWIM-stepContent strong {
-            color: #f3f4f6;
-        }
-
-        .PWIM-stepContent p,
-        .PWIM-note p {
-            color: #9ca3af;
-        }
-    }
-
-    @media (max-width: 640px) {
-        .PWIM-container {
-            border-radius: 20px 20px 0 0;
-            margin-top: auto;
-            max-height: 95vh;
-        }
-
-        .PWIM-tab span {
-            display: none;
-        }
+    .PWAInstallModal .PWIM-tab span {
+        display: none;
     }
 }
 
 /* ==========================================================================
    LoginModal Scope (LM-)
    ========================================================================== */
-@scope (.LoginModal) {
-    :scope {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-color: var(--bg-overlay);
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        z-index: var(--z-modal-ultra, 10000);
-        padding-top: env(safe-area-inset-top);
-        padding-bottom: env(safe-area-inset-bottom);
-        animation: lm-fadeIn 0.2s ease-out;
+/* ==========================================================================
+   LoginModal (LM-)
+   ========================================================================== */
+.LoginModal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--bg-overlay);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: var(--z-modal-ultra, 10000);
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    animation: lm-fadeIn 0.2s ease-out;
+}
+
+.LoginModal .LM-container {
+    background-color: var(--bg-modal);
+    border-radius: 16px;
+    width: 90%;
+    max-width: 360px;
+    padding: 24px;
+    position: relative;
+    box-shadow: var(--shadow-elevated);
+    border: 1px solid var(--border-subtle);
+    animation: lm-slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.LoginModal .LM-header {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.LoginModal .LM-closeBtn {
+    background: none;
+    border: none;
+    color: #888;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+}
+
+.LoginModal .LM-closeBtn:hover {
+    color: #fff;
+}
+
+.LoginModal .LM-message {
+    margin-bottom: 24px;
+    color: var(--text-primary);
+    padding: 12px;
+    font: 600 1.25rem / 1.75rem "Pretendard", sans-serif;
+    text-align: center;
+    white-space: pre-wrap;
+}
+
+.LoginModal .LM-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.LoginModal .LM-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    position: relative;
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: transform 0.1s, opacity 0.2s;
+}
+
+.LoginModal .LM-btn-kakao {
+    background-color: #FEE500;
+    color: #000;
+}
+
+.LoginModal .LM-btn-kakao i {
+    position: absolute;
+    left: 16px;
+    font-size: 22px;
+}
+
+.LoginModal .LM-btn-google {
+    background-color: #FFFFFF;
+    color: #000;
+    border: 1px solid #999;
+}
+
+.LoginModal .LM-btn-google svg {
+    position: absolute;
+    left: 16px;
+    width: 18px;
+    height: 18px;
+}
+
+.LoginModal .LM-footer {
+    margin-top: 24px;
+    font-size: 0.75rem;
+    color: #666;
+    text-align: center;
+    line-height: 1.4;
+}
+
+.LoginModal .LM-link {
+    color: #888;
+    font-weight: 500;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+@keyframes lm-fadeIn {
+    from {
+        opacity: 0;
     }
 
-    .LM-container {
-        background-color: var(--bg-modal);
-        border-radius: 16px;
-        width: 90%;
-        max-width: 360px;
-        padding: 24px;
-        position: relative;
-        box-shadow: var(--shadow-elevated);
-        border: 1px solid var(--border-subtle);
-        animation: lm-slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes lm-slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
     }
 
-    .LM-header {
-        display: flex;
-        justify-content: flex-end;
-        align-items: center;
-    }
-
-    .LM-closeBtn {
-        background: none;
-        border: none;
-        color: #888;
-        font-size: 1.5rem;
-        cursor: pointer;
-        padding: 4px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: color 0.2s;
-    }
-
-    .LM-closeBtn:hover {
-        color: #fff;
-    }
-
-    .LM-message {
-        margin-bottom: 24px;
-        color: var(--text-primary);
-        padding: 12px;
-        font: 600 1.25rem / 1.75rem "Pretendard", sans-serif;
-        text-align: center;
-        white-space: pre-wrap;
-    }
-
-    .LM-actions {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-    }
-
-    .LM-btn {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        position: relative;
-        padding: 12px 16px;
-        border-radius: 8px;
-        font-weight: 500;
-        cursor: pointer;
-        border: none;
-        transition: transform 0.1s, opacity 0.2s;
-    }
-
-    .LM-btn-kakao {
-        background-color: #FEE500;
-        color: #000;
-    }
-
-    .LM-btn-kakao i {
-        position: absolute;
-        left: 16px;
-        font-size: 22px;
-    }
-
-    .LM-btn-google {
-        background-color: #FFFFFF;
-        color: #000;
-        border: 1px solid #999;
-    }
-
-    .LM-btn-google svg {
-        position: absolute;
-        left: 16px;
-        width: 18px;
-        height: 18px;
-    }
-
-    .LM-footer {
-        margin-top: 24px;
-        font-size: 0.75rem;
-        color: #666;
-        text-align: center;
-        line-height: 1.4;
-    }
-
-    .LM-link {
-        color: #888;
-        font-weight: 500;
-        text-decoration: underline;
-        cursor: pointer;
-    }
-
-    @keyframes lm-fadeIn {
-        from {
-            opacity: 0;
-        }
-
-        to {
-            opacity: 1;
-        }
-    }
-
-    @keyframes lm-slideUp {
-        from {
-            transform: translateY(20px);
-            opacity: 0;
-        }
-
-        to {
-            transform: translateY(0);
-            opacity: 1;
-        }
+    to {
+        transform: translateY(0);
+        opacity: 1;
     }
 }

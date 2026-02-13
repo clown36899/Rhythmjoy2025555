@@ -14,8 +14,6 @@ import { useOnlineUsers } from '../hooks/useOnlineUsers';
 import '../styles/domains/overlays.css';
 
 interface SideDrawerProps {
-    isOpen: boolean;
-    onClose: () => void;
     onLoginClick: () => void;
 }
 
@@ -26,9 +24,10 @@ interface BoardCategory {
     is_active: boolean;
 }
 
-export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawerProps) {
+export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
     const navigate = useNavigate();
     const { user, billboardUserName, signOut, userProfile, isAdmin, refreshUserProfile } = useAuth();
+    const [isOpen, setIsOpen] = useState(false);
     const [isBoardExpanded, setIsBoardExpanded] = useState(true);
     const [isAdminExpanded, setIsAdminExpanded] = useState(true);
     const [boardCategories, setBoardCategories] = useState<BoardCategory[]>([]);
@@ -37,6 +36,25 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
     const [pushCount, setPushCount] = useState<number | null>(null);
     const { totalCount: onlineCount } = useOnlineUsers();
 
+    // 메뉴 토글 이벤트 리스너 등록
+    useEffect(() => {
+        const handleToggle = () => setIsOpen(prev => !prev);
+        const handleOpen = () => setIsOpen(true);
+        const handleClose = () => setIsOpen(false);
+
+        window.addEventListener('toggleDrawer', handleToggle);
+        window.addEventListener('openDrawer', handleOpen);
+        window.addEventListener('closeDrawer', handleClose);
+
+        return () => {
+            window.removeEventListener('toggleDrawer', handleToggle);
+            window.removeEventListener('openDrawer', handleOpen);
+            window.removeEventListener('closeDrawer', handleClose);
+        };
+    }, []);
+
+    const onClose = () => setIsOpen(false);
+
     const [showDevTools, setShowDevTools] = useState(() => {
         return localStorage.getItem('showDevTools') === 'true';
     });
@@ -44,6 +62,7 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
 
     useEffect(() => {
         if (!isOpen) return;
+
         const checkStatus = async () => {
             if (!user) return;
             try {
@@ -52,7 +71,9 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
                     const verified = await verifySubscriptionOwnership();
                     setIsPushEnabled(verified);
                 }
-            } catch (e) { console.error(e); }
+            } catch (e) {
+                console.error('[SideDrawer] Push status check failed:', e);
+            }
         };
         checkStatus();
     }, [isOpen, user]);
@@ -97,7 +118,9 @@ export default function SideDrawer({ isOpen, onClose, onLoginClick }: SideDrawer
     };
 
     useEffect(() => {
-        if (isAdmin && isOpen) fetchAdminStats();
+        if (isAdmin && isOpen) {
+            fetchAdminStats();
+        }
     }, [isAdmin, isOpen]);
 
     const fetchAdminStats = async () => {

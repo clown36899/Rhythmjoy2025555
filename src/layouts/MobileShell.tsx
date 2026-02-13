@@ -41,7 +41,6 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
 
   const siteAnalyticsModal = useModal('siteAnalytics');
 
-  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const notificationSettingsModal = useModal('notificationSettings');
   const { isGlobalLoading, globalLoadingMessage } = useLoading();
   const [calendarView, setCalendarView] = useState({ year: new Date().getFullYear(), month: new Date().getMonth() });
@@ -168,7 +167,6 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   useEffect(() => {
-    const handleToggleDrawer = () => setIsDrawerOpen(prev => !prev);
     const handleUpdateCalendarView = (e: any) => {
       if (e.detail) {
         setCalendarView({ year: e.detail.year, month: e.detail.month });
@@ -176,12 +174,10 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
     };
     const handleToggleFullscreen = () => setIsFullscreen(prev => !prev);
 
-    window.addEventListener('toggleDrawer', handleToggleDrawer);
     window.addEventListener('updateCalendarView', handleUpdateCalendarView);
     window.addEventListener('toggleFullscreen', handleToggleFullscreen);
 
     return () => {
-      window.removeEventListener('toggleDrawer', handleToggleDrawer);
       window.removeEventListener('updateCalendarView', handleUpdateCalendarView);
       window.removeEventListener('toggleFullscreen', handleToggleFullscreen);
     };
@@ -190,11 +186,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
   // Login & Profile Modal Handlers
   useEffect(() => {
     const handleOpenUserProfile = () => {
-      if (user) {
-        setIsDrawerOpen(true);
-      } else {
-        setIsDrawerOpen(true);
-      }
+      window.dispatchEvent(new CustomEvent('openDrawer'));
     };
 
 
@@ -332,7 +324,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                       className="header-hamburger-btn"
                       onClick={(e) => {
                         e.stopPropagation();
-                        setIsDrawerOpen(true);
+                        window.dispatchEvent(new CustomEvent('openDrawer'));
                       }}
                       data-analytics-id="header_hamburger"
                       data-analytics-type="action"
@@ -489,7 +481,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
               {user ? (
                 <button
                   className="header-user-btn"
-                  onClick={() => setIsDrawerOpen(true)}
+                  onClick={() => window.dispatchEvent(new CustomEvent('openDrawer'))}
                   title="프로필"
                   data-analytics-id="header_user"
                   data-analytics-type="action"
@@ -535,10 +527,8 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
       {/* Organic FAB */}
 
       <SideDrawer
-        isOpen={isDrawerOpen}
-        onClose={() => setIsDrawerOpen(false)}
         onLoginClick={() => {
-          setIsDrawerOpen(false);
+          window.dispatchEvent(new CustomEvent('closeDrawer'));
           loginModal.open({
             message: '댄스빌보드 로그인'
           });
