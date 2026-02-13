@@ -163,7 +163,19 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
     if (shellContainer) {
       shellContainer.scrollTop = 0;
     }
-  }, [location.pathname]);
+
+    // 3. Auth Spinner Cleanup on Landing: 인증 콜백 후 메인 페이지로 돌아왔을 때 잔류 스피너를 부드럽게 제거
+    // AuthContext의 전역 훅(__SET_AUTH_PROCESSING_OFF)을 사용하여 안전하게 해제
+    if (isAuthProcessing && !location.pathname.includes('/auth/')) {
+      const cleanupTimer = setTimeout(() => {
+        const win = window as any;
+        if (win.__SET_AUTH_PROCESSING_OFF) {
+          win.__SET_AUTH_PROCESSING_OFF();
+        }
+      }, 500);
+      return () => clearTimeout(cleanupTimer);
+    }
+  }, [location.pathname, isAuthProcessing]);
 
   const [isFullscreen, setIsFullscreen] = useState(false);
 

@@ -151,9 +151,9 @@ export default function KakaoCallbackPage() {
                     sessionStorage.removeItem('kakao_login_in_progress');
                     sessionStorage.removeItem('kakao_login_start_time');
 
-                    // [Optimization] Flow-owner explicitly clears processing state
-                    // This ensures the spinner stays active until navigation is fully triggered.
-                    setIsAuthProcessing(false);
+                    // [Optimization] Flow-owner clearing processing state removed
+                    // We let AuthContext or MobileShell handle the cleanup for a smoother transition.
+                    // setIsAuthProcessing(false);
 
                     // 성공적으로 이동
                     console.log('[Kakao Callback] ✅ 로그인 성공, 이동:', returnUrl);

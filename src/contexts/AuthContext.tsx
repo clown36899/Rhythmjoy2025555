@@ -70,6 +70,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   if (typeof window !== 'undefined') {
     authLogger.log(`[AuthContext Init] Mode: ${isPWAMode() ? 'PWA' : 'Browser'}`);
+
+    // [Global Hook] 모바일 셸 등에서 스피너를 강제 해제할 수 있도록 전역 함수 노출
+    (window as any).__SET_AUTH_PROCESSING_OFF = () => {
+      authLogger.log('[AuthContext] 🔓 Global Hook: Forcing auth processing off');
+      setIsAuthProcessing(false);
+    };
   }
 
   const [billboardUserId, setBillboardUserId] = useState<string | null>(() => {
@@ -591,8 +597,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setIsLoggingOut(false);
       } else if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
         // [Safety Fix] 어떤 시그널이든 세션 관련 확정이 오면 로딩은 풉니다.
+        // 단, /auth/ 경로에 있는 동안은 페이지 전환이 완료될 때까지 스피너를 유지합니다.
+        const isAuthCallbackPath = window.location.pathname.includes('/auth/');
+
         if (event === 'INITIAL_SESSION' || event === 'SIGNED_IN') {
-          setIsAuthProcessing(false);
+          if (!isAuthCallbackPath) {
+            authLogger.log('[AuthContext] 🔓 Non-callback path: Clearing auth processing');
+            setIsAuthProcessing(false);
+          } else {
+            authLogger.log('[AuthContext] 🛡️ Auth callback path: Deferring spinner-off for smooth transition');
+          }
           setIsLoggingOut(false);
           sessionStorage.removeItem('kakao_login_in_progress');
           sessionStorage.removeItem('google_login_in_progress');
