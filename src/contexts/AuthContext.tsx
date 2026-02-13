@@ -31,7 +31,6 @@ interface AuthContextType {
   refreshUserProfile: () => Promise<void>;
   signInAsDevAdmin?: () => void; // 개발 환경 전용 - UI 플래그만
   validateSession: () => Promise<void>; // 수동 세션 검증
-  storagePrefix: string; // 저장소 접두사 노출 (PWA/브라우저 분리용)
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -64,19 +63,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  // 🔥 [개선] 모든 저장소 키에 환경별 접두사 부여 (완전 격리)
-  const isStandalone = isPWAMode();
-  const storagePrefix = isStandalone ? 'pwa-' : 'browser-';
-
   if (typeof window !== 'undefined') {
-    authLogger.log(`[AuthContext Init] Mode: ${isStandalone ? 'PWA' : 'Browser'}, Prefix: ${storagePrefix}`);
+    authLogger.log(`[AuthContext Init] Mode: ${isPWAMode() ? 'PWA' : 'Browser'}`);
   }
 
   const [billboardUserId, setBillboardUserId] = useState<string | null>(() => {
-    return localStorage.getItem(`${storagePrefix}billboardUserId`);
+    return localStorage.getItem('billboardUserId');
   });
   const [billboardUserName, setBillboardUserName] = useState<string | null>(() => {
-    return localStorage.getItem(`${storagePrefix}billboardUserName`);
+    return localStorage.getItem('billboardUserName');
   });
 
   // helper to ensure board_users exists and is up to date
@@ -229,7 +224,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // User Profile State - 초기값 localStorage에서 로드 (깜빡임 방지)
   const [userProfile, setUserProfile] = useState<{ nickname: string; profile_image: string | null } | null>(() => {
-    const cached = localStorage.getItem(`${storagePrefix}userProfile`);
+    const cached = localStorage.getItem('userProfile');
     if (cached) {
       try {
         return JSON.parse(cached);
@@ -252,29 +247,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // 로컬 데이터 및 상태 완전 초기화 (signOut 호출 없음)
   const wipeLocalData = () => {
-    // 1. 현재 환경에 맞는 Supabase 세션 키 결정
-    const currentStorageKey = isPWAMode() ? 'sb-pwa-auth-token' : 'sb-browser-auth-token';
+    // 1. Supabase 세션 키 결정 (통합 키 사용)
+    const currentStorageKey = 'sb-auth-token';
 
-    // 2. localStorage에서 현재 프로세스의 Supabase 관련 항목만 제거
+    // 2. localStorage에서 Supabase 관련 항목 제거
     const keysToRemove: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i);
-      // 내 서랍(currentStorageKey)이거나, supabase-js에서 생성한 공용 유틸리티 키만 제거
       if (key && (key === currentStorageKey || key.startsWith(currentStorageKey) || key.includes('supabase.auth.token'))) {
         keysToRemove.push(key);
       }
     }
     keysToRemove.forEach(key => {
-
       localStorage.removeItem(key);
     });
 
-    // 프로필 및 특수 캐시 제거 (prefix 사용)
-    localStorage.removeItem(`${storagePrefix}userProfile`);
-    localStorage.removeItem(`${storagePrefix}is_registered`);
-    localStorage.removeItem(`${storagePrefix}billboardUserId`);
-    localStorage.removeItem(`${storagePrefix}billboardUserName`);
-    localStorage.removeItem(`${storagePrefix}isLoggingOut`);
+    // 프로필 및 특수 캐시 제거
+    localStorage.removeItem('userProfile');
+    localStorage.removeItem('is_registered');
+    localStorage.removeItem('billboardUserId');
+    localStorage.removeItem('billboardUserName');
+    localStorage.removeItem('isLoggingOut');
     localStorage.removeItem('ga-admin-shield');
 
     // 2. sessionStorage도 정리
@@ -441,7 +434,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (newProfile) {
         // console.log('[AuthContext.refreshUserProfile] 프로필 상태 업데이트 및 localStorage 저장', newProfile);
         setUserProfile(newProfile);
-        localStorage.setItem(`${storagePrefix}userProfile`, JSON.stringify(newProfile));
+        localStorage.setItem('userProfile', JSON.stringify(newProfile));
       }
     } catch {
       // console.warn('[AuthContext] Profile load delayed, using fallback:', e.message);
@@ -456,7 +449,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // console.log('[AuthContext.refreshUserProfile] 완료');
       profileLoadInProgress.current = false;
     }
-  }, [user, storagePrefix]);
+  }, [user]);
 
   // Load profile and admin status when user changes
   useEffect(() => {
@@ -488,17 +481,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let isMounted = true;
 
-    // 🔥 접두사 붙인 로그아웃 플래그 확인
-    const isLoggingOutFlag = localStorage.getItem(`${storagePrefix}isLoggingOut`);
+    // 🔥 통합 로그아웃 플래그 확인
+    const isLoggingOutFlag = localStorage.getItem('isLoggingOut');
     if (isLoggingOutFlag) {
 
-      authLogger.log(`[AuthContext] 🧹 Enforcing cleanup after logout reload (${storagePrefix})`);
+      authLogger.log('[AuthContext] 🧹 Enforcing cleanup after logout reload');
 
       // 상태를 true로 설정하여 자식 컴포넌트들이 로그아웃 직후임을 알게 함
       setIsLoggingOut(true);
 
       // 플래그 제거 (상태로 전이됨)
-      localStorage.removeItem(`${storagePrefix}isLoggingOut`);
+      localStorage.removeItem('isLoggingOut');
 
       // 저장소에 좀비 토큰이 부활했더라도, 메모리상에서는 확실히 날려버림
       supabase.auth.signOut({ scope: 'local' }).then(() => {
@@ -620,16 +613,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setBillboardUserId(userId);
     setBillboardUserName(userName);
     if (userId) {
-      localStorage.setItem(`${storagePrefix}billboardUserId`, userId);
+      localStorage.setItem('billboardUserId', userId);
     } else {
-      localStorage.removeItem(`${storagePrefix}billboardUserId`);
+      localStorage.removeItem('billboardUserId');
     }
     if (userName) {
-      localStorage.setItem(`${storagePrefix}billboardUserName`, userName);
+      localStorage.setItem('billboardUserName', userName);
     } else {
-      localStorage.removeItem(`${storagePrefix}billboardUserName`);
+      localStorage.removeItem('billboardUserName');
     }
-  }, [storagePrefix]);
+  }, []);
 
   const signOut = useCallback(async () => {
     // localStorage에 로그 저장 (새로고침 후에도 확인 가능)
@@ -674,25 +667,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logToStorage('[AuthContext.signOut] 3단계: Billboard 사용자 정보 초기화');
       setBillboardUser(null, null);
 
-      // 4. localStorage 정리 (현재 프로세스의 Supabase 관련 항목만)
-      logToStorage(`[AuthContext.signOut] 4단계: 프로세스별 localStorage 정리 시작 (${storagePrefix})`);
-      const currentStorageKey = storagePrefix === 'pwa-' ? 'sb-pwa-auth-token' : 'sb-browser-auth-token';
+      // 4. localStorage 정리 (통합 Supabase 관련 항목)
+      logToStorage('[AuthContext.signOut] 4단계: localStorage 정리 시작 (통합 키)');
+      const currentStorageKey = 'sb-auth-token';
 
       const keysToRemove = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
-        // 내 서랍(currentStorageKey)이거나 공용 키만 수집
         if (key && (key === currentStorageKey || key.startsWith(currentStorageKey) || key.includes('supabase.auth.token'))) {
           keysToRemove.push(key);
         }
       }
       keysToRemove.forEach(key => localStorage.removeItem(key));
 
-      // 사용자 프로필 및 기타 캐시 명시적 제거 (prefix 사용)
-      localStorage.removeItem(`${storagePrefix}userProfile`);
-      localStorage.removeItem(`${storagePrefix}is_registered`);
-      localStorage.removeItem(`${storagePrefix}billboardUserId`);
-      localStorage.removeItem(`${storagePrefix}billboardUserName`);
+      // 사용자 프로필 및 기타 캐시 명시적 제거
+      localStorage.removeItem('userProfile');
+      localStorage.removeItem('is_registered');
+      localStorage.removeItem('billboardUserId');
+      localStorage.removeItem('billboardUserName');
 
       logToStorage('[AuthContext.signOut] 4단계: localStorage 정리 완료: ' + (keysToRemove.length + 1) + '개 항목');
 
@@ -730,8 +722,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       logEvent('Auth', 'Logout', 'Success');
 
       logToStorage('[AuthContext.signOut] 8단계: 로그아웃 플래그 설정');
-      // 🔥 중요: 새로고침 후 세션 검증 스킵을 위한 플래그 설정 (접두사 포함)
-      localStorage.setItem(`${storagePrefix}isLoggingOut`, 'true');
+      // 🔥 중요: 새로고침 후 세션 검증 스킵을 위한 플래그 설정
+      localStorage.setItem('isLoggingOut', 'true');
 
       logToStorage('[AuthContext.signOut] 9단계: 페이지 새로고침 실행 - window.location.reload()');
       logToStorage('[AuthContext.signOut] ========== 리로드 직전 ==========');
@@ -745,7 +737,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // 실패해도 페이지 리로드로 강제 초기화
       window.location.reload();
     }
-  }, [storagePrefix, setBillboardUser]);
+  }, [setBillboardUser]);
 
   const signInWithKakao = useCallback(async () => {
     setIsAuthProcessing(true); // 즉시 스피너 표시
@@ -859,14 +851,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     signOut,
     cancelAuth,
     validateSession,
-    storagePrefix,
     ...(import.meta.env.DEV && { signInAsDevAdmin }),
   }), [
     user, session, isAdmin, loading, isAuthCheckComplete, isAuthProcessing, isLoggingOut,
     billboardUserId, billboardUserName, userProfile,
     setBillboardUser, refreshUserProfile,
     signInWithKakao, signInWithGoogle, signOut,
-    cancelAuth, validateSession, storagePrefix,
+    cancelAuth, validateSession,
     signInAsDevAdmin
   ]);
 

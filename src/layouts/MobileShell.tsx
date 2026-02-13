@@ -19,6 +19,7 @@ import { ThemeToggle } from '../components/ThemeToggle';
 import { useLoading } from '../contexts/LoadingContext';
 import '../styles/components/MobileShell.css';
 import NoticeTicker from '../components/NoticeTicker';
+import { PwaTransitionOverlay } from '../components/PwaTransitionOverlay';
 
 interface MobileShellProps {
   isAdmin?: boolean;
@@ -560,6 +561,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
         onCancel={isAuthProcessing ? cancelAuth : undefined}
       />
       <GlobalNoticePopup />
+      <PwaTransitionOverlay />
     </div >
   );
 };

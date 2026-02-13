@@ -5,6 +5,10 @@
   "start_url": "/?utm_source=pwa",
   "display": "fullscreen",
   "scope": "/",
+  "handle_links": "preferred",
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
   "background_color": "#000000",
   "theme_color": "#000000",
   "permissions": [
