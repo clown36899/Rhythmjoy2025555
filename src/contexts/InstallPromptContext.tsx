@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { trackPWAInstall } from '../utils/analyticsEngine';
+import { isPWAMode } from '../lib/pwaDetect';
 
 interface BeforeInstallPromptEvent extends Event {
     prompt: () => Promise<void>;
@@ -23,13 +24,7 @@ export const InstallPromptProvider: React.FC<{ children: React.ReactNode }> = ({
 
         // 1. 초기 로드 시 감지 로직
         const checkInitialState = () => {
-            // A. Standalone 모드 (확실히 설치됨/앱으로 실행중)
-            const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
-                window.matchMedia('(display-mode: fullscreen)').matches ||
-                window.matchMedia('(display-mode: minimal-ui)').matches;
-            const isIOSStandalone = (window.navigator as any).standalone === true;
-
-            if (isStandalone || isIOSStandalone) {
+            if (isPWAMode()) {
                 // console.log('✅ [InstallPromptProvider] Running in standalone mode');
                 setIsInstalled(true);
                 localStorage.setItem('pwa_installed', 'true');

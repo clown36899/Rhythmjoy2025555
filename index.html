@@ -376,6 +376,11 @@
               console.warn('[PWA] SW reload loop detected, skipping');
               return;
             }
+            // 인증 콜백 중(/auth/)에는 흐름 방해를 막기 위해 자동 리로드 하지 않음
+            if (window.location.pathname.includes('/auth/')) {
+              console.log('[PWA] Auth in progress, delaying SW reload');
+              return;
+            }
             console.log('[PWA] New SW activated, reloading for fresh assets...');
             sessionStorage.setItem('sw_reload', Date.now().toString());
             window.location.reload();
@@ -385,6 +390,8 @@
         // 사용자가 업데이트 버튼 클릭 시 리로드
         navigator.serviceWorker.addEventListener('controllerchange', function () {
           if (window.__SW_UPDATING) {
+            // 인증 콜백 중에는 리로드 방어
+            if (window.location.pathname.includes('/auth/')) return;
             window.location.reload();
           }
         });

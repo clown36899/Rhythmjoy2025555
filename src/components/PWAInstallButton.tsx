@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useInstallPrompt } from '../contexts/InstallPromptContext';
+import { isPWAMode } from '../lib/pwaDetect';
 import './PWAInstallButton.css';
 
 export const PWAInstallButton = () => {
@@ -15,20 +16,7 @@ export const PWAInstallButton = () => {
 
     useEffect(() => {
         const checkPWA = () => {
-            // 1. display-mode 체크 (다양한 모드 지원)
-            const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
-                window.matchMedia('(display-mode: fullscreen)').matches ||
-                window.matchMedia('(display-mode: minimal-ui)').matches ||
-                window.matchMedia('(display-mode: window-controls-overlay)').matches;
-
-            // 2. iOS standalone 체크
-            const iosStandalone = (window.navigator as any).standalone === true;
-
-            // 3. URL 파라미터 체크 (manifest start_url fallback)
-            const urlParams = new URLSearchParams(window.location.search);
-            const isPWASource = urlParams.get('utm_source') === 'pwa';
-
-            setIsRunningInPWA(isStandalone || iosStandalone || isPWASource);
+            setIsRunningInPWA(isPWAMode());
         };
 
         checkPWA(); // 초기 실행
