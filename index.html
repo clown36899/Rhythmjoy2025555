@@ -27,6 +27,25 @@
         document.getElementsByTagName('head')[0].appendChild(meta);
       }
     })();
+
+    // [Critical] Error Monitor (MUST BE FIRST)
+    window.__AUTH_BOOTSTRAP_LOGS = [];
+    window.__AUTH_LOGGER_FALLBACK = function (msg, data) {
+      var entry = { t: new Date().toISOString(), m: msg, d: data };
+      window.__AUTH_BOOTSTRAP_LOGS.push(entry);
+      console.log('%c[Bootstrap] ' + msg, 'background: #333; color: #ffeb3b; font-weight: bold;', data || '');
+    };
+    function handleModuleError(event) {
+      var error = event.error || (event.reason ? event.reason : event);
+      var message = error && error.message ? error.message : String(error);
+      window.__AUTH_LOGGER_FALLBACK('🚨 Error Captured', { message: message, type: event.type });
+      if (message.indexOf('Failed to fetch') > -1 || message.indexOf('chunk') > -1 || message.indexOf('Importing') > -1) {
+        window.__AUTH_LOGGER_FALLBACK('⚠️ Recovery needed (JS load fail). Reloading in 1s...');
+        setTimeout(function () { window.location.reload(); }, 1000);
+      }
+    }
+    window.addEventListener('error', handleModuleError, true);
+    window.addEventListener('unhandledrejection', handleModuleError);
   </script>
 
   <!-- PWA 설정 - 동적 manifest -->
@@ -340,53 +359,14 @@
 
   <!-- PWA Service Worker 등록 + 버전 체크 -->
   <script>
-    // [Safety] 전역 디버깅 도구 초기화 (JS 번들 로드 실패 시에도 작동하도록)
-    window.__AUTH_BOOTSTRAP_LOGS = [];
-    window.__AUTH_LOGGER_FALLBACK = function (msg, data) {
-      var entry = { t: new Date().toISOString(), m: msg, d: data };
-      window.__AUTH_BOOTSTRAP_LOGS.push(entry);
-      console.log('%c[Bootstrap] ' + msg, 'background: #333; color: #ffeb3b; font-weight: bold;', data || '');
-    };
-
-    // [Critical] Chunk/Global Error Handler: 백화 현상 및 구버전 청크 불일치 즉시 해결
-    function handleModuleError(event) {
-      var error = event.error || (event.reason ? event.reason : event);
-      var message = error && error.message ? error.message : String(error);
-
-      window.__AUTH_LOGGER_FALLBACK('🚨 Error Captured', { message: message, type: event.type });
-
-      if (
-        message.indexOf('Failed to fetch dynamically imported module') > -1 ||
-        message.indexOf('Importing a module script failed') > -1 ||
-        message.indexOf('chunk') > -1
-      ) {
-        window.__AUTH_LOGGER_FALLBACK('⚠️ New version detected (Chunk load failed). Reloading in 1s...');
-
-        // 무한 리로드 방지
-        var lastReload = sessionStorage.getItem('chunk_reload_index');
-        if (lastReload && Date.now() - parseInt(lastReload) < 10000) {
-          window.__AUTH_LOGGER_FALLBACK('🛑 Reload loop detected. Stopping.');
-          return;
-        }
-        sessionStorage.setItem('chunk_reload_index', Date.now().toString());
-        setTimeout(function () { window.location.reload(); }, 1000);
-      }
-    }
-
-    window.addEventListener('error', handleModuleError, true);
-    window.addEventListener('unhandledrejection', handleModuleError);
-
     if ('serviceWorker' in navigator) {
       var hadController = !!navigator.serviceWorker.controller;
 
       window.addEventListener('load', function () {
-        var swUrl = '/service-worker.js?v=20260214_v46';
+        var swUrl = '/service-worker.js?v=20260214_v47';
         navigator.serviceWorker.register(swUrl)
           .then(function (reg) {
-            console.log('[PWA] SW Reg Progress:', {
-              state: reg.active ? 'active' : (reg.waiting ? 'waiting' : 'installing'),
-              version: 'v46'
-            });
+            console.log('[PWA] SW Reg Ready:', { version: 'v47', state: reg.active ? 'active' : 'waiting' });
 
             if (reg.waiting && navigator.serviceWorker.controller) {
               window.__AUTH_LOGGER_FALLBACK('Found waiting worker, showing UI');
