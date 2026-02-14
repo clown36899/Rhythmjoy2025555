@@ -10,6 +10,8 @@ import {
 } from '../lib/pushNotifications';
 import { useAuth } from '../contexts/AuthContext';
 import { isPWAMode } from '../lib/pwaDetect';
+import { PWAInstallButton } from './PWAInstallButton';
+import { useInstallPrompt } from '../contexts/InstallPromptContext';
 import GlobalLoadingOverlay from './GlobalLoadingOverlay';
 import '../styles/domains/settings.css';
 
@@ -24,6 +26,9 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
     const [isPushLoading, setIsPushLoading] = useState<boolean>(false);
     const [isRunningInPWA, setIsRunningInPWA] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const { promptEvent } = useInstallPrompt();
+
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
 
     const [pushPrefs, setPushPrefs] = useState<{
         pref_events: boolean,
@@ -151,98 +156,135 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                 </div>
 
                 <div className="NSM-body">
-                    {!isRunningInPWA && (
-                        <div className="NSM-pwaTip" onClick={() => window.dispatchEvent(new CustomEvent('showPWAInstructions'))}>
-                            <i className="ri-information-line"></i>
-                            <div className="NSM-pwaContent">
-                                <p className="NSM-pwaText">홈 화면에 앱을 추가하면 실시간 알림을 받을 수 있습니다.</p>
-                                <span className="NSM-pwaAction">설치 방법 보기 <i className="ri-arrow-right-s-line"></i></span>
+                    {!isRunningInPWA ? (
+                        <div className="NSM-pwaTip">
+                            <div className="NSM-pwaHeader">
+                                <i className="ri-error-warning-fill"></i>
+                                <p className="NSM-pwaText">알람설정은 앱에서만 작동합니다.</p>
                             </div>
-                        </div>
-                    )}
 
-                    <span className="NSM-sectionLabel">기본 설정</span>
-                    <div className="NSM-masterRow">
-                        <div className="NSM-labelGroup">
-                            <span className="NSM-labelTitle">푸시 알림 사용</span>
-                            <span className="NSM-labelDesc">전체 알림을 켜거나 끕니다.</span>
-                        </div>
-                        <div
-                            className={`NSM-switch ${isPushEnabled ? 'is-active' : ''} ${!isRunningInPWA ? 'is-disabled' : ''}`}
-                            onClick={() => isRunningInPWA && setIsPushEnabled(!isPushEnabled)}
-                        >
-                            <div className="NSM-switchThumb" />
-                        </div>
-                    </div>
+                            <PWAInstallButton />
 
-                    {isPushEnabled && (
-                        <div className="NSM-details">
-                            <span className="NSM-sectionLabel">카테고리별 알림</span>
-
-                            {/* Events */}
-                            <div className="NSM-card">
-                                <div className="NSM-cardHeader" onClick={() => handlePreferenceToggle('pref_events')}>
-                                    <span className="NSM-cardTitle">행사 소식</span>
-                                    <div className={`NSM-switch is-active-sm ${pushPrefs.pref_events ? 'is-active' : ''}`}>
-                                        <div className="NSM-switchThumb" />
+                            {/* [수동 설치 안내] iOS이거나, Android인데 프롬프트가 없을 때 */}
+                            {(isIOS || !promptEvent) && (
+                                <div className="NSM-installSteps">
+                                    <span className="NSM-sectionLabel">수동 설치 방법</span>
+                                    {isIOS ? (
+                                        <>
+                                            <div className="NSM-stepItem">
+                                                <div className="NSM-stepNumber">1</div>
+                                                <div className="NSM-stepText">하단의 <strong>공유 아이콘</strong>을 누르세요.</div>
+                                            </div>
+                                            <div className="NSM-stepItem">
+                                                <div className="NSM-stepNumber">2</div>
+                                                <div className="NSM-stepText"><strong>'홈 화면에 추가'</strong>를 선택하세요.</div>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className="NSM-stepItem">
+                                                <div className="NSM-stepNumber">1</div>
+                                                <div className="NSM-stepText">우측 상단 <strong>메뉴(⋮)</strong>를 누르세요.</div>
+                                            </div>
+                                            <div className="NSM-stepItem">
+                                                <div className="NSM-stepNumber">2</div>
+                                                <div className="NSM-stepText"><strong>'앱 설치'</strong> 또는 <strong>'홈 화면에 추가'</strong>를 누르세요.</div>
+                                            </div>
+                                        </>
+                                    )}
+                                    <div className="NSM-stepItem">
+                                        <div className="NSM-stepNumber">3</div>
+                                        <div className="NSM-stepText">홈 화면에 생성된 <strong>'앱 아이콘'</strong>으로 다시 접속하세요!</div>
                                     </div>
                                 </div>
-                                {pushPrefs.pref_events && (
-                                    <div className="NSM-tagGrid">
-                                        {['워크샵', '파티', '대회', '기타'].map(tag => (
-                                            <button
-                                                key={tag}
-                                                className={`NSM-chip ${(!pushPrefs.pref_filter_tags || pushPrefs.pref_filter_tags.includes(tag)) ? 'is-active' : ''}`}
-                                                onClick={() => setPushPrefs(prev => {
-                                                    const tags = prev.pref_filter_tags || ['워크샵', '파티', '대회', '기타'];
-                                                    const nextTags = tags.includes(tag) ? tags.filter(t => t !== tag) : [...tags, tag];
-                                                    return { ...prev, pref_filter_tags: nextTags, pref_events: nextTags.length > 0 };
-                                                })}
-                                            >
-                                                {tag}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Classes */}
-                            <div className="NSM-card">
-                                <div className="NSM-cardHeader" onClick={() => handlePreferenceToggle('pref_class')}>
-                                    <span className="NSM-cardTitle">강습 및 워크샵</span>
-                                    <div className={`NSM-switch is-active-sm ${pushPrefs.pref_class ? 'is-active' : ''}`}>
-                                        <div className="NSM-switchThumb" />
-                                    </div>
-                                </div>
-                                {pushPrefs.pref_class && (
-                                    <div className="NSM-tagGrid">
-                                        {['린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'].map(genre => (
-                                            <button
-                                                key={genre}
-                                                className={`NSM-chip ${(!pushPrefs.pref_filter_class_genres || pushPrefs.pref_filter_class_genres.includes(genre)) ? 'is-active' : ''}`}
-                                                onClick={() => setPushPrefs(prev => {
-                                                    const genres = prev.pref_filter_class_genres || ['린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'];
-                                                    const nextGenres = genres.includes(genre) ? genres.filter(g => g !== genre) : [...genres, genre];
-                                                    return { ...prev, pref_filter_class_genres: nextGenres, pref_class: nextGenres.length > 0 };
-                                                })}
-                                            >
-                                                {genre}
-                                            </button>
-                                        ))}
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Clubs */}
-                            <div className="NSM-card">
-                                <div className="NSM-cardHeader" onClick={() => handlePreferenceToggle('pref_clubs')}>
-                                    <span className="NSM-cardTitle">동호회 소식</span>
-                                    <div className={`NSM-switch is-active-sm ${pushPrefs.pref_clubs ? 'is-active' : ''}`}>
-                                        <div className="NSM-switchThumb" />
-                                    </div>
-                                </div>
-                            </div>
+                            )}
                         </div>
+                    ) : (
+                        <>
+                            <span className="NSM-sectionLabel">기본 설정</span>
+                            <div className="NSM-masterRow">
+                                <div className="NSM-labelGroup">
+                                    <span className="NSM-labelTitle">푸시 알림 사용</span>
+                                    <span className="NSM-labelDesc">전체 알림을 켜거나 끕니다.</span>
+                                </div>
+                                <div
+                                    className={`NSM-switch ${isPushEnabled ? 'is-active' : ''}`}
+                                    onClick={() => setIsPushEnabled(!isPushEnabled)}
+                                >
+                                    <div className="NSM-switchThumb" />
+                                </div>
+                            </div>
+
+                            {isPushEnabled && (
+                                <div className="NSM-details">
+                                    <span className="NSM-sectionLabel">카테고리별 알림</span>
+
+                                    {/* Events */}
+                                    <div className="NSM-card">
+                                        <div className="NSM-cardHeader" onClick={() => handlePreferenceToggle('pref_events')}>
+                                            <span className="NSM-cardTitle">행사 소식</span>
+                                            <div className={`NSM-switch is-active-sm ${pushPrefs.pref_events ? 'is-active' : ''}`}>
+                                                <div className="NSM-switchThumb" />
+                                            </div>
+                                        </div>
+                                        {pushPrefs.pref_events && (
+                                            <div className="NSM-tagGrid">
+                                                {['워크샵', '파티', '대회', '기타'].map(tag => (
+                                                    <button
+                                                        key={tag}
+                                                        className={`NSM-chip ${(!pushPrefs.pref_filter_tags || pushPrefs.pref_filter_tags.includes(tag)) ? 'is-active' : ''}`}
+                                                        onClick={() => setPushPrefs(prev => {
+                                                            const tags = prev.pref_filter_tags || ['워크샵', '파티', '대회', '기타'];
+                                                            const nextTags = tags.includes(tag) ? tags.filter(t => t !== tag) : [...tags, tag];
+                                                            return { ...prev, pref_filter_tags: nextTags, pref_events: nextTags.length > 0 };
+                                                        })}
+                                                    >
+                                                        {tag}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Classes */}
+                                    <div className="NSM-card">
+                                        <div className="NSM-cardHeader" onClick={() => handlePreferenceToggle('pref_class')}>
+                                            <span className="NSM-cardTitle">강습 및 워크샵</span>
+                                            <div className={`NSM-switch is-active-sm ${pushPrefs.pref_class ? 'is-active' : ''}`}>
+                                                <div className="NSM-switchThumb" />
+                                            </div>
+                                        </div>
+                                        {pushPrefs.pref_class && (
+                                            <div className="NSM-tagGrid">
+                                                {['린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'].map(genre => (
+                                                    <button
+                                                        key={genre}
+                                                        className={`NSM-chip ${(!pushPrefs.pref_filter_class_genres || pushPrefs.pref_filter_class_genres.includes(genre)) ? 'is-active' : ''}`}
+                                                        onClick={() => setPushPrefs(prev => {
+                                                            const genres = prev.pref_filter_class_genres || ['린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'];
+                                                            const nextGenres = genres.includes(genre) ? genres.filter(g => g !== genre) : [...genres, genre];
+                                                            return { ...prev, pref_filter_class_genres: nextGenres, pref_class: nextGenres.length > 0 };
+                                                        })}
+                                                    >
+                                                        {genre}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Clubs */}
+                                    <div className="NSM-card">
+                                        <div className="NSM-cardHeader" onClick={() => handlePreferenceToggle('pref_clubs')}>
+                                            <span className="NSM-cardTitle">동호회 소식</span>
+                                            <div className={`NSM-switch is-active-sm ${pushPrefs.pref_clubs ? 'is-active' : ''}`}>
+                                                <div className="NSM-switchThumb" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </>
                     )}
                 </div>
 

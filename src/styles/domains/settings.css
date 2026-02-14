@@ -101,26 +101,25 @@
     }
 
     .NSM-pwaTip {
-        background: linear-gradient(135deg, rgba(37, 99, 235, 0.15), rgba(79, 70, 229, 0.05));
-        border: 1px solid rgba(37, 99, 235, 0.3);
-        border-radius: 20px;
-        padding: 18px;
+        background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(79, 70, 229, 0.03));
+        border: 1px solid rgba(37, 99, 235, 0.2);
+        border-radius: 24px;
+        padding: 24px;
         margin-bottom: 32px;
-        cursor: pointer;
         display: flex;
-        align-items: flex-start;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .NSM-pwaHeader {
+        display: flex;
+        align-items: center;
         gap: 14px;
-        transition: transform 0.2s;
     }
 
-    .NSM-pwaTip:active {
-        transform: scale(0.98);
-    }
-
-    .NSM-pwaTip i {
-        font-size: 1.4rem;
+    .NSM-pwaHeader i {
+        font-size: 1.6rem;
         color: var(--nsm-accent);
-        margin-top: 2px;
     }
 
     .NSM-pwaText {
@@ -128,14 +127,46 @@
         font-size: 0.95rem;
         color: var(--nsm-text);
         line-height: 1.5;
-        font-weight: 500;
+        font-weight: 600;
     }
 
-    .NSM-pwaAction {
-        display: block;
-        font-size: 0.85rem;
-        color: var(--nsm-accent);
-        margin-top: 6px;
+    .NSM-installSteps {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding-top: 16px;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .NSM-stepItem {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .NSM-stepNumber {
+        width: 22px;
+        height: 22px;
+        background: var(--nsm-accent);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: 800;
+        flex-shrink: 0;
+        margin-top: 2px;
+    }
+
+    .NSM-stepText {
+        font-size: 0.9rem;
+        color: var(--nsm-text-muted);
+        line-height: 1.4;
+    }
+
+    .NSM-stepText strong {
+        color: var(--nsm-text);
         font-weight: 700;
     }
 
