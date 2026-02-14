@@ -464,12 +464,30 @@
     }
 
     function applyUpdate() {
+      console.log('[PWA] Starting clean update & soft restart...');
       window.__SW_UPDATING = true;
+
+      // [Restart Simulation] 세션 꼬임 방지를 위해 저장소 정리
+      try {
+        sessionStorage.clear();
+        console.log('[PWA] Session storage cleared for fresh start');
+      } catch (e) {
+        console.error('[PWA] Failed to clear session storage:', e);
+      }
+
       var reg = window.__SW_REG;
       if (reg && reg.waiting) {
+        // 새 SW 활성화 신호 전송
         reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+
+        // [Safety Delay] SW가 안착하고 브라우저가 준비될 시간을 줌 (0.5초)
+        setTimeout(function () {
+          console.log('[PWA] Restarting app after delay...');
+          window.location.href = '/?utm_source=pwa_restart&t=' + Date.now();
+        }, 500);
       } else {
-        window.location.reload();
+        // SW 정보가 없더라도 일단 클린 리로드
+        window.location.href = '/?utm_source=pwa_fallback&t=' + Date.now();
       }
     }
   </script>
