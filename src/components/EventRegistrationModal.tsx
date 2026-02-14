@@ -40,6 +40,8 @@ interface EventRegistrationModalProps {
   onEventUpdated?: (event: AppEvent) => void;
   onDelete?: (eventId: number | string) => void;
   isDeleting?: boolean;
+  groupId?: number | null;
+  dayOfWeek?: number | null;
 }
 
 const formatDateForInput = (date: Date): string => {
@@ -62,6 +64,8 @@ export default memo(function EventRegistrationModal({
   onEventUpdated,
   onDelete,
   isDeleting = false,
+  groupId: initialGroupId = null,
+  dayOfWeek: initialDayOfWeek = null,
 }: EventRegistrationModalProps) {
   const { isAdmin, user } = useAuth();
   const { showLoading, hideLoading } = useLoading();
@@ -74,7 +78,10 @@ export default memo(function EventRegistrationModal({
   const [date, setDate] = useState<Date | null>(null);
   const [endDate, setEndDate] = useState<Date | null>(null);
   const [eventDates, setEventDates] = useState<string[]>([]); // For individual dates
+  const [dayOfWeek, setDayOfWeek] = useState<number | null>(null); // For recurring social schedules
+  const [groupId, setGroupId] = useState<number | null>(null); // For social group connection
   const [location, setLocation] = useState("");
+  const [address, setAddress] = useState("");
   const [locationLink, setLocationLink] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState<"class" | "event" | "">("");
@@ -243,6 +250,7 @@ export default memo(function EventRegistrationModal({
         setEndDate(editEventData.end_date ? new Date(editEventData.end_date) : null);
         setEventDates(editEventData.event_dates || []);
         setLocation(editEventData.location || "");
+        setAddress((editEventData as any).address || "");
         setLocationLink(editEventData.location_link || "");
         setVenueId((editEventData as any).venue_id || null);
         setVenueName((editEventData as any).venue_name || "");
@@ -253,6 +261,8 @@ export default memo(function EventRegistrationModal({
         // Cast to 'any' or 'ExtendedEvent' because standard AppEvent might not have genre yet in basic types
         setGenre((editEventData as unknown as ExtendedEvent).genre || "");
         setScope(((editEventData as any).scope as "domestic" | "overseas") || "domestic");
+        setGroupId((editEventData as any).group_id || null);
+        setDayOfWeek((editEventData as any).day_of_week ?? null);
 
         // Password removed - using RLS
 
@@ -278,12 +288,15 @@ export default memo(function EventRegistrationModal({
         setEndDate(selectedDate);
         setEventDates([]);
         setLocation("");
+        setAddress("");
         setLocationLink("");
         setDescription("");
         setCategory("");
         setCategory("");
         setGenre("");
         setScope("domestic");
+        setGroupId(initialGroupId);
+        setDayOfWeek(initialDayOfWeek);
         // setPassword removed
 
         setLink1("");
@@ -293,6 +306,8 @@ export default memo(function EventRegistrationModal({
         setOriginalImageFile(null);
         setImagePreview("");
         setImagePosition({ x: 0, y: 0 });
+        setGroupId(null);
+        setDayOfWeek(null);
       }
       // Common Reset
       setPreviewMode('detail');
@@ -654,6 +669,7 @@ export default memo(function EventRegistrationModal({
             end_date: effectiveEndDate,
             event_dates: eventDates.length > 0 ? eventDates : null, // Include individual dates
             location,
+            address,
             location_link: locationLink,
             description,
             category,
@@ -677,6 +693,8 @@ export default memo(function EventRegistrationModal({
             venue_id: venueId,
             venue_name: venueId ? venueName : location,
             venue_custom_link: venueId ? null : venueCustomLink,
+            group_id: groupId,
+            day_of_week: dayOfWeek,
           };
 
           console.log("📝 [EventRegistrationModal] Final eventData to save:", eventData);

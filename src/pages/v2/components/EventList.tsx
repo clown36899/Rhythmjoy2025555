@@ -122,13 +122,6 @@ const EventList: React.FC<EventListProps> = ({
         { event: '*', schema: 'public', table: 'events' },
         () => {
           fetchEvents();
-        }
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'social_schedules' },
-        () => {
-          fetchEvents();
           refreshSocial();
         }
       )
@@ -329,8 +322,9 @@ const EventList: React.FC<EventListProps> = ({
             const todayStr = getLocalDateString();
 
             // A. Today's Events (category='event') -> Map to SocialSchedule
+            // group_id가 없는 순수 행사만 포함 (group_id가 있는 것은 socialSchedules에서 가져옴)
             const todayEventsAsSocial = events
-              .filter(e => e.category === 'event' && (e.end_date || e.date || "") >= todayStr && (e.start_date || e.date || "") <= todayStr)
+              .filter(e => e.category === 'event' && !e.group_id && (e.end_date || e.date || "") >= todayStr && (e.start_date || e.date || "") <= todayStr)
               .map(e => ({
                 id: `event-${e.id}`, // ✅ ID 충돌 방지를 위해 접두어 도입
                 group_id: -1,
@@ -392,9 +386,10 @@ const EventList: React.FC<EventListProps> = ({
             const twoWeeksEndStr = getLocalDateString(twoWeeksLater);
 
             // Fetch 2 weeks of events (category='event') -> Map to SocialSchedule
+            // group_id가 없는 순순 행사만 포함
             const weekEventsAsSocial = events
               .filter(e => {
-                if (e.category !== 'event') return false;
+                if (e.category !== 'event' || !!e.group_id) return false;
                 const eDate = e.date || "";
                 // Include this week AND next week
                 return eDate >= weekStartStr && eDate <= twoWeeksEndStr;

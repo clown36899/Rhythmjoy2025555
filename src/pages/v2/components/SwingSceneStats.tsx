@@ -135,14 +135,15 @@ export default function SwingSceneStats() {
             // 1. Fetch data with improved filtering + pagination
             // Fetch items where (Created in last 12m) OR (Starts in last 12m)
             // 게시글(board_posts)은 스윙씬 통계에서 제외 — 행사/강습/소셜만 집계
-            const [events, socials] = await Promise.all([
+            const [allEvents] = await Promise.all([
                 fetchAll('events', () => supabase.from('events')
-                    .select('id, category, genre, created_at, date, start_date, event_dates, title')
-                    .or(`created_at.gte.${dateFilter},start_date.gte.${dateFilter},date.gte.${dateFilter}`)),
-                fetchAll('social_schedules', () => supabase.from('social_schedules')
-                    .select('id, v2_category, v2_genre, created_at, date, day_of_week, title')
-                    .or(`created_at.gte.${dateFilter},date.gte.${dateFilter}`))
+                    .select('id, category, genre, created_at, date, start_date, event_dates, title, group_id, day_of_week')
+                    .or(`created_at.gte.${dateFilter},start_date.gte.${dateFilter},date.gte.${dateFilter},day_of_week.not.is.null`))
             ]);
+
+            // [NEW] Separate into events and socials
+            const events = allEvents.filter(e => !e.group_id);
+            const socials = allEvents.filter(e => !!e.group_id);
 
 
             // 2. Process Data
@@ -312,9 +313,9 @@ export default function SwingSceneStats() {
                 const item: StatItem = {
                     type: '동호회 이벤트+소셜',
                     title: s.title || '제목 없음',
-                    date: s.day_of_week ? '매주 반복' : (s.date || '-'),
+                    date: s.day_of_week !== null ? '매주 반복' : (s.date || '-'), // day_of_week is in events too
                     createdAt: s.created_at.split('T')[0],
-                    genre: s.v2_genre || '소셜',
+                    genre: s.genre || '소셜', // genre is in events
                     day: dowKey
                 };
 

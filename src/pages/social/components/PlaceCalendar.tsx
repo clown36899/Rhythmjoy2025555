@@ -1,20 +1,21 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 import type { SocialGroup as SocialPlace } from '../types';
-import SocialEditModal from './SocialEditModal';
+import EventRegistrationModal from '../../../components/EventRegistrationModal';
 import './PlaceCalendar.css';
 
 interface WeeklySchedule {
   id: number;
-  place_id: number;
+  group_id: number;
   day_of_week: number;
   title: string;
-  start_time?: string;
+  time?: string;
+  start_time?: string; // legacy support
   description?: string;
   inquiry_contact?: string;
   link_name?: string;
   link_url?: string;
-  password: string;
+  password?: string;
   user_id?: string;
 }
 
@@ -47,11 +48,12 @@ export default function PlaceCalendar({ place, onBack }: PlaceCalendarProps) {
   const loadWeeklySchedules = async () => {
     try {
       const { data, error } = await supabase
-        .from('social_schedules')
+        .from('events')
         .select('*')
-        .eq('place_id', place.id)
+        .eq('group_id', place.id)
         .not('day_of_week', 'is', null)
-        .order('day_of_week');
+        .order('day_of_week')
+        .order('time');
 
       if (error) throw error;
       setWeeklySchedules(data || []);
@@ -84,7 +86,7 @@ export default function PlaceCalendar({ place, onBack }: PlaceCalendarProps) {
 
     try {
       const { data: scheduleData } = await supabase
-        .from('social_schedules')
+        .from('events')
         .select('password')
         .eq('id', schedule.id)
         .maybeSingle();
@@ -95,7 +97,7 @@ export default function PlaceCalendar({ place, onBack }: PlaceCalendarProps) {
       }
 
       const { error } = await supabase
-        .from('social_schedules')
+        .from('events')
         .delete()
         .eq('id', schedule.id);
 
@@ -106,57 +108,6 @@ export default function PlaceCalendar({ place, onBack }: PlaceCalendarProps) {
     } catch (error) {
       console.error('스케줄 삭제 실패:', error);
       alert('스케줄 삭제에 실패했습니다.');
-    }
-  };
-
-  const handleSubmitSchedule = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-
-    const title = formData.get('title') as string;
-    const startTime = formData.get('startTime') as string;
-    const description = formData.get('description') as string;
-    const inquiryContact = formData.get('inquiryContact') as string;
-    const linkName = formData.get('linkName') as string;
-    const linkUrl = formData.get('linkUrl') as string;
-    const password = formData.get('password') as string;
-
-    if (!title || !password) {
-      alert('제목과 비밀번호는 필수입니다.');
-      return;
-    }
-
-    if (selectedDayOfWeek === null) return;
-
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-
-      const scheduleData = {
-        place_id: place.id,
-        day_of_week: selectedDayOfWeek,
-        title,
-        start_time: startTime || null,
-        description: description || null,
-        inquiry_contact: inquiryContact || null,
-        link_name: linkName || null,
-        link_url: linkUrl || null,
-        password,
-        user_id: user?.id || null,
-      };
-
-      const { error } = await supabase
-        .from('social_schedules')
-        .insert(scheduleData);
-
-      if (error) throw error;
-
-      alert('스케줄이 등록되었습니다.');
-      setShowAddModal(false);
-      setSelectedDayOfWeek(null);
-      loadWeeklySchedules();
-    } catch (error) {
-      console.error('스케줄 등록 실패:', error);
-      alert('스케줄 등록에 실패했습니다.');
     }
   };
 
@@ -200,9 +151,9 @@ export default function PlaceCalendar({ place, onBack }: PlaceCalendarProps) {
                 {schedule ? (
                   <div className="pcal-schedule-content">
                     <h3 className="pcal-schedule-title">{schedule.title}</h3>
-                    {schedule.start_time && (
+                    {schedule.time && (
                       <p className="pcal-schedule-time">
-                        <i className="ri-time-line"></i> {schedule.start_time.substring(0, 5)}
+                        <i className="ri-time-line"></i> {schedule.time.substring(0, 5)}
                       </p>
                     )}
                     {schedule.description && (
@@ -256,90 +207,25 @@ export default function PlaceCalendar({ place, onBack }: PlaceCalendarProps) {
         </div>
       </div>
 
-      {/* 스케줄 추가 모달 */}
-      {showAddModal && selectedDayOfWeek !== null && (
-        <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
-          <div className="modal-container" onClick={(e) => e.stopPropagation()}>
-            <form onSubmit={handleSubmitSchedule} className="modal-form">
-              <h2 className="modal-title">
-                {WEEKDAYS[selectedDayOfWeek].name} 스케줄 등록
-              </h2>
-
-              <input
-                type="text"
-                name="title"
-                placeholder="제목 *"
-                required
-                className="form-input"
-              />
-
-              <input
-                type="time"
-                name="startTime"
-                placeholder="시작 시간"
-                className="form-input"
-              />
-
-              <textarea
-                name="description"
-                placeholder="설명"
-                rows={3}
-                className="form-textarea"
-              />
-
-              <input
-                type="text"
-                name="inquiryContact"
-                placeholder="문의 연락처"
-                className="form-input"
-              />
-
-              <input
-                type="text"
-                name="linkName"
-                placeholder="링크 이름"
-                className="form-input"
-              />
-
-              <input
-                type="url"
-                name="linkUrl"
-                placeholder="링크 URL"
-                className="form-input"
-              />
-
-              <input
-                type="password"
-                name="password"
-                placeholder="비밀번호 * (수정/삭제 시 필요)"
-                required
-                className="form-input"
-              />
-
-              <div className="form-button-group">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="cancel-button"
-                >
-                  취소
-                </button>
-                <button type="submit" className="submit-button">
-                  등록
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* 스케줄 수정 모달 */}
-      {editingSchedule && (
-        <SocialEditModal
-          item={editingSchedule}
-          itemType="schedule"
-          onClose={() => setEditingSchedule(null)}
-          onSuccess={() => {
+      {/* 스케줄 추가 및 수정 통합 모달 */}
+      {(showAddModal || editingSchedule) && (
+        <EventRegistrationModal
+          isOpen={showAddModal || !!editingSchedule}
+          onClose={() => {
+            setShowAddModal(false);
+            setEditingSchedule(null);
+            setSelectedDayOfWeek(null);
+          }}
+          selectedDate={new Date()}
+          groupId={place.id}
+          dayOfWeek={selectedDayOfWeek ?? undefined}
+          editEventData={editingSchedule as any}
+          onEventCreated={() => {
+            setShowAddModal(false);
+            setSelectedDayOfWeek(null);
+            loadWeeklySchedules();
+          }}
+          onEventUpdated={() => {
             setEditingSchedule(null);
             loadWeeklySchedules();
           }}

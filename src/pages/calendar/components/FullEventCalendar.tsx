@@ -125,19 +125,9 @@ export default memo(function FullEventCalendar({
     const socialEvents = socialSchedules
       .filter(schedule => schedule.day_of_week === null || schedule.day_of_week === undefined)
       .map(schedule => ({
-        id: schedule.id + 10000000,
-        title: schedule.title,
-        date: schedule.date,
-        start_date: schedule.date,
-        end_date: schedule.date,
-        event_dates: schedule.date ? [schedule.date] : [],
-        category: schedule.v2_category || 'social', // v2_category가 없으면 기본값 'social' (파티/소셜)
-        image_micro: schedule.image_micro,
-        image_thumbnail: schedule.image_thumbnail,
-        image_medium: schedule.image_medium,
-        source: 'social_schedules' as const,
-        location: schedule.place_name || '',
-        venue_id: schedule.venue_id ? String(schedule.venue_id) : null,
+        ...schedule, // events 테이블의 모든 필드 유지
+        source: 'events' as const, // 원본 소스는 이제 events 테이블임
+        location: schedule.place_name || schedule.location || '',
       })) as any[];
 
     let combined: any[] = [];

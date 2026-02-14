@@ -137,7 +137,7 @@
         height: 100%;
         z-index: 0;
         margin: 0;
-        border-radius: 14px;
+        /* border-radius: 14px; */
         /* 카드의 radius를 따름 */
         overflow: hidden;
         /* 이미지 클리핑 */

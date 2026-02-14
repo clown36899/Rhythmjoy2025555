@@ -7,15 +7,15 @@ export const useSocialSchedulesQuery = (groupId?: number) => {
         queryKey: groupId ? ['social-schedules', groupId] : ['social-schedules'],
         queryFn: async () => {
             const selectFields = `
-        id, group_id, title, date, day_of_week, start_time, 
-        place_name, address, venue_id, description, 
-        image_url, image_micro, image_thumbnail, image_medium, image_full,
-        link_url, link_name,
+        id, group_id, title, date, start_date, day_of_week, time, 
+        place_name:location, address, location_link, venue_id, description, 
+        image_url:image_medium, image_micro, image_thumbnail, image_medium, image_full,
+        link_url:link1, link_name:link_name1,
         user_id, created_at, updated_at, board_users(nickname),
-        v2_genre, v2_category, scope
+        category, genre, scope
       `;
 
-            let query = supabase.from('social_schedules').select(selectFields);
+            let query = supabase.from('events').select(selectFields).not('group_id', 'is', null);
 
             if (groupId) {
                 query = query.eq('group_id', groupId);
@@ -28,10 +28,17 @@ export const useSocialSchedulesQuery = (groupId?: number) => {
 
             const { data, error } = await query
                 .order('date', { ascending: true })
-                .order('start_time', { ascending: true });
+                .order('time', { ascending: true });
 
             if (error) throw error;
-            return (data || []) as unknown as SocialSchedule[];
+
+            const fetchedData = (data || []).map((item: any) => ({
+                ...item,
+                start_time: item.time, // match SocialSchedule type & legacy UI
+                place_name: item.location // compatibility for legacy components
+            })) as unknown as SocialSchedule[];
+
+            return fetchedData;
         },
         staleTime: 60000, // 1분
         gcTime: 3600000, // 1시간

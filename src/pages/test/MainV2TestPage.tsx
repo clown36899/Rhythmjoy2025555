@@ -164,10 +164,11 @@ const MainV2TestPage: React.FC = () => {
                     .or(`and(start_date.gte.${startDateStr},start_date.lte.${endDateStr}),and(end_date.gte.${startDateStr},end_date.lte.${endDateStr}),and(date.gte.${startDateStr},date.lte.${endDateStr})`)
                     .order("date", { ascending: true });
 
-                // 2. Fetch Social Schedules
+                // 2. Fetch Social Schedules (from events table with group_id)
                 const socialPromise = supabase
-                    .from("social_schedules")
+                    .from("events")
                     .select("*")
+                    .not("group_id", "is", null)
                     .gte("date", startDateStr)
                     .lte("date", endDateStr)
                     .order("date", { ascending: true });
@@ -211,27 +212,17 @@ const MainV2TestPage: React.FC = () => {
         const mappedSocials = rawSocials
             .filter(schedule => schedule.day_of_week === null || schedule.day_of_week === undefined) // Only one-time socials
             .map(schedule => ({
-                id: `social-${schedule.id}`,
+                id: String(schedule.id),
                 title: schedule.title,
                 date: schedule.date,
                 start_date: schedule.date,
                 end_date: schedule.date,
                 category: schedule.v2_category || 'social',
-                image: schedule.image_full || schedule.image_url,
+                image: schedule.image_full || schedule.image_url || schedule.image,
                 image_micro: schedule.image_micro,
-                location: schedule.place_name,
-                time: schedule.start_time,
+                location: schedule.location,
+                time: schedule.time,
                 originalEvent: schedule
-            }))
-            .map(s => ({
-                ...s,
-                originalEvent: {
-                    ...s.originalEvent,
-                    id: `social-${s.originalEvent.id}`,
-                    title: s.title,
-                    date: s.date,
-                    category: s.category
-                }
             }));
 
         // Combine all raw events

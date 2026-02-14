@@ -403,52 +403,26 @@ export default function EventDetailModal({
 
           console.log('[EventDetailModal] Fetching detail for:', { originalId, isSocialIntegrated });
 
-          if (isSocialIntegrated) {
-            const { data, error } = await supabase
-              .from('social_schedules')
-              .select('*, board_users(nickname), social_groups(name)')
-              .eq('id', originalId)
-              .maybeSingle();
+          // 통합된 events 테이블 데이터 조회
+          const { data, error } = await supabase
+            .from('events')
+            .select('*, board_users(nickname)')
+            .eq('id', originalId)
+            .maybeSingle();
 
-            if (error) throw error;
-            console.log('[EventDetailModal] Social Fetch Result:', data);
-            if (data) {
-              const mappedSocial: any = {
-                ...event,
-                ...data,
-                id: event!.id,
-                location: data.place_name || '',
-                organizer: (Array.isArray(data.social_groups) ? (data.social_groups[0] as any)?.name : (data.social_groups as any)?.name) ||
-                  (Array.isArray(data.board_users) ? (data.board_users[0] as any)?.nickname : (data.board_users as any)?.nickname) ||
-                  '단체소셜',
-                category: data.v2_category || 'club',
-                genre: data.v2_genre || '',
-                link1: data.link_url,
-                link_name1: data.link_name,
-                board_users: Array.isArray(data.board_users) ? data.board_users[0] : data.board_users,
-                is_social_integrated: true
-              };
-              setDraftEvent(mappedSocial);
-              setOriginalEvent(mappedSocial);
-              const nickname = Array.isArray(data.board_users) ? (data.board_users[0] as any)?.nickname : (data.board_users as any)?.nickname;
-              if (nickname) setAuthorNickname(nickname);
+          if (error) throw error;
+          console.log('[EventDetailModal] Unified Fetch Result:', data);
+          if (data) {
+            const fullEvent = { ...event, ...(data as any) } as Event;
+            // 만약 group_id가 있다면 기존 UI 호환성을 위해 소셜 플래그 유지
+            if (data.group_id) {
+              (fullEvent as any).is_social_integrated = true;
+              (fullEvent as any).id = `social-${data.id}`;
             }
-          } else {
-            const { data, error } = await supabase
-              .from('events')
-              .select('*, board_users(nickname)')
-              .eq('id', originalId)
-              .maybeSingle();
-
-            if (error) throw error;
-            console.log('[EventDetailModal] Event Fetch Result:', data);
-            if (data) {
-              const fullEvent = { ...event, ...(data as any) } as Event;
-              setDraftEvent(fullEvent);
-              setOriginalEvent(fullEvent);
-              const nickname = (data as any).board_users?.nickname;
-              if (nickname) setAuthorNickname(nickname);
-            }
+            setDraftEvent(fullEvent);
+            setOriginalEvent(fullEvent);
+            const nickname = (data as any).board_users?.nickname;
+            if (nickname) setAuthorNickname(nickname);
           }
         } catch (err) {
           console.error('[EventDetailModal] Fetch error:', err);
@@ -704,64 +678,22 @@ export default function EventDetailModal({
         }
       });
 
-      // 🎯 [DB UPDATE] Reverted to Standard REST API (.update) for simplicity and reliability with retry
+      // 🎯 [DB UPDATE] 통합된 events 테이블만 사용
       let updatedEvent = null;
       let error = null;
 
-      const isSocialIntegrated = (draftEvent as any).is_social_integrated || String(draftEvent.id).startsWith('social-');
+      const originalId = String(draftEvent.id).replace('social-', '');
 
-      if (isSocialIntegrated) {
-        const originalId = String(draftEvent.id).replace('social-', '');
-        const socialUpdates: any = {
-          title: updates.title,
-          description: updates.description,
-          place_name: updates.location,
-          address: updates.location_link, // 'address' acts as the map link or address in social_schedules 
-          // Wait, I need to verify column names for social_schedules properly. 
-          // Fetch logic says: '*, board_users(nickname), social_groups(name)'
-          // Let's assume standard names or quick check? 
-          // Fetch mapped: link1: data.link_url, link_name1: data.link_name
-          link_url: updates.link1,
-          link_name: updates.link_name1,
-          v2_category: updates.category,
-          v2_genre: updates.genre,
-          // Date fields? social_schedules usually has date, start_time, end_time. 
-          // draftEvent was mapped from social, so likely has date string. 
-          // If date mode changed, we need to handle it. Social usually single date.
-          date: updates.date, // social_schedules has 'date' column usually
-          // image?
-          image_url: updates.image_full || updates.image, // Prefer full or whatever
-          image_thumbnail: updates.image_thumbnail,
-          image_micro: updates.image_micro
-        };
-
-        // Clean undefined
-        Object.keys(socialUpdates).forEach(key => socialUpdates[key] === undefined && delete socialUpdates[key]);
-
-        const result = await retryOperation(async () =>
-          await supabase
-            .from('social_schedules')
-            .update(socialUpdates)
-            .eq('id', originalId)
-            .select()
-            .maybeSingle()
-        ) as any;
-        updatedEvent = result.data;
-        error = result.error;
-
-      } else {
-        // Standard Event
-        const result = await retryOperation(async () =>
-          await supabase
-            .from('events')
-            .update(updates)
-            .eq('id', draftEvent.id)
-            .select()
-            .maybeSingle()
-        ) as any;
-        updatedEvent = result.data;
-        error = result.error;
-      }
+      const result = await retryOperation(async () =>
+        await supabase
+          .from('events')
+          .update(updates)
+          .eq('id', originalId)
+          .select()
+          .maybeSingle()
+      ) as any;
+      updatedEvent = result.data;
+      error = result.error;
 
 
       if (error) {

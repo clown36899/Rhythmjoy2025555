@@ -3,7 +3,7 @@ import type { SocialSchedule } from '../types';
 import { getLocalDateString, getKSTDay, getDayName } from '../../v2/utils/eventListUtils';
 import { useEventModal } from '../../../hooks/useEventModal';
 import EventDetailModal from '../../v2/components/EventDetailModal';
-import SocialScheduleModal from './SocialScheduleModal';
+import EventRegistrationModal from '../../../components/EventRegistrationModal';
 import LocalLoading from '../../../components/LocalLoading';
 import './WeeklySocial.css';
 
@@ -669,19 +669,25 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                 />
             )}
 
-            {/* Social Schedule Edit Modal */}
-            <SocialScheduleModal
+            {/* Social Schedule Edit Modal (Integrated) */}
+            <EventRegistrationModal
                 isOpen={isEditModalOpen}
                 onClose={() => {
                     setIsEditModalOpen(false);
                     setEditingSchedule(null);
                 }}
+                selectedDate={editingSchedule?.date ? new Date(editingSchedule.date) : new Date()}
+                editEventData={editingSchedule as any}
                 groupId={editingSchedule?.group_id || null}
-                editSchedule={editingSchedule}
-                onSuccess={() => {
+                onEventUpdated={() => {
                     setIsEditModalOpen(false);
                     setEditingSchedule(null);
-                    onRefresh?.(); // Refresh the list
+                    onRefresh?.();
+                }}
+                onEventCreated={() => {
+                    setIsEditModalOpen(false);
+                    setEditingSchedule(null);
+                    onRefresh?.();
                 }}
             />
         </section>

@@ -14,10 +14,9 @@ import EventRegistrationModal from '../../components/EventRegistrationModal';
 
 // Social Components
 import SocialGroupModal from '../social/components/SocialGroupModal';
-import SocialScheduleModal from '../social/components/SocialScheduleModal';
 import SocialDetailModal from '../social/components/SocialDetailModal';
 import GroupCalendarModal from '../social/components/GroupCalendarModal';
-import type { SocialGroup, SocialSchedule } from '../social/types';
+import type { SocialGroup } from '../social/types';
 
 import '../../pages/board/board.css'; // Reuse board styles
 // import '../v2/styles/EventListSections.css'; // Reuse event list styles
@@ -55,8 +54,8 @@ export default function MyActivitiesPage() {
 
     // Social Modal States
     const [selectedSchedule, setSelectedSchedule] = useState<any | null>(null);
-    const [isScheduleEditModalOpen, setIsScheduleEditModalOpen] = useState(false);
-    const [scheduleToEdit, setScheduleToEdit] = useState<any | null>(null);
+    const [isEventEditModalOpen, setIsEventEditModalOpen] = useState(false); // New modal state for social events
+    const [eventToEditSocial, setEventToEditSocial] = useState<any | null>(null);
     const [isGroupEditModalOpen, setIsGroupEditModalOpen] = useState(false);
     const [groupToEdit, setGroupToEdit] = useState<any | null>(null);
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
@@ -74,33 +73,25 @@ export default function MyActivitiesPage() {
         setLoading(true);
         try {
             // Parallel Fetch - each handled individually to prevent total failure
-            const [eventsRes, postsRes, groupsRes, schedulesRes, userRes] = await Promise.all([
+            const [eventsRes, postsRes, groupsRes, userRes] = await Promise.all([
                 supabase.from('events').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
                 supabase.from('board_posts').select('*, prefix:board_prefixes(*)').eq('user_id', user.id).order('created_at', { ascending: false }),
                 supabase.from('social_groups').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-                supabase.from('social_schedules').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
                 supabase.from('board_users').select('profile_image').eq('user_id', user.id).maybeSingle()
             ]);
 
-            // 1. Events & Classes
+            // 1. Events & Classes & Social Schedules
             if (eventsRes.error) {
                 console.error('[MyActivities] ❌ Events fetch error:', eventsRes.error);
             } else {
-                setEvents((eventsRes.data || []) as unknown as SupabaseEvent[]);
-            }
+                const allEvents = (eventsRes.data || []) as unknown as SupabaseEvent[];
+                setEvents(allEvents);
 
-            // 2. Social Groups
-            if (groupsRes.error) {
-                console.error('[MyActivities] ❌ Groups fetch error:', groupsRes.error);
-            } else {
-                setSocialGroups(groupsRes.data || []);
-            }
-
-            // 3. Social Schedules
-            if (schedulesRes.error) {
-                console.error('[MyActivities] ❌ Schedules fetch error:', schedulesRes.error);
-            } else {
-                setSocialSchedules(schedulesRes.data || []);
+                // [NEW] Separate social events (those with group_id)
+                // legacy support: also consider if they match original social formatting if needed, 
+                // but group_id is the primary indicator now.
+                const socialItems = allEvents.filter(e => e.group_id !== null && e.group_id !== undefined);
+                setSocialSchedules(socialItems);
             }
 
             // 4. Board Posts
@@ -126,7 +117,10 @@ export default function MyActivitiesPage() {
     };
 
     const filteredEvents = useMemo(() => {
-        return events.filter(e => currentTab === 'events' ? e.category !== 'class' : e.category === 'class');
+        // Exclude social group events from the main events/classes tabs for cleaner UI
+        // or keep them if they are genuine events. User feedback usually prefers separation.
+        const nonSocial = events.filter(e => e.group_id === null || e.group_id === undefined);
+        return nonSocial.filter(e => currentTab === 'events' ? e.category !== 'class' : e.category === 'class');
     }, [events, currentTab]);
 
     const handleTabChange = (tab: TabType) => {
@@ -152,13 +146,13 @@ export default function MyActivitiesPage() {
         setIsGroupEditModalOpen(true);
     };
 
-    const handleScheduleClick = (schedule: SocialSchedule) => {
+    const handleScheduleClick = (schedule: any) => {
         setSelectedSchedule(schedule);
     };
 
-    const handleEditSchedule = (schedule: SocialSchedule) => {
-        setScheduleToEdit(schedule);
-        setIsScheduleEditModalOpen(true);
+    const handleEditSchedule = (schedule: any) => {
+        setEventToEditSocial(schedule);
+        setIsEventEditModalOpen(true);
         setSelectedSchedule(null);
     };
 
@@ -450,16 +444,26 @@ export default function MyActivitiesPage() {
                 />
             )}
 
-            {isScheduleEditModalOpen && (
-                <SocialScheduleModal
-                    isOpen={isScheduleEditModalOpen}
+            {isEventEditModalOpen && eventToEditSocial && (
+                <EventRegistrationModal
+                    isOpen={isEventEditModalOpen}
                     onClose={() => {
-                        setIsScheduleEditModalOpen(false);
-                        setScheduleToEdit(null);
+                        setIsEventEditModalOpen(false);
+                        setEventToEditSocial(null);
                     }}
-                    onSuccess={() => fetchData()}
-                    groupId={scheduleToEdit?.group_id || null}
-                    editSchedule={scheduleToEdit}
+                    selectedDate={new Date()}
+                    onEventCreated={() => {
+                        fetchData();
+                        setIsEventEditModalOpen(false);
+                        setEventToEditSocial(null);
+                    }}
+                    onEventUpdated={() => {
+                        fetchData();
+                        setIsEventEditModalOpen(false);
+                        setEventToEditSocial(null);
+                    }}
+                    editEventData={eventToEditSocial as any}
+                    groupId={eventToEditSocial.group_id}
                 />
             )}
 

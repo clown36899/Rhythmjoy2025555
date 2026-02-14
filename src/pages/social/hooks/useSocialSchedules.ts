@@ -21,8 +21,10 @@ const mapScheduleToEvent = (schedule: any): UnifiedSocialEvent | null => {
         originalId: schedule.id,
         title: schedule.title,
         dayOfWeek: dow,
-        startTime: schedule.start_time,
+        startTime: schedule.time,
         placeName: schedule.place_name,
+        address: schedule.address,
+        location_link: schedule.location_link,
         inquiryContact: schedule.inquiry_contact,
         linkName: schedule.link_name,
         linkUrl: schedule.link_url,
@@ -46,14 +48,15 @@ export function useSocialSchedules() {
             );
 
             const fetchPromise = supabase
-                .from('social_schedules')
+                .from('events')
                 .select(`
-          id, title, date, start_time, day_of_week, 
-          inquiry_contact, link_name, link_url, description, place_name, address, category, 
-          image_url, image_micro, image_thumbnail, image_medium, image_full, venue_id
+          id, title, date, time, day_of_week, 
+          link_url:link1, link_name:link_name1, description, place_name:location, address, location_link, category, 
+          image_url:image_medium, image_micro, image_thumbnail, image_medium, image_full, venue_id, group_id
         `)
+                .not('group_id', 'is', null)
                 .order('day_of_week', { ascending: true })
-                .order('start_time', { ascending: true });
+                .order('time', { ascending: true });
 
             // Type assertion for Promise.race result
             const result = await Promise.race([fetchPromise, timeoutPromise]) as any;

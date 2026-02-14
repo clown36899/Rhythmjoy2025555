@@ -36,24 +36,8 @@ export default function SocialCalendarPage() {
       const firstDayStr = firstDay.toISOString().split('T')[0];
       const lastDayStr = lastDay.toISOString().split('T')[0];
 
-      // 1. Fetch Social Schedules
-      const schedulesPromise = supabase
-        .from('social_schedules')
-        .select(`
-          id,
-          place_name,
-          title,
-          date,
-          start_time,
-          end_time,
-          description
-        `)
-        .not('date', 'is', null)
-        .gte('date', firstDayStr)
-        .lte('date', lastDayStr);
-
-      // 2. Fetch Events
-      const eventsPromise = supabase
+      // Fetch Integrated Events
+      const { data, error } = await supabase
         .from('events')
         .select(`
           id,
@@ -66,43 +50,22 @@ export default function SocialCalendarPage() {
           description,
           scope,
           category,
-          event_dates
+          event_dates,
+          group_id
         `)
-        .eq('category', 'event')
-        .or(`date.gte.${firstDayStr},start_date.gte.${firstDayStr},end_date.gte.${firstDayStr}`);
+        .or(`date.gte.${firstDayStr},start_date.gte.${firstDayStr},end_date.gte.${firstDayStr}`)
+        .not('group_id', 'is', null); // Focus on social events
 
-      const [schedulesResult, eventsResult] = await Promise.all([schedulesPromise, eventsPromise]);
+      if (error) throw error;
 
-      if (schedulesResult.error) throw schedulesResult.error;
-      if (eventsResult.error) throw eventsResult.error;
-
-      // Process Schedules
-      const scheduleEvents: SocialEvent[] = (schedulesResult.data || []).map((item: any) => ({
-        id: `schedule-${item.id}`,
-        place_id: 0,
-        place_name: item.place_name || '장소 미정',
-        title: item.title,
-        date: item.date,
-        start_time: item.start_time,
-        end_time: item.end_time,
-        description: item.description,
-        scope: 'domestic' // Default to domestic
-      }));
-
-      // Process Events
-      const eventEvents: SocialEvent[] = [];
-      (eventsResult.data || []).forEach((item: any) => {
-        // Handle multi-date events or ranges
-        // Simple logic: if event_dates exists, create multiple entries.
-        // If range, create multiple entries (simple expansion for calendar view)
-        // Or just map single date if simple.
-
+      // Process Integrated Events
+      const allEvents: SocialEvent[] = [];
+      (data || []).forEach((item: any) => {
         const processDate = (d: string) => {
-          // Filter by current month view
           if (d >= firstDayStr && d <= lastDayStr) {
-            eventEvents.push({
-              id: `event-${item.id}-${d}`,
-              place_id: 0,
+            allEvents.push({
+              id: item.group_id ? `social-${item.id}-${d}` : `event-${item.id}-${d}`,
+              place_id: item.group_id || 0,
               place_name: item.location || '장소 미정',
               title: item.title,
               date: d,
@@ -116,7 +79,6 @@ export default function SocialCalendarPage() {
         if (item.event_dates && Array.isArray(item.event_dates)) {
           item.event_dates.forEach((d: string) => processDate(d));
         } else if (item.start_date && item.end_date) {
-          // Loop through range
           const loopDate = new Date(item.start_date);
           const endDate = new Date(item.end_date);
           while (loopDate <= endDate) {
@@ -127,8 +89,6 @@ export default function SocialCalendarPage() {
           processDate(item.date);
         }
       });
-
-      const allEvents = [...scheduleEvents, ...eventEvents];
 
       // Sort by date then time
       allEvents.sort((a, b) => {

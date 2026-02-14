@@ -964,8 +964,8 @@ export type Database = {
           category: string
           contact: string | null
           created_at: string | null
-          date: string
-          description: string
+          date: string | null
+          description: string | null
           end_date: string | null
           event_dates: Json | null
           genre: string | null
@@ -984,7 +984,7 @@ export type Database = {
           link1: string | null
           link2: string | null
           link3: string | null
-          location: string
+          location: string | null
           location_link: string | null
           organizer: string | null
           organizer_name: string | null
@@ -996,6 +996,11 @@ export type Database = {
           start_date: string | null
           storage_path: string | null
           time: string | null
+          address: string | null
+          group_id: number | null
+          day_of_week: number | null
+          scope: string | null
+          views: number | null
           title: string
           updated_at: string | null
           user_id: string | null
@@ -1009,8 +1014,8 @@ export type Database = {
           category: string
           contact?: string | null
           created_at?: string | null
-          date: string
-          description: string
+          date?: string | null
+          description?: string | null
           end_date?: string | null
           event_dates?: Json | null
           genre?: string | null
@@ -1029,7 +1034,7 @@ export type Database = {
           link1?: string | null
           link2?: string | null
           link3?: string | null
-          location: string
+          location?: string | null
           location_link?: string | null
           organizer?: string | null
           organizer_name?: string | null
@@ -1041,6 +1046,11 @@ export type Database = {
           start_date?: string | null
           storage_path?: string | null
           time?: string | null
+          address?: string | null
+          group_id?: number | null
+          day_of_week?: number | null
+          scope?: string | null
+          views?: number | null
           title: string
           updated_at?: string | null
           user_id?: string | null
@@ -1086,6 +1096,11 @@ export type Database = {
           start_date?: string | null
           storage_path?: string | null
           time?: string | null
+          address?: string | null
+          group_id?: number | null
+          day_of_week?: number | null
+          scope?: string | null
+          views?: number | null
           title?: string
           updated_at?: string | null
           user_id?: string | null

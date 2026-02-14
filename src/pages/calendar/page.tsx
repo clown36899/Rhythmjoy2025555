@@ -270,39 +270,26 @@ export default function CalendarPage() {
         if (eventId) {
             const fetchEvent = async () => {
                 try {
-                    // Try events table first
-                    const result = await supabase
+                    // Try events table
+                    const { data, error } = await supabase
                         .from('events')
                         .select('*')
                         .eq('id', eventId)
                         .maybeSingle();
 
-                    let { data } = result;
-                    const { error } = result;
-
-                    let isSocial = false;
-
-                    // If not found, try social_schedules
-                    if (!data && !error) {
-                        const socialRes = await supabase
-                            .from('social_schedules')
-                            .select('*')
-                            .eq('id', eventId)
-                            .maybeSingle();
-                        if (socialRes.data) {
-                            data = socialRes.data;
-                            isSocial = true;
-                        }
-                    }
-
                     if (error) throw error;
 
                     if (data) {
+                        const isSocial = !!data.group_id || data.category === 'social';
+                        const isLesson = ['class', 'regular', 'club'].includes(data.category);
+
                         // 1. 해당 탭(Category)으로 전환
                         if (data.scope === 'overseas') {
                             setTabFilter('overseas');
-                        } else if (isSocial || ['class', 'regular', 'club'].includes(data.category)) {
-                            setTabFilter(isSocial ? 'social-events' : 'classes');
+                        } else if (isSocial) {
+                            setTabFilter('social-events');
+                        } else if (isLesson) {
+                            setTabFilter('classes');
                         } else {
                             setTabFilter('social-events');
                         }
@@ -316,12 +303,11 @@ export default function CalendarPage() {
                         setTimeout(() => {
                             const eventToSet = isSocial ? {
                                 ...data,
-                                id: `social-${data.id}`,
                                 is_social_integrated: true
                             } : data;
                             eventModal.setSelectedEvent(eventToSet);
                             setHighlightedEventId(eventToSet.id);
-                        }, 100); // [Optimization] Reduced from 500ms
+                        }, 100);
 
                         // 4. 3초 후 하이라이트 제거
                         setTimeout(() => {

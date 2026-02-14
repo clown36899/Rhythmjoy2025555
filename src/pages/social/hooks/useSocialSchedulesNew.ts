@@ -47,18 +47,11 @@ export function useSocialSchedulesNew(groupId?: number, minDate?: string) {
         setLoading(true);
         try {
             let selectFields = `
-        id, group_id, title, date, day_of_week, start_time, 
-        place_name, address, venue_id, description, 
-        image_url, image_micro, image_thumbnail, image_medium, image_full,
-        link_url, link_name,
-        v2_genre, v2_category,
-        user_id, created_at, updated_at
+        *,
+        board_users(nickname)
       `;
 
-            // 작성자 정보는 항상 가져옵니다. (UI에서 노출 제어)
-            selectFields += `, board_users(nickname)`;
-
-            let query = supabase.from('social_schedules').select(selectFields);
+            let query = supabase.from('events').select(selectFields);
 
             if (groupId) {
                 query = query.eq('group_id', groupId);
@@ -67,17 +60,30 @@ export function useSocialSchedulesNew(groupId?: number, minDate?: string) {
                 const baseDate = minDate ? new Date(minDate) : new Date();
                 const baseDateStr = `${baseDate.getFullYear()}-${String(baseDate.getMonth() + 1).padStart(2, '0')}-${String(baseDate.getDate()).padStart(2, '0')}`;
 
-                // Fetch if: (date >= baseDate) OR (day_of_week is not null/recurring)
-                query = query.or(`date.gte.${baseDateStr},day_of_week.not.is.null`);
+                // Fetch if: (date >= baseDate) OR (day_of_week is not null/recurring) OR (category matches social criteria)
+                // Filter specifically for items with group_id or specific categories if needed
+                query = query.or(`date.gte.${baseDateStr},day_of_week.not.is.null,start_date.gte.${baseDateStr}`);
+
+                // We only want "social" related events in this hook if it's used for the social page
+                // But since social schedules are now regular events with group_id, 
+                // we should probably filter for those that HAVE a group_id or match the social categories.
+                query = query.not('group_id', 'is', null);
             }
 
             const { data, error } = await query
                 .order('date', { ascending: true })
-                .order('start_time', { ascending: true });
+                .order('time', { ascending: true });
 
             if (error) throw error;
 
-            const fetchedData = (data || []) as unknown as SocialSchedule[];
+            const fetchedData = (data || []).map((item: any) => ({
+                ...item,
+                start_time: item.time, // match SocialSchedule type
+                place_name: item.location, // compatibility for legacy components
+                link_url: item.link1,
+                link_name: item.link_name1,
+                image_url: item.image_medium || item.image || item.image_thumbnail
+            })) as unknown as SocialSchedule[];
             setSchedules(fetchedData);
 
             // Update global cache

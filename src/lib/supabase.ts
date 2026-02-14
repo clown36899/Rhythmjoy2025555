@@ -83,6 +83,8 @@ export interface Event {
   storage_path?: string | null;
   scope?: string;
   views?: number; // Added for analytics
+  group_id?: number | null; // [New] For integrated social schedules
+  day_of_week?: number | null; // [New] For integrated social schedules
 }
 
 export interface BillboardUser {

@@ -18,14 +18,9 @@ const RegistrationChoiceModal = lazy(() => import('../pages/v2/components/Regist
 const NewEventsListModal = lazy(() => import('../pages/v2/components/NewEventsListModal'));
 
 // Social Modals
-const SocialDetailModal = lazy(() => import('../pages/social/components/SocialDetailModal'));
-const SocialEditModal = lazy(() => import('../pages/social/components/SocialEditModal'));
-const SocialEventModal = lazy(() => import('../pages/social/components/SocialEventModal'));
 const SocialPasswordModal = lazy(() => import('../pages/social/components/SocialPasswordModal'));
 const SocialPlaceDetailModal = lazy(() => import('../pages/social/components/SocialPlaceDetailModal'));
 const PlaceModal = lazy(() => import('../pages/social/components/PlaceModal'));
-const ScheduleModal = lazy(() => import('../pages/social/components/ScheduleModal'));
-const SocialScheduleModal = lazy(() => import('../pages/social/components/SocialScheduleModal'));
 
 // Shopping Modals
 const ShopDetailModal = lazy(() => import('../pages/shopping/components/ShopDetailModal'));
@@ -83,15 +78,23 @@ const MODAL_COMPONENTS: Record<string, any> = {
     'stats': StatsModal,
     'registrationChoice': RegistrationChoiceModal,
 
-    // Social Modals
-    'socialDetail': SocialDetailModal,
-    'socialEdit': SocialEditModal,
-    'socialEvent': SocialEventModal,
+    // Social Modals (Unified with Event Modals)
+    'socialDetail': (props: any) => {
+        // Compatibility mapper for legacy prop names
+        const eventData = props.event || props.schedule || props.item;
+        return <EventDetailModal {...props} event={eventData} isAdminMode={props.isAdminMode || props.isAdmin} />;
+    },
     'socialPassword': SocialPasswordModal,
     'socialPlaceDetail': SocialPlaceDetailModal,
     'place': PlaceModal,
-    'schedule': ScheduleModal,
-    'socialSchedule': SocialScheduleModal,
+    'schedule': (props: any) => {
+        // Compatibility mapper for legacy ScheduleModal props
+        return <EventRegistrationModal
+            {...props}
+            groupId={props.groupId || props.placeId}
+            selectedDate={props.selectedDate || (props.date ? new Date(props.date) : new Date())}
+        />;
+    },
 
     // Shopping Modals
     'shopDetail': ShopDetailModal,

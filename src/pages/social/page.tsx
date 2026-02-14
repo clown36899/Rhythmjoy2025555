@@ -15,8 +15,8 @@ import GroupCalendarModal from './components/GroupCalendarModal';
 import SocialGroupDetailModal from './components/SocialGroupDetailModal';
 import SocialGroupModal from './components/SocialGroupModal';
 import SocialRecruitModal from './components/SocialRecruitModal';
-import SocialScheduleModal from './components/SocialScheduleModal';
 import SocialRegistrationModal from './components/SocialRegistrationModal';
+import EventRegistrationModal from '../../components/EventRegistrationModal';
 import VenueDetailModal from '../practice/components/VenueDetailModal';
 import PracticeSection from './components/PracticeSection';
 
@@ -124,9 +124,12 @@ const SocialPage: React.FC = () => {
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
   const [editGroup, setEditGroup] = useState<SocialGroup | null>(null);
 
-  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  const [selectedRecruitGroup, setSelectedRecruitGroup] = useState<SocialGroup | null>(null);
+
+  const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const [editSchedule, setEditSchedule] = useState<SocialSchedule | null>(null);
   const [copySchedule, setCopySchedule] = useState<SocialSchedule | null>(null);
+  const [targetGroupId, setTargetGroupId] = useState<number | null>(null);
 
   const handleGroupClick = useCallback((group: SocialGroup) => {
     setSelectedGroup(group);
@@ -141,12 +144,6 @@ const SocialPage: React.FC = () => {
   const handleOpenRecruit = useCallback((group: SocialGroup) => {
     setSelectedRecruitGroup(group);
   }, []);
-
-  const [targetGroupId, setTargetGroupId] = useState<number | null>(null);
-
-  const [scheduleModalTab, setScheduleModalTab] = useState<'schedule' | 'recruit'>('schedule');
-  const [hideScheduleTabs, setHideScheduleTabs] = useState(false);
-  const [selectedRecruitGroup, setSelectedRecruitGroup] = useState<SocialGroup | null>(null);
 
   // Registration Modal State
   const [isRegistrationModalOpen, setIsRegistrationModalOpen] = useState(false);
@@ -182,12 +179,7 @@ const SocialPage: React.FC = () => {
       }
     }
 
-    setTargetGroupId(group.id);
-    setEditSchedule(null);
-    setCopySchedule(null);
-    setScheduleModalTab('recruit');
-    setHideScheduleTabs(true);
-    setIsScheduleModalOpen(true);
+    setSelectedRecruitGroup(group);
   }, [user, isAdmin, verifyGroupPassword]);
 
   // Event Detail Modal States
@@ -219,8 +211,9 @@ const SocialPage: React.FC = () => {
       const { data, error } = await supabase
         .from('events')
         .select('*, board_users(nickname)')
-        .neq('category', 'class') // 강습 제외
-        .neq('category', 'club') // 동호회 모임 제외 (유저 피드백: Club Class는 행사가 아니다)
+        .is('group_id', null) // s.group_id가 있는 것은 useSocialSchedulesNew에서 가져옴
+        .neq('category', 'class')
+        .neq('category', 'club')
         .or(`date.gte.${weekStartStr},end_date.gte.${weekStartStr}`);
 
       if (error) {
@@ -273,22 +266,17 @@ const SocialPage: React.FC = () => {
     // 상세 모달을 먼저 닫습니다.
     socialDetailModal.close();
 
-    // 상태 설정
+    // 신규: 통합된 EventRegistrationModal 사용
+    // SocialSchedule 타입을 Event 타입으로 맞춰서 전달 (groupId, day_of_week 포함 필)
     setEditSchedule(schedule);
-    setCopySchedule(null);
-    setTargetGroupId(schedule.group_id || null);
-    setScheduleModalTab('schedule');
-    setHideScheduleTabs(false);
-    setIsScheduleModalOpen(true);
+    setIsEventModalOpen(true);
   }, [user, isAdmin, verifyGroupPassword, socialDetailModal]);
 
   const handleCopySchedule = useCallback((schedule: SocialSchedule) => {
-    setCopySchedule(schedule);
     setEditSchedule(null);
+    setCopySchedule(schedule);
     setTargetGroupId(schedule.group_id);
-    setScheduleModalTab('schedule');
-    setHideScheduleTabs(false);
-    setIsScheduleModalOpen(true);
+    setIsEventModalOpen(true);
     socialDetailModal.close();
   }, [socialDetailModal]);
 
@@ -418,9 +406,7 @@ const SocialPage: React.FC = () => {
     setTargetGroupId(groupId);
     setEditSchedule(null);
     setCopySchedule(null);
-    setScheduleModalTab('schedule');
-    setHideScheduleTabs(false);
-    setIsScheduleModalOpen(true);
+    setIsEventModalOpen(true);
   }, [user, groups, isAdmin, verifyGroupPassword]);
 
 
@@ -543,44 +529,18 @@ const SocialPage: React.FC = () => {
         editGroup={editGroup}
       />
 
-      {isScheduleModalOpen && (
-        <SocialScheduleModal
-          isOpen={isScheduleModalOpen}
-          onClose={() => {
+      {/* Legacy SocialScheduleModal Removed */}
 
-            setIsScheduleModalOpen(false);
-            setEditSchedule(null);
-            setCopySchedule(null);
-            setTargetGroupId(null);
-          }}
-          onSuccess={() => {
-
-            refreshSchedules();
-            setIsScheduleModalOpen(false);
-            setEditSchedule(null);
-            setCopySchedule(null);
-            setTargetGroupId(null);
-          }}
-          // targetGroupId가 null이면 데이터 본체의 group_id를 최우선으로 사용합니다.
-          // 중요: editSchedule.group_id 가 0인 경우(유실)를 대비해 targetGroupId를 먼저 체크
-          // editSchedule.group_id가 null인 레거시 데이터도 허용합니다.
-          groupId={targetGroupId || editSchedule?.group_id || copySchedule?.group_id || null}
-          editSchedule={editSchedule}
-          copyFrom={copySchedule}
-          initialTab={scheduleModalTab}
-          hideTabs={hideScheduleTabs}
-        />
-      )}
-
-      {/* Recruit Modal */}
+      {/* Recruit Modal (Refactored) */}
       {selectedRecruitGroup && (
         <SocialRecruitModal
-          group={selectedRecruitGroup}
+          isOpen={!!selectedRecruitGroup}
           onClose={() => setSelectedRecruitGroup(null)}
-          onEdit={(group) => {
+          onSuccess={() => {
+            refreshGroups();
             setSelectedRecruitGroup(null);
-            handleEditRecruit(group);
           }}
+          groupId={selectedRecruitGroup.id}
         />
       )}
 
@@ -601,12 +561,8 @@ const SocialPage: React.FC = () => {
           setIsRegistrationModalOpen(false);
           setTargetGroupId(group.id);
           setEditSchedule(null);
-          // Pre-fill date if selected
           setCopySchedule(selectedDateForAdd ? { date: selectedDateForAdd } as any : null);
-
-          setScheduleModalTab('schedule');
-          setHideScheduleTabs(false);
-          setIsScheduleModalOpen(true);
+          setIsEventModalOpen(true);
         }}
         onCreateGroup={() => {
           setIsRegistrationModalOpen(false);
@@ -614,6 +570,28 @@ const SocialPage: React.FC = () => {
           setIsGroupModalOpen(true);
         }}
       />
+
+      {isEventModalOpen && (
+        <EventRegistrationModal
+          isOpen={isEventModalOpen}
+          onClose={() => {
+            setIsEventModalOpen(false);
+            setEditSchedule(null);
+            setTargetGroupId(null);
+          }}
+          selectedDate={selectedDateForAdd ? new Date(selectedDateForAdd) : new Date()}
+          editEventData={editSchedule as any}
+          groupId={targetGroupId}
+          onEventCreated={() => {
+            refreshSchedules();
+            setIsEventModalOpen(false);
+          }}
+          onEventUpdated={() => {
+            refreshSchedules();
+            setIsEventModalOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 };

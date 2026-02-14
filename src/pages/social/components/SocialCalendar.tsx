@@ -23,8 +23,7 @@ export default function SocialCalendar({
   readonly = false
 }: SocialCalendarProps) {
   // Global modals
-  const socialEventModal = useModal('socialEvent');
-  const socialEditModal = useModal('socialEdit');
+  const eventRegisterModal = useModal('eventRegistration');
   const socialDetailModal = useModal('socialDetail');
   const venueDetailModal = useModal('venueDetail');
 
@@ -58,35 +57,34 @@ export default function SocialCalendar({
       // Get current user
       const { data: { user } } = await supabase.auth.getUser();
 
-      // Fetch the schedule data
-      const { data: scheduleData, error } = await supabase
-        .from('social_schedules')
-        .select('id, user_id, created_at, day_of_week, place_name, title, image_url, image_micro, image_thumbnail, image_medium, image_full, start_time, description, link_name, link_url, venue_id')
+      // Fetch the event data from unified table
+      const { data: eventData, error } = await supabase
+        .from('events')
+        .select('*')
         .eq('id', unifiedEvent.originalId)
         .maybeSingle();
 
-      if (error || !scheduleData) {
-        console.error('Error fetching schedule:', error);
+      if (error || !eventData) {
+        console.error('Error fetching event:', error);
         alert('일정을 불러오는 데 실패했습니다.');
         return;
       }
 
       // Check permission: user_id must match OR user is admin
-      if (scheduleData.user_id !== user?.id && !isAdmin) {
+      if (eventData.user_id !== user?.id && !isAdmin) {
         alert('수정 권한이 없습니다. 본인이 등록한 일정만 수정할 수 있습니다.');
         return;
       }
 
-      // Permission granted - open edit modal
-      socialEditModal.open({
-        item: scheduleData,
-        itemType: 'schedule',
-        onSuccess: (data: any, isDelete?: boolean) => {
-          if (isDelete) {
-            onEventDeleted(scheduleData.id);
-          } else if (data) {
-            onEventUpdated(data);
-          }
+      // Permission granted - open integrated registration modal
+      eventRegisterModal.open({
+        editEventData: eventData,
+        groupId: eventData.group_id,
+        onEventUpdated: (data: any) => {
+          onEventUpdated(data);
+        },
+        onEventCreated: (data: any) => {
+          onEventUpdated(data);
         }
       });
       socialDetailModal.close();
@@ -97,10 +95,16 @@ export default function SocialCalendar({
   };
 
   const handleAddEvent = (dayId: number) => {
-    socialEventModal.open({
-      preselectedDay: dayId,
-      onEventCreated: (data: any) => {
-        onEventCreated(data);
+    eventRegisterModal.open({
+      dayOfWeek: dayId,
+      selectedDate: new Date(),
+      onEventCreated: (_date: any, eventId?: any) => {
+        // Fetch new event to sync
+        if (eventId) {
+          supabase.from('events').select('*').eq('id', eventId).maybeSingle().then(({ data }) => {
+            if (data) onEventCreated(data);
+          });
+        }
       }
     });
   };

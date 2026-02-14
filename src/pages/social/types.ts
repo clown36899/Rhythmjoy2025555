@@ -37,11 +37,15 @@ export interface SocialSchedule {
   group_id: number;
   title: string;
   date?: string; // 'YYYY-MM-DD'
+  start_date?: string;
   end_date?: string; // 종료일 (기간 행사용)
   event_dates?: string[]; // 다중 날짜 (개별 선택용)
   day_of_week?: number; // 0 (일) ~ 6 (토)
   start_time?: string; // 'HH:mm:ss'
-  place_name?: string;
+  time?: string;
+  location?: string;
+  location_link?: string;
+  place_name?: string; // Legacy support
   address?: string;
   description?: string;
   venue_id?: number;
@@ -50,16 +54,21 @@ export interface SocialSchedule {
   image_thumbnail?: string;
   image_medium?: string;
   image_full?: string;
+  image?: string; // events table path
   user_id: string;
   created_at: string;
   updated_at: string;
-  link_url?: string; // 외부 링크 URL
-  link_name?: string; // 링크 표시 이름
+  link1?: string;
+  link_name1?: string;
+  link_url?: string; // Legacy
+  link_name?: string; // Legacy
   board_users?: {
     nickname: string;
   };
-  v2_genre?: string;
-  v2_category?: string;
+  category?: string;
+  genre?: string;
+  v2_genre?: string; // Legacy
+  v2_category?: string; // Legacy
   scope?: string;
 }
 
@@ -78,7 +87,8 @@ export interface UnifiedSocialEvent {
   imageUrl?: string; // Alias
   image_thumbnail?: string;
   imageUrlThumbnail?: string; // Alias
-  image_medium?: string;
+  location_link?: string;
+  address?: string;
   group_id?: number;
   venueId?: number;
   inquiryContact?: string;

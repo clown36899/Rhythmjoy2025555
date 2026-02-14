@@ -71,73 +71,38 @@ export default function NotificationHistoryModal({
 
                 console.log('[NotificationHistory] Search Strategy:', { realId, isSocialPath, isFullCalendarOffset });
 
-                // [Fetch Strategy] Try both tables to handle all link formats
-                let data = null;
-                let isSocial = isSocialPath || isFullCalendarOffset;
+                // [Fetch Strategy] events 테이블 단일 조회
+                console.log('[NotificationHistory] Fetching from events...');
+                const { data, error } = await supabase
+                    .from('events')
+                    .select('*, board_users(nickname), social_groups(name)')
+                    .eq('id', realId)
+                    .maybeSingle();
 
-                const fetchSocial = () => supabase.from('social_schedules').select('*, board_users(nickname), social_groups(name)').eq('id', realId).maybeSingle();
-                const fetchEvent = () => supabase.from('events').select('*, board_users(nickname)').eq('id', realId).maybeSingle();
-
-                if (isSocial) {
-                    console.log('[NotificationHistory] Fetching from social_schedules...');
-                    const res = await fetchSocial();
-                    if (res.data) {
-                        data = res.data;
-                        console.log('[NotificationHistory] Found in social_schedules');
-                    } else {
-                        console.log('[NotificationHistory] Not found in social, trying events...');
-                        const res2 = await fetchEvent();
-                        if (res2.data) { data = res2.data; isSocial = false; console.log('[NotificationHistory] Found in events (fallback)'); }
-                    }
-                } else {
-                    console.log('[NotificationHistory] Fetching from events...');
-                    const res = await fetchEvent();
-                    if (res.data) {
-                        data = res.data;
-                        console.log('[NotificationHistory] Found in events');
-                    } else {
-                        console.log('[NotificationHistory] Not found in events, trying social...');
-                        const res2 = await fetchSocial();
-                        if (res2.data) { data = res2.data; isSocial = true; console.log('[NotificationHistory] Found in social (fallback)'); }
-                    }
+                if (error) {
+                    console.error('[NotificationHistory] Fetch error:', error);
+                    throw error;
                 }
 
                 if (data) {
                     console.log('[NotificationHistory] Final Data for Modal:', data);
+                    const isSocial = !!data.group_id || data.category === 'social';
+
                     // Normalize data for EventDetailModal
-                    if (isSocial) {
-                        const mappedSocial: any = {
-                            ...data,
-                            id: `social-${data.id}`,
-                            location: data.place_name || '',
-                            organizer: (Array.isArray(data.social_groups) ? (data.social_groups[0] as any)?.name : (data.social_groups as any)?.name) ||
-                                (Array.isArray(data.board_users) ? (data.board_users[0] as any)?.nickname : (data.board_users as any)?.nickname) ||
-                                '단체소셜',
-                            category: data.v2_category || 'club',
-                            genre: data.v2_genre || '',
-                            link1: data.link_url,
-                            link_name1: data.link_name,
-                            board_users: Array.isArray(data.board_users) ? data.board_users[0] : data.board_users,
-                            is_social_integrated: true
-                        };
-                        openModal('eventDetail', {
-                            event: mappedSocial,
-                            onEdit: () => { },
-                            onDelete: () => { }
-                            // onClose is handled by ModalRegistry
-                        });
-                    } else {
-                        const mappedEvent = {
-                            ...data,
-                            board_users: Array.isArray(data.board_users) ? data.board_users[0] : data.board_users
-                        };
-                        openModal('eventDetail', {
-                            event: mappedEvent,
-                            onEdit: () => { },
-                            onDelete: () => { }
-                            // onClose is handled by ModalRegistry
-                        });
-                    }
+                    const mappedEvent: any = {
+                        ...data,
+                        board_users: Array.isArray(data.board_users) ? data.board_users[0] : data.board_users,
+                        social_groups: Array.isArray(data.social_groups) ? data.social_groups[0] : data.social_groups,
+                        is_social_integrated: isSocial
+                    };
+
+                    openModal('eventDetail', {
+                        event: mappedEvent,
+                        onEdit: () => { },
+                        onDelete: () => { }
+                        // onClose is handled by ModalRegistry
+                    });
+
                     if (notifications.length === 1) {
                         onClose();
                     }

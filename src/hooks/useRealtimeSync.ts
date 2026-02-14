@@ -15,24 +15,13 @@ export const useRealtimeSync = () => {
                 table: 'events'
             }, () => {
                 queryClient.invalidateQueries({ queryKey: ['events'] });
-            })
-            .subscribe();
-
-        // Social Schedules 테이블 구독
-        const socialsChannel = supabase
-            .channel('socials-changes')
-            .on('postgres_changes', {
-                event: '*',
-                schema: 'public',
-                table: 'social_schedules'
-            }, () => {
                 queryClient.invalidateQueries({ queryKey: ['social-schedules'] });
+                queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
             })
             .subscribe();
 
         return () => {
             supabase.removeChannel(eventsChannel);
-            supabase.removeChannel(socialsChannel);
         };
     }, [queryClient]);
 };
