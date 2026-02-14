@@ -34,6 +34,9 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
     const [memberCount, setMemberCount] = useState<number | null>(null);
     const [pwaCount, setPwaCount] = useState<number | null>(null);
     const [pushCount, setPushCount] = useState<number | null>(null);
+    const [eventCountTotal, setEventCountTotal] = useState<number | null>(null);
+    const [eventDailyAvg, setEventDailyAvg] = useState<number | null>(null);
+    const [eventBreakdown, setEventBreakdown] = useState<{ regular: number, social: number } | null>(null);
     const { totalCount: onlineCount } = useOnlineUsers();
 
     // 메뉴 토글 이벤트 리스너 등록
@@ -92,6 +95,7 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
     const siteAnalyticsModal = useModal('siteAnalytics');
     const notificationSettingsModal = useModal('notificationSettings');
     const profileEditModal = useModal('profileEdit');
+    const statsModal = useModal('stats');
 
     const nickname = userProfile?.nickname || billboardUserName || user?.user_metadata?.name || user?.email?.split('@')[0] || 'Guest';
     const profileImage = userProfile?.profile_image || user?.user_metadata?.avatar_url || null;
@@ -134,6 +138,9 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
                 setMemberCount(typeof data.memberCount === 'number' ? data.memberCount : 0);
                 setPwaCount(typeof data.pwaCount === 'number' ? data.pwaCount : 0);
                 setPushCount(typeof data.pushCount === 'number' ? data.pushCount : 0);
+                setEventCountTotal(typeof data.eventCountTotal === 'number' ? data.eventCountTotal : 0);
+                setEventDailyAvg(typeof data.eventDailyAvg === 'number' ? data.eventDailyAvg : 0);
+                setEventBreakdown(data.eventBreakdown || null);
             } else {
                 // API 실패 시 폴백 (기존 관리자만 작동하는 로직)
                 if (isAdmin) {
@@ -299,6 +306,25 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
                                 >
                                     <span className="SD-gridVal" style={{ color: '#f87171' }}>{typeof pushCount === 'object' ? '-' : (pushCount ?? '-')}</span>
                                     <span className="SD-gridLabel">알림 구독</span>
+                                </div>
+                                <div
+                                    className="SD-adminGridItem is-event-total"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        statsModal.open({
+                                            initialTab: 'scene',
+                                            userId: user?.id
+                                        });
+                                        onClose();
+                                    }}
+                                    style={{ position: 'relative' }}
+                                >
+                                    <span className="SD-gridVal" style={{ color: '#818cf8' }}>{typeof eventCountTotal === 'number' ? eventCountTotal : '-'}</span>
+                                    <span className="SD-gridLabel">이벤트(누적)</span>
+                                </div>
+                                <div className="SD-adminGridItem is-readonly">
+                                    <span className="SD-gridVal" style={{ color: '#a78bfa' }}>{typeof eventDailyAvg === 'number' ? eventDailyAvg : '-'}</span>
+                                    <span className="SD-gridLabel">일평균(실질)</span>
                                 </div>
                             </div>
                         </div>

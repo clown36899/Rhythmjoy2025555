@@ -48,17 +48,84 @@ export const handler: Handler = async (event) => {
         if (pushError) throw pushError;
         const pushCount = pushData ? new Set(pushData.map(d => d.user_id).filter(Boolean)).size : 0;
 
+        // 4. 이벤트 통계 집계
+        const now = new Date();
+        const krNow = new Date(now.getTime() + (9 * 60 * 60 * 1000));
+        const krYear = krNow.getUTCFullYear();
+        const krMonth = krNow.getUTCMonth();
+        const krToday = krNow.getUTCDate();
+
+        const startOfMonthKr = new Date(Date.UTC(krYear, krMonth, 1));
+        const startIsoStr = startOfMonthKr.toISOString().split('T')[0];
+        const endOfMonthKr = new Date(Date.UTC(krYear, krMonth + 1, 1));
+        endOfMonthKr.setMilliseconds(-1);
+        const endIsoStr = endOfMonthKr.toISOString().split('T')[0];
+        const todayIsoStr = krNow.toISOString().split('T')[0];
+
+        // 4-1. 모든 데이터 가져오기 (전역 누계 및 일평균 공용)
+        const [{ data: allEvents }, { data: allSocials }] = await Promise.all([
+            supabaseAdmin.from('events').select('category, start_date, date, event_dates, scope'),
+            supabaseAdmin.from('social_schedules').select('date, day_of_week, created_at, scope')
+        ]);
+
+        // 4-2. 필터링 (게시판/공지 제외)
+        const validEvents = (allEvents || []).filter(e => {
+            if (['notice', 'notice_popup', 'board'].includes(e.category)) return false;
+            return true;
+        });
+
+        const validSocials = (allSocials || []).filter(s => {
+            return s.date || s.day_of_week !== null;
+        });
+
+        // [핵심 1] 전역 누계 (All-time Total)
+        const eventCountTotal = validEvents.length + validSocials.length;
+
+        // [핵심 2] 실질 일평균 (당월 활성도 지표)
+        const febEvents = validEvents.filter(e => {
+            const firstDate = (e.event_dates && e.event_dates.length > 0) ? e.event_dates[0] : (e.start_date || e.date);
+            return firstDate && firstDate >= startIsoStr && firstDate <= endIsoStr;
+        });
+
+        const febSocials = validSocials.filter(s => {
+            if (s.date) {
+                return s.date >= startIsoStr && s.date <= endIsoStr;
+            } else if (s.day_of_week !== null && s.created_at) {
+                const createdAtKr = new Date(new Date(s.created_at).getTime() + (9 * 60 * 60 * 1000));
+                return createdAtKr.getUTCFullYear() === krYear && createdAtKr.getUTCMonth() === krMonth;
+            }
+            return false;
+        });
+
+        // 당월 데이터 중 "오늘"까지 시작된 것만 실질 일평균으로 산출
+        const pastEventsCount = febEvents.filter(e => {
+            const firstDate = (e.event_dates && e.event_dates.length > 0) ? e.event_dates[0] : (e.start_date || e.date);
+            return firstDate && firstDate <= todayIsoStr;
+        }).length;
+
+        const pastSocialsCount = febSocials.filter(s => {
+            if (s.date) return s.date <= todayIsoStr;
+            return true; // 반복형은 등록 즉시 활성형으로 간주
+        }).length;
+
+        const eventDailyAvg = ((pastEventsCount + pastSocialsCount) / krToday).toFixed(1);
+
         return {
             statusCode: 200,
             headers: {
                 ...corsHeaders,
-                'Content-Type': 'application/json',
-                'Cache-Control': 'public, max-age=60' // 1분 캐싱 허용
+                'Content-Type': 'application/json'
             },
             body: JSON.stringify({
                 memberCount: Number(memberCount || 0),
                 pwaCount: Number(pwaCount || 0),
-                pushCount: Number(pushCount || 0)
+                pushCount: Number(pushCount || 0),
+                eventCountTotal: Number(eventCountTotal || 0),
+                eventDailyAvg: Number(eventDailyAvg || 0),
+                eventBreakdown: {
+                    regular: validEvents.length,
+                    social: validSocials.length
+                }
             })
         };
 

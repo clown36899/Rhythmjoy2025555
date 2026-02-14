@@ -107,7 +107,10 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
     }, [isOpen, userId]);
 
     const fetchStatsData = async () => {
-        if (!userId) return;
+        if (!userId) {
+            setLoading(false);
+            return;
+        }
         setLoading(true);
         try {
             const [eventsRes, postsRes, userRes] = await Promise.all([

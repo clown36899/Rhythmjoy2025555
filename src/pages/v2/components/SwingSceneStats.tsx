@@ -164,6 +164,9 @@ export default function SwingSceneStats() {
 
             // Events
             events.forEach(e => {
+                // [정합성] 게시판, 공지사항 성격의 카테고리는 통계에서 제외 (v7.0)
+                if (['notice', 'notice_popup', 'board'].includes(e.category)) return;
+
                 // TEST DEBUG: Strict Check for Dec 2025 - REMOVED for Production
                 const dCreated = new Date(e.created_at);
 
