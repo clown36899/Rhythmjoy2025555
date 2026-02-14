@@ -23,21 +23,13 @@ interface DayStats {
 }
 
 interface SceneStats {
-    monthly: {
-        month: string;
-        classes: number;
-        events: number;
-        socials: number;
-        clubs: number;
-        total: number;
-        registrations: number;
-    }[];
+    monthly: MonthlyStat[];
     totalWeekly: DayStats[];    // 12 months
     monthlyWeekly: DayStats[];  // Latest 1 month
     topGenresList: string[];
     summary: {
         totalItems: number;
-        monthlyAverage: number;
+        dailyAverage: number;
         topDay: string;
     };
 }
@@ -56,6 +48,7 @@ interface MonthlyStat {
     clubs: number;
     total: number;
     registrations: number;
+    dailyAvg: number;
 }
 
 export default function SwingSceneStats() {
@@ -159,7 +152,7 @@ export default function SwingSceneStats() {
                 d.setMonth(d.getMonth() - i);
                 const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
                 months.push(key);
-                monthlyDict[key] = { month: key, classes: 0, events: 0, socials: 0, clubs: 0, total: 0, registrations: 0 };
+                monthlyDict[key] = { month: key, classes: 0, events: 0, socials: 0, clubs: 0, total: 0, registrations: 0, dailyAvg: 0 };
             }
 
             // Events
@@ -369,45 +362,25 @@ export default function SwingSceneStats() {
 
             const totalItems = events.length + socials.length;
 
-            // Calculate Active Months Average (Excluding incomplete current month for accuracy)
-            const calculateAccurateAverage = () => {
-                const now = new Date();
-                const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            // Calculate Daily Averages for each month
+            const krNow = new Date(new Date().getTime() + (9 * 60 * 60 * 1000));
+            const currentMonthKey = `${krNow.getUTCFullYear()}-${String(krNow.getUTCMonth() + 1).padStart(2, '0')}`;
 
-                // 1. Get items from completed months only
-                const completedMonthlyStats = months.filter(m => m !== currentMonthKey).map(m => monthlyDict[m]);
-                const completedTotal = completedMonthlyStats.reduce((acc, curr) => acc + (curr?.total || 0), 0);
-
-                // 2. Count months from first data to last month
-                if (completedTotal === 0) {
-                    // Fallback: If only current month has data, project it
-                    const currentStats = monthlyDict[currentMonthKey];
-                    if (!currentStats || currentStats.total === 0) return 0;
-                    const daysPassed = Math.max(1, now.getDate());
-                    return Number((currentStats.total / daysPassed * 30.4).toFixed(1));
+            months.forEach(mKey => {
+                const stat = monthlyDict[mKey];
+                const [y, m] = mKey.split('-').map(Number);
+                let days;
+                if (mKey === currentMonthKey) {
+                    days = krNow.getUTCDate();
+                } else {
+                    days = new Date(y, m, 0).getDate();
                 }
+                stat.dailyAvg = Number((stat.total / Math.max(1, days)).toFixed(1));
+            });
 
-                // Find earliest month with data (Bucket-based)
-                // months array is sorted Ascending (Oldest -> Newest) [M-11, ... M-1, CurrentM]
-                let startMonthIndex = -1;
-                for (let i = 0; i < months.length - 1; i++) { // Exclude last (current) month
-                    if (monthlyDict[months[i]]?.total > 0) {
-                        startMonthIndex = i;
-                        break;
-                    }
-                }
+            // Calculate Overall Daily Average for Summary (Based on current month's pace)
+            const currentDailyAvg = monthlyDict[currentMonthKey]?.dailyAvg || 0;
 
-                if (startMonthIndex === -1) return 0;
-
-                // months.length is 12 (typically). Current Month is at index 11.
-                // We consider months from startMonthIndex up to index 10 (Last Completed Month).
-                // Count = (months.length - 1) - startMonthIndex
-                const validMonthsCount = (months.length - 1) - startMonthIndex;
-
-                return Number((completedTotal / Math.max(1, validMonthsCount)).toFixed(1));
-            };
-
-            const refinedAverage = calculateAccurateAverage();
             const topDayData = [...totalWeekly].sort((a, b) => b.count - a.count)[0];
 
             setStats({
@@ -417,7 +390,7 @@ export default function SwingSceneStats() {
                 topGenresList: sortedGenres.slice(0, 8),
                 summary: {
                     totalItems,
-                    monthlyAverage: refinedAverage,
+                    dailyAverage: currentDailyAvg,
                     topDay: topDayData.day
                 }
             });
@@ -494,7 +467,7 @@ export default function SwingSceneStats() {
 
     const handleShare = async () => {
         if (!stats) return;
-        const text = `📊 스윙씬 통계 요약 (From 댄스빌보드)\n\n- 최근 1년 활동: ${stats.summary.totalItems}건\n- 월평균 이벤트: ${stats.summary.monthlyAverage}건\n- 가장 활발한 요일: ${stats.summary.topDay}요일\n\n더 자세한 스윙씬 트렌드는 댄스빌보드에서 확인하세요!\nhttps://swingenjoy.com?modal=stats`;
+        const text = `📊 스윙씬 통계 요약 (From 댄스빌보드)\n\n- 최근 1년 이벤트 등록수: ${stats.summary.totalItems}건\n- 실질 일평균 이벤트: ${stats.summary.dailyAverage}건\n- 가장 활발한 요일: ${stats.summary.topDay}요일\n\n더 자세한 스윙씬 트렌드는 댄스빌보드에서 확인하세요!\nhttps://swingenjoy.com?modal=stats`;
 
         if (navigator.share) {
             try {
@@ -531,13 +504,13 @@ export default function SwingSceneStats() {
 
                     <div className="stats-card-grid">
                         <div className="stats-card">
-                            <div className="card-label">최근 1년 활동</div>
+                            <div className="card-label">최근 1년 이벤트 등록수</div>
                             <div className="card-value">{stats.summary.totalItems}건</div>
                             <div className="card-hint">시작일 기준</div>
                         </div>
                         <div className="stats-card">
-                            <div className="card-label">월평균 이벤트</div>
-                            <div className="card-value">{stats.summary.monthlyAverage}건</div>
+                            <div className="card-label">일평균 이벤트</div>
+                            <div className="card-value">{stats.summary.dailyAverage}건</div>
                             <div className="card-hint">시작일 기준</div>
                         </div>
                         <div className="stats-card">
@@ -571,7 +544,10 @@ export default function SwingSceneStats() {
                                         <div className="bar-segment" style={{ height: `${(m.events / maxMonthly) * 100}%`, minHeight: m.events > 0 ? '1px' : '0', background: COLORS.events }}></div>
                                         <div className="bar-segment" style={{ height: `${((m.socials + m.clubs) / maxMonthly) * 100}%`, minHeight: (m.socials + m.clubs) > 0 ? '1px' : '0', background: COLORS.socials }}></div>
                                     </div>
-                                    <span className="axis-label">{m.month.split('-')[1]}월</span>
+                                    <div className="axis-group">
+                                        <span className="axis-label">{m.month.split('-')[1]}월</span>
+                                        <span className="axis-avg">{m.dailyAvg}</span>
+                                    </div>
                                 </div>
                             ))}
                         </div>
@@ -584,7 +560,11 @@ export default function SwingSceneStats() {
                         <div className="chart-info-footer">
                             <div className="info-item">
                                 <span className="info-label total">숫자</span>
-                                <span className="info-text">이벤트 시작일 기준으로</span>
+                                <span className="info-text">이벤트 시작일 기준 발생 수</span>
+                            </div>
+                            <div className="info-item">
+                                <span className="info-label avg">5.4</span>
+                                <span className="info-text">해당 월의 일평균 이벤트수</span>
                             </div>
                             <div className="info-item">
                                 <span className="info-label reg">+N</span>

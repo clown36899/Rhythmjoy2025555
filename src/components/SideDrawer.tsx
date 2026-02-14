@@ -324,7 +324,7 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
                                 </div>
                                 <div className="SD-adminGridItem is-readonly">
                                     <span className="SD-gridVal" style={{ color: '#a78bfa' }}>{typeof eventDailyAvg === 'number' ? eventDailyAvg : '-'}</span>
-                                    <span className="SD-gridLabel">일평균(실질)</span>
+                                    <span className="SD-gridLabel">일평균 이벤트</span>
                                 </div>
                             </div>
                         </div>
