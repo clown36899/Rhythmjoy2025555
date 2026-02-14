@@ -1,8 +1,26 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import type { SocialSchedule } from '../../pages/social/types';
 
 export const useSocialSchedulesQuery = (groupId?: number) => {
+    const queryClient = useQueryClient();
+
+    useEffect(() => {
+        const handleUpdate = () => {
+            console.log('[useSocialSchedulesQuery] Event detected, invalidating query...');
+            queryClient.invalidateQueries({ queryKey: ['social-schedules'] });
+        };
+
+        window.addEventListener('eventUpdated', handleUpdate);
+        window.addEventListener('eventDeleted', handleUpdate);
+
+        return () => {
+            window.removeEventListener('eventUpdated', handleUpdate);
+            window.removeEventListener('eventDeleted', handleUpdate);
+        };
+    }, [queryClient]);
+
     return useQuery({
         queryKey: groupId ? ['social-schedules', groupId] : ['social-schedules'],
         queryFn: async () => {

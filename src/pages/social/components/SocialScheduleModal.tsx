@@ -213,7 +213,12 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
             if (error) throw error;
 
             alert('일정이 삭제되었습니다.');
-            onSuccess();
+
+            window.dispatchEvent(new CustomEvent('eventDeleted', {
+                detail: { id: editSchedule.id }
+            }));
+
+            onSuccess({ id: editSchedule.id, deleted: true });
             onClose();
         } catch (error: any) {
             console.error('Error deleting schedule:', error);
@@ -319,19 +324,63 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                 // 3. Save
                 if (editSchedule) {
                     const targetId = String(editSchedule.id).replace('social-', '');
-                    const { error } = await supabase
+                    const { data, error } = await supabase
                         .from('events')
                         .update(eventData)
-                        .eq('id', targetId);
+                        .eq('id', targetId)
+                        .select()
+                        .maybeSingle();
+
                     if (error) throw error;
+
+                    if (data) {
+                        const mappedData = {
+                            ...data,
+                            start_time: data.time,
+                            place_name: data.location,
+                            link_url: data.link1,
+                            link_name: data.link_name1,
+                            image_url: data.image_medium || data.image || data.image_thumbnail
+                        };
+
+                        window.dispatchEvent(new CustomEvent('eventUpdated', {
+                            detail: {
+                                id: editSchedule.id,
+                                event: mappedData
+                            }
+                        }));
+                        onSuccess(mappedData);
+                    } else {
+                        onSuccess();
+                    }
                 } else {
-                    const { error } = await supabase
+                    const { data, error } = await supabase
                         .from('events')
-                        .insert([eventData]);
-                    if (error) throw error;
+                        .insert([eventData])
+                        .select()
+                        .maybeSingle();
+
+                    if (data) {
+                        const mappedData = {
+                            ...data,
+                            start_time: data.time,
+                            place_name: data.location,
+                            link_url: data.link1,
+                            link_name: data.link_name1,
+                            image_url: data.image_medium || data.image || data.image_thumbnail
+                        };
+                        window.dispatchEvent(new CustomEvent('eventUpdated', {
+                            detail: {
+                                id: mappedData.id,
+                                event: mappedData
+                            }
+                        }));
+                        onSuccess(mappedData);
+                    } else {
+                        onSuccess();
+                    }
                 }
 
-                onSuccess();
                 onClose();
 
             } catch (error: any) {
@@ -386,7 +435,15 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                 if (error) throw error;
 
                 alert('모집 공고가 저장되었습니다.');
-                onSuccess();
+
+                // Fetch latest group data to pass to onSuccess
+                const { data: updatedGroup } = await supabase
+                    .from('social_groups')
+                    .select('*')
+                    .eq('id', groupId)
+                    .single();
+
+                onSuccess(updatedGroup || { id: groupId });
                 onClose();
             } catch (error: any) {
                 console.error('Recruit save error:', error);
@@ -441,17 +498,18 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                                 </div>
                             </div>
 
+                            <div className="form-section">
+                                <label>일정 제목 *</label>
+                                <input
+                                    type="text"
+                                    value={title}
+                                    onChange={(e) => setTitle(e.target.value)}
+                                    placeholder="예: 금(?) DJ 누구"
+                                    required
+                                />
+                            </div>
+
                             <div className="form-section multi-row">
-                                <div className="form-item is-grow">
-                                    <label>일정 제목 *</label>
-                                    <input
-                                        type="text"
-                                        value={title}
-                                        onChange={(e) => setTitle(e.target.value)}
-                                        placeholder="예: 금(?) DJ 누구"
-                                        required
-                                    />
-                                </div>
                                 <div className="form-item">
                                     <label>날짜 *</label>
                                     <input

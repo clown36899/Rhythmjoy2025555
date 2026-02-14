@@ -199,56 +199,69 @@ const SocialPage: React.FC = () => {
 
 
   // Fetch events for the current view week
-  useEffect(() => {
-    const fetchWeekEvents = async () => {
-      setLoadingEvents(true);
-      // Calculate the week's date range based on currentViewDate
-      const now = new Date(currentViewDate);
-      const kstDay = getKSTDay(now);
-      // Align with WeeklySocial: Sunday Start
-      // Previous logic was Monday start: const daysFromMonday = kstDay === 0 ? 6 : kstDay - 1;
-      const weekStart = new Date(now);
-      weekStart.setDate(now.getDate() - kstDay); // 0 = Sunday
+  const fetchWeekEvents = useCallback(async () => {
+    setLoadingEvents(true);
+    // Calculate the week's date range based on currentViewDate
+    const now = new Date(currentViewDate);
+    const kstDay = getKSTDay(now);
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - kstDay); // 0 = Sunday
 
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekStart.getDate() + 6); // Saturday
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6); // Saturday
 
-      const weekStartStr = getLocalDateString(weekStart);
-      const weekEndStr = getLocalDateString(weekEnd);
+    const weekStartStr = getLocalDateString(weekStart);
+    const weekEndStr = getLocalDateString(weekEnd);
 
 
-      // Fetch events overlapping with this week
-      const { data, error } = await supabase
-        .from('events')
-        .select('*, board_users(nickname)')
-        .is('group_id', null) // s.group_id가 있는 것은 useSocialSchedulesNew에서 가져옴
-        .neq('category', 'class')
-        .neq('category', 'club')
-        .or(`date.gte.${weekStartStr},end_date.gte.${weekStartStr}`);
+    // Fetch events overlapping with this week
+    const { data, error } = await supabase
+      .from('events')
+      .select('*, board_users(nickname)')
+      .is('group_id', null) // s.group_id가 있는 것은 useSocialSchedulesNew에서 가져옴
+      .neq('category', 'class')
+      .neq('category', 'club')
+      .or(`date.gte.${weekStartStr},end_date.gte.${weekStartStr}`);
 
-      if (error) {
-        console.error('[SocialPage] Error fetching events:', error);
-        setLoadingEvents(false);
-        return;
-      }
-
-      if (data) {
-
-        // Filter events that actually overlap with the week range
-        const filtered = data.filter(e => {
-          const effectiveStart = e.start_date || e.date || "";
-          const effectiveEnd = e.end_date || e.date || "";
-          // Check overlap: Event End >= Week Start AND Event Start <= Week End
-          const overlaps = effectiveEnd >= weekStartStr && effectiveStart <= weekEndStr;
-          return overlaps;
-        });
-
-        setEventsThisWeek(filtered);
-      }
+    if (error) {
+      console.error('[SocialPage] Error fetching events:', error);
       setLoadingEvents(false);
-    };
-    fetchWeekEvents();
+      return;
+    }
+
+    if (data) {
+      // Filter events that actually overlap with the week range
+      const filtered = data.filter(e => {
+        const effectiveStart = e.start_date || e.date || "";
+        const effectiveEnd = e.end_date || e.date || "";
+        // Check overlap: Event End >= Week Start AND Event Start <= Week End
+        const overlaps = effectiveEnd >= weekStartStr && effectiveStart <= weekEndStr;
+        return overlaps;
+      });
+
+      setEventsThisWeek(filtered);
+    }
+    setLoadingEvents(false);
   }, [currentViewDate]);
+
+  useEffect(() => {
+    fetchWeekEvents();
+
+    // 🎯 [IMMEDIATE REFLECT] Listen for global event updates
+    const handleGlobalUpdate = () => {
+      console.log('[SocialPage] Global event updated/deleted, refreshing...');
+      fetchWeekEvents();
+      refreshSchedules();
+    };
+
+    window.addEventListener('eventUpdated', handleGlobalUpdate);
+    window.addEventListener('eventDeleted', handleGlobalUpdate);
+
+    return () => {
+      window.removeEventListener('eventUpdated', handleGlobalUpdate);
+      window.removeEventListener('eventDeleted', handleGlobalUpdate);
+    };
+  }, [fetchWeekEvents, refreshSchedules]);
 
 
   const handleEditSchedule = useCallback(async (schedule: SocialSchedule) => {

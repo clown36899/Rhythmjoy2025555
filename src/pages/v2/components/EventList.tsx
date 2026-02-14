@@ -99,7 +99,14 @@ const EventList: React.FC<EventListProps> = ({
 
       if (!event.created_at) return false;
       const created = new Date(event.created_at);
-      return created > seventyTwoHoursAgo;
+      const isWithin72Hours = created > seventyTwoHoursAgo;
+
+      // 🎯 [NEW FILTER] 제외 조건: 이미 지난 이벤트는 표시하지 않음
+      const todayStr = getLocalDateString();
+      const eventDate = event.end_date || event.date || "";
+      const isFutureEvent = eventDate >= todayStr;
+
+      return isWithin72Hours && isFutureEvent;
     }).sort((a, b) => {
       // 최신 등록순으로 정렬
       const timeA = new Date(a.created_at!).getTime();

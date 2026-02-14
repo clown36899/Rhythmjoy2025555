@@ -102,6 +102,64 @@ export function useSocialSchedulesNew(groupId?: number, minDate?: string) {
 
     useEffect(() => {
         fetchSchedules();
+
+        const handleUpdate = (e: any) => {
+            console.log('[useSocialSchedulesNew] Event detected, refreshing...');
+
+            // 🎯 [IMMEDIATE UI UPDATE] Update local state before server fetch completes
+            const updatedItem = e.detail?.event;
+            const updatedId = e.detail?.id;
+
+            if (updatedItem || updatedId) {
+                setSchedules(prev => prev.map(item => {
+                    const itemIdStr = String(item.id);
+                    const targetIdStr = String(updatedId || updatedItem?.id);
+
+                    // Match both raw ID and prefixed ID
+                    const isMatch = itemIdStr === targetIdStr ||
+                        itemIdStr === `social-${targetIdStr}` ||
+                        `social-${itemIdStr}` === targetIdStr;
+
+                    if (isMatch && updatedItem) {
+                        return {
+                            ...item,
+                            ...updatedItem,
+                            // Map events table fields to SocialSchedule fields if different
+                            start_time: updatedItem.time || updatedItem.start_time || item.start_time,
+                            place_name: updatedItem.location || updatedItem.place_name || item.place_name,
+                            link_url: updatedItem.link1 || updatedItem.link_url || item.link_url,
+                            link_name: updatedItem.link_name1 || updatedItem.link_name || item.link_name,
+                            image_url: updatedItem.image_medium || updatedItem.image || updatedItem.image_thumbnail || item.image_url
+                        };
+                    }
+                    return item;
+                }));
+            }
+
+            fetchSchedules(true);
+        };
+
+        const handleDelete = (e: any) => {
+            const deletedId = e.detail?.id;
+            if (deletedId) {
+                setSchedules(prev => prev.filter(item => {
+                    const itemIdStr = String(item.id);
+                    const targetIdStr = String(deletedId);
+                    return itemIdStr !== targetIdStr &&
+                        itemIdStr !== `social-${targetIdStr}` &&
+                        `social-${itemIdStr}` !== targetIdStr;
+                }));
+            }
+            fetchSchedules(true);
+        };
+
+        window.addEventListener('eventUpdated', handleUpdate);
+        window.addEventListener('eventDeleted', handleDelete);
+
+        return () => {
+            window.removeEventListener('eventUpdated', handleUpdate);
+            window.removeEventListener('eventDeleted', handleDelete);
+        };
     }, [fetchSchedules]);
 
     return {

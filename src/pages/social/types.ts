@@ -40,7 +40,7 @@ export interface SocialScheduleModalProps {
   editSchedule?: SocialSchedule | null;
   initialData?: SocialSchedule | null;
   initialTab?: 'social' | 'oneday';
-  onSuccess: () => void;
+  onSuccess: (data?: any) => void;
 }
 
 // 2. 소셜 일정 (Schedule) 타입
