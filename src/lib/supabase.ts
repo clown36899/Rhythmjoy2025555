@@ -14,13 +14,17 @@ const supabaseAnonKey = import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY || 'placeh
 // });
 
 // [Critical Fix] Safari 및 모든 iOS 기반 브라우저(Webkit)의 navigator.locks 결함 대응
+// iOS 환경임을 최대한 보수적으로(폭넓게) 판별합니다.
 const isSafariOrIOS = typeof navigator !== 'undefined' && (
-  /^((?!chrome|android).)*safari/i.test(navigator.userAgent) ||
   /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
-  ((window.navigator as any).standalone === true)
+  (/^((?!chrome|android).)*safari/i.test(navigator.userAgent)) ||
+  ((navigator as any).standalone === true) ||
+  (window.location.search.includes('utm_source=pwa'))
 );
 
-authLogger.log('[Supabase] 🔌 Initializing Supabase Client...', { isSafariOrIOS, ua: typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A' });
+// [Debug] 앱 초기화 시점에 즉시 확인 가능하도록 console.log 직접 사용
+console.log('%c[Supabase] Client Initialization State:', 'background: #1a1a2e; color: #ff00ff; font-weight: bold;', { isSafariOrIOS, ua: navigator.userAgent });
+authLogger.log('[Supabase] 🔌 Initializing Client...', { isSafariOrIOS });
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {

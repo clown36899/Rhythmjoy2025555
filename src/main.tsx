@@ -1,3 +1,4 @@
+console.log('%c[Main] 🏁 JavaScript Bundle Execution Started', 'background: #4caf50; color: white; font-weight: bold; padding: 2px 10px; border-radius: 4px;');
 import { StrictMode, useEffect, lazy, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
