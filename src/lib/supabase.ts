@@ -13,7 +13,14 @@ const supabaseAnonKey = import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY || 'placeh
 //   adminEmail: import.meta.env.VITE_ADMIN_EMAIL || '없음'
 // });
 
-const isSafari = typeof navigator !== 'undefined' && /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+// [Critical Fix] Safari 및 모든 iOS 기반 브라우저(Webkit)의 navigator.locks 결함 대응
+const isSafariOrIOS = typeof navigator !== 'undefined' && (
+  /^((?!chrome|android).)*safari/i.test(navigator.userAgent) ||
+  /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
+  ((window.navigator as any).standalone === true)
+);
+
+authLogger.log('[Supabase] 🔌 Initializing Supabase Client...', { isSafariOrIOS, ua: typeof navigator !== 'undefined' ? navigator.userAgent : 'N/A' });
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
@@ -23,12 +30,11 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     detectSessionInUrl: true,
     flowType: 'pkce',
-    // Safari용 Dummy Lock: navigator.locks 결함으로 인한 Deadlock 원천 차단
+    // Safari/iOS용 Dummy Lock: navigator.locks 결함으로 인한 Deadlock 원천 차단
     lockTerminatedContext: false,
-    ...(isSafari ? {
-      // navigator.locks를 사용하지 않도록 더미 락 제공 (함수 시그니처 준수)
+    ...(isSafariOrIOS ? {
       lock: async (name: string, _timeout: number, fn: () => Promise<any>) => {
-        authLogger.log(`[Supabase] 🔓 Safari: Bypassing Lock (${name})`);
+        authLogger.log(`[Supabase] 🔓 Safari/iOS: Bypassing Lock (${name})`);
         return fn();
       }
     } : {})
@@ -39,6 +45,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     },
   },
 })
+
+authLogger.log('[Supabase] ✅ Client initialized');
 
 export interface Event {
   id: number | string;

@@ -1,8 +1,11 @@
 import { StrictMode, useEffect, lazy, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { authLogger } from './utils/authLogger';
 import './i18n'
 import './index.css'
+
+authLogger.log('[Main] 🚀 App entry point reached');
 import { isPWAMode } from './lib/pwaDetect'
 
 // Mobile Drag & Drop Polyfill
@@ -286,6 +289,8 @@ function RootApp() {
     };
   }, []);
 
+  authLogger.log('[Main] 🏗️ Rendering RootApp...');
+
   return (
     <InstallPromptProvider>
       <RouterProvider router={router} />
@@ -308,6 +313,7 @@ if (typeof window !== 'undefined' && 'ontouchstart' in window && /iPhone|iPad|iP
   }
 }
 
+console.log('[Main] 🏁 Executing createRoot...');
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <RootApp />

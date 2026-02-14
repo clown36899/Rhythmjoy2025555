@@ -532,6 +532,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       userAgent: navigator.userAgent
     });
 
+    // 배포 환경 디버깅을 위한 전역 상태 노출
+    if (typeof window !== 'undefined') {
+      (window as any).__AUTH_STATE = { hasAuthParams, isAuthProcessing, loading };
+    }
+
     authLogger.log('[AuthContext] 🛡️ Setting safety net timer:', { safetyTimeoutMillis });
 
     safetyTimeoutId = setTimeout(() => {
@@ -550,7 +555,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const recoveredSession = await validateAndRecoverSession();
         if (!isMounted) return;
 
-        authLogger.log('[AuthContext] 📥 Recovery result:', { hasSession: !!recoveredSession, userId: recoveredSession?.user?.id });
+        authLogger.log('[AuthContext] 📥 Recovery result:', {
+          hasSession: !!recoveredSession,
+          userId: recoveredSession?.user?.id,
+          email: recoveredSession?.user?.email
+        });
 
         if (recoveredSession) {
           setSession(recoveredSession);
