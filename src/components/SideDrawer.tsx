@@ -49,10 +49,19 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
         window.addEventListener('openDrawer', handleOpen);
         window.addEventListener('closeDrawer', handleClose);
 
+        const handleStatsUpdate = (e: any) => {
+            if (e.detail) {
+                if (typeof e.detail.total === 'number') setEventCountTotal(e.detail.total);
+                if (typeof e.detail.avg === 'number') setEventDailyAvg(e.detail.avg);
+            }
+        };
+        window.addEventListener('statsUpdated', handleStatsUpdate);
+
         return () => {
             window.removeEventListener('toggleDrawer', handleToggle);
             window.removeEventListener('openDrawer', handleOpen);
             window.removeEventListener('closeDrawer', handleClose);
+            window.removeEventListener('statsUpdated', handleStatsUpdate);
         };
     }, []);
 
@@ -130,6 +139,18 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
     const fetchSiteStats = async () => {
         try {
             // [Fix] 일반 유저는 RLS 정책으로 인해 다른 사용자의 Install/Push 정보를 카운트할 수 없음 (결과가 0으로 나옴)
+            // 1. 대시보드 캐시가 있다면 먼저 반영 (Dynamic Sync from Dashboard Data)
+            const cacheStr = localStorage.getItem('swing_scene_stats_cache');
+            if (cacheStr) {
+                const cache = JSON.parse(cacheStr);
+                // 24시간 이내의 캐시만 유효한 것으로 간주 (또는 최신 데이터 우선)
+                if (cache.summary) {
+                    setEventCountTotal(cache.summary.totalItems);
+                    setEventDailyAvg(cache.summary.dailyAverage);
+                }
+            }
+
+            // 2. API 호출을 통한 최신 공식 데이터 연동
             // 따라서 관리자용 API(Netlify Functions)를 통해 집계된 수치만 안전하게 가져옴
             const response = await fetch('/.netlify/functions/get-site-stats');
             if (response.ok) {
@@ -311,10 +332,14 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
                                     className="SD-adminGridItem is-event-total"
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        statsModal.open({
-                                            initialTab: 'scene',
-                                            userId: user?.id
-                                        });
+                                        if (user) {
+                                            statsModal.open({
+                                                initialTab: 'scene',
+                                                userId: user.id
+                                            });
+                                        } else {
+                                            onLoginClick();
+                                        }
                                         onClose();
                                     }}
                                     style={{ position: 'relative' }}

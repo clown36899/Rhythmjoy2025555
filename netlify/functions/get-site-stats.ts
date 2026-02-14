@@ -97,18 +97,8 @@ export const handler: Handler = async (event) => {
             return false;
         });
 
-        // 당월 데이터 중 "오늘"까지 시작된 것만 실질 일평균으로 산출
-        const pastEventsCount = febEvents.filter(e => {
-            const firstDate = (e.event_dates && e.event_dates.length > 0) ? e.event_dates[0] : (e.start_date || e.date);
-            return firstDate && firstDate <= todayIsoStr;
-        }).length;
-
-        const pastSocialsCount = febSocials.filter(s => {
-            if (s.date) return s.date <= todayIsoStr;
-            return true; // 반복형은 등록 즉시 활성형으로 간주
-        }).length;
-
-        const eventDailyAvg = ((pastEventsCount + pastSocialsCount) / krToday).toFixed(1);
+        // 당월 전체 데이터를 바탕으로 현재까지의 일평균(Pace) 산출 (대시보드 로직과 동기화)
+        const eventDailyAvg = ((febEvents.length + febSocials.length) / Math.max(1, krToday)).toFixed(1);
 
         return {
             statusCode: 200,

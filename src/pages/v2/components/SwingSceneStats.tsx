@@ -383,7 +383,7 @@ export default function SwingSceneStats() {
 
             const topDayData = [...totalWeekly].sort((a, b) => b.count - a.count)[0];
 
-            setStats({
+            const newStats: SceneStats = {
                 monthly: months.map(m => monthlyDict[m]),
                 totalWeekly,
                 monthlyWeekly,
@@ -393,7 +393,16 @@ export default function SwingSceneStats() {
                     dailyAverage: currentDailyAvg,
                     topDay: topDayData.day
                 }
-            });
+            };
+            setStats(newStats);
+
+            // Dispatch event for dynamic sync (e.g., for SideDrawer)
+            window.dispatchEvent(new CustomEvent('statsUpdated', {
+                detail: {
+                    total: totalItems,
+                    avg: currentDailyAvg
+                }
+            }));
 
         } catch (error) {
             console.error('[SwingSceneStats] Error fetching scene stats:', error);
