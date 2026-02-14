@@ -327,7 +327,7 @@ const EventList: React.FC<EventListProps> = ({
                 return false;
               })
               .map(e => ({
-                id: `event-${e.id}`, // Maintain consistent ID format for mapped events
+                id: e.id, // ✅ ID 접두어 제거 (모두 events 테이블 ID 사용)
                 group_id: e.group_id || -1,
                 title: e.title,
                 date: e.date,
@@ -392,7 +392,7 @@ const EventList: React.FC<EventListProps> = ({
                 return false;
               })
               .map(e => ({
-                id: `event-${e.id}`, // ✅ ID 충돌 방지
+                id: e.id, // ✅ ID 접두어 제거
                 group_id: e.group_id || -1,
                 title: e.title,
                 date: e.date,
@@ -442,31 +442,11 @@ const EventList: React.FC<EventListProps> = ({
           selectedEventGenre={searchParams.get('event_genre')}
           selectedClassGenre={searchParams.get('class_genre')}
           selectedClubGenre={searchParams.get('club_genre')}
-          onEventClick={(e) => {
-            // 🎯 오늘의 일정 섹션에서 ID가 'event-123' 형태가 된 경우 복원
-            if ('is_mapped_event' in e && (e as any).is_mapped_event) {
-              const idStr = String((e as any).id);
-              if (idStr.startsWith('event-')) {
-                const originalId = idStr.replace('event-', '');
-                const originalEvent = events.find(ev => String(ev.id) === String(originalId));
-                if (originalEvent) {
-                  onEventClick?.(originalEvent);
-                  return;
-                }
-              }
-            }
-            onEventClick?.(e);
-          }}
-          onEventHover={(id: number | string | null) => {
+          onEventClick={onEventClick || (() => { })}
+          onEventHover={(id) => {
             if (!onEventHover) return;
-            if (id === null) {
-              onEventHover(null);
-              return;
-            }
-            // ID가 'event-123' 형태인 경우 원본 ID 추출하여 검색
-            const idStr = String(id);
-            const lookupId = idStr.startsWith('event-') ? idStr.replace('event-', '') : id;
-            const found = events.find(ev => String(ev.id) === String(lookupId));
+            if (id === null) { onEventHover(null); return; }
+            const found = events.find(ev => String(ev.id) === String(id));
             onEventHover(found ?? null);
           }}
           highlightEvent={highlightEvent ?? null}
