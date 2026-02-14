@@ -118,10 +118,10 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
     };
 
     useEffect(() => {
-        if (isAdmin && isOpen) {
+        if (isOpen) {
             fetchAdminStats();
         }
-    }, [isAdmin, isOpen]);
+    }, [isOpen]);
 
     const fetchAdminStats = async () => {
         try {
@@ -242,63 +242,79 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
                 </div>
 
                 <nav className="SD-nav">
-                    <div className="SD-pwaSection">
-                        <div className="SD-sectionTitle">APP 전용 기능</div>
-                        <div className="SD-pwaContainer">
-                            <PWAInstallButton />
-                            <div
-                                className="SD-menuItem SD-notificationEntry"
-                                onClick={() => {
-                                    if (user) {
-                                        notificationSettingsModal.open();
-                                    } else {
-                                        onLoginClick();
-                                    }
-                                    onClose();
-                                }}
-                            >
-                                <i className="ri-notification-3-fill"></i>
-                                <div className="SD-menuLabelWithStatus">
-                                    <span>알림 설정</span>
-                                    <span className={`SD-statusDot ${isPushEnabled ? 'is-active' : ''}`}>
-                                        {isPushEnabled ? 'ON' : 'OFF'}
-                                    </span>
+                    <div className="SD-topDashboard">
+                        <div className="SD-pwaSection">
+                            <div className="SD-sectionTitle">APP DASHBOARD</div>
+                            <div className="SD-pwaContainer">
+                                <PWAInstallButton />
+                                <div
+                                    className="SD-menuItem SD-notificationEntry"
+                                    onClick={() => {
+                                        if (user) {
+                                            notificationSettingsModal.open();
+                                        } else {
+                                            onLoginClick();
+                                        }
+                                        onClose();
+                                    }}
+                                >
+                                    <i className="ri-notification-3-fill"></i>
+                                    <div className="SD-menuLabelWithStatus">
+                                        <span>알림 설정</span>
+                                        <span className={`SD-statusDot ${isPushEnabled ? 'is-active' : ''}`}>
+                                            {isPushEnabled ? 'ON' : 'OFF'}
+                                        </span>
+                                    </div>
                                 </div>
-                                <i className="ri-arrow-right-s-line"></i>
+                            </div>
+                        </div>
+
+                        <div className="SD-statsSection">
+                            <div className="SD-sectionTitle">SITE STATS</div>
+                            <div className="SD-adminGrid">
+                                <div
+                                    className={`SD-adminGridItem ${!isAdmin ? 'is-readonly' : ''}`}
+                                    onClick={() => isAdmin && adminSecureMembersModal.open()}
+                                >
+                                    <span className="SD-gridVal">{memberCount ?? '-'}</span>
+                                    <span className="SD-gridLabel">회원</span>
+                                </div>
+                                {isAdmin && (
+                                    <div className="SD-adminGridItem" onClick={() => onlineUsersModal.open()}>
+                                        <span className="SD-gridVal" style={{ color: '#34d399' }}>{onlineCount}</span>
+                                        <span className="SD-gridLabel">온라인</span>
+                                    </div>
+                                )}
+                                <div
+                                    className={`SD-adminGridItem ${!isAdmin ? 'is-readonly' : ''}`}
+                                    onClick={() => isAdmin && adminAppStatusModal.open({ initialTab: 'pwa' })}
+                                >
+                                    <span className="SD-gridVal" style={{ color: '#fbbf24' }}>{pwaCount ?? '-'}</span>
+                                    <span className="SD-gridLabel">앱 설치</span>
+                                </div>
+                                <div
+                                    className={`SD-adminGridItem ${!isAdmin ? 'is-readonly' : ''}`}
+                                    onClick={() => isAdmin && adminAppStatusModal.open({ initialTab: 'push' })}
+                                >
+                                    <span className="SD-gridVal" style={{ color: '#f87171' }}>{pushCount ?? '-'}</span>
+                                    <span className="SD-gridLabel">알림 구독</span>
+                                </div>
                             </div>
                         </div>
                     </div>
+
+                    <div className="SD-divider"></div>
 
                     {isAdmin && (
                         <div translate="no" className="SD-adminWrapper">
                             <div className="SD-menuItem SD-isExpandable SD-adminToggle" onClick={() => setIsAdminExpanded(!isAdminExpanded)}>
                                 <i className="ri-admin-line"></i>
-                                <span>ADMIN ONLY</span>
+                                <span>ADMIN CONSOLE</span>
                                 <i className={`ri-arrow-${isAdminExpanded ? 'down' : 'right'}-s-line SD-expandIcon`}></i>
                             </div>
 
                             {isAdminExpanded && (
                                 <div className="SD-adminContainer">
-                                    {/* Admin Summary Dashboard Grid */}
-                                    <div className="SD-adminGrid">
-                                        <div className="SD-adminGridItem" onClick={() => adminSecureMembersModal.open()}>
-                                            <span className="SD-gridVal">{memberCount ?? '-'}</span>
-                                            <span className="SD-gridLabel">회원</span>
-                                        </div>
-                                        <div className="SD-adminGridItem" onClick={() => onlineUsersModal.open()}>
-                                            <span className="SD-gridVal" style={{ color: '#34d399' }}>{onlineCount}</span>
-                                            <span className="SD-gridLabel">온라인</span>
-                                        </div>
-                                        <div className="SD-adminGridItem" onClick={() => adminAppStatusModal.open({ initialTab: 'pwa' })}>
-                                            <span className="SD-gridVal" style={{ color: '#fbbf24' }}>{pwaCount ?? '-'}</span>
-                                            <span className="SD-gridLabel">앱 설치</span>
-                                        </div>
-                                        <div className="SD-adminGridItem" onClick={() => adminAppStatusModal.open({ initialTab: 'push' })}>
-                                            <span className="SD-gridVal" style={{ color: '#f87171' }}>{pushCount ?? '-'}</span>
-                                            <span className="SD-gridLabel">알림 구독</span>
-                                        </div>
-                                    </div>
-
                                     {/* Category: Monitoring & Status */}
                                     <div className="SD-adminSubGroup">
                                         <div className="SD-subGroupTitle">모니터링 & 현황</div>

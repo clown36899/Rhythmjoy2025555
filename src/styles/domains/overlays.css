@@ -312,22 +312,59 @@
 }
 
 /* PWA 섹션 스타일 개선 */
-.SideDrawer .SD-pwaSection {
-    padding: 10px 20px 20px 20px;
-    background: transparent;
-    /* 배경 제거 */
+.SideDrawer .SD-topDashboard {
+    display: flex;
+    gap: 8px;
+    padding: 12px 16px;
     border-bottom: 1px solid var(--border-glass-subtle);
+}
+
+.SideDrawer .SD-pwaSection,
+.SideDrawer .SD-statsSection {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.SideDrawer .SD-pwaSection {
+    padding: 0;
+    border-bottom: none;
+}
+
+.SideDrawer .SD-statsSection {
+    padding: 0;
+}
+
+.SideDrawer .SD-sectionTitle {
+    padding: 0 0 8px 4px;
+    font-size: 9px;
+    opacity: 0.5;
 }
 
 .SideDrawer .SD-pwaContainer {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    background: rgba(255, 255, 255, 0.03);
-    /* 아주 연한 흰색 투명도 */
-    padding: 16px;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.02);
+    padding: 10px;
     border-radius: 12px;
     border: 1px solid var(--border-glass-subtle);
+    height: 100%;
+}
+
+.SideDrawer .SD-notificationEntry {
+    padding: 8px 4px;
+    gap: 10px;
+    background: transparent !important;
+}
+
+.SideDrawer .SD-notificationEntry i {
+    font-size: 16px;
+    width: 20px;
+}
+
+.SideDrawer .SD-notificationEntry span {
+    font-size: 12px;
 }
 
 .SideDrawer .SD-footer {
@@ -429,15 +466,15 @@
 .SideDrawer .SD-adminGrid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-    margin-bottom: 20px;
+    gap: 6px;
+    height: 100%;
 }
 
 .SideDrawer .SD-adminGridItem {
-    background: rgba(255, 255, 255, 0.03);
+    background: rgba(255, 255, 255, 0.02);
     border: 1px solid var(--border-glass-subtle);
-    border-radius: 12px;
-    padding: 12px;
+    border-radius: 10px;
+    padding: 10px 4px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -446,10 +483,15 @@
     transition: all 0.3s ease;
 }
 
-.SideDrawer .SD-adminGridItem:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.2);
-    transform: translateY(-2px);
+.SideDrawer .SD-adminGridItem.is-readonly {
+    cursor: default;
+    pointer-events: none;
+}
+
+.SideDrawer .SD-adminGridItem:not(.is-readonly):hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.15);
+    transform: translateY(-1px);
 }
 
 .SideDrawer .SD-gridVal {
