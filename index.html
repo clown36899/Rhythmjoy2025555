@@ -350,6 +350,12 @@
           .then(function (reg) {
             console.log('[PWA] Service Worker registered (v44)');
 
+            // [New] 이미 새 버전이 설치되어 대기 중인 경우 (새로고침 시 등) 즉시 알림 노출
+            if (reg.waiting && navigator.serviceWorker.controller) {
+              console.log('[PWA] Found already waiting worker on load, showing update UI');
+              showUpdateToast(reg);
+            }
+
             // SW 업데이트 감지: 새 SW가 설치되면 사용자에게 알림
             reg.addEventListener('updatefound', function () {
               var newWorker = reg.installing;
