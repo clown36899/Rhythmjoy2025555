@@ -14,7 +14,7 @@ import EventRegistrationModal from '../../components/EventRegistrationModal';
 
 // Social Components
 import SocialGroupModal from '../social/components/SocialGroupModal';
-import SocialDetailModal from '../social/components/SocialDetailModal';
+// import SocialDetailModal from '../social/components/SocialDetailModal'; // Removed: combined into EventDetailModal
 import GroupCalendarModal from '../social/components/GroupCalendarModal';
 import type { SocialGroup } from '../social/types';
 
@@ -432,15 +432,16 @@ export default function MyActivitiesPage() {
                 />
             )}
 
-            {/* Social Modals */}
+            {/* Social Modals (Unified with EventDetailModal) */}
             {selectedSchedule && (
-                <SocialDetailModal
+                <EventDetailModal
                     isOpen={!!selectedSchedule}
                     onClose={() => setSelectedSchedule(null)}
-                    schedule={selectedSchedule}
-                    onCopy={() => { }} // Disabled in My Activities for simplicity?
+                    event={selectedSchedule}
                     onEdit={handleEditSchedule}
-                    isAdmin={true} // User owns this schedule
+                    onDelete={handleDeleteEvent}
+                    isAdminMode={true}
+                    currentUserId={user?.id}
                 />
             )}
 
