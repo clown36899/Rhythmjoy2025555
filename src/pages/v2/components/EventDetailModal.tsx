@@ -1578,7 +1578,13 @@ export default function EventDetailModal({
                       }
 
                       // Special handling for social events: Delegate edit to parent (external modal)
-                      const isSocial = String(selectedEvent.id).startsWith('social-') || (selectedEvent as any).is_social_integrated;
+                      // Special handling for social events: Delegate edit to parent (external modal)
+                      const isSocial = String(selectedEvent.id).startsWith('social-') ||
+                        (selectedEvent as any).is_social_integrated ||
+                        (selectedEvent as any).group_id ||
+                        selectedEvent.category === 'social' ||
+                        selectedEvent.category === 'club_lesson' ||
+                        selectedEvent.category === 'club_regular';
                       if (isSocial && _onEdit) {
                         _onEdit(selectedEvent);
                         return;

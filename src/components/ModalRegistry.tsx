@@ -20,6 +20,7 @@ const NewEventsListModal = lazy(() => import('../pages/v2/components/NewEventsLi
 // Social Modals
 const SocialPasswordModal = lazy(() => import('../pages/social/components/SocialPasswordModal'));
 const SocialPlaceDetailModal = lazy(() => import('../pages/social/components/SocialPlaceDetailModal'));
+const SocialScheduleModal = lazy(() => import('../pages/social/components/SocialScheduleModal'));
 const PlaceModal = lazy(() => import('../pages/social/components/PlaceModal'));
 
 // Shopping Modals
@@ -84,6 +85,7 @@ const MODAL_COMPONENTS: Record<string, any> = {
         const eventData = props.event || props.schedule || props.item;
         return <EventDetailModal {...props} event={eventData} isAdminMode={props.isAdminMode || props.isAdmin} />;
     },
+    'socialSchedule': SocialScheduleModal,
     'socialPassword': SocialPasswordModal,
     'socialPlaceDetail': SocialPlaceDetailModal,
     'place': PlaceModal,

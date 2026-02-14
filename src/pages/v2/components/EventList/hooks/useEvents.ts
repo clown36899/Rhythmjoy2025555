@@ -80,7 +80,7 @@ export function useEvents({ isAdminMode }: UseEventsProps) {
                 if (item.group_id) {
                     return {
                         ...item,
-                        id: `social-${item.id}`, // Maintain prefix for UI logic compatibility
+                        id: item.id, // Unified ID (social- prefix removed)
                         start_date: item.start_date || item.date || null,
                         end_date: item.end_date || item.date || null,
                         time: item.time ? item.time.substring(0, 5) : null,

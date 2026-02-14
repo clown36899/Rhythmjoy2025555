@@ -117,12 +117,13 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
 
     // Initialize Form (Recruit) - Fetch on Open
     useEffect(() => {
-        if (isOpen && groupId) {
+        const targetGroupId = groupId || editSchedule?.group_id;
+        if (isOpen && targetGroupId) {
             const fetchRecruitInfo = async () => {
                 const { data } = await supabase
                     .from('social_groups')
                     .select('recruit_content, recruit_contact, recruit_link, recruit_image')
-                    .eq('id', groupId)
+                    .eq('id', targetGroupId)
                     .single();
 
                 if (data) {
@@ -135,7 +136,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
             };
             fetchRecruitInfo();
         }
-    }, [isOpen, groupId]);
+    }, [isOpen, groupId, editSchedule]);
 
     // Loading State Sync
     useEffect(() => {
@@ -202,10 +203,12 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
         setLoadingMessage('삭제 중...');
 
         try {
+            const targetId = String(editSchedule.id).replace('social-', '');
+
             const { error } = await supabase
                 .from('events')
                 .delete()
-                .eq('id', editSchedule.id);
+                .eq('id', targetId);
 
             if (error) throw error;
 
@@ -306,7 +309,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                     image_thumbnail: imageThumbnail,
                     image_medium: imageMedium,
                     image_full: imageFull,
-                    group_id: groupId,
+                    group_id: groupId || editSchedule?.group_id,
                     user_id: user.id,
                     category: category,
                     genre: genre,
@@ -315,10 +318,11 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
 
                 // 3. Save
                 if (editSchedule) {
+                    const targetId = String(editSchedule.id).replace('social-', '');
                     const { error } = await supabase
                         .from('events')
                         .update(eventData)
-                        .eq('id', editSchedule.id);
+                        .eq('id', targetId);
                     if (error) throw error;
                 } else {
                     const { error } = await supabase

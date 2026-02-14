@@ -19,6 +19,7 @@ import { useSetPageAction } from "../../contexts/PageActionContext";
 const EventPasswordModal = lazy(() => import("../v2/components/EventPasswordModal"));
 const EventRegistrationModal = lazy(() => import("../../components/EventRegistrationModal"));
 import RegistrationChoiceModal from "../v2/components/RegistrationChoiceModal";
+const SocialScheduleModal = lazy(() => import("../social/components/SocialScheduleModal"));
 
 
 export default function CalendarPage() {
@@ -64,6 +65,9 @@ export default function CalendarPage() {
 
     // Venue Modal State
     const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null);
+
+    // Social Edit State
+    const [socialEditEvent, setSocialEditEvent] = useState<any | null>(null);
 
     const handleVenueClick = useCallback((venueId: string) => {
         setSelectedVenueId(venueId);
@@ -343,6 +347,22 @@ export default function CalendarPage() {
 
     // Event handlers are now provided by useEventModal Hook
 
+    const handleSocialEdit = useCallback((event: any) => {
+        // 소셜 이벤트 수정 처리
+        // 1. ID에서 'social-' 접두어 제거
+        const cleanEvent = { ...event };
+        if (typeof cleanEvent.id === 'string' && cleanEvent.id.startsWith('social-')) {
+            cleanEvent.id = cleanEvent.id.replace('social-', '');
+        }
+        // 숫자형 ID로 변환 가능하면 변환 (DB가 int인 경우 대비)
+        if (!isNaN(Number(cleanEvent.id))) {
+            // cleanEvent.id = Number(cleanEvent.id); // SocialScheduleModal might expect string or number depending on types. keeping it as matches DB.
+        }
+
+        setSocialEditEvent(cleanEvent);
+        eventModal.closeAllModals();
+    }, [eventModal]);
+
     // 이벤트 생성 후 해당 날짜로 이동 및 하이라이트
     const handleEventCreated = useCallback((eventId: number | string, eventDate: Date) => {
         // 해당 월로 이동
@@ -548,7 +568,14 @@ export default function CalendarPage() {
                     // @ts-expect-error - adminType prop mismatch fix pending in component
                     adminType={adminType}
                     onDelete={(id: any) => eventModal.handleDeleteEvent(typeof id === 'number' ? id : id.id)}
-                    onEdit={(event: any) => eventModal.handleEditClick(event)}
+                    onEdit={(event: any) => {
+                        const isSocial = String(event.id).startsWith('social-') || event.is_social_integrated || (event.category === 'social');
+                        if (isSocial) {
+                            handleSocialEdit(event);
+                        } else {
+                            eventModal.handleEditClick(event);
+                        }
+                    }}
                     isDeleting={eventModal.isDeleting}
                     isFavorite={favoriteEventIds.has(eventModal.selectedEvent.id)}
                     onToggleFavorite={(e: any) => {
@@ -657,6 +684,25 @@ export default function CalendarPage() {
                     setTimeout(() => setHighlightedEventId(null), 3000);
                 }}
             />
+
+            {/* Social Schedule Edit Modal */}
+            {socialEditEvent && (
+                <Suspense fallback={<div />}>
+                    <SocialScheduleModal
+                        isOpen={!!socialEditEvent}
+                        onClose={() => setSocialEditEvent(null)}
+                        groupId={socialEditEvent.group_id} // Fallback handled in modal if missing
+                        editSchedule={socialEditEvent}
+                        onSuccess={() => {
+                            // Refresh calendar
+                            window.dispatchEvent(new CustomEvent("eventUpdated", { detail: socialEditEvent }));
+                            // Also trigger refetch if needed
+                            // fetchEvents(); // fetchEvents is inside FullEventCalendar closure...
+                            // Sending eventUpdated event should trigger FullEventCalendar refresh
+                        }}
+                    />
+                </Suspense>
+            )}
         </div>
     );
 }
