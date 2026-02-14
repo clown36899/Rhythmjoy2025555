@@ -11,21 +11,13 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-    const [theme, setTheme] = useState<Theme>(() => {
-        // [Fix] 사용자의 명시적 선택이 없는 한 다크 모드를 기본으로 함
-        // 1. localStorage에서 저장된 수동 설정 테마 불러오기
-        const saved = localStorage.getItem('theme');
-        if (saved) return saved as Theme;
-
-        // 2. 기본값: 무조건 다크 모드 (OS 설정 및 시간 기반 자동 감지 제거)
-        return 'dark';
-    });
+    const [theme, setTheme] = useState<Theme>('dark');
 
     useEffect(() => {
         // HTML 루트에 테마 클래스 적용
         document.documentElement.setAttribute('data-theme', theme);
-        // localStorage에 저장
-        localStorage.setItem('theme', theme);
+        // [Fix] 새로고침 시 다크모드로 리셋되어야 하므로 불필요한 캐시 제거
+        localStorage.removeItem('theme');
     }, [theme]);
 
     const toggleTheme = () => {
