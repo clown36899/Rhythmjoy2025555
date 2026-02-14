@@ -1,4 +1,5 @@
 
+console.log('%c[Supabase] 🚀 supabase.ts module execution started', 'background: #ff00ff; color: white; font-weight: bold;');
 import { createClient } from '@supabase/supabase-js'
 import { authLogger } from '../utils/authLogger';
 import { isPWAMode } from './pwaDetect';

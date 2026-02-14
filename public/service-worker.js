@@ -1,6 +1,6 @@
 // 빌보드 PWA 서비스 워커 (Version: 20260214 - V44/Auth Stability & Safari Fix)
-const CACHE_NAME = 'rhythmjoy-cache-v47';
-// Last updated: 2026-02-14 (v47)
+const CACHE_NAME = 'rhythmjoy-cache-v48';
+// Last updated: 2026-02-14 (v48)
 self.addEventListener('install', (event) => {
   // index.html을 반드시 캐시한 후 skipWaiting (navigate fallback 보장)
   event.waitUntil(
@@ -44,11 +44,13 @@ self.addEventListener('fetch', (event) => {
     url.hash.includes('refresh_token=');
 
   if (isAuthRequest) {
-    console.log('[SW] 🛡️ Auth request detected (code/token/error). Bypassing SW fetch handler to avoid interference.', {
+    console.log('[SW] 🛡️ Auth request detected (code/token/error). Forcing network direct.', {
       url: url.href,
       mode: event.request.mode
     });
-    return; // 브라우저가 직접 네트워크 요청을 처리하게 함
+    // return 대신 respondWith(fetch)를 사용하여 SW의 응답 책임을 명시적으로 네트워크에 위임
+    event.respondWith(fetch(event.request));
+    return;
   }
 
   // 외부 요청 무시 (Supabase, chrome-extension, 다른 도메인)

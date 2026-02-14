@@ -12,40 +12,36 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <script>
+    // [Critical] v48 Armor - Error Monitor & Breadcrumbs
     (function () {
+      window.__LOGS = [];
+      function log(m, d) {
+        var entry = { t: new Date().toISOString(), m: m, d: d };
+        window.__LOGS.push(entry);
+        console.log('%c[Bootstrap] ' + m, 'background: #333; color: #ffeb3b; font-weight: bold;', d || '');
+      }
+      window.__BOOT_LOG = log;
+      log('Stage 1: HTML Head reached');
+
+      window.addEventListener('error', function (e) {
+        var src = e.target && (e.target.src || e.target.href);
+        log('🚨 Global Error', { msg: e.message, src: src, type: e.type });
+        // Chunk Error 감지 시 즉시 자동 복구
+        if (src && (src.indexOf('chunk') > -1 || src.indexOf('assets') > -1)) {
+          log('⚠️ Chunk Load Fail detected. Force reload in 1s...');
+          setTimeout(function () { window.location.reload(); }, 1000);
+        }
+      }, true);
+
+      window.addEventListener('unhandledrejection', function (e) {
+        log('🚨 Promise Reject', { reason: String(e.reason) });
+      });
+
+      // 테마 초기화
       var savedTheme = localStorage.getItem('theme') || 'dark';
       document.documentElement.setAttribute('data-theme', savedTheme);
-      // Removed hardcoded theme-color meta tag from HTML, let script handle it
-      var themeColor = savedTheme === 'dark' ? '#000000' : '#f9fafb';
-      var metaThemeColor = document.querySelector('meta[name="theme-color"]');
-      if (metaThemeColor) {
-        metaThemeColor.setAttribute('content', themeColor);
-      } else {
-        var meta = document.createElement('meta');
-        meta.name = 'theme-color';
-        meta.content = themeColor;
-        document.getElementsByTagName('head')[0].appendChild(meta);
-      }
+      log('Theme initialized', { theme: savedTheme });
     })();
-
-    // [Critical] Error Monitor (MUST BE FIRST)
-    window.__AUTH_BOOTSTRAP_LOGS = [];
-    window.__AUTH_LOGGER_FALLBACK = function (msg, data) {
-      var entry = { t: new Date().toISOString(), m: msg, d: data };
-      window.__AUTH_BOOTSTRAP_LOGS.push(entry);
-      console.log('%c[Bootstrap] ' + msg, 'background: #333; color: #ffeb3b; font-weight: bold;', data || '');
-    };
-    function handleModuleError(event) {
-      var error = event.error || (event.reason ? event.reason : event);
-      var message = error && error.message ? error.message : String(error);
-      window.__AUTH_LOGGER_FALLBACK('🚨 Error Captured', { message: message, type: event.type });
-      if (message.indexOf('Failed to fetch') > -1 || message.indexOf('chunk') > -1 || message.indexOf('Importing') > -1) {
-        window.__AUTH_LOGGER_FALLBACK('⚠️ Recovery needed (JS load fail). Reloading in 1s...');
-        setTimeout(function () { window.location.reload(); }, 1000);
-      }
-    }
-    window.addEventListener('error', handleModuleError, true);
-    window.addEventListener('unhandledrejection', handleModuleError);
   </script>
 
   <!-- PWA 설정 - 동적 manifest -->
@@ -310,7 +306,17 @@
   <div id="google_translate_element" style="display: none;"></div>
 
   <div id="root"></div>
+  <script>window.__BOOT_LOG && window.__BOOT_LOG('Stage 2: Reached #root, loading main bundle');</script>
   <script type="module" src="/src/main.tsx"></script>
+  <script>
+    window.__BOOT_LOG && window.__BOOT_LOG('Stage 3: Main bundle tag parsed');
+    document.addEventListener('DOMContentLoaded', function () {
+      window.__BOOT_LOG && window.__BOOT_LOG('Stage 4: DOMContentLoaded event');
+    });
+    window.addEventListener('load', function () {
+      window.__BOOT_LOG && window.__BOOT_LOG('Stage 5: Window Load event');
+    });
+  </script>
 
   <!-- Google Translate Script -->
   <script type="text/javascript">
