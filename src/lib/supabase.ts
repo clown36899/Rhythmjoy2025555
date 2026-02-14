@@ -14,18 +14,9 @@ const supabaseAnonKey = import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY || 'placeh
 //   adminEmail: import.meta.env.VITE_ADMIN_EMAIL || '없음'
 // });
 
-// [Critical Fix] Safari 및 모든 iOS 기반 브라우저(Webkit)의 navigator.locks 결함 대응
-// iOS 환경임을 최대한 보수적으로(폭넓게) 판별합니다.
-const isSafariOrIOS = typeof navigator !== 'undefined' && (
-  /iPhone|iPad|iPod/i.test(navigator.userAgent) ||
-  (/^((?!chrome|android).)*safari/i.test(navigator.userAgent)) ||
-  ((navigator as any).standalone === true) ||
-  (window.location.search.includes('utm_source=pwa'))
-);
-
-// [Debug] 앱 초기화 시점에 즉시 확인 가능하도록 console.log 직접 사용
-console.log('%c[Supabase] Client Initialization State:', 'background: #1a1a2e; color: #ff00ff; font-weight: bold;', { isSafariOrIOS, ua: navigator.userAgent });
-authLogger.log('[Supabase] 🔌 Initializing Client...', { isSafariOrIOS });
+// [Critical Fix] Safari/iOS 및 PWA 환경의 navigator.locks 결함 대응
+// 락 지연으로 인한 앱 부팅 중단을 막기 위해 모든 환경에서 락을 우회합니다.
+console.log('%c[Supabase] 🔓 Unconditional Lock Bypass Active (v48)', 'background: #ff00ff; color: white; font-weight: bold;');
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
@@ -35,14 +26,11 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     detectSessionInUrl: true,
     flowType: 'pkce',
-    // Safari/iOS용 Dummy Lock: navigator.locks 결함으로 인한 Deadlock 원천 차단
+    // 락 지연 방지: 더미 락 제공
     lockTerminatedContext: false,
-    ...(isSafariOrIOS ? {
-      lock: async (name: string, _timeout: number, fn: () => Promise<any>) => {
-        authLogger.log(`[Supabase] 🔓 Safari/iOS: Bypassing Lock (${name})`);
-        return fn();
-      }
-    } : {})
+    lock: function (name, timeout, fn) {
+      return fn();
+    }
   } as any,
   realtime: {
     params: {

@@ -4,14 +4,18 @@ export const authLogger = {
         const style = 'background: #1a1a2e; color: #00ff00; font-weight: bold; padding: 2px 8px; border-radius: 4px; border: 1px solid #00ff00;';
         console.log(`%c[Auth] ${message}`, style, data || '');
 
+        // [Safety] localStorage가 차단된 환경에서도 로깅 중단 방지
         try {
-            const logs = JSON.parse(localStorage.getItem('auth_debug_logs') || '[]');
-            const timestamp = new Date().toISOString();
-            logs.push({ timestamp, message, data });
-            if (logs.length > 500) logs.shift(); // 용량 대폭 확장
-            localStorage.setItem('auth_debug_logs', JSON.stringify(logs));
+            if (typeof window !== 'undefined' && window.localStorage) {
+                const logs = JSON.parse(window.localStorage.getItem('auth_logs') || '[]');
+                const timestamp = new Date().toISOString();
+                const entry = { timestamp, message, data };
+                logs.push(entry);
+                if (logs.length > 500) logs.shift();
+                window.localStorage.setItem('auth_logs', JSON.stringify(logs));
+            }
         } catch (e) {
-            // localStorage 실패해도 console로그는 이미 찍힘
+            // localStorage 실패 시 콘솔에는 이미 남았으므로 조용히 처리
         }
     },
     getLogs: () => {

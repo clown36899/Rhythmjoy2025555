@@ -12,35 +12,34 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <script>
-    // [Critical] v48 Armor - Error Monitor & Breadcrumbs
+    // [Critical] v48 Armor - Bootstrap Analytics
     (function () {
       window.__LOGS = [];
-      function log(m, d) {
+      window.__BOOT_LOG = function (m, d) {
         var entry = { t: new Date().toISOString(), m: m, d: d };
         window.__LOGS.push(entry);
         console.log('%c[Bootstrap] ' + m, 'background: #333; color: #ffeb3b; font-weight: bold;', d || '');
-      }
-      window.__BOOT_LOG = log;
-      log('Stage 1: HTML Head reached');
+      };
 
+      window.__BOOT_LOG('Stage 1: Head reached', {
+        ua: navigator.userAgent,
+        vendor: navigator.vendor,
+        pwa: ('standalone' in navigator && navigator.standalone) || window.matchMedia('(display-mode: standalone)').matches
+      });
+
+      // 에러 캡처 (Capture Phase)
       window.addEventListener('error', function (e) {
         var src = e.target && (e.target.src || e.target.href);
-        log('🚨 Global Error', { msg: e.message, src: src, type: e.type });
-        // Chunk Error 감지 시 즉시 자동 복구
+        window.__BOOT_LOG('🚨 Error Captured', { msg: e.message, src: src, type: e.type });
         if (src && (src.indexOf('chunk') > -1 || src.indexOf('assets') > -1)) {
-          log('⚠️ Chunk Load Fail detected. Force reload in 1s...');
+          window.__BOOT_LOG('⚠️ Asset failed to load. Reloading...');
           setTimeout(function () { window.location.reload(); }, 1000);
         }
       }, true);
 
-      window.addEventListener('unhandledrejection', function (e) {
-        log('🚨 Promise Reject', { reason: String(e.reason) });
-      });
-
       // 테마 초기화
-      var savedTheme = localStorage.getItem('theme') || 'dark';
-      document.documentElement.setAttribute('data-theme', savedTheme);
-      log('Theme initialized', { theme: savedTheme });
+      var theme = localStorage.getItem('theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', theme);
     })();
   </script>
 
@@ -366,69 +365,17 @@
   <!-- PWA Service Worker 등록 + 버전 체크 -->
   <script>
     if ('serviceWorker' in navigator) {
-      var hadController = !!navigator.serviceWorker.controller;
-
       window.addEventListener('load', function () {
-        var swUrl = '/service-worker.js?v=20260214_v47';
-        navigator.serviceWorker.register(swUrl)
-          .then(function (reg) {
-            console.log('[PWA] SW Reg Ready:', { version: 'v47', state: reg.active ? 'active' : 'waiting' });
-
-            if (reg.waiting && navigator.serviceWorker.controller) {
-              window.__AUTH_LOGGER_FALLBACK('Found waiting worker, showing UI');
-              showUpdateToast(reg);
-            }
-
-            reg.addEventListener('updatefound', function () {
-              var newWorker = reg.installing;
-              if (!newWorker) return;
-              newWorker.addEventListener('statechange', function () {
-                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                  showUpdateToast(reg);
-                }
-              });
+        var swUrl = '/service-worker.js?v=20260214_v48';
+        navigator.serviceWorker.register(swUrl).then(function (reg) {
+          window.__BOOT_LOG && window.__BOOT_LOG('SW Registered', { version: 'v48' });
+          if (reg.waiting && navigator.serviceWorker.controller) showUpdateToast(reg);
+          reg.addEventListener('updatefound', function () {
+            var worker = reg.installing;
+            worker.addEventListener('statechange', function () {
+              if (worker.state === 'installed' && navigator.serviceWorker.controller) showUpdateToast(reg);
             });
-
-            setInterval(function () { reg.update(); }, 5 * 60 * 1000);
-          })
-          .catch(function (err) { console.error('[PWA] SW Failed:', err); });
-
-        // SW가 SW_UPDATED 메시지를 보내면 자동 리로드 (배포 후 chunk 불일치 방지)
-        navigator.serviceWorker.addEventListener('message', function (event) {
-          if (event.data && event.data.type === 'SW_UPDATED') {
-            // 최초 설치 시에는 리로드 불필요 (이전 SW가 없었으므로 chunk 불일치 없음)
-            if (!hadController) return;
-            var lastSwReload = sessionStorage.getItem('sw_reload');
-            if (lastSwReload && Date.now() - parseInt(lastSwReload) < 10000) {
-              console.warn('[PWA] SW reload loop detected, skipping');
-              return;
-            }
-            // 인증 콜백 중(/auth/) 또는 URL에 인증 파라미터가 있을 때는 흐름 방해를 막기 위해 자동 리로드 하지 않음
-            var urlParams = new URLSearchParams(window.location.search);
-            var hash = window.location.hash;
-            var hasAuthParams = urlParams.has('code') || urlParams.has('error') || hash.includes('access_token=') || hash.includes('refresh_token=');
-
-            if (window.location.pathname.includes('/auth/') || hasAuthParams) {
-              console.log('[PWA] Auth in progress or params detected, delaying SW reload');
-              return;
-            }
-            console.log('[PWA] New SW activated, reloading for fresh assets...');
-            sessionStorage.setItem('sw_reload', Date.now().toString());
-            window.location.reload();
-          }
-        });
-
-        // 사용자가 업데이트 버튼 클릭 시 리로드
-        navigator.serviceWorker.addEventListener('controllerchange', function () {
-          if (window.__SW_UPDATING) {
-            // 인증 콜백 중 또는 파라미터 감지 시 리로드 방어
-            var urlParams = new URLSearchParams(window.location.search);
-            var hash = window.location.hash;
-            var hasAuthParams = urlParams.has('code') || urlParams.has('error') || hash.includes('access_token=') || hash.includes('refresh_token=');
-
-            if (window.location.pathname.includes('/auth/') || hasAuthParams) return;
-            window.location.reload();
-          }
+          });
         });
       });
     }
@@ -436,50 +383,44 @@
     // version.json 폴링: 배포 감지 (3분마다)
     (function () {
       var currentBuild = '__BUILD_TIME__';
-      if (!currentBuild || currentBuild === '__BUILD_' + 'TIME__') return; // dev 모드 무시
-
+      if (!currentBuild || currentBuild.indexOf('TIME') > -1) return;
       setInterval(function () {
         fetch('/version.json?t=' + Date.now())
           .then(function (r) { return r.json(); })
           .then(function (data) {
             if (data.buildTime && data.buildTime !== currentBuild) {
-              console.log('[Version] New build detected:', data.buildTime);
-              // SW 업데이트 트리거
-              if (navigator.serviceWorker && navigator.serviceWorker.controller) {
-                navigator.serviceWorker.getRegistration().then(function (reg) {
-                  if (reg) reg.update();
-                });
-              } else {
-                showUpdateToast(null);
-              }
+              window.navigator.serviceWorker.getRegistration().then(function (reg) {
+                if (reg) reg.update(); else showUpdateToast(null);
+              });
             }
-          })
-          .catch(function () { /* 네트워크 오류 무시 */ });
+          }).catch(function () { });
       }, 3 * 60 * 1000);
     })();
 
-    // 업데이트 바텀시트
+    function applyUpdate() {
+      window.__BOOT_LOG && window.__BOOT_LOG('Applying update...');
+      window.__SW_UPDATING = true;
+      var urlParams = new URLSearchParams(window.location.search);
+      if (!urlParams.has('code') && !urlParams.has('error')) {
+        try { sessionStorage.clear(); } catch (e) { }
+      }
+      var reg = window.__SW_REG;
+      if (reg && reg.waiting) {
+        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+        setTimeout(function () { window.location.href = '/?utm_source=pwa_restart&t=' + Date.now(); }, 500);
+      } else {
+        window.location.href = '/?utm_source=pwa_fallback&t=' + Date.now();
+      }
+    }
+
     function showUpdateToast(reg) {
       if (document.getElementById('sw-update-overlay')) return;
       window.__SW_REG = reg;
-
       var overlay = document.createElement('div');
       overlay.id = 'sw-update-overlay';
-      overlay.innerHTML =
-        '<div class="sw-update-sheet">' +
-        '<div class="sw-update-handle"></div>' +
-        '<div class="sw-update-icon">&#x1f680;</div>' +
-        '<div class="sw-update-title">새 버전이 준비되었습니다</div>' +
-        '<div class="sw-update-desc">더 나은 경험을 위해 업데이트해 주세요.</div>' +
-        '<button class="sw-update-btn" onclick="applyUpdate()">지금 업데이트</button>' +
-        '<button class="sw-update-later" onclick="dismissUpdate()">나중에</button>' +
-        '</div>';
+      overlay.innerHTML = '<div class="sw-update-sheet"><div class="sw-update-handle"></div><div class="sw-update-icon">&#x1f680;</div><div class="sw-update-title">새 버전이 준비되었습니다</div><div class="sw-update-desc">더 나은 경험을 위해 업데이트해 주세요.</div><button class="sw-update-btn" onclick="applyUpdate()">지금 업데이트</button><button class="sw-update-later" onclick="dismissUpdate()">나중에</button></div>';
       document.body.appendChild(overlay);
-
-      // 배경 탭하면 닫기
-      overlay.addEventListener('click', function (e) {
-        if (e.target === overlay) dismissUpdate();
-      });
+      overlay.addEventListener('click', function (e) { if (e.target === overlay) dismissUpdate(); });
     }
 
     function dismissUpdate() {
@@ -487,34 +428,6 @@
       if (el) {
         el.querySelector('.sw-update-sheet').style.transform = 'translateY(100%)';
         setTimeout(function () { el.remove(); }, 300);
-      }
-    }
-
-    function applyUpdate() {
-      console.log('[PWA] Starting clean update & soft restart...');
-      window.__SW_UPDATING = true;
-
-      // [Restart Simulation] 세션 꼬임 방지를 위해 저장소 정리
-      try {
-        sessionStorage.clear();
-        console.log('[PWA] Session storage cleared for fresh start');
-      } catch (e) {
-        console.error('[PWA] Failed to clear session storage:', e);
-      }
-
-      var reg = window.__SW_REG;
-      if (reg && reg.waiting) {
-        // 새 SW 활성화 신호 전송
-        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-
-        // [Safety Delay] SW가 안착하고 브라우저가 준비될 시간을 줌 (0.5초)
-        setTimeout(function () {
-          console.log('[PWA] Restarting app after delay...');
-          window.location.href = '/?utm_source=pwa_restart&t=' + Date.now();
-        }, 500);
-      } else {
-        // SW 정보가 없더라도 일단 클린 리로드
-        window.location.href = '/?utm_source=pwa_fallback&t=' + Date.now();
       }
     }
   </script>
