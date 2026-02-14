@@ -61,33 +61,50 @@ export default function SwingSceneStats() {
     const [inspectGenreDay, setInspectGenreDay] = useState<string | null>(null);
 
     useEffect(() => {
-        const cached = localStorage.getItem('swing_scene_stats_cache');
-        if (cached) {
-            try {
-                const { timestamp, data, v } = JSON.parse(cached);
-                const now = new Date().getTime();
-                // 1 Hour Cache + Version Invalidation
-                if (v === 'v4' && now - timestamp < 3600 * 1000) {
-                    setStats(data);
-                    setLoading(false);
-                    return;
-                }
-            } catch (e) {
-                console.error('Cache parse failed', e);
-            }
-        }
+        // 1. [Instant] Load from Server Cache (scene_analytics)
+        loadServerCache();
+
+        // 2. [Background] Fetch Full Detail Data
         fetchSceneStats();
     }, []);
 
+    const loadServerCache = async () => {
+        try {
+            const { data, error } = await supabase
+                .from('metrics_cache')
+                .select('value, updated_at')
+                .eq('key', 'scene_analytics')
+                .single();
+
+            if (data && data.value) {
+                const cached = data.value as any;
+                // Merge into state (Summary & Monthly only)
+                setStats(prev => {
+                    // If we already have full data (more keys), don't overwrite with partial cache
+                    if (prev && prev.totalWeekly && prev.totalWeekly.length > 0) return prev;
+
+                    return {
+                        monthly: cached.monthly || [],
+                        summary: cached.summary || { totalItems: 0, dailyAverage: 0, topDay: '-' },
+                        totalWeekly: [], // Placeholder until raw fetch
+                        monthlyWeekly: [], // Placeholder
+                        topGenresList: []  // Placeholder
+                    };
+                });
+                setLoading(false); // Show content immediately
+            }
+        } catch (e) {
+            console.error('[SwingSceneStats] Server cache load failed', e);
+        }
+    };
+
     const fetchSceneStats = async () => {
-        setLoading(true);
+        // Don't set loading=true here to avoid flickering if cache is already shown
         try {
             const twelveMonthsAgo = new Date();
             twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
             const oneMonthAgo = new Date();
             oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-
-
 
             // 1. Fetch data (Fetch enough history to cover 12 months)
             const dateFilter = twelveMonthsAgo.toISOString(); // Use ISO for accurate comparison

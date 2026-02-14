@@ -138,39 +138,60 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
 
     const fetchSiteStats = async () => {
         try {
-            // [Fix] 일반 유저는 RLS 정책으로 인해 다른 사용자의 Install/Push 정보를 카운트할 수 없음 (결과가 0으로 나옴)
-            // 1. 대시보드 캐시가 있다면 먼저 반영 (Dynamic Sync from Dashboard Data)
-            const cacheStr = localStorage.getItem('swing_scene_stats_cache');
-            if (cacheStr) {
-                const cache = JSON.parse(cacheStr);
-                // 24시간 이내의 캐시만 유효한 것으로 간주 (또는 최신 데이터 우선)
-                if (cache.summary) {
-                    setEventCountTotal(cache.summary.totalItems);
-                    setEventDailyAvg(cache.summary.dailyAverage);
+            // 1. [Optimistic] 로컬 캐시 즉시 로딩 (0ms Feedback)
+            try {
+                const localCache = localStorage.getItem('layout_stats_v1');
+                if (localCache) {
+                    const parsed = JSON.parse(localCache);
+                    // 캐시된 데이터가 있으면 즉시 반영하여 빈 화면 방지
+                    if (typeof parsed.memberCount === 'number') setMemberCount(parsed.memberCount);
+                    if (typeof parsed.pwaCount === 'number') setPwaCount(parsed.pwaCount);
+                    if (typeof parsed.pushCount === 'number') setPushCount(parsed.pushCount);
+                    if (typeof parsed.eventCountTotal === 'number') setEventCountTotal(parsed.eventCountTotal);
+                    if (typeof parsed.eventDailyAvg === 'number') setEventDailyAvg(parsed.eventDailyAvg);
+                    if (parsed.eventBreakdown) setEventBreakdown(parsed.eventBreakdown);
                 }
+            } catch (e) {
+                console.warn('[SideDrawer] Failed to parse layout_stats_v1', e);
             }
 
-            // 2. API 호출을 통한 최신 공식 데이터 연동
-            // 따라서 관리자용 API(Netlify Functions)를 통해 집계된 수치만 안전하게 가져옴
+            // 2. [Background] Server DB 캐시 조회 (Lazy Cache)
+            // 서버에서 이미 24시간 캐싱된 가벼운 JSON을 가져옴 (0.1~0.5s)
             const response = await fetch('/.netlify/functions/get-site-stats');
+
             if (response.ok) {
                 const data = await response.json();
-                // [Fix] API 결과가 객체로 오염되지 않도록 철저히 숫자 변환
-                setMemberCount(typeof data.memberCount === 'number' ? data.memberCount : 0);
-                setPwaCount(typeof data.pwaCount === 'number' ? data.pwaCount : 0);
-                setPushCount(typeof data.pushCount === 'number' ? data.pushCount : 0);
-                setEventCountTotal(typeof data.eventCountTotal === 'number' ? data.eventCountTotal : 0);
-                setEventDailyAvg(typeof data.eventDailyAvg === 'number' ? data.eventDailyAvg : 0);
-                setEventBreakdown(data.eventBreakdown || null);
+
+                const newData = {
+                    memberCount: typeof data.memberCount === 'number' ? data.memberCount : 0,
+                    pwaCount: typeof data.pwaCount === 'number' ? data.pwaCount : 0,
+                    pushCount: typeof data.pushCount === 'number' ? data.pushCount : 0,
+                    eventCountTotal: typeof data.eventCountTotal === 'number' ? data.eventCountTotal : 0,
+                    eventDailyAvg: typeof data.eventDailyAvg === 'number' ? data.eventDailyAvg : 0,
+                    eventBreakdown: data.eventBreakdown || null,
+                    timestamp: new Date().getTime()
+                };
+
+                // State 최신화
+                setMemberCount(newData.memberCount);
+                setPwaCount(newData.pwaCount);
+                setPushCount(newData.pushCount);
+                setEventCountTotal(newData.eventCountTotal);
+                setEventDailyAvg(newData.eventDailyAvg);
+                setEventBreakdown(newData.eventBreakdown);
+
+                // 로컬 스토리지 업데이트 (다음 접속을 위해)
+                localStorage.setItem('layout_stats_v1', JSON.stringify(newData));
+
             } else {
-                // API 실패 시 폴백 (기존 관리자만 작동하는 로직)
+                // API 실패 시 폴백 (관리자만 Supabase 직접 조회)
                 if (isAdmin) {
                     const [memberRes, pwaRes, pushRes] = await Promise.all([
                         supabase.from('board_users').select('*', { count: 'exact', head: true }),
                         supabase.from('pwa_installs').select('user_id'),
                         supabase.from('user_push_subscriptions').select('user_id')
                     ]);
-                    if (!memberRes.error) setMemberCount(memberRes.count);
+                    if (!memberRes.error) setMemberCount(memberRes.count || 0);
                     if (!pwaRes.error && pwaRes.data) {
                         setPwaCount(new Set(pwaRes.data.filter(d => d.user_id).map(d => d.user_id)).size);
                     }
