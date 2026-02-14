@@ -119,39 +119,40 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
 
     useEffect(() => {
         if (isOpen) {
-            fetchAdminStats();
+            fetchSiteStats();
         }
     }, [isOpen]);
 
-    const fetchAdminStats = async () => {
+    const fetchSiteStats = async () => {
         try {
-            const [memberRes, pwaRes, pushRes] = await Promise.all([
-                supabase.from('board_users').select('*', { count: 'exact', head: true }),
-                // [Fix] PWA 유니크 카운트를 위해 필드 데이터 조회
-                supabase.from('pwa_installs').select('user_id, fingerprint'),
-                // [Fix] 푸시 유니크 카운트를 위해 필드 데이터 조회
-                supabase.from('user_push_subscriptions').select('user_id')
-            ]);
-
-            if (!memberRes.error) setMemberCount(memberRes.count);
-
-            // PWA 유니크 집계 (회원 UID 기준만 허용)
-            if (!pwaRes.error && pwaRes.data) {
-                const uniqueUserIds = new Set(
-                    pwaRes.data
-                        .filter((d: { user_id: string | null }) => d.user_id) // 비회원 배제
-                        .map((d: { user_id: string | null }) => d.user_id)
-                );
-                setPwaCount(uniqueUserIds.size);
-            }
-
-            // 푸시 유니크 집계 (회원 UID 기준)
-            if (!pushRes.error && pushRes.data) {
-                const uniqueUserIds = new Set(pushRes.data.map(item => item.user_id).filter(Boolean));
-                setPushCount(uniqueUserIds.size);
+            // [Fix] 일반 유저는 RLS 정책으로 인해 다른 사용자의 Install/Push 정보를 카운트할 수 없음 (결과가 0으로 나옴)
+            // 따라서 관리자용 API(Netlify Functions)를 통해 집계된 수치만 안전하게 가져옴
+            const response = await fetch('/.netlify/functions/get-site-stats');
+            if (response.ok) {
+                const data = await response.json();
+                // [Fix] API 결과가 객체로 오염되지 않도록 철저히 숫자 변환
+                setMemberCount(typeof data.memberCount === 'number' ? data.memberCount : 0);
+                setPwaCount(typeof data.pwaCount === 'number' ? data.pwaCount : 0);
+                setPushCount(typeof data.pushCount === 'number' ? data.pushCount : 0);
+            } else {
+                // API 실패 시 폴백 (기존 관리자만 작동하는 로직)
+                if (isAdmin) {
+                    const [memberRes, pwaRes, pushRes] = await Promise.all([
+                        supabase.from('board_users').select('*', { count: 'exact', head: true }),
+                        supabase.from('pwa_installs').select('user_id'),
+                        supabase.from('user_push_subscriptions').select('user_id')
+                    ]);
+                    if (!memberRes.error) setMemberCount(memberRes.count);
+                    if (!pwaRes.error && pwaRes.data) {
+                        setPwaCount(new Set(pwaRes.data.filter(d => d.user_id).map(d => d.user_id)).size);
+                    }
+                    if (!pushRes.error && pushRes.data) {
+                        setPushCount(new Set(pushRes.data.map(item => item.user_id).filter(Boolean)).size);
+                    }
+                }
             }
         } catch (e) {
-            console.error('Failed to fetch admin stats', e);
+            console.error('Failed to fetch site stats', e);
         }
     };
 
@@ -276,12 +277,12 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
                                     className={`SD-adminGridItem ${!isAdmin ? 'is-readonly' : ''}`}
                                     onClick={() => isAdmin && adminSecureMembersModal.open()}
                                 >
-                                    <span className="SD-gridVal">{memberCount ?? '-'}</span>
+                                    <span className="SD-gridVal">{typeof memberCount === 'object' ? '-' : (memberCount ?? '-')}</span>
                                     <span className="SD-gridLabel">회원</span>
                                 </div>
                                 {isAdmin && (
                                     <div className="SD-adminGridItem" onClick={() => onlineUsersModal.open()}>
-                                        <span className="SD-gridVal" style={{ color: '#34d399' }}>{onlineCount}</span>
+                                        <span className="SD-gridVal" style={{ color: '#34d399' }}>{typeof onlineCount === 'object' ? '0' : onlineCount}</span>
                                         <span className="SD-gridLabel">온라인</span>
                                     </div>
                                 )}
@@ -289,14 +290,14 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
                                     className={`SD-adminGridItem ${!isAdmin ? 'is-readonly' : ''}`}
                                     onClick={() => isAdmin && adminAppStatusModal.open({ initialTab: 'pwa' })}
                                 >
-                                    <span className="SD-gridVal" style={{ color: '#fbbf24' }}>{pwaCount ?? '-'}</span>
+                                    <span className="SD-gridVal" style={{ color: '#fbbf24' }}>{typeof pwaCount === 'object' ? '-' : (pwaCount ?? '-')}</span>
                                     <span className="SD-gridLabel">앱 설치</span>
                                 </div>
                                 <div
                                     className={`SD-adminGridItem ${!isAdmin ? 'is-readonly' : ''}`}
                                     onClick={() => isAdmin && adminAppStatusModal.open({ initialTab: 'push' })}
                                 >
-                                    <span className="SD-gridVal" style={{ color: '#f87171' }}>{pushCount ?? '-'}</span>
+                                    <span className="SD-gridVal" style={{ color: '#f87171' }}>{typeof pushCount === 'object' ? '-' : (pushCount ?? '-')}</span>
                                     <span className="SD-gridLabel">알림 구독</span>
                                 </div>
                             </div>
