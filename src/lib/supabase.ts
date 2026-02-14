@@ -15,8 +15,9 @@ const supabaseAnonKey = import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY || 'placeh
 // });
 
 // [Critical Fix] Safari/iOS 및 PWA 환경의 navigator.locks 결함 대응
-// 락 지연으로 인한 앱 부팅 중단을 막기 위해 모든 환경에서 락을 우회합니다.
-console.log('%c[Supabase] 🔓 Unconditional Lock Bypass Active (v48)', 'background: #ff00ff; color: white; font-weight: bold;');
+// v9.0 Hybrid Lock Engine 적용 (PC: Native, Mobile: Polyfill)
+import { hybridLock } from './hybridLock';
+console.log('%c[Supabase] 🔒 Hybrid Lock Engine Active (v9.0)', 'background: #00aaaa; color: white; font-weight: bold;');
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
@@ -26,11 +27,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     detectSessionInUrl: true,
     flowType: 'pkce',
-    // 락 지연 방지: 더미 락 제공
-    lockTerminatedContext: false,
-    lock: function (name, timeout, fn) {
-      return fn();
-    }
+    // 하이브리드 락 적용
+    lock: hybridLock,
+    debug: false // 락 디버깅 필요 시 true
   } as any,
   realtime: {
     params: {
@@ -291,10 +290,32 @@ export const validateAndRecoverSession = async (): Promise<any> => {
       // 5. 세션 만료 및 갱신 체크
       if (session.expires_at) {
         const expiresAt = new Date(session.expires_at * 1000);
-        if (expiresAt.getTime() - Date.now() < 60000) {
+        // 만료 5분 전부터 갱신 시도 (여유 확보)
+        if (expiresAt.getTime() - Date.now() < 300000) {
           authLogger.log('[Supabase) ⏰ Refreshing expiring session...');
+
+          // [Refresh Guard] 갱신 시도
           const { data, error: refreshError } = await supabase.auth.refreshSession();
-          if (!refreshError && data.session) {
+
+          if (refreshError) {
+            authLogger.log('[Supabase] ⚠️ Refresh failed:', refreshError);
+
+            // 🔥 중요: 리프레시 토큰 자체가 폐기된 경우 즉시 로그아웃
+            // (이걸 안 하면 좀비 세션이 되어 계속 401을 유발함)
+            const isFatalRefresh =
+              refreshError.message?.includes('invalid_grant') ||
+              refreshError.message?.includes('token_revoked') ||
+              refreshError.message?.includes('Refresh Token Not Found');
+
+            if (isFatalRefresh) {
+              authLogger.log('[Supabase] 🚫 Fatal Refresh Error - Destroying session');
+              await supabase.auth.signOut({ scope: 'local' });
+              return null;
+            }
+
+            // 단순 네트워크 에러면 로컬 세션 유지 (Optimistic Retention)
+            authLogger.log('[Supabase] 🛡️ Network/Server glitch - Keeping local session');
+          } else if (data.session) {
             authLogger.log('[Supabase] ✅ Session refreshed');
             lastValidationTime = Date.now();
             return data.session;

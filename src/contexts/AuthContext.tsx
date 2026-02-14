@@ -592,6 +592,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []); // 의존성 없음 - 초기 마운트 시 1회 실행
 
+  // 3. Broadcast Channel for Cross-Tab Sync (v9.0)
+  const authChannel = useMemo(() => new BroadcastChannel('auth_channel'), []);
+
+  useEffect(() => {
+    const handleAuthMessage = (event: MessageEvent) => {
+      if (event.data?.type === 'LOGOUT') {
+        authLogger.log('[AuthContext] 📡 Received LOGOUT signal from another tab');
+
+        // Prevent duplicate cleanup if already processing
+        if (isLoggingOut) return;
+
+        // Immediate cleanup without server call (Server session is already dead)
+        wipeLocalData();
+        setIsLoggingOut(false);
+        setIsAuthProcessing(false);
+
+        // Optional: Reload to clear memory states completely
+        window.location.reload();
+      }
+    };
+
+    authChannel.addEventListener('message', handleAuthMessage);
+
+    return () => {
+      authChannel.removeEventListener('message', handleAuthMessage);
+      authChannel.close();
+    };
+  }, [isLoggingOut]);
+
   // 2. Auth State Change 구독 (별도 분리)
   useEffect(() => {
     const {
@@ -740,6 +769,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem('billboardUserId');
       localStorage.removeItem('billboardUserName');
 
+      // 🔥 [Sync] 다른 탭에 로그아웃 알림
+      authChannel.postMessage({ type: 'LOGOUT' });
+
       logToStorage('[AuthContext.signOut] 4단계: localStorage 정리 완료: ' + (keysToRemove.length + 1) + '개 항목');
 
       // 5. sessionStorage 완전 정리
@@ -788,7 +820,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     } catch (error) {
       logToStorage('[AuthContext.signOut] ❌ 에러 발생: ' + (error as Error).message);
-      // 실패해도 페이지 리로드로 강제 초기화
+      // 실패해도 다른 탭은 로그아웃 시켜야 함
+      authChannel.postMessage({ type: 'LOGOUT' });
+      // 페이지 리로드로 강제 초기화
       window.location.reload();
     }
   }, [setBillboardUser]);
