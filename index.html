@@ -340,15 +340,29 @@
 
   <!-- PWA Service Worker 등록 + 버전 체크 -->
   <script>
+    // [Diagnostic] 글로벌 에러 트래킹: 배포 환경의 화이트 스크린/부팅 에러 감지
+    window.onerror = function (msg, url, line, col, error) {
+      console.error('[GlobalError]', { msg: msg, url: url, line: line, col: col, error: error });
+      if (typeof window.__AUTH_LOGGER !== 'undefined') {
+        window.__AUTH_LOGGER.log('💥 Global Error Detected', { msg: msg, url: url, line: line });
+      }
+    };
+
     if ('serviceWorker' in navigator) {
-      // 페이지 로드 시점에 기존 컨트롤러 존재 여부 기록 (최초 설치 vs 업데이트 판별)
+      // 페이지 로드 시점에 기존 컨트롤러 존재 여부 기록
       var hadController = !!navigator.serviceWorker.controller;
 
       window.addEventListener('load', function () {
-        var swUrl = '/service-worker.js?v=20260214_v44';
+        var swUrl = '/service-worker.js?v=20260214_v45';
         navigator.serviceWorker.register(swUrl)
           .then(function (reg) {
-            console.log('[PWA] Service Worker registered (v44)');
+            console.log('[PWA] SW Reg Status:', {
+              active: !!reg.active,
+              installing: !!reg.installing,
+              waiting: !!reg.waiting,
+              controller: !!navigator.serviceWorker.controller,
+              version: 'v45'
+            });
 
             // [New] 이미 새 버전이 설치되어 대기 중인 경우 (새로고침 시 등) 즉시 알림 노출
             if (reg.waiting && navigator.serviceWorker.controller) {
@@ -360,7 +374,9 @@
             reg.addEventListener('updatefound', function () {
               var newWorker = reg.installing;
               if (!newWorker) return;
+              console.log('[PWA] New worker found, installing...');
               newWorker.addEventListener('statechange', function () {
+                console.log('[PWA] New worker state changed:', newWorker.state);
                 if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                   showUpdateToast(reg);
                 }
@@ -368,9 +384,12 @@
             });
 
             // 주기적 SW 업데이트 체크 (5분마다)
-            setInterval(function () { reg.update(); }, 5 * 60 * 1000);
+            setInterval(function () {
+              console.log('[PWA] Periodic update check...');
+              reg.update();
+            }, 5 * 60 * 1000);
           })
-          .catch(function (err) { console.error('[PWA] Service Worker failed:', err); });
+          .catch(function (err) { console.error('[PWA] Service Worker registration failed:', err); });
 
         // SW가 SW_UPDATED 메시지를 보내면 자동 리로드 (배포 후 chunk 불일치 방지)
         navigator.serviceWorker.addEventListener('message', function (event) {

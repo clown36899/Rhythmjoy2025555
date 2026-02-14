@@ -1,16 +1,17 @@
 export const authLogger = {
     log: (message: string, data?: unknown) => {
+        // [Debug] 배포 환경에서도 즉시 확인 가능하도록 스타일 적용
+        const style = 'background: #1a1a2e; color: #00ff00; font-weight: bold; padding: 2px 8px; border-radius: 4px; border: 1px solid #00ff00;';
+        console.log(`%c[Auth] ${message}`, style, data || '');
+
         try {
             const logs = JSON.parse(localStorage.getItem('auth_debug_logs') || '[]');
             const timestamp = new Date().toISOString();
             logs.push({ timestamp, message, data });
-            if (logs.length > 200) logs.shift(); // 200개로 확장
+            if (logs.length > 500) logs.shift(); // 용량 대폭 확장
             localStorage.setItem('auth_debug_logs', JSON.stringify(logs));
-
-            // 더 눈에 띄는 스타일 적용
-            console.log(`%c[Auth] ${message}`, 'background: #222; color: #00ff00; font-weight: bold; padding: 2px 5px; border-radius: 3px;', data || '');
         } catch (e) {
-            console.warn('Failed to save auth log', e);
+            // localStorage 실패해도 console로그는 이미 찍힘
         }
     },
     getLogs: () => {
