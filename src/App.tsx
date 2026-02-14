@@ -138,8 +138,14 @@ function AppContent() {
     };
   }, []);
 
-  const handlePwaConfirm = async (prefs: { pref_events: boolean, pref_class: boolean, pref_clubs: boolean, pref_filter_tags: string[] | null, pref_filter_class_genres: string[] | null }) => {
+  const handlePwaConfirm = async (prefs: { pref_events: boolean, pref_class: boolean, pref_clubs: boolean, pref_filter_tags: string[] | null, pref_filter_class_genres: string[] | null }, dontShowAgain: boolean) => {
     setShowPwaModal(false);
+
+    if (dontShowAgain) {
+      localStorage.setItem('pwa_prompt_dismissed', 'true');
+      console.log('[App] User configured PWA notifications and opted out of future prompts.');
+    }
+
     console.log('[App] User configured PWA notifications:', prefs);
     const sub = await subscribeToPush();
     if (sub) {

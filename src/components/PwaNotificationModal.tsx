@@ -12,7 +12,7 @@ interface PushPreferences {
 
 interface PwaNotificationModalProps {
     isOpen: boolean;
-    onConfirm: (prefs: PushPreferences) => void;
+    onConfirm: (prefs: PushPreferences, dontShowAgain: boolean) => void;
     onCancel: (dontShowAgain: boolean) => void;
     initialPrefs?: PushPreferences | null;
 }
@@ -126,7 +126,7 @@ export const PwaNotificationModal: React.FC<PwaNotificationModalProps> = ({ isOp
             pref_clubs: prefs.pref_clubs,
             pref_filter_tags: prefs.pref_filter_tags,
             pref_filter_class_genres: prefs.pref_filter_class_genres
-        });
+        }, dontShowAgain);
     };
 
     return createPortal(
