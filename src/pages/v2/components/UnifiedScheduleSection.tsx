@@ -209,25 +209,13 @@ export const UnifiedScheduleSection: React.FC<UnifiedScheduleSectionProps> = ({
                                             <span className="USS-time">{item.start_time.substring(0, 5)}</span>
                                         </div>
                                     )}
-                                    {/* Date Logic: Hide for Today items ONLY IF they were in 'today' tab, but here they are all mixed.
-                                        User asked to keep today's item visible.
-                                        Previously: {item.group !== 'today' && ...}
-                                        Now "today" items are in 'thisWeek'.
-                                        If we want to show date for everyone, we can remove the condition.
-                                        But typically "Today" items might show "Today" or just the date.
-                                        Let's show date for everyone for consistency in "This Week" view,
-                                        or hide if it is strictly today??
-                                        Original code hid date for 'today' group.
-                                        Let's keep showing date for non-today items, and maybe a special label for today?
-                                        Actually design usually implies just showing the date is fine.
-                                    */}
+                                </div>
+                                <div className="USS-cardInfo">
                                     {item.date && (
                                         <div className="USS-dateLine">
                                             {new Date(item.date + 'T00:00:00').toLocaleDateString('ko-KR', { weekday: 'short' })} {new Date(item.date + 'T00:00:00').getDate()}일
                                         </div>
                                     )}
-                                </div>
-                                <div className="USS-cardInfo">
                                     <h3 className="USS-title">{item.title}</h3>
                                     <p className="USS-place">
                                         <i className="ri-map-pin-line"></i>

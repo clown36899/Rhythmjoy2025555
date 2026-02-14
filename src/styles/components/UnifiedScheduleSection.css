@@ -107,14 +107,19 @@
     }
 
     .USS-card {
-        flex: 0 0 100px;
-        width: 120px;
-        height: 200px;
+        flex: 0 0 130px;
+        width: 130px;
+        height: 162px;
+        /* 높이 162px로 축소 */
         cursor: pointer;
         transition: all 0.3s ease;
         display: flex;
         flex-direction: column;
         position: relative;
+        overflow: visible;
+        /* 배지 돌출을 위해 visible */
+        border-radius: 14px;
+        border: 1px solid var(--border-glass-subtle);
     }
 
     /* 호버 효과 원천 차단 */
@@ -125,13 +130,18 @@
     }
 
     .USS-cardImage {
+        position: absolute;
+        top: 0;
+        left: 0;
         width: 100%;
-        flex: 1;
-        position: relative;
-        border-radius: 11px;
-        background-color: var(--bg-surface-3);
-        /* fallback color improved */
+        height: 100%;
+        z-index: 0;
+        margin: 0;
+        border-radius: 14px;
+        /* 카드의 radius를 따름 */
         overflow: hidden;
+        /* 이미지 클리핑 */
+        background-color: var(--bg-surface-3);
     }
 
     .USS-cardImage img {
@@ -143,19 +153,22 @@
 
     .USS-card:hover .USS-cardImage img {
         transform: none !important;
+        /* 이미지 확대 효과 제거 (요청사항 없음, 깔끔하게) */
+        /* 만약 확대를 원하면 scale(1.05) */
     }
 
+    /* Gradient Overlay for Text Readability */
     .USS-cardImage::after {
         content: '';
         position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        height: 60%;
-        background: linear-gradient(to top, var(--bg-overlay) 0%, transparent 100%);
+        inset: 0;
+        /* 상단은 투명, 하단은 텍스트를 위해 진하게 */
+        background: linear-gradient(to bottom,
+                transparent 0%,
+                rgba(0, 0, 0, 0.2) 40%,
+                rgba(0, 0, 0, 0.9) 100%);
         pointer-events: none;
-        opacity: var(--uss-card-overlay-opacity, 1);
-        /* 테마별 오버레이 투명도 조절 */
+        z-index: 1;
     }
 
     .USS-placeholder {
@@ -177,83 +190,88 @@
     }
 
     .USS-time {
-        background: var(--bg-surface-2);
-        /* backdrop-filter removed for performance */
-        color: var(--color-yellow-600);
-        /* 라이트 모드 가독성을 위해 조금 더 진한 노랑 */
-        font-size: 0.65rem;
-        font-weight: 700;
-        padding: 2px 6px;
-        border-radius: 4px;
-        border: 1px solid var(--border-glass);
-        box-shadow: var(--shadow-sm);
+        background: rgba(0, 0, 0, 0.65);
+        color: #ffcc00;
+        /* 노란색 강조 */
+        font-size: 0.75rem;
+        font-weight: 800;
+        padding: 3px 8px;
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(4px);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
     }
 
     .USS-cardInfo {
-        position: relative;
+        position: absolute;
+        bottom: 0;
+        left: 0;
         width: 100%;
-        /* height: 81px; */
-        padding: 8px 0px;
+        padding: 12px 10px 10px 10px;
+        /* 패딩 약간 조정 */
         box-sizing: border-box;
         display: flex;
         flex-direction: column;
-        justify-content: flex-start;
-        /* background: var(--bg-surface-1); */
-        z-index: 2;
-        gap: 4px;
+        justify-content: flex-end;
+        z-index: 10;
+        gap: 2px;
     }
 
     .USS-dateLine {
-        position: absolute;
-        bottom: 8px;
-        left: 8px;
-        font-size: 0.65rem;
-        color: var(--color-yellow-600);
+        position: static;
+        /* cardInfo 내부 흐름 따름 */
+        display: inline-block;
+        font-size: 1rem;
+        color: #ffcc00;
+        /* 날짜도 노란색 계열로 포인트 */
         font-weight: 800;
-        background: var(--bg-surface-2);
-        /* backdrop-filter removed for performance */
-        padding: 2px 6px;
-        border-radius: 4px;
-        border: 1px solid var(--border-glass-subtle);
-        z-index: 6;
+        margin-bottom: 2px;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
     }
 
     .USS-title {
-        font-size: 0.8rem;
-        font-weight: 700;
-        color: var(--text-primary);
+        font-size: 1.05rem;
+        font-weight: 800;
+        color: white;
+        /* 어두운 배경 위 흰색 */
         margin: 0;
-        padding: 0 0 0 2px;
+        padding: 0;
         line-height: 1.3;
         display: -webkit-box;
-        -webkit-line-clamp: 1;
-        line-clamp: 1;
+        -webkit-line-clamp: 2;
+        /* 높이 감소로 2줄로 복귀 */
+        line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
         text-overflow: ellipsis;
+        word-break: keep-all;
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+        /* 가독성용 그림자 */
     }
 
     .USS-place {
         display: inline-flex;
         align-items: center;
-        gap: 2px;
+        gap: 3px;
         padding: 0;
         background-color: transparent !important;
         border: none !important;
-        font-size: 0.62rem;
-        color: var(--text-tertiary);
+        font-size: 0.8rem;
+        color: rgba(255, 255, 255, 0.9);
+        /* 약간 투명한 흰색 */
         font-weight: 600;
         letter-spacing: -0.01em;
-        margin-top: 5px;
+        margin-top: 4px;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        opacity: 0.8;
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
     }
 
     .USS-place i {
-        color: #ffb900;
-        font-size: 0.7rem;
+        color: #ffcc00;
+        /* 아이콘 노란색 */
+        font-size: 0.85rem;
         opacity: 1;
     }
 
