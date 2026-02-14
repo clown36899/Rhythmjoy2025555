@@ -9,7 +9,7 @@ import LocalLoading from "../../../components/LocalLoading";
 
 // Hooks
 import { useEventsQuery } from "../../../hooks/queries/useEventsQuery";
-import { useSocialSchedulesQuery } from "../../../hooks/queries/useSocialSchedulesQuery";
+// Removed useSocialSchedulesQuery
 import { useUserInteractions } from "../../../hooks/useUserInteractions";
 import { useEventFilters } from "./EventList/hooks/useEventFilters";
 import { useBoardStaticData } from "../../../contexts/BoardDataContext";
@@ -70,12 +70,7 @@ const EventList: React.FC<EventListProps> = ({
     await refetchEvents();
   }, [refetchEvents]);
 
-  // 2. Social Schedules Hook (TanStack Query)
-  const { data: socialSchedules = [], isLoading: socialLoading, refetch: refetchSocial } = useSocialSchedulesQuery();
-  const refreshSocial = useCallback(async () => {
-    await refetchSocial();
-  }, [refetchSocial]);
-
+  // 2. Removed Social Schedules Hook (All integrated into events)
 
   // 3.5 Genre Weights from BoardDataContext
   const { data: boardData } = useBoardStaticData();
@@ -122,7 +117,6 @@ const EventList: React.FC<EventListProps> = ({
         { event: '*', schema: 'public', table: 'events' },
         () => {
           fetchEvents();
-          refreshSocial();
         }
       )
       .subscribe();
@@ -130,7 +124,7 @@ const EventList: React.FC<EventListProps> = ({
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [fetchEvents, refreshSocial]);
+  }, [fetchEvents]);
 
   // 4. Derived States (Genres, etc.)
   const allGenres = useMemo(() => {
@@ -317,17 +311,24 @@ const EventList: React.FC<EventListProps> = ({
         />
       ) : (
         <EventPreviewSection
-          isSocialSchedulesLoading={socialLoading}
+          isSocialSchedulesLoading={loading}
           todaySocialSchedules={(() => {
             const todayStr = getLocalDateString();
 
-            // A. Today's Events (category='event') -> Map to SocialSchedule
-            // group_id가 없는 순수 행사만 포함 (group_id가 있는 것은 socialSchedules에서 가져옴)
-            const todayEventsAsSocial = events
-              .filter(e => e.category === 'event' && !e.group_id && (e.end_date || e.date || "") >= todayStr && (e.start_date || e.date || "") <= todayStr)
+            // A. All Socials from 'events' table
+            // Condition: (category='social') OR (category='event' AND !group_id)
+            const todaySocials = events
+              .filter(e => {
+                const eDate = e.date || "";
+                if (eDate < todayStr || (e.start_date || eDate) > todayStr) return false; // Date Filtering
+
+                if (e.category === 'social') return true;
+                if (e.category === 'event' && !e.group_id) return true;
+                return false;
+              })
               .map(e => ({
-                id: `event-${e.id}`, // ✅ ID 충돌 방지를 위해 접두어 도입
-                group_id: -1,
+                id: `event-${e.id}`, // Maintain consistent ID format for mapped events
+                group_id: e.group_id || -1,
                 title: e.title,
                 date: e.date,
                 start_time: e.time,
@@ -341,20 +342,14 @@ const EventList: React.FC<EventListProps> = ({
                 description: e.description,
                 board_users: e.board_users,
                 is_mapped_event: true,
-                scope: e.scope
+                scope: e.scope,
+                category: e.category // Pass category if needed
               } as any));
 
-            // B. One-time Social Schedules (Date match) - Filter to only show 'social' category (not club)
-            const oneTimeSocials = socialSchedules.filter(s =>
-              s.date && s.date === todayStr &&
-              (s.v2_category === 'social' || !s.v2_category)
-            );
-
-            // Logic: Only show (A + B). Never add recurring schedules (C).
-            const combined = [...todayEventsAsSocial, ...oneTimeSocials];
+            // No need to fetch from old socialSchedules anymore
 
             // 🎯 Sort: Domestic First, Global Last
-            combined.sort((a, b) => {
+            todaySocials.sort((a, b) => {
               const isGlobalA = a.scope === 'overseas';
               const isGlobalB = b.scope === 'overseas';
               if (isGlobalA !== isGlobalB) return isGlobalA ? 1 : -1;
@@ -366,7 +361,7 @@ const EventList: React.FC<EventListProps> = ({
               return timeA.localeCompare(timeB);
             });
 
-            return combined;
+            return todaySocials;
           })()}
           thisWeekSocialSchedules={(() => {
             const todayStr = getLocalDateString();
@@ -385,18 +380,20 @@ const EventList: React.FC<EventListProps> = ({
             const weekStartStr = getLocalDateString(weekStart);
             const twoWeeksEndStr = getLocalDateString(twoWeeksLater);
 
-            // Fetch 2 weeks of events (category='event') -> Map to SocialSchedule
-            // group_id가 없는 순순 행사만 포함
-            const weekEventsAsSocial = events
+            // Fetch 2 weeks of events (social + event)
+            const weekSocials = events
               .filter(e => {
-                if (e.category !== 'event' || !!e.group_id) return false;
                 const eDate = e.date || "";
                 // Include this week AND next week
-                return eDate >= weekStartStr && eDate <= twoWeeksEndStr;
+                if (eDate < weekStartStr || eDate > twoWeeksEndStr) return false;
+
+                if (e.category === 'social') return true;
+                if (e.category === 'event' && !e.group_id) return true;
+                return false;
               })
               .map(e => ({
                 id: `event-${e.id}`, // ✅ ID 충돌 방지
-                group_id: -1,
+                group_id: e.group_id || -1,
                 title: e.title,
                 date: e.date,
                 start_time: e.time,
@@ -410,18 +407,12 @@ const EventList: React.FC<EventListProps> = ({
                 description: e.description,
                 board_users: e.board_users,
                 is_mapped_event: true,
-                scope: e.scope
+                scope: e.scope,
+                category: e.category
               } as any));
 
-            // Filter socialSchedules to only show 'social' category (not club) in the summary bar
-            const filteredSocialSchedules = socialSchedules.filter(s =>
-              s.v2_category === 'social' || !s.v2_category
-            );
-
-            const combined = [...weekEventsAsSocial, ...filteredSocialSchedules];
-
             // 🎯 Sort: Domestic First, Global Last + Date/Time
-            combined.sort((a, b) => {
+            weekSocials.sort((a, b) => {
               const isGlobalA = a.scope === 'overseas';
               const isGlobalB = b.scope === 'overseas';
               if (isGlobalA !== isGlobalB) return isGlobalA ? 1 : -1;
@@ -436,9 +427,9 @@ const EventList: React.FC<EventListProps> = ({
               return timeA.localeCompare(timeB);
             });
 
-            return combined;
+            return weekSocials;
           })()}
-          refreshSocialSchedules={refreshSocial}
+          refreshSocialSchedules={fetchEvents}
           futureEvents={randomizedFutureEvents}
           regularClasses={randomizedRegularClasses}
           clubLessons={randomizedClubLessons}

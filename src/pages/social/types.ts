@@ -32,6 +32,18 @@ export interface SocialPlace extends Omit<SocialGroup, 'id'> {
 }
 
 // 2. 소셜 일정 (Schedule) 타입
+export interface SocialScheduleModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  groupId?: number;
+  initialDate?: Date;
+  editSchedule?: SocialSchedule | null;
+  initialData?: SocialSchedule | null;
+  initialTab?: 'social' | 'oneday';
+  onSuccess: () => void;
+}
+
+// 2. 소셜 일정 (Schedule) 타입
 export interface SocialSchedule {
   id: number | string;
   group_id: number;

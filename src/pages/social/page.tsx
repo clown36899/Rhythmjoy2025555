@@ -14,9 +14,8 @@ import WeeklySocial from './components/WeeklySocial';
 import GroupCalendarModal from './components/GroupCalendarModal';
 import SocialGroupDetailModal from './components/SocialGroupDetailModal';
 import SocialGroupModal from './components/SocialGroupModal';
-import SocialRecruitModal from './components/SocialRecruitModal';
 import SocialRegistrationModal from './components/SocialRegistrationModal';
-import EventRegistrationModal from '../../components/EventRegistrationModal';
+import SocialScheduleModal from './components/SocialScheduleModal';
 import VenueDetailModal from '../practice/components/VenueDetailModal';
 import PracticeSection from './components/PracticeSection';
 
@@ -124,12 +123,13 @@ const SocialPage: React.FC = () => {
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
   const [editGroup, setEditGroup] = useState<SocialGroup | null>(null);
 
-  const [selectedRecruitGroup, setSelectedRecruitGroup] = useState<SocialGroup | null>(null);
-
+  // Unified Event Modal State
   const [isEventModalOpen, setIsEventModalOpen] = useState(false);
   const [editSchedule, setEditSchedule] = useState<SocialSchedule | null>(null);
   const [copySchedule, setCopySchedule] = useState<SocialSchedule | null>(null);
   const [targetGroupId, setTargetGroupId] = useState<number | null>(null);
+  const [initialModalTab, setInitialModalTab] = useState<'social' | 'oneday'>('social');
+
 
   const handleGroupClick = useCallback((group: SocialGroup) => {
     setSelectedGroup(group);
@@ -142,7 +142,12 @@ const SocialPage: React.FC = () => {
   }, []);
 
   const handleOpenRecruit = useCallback((group: SocialGroup) => {
-    setSelectedRecruitGroup(group);
+    // Open SocialScheduleModal with 'oneday' tab
+    setTargetGroupId(group.id);
+    setEditSchedule(null);
+    setCopySchedule(null);
+    setInitialModalTab('oneday');
+    setIsEventModalOpen(true);
   }, []);
 
   // Registration Modal State
@@ -179,7 +184,13 @@ const SocialPage: React.FC = () => {
       }
     }
 
-    setSelectedRecruitGroup(group);
+    // Open SocialScheduleModal with 'oneday' tab for editing
+    setTargetGroupId(group.id);
+    setEditSchedule(null); // Recruit is group property, not schedule entity
+    setCopySchedule(null);
+    setInitialModalTab('oneday');
+    setIsEventModalOpen(true);
+
   }, [user, isAdmin, verifyGroupPassword]);
 
   // Event Detail Modal States
@@ -204,7 +215,6 @@ const SocialPage: React.FC = () => {
 
       const weekStartStr = getLocalDateString(weekStart);
       const weekEndStr = getLocalDateString(weekEnd);
-
 
 
       // Fetch events overlapping with this week
@@ -266,9 +276,9 @@ const SocialPage: React.FC = () => {
     // 상세 모달을 먼저 닫습니다.
     socialDetailModal.close();
 
-    // 신규: 통합된 EventRegistrationModal 사용
-    // SocialSchedule 타입을 Event 타입으로 맞춰서 전달 (groupId, day_of_week 포함 필)
+    // 통합된 SocialScheduleModal 사용
     setEditSchedule(schedule);
+    setInitialModalTab('social');
     setIsEventModalOpen(true);
   }, [user, isAdmin, verifyGroupPassword, socialDetailModal]);
 
@@ -276,6 +286,7 @@ const SocialPage: React.FC = () => {
     setEditSchedule(null);
     setCopySchedule(schedule);
     setTargetGroupId(schedule.group_id);
+    setInitialModalTab('social');
     setIsEventModalOpen(true);
     socialDetailModal.close();
   }, [socialDetailModal]);
@@ -406,6 +417,7 @@ const SocialPage: React.FC = () => {
     setTargetGroupId(groupId);
     setEditSchedule(null);
     setCopySchedule(null);
+    setInitialModalTab('social');
     setIsEventModalOpen(true);
   }, [user, groups, isAdmin, verifyGroupPassword]);
 
@@ -512,7 +524,7 @@ const SocialPage: React.FC = () => {
             setSelectedGroup(detailGroup);
             setIsCalendarOpen(true);
           }}
-          onOpenRecruit={() => setSelectedRecruitGroup(detailGroup)}
+          onOpenRecruit={() => handleOpenRecruit(detailGroup)}
           isAdmin={!!user}
         />
       )}
@@ -529,20 +541,7 @@ const SocialPage: React.FC = () => {
         editGroup={editGroup}
       />
 
-      {/* Legacy SocialScheduleModal Removed */}
-
-      {/* Recruit Modal (Refactored) */}
-      {selectedRecruitGroup && (
-        <SocialRecruitModal
-          isOpen={!!selectedRecruitGroup}
-          onClose={() => setSelectedRecruitGroup(null)}
-          onSuccess={() => {
-            refreshGroups();
-            setSelectedRecruitGroup(null);
-          }}
-          groupId={selectedRecruitGroup.id}
-        />
-      )}
+      {/* Legacy SocialRecruitModal Removed - Integrated into SocialScheduleModal */}
 
       {/* 장소 상세 모달 */}
       {selectedVenueId && (
@@ -562,6 +561,7 @@ const SocialPage: React.FC = () => {
           setTargetGroupId(group.id);
           setEditSchedule(null);
           setCopySchedule(selectedDateForAdd ? { date: selectedDateForAdd } as any : null);
+          setInitialModalTab('social');
           setIsEventModalOpen(true);
         }}
         onCreateGroup={() => {
@@ -572,23 +572,27 @@ const SocialPage: React.FC = () => {
       />
 
       {isEventModalOpen && (
-        <EventRegistrationModal
+        <SocialScheduleModal
           isOpen={isEventModalOpen}
           onClose={() => {
             setIsEventModalOpen(false);
             setEditSchedule(null);
+            setCopySchedule(null);
             setTargetGroupId(null);
+            // setInitialModalTab('social'); // Reset logic inside modal or just let it unmount
           }}
-          selectedDate={selectedDateForAdd ? new Date(selectedDateForAdd) : new Date()}
-          editEventData={editSchedule as any}
-          groupId={targetGroupId}
-          onEventCreated={() => {
+          groupId={targetGroupId || -1}
+          initialDate={selectedDateForAdd ? new Date(selectedDateForAdd) : new Date()}
+          editSchedule={editSchedule}
+          initialData={copySchedule}
+          initialTab={initialModalTab}
+          onSuccess={() => {
             refreshSchedules();
+            refreshGroups(); // recruit update might need group refresh
             setIsEventModalOpen(false);
-          }}
-          onEventUpdated={() => {
-            refreshSchedules();
-            setIsEventModalOpen(false);
+            setEditSchedule(null);
+            setCopySchedule(null);
+            setTargetGroupId(null);
           }}
         />
       )}
