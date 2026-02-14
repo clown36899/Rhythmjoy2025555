@@ -12,22 +12,13 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
     const [theme, setTheme] = useState<Theme>(() => {
+        // [Fix] 사용자의 명시적 선택이 없는 한 다크 모드를 기본으로 함
         // 1. localStorage에서 저장된 수동 설정 테마 불러오기
         const saved = localStorage.getItem('theme');
         if (saved) return saved as Theme;
 
-        // 2. 설정이 없을 경우 OS 테마 (prefers-color-scheme) 확인
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            return 'dark';
-        }
-        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
-            return 'light';
-        }
-
-        // 3. 마지막으로 시간 기반 자동 설정 (Fallback)
-        const hour = new Date().getHours();
-        const isDayTime = hour >= 6 && hour < 18;
-        return isDayTime ? 'light' : 'dark';
+        // 2. 기본값: 무조건 다크 모드 (OS 설정 및 시간 기반 자동 감지 제거)
+        return 'dark';
     });
 
     useEffect(() => {

@@ -239,6 +239,7 @@ export const updatePushPreferences = async (prefs: PushPreferences) => {
         console.error('[Push] Failed to update preferences:', error);
         return false;
     }
+
     return true;
 }
 

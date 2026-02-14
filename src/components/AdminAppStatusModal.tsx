@@ -71,7 +71,10 @@ export default function AdminAppStatusModal({ isOpen, onClose, initialTab }: Adm
         try {
             setPwaLoading(true);
             const { data: installData, error: installError } = await supabase
-                .from('pwa_installs').select('*').order('installed_at', { ascending: false });
+                .from('pwa_installs')
+                .select('*')
+                .not('user_id', 'is', null) // [Fix] 비회원 데이터는 쿼리 단계에서 차단
+                .order('installed_at', { ascending: false });
             if (installError) throw installError;
             if (!installData) return;
 
@@ -87,12 +90,14 @@ export default function AdminAppStatusModal({ isOpen, onClose, initialTab }: Adm
             const uniqueMap = new Map<string, any>();
 
             installData.forEach(inst => {
-                const key = inst.user_id || inst.fingerprint || inst.id;
-                if (!uniqueMap.has(key)) {
+                // [Fix] 회원 전용이므로 user_id를 항상 키로 사용 (not null 보장됨)
+                // PWA 유니크 집계 (회원 UID 기준만 허용)
+                const key = inst.user_id;
+                if (key && !uniqueMap.has(key)) {
                     uniqueMap.set(key, {
                         ...inst,
-                        board_users: inst.user_id ? profileMap.get(inst.user_id) : null,
-                        push_subscription: inst.user_id ? pushMap.get(inst.user_id) : null
+                        board_users: profileMap.get(inst.user_id) || null,
+                        push_subscription: pushMap.get(inst.user_id) || null
                     });
                 }
             });
@@ -128,10 +133,19 @@ export default function AdminAppStatusModal({ isOpen, onClose, initialTab }: Adm
                 .from('board_users').select('user_id, nickname, profile_image').in('user_id', userIds);
 
             const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
-            const joined = subsData.map(sub => ({
-                ...sub,
-                board_users: profileMap.get(sub.user_id) || { nickname: `User(${sub.user_id.slice(0, 5)})`, profile_image: null }
-            }));
+
+            // [Fix] 동일 유저 중복 제거: 유저별로 가장 최신(updated_at 기준) 레코드 1개만 유지
+            const uniqueSubsMap = new Map<string, any>();
+            subsData.forEach(sub => {
+                if (!uniqueSubsMap.has(sub.user_id)) {
+                    uniqueSubsMap.set(sub.user_id, {
+                        ...sub,
+                        board_users: profileMap.get(sub.user_id) || { nickname: `User(${sub.user_id.slice(0, 5)})`, profile_image: null }
+                    });
+                }
+            });
+
+            const joined = Array.from(uniqueSubsMap.values());
             setPushSubs(joined as any);
         } catch (error) {
             console.error('Error loading push subscribers:', error);

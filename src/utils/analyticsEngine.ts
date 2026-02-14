@@ -138,9 +138,9 @@ export const trackPWAInstall = async (user?: { id: string }) => {
 
     // 입력받은 유저가 없으면 현재 supabase 세션에서 확인
     let userId = user?.id;
+    // [FIX] 회원만 PWA 설치 기록 허용 (비회원 차단)
     if (!userId) {
-        const { data: { session } } = await supabase.auth.getSession();
-        userId = session?.user?.id;
+        return;
     }
 
     // [FIX] 중복 추적 방지 (기기당 1회 제한)

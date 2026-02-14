@@ -127,13 +127,29 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
         try {
             const [memberRes, pwaRes, pushRes] = await Promise.all([
                 supabase.from('board_users').select('*', { count: 'exact', head: true }),
-                supabase.from('pwa_installs').select('*', { count: 'exact', head: true }),
-                supabase.from('user_push_subscriptions').select('*', { count: 'exact', head: true })
+                // [Fix] PWA 유니크 카운트를 위해 필드 데이터 조회
+                supabase.from('pwa_installs').select('user_id, fingerprint'),
+                // [Fix] 푸시 유니크 카운트를 위해 필드 데이터 조회
+                supabase.from('user_push_subscriptions').select('user_id')
             ]);
 
             if (!memberRes.error) setMemberCount(memberRes.count);
-            if (!pwaRes.error) setPwaCount(pwaRes.count);
-            if (!pushRes.error) setPushCount(pushRes.count);
+
+            // PWA 유니크 집계 (회원 UID 기준만 허용)
+            if (!pwaRes.error && pwaRes.data) {
+                const uniqueUserIds = new Set(
+                    pwaRes.data
+                        .filter((d: { user_id: string | null }) => d.user_id) // 비회원 배제
+                        .map((d: { user_id: string | null }) => d.user_id)
+                );
+                setPwaCount(uniqueUserIds.size);
+            }
+
+            // 푸시 유니크 집계 (회원 UID 기준)
+            if (!pushRes.error && pushRes.data) {
+                const uniqueUserIds = new Set(pushRes.data.map(item => item.user_id).filter(Boolean));
+                setPushCount(uniqueUserIds.size);
+            }
         } catch (e) {
             console.error('Failed to fetch admin stats', e);
         }
