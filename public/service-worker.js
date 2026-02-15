@@ -1,6 +1,6 @@
-// 빌보드 PWA 서비스 워커 (Version: 20260214 - V44/Auth Stability & Safari Fix)
-const CACHE_NAME = 'rhythmjoy-cache-v1.0.2';
-// Last updated: 2026-02-14 (v48)
+// 빌보드 PWA 서비스 워커 (Version: 20260215 - V49/Genre Color & Filter Logic Fix)
+const CACHE_NAME = 'rhythmjoy-cache-v1.0.3';
+// Last updated: 2026-02-15 (v49)
 self.addEventListener('install', (event) => {
   // index.html을 반드시 캐시한 후 skipWaiting (navigate fallback 보장)
   event.waitUntil(
