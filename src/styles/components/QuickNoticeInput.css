@@ -2,9 +2,9 @@
     display: flex;
     border: 1px solid var(--border-light);
     border-radius: 33px;
-    margin: 10px;
+    margin: 0 10px;
     gap: 8px;
-    padding: 10px 16px;
+    padding: 0px 16px;
     background-color: var(--card-bg);
     align-items: center;
 }

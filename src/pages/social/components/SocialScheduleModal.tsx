@@ -37,6 +37,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
     const [link, setLink] = useState('');
     const [description, setDescription] = useState('');
     const [category, setCategory] = useState('social');
+    const [socialGenre, setSocialGenre] = useState<'DJ' | '라이브밴드' | null>(null);
 
     // Social Schedule Image States
     const [imageFile, setImageFile] = useState<File | null>(null);
@@ -91,6 +92,12 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                 // Category mapping
                 setCategory(source.category || source.v2_category || 'social');
 
+                // Social Genre Mapping
+                const g = source.genre || '';
+                if (g.includes('DJ')) setSocialGenre('DJ');
+                else if (g.includes('라이브밴드')) setSocialGenre('라이브밴드');
+                else setSocialGenre(null); // 일반 소셜이었던 경우 선택 유도
+
                 // Image
                 const imgUrl = source.image || source.image_url || source.image_medium || source.image_full || '';
                 setImagePreview(imgUrl || null);
@@ -109,6 +116,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                 setLinkName('');
                 setDescription('');
                 setCategory('social');
+                setSocialGenre(null);
                 setImagePreview(null);
                 setImageFile(null);
             }
@@ -240,6 +248,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
         if (activeTab === 'social') {
             // === Social Schedule Submit ===
             if (!title.trim()) { alert('일정 제목을 입력해주세요.'); return; }
+            if (activeTab === 'social' && category === 'social' && !socialGenre) { alert('세부 장르(DJ 또는 라이브밴드)를 선택해주세요.'); return; }
             if (!date) { alert('날짜를 선택해주세요.'); return; }
             if (!location.trim()) { alert('장소를 입력해주세요.'); return; }
             if (!category) { alert('분류를 선택해주세요.'); return; }
@@ -297,6 +306,10 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                 let genre = '소셜';
                 if (category === 'club_lesson' || category === 'club_regular') {
                     genre = 'Lindy';
+                } else if (category === 'social') {
+                    if (socialGenre === 'DJ') genre = 'DJ,소셜';
+                    else if (socialGenre === '라이브밴드') genre = '라이브밴드,소셜';
+                    else genre = '소셜'; // Fallback
                 }
 
                 const eventData: any = {
@@ -497,6 +510,34 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                                     <span>등록된 일정은 <strong>오늘, 이번 주 일정</strong>에 노출됩니다.</span>
                                 </div>
                             </div>
+
+                            {category === 'social' && (
+                                <div className="form-section v2-display-section" style={{ marginTop: '0', marginBottom: '20px' }}>
+                                    <label>소셜 세부 장르 (필수) *</label>
+                                    <div className="ssm-radio-group">
+                                        <label className={`ssm-radio-label ${socialGenre === 'DJ' ? 'checked' : ''}`}>
+                                            <input
+                                                type="radio"
+                                                name="socialGenre"
+                                                value="DJ"
+                                                checked={socialGenre === 'DJ'}
+                                                onChange={() => setSocialGenre('DJ')}
+                                            />
+                                            <span>DJ</span>
+                                        </label>
+                                        <label className={`ssm-radio-label ${socialGenre === '라이브밴드' ? 'checked' : ''}`}>
+                                            <input
+                                                type="radio"
+                                                name="socialGenre"
+                                                value="라이브밴드"
+                                                checked={socialGenre === '라이브밴드'}
+                                                onChange={() => setSocialGenre('라이브밴드')}
+                                            />
+                                            <span>라이브밴드</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            )}
 
                             <div className="form-section">
                                 <label>일정 제목 *</label>

@@ -434,6 +434,57 @@ export default function EventDetailModal({
     });
   };
 
+  // 🎯 [UPDATE] 데이터베이스 즉시 저장 함수 (모듈화)
+  const saveChangesToDB = async (updates: Partial<Event>) => {
+    if (!draftEvent) return;
+
+    try {
+      setIsSaving(true);
+
+      // 🎯 [PAYLOAD CLEANUP] Remove undefined values
+      Object.keys(updates).forEach(key => {
+        if (updates[key as keyof Event] === undefined) {
+          delete updates[key as keyof Event];
+        }
+      });
+
+      const originalId = String(draftEvent.id).replace('social-', '');
+
+      // [FIX] FullCalendar Offset Handling (ID > 10,000,000)
+      const targetId = Number(originalId) > 10000000 ? String(Number(originalId) - 10000000) : originalId;
+
+      const { data, error } = await supabase
+        .from('events')
+        .update(updates)
+        .eq('id', targetId)
+        .select()
+        .maybeSingle();
+
+      if (error) throw error;
+
+      if (data) {
+        // Update local state with latest DB data
+        setDraftEvent({ ...draftEvent, ...data });
+        setOriginalEvent({ ...originalEvent || draftEvent, ...data });
+
+        // Dispatch update event so list updates immediately
+        window.dispatchEvent(new CustomEvent('eventUpdated', {
+          detail: {
+            id: draftEvent.id,
+            event: { ...draftEvent, ...data }
+          }
+        }));
+
+        // alert('저장되었습니다.'); // 개별 저장 시 알림 생략 (UX 개선)
+      }
+    } catch (err) {
+      console.error('[EventDetailModal] Auto-save failed:', err);
+      alert('저장 중 오류가 발생했습니다.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleSaveField = useCallback((value: any, category?: string) => {
     if (!draftEvent || !activeEditField) return;
 
@@ -475,8 +526,13 @@ export default function EventDetailModal({
       updates.link_name3 = value.link_name3;
     }
 
+    // 로컬 상태 즉시 반영 (낙관적 업데이트)
     setDraftEvent(prev => prev ? ({ ...prev, ...updates }) : null);
     setActiveEditField(null);
+
+    // DB 비동기 저장 호출
+    saveChangesToDB(updates);
+
   }, [draftEvent, activeEditField]);
 
 
@@ -1611,28 +1667,23 @@ export default function EventDetailModal({
                       }
                       */
 
+                      // [UPDATE] Toggle edit mode / Save image if changed
                       if (isSelectionMode) {
-                        // In Edit Mode -> Check for changes
-                        if (!hasChanges()) {
-                          // No changes -> Exit edit mode directly
-                          setIsSelectionMode(false);
-                          return;
-                        }
-
-                        // Has changes -> Confirm and save
-                        if (window.confirm('변경사항을 저장하시겠습니까?')) {
+                        if (imageFile) {
+                          // 이미지가 변경된 경우에만 전체 저장(업로드) 로직 실행
                           handleFinalSave();
+                        } else {
+                          // 그 외에는 이미 즉시 저장되었으므로 모드 종료
+                          setIsSelectionMode(false);
                         }
-                        // If canceled, stay in edit mode
                       } else {
-                        // Not in Edit Mode -> Enter Edit Mode
                         setIsSelectionMode(true);
                       }
                     }}
                     className={`EDM-actionBtn ${isSelectionMode ? 'is-save is-active' : 'is-edit'}`}
-                    title={isSelectionMode ? "변경사항 저장" : "이벤트 수정"}
+                    title={isSelectionMode ? "수정 완료" : "이벤트 수정"}
                   >
-                    <i className={`ri-${isSelectionMode ? 'save-3-line' : 'edit-line'} EDM-actionIcon`}></i>
+                    <i className={`ri-${isSelectionMode ? 'check-line' : 'edit-line'} EDM-actionIcon`}></i>
                   </button>
                 )}
 

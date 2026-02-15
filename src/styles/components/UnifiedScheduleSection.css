@@ -107,17 +107,15 @@
     }
 
     .USS-card {
-        flex: 0 0 130px;
-        width: 130px;
-        height: 162px;
-        /* 높이 162px로 축소 */
+        flex: 0 0 104px;
+        width: 107px;
+        height: 151px;
         cursor: pointer;
         transition: all 0.3s ease;
         display: flex;
         flex-direction: column;
         position: relative;
         overflow: visible;
-        /* 배지 돌출을 위해 visible */
         border-radius: 14px;
         border: 1px solid var(--border-glass-subtle);
     }
@@ -207,7 +205,7 @@
         bottom: 0;
         left: 0;
         width: 100%;
-        padding: 12px 10px 10px 10px;
+        padding: 12px 10px 10px 5px;
         /* 패딩 약간 조정 */
         box-sizing: border-box;
         display: flex;

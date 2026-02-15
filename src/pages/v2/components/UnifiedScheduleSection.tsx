@@ -225,7 +225,7 @@ export const UnifiedScheduleSection: React.FC<UnifiedScheduleSectionProps> = ({
 
                                 {isTodayItem && (
                                     <div className="USS-ddayBadge is-today">
-                                        D-Day
+                                        오늘
                                     </div>
                                 )}
                                 {item.group === 'thisWeek' && !isTodayItem && (

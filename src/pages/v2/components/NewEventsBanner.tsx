@@ -188,7 +188,6 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                         {event.genre && (
                                             <div className="NEB-genre">{event.genre}</div>
                                         )}
-                                        <h4 className="NEB-eventTitle">{event.title}</h4>
                                         <div className="NEB-info">
                                             <i className="ri-calendar-line"></i>
                                             <span>{dateText}</span>
@@ -199,6 +198,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                                 <span>{event.location}</span>
                                             </div>
                                         )}
+                                        <h4 className="NEB-eventTitle">{event.title}</h4>
                                     </div>
                                 </div>
                             );
@@ -252,6 +252,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                             <h3 className="neb-modal-title">📢 신규 등록 노출 기준</h3>
                             <div className="neb-modal-content">
                                 <p className="neb-highlight">등록 후 72시간 동안 이 섹션에 노출됩니다.</p>
+                                <p className="neb-highlight" style={{ color: '#4ade80', marginTop: '4px' }}>※ 라이브밴드 파티는 기간 제한 없이 계속 노출됩니다.</p>
                                 <ul className="neb-modal-list">
                                     <li>자동 슬라이드: 5초마다 전환</li>
                                     <li>마우스 호버 시 일시정지</li>
