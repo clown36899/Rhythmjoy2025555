@@ -117,8 +117,22 @@ function AppContent() {
               setShowPwaModal(true);
             }
           } else {
-            // 구독이 없으면 안내 모달 띄우기
-            console.log('[App] PWA detected & No Subscription. Showing Modal...');
+            // [Bugfix] 구독이 없더라도, 기기 권한이 이미 'granted'라면 조용히 재구독 (Silent Resubscribe)
+            if (Notification.permission === 'granted') {
+              console.log('[App] Permission granted but no subscription. Silent resubscribing...');
+              const newSub = await subscribeToPush();
+              if (newSub) {
+                // DB에 저장 (기본 설정으로)
+                // 만약 이전 설정을 복구하고 싶다면 user_push_subscriptions 테이블에서 user_id로 조회해서 가져와야 하나,
+                // endpoint가 달라졌을 수 있으므로 여기서는 기본값(모두 true)으로 새로 등록함.
+                await saveSubscriptionToSupabase(newSub).catch(err => console.error('[App] Silent resubscribe failed to save DB:', err));
+                console.log('[App] Silent resubscribe completed via Notification.permission=granted');
+                return;
+              }
+            }
+
+            // 구독이 없고 권한도 없으면 안내 모달 띄우기
+            console.log('[App] PWA detected & No Subscription & Permission not granted. Showing Modal...');
             setShowPwaModal(true);
           }
         } catch (err: any) {

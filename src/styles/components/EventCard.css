@@ -338,7 +338,7 @@
 
     .ECARD-genre-violet {
         background-color: rgba(139, 92, 246, 0.1);
-        color: var(--color-violet-600);
+        color: var(--color-violet-400);
     }
 
     .ECARD-genre-purple {
