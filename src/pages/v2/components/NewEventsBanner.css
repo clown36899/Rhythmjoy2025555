@@ -214,7 +214,8 @@
 
 .NEB-navBtn {
     position: absolute;
-    top: 50%;
+    top: 35%;
+    /* 하단 컨텐츠 가림 방지를 위해 상향 조정 */
     transform: translateY(-50%);
     background: var(--bg-overlay);
     border: none;
@@ -292,8 +293,8 @@
 
 
 
-    .NEB-navBtn i {
-        font-size: 1.4rem;
+    .NEB-navBtn {
+        display: none;
     }
 }
 

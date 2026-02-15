@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../../../lib/supabase';
 import LocalLoading from '../../../components/LocalLoading';
 import { useMonthlyBillboard } from '../hooks/useMonthlyBillboard';
@@ -57,16 +57,41 @@ export default function SwingSceneStats() {
     const { data: billboard } = useMonthlyBillboard('all' as any); // All-time for stability
     const [weeklyTab, setWeeklyTab] = useState<'total' | 'monthly'>('total');
     const [monthlyRange, setMonthlyRange] = useState<'6m' | '1y'>('6m');
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
     const [inspectTypeDay, setInspectTypeDay] = useState<string | null>(null);
     const [inspectGenreDay, setInspectGenreDay] = useState<string | null>(null);
+    const chartScrollRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
-        // 1. [Instant] Load from Server Cache (scene_analytics)
+        const checkAdmin = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (user?.email === import.meta.env.VITE_ADMIN_EMAIL) setIsAdmin(true);
+        };
+        checkAdmin();
         loadServerCache();
-
-        // 2. [Background] Fetch Full Detail Data
         fetchSceneStats();
     }, []);
+
+    const handleRefreshMetrics = async () => {
+        if (!confirm('DB 통계 인덱스를 재생성하고 캐시를 갱신하시겠습니까?')) return;
+        setRefreshing(true);
+        console.log('[SwingSceneStats] 🚀 Manual Refresh Start...');
+        try {
+            console.log('[SwingSceneStats] 1. Calling DB Indexing Function (refresh_site_stats_index)...');
+            const { error } = await supabase.rpc('refresh_site_stats_index');
+            if (error) throw error;
+            console.log('[SwingSceneStats] 2. DB Indexing Success. Fetching updated stats from API...');
+            await fetchSceneStats(true);
+            console.log('[SwingSceneStats] ✅ Manual Refresh Complete.');
+            alert('통계 인덱스가 성공적으로 최신화되었습니다.');
+        } catch (err) {
+            console.error('[SwingSceneStats] ❌ Refresh Error:', err);
+            alert('갱신 실패: ' + (err as any).message);
+        } finally {
+            setRefreshing(false);
+        }
+    };
 
     const loadServerCache = async () => {
         try {
@@ -98,332 +123,49 @@ export default function SwingSceneStats() {
         }
     };
 
-    const fetchSceneStats = async () => {
-        // Don't set loading=true here to avoid flickering if cache is already shown
+    const fetchSceneStats = async (isManualRefresh = false) => {
         try {
-            const twelveMonthsAgo = new Date();
-            twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
-            const oneMonthAgo = new Date();
-            oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+            const url = isManualRefresh ? '/.netlify/functions/get-site-stats?refresh=true' : '/.netlify/functions/get-site-stats';
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('API Error');
+            const data = await response.json();
+            console.log('[SwingSceneStats] Raw Data:', data); // DEBUG
 
-            // 1. Fetch data (Fetch enough history to cover 12 months)
-            const dateFilter = twelveMonthsAgo.toISOString(); // Use ISO for accurate comparison
-
-            // Paginated fetch helper (Supabase 1000건 제한 우회)
-            const fetchAll = async (tableName: string, query: () => any) => {
-                let all: any[] = [];
-                let page = 0;
-                const PAGE_SIZE = 1000;
-                let hasMore = true;
-                while (hasMore) {
-                    const { data, error } = await query()
-                        .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
-                    if (error) throw error;
-                    if (data && data.length > 0) {
-                        all = all.concat(data);
-                        console.log(`[SwingSceneStats] ${tableName}: page ${page + 1} → ${data.length}건 (누적 ${all.length}건)`);
-                        hasMore = data.length === PAGE_SIZE;
-                        page++;
-                    } else {
-                        hasMore = false;
-                    }
-                }
-                console.log(`[SwingSceneStats] ${tableName}: 총 ${all.length}건 로드 완료 (${page}페이지)`);
-                return all;
-            };
-
-            // 1. Fetch data with improved filtering + pagination
-            // Fetch items where (Created in last 12m) OR (Starts in last 12m)
-            // 게시글(board_posts)은 스윙씬 통계에서 제외 — 행사/강습/소셜만 집계
-            const [allEvents] = await Promise.all([
-                fetchAll('events', () => supabase.from('events')
-                    .select('id, category, genre, created_at, date, start_date, event_dates, title, group_id, day_of_week')
-                    .or(`created_at.gte.${dateFilter},start_date.gte.${dateFilter},date.gte.${dateFilter},day_of_week.not.is.null`))
-            ]);
-
-            // [NEW] Separate into events and socials
-            const events = allEvents.filter(e => !e.group_id);
-            const socials = allEvents.filter(e => !!e.group_id);
-
-
-            // 2. Process Data
-            const monthlyDict: { [key: string]: MonthlyStat } = {};
-            const globalGenreDict: { [name: string]: number } = {};
-            const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
-
-            const initDow = () => {
-                const dict: { [key: string]: StatAccumulator } = {};
-                dayNames.forEach(d => dict[d] = {
-                    types: { '강습': 0, '행사': 0, '동호회 이벤트+소셜': 0 },
-                    genres: {}, // Initialize empty
-                    items: [] as StatItem[]
-                });
-                return dict;
-            };
-
-            const dowTotal = initDow();
-            const dowMonthly = initDow();
-
-            const months: string[] = [];
-            for (let i = 11; i >= 0; i--) {
-                const d = new Date();
-                d.setMonth(d.getMonth() - i);
-                const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-                months.push(key);
-                monthlyDict[key] = { month: key, classes: 0, events: 0, socials: 0, clubs: 0, total: 0, registrations: 0, dailyAvg: 0 };
+            if (!data || !data.summary) {
+                console.error('[SwingSceneStats] Invalid Data Structure:', data);
+                throw new Error('Invalid Data Structure');
             }
 
-            // Events
-            events.forEach(e => {
-                // [정합성] 게시판, 공지사항 성격의 카테고리는 통계에서 제외 (v7.0)
-                if (['notice', 'notice_popup', 'board'].includes(e.category)) return;
-
-                // TEST DEBUG: Strict Check for Dec 2025 - REMOVED for Production
-                const dCreated = new Date(e.created_at);
-
-                // Update Registration Trend (Supply)
-                const regMonKey = `${dCreated.getFullYear()}-${String(dCreated.getMonth() + 1).padStart(2, '0')}`;
-                if (monthlyDict[regMonKey]) {
-                    monthlyDict[regMonKey].registrations++;
-                }
-
-                // Weekly & Monthly: Based on Activity Date (STRICT ACTIVITY ONLY)
-                const targetDates: string[] = [];
-                if (e.event_dates && e.event_dates.length > 0) {
-                    e.event_dates.forEach((d: string) => targetDates.push(d));
-                } else {
-                    const primaryDate = e.start_date || e.date;
-                    if (primaryDate) targetDates.push(primaryDate);
-                }
-
-                const type = e.category === 'club' ? 'clubs' : e.category === 'class' ? 'classes' : 'events';
-                const typeKr = type === 'clubs' ? '동호회 이벤트+소셜' : type === 'classes' ? '강습' : '행사';
-
-                // Update Monthly Trend (Activity-based)
-                if (targetDates.length > 0) {
-                    const dFirstActivity = new Date(targetDates[0]);
-                    if (!isNaN(dFirstActivity.getTime())) {
-                        const activityMonKey = `${dFirstActivity.getFullYear()}-${String(dFirstActivity.getMonth() + 1).padStart(2, '0')}`;
-                        if (monthlyDict[activityMonKey]) {
-                            monthlyDict[activityMonKey][type]++;
-                            monthlyDict[activityMonKey].total++;
-                        }
-                    }
-                }
-
-                if (targetDates.length === 0) return;
-
-                // UNIQUE DAY LOGIC: Count each Day-of-Week only ONCE per event
-                const uniqueDays = new Set<string>();
-
-                targetDates.forEach(dateStr => {
-                    const dActivity = new Date(dateStr);
-                    if (isNaN(dActivity.getTime())) return;
-                    const dowKey = dayNames[dActivity.getDay()];
-                    uniqueDays.add(dowKey);
-                });
-
-
-
-                uniqueDays.forEach(dowKey => {
-                    // Item for Inspector
-                    const item: StatItem = {
-                        type: typeKr,
-                        title: e.title || '제목 없음',
-                        date: targetDates[0] + (targetDates.length > 1 ? ` 외 ${targetDates.length - 1}건` : ''),
-                        createdAt: e.created_at.split('T')[0],
-                        genre: e.genre || '',
-                        day: dowKey
-                    };
-
-                    dowTotal[dowKey].types[typeKr]++;
-                    dowTotal[dowKey].items.push(item);
-
-                    if (dCreated >= oneMonthAgo) {
-                        dowMonthly[dowKey].types[typeKr]++;
-                        dowMonthly[dowKey].items.push(item);
-                    }
-
-                    // 장르 파싱: 강습/행사만 장르 집계
-                    if (typeKr === '동호회 이벤트+소셜') return;
-
-                    const GENRE_EXCLUDE = ['정규강습', '팀원모집', '-']; // '기타'는 제외하지 않음, '소셜'은 장르가 아님
-                    const eventGenres = e.genre
-                        ? e.genre.split(',').map((g: string) => g.trim()).filter((g: string) => g && !GENRE_EXCLUDE.includes(g) && g !== '소셜')
-                        : [];
-
-                    if (eventGenres.length > 0) {
-                        eventGenres.forEach((g: string) => {
-                            // 대회, 워크샵, 파티 통합 + 행사의 '기타'도 '행사'로 통합
-                            let mappedGenre = g;
-                            if (['대회', '워크샵', '파티'].includes(g)) {
-                                mappedGenre = '행사';
-                            } else if (typeKr === '행사' && g === '기타') {
-                                mappedGenre = '행사';
-                            }
-
-                            globalGenreDict[mappedGenre] = (globalGenreDict[mappedGenre] || 0) + 1;
-                            dowTotal[dowKey].genres[mappedGenre] = (dowTotal[dowKey].genres[mappedGenre] || 0) + 1;
-                            if (dCreated >= oneMonthAgo) dowMonthly[dowKey].genres[mappedGenre] = (dowMonthly[dowKey].genres[mappedGenre] || 0) + 1;
-                        });
-                    }
-                });
-            });
-
-            // Socials
-            socials.forEach(s => {
-                // Monthly: Created At (Supply Tracker)
-                const dCreated = new Date(s.created_at);
-                const regMonKey = `${dCreated.getFullYear()}-${String(dCreated.getMonth() + 1).padStart(2, '0')}`;
-                if (monthlyDict[regMonKey]) {
-                    monthlyDict[regMonKey].registrations++;
-                }
-
-                // Monthly: Based on Activity Date (Activity Trend) - USER REQUEST
-                const dActivity = s.date ? new Date(s.date) : null;
-                if (dActivity && !isNaN(dActivity.getTime())) {
-                    const monKey = `${dActivity.getFullYear()}-${String(dActivity.getMonth() + 1).padStart(2, '0')}`;
-                    if (monthlyDict[monKey]) {
-                        monthlyDict[monKey].socials++;
-                        monthlyDict[monKey].total++;
-                    }
-                } else if (s.day_of_week !== null) {
-                    // Recurring
-                    if (monthlyDict[regMonKey]) {
-                        monthlyDict[regMonKey].socials++;
-                        monthlyDict[regMonKey].total++;
-                    }
-                }
-
-                // Weekly: Activity Date
-                let dowIndex = -1;
-                if (s.day_of_week !== null && s.day_of_week !== undefined) {
-                    dowIndex = Number(s.day_of_week) % 7;
-                } else if (s.date) {
-                    const dActivity = new Date(s.date);
-                    if (!isNaN(dActivity.getTime())) {
-                        dowIndex = dActivity.getDay();
-                    }
-                }
-
-                if (dowIndex === -1) return;
-
-                const dowKey = dayNames[dowIndex];
-
-                const item: StatItem = {
-                    type: '동호회 이벤트+소셜',
-                    title: s.title || '제목 없음',
-                    date: s.day_of_week !== null ? '매주 반복' : (s.date || '-'), // day_of_week is in events too
-                    createdAt: s.created_at.split('T')[0],
-                    genre: s.genre || '소셜', // genre is in events
-                    day: dowKey
-                };
-
-                dowTotal[dowKey].types['동호회 이벤트+소셜']++;
-                dowTotal[dowKey].items.push(item);
-
-                // For "New" filter (This Month), use created_at for socials 
-                // because recurring events don't have a single "date" to check against `oneMonthAgo` nicely 
-                // unless we generate occurrences. Stick to "Recently Added" semantics for consistency.
-                const isRecent = dCreated >= oneMonthAgo;
-
-                if (isRecent) {
-                    dowMonthly[dowKey].types['동호회 이벤트+소셜']++;
-                    dowMonthly[dowKey].items.push(item);
-                }
-
-                // 소셜/동호회는 장르 집계 제외 (사용자 요청)
-                // 위에서 socials.forEach로 돌고 있는 것은 '소셜' 테이블 데이터임.
-
-                // Removed duplicate increment
-                if (isRecent) {
-                    // handled above
-                }
-            });
-
-
-            const sortedGenres = Object.entries(globalGenreDict).sort((a, b) => b[1] - a[1]).map(e => e[0]);
-            const top5Genres = sortedGenres.slice(0, 5);
-
-            const buildWeeklyStats = (dict: { [key: string]: StatAccumulator }) => {
-                return dayNames.map(day => {
-                    const data = dict[day];
-                    const total = Object.values(data.types).reduce((a: number, b: number) => a + (Number(b) || 0), 0);
-                    const typeCountForGenre = (Number(data.types['강습']) || 0) + (Number(data.types['행사']) || 0);
-
-                    const typeBreakdown = [
-                        { name: '강습', count: Number(data.types['강습']) || 0 },
-                        { name: '행사', count: Number(data.types['행사']) || 0 },
-                        { name: '동호회 이벤트+소셜', count: Number(data.types['동호회 이벤트+소셜']) || 0 },
-                    ];
-
-                    // Genre Breakdown: Normalized to total class+event count to avoid over-100% bars
-                    const genreBreakdown: { name: string; count: number }[] = [];
-                    const top8Genres = sortedGenres.slice(0, 8);
-
-                    top8Genres.forEach(g => {
-                        const rawCount = Number(data.genres[g]) || 0;
-                        // 정규화: (해당 장르 건수 / 전체 장르 발생 합계) * (강습+행사 총 개수)
-                        // 이렇게 하면 세그먼트의 합이 정확히 typeCountForGenre가 됨
-                        const totalGenreOccurrences = Object.values(data.genres).reduce((a, b) => a + b, 0) || 1;
-                        const normalizedCount = (rawCount / totalGenreOccurrences) * typeCountForGenre;
-                        genreBreakdown.push({ name: g, count: normalizedCount });
-                    });
-
-                    const topGenre = sortedGenres.find(g => (Number(data.genres[g]) || 0) > 0) || '';
-                    return { day, count: total, typeBreakdown, genreBreakdown, topGenre, items: data.items };
-                });
-            };
-
-            const totalWeekly = buildWeeklyStats(dowTotal);
-            const monthlyWeekly = buildWeeklyStats(dowMonthly);
-
-            const totalItems = events.length + socials.length;
-
-            // Calculate Daily Averages for each month
-            const krNow = new Date(new Date().getTime() + (9 * 60 * 60 * 1000));
-            const currentMonthKey = `${krNow.getUTCFullYear()}-${String(krNow.getUTCMonth() + 1).padStart(2, '0')}`;
-
-            months.forEach(mKey => {
-                const stat = monthlyDict[mKey];
-                const [y, m] = mKey.split('-').map(Number);
-                let days;
-                if (mKey === currentMonthKey) {
-                    days = krNow.getUTCDate();
-                } else {
-                    days = new Date(y, m, 0).getDate();
-                }
-                stat.dailyAvg = Number((stat.total / Math.max(1, days)).toFixed(1));
-            });
-
-            // Calculate Overall Daily Average for Summary (Based on current month's pace)
-            const currentDailyAvg = monthlyDict[currentMonthKey]?.dailyAvg || 0;
-
-            const topDayData = [...totalWeekly].sort((a, b) => b.count - a.count)[0];
-
             const newStats: SceneStats = {
-                monthly: months.map(m => monthlyDict[m]),
-                totalWeekly,
-                monthlyWeekly,
-                topGenresList: sortedGenres.slice(0, 8),
+                monthly: data.monthly || [],
+                totalWeekly: (data.totalWeekly || []).map((d: any) => ({
+                    ...d,
+                    items: Array.isArray(d.items) ? d.items.flat() : []
+                })),
+                monthlyWeekly: (data.monthlyWeekly || []).map((d: any) => ({
+                    ...d,
+                    items: Array.isArray(d.items) ? d.items.flat() : []
+                })),
+                topGenresList: data.topGenresList || [],
                 summary: {
-                    totalItems,
-                    dailyAverage: currentDailyAvg,
-                    topDay: topDayData.day
+                    totalItems: data.summary?.totalItems || 0,
+                    dailyAverage: data.summary?.dailyAverage || 0,
+                    topDay: data.summary?.topDay || '-'
                 }
             };
+            console.log('[SwingSceneStats] Parsed Stats:', newStats); // DEBUG
+            console.log('[SwingSceneStats] Monthly Details:', newStats.monthly);
+            console.log('[SwingSceneStats] Weekly Details:', newStats.totalWeekly);
+            console.log('[SwingSceneStats] Top Genres:', newStats.topGenresList);
+
             setStats(newStats);
 
-            // Dispatch event for dynamic sync (e.g., for SideDrawer)
             window.dispatchEvent(new CustomEvent('statsUpdated', {
-                detail: {
-                    total: totalItems,
-                    avg: currentDailyAvg
-                }
+                detail: { total: newStats.summary.totalItems, avg: newStats.summary.dailyAverage }
             }));
 
         } catch (error) {
-            console.error('[SwingSceneStats] Error fetching scene stats:', error);
+            console.error('[SwingSceneStats] API Error:', error);
         } finally {
             setLoading(false);
         }
@@ -444,6 +186,13 @@ export default function SwingSceneStats() {
         }
     }, [stats]);
 
+    // Scroll to end of chart on load or when range changes
+    useEffect(() => {
+        if (chartScrollRef.current) {
+            chartScrollRef.current.scrollLeft = chartScrollRef.current.scrollWidth;
+        }
+    }, [stats, monthlyRange]);
+
     if (loading || !stats) {
         return (
             <div style={{ padding: '60px 0' }}>
@@ -453,26 +202,29 @@ export default function SwingSceneStats() {
     }
 
     const currentWeekly = weeklyTab === 'total' ? stats.totalWeekly : stats.monthlyWeekly;
-    const currentMonthly = monthlyRange === '1y' ? stats.monthly : stats.monthly.slice(stats.monthly.length - 6);
+    // const currentMonthly = monthlyRange === '1y' ? stats.monthly : stats.monthly.slice(stats.monthly.length - 6);
+    // [Mod] Always show all data for horizontal scrolling
+    const currentMonthly = stats.monthly;
+
     const maxMonthly = Math.max(...currentMonthly.map(m => m.total), 1);
     const maxDay = Math.max(...currentWeekly.map(d => d.count), 1);
 
     const getTypePeak = (type: string) => {
-        const peak = [...currentWeekly].sort((a, b) => {
+        const sorted = [...currentWeekly].sort((a, b) => {
             const countA = a.typeBreakdown.find(tb => tb.name === type)?.count || 0;
             const countB = b.typeBreakdown.find(tb => tb.name === type)?.count || 0;
             return countB - countA;
-        })[0];
-        return peak.day;
+        });
+        return sorted[0]?.day || '-';
     };
 
     const getGenrePeak = (genre: string) => {
-        const peak = [...currentWeekly].sort((a, b) => {
+        const sorted = [...currentWeekly].sort((a, b) => {
             const countA = a.genreBreakdown.find(gb => gb.name === genre)?.count || 0;
             const countB = b.genreBreakdown.find(gb => gb.name === genre)?.count || 0;
             return countB - countA;
-        })[0];
-        return peak.day;
+        });
+        return sorted[0]?.day || '-';
     };
 
     const getGenreColor = (name: string, index: number) => {
@@ -523,7 +275,13 @@ export default function SwingSceneStats() {
 
                 {/* Column 1: Summary & Monthly */}
                 <div className="stats-col-1">
-                    <div className="share-container">
+                    <div className="share-container" style={{ display: 'flex', gap: '8px' }}>
+                        {isAdmin && (
+                            <button onClick={handleRefreshMetrics} className="share-btn admin-refresh-btn" disabled={refreshing}>
+                                <i className={refreshing ? "ri-loader-4-line spinner" : "ri-refresh-line"}></i>
+                                {refreshing ? '갱신 중...' : 'DB 통계 갱신'}
+                            </button>
+                        )}
                         <button onClick={handleShare} className="share-btn">
                             <i className="ri-share-forward-line"></i> 통계 공유
                         </button>
@@ -558,7 +316,7 @@ export default function SwingSceneStats() {
                                 <button onClick={() => setMonthlyRange('1y')} className={`tab-btn ${monthlyRange === '1y' ? 'active' : ''}`}>1년</button>
                             </div>
                         </div>
-                        <div className="chart-container">
+                        <div className="chart-container" ref={chartScrollRef}>
                             {currentMonthly.map((m, i) => (
                                 <div key={i} className="bar-wrapper">
                                     <div className="bar-info-group">
@@ -567,9 +325,9 @@ export default function SwingSceneStats() {
                                     </div>
                                     <div className="stacked-bar">
                                         {/* Using percentage for accurate height proportion */}
-                                        <div className="bar-segment" style={{ height: `${(m.classes / maxMonthly) * 100}%`, minHeight: m.classes > 0 ? '1px' : '0', background: COLORS.classes }}></div>
-                                        <div className="bar-segment" style={{ height: `${(m.events / maxMonthly) * 100}%`, minHeight: m.events > 0 ? '1px' : '0', background: COLORS.events }}></div>
-                                        <div className="bar-segment" style={{ height: `${((m.socials + m.clubs) / maxMonthly) * 100}%`, minHeight: (m.socials + m.clubs) > 0 ? '1px' : '0', background: COLORS.socials }}></div>
+                                        <div className="bar-segment" style={{ height: `${((m.classes || 0) / maxMonthly) * 100}%`, minHeight: (m.classes || 0) > 0 ? '1px' : '0', background: COLORS.classes }}></div>
+                                        <div className="bar-segment" style={{ height: `${((m.events || 0) / maxMonthly) * 100}%`, minHeight: (m.events || 0) > 0 ? '1px' : '0', background: COLORS.events }}></div>
+                                        <div className="bar-segment" style={{ height: `${(((m.socials || 0) + (m.clubs || 0)) / maxMonthly) * 100}%`, minHeight: ((m.socials || 0) + (m.clubs || 0)) > 0 ? '1px' : '0', background: COLORS.socials }}></div>
                                     </div>
                                     <div className="axis-group">
                                         <span className="axis-label">{m.month.split('-')[1]}월</span>

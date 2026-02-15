@@ -123,13 +123,41 @@
     flex-direction: row;
     /* Ensure horizontal row */
     align-items: flex-end;
-    justify-content: space-around;
+    /* justify-content: space-around; REMOVED to allow scroll */
+    justify-content: flex-start;
+    /* Start from left, but we will scroll to end */
+    gap: var(--spacing-4);
+    /* Uniform gap */
     height: 180px;
     /* Fixed height for consistency */
     flex-shrink: 0;
     margin-top: var(--spacing-4);
     padding-bottom: var(--spacing-4);
     border-bottom: 1px solid var(--border-glass-subtle);
+
+    /* Horizontal Scroll */
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-right: var(--spacing-4);
+    /* Add padding for last item */
+
+    /* Scrollbar Styling */
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-glass-strong) transparent;
+}
+
+/* Webkit Scrollbar */
+.chart-container::-webkit-scrollbar {
+    height: 6px;
+}
+
+.chart-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.chart-container::-webkit-scrollbar-thumb {
+    background-color: var(--border-glass-strong);
+    border-radius: 3px;
 }
 
 .bar-wrapper {
@@ -140,6 +168,9 @@
     height: 100%;
     justify-content: flex-end;
     position: relative;
+    /* Force minimum width for scroll */
+    min-width: 45px;
+    flex-shrink: 0;
 }
 
 .stacked-bar {
