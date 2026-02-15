@@ -134,6 +134,15 @@
     gap: 12px;
 }
 
+/* Grouped Sections (Date/Time, Links) */
+.form-section.multi-row.date-time-row,
+.form-section.multi-row.link-row {
+    border: 1px solid #444;
+    padding: 15px;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
 .form-item {
     display: flex;
     flex-direction: column;
@@ -365,13 +374,40 @@ textarea {
 }
 
 @media (max-width: 480px) {
-    .form-section.multi-row {
+    .form-section.multi-row:not(.date-time-row):not(.link-row) {
         flex-direction: column;
         gap: 15px;
     }
 
+    /* 날짜/시간 및 링크 행은 모바일에서도 가로 유지 및 5:5 비율 */
+    .form-section.multi-row.date-time-row,
+    .form-section.multi-row.link-row {
+        flex-direction: row;
+        gap: 6px;
+        /* 간격 축소 */
+        padding: 10px;
+        /* 내부 패딩 축소 */
+    }
+
+    .form-section.multi-row.date-time-row .form-item,
+    .form-section.multi-row.link-row .form-item {
+        flex: 1;
+        min-width: 0;
+        /* Flex item overflow 방지 */
+    }
+
+    /* 모바일에서 인풋 폰트 사이즈 및 패딩 축소하여 잘림 방지 */
+    .form-section.multi-row.date-time-row input,
+    .form-section.multi-row.link-row input {
+        font-size: 0.8rem;
+        padding: 8px 4px;
+        letter-spacing: -0.5px;
+        text-align: center;
+    }
+
     .form-item.is-narrow {
         flex: auto;
+        /* Fallback (redundant due to above but keeps clean) */
     }
 }
 

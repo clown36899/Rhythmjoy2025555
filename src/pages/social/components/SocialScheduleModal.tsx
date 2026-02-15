@@ -550,7 +550,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                                 />
                             </div>
 
-                            <div className="form-section multi-row">
+                            <div className="form-section multi-row date-time-row">
                                 <div className="form-item">
                                     <label>날짜 *</label>
                                     <input
@@ -558,6 +558,8 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                                         value={date}
                                         onChange={(e) => setDate(e.target.value)}
                                         required
+                                        onClick={(e) => e.currentTarget.showPicker?.()}
+                                        style={{ cursor: 'pointer' }}
                                     />
                                 </div>
                                 <div className="form-item">
@@ -566,6 +568,8 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                                         type="time"
                                         value={time}
                                         onChange={(e) => setTime(e.target.value)}
+                                        onClick={(e) => e.currentTarget.showPicker?.()}
+                                        style={{ cursor: 'pointer' }}
                                     />
                                 </div>
                             </div>
