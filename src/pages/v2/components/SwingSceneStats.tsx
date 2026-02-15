@@ -243,9 +243,10 @@ export default function SwingSceneStats() {
         return sorted[0]?.day || '-';
     };
 
-    const getGenreColor = (name: string, index: number) => {
+    const getGenreColor = (name: string) => {
         if (GENRE_COLORS[name]) return GENRE_COLORS[name];
-        // 팔레트 중복 최소화를 위해 선명한 색상 위주로 폴백 구성
+
+        // Stable fallback: Hash the name to pick a palette color
         const palette = [
             'var(--color-lime-500)',
             'var(--color-fuchsia-500)',
@@ -253,7 +254,11 @@ export default function SwingSceneStats() {
             'var(--color-indigo-400)',
             'var(--color-pink-500)'
         ];
-        return palette[index % palette.length];
+        let hash = 0;
+        for (let i = 0; i < name.length; i++) {
+            hash = name.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        return palette[Math.abs(hash) % palette.length];
     };
 
     // Data Inspector Helper
@@ -370,7 +375,10 @@ export default function SwingSceneStats() {
                                             </div>
                                         </div>
                                         <div className="axis-group">
-                                            <span className="axis-label">{m.month.split('-')[1]}월</span>
+                                            <span className="axis-label">
+                                                {m.month.split('-')[1]}월
+                                                {isThisMonth && <span className="today-badge">오늘까지</span>}
+                                            </span>
                                             <span className="axis-avg">{m.dailyAvg}</span>
                                         </div>
                                     </div>
@@ -394,7 +402,7 @@ export default function SwingSceneStats() {
                             </div>
                             <div className="info-item">
                                 <span className="info-label avg">일평균</span>
-                                <span className="info-text">5.4 : 해당 월의 일평균 이벤트수</span>
+                                <span className="info-text">5.4 : 해당 월의 일평균 이벤트수 (이번 달은 오늘까지 기준)</span>
                             </div>
 
                         </div>
@@ -415,7 +423,7 @@ export default function SwingSceneStats() {
                         <h4 className="section-title"><i className="ri-calendar-todo-line"></i> 요일별 유형 비중</h4>
                         <div className="touch-hint">* 그래프 터치하여 상세 보기</div>
 
-                        <div className="chart-container">
+                        <div className="chart-container weekly-chart">
                             {currentWeekly.map((d, i) => (
                                 <div key={i} className="bar-wrapper" style={{ cursor: 'pointer', opacity: inspectTypeDay && inspectTypeDay !== d.day ? 0.3 : 1 }} onClick={() => setInspectTypeDay(inspectTypeDay === d.day ? null : d.day)}>
                                     {d.count > 0 && <span className="total-label" style={{ color: inspectTypeDay === d.day ? 'var(--color-blue-400)' : 'var(--text-primary)' }}>{d.count}</span>}
@@ -474,7 +482,7 @@ export default function SwingSceneStats() {
                     <div className="stats-section">
                         <h4 className="section-title"><i className="ri-medal-2-line"></i> 외부강습 요일별 장르 비중</h4>
 
-                        <div className="chart-container">
+                        <div className="chart-container weekly-chart">
                             {currentWeekly.map((d, i) => (
                                 <div key={i} className="bar-wrapper" style={{ cursor: 'pointer', opacity: inspectGenreDay && inspectGenreDay !== d.day ? 0.3 : 1 }} onClick={() => setInspectGenreDay(inspectGenreDay === d.day ? null : d.day)}>
                                     {d.count > 0 && <span className="total-label" style={{ color: inspectGenreDay === d.day ? 'var(--color-blue-400)' : 'var(--text-primary)' }}>{d.count}</span>}
@@ -485,7 +493,7 @@ export default function SwingSceneStats() {
                                                     height: `${(gb.count / maxDay) * 100}%`,
                                                     minHeight: gb.count > 0 ? '1px' : '0',
                                                     width: '100%',
-                                                    background: getGenreColor(gb.name, idx)
+                                                    background: getGenreColor(gb.name)
                                                 }}></div>
                                         ))}
                                     </div>
@@ -497,7 +505,7 @@ export default function SwingSceneStats() {
                         <div className="legend-grid three-cols">
                             {stats.topGenresList.map((g, i) => (
                                 <div key={i} className="legend-item">
-                                    <span className="legend-dot" style={{ background: getGenreColor(g, i) }}></span>
+                                    <span className="legend-dot" style={{ background: getGenreColor(g) }}></span>
                                     <span>{g}</span>
                                 </div>
                             ))}
@@ -643,15 +651,17 @@ const GENRE_COLORS: { [key: string]: string } = {
     '린디합': 'var(--color-blue-600)',
     '솔로재즈': 'var(--color-rose-600)',
     '발보아': 'var(--color-amber-500)',
-    '블루스': 'var(--color-sky-400)',
+    '블루스': 'var(--color-teal-600)',
+    '동호회 정규강습': 'var(--color-lime-400)',
+    '팀원모집': 'var(--color-violet-500)',
     '행사': 'var(--color-teal-600)',
-    '기타': 'var(--color-slate-500)',
     '지터벅': 'var(--color-emerald-500)',
-    '샤그': 'var(--color-lime-500)',
-    '탭댄스': 'var(--color-cyan-500)',
+    '샤그': 'var(--color-emerald-400)',
+    '탭댄스': 'var(--color-sky-500)',
     '웨스트코스트스윙': 'var(--color-violet-400)',
     '슬로우린디': 'var(--color-indigo-500)',
-    '버번': 'var(--color-rose-500)'
+    '버번': 'var(--color-rose-500)',
+    '기타': 'var(--color-slate-500)'
 };
 
 const COLORS = { classes: 'var(--color-blue-500)', events: 'var(--color-amber-400)', socials: 'var(--color-emerald-500)' };
