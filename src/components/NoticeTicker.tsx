@@ -19,7 +19,7 @@ export default function NoticeTicker() {
     const navigate = useNavigate();
 
     // 데이터 정규화 헬퍼 함수
-    const normalizeNotice = (item: any): BoardPostSimple => {
+    const normalizeNotice = (item: any, prefixInfo?: any): BoardPostSimple => {
         let plainContent = item.content || '';
 
         // HTML 태그 및 특수문자 제거
@@ -33,31 +33,53 @@ export default function NoticeTicker() {
 
         const cleanContent = plainContent.replace(/\s+/g, ' ').trim();
 
+        // item.prefix가 있으면 그것을, 없으면 넘겨받은 prefixInfo를 사용
+        const prefix = item.prefix ? (Array.isArray(item.prefix) ? item.prefix[0] : item.prefix) : prefixInfo;
+
         return {
             id: item.id,
             title: item.title,
             content: cleanContent,
-            prefix: Array.isArray(item.prefix) ? item.prefix[0] : item.prefix
+            prefix: prefix
         };
     };
 
     // 데이터 로딩 함수
     const fetchNotices = async () => {
         try {
-            const { data, error } = await supabase
+            // [STEP 1] '전광판' 말머리 정보 조회 (ID, 색상 등)
+            // 익명 사용자도 board_prefixes 접근은 가능함.
+            const { data: prefixData, error: prefixError } = await supabase
+                .from('board_prefixes')
+                .select('id, name, color')
+                .eq('name', '전광판')
+                .single();
+
+            if (prefixError || !prefixData) {
+                // 전광판 말머리가 없으면 아무것도 표시 안 함
+                setLoading(false);
+                return;
+            }
+
+            const targetPrefixId = prefixData.id;
+            const prefixInfo = { name: prefixData.name, color: prefixData.color };
+
+            // [STEP 2] 해당 prefix_id를 가진 게시글 조회
+            // !inner 조인을 제거하고 prefix_id 컬럼으로 직접 필터링하여 RLS/권한 문제 우회
+            const { data: postsData, error: postsError } = await supabase
                 .from('board_posts')
-                // !inner를 사용하여 해당 말머리를 가진 글만 필터링 (Inner Join)
-                .select('id, title, content, prefix:board_prefixes!inner(name, color)')
+                .select('id, title, content') // prefix 정보는 이미 알고 있음
                 .eq('category', 'free')
                 .eq('is_hidden', false)
-                .eq('prefix.name', '전광판') // '전광판' 말머리만 필터링
+                .eq('prefix_id', targetPrefixId)
                 .order('created_at', { ascending: false })
                 .limit(10);
 
-            if (error) throw error;
+            if (postsError) throw postsError;
 
-            if (data) {
-                const normalizedData = data.map(normalizeNotice);
+            if (postsData) {
+                // prefix 정보를 수동으로 주입
+                const normalizedData = postsData.map(item => normalizeNotice(item, prefixInfo));
                 setNotices(normalizedData);
             }
         } catch (err) {
@@ -82,69 +104,82 @@ export default function NoticeTicker() {
                     event: '*',
                     schema: 'public',
                     table: 'board_posts',
-                    // filter: 'category=eq.free' // 필터 제거 (모든 글 수신 후 아래에서 처리)
                 },
                 async (payload) => {
-                    // console.log('[NoticeTicker] Realtime event:', payload);
-
                     if (payload.eventType === 'INSERT') {
                         const newRecord = payload.new as any;
-                        // 자유게시판 글이 아니면 무시
                         if (newRecord.category !== 'free') return;
 
-                        // 새 글 등록 시: 해당 글 정보 가져와서 최상단에 추가
+                        // 새 글 등록 시 상세 정보 조회
+                        // 여기서도 !inner 조인 대신 prefix_id 확인 후 수동 매핑
+                        // 먼저 해당 글의 prefix_id가 '전광판'인지 확인해야 함.
+
+                        // 1. 해당 글의 prefix_id 가져오기 (이미 newRecord에 있음)
+                        const postPrefixId = newRecord.prefix_id;
+
+                        // 2. '전광판' 말머리 ID 조회 (캐싱되어 있지 않으므로 다시 조회)
+                        const { data: prefixData } = await supabase
+                            .from('board_prefixes')
+                            .select('id, name, color')
+                            .eq('name', '전광판')
+                            .single();
+
+                        if (!prefixData || prefixData.id !== postPrefixId) return;
+
+                        // 전광판 글임이 확인됨. 상세 데이터 조회 (내용 등)
                         const { data, error } = await supabase
                             .from('board_posts')
-                            .select('id, title, content, prefix:board_prefixes(name, color)')
+                            .select('id, title, content')
                             .eq('id', newRecord.id)
                             .single();
 
-                        // is_hidden 체크 및 '전광판' 말머리인지 확인
                         if (!error && data && !(data as any).is_hidden) {
-                            const prefixName = (data.prefix as any)?.name;
-                            if (prefixName === '전광판') {
-                                setNotices(prev => [normalizeNotice(data), ...prev].slice(0, 10));
-                            }
+                            const prefixInfo = { name: prefixData.name, color: prefixData.color };
+                            setNotices(prev => [normalizeNotice(data, prefixInfo), ...prev].slice(0, 10));
                         }
-                    } else if (payload.eventType === 'UPDATE') {
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        const newPost = payload.new as any;
 
-                        // 자유게시판 글이 아니면 무시
+                    } else if (payload.eventType === 'UPDATE') {
+                        const newPost = payload.new as any;
                         if (newPost.category !== 'free') return;
 
                         if (newPost.is_hidden) {
-                            // 숨김 처리된 경우 목록에서 제거 (말머리 상관없이 안 보여야 함)
                             setNotices(prev => prev.filter(n => n.id !== newPost.id));
                         } else {
-                            // 수정된 경우: 내용 업데이트
-                            const { data, error } = await supabase
-                                .from('board_posts')
-                                .select('id, title, content, prefix:board_prefixes(name, color)')
-                                .eq('id', newPost.id)
+                            // 수정 시: prefix_id가 바뀌었을 수도 있음.
+                            const { data: prefixData } = await supabase
+                                .from('board_prefixes')
+                                .select('id, name, color')
+                                .eq('name', '전광판')
                                 .single();
 
-                            if (!error && data) {
-                                const prefixName = (data.prefix as any)?.name;
-                                // '전광판' 말머리가 아니게 변경되었을 수도 있으므로 체크
-                                if (prefixName === '전광판') {
-                                    // 목록에 없으면 추가, 있으면 업데이트
+                            // 현재 글이 전광판 말머리인지 확인
+                            const isNoticePrefix = prefixData && prefixData.id === newPost.prefix_id;
+
+                            if (isNoticePrefix) {
+                                // 전광판이면 목록 업데이트/추가
+                                const { data } = await supabase
+                                    .from('board_posts')
+                                    .select('id, title, content')
+                                    .eq('id', newPost.id)
+                                    .single();
+
+                                if (data) {
+                                    const prefixInfo = { name: prefixData.name, color: prefixData.color };
                                     setNotices(prev => {
                                         const exists = prev.find(n => n.id === newPost.id);
                                         if (exists) {
-                                            return prev.map(n => n.id === newPost.id ? normalizeNotice(data) : n);
+                                            return prev.map(n => n.id === newPost.id ? normalizeNotice(data, prefixInfo) : n);
                                         } else {
-                                            return [normalizeNotice(data), ...prev].slice(0, 10);
+                                            return [normalizeNotice(data, prefixInfo), ...prev].slice(0, 10);
                                         }
                                     });
-                                } else {
-                                    // '전광판'이 아니게 되었으면 목록에서 제거
-                                    setNotices(prev => prev.filter(n => n.id !== newPost.id));
                                 }
+                            } else {
+                                // 전광판이 아니면 목록에서 제거
+                                setNotices(prev => prev.filter(n => n.id !== newPost.id));
                             }
                         }
                     } else if (payload.eventType === 'DELETE') {
-                        // 삭제된 경우 목록에서 제거
                         setNotices(prev => prev.filter(n => n.id !== payload.old.id));
                     }
                 }
@@ -157,19 +192,15 @@ export default function NoticeTicker() {
     }, []);
 
     const handleNoticeClick = (id: number) => {
-        // 상세 페이지 모달 띄우기
         navigate(`/board?category=free&postId=${id}`);
     };
 
-    // 무한 루프를 위해 데이터를 충분히 복제 (useMemo로 최적화)
     const loopNotices = React.useMemo(() => {
         if (notices.length === 0) return [];
-        // 아이템이 적을 경우 더 많이 복제해서 끊김 없게 함
         const repeatCount = notices.length < 5 ? 4 : 2;
         return Array(repeatCount).fill(notices).flat();
     }, [notices]);
 
-    // 데이터 변경 시 애니메이션 리셋을 위한 키 (가장 마지막 글 ID 등으로 설정)
     const tickerKey = notices.length > 0 ? notices[0].id : 'empty';
 
     if (loading || notices.length === 0) return null;
