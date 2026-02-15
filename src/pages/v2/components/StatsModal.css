@@ -164,7 +164,9 @@
     display: flex;
     flex-direction: column;
     overflow: hidden !important;
-    /* Fixed on Desktop */
+    /* Fixed on Desktop - Scroll Blocked */
+    padding-bottom: 0 !important;
+    /* 하단 패딩 제거 */
 }
 
 @media (max-width: 1023px) {

@@ -2,7 +2,22 @@
     color: var(--text-primary);
     font-family: var(--font-family-base, 'Pretendard', sans-serif);
     height: 100%;
+    height: 100%;
     width: 100%;
+    overflow: hidden;
+    position: relative;
+    /* For absolute positioning of header controls */
+    background: var(--bg-main);
+    color: var(--text-primary);
+}
+
+.stats-header-controls {
+    position: absolute;
+    top: 16px;
+    right: 24px;
+    display: flex;
+    gap: 8px;
+    z-index: 10;
 }
 
 .stats-container {
@@ -18,30 +33,316 @@
 @media (min-width: 1024px) {
     .stats-container {
         display: grid;
-        grid-template-columns: 1fr 1fr 1fr;
-        grid-template-rows: 1fr;
-        gap: var(--spacing-6);
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        /* [핵심] 4열 균등 너비 (1:1:1:1) */
+        /* [핵심] 4열 레이아웃 적용 */
+        grid-template-rows: 100%;
+        gap: var(--spacing-3);
+        /* 간격 축소: 4 -> 3 */
         height: 100%;
         overflow: hidden;
-        padding: 0 var(--spacing-6) var(--spacing-6) var(--spacing-6);
+        padding-top: 50px;
+        /* Space for Header Controls */
+        padding-bottom: var(--spacing-3);
+        padding-left: var(--spacing-3);
+        padding-right: var(--spacing-3);
+        /* 패딩 축소 */
+        font-size: 0.9rem;
+        /* [핵심] 데스크탑 기본 폰트 축소 */
+    }
+
+    /* 텍스트 크기 전반적 축소 */
+    .stats-container h1,
+    .stats-container h2,
+    .stats-container h3,
+    .section-title {
+        font-size: 1.1rem !important;
+        /* 제목 크기 축소 */
+        margin-bottom: var(--spacing-2) !important;
+    }
+
+    .stats-value,
+    .stat-value {
+        font-size: 1.5rem !important;
+        /* 숫자 크기 축소 */
+    }
+
+    .stat-label,
+    .sub-label,
+    .chart-desc,
+    .unit,
+    .stats-period {
+        font-size: 0.8rem !important;
+        /* 보조 텍스트 축소 */
     }
 
     .stats-col-1,
     .stats-col-2,
-    .stats-col-3 {
-        overflow: hidden;
-        padding-right: 0;
+    .stats-col-3,
+    .stats-col-4 {
+        /* [New] Col 4 추가 */
         display: flex;
         flex-direction: column;
-        gap: var(--spacing-4);
+        gap: var(--spacing-2);
+        height: 100%;
+        overflow: hidden;
+    }
+
+    /* Col 1: Fixed width handled by grid */
+
+    /* Col 2, 3, 4: Dynamic width */
+    .stats-col-2,
+    .stats-col-3,
+    .stats-col-4 {
+        overflow: hidden;
+        /* 내부 스크롤 방지 */
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
         height: 100%;
         min-height: 0;
+        gap: var(--spacing-2);
     }
 
     .stats-col-2,
-    .stats-col-3 {
+    .stats-col-3,
+    .stats-col-4 {
         border-left: 1px solid var(--border-glass);
-        padding-left: 20px;
+        padding-left: 16px;
+        /* 20px -> 16px 축소 */
+    }
+
+    /* Desktop Specific Overrides to fit screen */
+    .stats-section {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 0;
+        padding: var(--spacing-3);
+        /* 섹션 내부 패딩 축소 */
+        background: var(--bg-surface-translucent);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-color);
+        overflow: hidden;
+        /* 내부 스크롤 방지 */
+        flex-shrink: 0;
+        /* 기본적으로 줄어들지 않음 (차트 컨테이너가 줄어듦) */
+    }
+
+    /* Title size reduction for desktop */
+    .section-title {
+        font-size: 0.8rem;
+        margin-bottom: var(--spacing-2);
+    }
+
+    .stats-card-grid {
+        gap: var(--spacing-2);
+        margin-bottom: var(--spacing-3);
+    }
+
+    .stats-card {
+        padding: var(--spacing-3) var(--spacing-2);
+    }
+
+    .card-value {
+        font-size: 0.9rem;
+    }
+
+    .chart-container {
+        flex: 1;
+        min-height: 0;
+        /* 차트 높이 제한: 전체 높이의 40%를 넘지 않도록 설정 */
+        max-height: 40%;
+        overflow-y: hidden;
+        padding-bottom: 0;
+        border-bottom: none;
+        align-items: flex-end;
+        padding-right: 0;
+        /* 우측 패딩 제거 */
+    }
+
+    /* CRITICAL FIX: Make bars grow with screen height */
+    .stacked-bar {
+        height: 100% !important;
+        margin-bottom: 0;
+    }
+
+    /* Col 3 Compact Mode */
+    .stats-col-3 .stats-section {
+        justify-content: center;
+    }
+
+    .promo-analysis-section {
+        padding: var(--spacing-3);
+        margin-top: 0;
+        flex: 1;
+        /* 프로모션 섹션 높이 제한 강화 */
+        max-height: 35%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        overflow: hidden;
+    }
+
+    .promo-chart-container {
+        margin: var(--spacing-1) 0;
+        gap: var(--spacing-1);
+        /* 차트 높이 강제 축소 */
+        height: auto;
+        max-height: 80px;
+        min-height: 0;
+        flex-shrink: 1;
+    }
+
+    .promo-bar-group {
+        gap: var(--spacing-2);
+    }
+
+    .chart-info-footer {
+        margin-top: auto;
+        padding-top: var(--spacing-2);
+        flex-shrink: 0;
+        gap: var(--spacing-1);
+    }
+
+    .info-item {
+        gap: var(--spacing-1);
+    }
+
+    .info-label {
+        font-size: 0.65rem;
+        min-width: 40px;
+        padding: 2px 4px;
+    }
+
+    .spacer-52,
+    .spacer-30 {
+        display: none;
+    }
+
+    /* Bar wrapper compact */
+    .bar-wrapper {
+        padding: 4px 0;
+    }
+
+    .bar-info-group {
+        height: 24px;
+        margin-bottom: 4px;
+    }
+
+    .axis-group {
+        height: 36px;
+        margin-top: 4px;
+    }
+}
+
+/* Vertical Responsive Scaling for Desktop */
+@media (min-width: 1024px) {
+
+    /* Height < 900px (Laptop) - Mild Zoom for comfort */
+    @media (max-height: 900px) {
+        .stats-container {
+            zoom: 0.8;
+        }
+    }
+
+    .chart-container {
+        flex: 1 1 auto;
+        /* Flex Shrink & Grow */
+        min-height: 0;
+        /* 최소 높이 제거하여 더 작아질 수 있게 함 */
+        max-height: 35vh;
+        /* 화면 높이의 35%까지만 차지하도록 제한 (4번째 섹션 공간 확보) */
+        overflow-y: hidden;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+
+    /* Hide Mobile Spacers on Desktop */
+    .spacer-52,
+    .spacer-30 {
+        display: none !important;
+    }
+
+    .stats-col-3 {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        overflow: hidden;
+        justify-content: space-between;
+    }
+
+    /* Col 3 내부 섹션 강제 분할 (장르 차트 vs 홍보 통계) */
+    .stats-col-3 .stats-section,
+    .stats-col-3 .promo-analysis-section {
+        flex: 1 1 0%;
+        /* 높이 균등 분할 및 축소 허용 */
+        min-height: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        margin-bottom: var(--spacing-2);
+        padding-bottom: 0;
+    }
+
+    /* 마지막 섹션 마진 제거 */
+    .stats-col-3 .promo-analysis-section {
+        margin-bottom: 0;
+    }
+
+    .promo-analysis-section {
+        /* 기존 스타일 오버라이드 */
+        max-height: none;
+        padding-top: 0;
+        flex: 0 1 auto;
+        /* 내용물 크기만큼 차지하되 축소 가능 */
+        overflow: hidden;
+        min-height: 0;
+    }
+
+    .promo-chart-container {
+        flex: 1 1 0%;
+        min-height: 0;
+        max-height: none;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        margin: 0;
+        gap: 0;
+    }
+
+    /* 홍보 통계 내부 간격 초소형화 */
+    .promo-bar-group {
+        flex: 1 1 0%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-height: 0;
+    }
+
+    .promo-bar-item {
+        margin-bottom: 2px !important;
+    }
+
+    .section-title {
+        flex-shrink: 0;
+        /* 제목은 줄어들지 않음 */
+        margin-top: 0;
+        padding-top: 0;
+    }
+
+    .chart-desc,
+    .touch-hint {
+        flex-shrink: 0;
+        margin-bottom: 4px;
+    }
+
+    /* 막대 그래프가 찌그러지지 않도록 최소 높이만 제어 */
+    .stacked-bar {
+        flex: 1;
+        min-height: 0;
     }
 }
 
@@ -483,6 +784,29 @@
     border-radius: var(--radius-xl);
     border: 1px solid var(--border-glass-subtle);
     margin-top: var(--spacing-2);
+}
+
+@media (max-width: 1023px) {
+
+    /* 모바일에서는 원래대로 표시 (Relative Flow) */
+    .stats-header-controls {
+        position: static;
+        display: flex;
+        justify-content: flex-end;
+        padding: 16px 16px 0 16px;
+        margin-bottom: -10px;
+    }
+
+    .stats-container {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-6);
+        padding: var(--spacing-4);
+        padding-top: var(--spacing-2);
+        height: auto;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
 }
 
 .promo-chart-container {

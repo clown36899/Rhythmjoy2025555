@@ -315,21 +315,24 @@ export default function SwingSceneStats() {
 
     return (
         <div className="swing-scene-stats">
+            {/* [New] Top Right Header Controls */}
+            <div className="stats-header-controls">
+                {isAdmin && (
+                    <button onClick={handleRefreshMetrics} className="share-btn admin-refresh-btn" disabled={refreshing}>
+                        <i className={refreshing ? "ri-loader-4-line spinner" : "ri-refresh-line"}></i>
+                        {refreshing ? '갱신 중...' : 'DB 통계 갱신'}
+                    </button>
+                )}
+                <button onClick={handleShare} className="share-btn">
+                    <i className="ri-share-forward-line"></i> 통계 공유
+                </button>
+            </div>
+
             <div className="stats-container">
 
                 {/* Column 1: Summary & Monthly */}
                 <div className="stats-col-1">
-                    <div className="share-container" style={{ display: 'flex', gap: '8px' }}>
-                        {isAdmin && (
-                            <button onClick={handleRefreshMetrics} className="share-btn admin-refresh-btn" disabled={refreshing}>
-                                <i className={refreshing ? "ri-loader-4-line spinner" : "ri-refresh-line"}></i>
-                                {refreshing ? '갱신 중...' : 'DB 통계 갱신'}
-                            </button>
-                        )}
-                        <button onClick={handleShare} className="share-btn">
-                            <i className="ri-share-forward-line"></i> 통계 공유
-                        </button>
-                    </div>
+                    {/* Share container moved out */}
 
                     <div className="stats-card-grid">
                         <div className="stats-card">
@@ -542,9 +545,11 @@ export default function SwingSceneStats() {
                             <DataInspectorModal day={inspectGenreDay} items={getGenreItems(inspectGenreDay)} sortBy="genre" onClose={() => setInspectGenreDay(null)} />
                         )}
                     </div>
+                </div>
 
-                    <div className="spacer-30"></div>
-
+                {/* Column 4: Promo Stats (Moved from Col 3) */}
+                <div className="stats-col-4">
+                    <div className="spacer-52"></div> {/* Align with top headers */}
                     {stats.leadTimeAnalysis && (
                         <div className="promo-analysis-section">
                             <h4 className="section-title"><i className="ri-flashlight-line"></i> 홍보 시작 시점별 조회 도달율</h4>
@@ -592,8 +597,6 @@ export default function SwingSceneStats() {
                             </p>
                         </div>
                     )}
-
-                    <div className="spacer-30"></div>
                 </div>
             </div>
         </div>
