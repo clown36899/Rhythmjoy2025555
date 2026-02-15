@@ -304,9 +304,16 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
 
                 // 2. Prepare Data
                 let genre = '소셜';
-                if (category === 'club_lesson' || category === 'club_regular') {
+                let dbCategory = category;
+
+                if (category === 'club_lesson') {
+                    dbCategory = 'club';
                     genre = 'Lindy';
+                } else if (category === 'club_regular') {
+                    dbCategory = 'club';
+                    genre = 'Lindy,정규강습';
                 } else if (category === 'social') {
+                    dbCategory = 'social';
                     if (socialGenre === 'DJ') genre = 'DJ,소셜';
                     else if (socialGenre === '라이브밴드') genre = '라이브밴드,소셜';
                     else genre = '소셜'; // Fallback
@@ -329,7 +336,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                     image_full: imageFull,
                     group_id: groupId || editSchedule?.group_id,
                     user_id: user.id,
-                    category: category,
+                    category: dbCategory,
                     genre: genre,
                     day_of_week: new Date(date).getDay()
                 };
