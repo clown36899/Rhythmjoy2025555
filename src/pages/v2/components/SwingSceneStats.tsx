@@ -31,6 +31,17 @@ interface SceneStats {
         totalItems: number;
         dailyAverage: number;
         topDay: string;
+        memberCount?: number;
+        pwaCount?: number;
+        pushCount?: number;
+    };
+    leadTimeAnalysis?: {
+        classEarly: number;
+        classMid: number;
+        classLate: number;
+        eventEarly: number;
+        eventMid: number;
+        eventLate: number;
     };
 }
 
@@ -54,7 +65,7 @@ interface MonthlyStat {
 export default function SwingSceneStats() {
     const [stats, setStats] = useState<SceneStats | null>(null);
     const [loading, setLoading] = useState(true);
-    const { data: billboard } = useMonthlyBillboard('all' as any); // All-time for stability
+    // Removed useMonthlyBillboard hook
     const [weeklyTab, setWeeklyTab] = useState<'total' | 'monthly'>('total');
     const [monthlyRange, setMonthlyRange] = useState<'6m' | '1y'>('6m');
     const [isAdmin, setIsAdmin] = useState(false);
@@ -113,7 +124,8 @@ export default function SwingSceneStats() {
                         summary: cached.summary || { totalItems: 0, dailyAverage: 0, topDay: '-' },
                         totalWeekly: [], // Placeholder until raw fetch
                         monthlyWeekly: [], // Placeholder
-                        topGenresList: []  // Placeholder
+                        topGenresList: [],  // Placeholder
+                        leadTimeAnalysis: cached.leadTimeAnalysis // Use cached lead time
                     };
                 });
                 setLoading(false); // Show content immediately
@@ -150,18 +162,29 @@ export default function SwingSceneStats() {
                 summary: {
                     totalItems: data.summary?.totalItems || 0,
                     dailyAverage: data.summary?.dailyAverage || 0,
-                    topDay: data.summary?.topDay || '-'
-                }
+                    topDay: data.summary?.topDay || '-',
+                    memberCount: data.summary?.memberCount || 0,
+                    pwaCount: data.summary?.pwaCount || 0,
+                    pushCount: data.summary?.pushCount || 0
+                },
+                leadTimeAnalysis: data.leadTimeAnalysis
             };
             console.log('[SwingSceneStats] Parsed Stats:', newStats); // DEBUG
             console.log('[SwingSceneStats] Monthly Details:', newStats.monthly);
             console.log('[SwingSceneStats] Weekly Details:', newStats.totalWeekly);
             console.log('[SwingSceneStats] Top Genres:', newStats.topGenresList);
+            console.log('[SwingSceneStats] Lead Time:', newStats.leadTimeAnalysis);
 
             setStats(newStats);
 
             window.dispatchEvent(new CustomEvent('statsUpdated', {
-                detail: { total: newStats.summary.totalItems, avg: newStats.summary.dailyAverage }
+                detail: {
+                    total: newStats.summary.totalItems,
+                    avg: newStats.summary.dailyAverage,
+                    memberCount: newStats.summary.memberCount,
+                    pwaCount: newStats.summary.pwaCount,
+                    pushCount: newStats.summary.pushCount
+                }
             }));
 
         } catch (error) {
@@ -522,7 +545,7 @@ export default function SwingSceneStats() {
 
                     <div className="spacer-30"></div>
 
-                    {billboard?.leadTime && (
+                    {stats.leadTimeAnalysis && (
                         <div className="promo-analysis-section">
                             <h4 className="section-title"><i className="ri-flashlight-line"></i> 홍보 시작 시점별 조회 도달율</h4>
                             <p className="touch-hint" style={{ textAlign: 'left', marginTop: 0 }}>* 등록일부터 행사 시작일까지의 준비 기간별 분석</p>
@@ -532,16 +555,16 @@ export default function SwingSceneStats() {
                                 <div className="promo-bar-group">
                                     <div className="card-label" style={{ textAlign: 'left' }}>정규 강습</div>
                                     <div className="promo-bar-item">
-                                        <div className="promo-label-row"><span>얼리버드 (21일 전)</span> <span className="promo-value">{billboard.leadTime.classEarly} pv</span></div>
-                                        <div className="promo-bar-bg"><div className="promo-bar-fill early" style={{ width: `${Math.min(100, (billboard.leadTime.classEarly / Math.max(1, billboard.leadTime.classEarly, billboard.leadTime.classMid, billboard.leadTime.classLate)) * 100)}%` }}></div></div>
+                                        <div className="promo-label-row"><span>얼리버드 (21일 전)</span> <span className="promo-value">{stats.leadTimeAnalysis.classEarly} pv</span></div>
+                                        <div className="promo-bar-bg"><div className="promo-bar-fill early" style={{ width: `${Math.min(100, (stats.leadTimeAnalysis.classEarly / Math.max(1, stats.leadTimeAnalysis.classEarly, stats.leadTimeAnalysis.classMid, stats.leadTimeAnalysis.classLate)) * 100)}%` }}></div></div>
                                     </div>
                                     <div className="promo-bar-item">
-                                        <div className="promo-label-row"><span>적기 홍보 (7~21일)</span> <span className="promo-value">{billboard.leadTime.classMid} pv</span></div>
-                                        <div className="promo-bar-bg"><div className="promo-bar-fill mid" style={{ width: `${Math.min(100, (billboard.leadTime.classMid / Math.max(1, billboard.leadTime.classEarly, billboard.leadTime.classMid, billboard.leadTime.classLate)) * 100)}%` }}></div></div>
+                                        <div className="promo-label-row"><span>적기 홍보 (7~21일)</span> <span className="promo-value">{stats.leadTimeAnalysis.classMid} pv</span></div>
+                                        <div className="promo-bar-bg"><div className="promo-bar-fill mid" style={{ width: `${Math.min(100, (stats.leadTimeAnalysis.classMid / Math.max(1, stats.leadTimeAnalysis.classEarly, stats.leadTimeAnalysis.classMid, stats.leadTimeAnalysis.classLate)) * 100)}%` }}></div></div>
                                     </div>
                                     <div className="promo-bar-item">
-                                        <div className="promo-label-row"><span>긴급 등록 (7일 이내)</span> <span className="promo-value">{billboard.leadTime.classLate} pv</span></div>
-                                        <div className="promo-bar-bg"><div className="promo-bar-fill late" style={{ width: `${Math.min(100, (billboard.leadTime.classLate / Math.max(1, billboard.leadTime.classEarly, billboard.leadTime.classMid, billboard.leadTime.classLate)) * 100)}%` }}></div></div>
+                                        <div className="promo-label-row"><span>긴급 등록 (7일 이내)</span> <span className="promo-value">{stats.leadTimeAnalysis.classLate} pv</span></div>
+                                        <div className="promo-bar-bg"><div className="promo-bar-fill late" style={{ width: `${Math.min(100, (stats.leadTimeAnalysis.classLate / Math.max(1, stats.leadTimeAnalysis.classEarly, stats.leadTimeAnalysis.classMid, stats.leadTimeAnalysis.classLate)) * 100)}%` }}></div></div>
                                     </div>
                                 </div>
 
@@ -549,16 +572,16 @@ export default function SwingSceneStats() {
                                 <div className="promo-bar-group">
                                     <div className="card-label" style={{ textAlign: 'left' }}>파티 및 이벤트</div>
                                     <div className="promo-bar-item">
-                                        <div className="promo-label-row"><span>얼리버드 (35일 전)</span> <span className="promo-value">{billboard.leadTime.eventEarly} pv</span></div>
-                                        <div className="promo-bar-bg"><div className="promo-bar-fill early" style={{ width: `${Math.min(100, (billboard.leadTime.eventEarly / Math.max(1, billboard.leadTime.eventEarly, billboard.leadTime.eventMid, billboard.leadTime.eventLate)) * 100)}%` }}></div></div>
+                                        <div className="promo-label-row"><span>얼리버드 (35일 전)</span> <span className="promo-value">{stats.leadTimeAnalysis.eventEarly} pv</span></div>
+                                        <div className="promo-bar-bg"><div className="promo-bar-fill early" style={{ width: `${Math.min(100, (stats.leadTimeAnalysis.eventEarly / Math.max(1, stats.leadTimeAnalysis.eventEarly, stats.leadTimeAnalysis.eventMid, stats.leadTimeAnalysis.eventLate)) * 100)}%` }}></div></div>
                                     </div>
                                     <div className="promo-bar-item">
-                                        <div className="promo-label-row"><span>적기 홍보 (14~35일)</span> <span className="promo-value">{billboard.leadTime.eventMid} pv</span></div>
-                                        <div className="promo-bar-bg"><div className="promo-bar-fill mid" style={{ width: `${Math.min(100, (billboard.leadTime.eventMid / Math.max(1, billboard.leadTime.eventEarly, billboard.leadTime.eventMid, billboard.leadTime.eventLate)) * 100)}%` }}></div></div>
+                                        <div className="promo-label-row"><span>적기 홍보 (14~35일)</span> <span className="promo-value">{stats.leadTimeAnalysis.eventMid} pv</span></div>
+                                        <div className="promo-bar-bg"><div className="promo-bar-fill mid" style={{ width: `${Math.min(100, (stats.leadTimeAnalysis.eventMid / Math.max(1, stats.leadTimeAnalysis.eventEarly, stats.leadTimeAnalysis.eventMid, stats.leadTimeAnalysis.eventLate)) * 100)}%` }}></div></div>
                                     </div>
                                     <div className="promo-bar-item">
-                                        <div className="promo-label-row"><span>긴급 등록 (14일 이내)</span> <span className="promo-value">{billboard.leadTime.eventLate} pv</span></div>
-                                        <div className="promo-bar-bg"><div className="promo-bar-fill late" style={{ width: `${Math.min(100, (billboard.leadTime.eventLate / Math.max(1, billboard.leadTime.eventEarly, billboard.leadTime.eventMid, billboard.leadTime.eventLate)) * 100)}%` }}></div></div>
+                                        <div className="promo-label-row"><span>긴급 등록 (14일 이내)</span> <span className="promo-value">{stats.leadTimeAnalysis.eventLate} pv</span></div>
+                                        <div className="promo-bar-bg"><div className="promo-bar-fill late" style={{ width: `${Math.min(100, (stats.leadTimeAnalysis.eventLate / Math.max(1, stats.leadTimeAnalysis.eventEarly, stats.leadTimeAnalysis.eventMid, stats.leadTimeAnalysis.eventLate)) * 100)}%` }}></div></div>
                                     </div>
                                 </div>
                             </div>
@@ -577,6 +600,8 @@ export default function SwingSceneStats() {
     );
 
 }
+
+
 
 const DataInspectorModal = ({ day, items, sortBy, onClose }: { day: string, items: StatItem[], sortBy: 'type' | 'genre', onClose: () => void }) => {
     const sortedItems = [...items].sort((a, b) => {

@@ -51,6 +51,14 @@ export const handler: Handler = async (event) => {
         }
 
         if (!shouldUseCache) {
+            console.log('[get-site-stats] 🔄 Cache expired or missing. Refreshing Index Table...');
+            // 0. Refresh the source index table first (Lazy Loading + Stale Revalidation)
+            const { error: rpcError } = await supabaseAdmin.rpc('refresh_site_stats_index');
+            if (rpcError) {
+                console.error('[get-site-stats] ⚠️ Failed to refresh site_stats_index:', rpcError);
+                // We proceed anyway, using the possibly stale index data as fallback
+            }
+
             const { data: liveMetrics } = await supabaseAdmin
                 .from('site_stats_index')
                 .select('metric_type, val')
@@ -228,17 +236,69 @@ export const handler: Handler = async (event) => {
                 value: resultData,
                 updated_at: now.toISOString()
             });
+            const { data: promoMetrics } = await supabaseAdmin
+                .from('site_stats_index')
+                .select('dim_cat, val, ref_date, reg_date')
+                .eq('metric_type', 'promo_stat');
+
+            const leadTimeStats = {
+                class: { early: 0, mid: 0, late: 0, earlyCount: 0, midCount: 0, lateCount: 0 },
+                event: { early: 0, mid: 0, late: 0, earlyCount: 0, midCount: 0, lateCount: 0 }
+            };
+
+            promoMetrics?.forEach((row: any) => {
+                if (!row.ref_date || !row.reg_date) return;
+                const leadDays = Math.floor((new Date(row.ref_date).getTime() - new Date(row.reg_date).getTime()) / (1000 * 60 * 60 * 24));
+                const val = Number(row.val);
+                const type = row.dim_cat === 'class' ? 'class' : 'event'; // Simplify to class/event
+
+                if (type === 'class') {
+                    if (leadDays >= 21) { leadTimeStats.class.early += val; leadTimeStats.class.earlyCount++; }
+                    else if (leadDays >= 7) { leadTimeStats.class.mid += val; leadTimeStats.class.midCount++; }
+                    else { leadTimeStats.class.late += val; leadTimeStats.class.lateCount++; }
+                } else {
+                    if (leadDays >= 35) { leadTimeStats.event.early += val; leadTimeStats.event.earlyCount++; }
+                    else if (leadDays >= 14) { leadTimeStats.event.mid += val; leadTimeStats.event.midCount++; }
+                    else { leadTimeStats.event.late += val; leadTimeStats.event.lateCount++; }
+                }
+            });
+
+            const leadTimeAnalysis = {
+                classEarly: leadTimeStats.class.earlyCount > 0 ? Number((leadTimeStats.class.early / leadTimeStats.class.earlyCount).toFixed(1)) : 0,
+                classMid: leadTimeStats.class.midCount > 0 ? Number((leadTimeStats.class.mid / leadTimeStats.class.midCount).toFixed(1)) : 0,
+                classLate: leadTimeStats.class.lateCount > 0 ? Number((leadTimeStats.class.late / leadTimeStats.class.lateCount).toFixed(1)) : 0,
+                eventEarly: leadTimeStats.event.earlyCount > 0 ? Number((leadTimeStats.event.early / leadTimeStats.event.earlyCount).toFixed(1)) : 0,
+                eventMid: leadTimeStats.event.midCount > 0 ? Number((leadTimeStats.event.mid / leadTimeStats.event.midCount).toFixed(1)) : 0,
+                eventLate: leadTimeStats.event.lateCount > 0 ? Number((leadTimeStats.event.late / leadTimeStats.event.lateCount).toFixed(1)) : 0
+            };
+
+            const finalBody = {
+                ...(resultData.summary || {}),
+                summary: resultData.summary || {},
+                monthly: resultData.monthly || [],
+                totalWeekly: resultData.totalWeekly || [],
+                monthlyWeekly: resultData.monthlyWeekly || [],
+                topGenresList: resultData.topGenresList || [],
+                leadTimeAnalysis
+            };
+            await supabaseAdmin.from('metrics_cache').upsert({
+                key: 'scene_analytics',
+                value: { ...resultData, leadTimeAnalysis },
+                updated_at: now.toISOString()
+            });
+
+            return {
+                statusCode: 200,
+                headers: {
+                    ...corsHeaders,
+                    'Content-Type': 'application/json',
+                    'Cache-Control': 'public, max-age=300'
+                },
+                body: JSON.stringify(finalBody)
+            };
         }
 
-        const finalBody = {
-            ...(resultData.summary || {}),
-            summary: resultData.summary || {},
-            monthly: resultData.monthly || [],
-            totalWeekly: resultData.totalWeekly || [],
-            monthlyWeekly: resultData.monthlyWeekly || [],
-            topGenresList: resultData.topGenresList || []
-        };
-
+        // Cache Hit Return
         return {
             statusCode: 200,
             headers: {
@@ -246,8 +306,9 @@ export const handler: Handler = async (event) => {
                 'Content-Type': 'application/json',
                 'Cache-Control': 'public, max-age=300'
             },
-            body: JSON.stringify(finalBody)
+            body: JSON.stringify(resultData)
         };
+
     } catch (error: any) {
         return {
             statusCode: 500,

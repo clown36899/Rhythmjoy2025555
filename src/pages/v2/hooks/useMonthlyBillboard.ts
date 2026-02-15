@@ -253,5 +253,7 @@ export const useMonthlyBillboard = (initialTarget?: { year: number, month: numbe
         }
     };
 
-    return useMemo(() => ({ data, loading, targetDate, setTargetDate }), [data, loading, targetDate]);
+    const refetch = () => fetchMonthlyData(targetDate);
+
+    return useMemo(() => ({ data, loading, targetDate, setTargetDate, refetch }), [data, loading, targetDate]);
 };

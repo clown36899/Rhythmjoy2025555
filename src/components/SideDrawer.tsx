@@ -53,6 +53,9 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
             if (e.detail) {
                 if (typeof e.detail.total === 'number') setEventCountTotal(e.detail.total);
                 if (typeof e.detail.avg === 'number') setEventDailyAvg(e.detail.avg);
+                if (typeof e.detail.memberCount === 'number') setMemberCount(e.detail.memberCount);
+                if (typeof e.detail.pwaCount === 'number') setPwaCount(e.detail.pwaCount);
+                if (typeof e.detail.pushCount === 'number') setPushCount(e.detail.pushCount);
             }
         };
         window.addEventListener('statsUpdated', handleStatsUpdate);
@@ -162,12 +165,13 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
             if (response.ok) {
                 const data = await response.json();
 
+                const summary = data.summary || {};
                 const newData = {
-                    memberCount: typeof data.memberCount === 'number' ? data.memberCount : 0,
-                    pwaCount: typeof data.pwaCount === 'number' ? data.pwaCount : 0,
-                    pushCount: typeof data.pushCount === 'number' ? data.pushCount : 0,
-                    eventCountTotal: typeof data.eventCountTotal === 'number' ? data.eventCountTotal : 0,
-                    eventDailyAvg: typeof data.eventDailyAvg === 'number' ? data.eventDailyAvg : 0,
+                    memberCount: typeof summary.memberCount === 'number' ? summary.memberCount : 0,
+                    pwaCount: typeof summary.pwaCount === 'number' ? summary.pwaCount : 0,
+                    pushCount: typeof summary.pushCount === 'number' ? summary.pushCount : 0,
+                    eventCountTotal: typeof summary.totalItems === 'number' ? summary.totalItems : 0,
+                    eventDailyAvg: typeof summary.dailyAverage === 'number' ? summary.dailyAverage : 0,
                     eventBreakdown: data.eventBreakdown || null,
                     timestamp: new Date().getTime()
                 };
