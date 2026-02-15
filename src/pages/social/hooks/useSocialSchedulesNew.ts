@@ -165,6 +165,6 @@ export function useSocialSchedulesNew(groupId?: number, minDate?: string) {
     return {
         schedules,
         loading,
-        refresh: () => fetchSchedules(true)
+        refresh: useCallback(() => fetchSchedules(true), [fetchSchedules])
     };
 }

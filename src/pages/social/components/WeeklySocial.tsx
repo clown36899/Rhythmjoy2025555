@@ -83,15 +83,23 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
         const overseas = mapped.filter(item => item.originalEvent.scope === 'overseas');
         const domestic = mapped.filter(item => item.originalEvent.scope !== 'overseas');
 
-        // Shuffle Domestic items using Fisher-Yates
-        // Note: usage of randomSeed dependency guarantees re-shuffle only when seed changes
+        // LCG 기반 시드 랜덤 함수
+        const seededRandom = (seed: number) => {
+            let s = seed;
+            return () => {
+                s = (s * 9301 + 49297) % 233280;
+                return s / 233280;
+            };
+        };
+        const rnd = seededRandom(randomSeed * 1000000);
+
+        // Shuffle Domestic items using Fisher-Yates with seeded random
         for (let i = domestic.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
+            const j = Math.floor(rnd() * (i + 1));
             [domestic[i], domestic[j]] = [domestic[j], domestic[i]];
         }
 
         // Return Domestic (shuffled) + Overseas (fixed at end)
-        // Note: For grid view, the filtering by date is subsequent, so this relative order is preserved within each day.
         return [...domestic, ...overseas];
     }, [schedules, randomSeed]);
 

@@ -24,8 +24,9 @@ const EventEditBottomSheet = React.memo(({
     allHistoricalGenres
 }: BottomSheetProps) => {
     const [editValue, setEditValue] = useState('');
-    const [editCategory, setEditCategory] = useState<'event' | 'class' | 'club'>('event');
+    const [editCategory, setEditCategory] = useState<'event' | 'class' | 'club' | 'social'>('event');
     const [dateMode, setDateMode] = useState<'single' | 'dates'>('single');
+    const [editScope, setEditScope] = useState<string>('domestic');
     const [linkEditValues, setLinkEditValues] = useState({
         link1: '', link_name1: '',
         link2: '', link_name2: '',
@@ -34,9 +35,16 @@ const EventEditBottomSheet = React.memo(({
 
     useEffect(() => {
         if (activeField === 'title') setEditValue(initialValue.title);
+        if (activeField === 'time') setEditValue(initialValue.time || '');
         if (activeField === 'genre') {
             setEditValue(initialValue.genre || '');
-            setEditCategory((initialValue.category === 'class' || initialValue.category === 'club') ? initialValue.category : 'event');
+            setEditScope(initialValue.scope || 'domestic');
+            let category = initialValue.category;
+            if (category === 'class' || category === 'club' || category === 'social') {
+                setEditCategory(category);
+            } else {
+                setEditCategory('event');
+            }
         }
         if (activeField === 'description') setEditValue(initialValue.description || '');
         if (activeField === 'date') {
@@ -62,20 +70,18 @@ const EventEditBottomSheet = React.memo(({
     }, [activeField, initialValue]);
 
     const uniqueGenres = useMemo(() => {
-        const propGenres = editCategory === 'club'
-            ? (structuredGenres['class'] || [])
-            : (structuredGenres[editCategory as keyof typeof structuredGenres] || []);
-
-        const combined = [...propGenres, ...allHistoricalGenres];
-
-        if (editCategory === 'club') {
-            return ['정규강습', '린디합', '솔로재즈', '발보아', '블루스', '팀원모집'];
+        if (editCategory === 'social') {
+            return [];
         }
-
-        return Array.from(new Set(
-            combined.flatMap(g => g.split(',')).map(s => s.trim()).filter(s => s && s.length > 0)
-        )).sort();
-    }, [editCategory, structuredGenres, allHistoricalGenres]);
+        if (editCategory === 'club') {
+            return ['정규강습', '린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'];
+        }
+        if (editCategory === 'class') {
+            return ['린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'];
+        }
+        // 행사 (event) - 사용자 요청 원상 복구
+        return ['워크샵', '파티', '대회', '라이브밴드', '기타'];
+    }, [editCategory]);
 
     if (!activeField) return null;
 
@@ -87,6 +93,7 @@ const EventEditBottomSheet = React.memo(({
                 <h3 className="EDM-bottomSheetHeader">
                     {activeField === 'title' && <><i className="ri-text"></i>제목 수정</>}
                     {activeField === 'genre' && <><i className="ri-price-tag-3-line"></i>장르 수정</>}
+                    {activeField === 'time' && <><i className="ri-time-line"></i>시간 수정</>}
                     {activeField === 'description' && <><i className="ri-file-text-line"></i>오픈톡방/내용 수정</>}
                     {activeField === 'links' && <><i className="ri-link"></i>링크 수정</>}
                     {activeField === 'date' && <><i className="ri-calendar-check-line"></i>날짜 선택</>}
@@ -144,6 +151,16 @@ const EventEditBottomSheet = React.memo(({
                                     <input type="text" className="EDM-bottomSheetInput" value={linkEditValues.link1} onChange={(e) => setLinkEditValues({ ...linkEditValues, link1: e.target.value })} placeholder="URL (https://...)" />
                                 </div>
                             </div>
+                        ) : activeField === 'time' ? (
+                            <div className="EDM-timeEditContainer">
+                                <label className="EDM-inputLabel">시작 시간</label>
+                                <input
+                                    type="time"
+                                    className="EDM-bottomSheetInput"
+                                    value={editValue}
+                                    onChange={(e) => setEditValue(e.target.value)}
+                                />
+                            </div>
                         ) : activeField === 'genre' ? (
                             <div className="EDM-genreEditContainer">
                                 <div className="EDM-categoryToggle">
@@ -152,7 +169,21 @@ const EventEditBottomSheet = React.memo(({
                                         <span className="manual-label-wrapper"><span className="translated-part">Class</span><span className="fixed-part ko" translate="no">강습</span><span className="fixed-part en" translate="no">Class</span></span>
                                     </button>
                                     <button onClick={() => { setEditCategory('club'); setEditValue(''); }} className={`EDM-categoryToggleBtn is-club ${editCategory === 'club' ? 'is-active' : ''}`}>동호회</button>
+                                    <button onClick={() => { setEditCategory('social'); setEditValue(''); }} className={`EDM-categoryToggleBtn is-social ${editCategory === 'social' ? 'is-active' : ''}`}>소셜</button>
                                 </div>
+
+                                {editCategory === 'event' && (
+                                    <div className="EDM-genreHint">
+                                        <i className="ri-information-line"></i> 행사 장르는 중복 선택이 가능합니다.<br />
+                                        (단, 대회와 파티는 동시 선택이 불가합니다)
+                                    </div>
+                                )}
+                                {(editCategory === 'class' || editCategory === 'club') && (
+                                    <div className="EDM-genreHint">
+                                        <i className="ri-information-line"></i> 한 가지만 선택 가능합니다.
+                                    </div>
+                                )}
+
                                 <div className="EDM-genreChipList is-flex-layout">
                                     {uniqueGenres.map((genre: string) => {
                                         const currentList = editValue ? editValue.split(',').map(s => s.trim()).filter(Boolean) : [];
@@ -161,14 +192,24 @@ const EventEditBottomSheet = React.memo(({
                                             <button key={genre} onClick={(e) => {
                                                 e.preventDefault(); e.stopPropagation();
                                                 let newGenres: string[];
-                                                if (editCategory === 'class' || editCategory === 'club') newGenres = isActive ? [] : [genre];
-                                                else {
+                                                // 강습, 동호회, 소셜은 단일 선택 모드
+                                                if (editCategory === 'class' || editCategory === 'club' || editCategory === 'social') {
+                                                    newGenres = isActive ? [] : [genre];
+                                                } else {
                                                     if (isActive) newGenres = currentList.filter(g => g !== genre);
                                                     else {
                                                         let temp = [...currentList];
-                                                        if (genre === '파티') temp = temp.filter(g => g !== '대회');
-                                                        else if (genre === '대회') temp = temp.filter(g => g !== '파티');
-                                                        newGenres = [...temp, genre];
+                                                        // '기타' 선택 시 다른 모든 장르 해제
+                                                        if (genre === '기타') {
+                                                            temp = ['기타'];
+                                                        } else {
+                                                            // 다른 장르 선택 시 '기타' 해제
+                                                            temp = temp.filter(g => g !== '기타');
+                                                            if (genre === '파티') temp = temp.filter(g => g !== '대회');
+                                                            else if (genre === '대회') temp = temp.filter(g => g !== '파티');
+                                                            temp = [...temp, genre];
+                                                        }
+                                                        newGenres = temp;
                                                     }
                                                 }
                                                 setEditValue(newGenres.join(','));
@@ -176,6 +217,26 @@ const EventEditBottomSheet = React.memo(({
                                         );
                                     })}
                                 </div>
+
+                                {editCategory === 'event' && (
+                                    <div className="EDM-scopeEditSection">
+                                        <div className="EDM-inputLabel-small">지역 구분</div>
+                                        <div className="EDM-scopeToggle">
+                                            <button
+                                                onClick={() => setEditScope('domestic')}
+                                                className={`EDM-scopeBtn ${editScope === 'domestic' ? 'is-active' : ''}`}
+                                            >
+                                                🇰🇷 국내
+                                            </button>
+                                            <button
+                                                onClick={() => setEditScope('overseas')}
+                                                className={`EDM-scopeBtn is-overseas ${editScope === 'overseas' ? 'is-active' : ''}`}
+                                            >
+                                                🌏 해외
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         ) : (
                             <textarea className="EDM-bottomSheetTextarea" value={editValue} onChange={(e) => setEditValue(e.target.value)} placeholder={activeField === 'title' ? "행사 제목을 입력하세요" : "내용을 입력하세요"} rows={activeField === 'title' ? 3 : 8} autoFocus />
@@ -183,7 +244,19 @@ const EventEditBottomSheet = React.memo(({
                     </div>
                 </div>
                 <div className="EDM-bottomSheetFooter">
-                    <button onClick={() => onSave(activeField === 'links' ? linkEditValues : editValue, editCategory)} className="EDM-bottomSheet-btn-submit" disabled={isSaving}>
+                    <button
+                        onClick={() => {
+                            if (activeField === 'links') {
+                                onSave(linkEditValues, editCategory);
+                            } else if (activeField === 'genre') {
+                                onSave({ genre: editValue, scope: editScope }, editCategory);
+                            } else {
+                                onSave(editValue, editCategory);
+                            }
+                        }}
+                        className="EDM-bottomSheet-btn-submit"
+                        disabled={isSaving}
+                    >
                         {isSaving ? '저장 중...' : '저장'}
                     </button>
                 </div>

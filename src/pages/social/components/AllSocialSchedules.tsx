@@ -123,14 +123,10 @@ const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules,
                 schedule: scheduleItem,
                 isAdmin: canEdit,
                 showCopyButton: false,
-                onEdit: (s: any) => openModal('socialSchedule', {
-                    editSchedule: s,
-                    groupId: s.group_id,
-                    onSuccess: (data: any) => {
-                        if (onRefresh) onRefresh();
-                        if (data) openDetailModal(data);
-                    }
-                })
+                onSuccess: (data: any) => {
+                    if (onRefresh) onRefresh();
+                    if (data && !data.deleted) openDetailModal(data);
+                }
             });
         };
         openDetailModal(item);

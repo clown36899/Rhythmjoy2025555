@@ -92,17 +92,13 @@ const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll, on
                 schedule: scheduleItem,
                 isAdmin: canEdit,
                 showCopyButton: false,
-                onEdit: (s: any) => openModal('socialSchedule', {
-                    editSchedule: s,
-                    groupId: s.group_id,
-                    onSuccess: (data: any) => {
-                        if (onRefresh) onRefresh();
-                        // 수정 후 변경된 데이터로 상세 모달 다시 열기 (UI 즉시 반영)
-                        if (data) {
-                            openDetailModal(data);
-                        }
+                onSuccess: (data: any) => {
+                    if (onRefresh) onRefresh();
+                    // 수정 후 변경된 데이터로 상세 모달 다시 열기 (UI 즉시 반영)
+                    if (data && !data.deleted) {
+                        openDetailModal(data);
                     }
-                })
+                }
             });
         };
 

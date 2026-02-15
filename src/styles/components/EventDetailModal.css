@@ -1,872 +1,949 @@
 /* EventDetailModal.css - EventDetailModal 컴포넌트 전용 스타일 */
 
-@scope (.EventDetailModal) {
-    :scope {
-        position: fixed;
-        inset: 0;
-        background-color: var(--bg-overlay, rgba(0, 0, 0, 0.6));
-        display: flex;
-        backdrop-filter: blur(var(--blur-glass-subtle));
-        align-items: center;
-        justify-content: center;
-        z-index: var(--z-modal-stack-1);
-        will-change: opacity;
-        animation: edm-fadeInOverlay 0.2s ease-out;
-    }
-
-    /* Unified Premium Scrollbar */
-    * {
-        scrollbar-width: thin;
-        scrollbar-color: var(--border-glass) transparent;
-    }
-
-    *::-webkit-scrollbar {
-        width: 6px;
-        height: 6px;
-    }
-
-    *::-webkit-scrollbar-track {
-        background: transparent;
-    }
-
-    *::-webkit-scrollbar-thumb {
-        background: var(--border-glass-strong);
-        border-radius: 10px;
-        border: 1px solid transparent;
-        background-clip: padding-box;
-        transition: background 0.2s;
-    }
-
-    *::-webkit-scrollbar-thumb:hover {
-        background: var(--text-tertiary);
-    }
-
-    @keyframes edm-fadeInOverlay {
-        from {
-            opacity: 0;
-        }
-
-        to {
-            opacity: 1;
-        }
-    }
-
-    .EDM-container {
-        background-color: var(--page-bg-color);
-        backdrop-filter: blur(var(--blur-glass-heavy)) saturate(180%);
-        -webkit-backdrop-filter: blur(var(--blur-glass-heavy)) saturate(180%);
-        max-width: 325px;
-        width: 100%;
-        border-radius: var(--radius-3xl);
-        height: 80svh;
-        max-height: 80svh;
-        overflow: hidden;
-        box-shadow: var(--shadow-premium);
-        position: relative;
-        display: flex;
-        flex-direction: column;
-        will-change: transform, opacity;
-        border: 1px solid var(--border-glass);
-        animation: edm-modalEnter 0.5s cubic-bezier(0.19, 1, 0.22, 1);
-    }
-
-    @keyframes edm-modalEnter {
-        from {
-            transform: scale(1.02) translateY(20px);
-            opacity: 0;
-            filter: blur(10px);
-        }
-    }
-
-    /* Data Loading Bar */
-    .EDM-loadingBar {
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, var(--color-blue-500), var(--color-blue-400), var(--color-blue-500));
-        background-size: 200% 100%;
-        z-index: var(--z-elevate);
-        animation: edm-loadingMove 1.5s infinite linear;
-    }
-
-    @keyframes edm-loadingMove {
-        0% {
-            background-position: 200% 0;
-        }
-
-        100% {
-            background-position: -200% 0;
-        }
-    }
-
-    /* Login Overlay */
-    .EDM-loginOverlay {
-        position: absolute;
-        inset: 0;
-        z-index: var(--z-sticky);
-        background: var(--bg-overlay);
-        backdrop-filter: blur(8px);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: var(--spacing-10);
-        text-align: center;
-        animation: edm-fadeIn 0.3s ease-out;
-    }
-
-    .EDM-loginTitle {
-        font-size: 1.5rem;
-        font-weight: 800;
-        color: var(--text-primary);
-        margin-bottom: var(--spacing-3);
-    }
-
-    .EDM-loginDesc {
-        font-size: 1rem;
-        color: var(--text-secondary);
-        margin-bottom: var(--spacing-8);
-        line-height: 1.6;
-    }
-
-    .EDM-btn-kakao {
-        width: 100%;
-        max-width: 280px;
-        background: var(--color-kakao-bg);
-        color: var(--color-kakao-text);
-        padding: 14px;
-        border-radius: var(--radius-xl);
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: var(--spacing-2);
-        border: none;
-        cursor: pointer;
-        margin-bottom: var(--spacing-3);
-    }
-
-    .EDM-btn-close {
-        color: var(--text-tertiary);
-        font-weight: 600;
-        background: none;
-        border: none;
-        cursor: pointer;
-        padding: var(--spacing-2);
-    }
-
-    .EDM-scrollContainer {
-        overflow-y: auto;
-        flex: 1 1 0%;
-        overscroll-behavior: contain;
-        -webkit-overflow-scrolling: touch;
-    }
-
-    /* Selection Mode Highlighter */
-    .EDM-scrollContainer.is-selection-mode .EDM-content>* {
-        outline: 2px dashed rgba(59, 130, 246, 0.5);
-        outline-offset: -2px;
-        transition: all 0.2s ease;
-    }
-
-    .EDM-scrollContainer.is-selection-mode .EDM-content>*:hover {
-        background-color: rgba(59, 130, 246, 0.05);
-    }
-
-    /* Main Content Layout */
-    .EDM-content {
-        display: flex;
-        flex-direction: column;
-        min-height: 100%;
-    }
-
-    /* Image Section */
-    .EDM-imageArea {
-        position: relative;
-        width: 100%;
-        min-height: 200px;
-        max-height: 400px;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        overflow: hidden;
-        background-color: var(--page-bg-color);
-    }
-
-    .EDM-imageArea.has-pattern {
-        background-size: cover;
-        background-position: center;
-    }
-
-    .EDM-imageWrapper {
-        display: grid;
-        place-items: center;
-        width: 100%;
-        max-width: 325px;
-        height: auto;
-        max-height: 100%;
-        position: relative;
-        z-index: 5;
-        margin: 0 auto;
-    }
-
-    .EDM-imageContent {
-        grid-area: 1 / 1;
-        width: 100%;
-        height: auto;
-        min-height: 0;
-        object-fit: contain;
-        object-position: center;
-        display: block;
-        image-rendering: -webkit-optimize-contrast;
-        image-rendering: smooth;
-    }
-
-    .EDM-imageBlurBg {
-        position: absolute;
-        inset: -10%;
-        background-size: cover;
-        background-position: center;
-        filter: blur(60px);
-        opacity: 0.4;
-        transform: scale(1.1);
-        z-index: 1;
-        pointer-events: none;
-    }
-
-    .EDM-imageGradient {
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 30%;
-        background: linear-gradient(to top, var(--bg-overlay) 0%, transparent 100%);
-        pointer-events: none;
-        z-index: 1;
-    }
-
-    /* Category Area (When no image) */
-    .EDM-categoryArea {
-        position: absolute;
-        inset: 0;
-        opacity: 0.3;
-    }
-
-    .EDM-categoryArea.is-class {
-        background: linear-gradient(135deg, var(--color-purple-500), var(--color-purple-700));
-    }
-
-    .EDM-categoryArea.is-event {
-        background: linear-gradient(135deg, var(--color-blue-500), var(--color-blue-700));
-    }
-
-    .EDM-categoryAreaText {
-        position: absolute;
-        z-index: 5;
-        font-size: 4rem;
-        font-weight: 900;
-        color: var(--text-muted);
-        opacity: 0.1;
-        text-transform: uppercase;
-        pointer-events: none;
-    }
-
-    /* Badges & Overlays */
-    .EDM-categoryBadge {
-        position: absolute;
-        top: var(--spacing-5);
-        right: var(--spacing-5);
-        padding: 6px 12px;
-        border-radius: var(--radius-md);
-        font-size: 0.75rem;
-        font-weight: 800;
-        color: var(--text-primary);
-        z-index: 10;
-        backdrop-filter: blur(8px);
-        box-shadow: var(--shadow-lg);
-    }
-
-    .EDM-categoryBadge.is-class {
-        background: linear-gradient(135deg, var(--color-purple-400), var(--color-purple-600));
-    }
-
-    .EDM-categoryBadge.is-event {
-        background: var(--color-blue-500);
-    }
-
-    .EDM-defaultThumb {
-        position: absolute;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 4;
-    }
-
-    .EDM-thumbText {
-        font-size: 3rem;
-        font-weight: 900;
-        color: var(--text-muted);
-        opacity: 0.2;
-    }
-
-    .EDM-imageEditOverlay {
-        position: absolute;
-        inset: 0;
-        background: rgba(59, 130, 246, 0.3);
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        gap: var(--spacing-2);
-        color: var(--text-primary);
-        z-index: var(--z-elevate);
-        cursor: pointer;
-        backdrop-filter: blur(2px);
-    }
-
-    .EDM-imageEditOverlay i {
-        font-size: 2.5rem;
-    }
-
-    .EDM-fullscreenBtn {
-        position: absolute;
-        top: var(--spacing-5);
-        left: var(--spacing-5);
-        background: var(--bg-overlay);
-        color: var(--text-primary);
-        border: none;
-        padding: 8px 12px;
-        border-radius: var(--radius-md);
-        font-size: 0.75rem;
-        font-weight: 600;
-        cursor: pointer;
-        z-index: var(--z-elevate);
-        backdrop-filter: blur(4px);
-    }
-
-    .EDM-favoriteBtn {
-        position: absolute;
-        bottom: -14px;
-        left: 0px;
-        width: 72px;
-        height: 72px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        border: none;
-        background: transparent;
-        z-index: 100;
-        color: var(--color-white);
-        transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-
-    .EDM-favoriteBtn i {
-        font-size: 40px;
-        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-    }
-
-    .EDM-favoriteBtn.is-active i {
-        color: var(--color-amber-400);
-        animation: edm-starPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-
-    /* Info Column Wrapper */
-    .EDM-infoColumn {
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .EDM-header {
-        position: sticky;
-        top: 0;
-        padding: 12px 18px;
-        z-index: var(--z-modal);
-        background-color: var(--bg-color);
-        border-bottom: 1px solid var(--border-glass);
-        backdrop-filter: blur(var(--blur-glass));
-        transition: background-color 0.2s ease;
-    }
-
-    .EDM-header.is-scrolled {
-        background-color: var(--bg-modal);
-        backdrop-filter: blur(20px);
-    }
-
-    .EDM-titleGroup {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: var(--spacing-3);
-        width: 100%;
-        margin-bottom: var(--spacing-2);
-    }
-
-    .EDM-title {
-        font-size: 1.75rem;
-        font-weight: 800;
-        color: var(--text-primary);
-        line-height: 1.25;
-        word-break: keep-all;
-        flex: 1;
-        margin: 0;
-    }
-
-    .EDM-genreGroup {
-        display: flex;
-        align-items: center;
-        gap: var(--spacing-2);
-    }
-
-    .EDM-genreText {
-        font-size: 0.875rem;
-        margin: 0;
-        line-height: 1.25rem;
-        font-weight: 700;
-    }
-
-    /* Genre Color Palette (Renamed to avoid conflict) */
-    .edm-text-red {
-        color: var(--genre-red-400);
-    }
-
-    .edm-text-orange {
-        color: var(--genre-orange-400);
-    }
-
-    .edm-text-amber {
-        color: var(--genre-amber-400);
-    }
-
-    .edm-text-yellow {
-        color: var(--genre-yellow-400);
-    }
-
-    .edm-text-lime {
-        color: var(--genre-lime-400);
-    }
-
-    .edm-text-green {
-        color: var(--genre-green-400);
-    }
-
-    .edm-text-emerald {
-        color: var(--genre-emerald-400);
-    }
-
-    .edm-text-teal {
-        color: var(--genre-teal-400);
-    }
-
-    .edm-text-cyan {
-        color: var(--genre-cyan-400);
-    }
-
-    .edm-text-sky {
-        color: var(--genre-sky-400);
-    }
-
-    .edm-text-blue {
-        color: var(--genre-blue-400);
-    }
-
-    .edm-text-indigo {
-        color: var(--genre-indigo-400);
-    }
-
-    .edm-text-violet {
-        color: var(--genre-violet-400);
-    }
-
-    .edm-text-purple {
-        color: var(--genre-purple-400);
-    }
-
-    .edm-text-fuchsia {
-        color: var(--genre-fuchsia-400);
-    }
-
-    .edm-text-pink {
-        color: var(--genre-pink-400);
-    }
-
-    .edm-text-rose {
-        color: var(--genre-rose-400);
-    }
-
-    .edm-text-gray {
-        color: var(--text-tertiary);
-    }
-
-    /* Views row */
-    .views-row {
-        margin-bottom: var(--spacing-1);
-        opacity: 0.6;
-    }
-
-    .EDM-viewsText {
-        font-size: 0.85rem;
-        font-weight: 500;
-    }
-
-    /* Info Items */
-    .EDM-infoSection {
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-4);
-        padding: 12px 18px;
-        background-color: transparent;
-        overflow-x: hidden;
-    }
-
-    .EDM-infoItem {
-        display: flex;
-        gap: var(--spacing-3);
-        align-items: flex-start;
-        color: var(--text-secondary);
-        font-size: 0.95rem;
-    }
-
-    .EDM-infoIcon {
-        font-size: 1.2rem;
-        color: var(--color-blue-400);
-        flex-shrink: 0;
-        margin-top: 2px;
-    }
-
-    .EDM-infoContent-flex {
-        display: flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: var(--spacing-2);
-        flex: 1;
-    }
-
-    .EDM-venueLink {
-        color: var(--color-blue-400);
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        gap: var(--spacing-1);
-        background: var(--bg-surface-2);
-        border: 1px solid var(--border-glass);
-        padding: 4px 10px;
-        border-radius: var(--radius-full);
-        cursor: pointer;
-    }
-
-    .EDM-locationLink {
-        color: var(--text-tertiary);
-        padding: var(--spacing-1);
-    }
-
-    .EDM-locationLink:hover {
-        color: var(--color-blue-400);
-    }
-
-    .EDM-divider {
-        padding-top: var(--spacing-4);
-        border-top: 1px solid var(--border-glass-subtle);
-    }
-
-    .EDM-descHeader {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: var(--spacing-2);
-        width: 100%;
-    }
-
-    .EDM-sectionLabel {
-        font-size: 0.9rem;
-        font-weight: 700;
-        color: var(--text-tertiary);
-        letter-spacing: 0.02em;
-    }
-
-    .EDM-descWrapper {
-        white-space: pre-wrap;
-        line-height: 1.6;
-        word-break: break-word;
-        margin-top: var(--spacing-1);
-    }
-
-    .EDM-link {
-        color: var(--genre-sky-400);
-        text-decoration: none;
-        font-weight: 500;
-        transition: all 0.2s;
-    }
-
-    .EDM-link:hover {
-        color: var(--genre-sky-300);
-        text-decoration: underline;
-    }
-
-    .EDM-editTrigger {
-        width: 32px;
-        height: 32px;
-        border-radius: var(--radius-md);
-        background: var(--bg-surface-2);
-        border: 1px solid var(--border-glass);
-        color: var(--text-tertiary);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        flex-shrink: 0;
-        transition: all 0.2s ease;
-        flex-shrink: 0;
-    }
-
-    .EDM-editTrigger:hover {
-        background: rgba(59, 130, 246, 0.1);
-        color: var(--color-blue-400);
-        border-color: rgba(59, 130, 246, 0.3);
-    }
-
-    .EDM-editTrigger.is-pill {
-        width: auto;
-        padding: 0 12px;
-        gap: 8px;
-        border-radius: var(--radius-full);
-        font-size: 0.85rem;
-        font-weight: 600;
-    }
-
-    .EDM-addLabel {
-        font-size: 0.8rem;
-    }
-
-    /* Contact Section */
-    .EDM-contactSection {
-        margin-top: var(--spacing-2);
-    }
-
-    .EDM-contactHeader {
-        font-size: 0.9rem;
-        font-weight: 700;
-        color: var(--text-tertiary);
-        margin-bottom: var(--spacing-3);
-        display: block;
-    }
-
-    .EDM-contactSubHeader {
-        font-size: 0.8rem;
-        font-weight: 600;
-        color: var(--text-tertiary);
-        opacity: 0.8;
-        margin-bottom: var(--spacing-2);
-        display: block;
-    }
-
-    .EDM-contactList {
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-2);
-    }
-
-    .EDM-contactItem {
-        display: flex;
-        align-items: center;
-        gap: var(--spacing-3);
-        background: var(--bg-surface-2);
-        border: 1px solid var(--border-glass-subtle);
-        padding: 10px 14px;
-        border-radius: var(--radius-xl);
-        width: 100%;
-        text-align: left;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-    .EDM-contactItem:hover {
-        background: var(--bg-hover);
-        border-color: var(--color-blue-400);
-    }
-
-    .EDM-contactIcon {
-        font-size: 1.2rem;
-        color: var(--color-violet-400);
-    }
-
-    .EDM-contactTextGroup {
-        display: flex;
-        flex-direction: column;
-    }
-
-    .EDM-contactValue {
-        font-weight: 600;
-        color: var(--text-primary);
-        font-size: 0.95rem;
-    }
-
-    .EDM-contactHint {
-        font-size: 0.75rem;
-        color: var(--text-tertiary);
-    }
-
-    /* Admin Section */
-    .EDM-adminSection {
-        background: rgba(239, 68, 68, 0.05);
-        border: 1px solid rgba(239, 68, 68, 0.2);
-        border-radius: var(--radius-xl);
-        padding: var(--spacing-4);
-    }
-
-    .EDM-adminHeader {
-        display: flex;
-        align-items: center;
-        gap: var(--spacing-2);
-        color: var(--color-red-400);
-        font-weight: 700;
-        font-size: 0.85rem;
-        margin-bottom: var(--spacing-3);
-    }
-
-    .EDM-adminItem {
-        display: flex;
-        align-items: center;
-        gap: var(--spacing-2);
-        color: var(--text-secondary);
-        font-size: 0.85rem;
-        margin-top: var(--spacing-1);
-    }
-
-    .EDM-createdAt {
-        margin-top: var(--spacing-6);
-        font-size: 0.75rem;
-        color: var(--text-tertiary);
-        text-align: center;
-    }
-
-    /* Footer & Actions */
-    .EDM-footer {
-        padding: 16px 20px;
-
-        backdrop-filter: blur(12px);
-        border-top: 1px solid var(--border-glass-subtle);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: var(--spacing-3);
-        position: relative;
-        z-index: 100;
-    }
-
-    .EDM-footerLinks {
-        display: flex;
-        gap: var(--spacing-2);
-        overflow: hidden;
-        padding-bottom: 0;
-        flex: 1;
-        min-width: 0;
-        align-items: center;
-    }
-
-    .EDM-footerLink {
-        padding: 6px 12px;
-        background: rgba(59, 130, 246, 0.15);
-        border: 1px solid rgba(59, 130, 246, 0.3);
-        border-radius: var(--radius-full);
-        color: var(--color-blue-400);
-        font-weight: 700;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        transition: all 0.2s;
-        min-width: 0;
-        flex: 0 1 auto;
-        min-height: 38px;
-    }
-
-    .EDM-footerLinkText {
-        font-size: 0.75rem;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 120px;
-    }
-
-    .EDM-footerLink:hover {
-        background: var(--color-blue-600);
-        color: var(--text-primary);
-        transform: translateY(-2px);
-    }
-
-    .EDM-actionGroup {
-        display: flex;
-        gap: var(--spacing-2-5);
-        align-items: center;
-    }
-
-    .EDM-actionBtn {
-        width: 44px;
-        height: 44px;
-        border-radius: var(--radius-xl);
-        background: var(--bg-surface-2);
-        border: 1px solid var(--border-glass-subtle);
-        color: var(--text-primary);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: all 0.2s;
-        box-shadow: var(--shadow-sm);
-    }
-
-    .EDM-actionBtn:hover {
-        background: var(--bg-hover);
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-md);
-    }
-
-    .EDM-actionBtn.is-share {
-        color: var(--color-green-400);
-    }
-
-    .EDM-actionBtn.is-share.copied {
-        color: var(--color-blue-400);
-    }
-
-    .EDM-actionBtn.is-delete {
-        color: var(--color-red-500);
-        background: rgba(239, 68, 68, 0.1);
-    }
-
-    .EDM-actionBtn.is-edit {
-        color: var(--color-amber-400);
-    }
-
-    .EDM-actionBtn.is-save.is-active {
-        background: var(--color-blue-600);
-        color: var(--text-inverse);
-    }
-
-    .EDM-closeBtn {
-        width: 44px;
-        height: 44px;
-        border-radius: var(--radius-xl);
-        background: var(--bg-surface-2);
-        border: 1px solid var(--border-glass);
-        color: var(--text-primary);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: all 0.2s;
-        box-shadow: var(--shadow-sm);
-    }
-
-    .EDM-actionIcon {
-        font-size: 1.5rem;
-    }
 
+.EventDetailModal {
+    position: fixed;
+    inset: 0;
+    background-color: var(--bg-overlay, rgba(0, 0, 0, 0.6));
+    display: flex;
+    backdrop-filter: blur(var(--blur-glass-subtle));
+    align-items: center;
+    justify-content: center;
+    z-index: var(--z-modal-stack-1);
+    will-change: opacity;
+    animation: edm-fadeInOverlay 0.2s ease-out;
+}
+
+/* Unified Premium Scrollbar */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-glass) transparent;
+}
+
+*::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+    background: var(--border-glass-strong);
+    border-radius: 10px;
+    border: 1px solid transparent;
+    background-clip: padding-box;
+    transition: background 0.2s;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+    background: var(--text-tertiary);
+}
+
+@keyframes edm-fadeInOverlay {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+.EDM-container {
+    background-color: var(--page-bg-color);
+    backdrop-filter: blur(var(--blur-glass-heavy)) saturate(180%);
+    -webkit-backdrop-filter: blur(var(--blur-glass-heavy)) saturate(180%);
+    max-width: 325px;
+    width: 100%;
+    border-radius: var(--radius-3xl);
+    height: 80svh;
+    max-height: 80svh;
+    overflow: hidden;
+    box-shadow: var(--shadow-premium);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    will-change: transform, opacity;
+    border: 1px solid var(--border-glass);
+    animation: edm-modalEnter 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+@keyframes edm-modalEnter {
+    from {
+        transform: scale(1.02) translateY(20px);
+        opacity: 0;
+        filter: blur(10px);
+    }
+}
+
+/* Data Loading Bar */
+.EDM-loadingBar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--color-blue-500), var(--color-blue-400), var(--color-blue-500));
+    background-size: 200% 100%;
+    z-index: var(--z-elevate);
+    animation: edm-loadingMove 1.5s infinite linear;
+}
+
+@keyframes edm-loadingMove {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Login Overlay */
+.EDM-loginOverlay {
+    position: absolute;
+    inset: 0;
+    z-index: var(--z-sticky);
+    background: var(--bg-overlay);
+    backdrop-filter: blur(8px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-10);
+    text-align: center;
+    animation: edm-fadeIn 0.3s ease-out;
+}
+
+.EDM-loginTitle {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: var(--spacing-3);
+}
+
+.EDM-loginDesc {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    margin-bottom: var(--spacing-8);
+    line-height: 1.6;
+}
+
+.EDM-btn-kakao {
+    width: 100%;
+    max-width: 280px;
+    background: var(--color-kakao-bg);
+    color: var(--color-kakao-text);
+    padding: 14px;
+    border-radius: var(--radius-xl);
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-2);
+    border: none;
+    cursor: pointer;
+    margin-bottom: var(--spacing-3);
+}
+
+.EDM-btn-close {
+    color: var(--text-tertiary);
+    font-weight: 600;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: var(--spacing-2);
+}
+
+.EDM-scrollContainer {
+    overflow-y: auto;
+    flex: 1 1 0%;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Selection Mode Highlighter */
+.EDM-scrollContainer.is-selection-mode .EDM-content>* {
+    outline: 2px dashed rgba(59, 130, 246, 0.5);
+    outline-offset: -2px;
+    transition: all 0.2s ease;
+}
+
+.EDM-scrollContainer.is-selection-mode .EDM-content>*:hover {
+    background-color: rgba(59, 130, 246, 0.05);
+}
+
+/* Main Content Layout */
+.EDM-content {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+}
+
+/* Image Section */
+.EDM-imageArea {
+    position: relative;
+    width: 100%;
+    min-height: 200px;
+    max-height: 400px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    background-color: var(--page-bg-color);
+}
+
+.EDM-imageArea.has-pattern {
+    background-size: cover;
+    background-position: center;
+}
+
+.EDM-imageWrapper {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    max-width: 325px;
+    height: auto;
+    max-height: 100%;
+    position: relative;
+    z-index: 5;
+    margin: 0 auto;
+}
+
+.EDM-imageContent {
+    grid-area: 1 / 1;
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    object-fit: contain;
+    object-position: center;
+    display: block;
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: smooth;
+}
+
+.EDM-imageBlurBg {
+    position: absolute;
+    inset: -10%;
+    background-size: cover;
+    background-position: center;
+    filter: blur(60px);
+    opacity: 0.4;
+    transform: scale(1.1);
+    z-index: 1;
+    pointer-events: none;
+}
+
+.EDM-imageGradient {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 30%;
+    background: linear-gradient(to top, var(--bg-overlay) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 1;
+}
+
+/* Category Area (When no image) */
+.EDM-categoryArea {
+    position: absolute;
+    inset: 0;
+    opacity: 0.3;
+}
+
+.EDM-categoryArea.is-class {
+    background: linear-gradient(135deg, var(--color-purple-500), var(--color-purple-700));
+}
+
+.EDM-categoryArea.is-event {
+    background: linear-gradient(135deg, var(--color-blue-500), var(--color-blue-700));
+}
+
+.EDM-categoryAreaText {
+    position: absolute;
+    z-index: 5;
+    font-size: 4rem;
+    font-weight: 900;
+    color: var(--text-muted);
+    opacity: 0.1;
+    text-transform: uppercase;
+    pointer-events: none;
+}
+
+/* Badges & Overlays */
+.EDM-categoryBadge {
+    position: absolute;
+    top: var(--spacing-5);
+    right: var(--spacing-5);
+    padding: 6px 12px;
+    border-radius: var(--radius-md);
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    z-index: 10;
+    backdrop-filter: blur(8px);
+    box-shadow: var(--shadow-lg);
+}
+
+.EDM-categoryBadge.is-class {
+    background: linear-gradient(135deg, var(--color-purple-400), var(--color-purple-600));
+}
+
+.EDM-categoryBadge.is-event {
+    background: var(--color-blue-500);
+}
+
+.EDM-defaultThumb {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 4;
+}
+
+.EDM-thumbText {
+    font-size: 3rem;
+    font-weight: 900;
+    color: var(--text-muted);
+    opacity: 0.2;
+}
+
+.EDM-imageEditOverlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(59, 130, 246, 0.3);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-2);
+    color: var(--text-primary);
+    z-index: var(--z-elevate);
+    cursor: pointer;
+    backdrop-filter: blur(2px);
+}
+
+.EDM-imageEditOverlay i {
+    font-size: 2.5rem;
+}
+
+.EDM-fullscreenBtn {
+    position: absolute;
+    top: var(--spacing-5);
+    left: var(--spacing-5);
+    background: var(--bg-overlay);
+    color: var(--text-primary);
+    border: none;
+    padding: 8px 12px;
+    border-radius: var(--radius-md);
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    z-index: var(--z-elevate);
+    backdrop-filter: blur(4px);
+}
+
+.EDM-favoriteBtn {
+    position: absolute;
+    bottom: -14px;
+    left: 0px;
+    width: 72px;
+    height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    z-index: 100;
+    color: var(--color-white);
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.EDM-favoriteBtn i {
+    font-size: 40px;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.EDM-favoriteBtn.is-active i {
+    color: var(--color-amber-400);
+    animation: edm-starPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+/* Info Column Wrapper */
+.EDM-infoColumn {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.EDM-header {
+    position: sticky;
+    top: 0;
+    padding: 12px 18px;
+    z-index: var(--z-modal);
+    background-color: var(--bg-color);
+    border-bottom: 1px solid var(--border-glass);
+    backdrop-filter: blur(var(--blur-glass));
+    transition: background-color 0.2s ease;
+}
+
+.EDM-header.is-scrolled {
+    background-color: var(--bg-modal);
+    backdrop-filter: blur(20px);
+}
+
+.EDM-titleGroup {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--spacing-3);
+    width: 100%;
+    margin-bottom: var(--spacing-2);
+}
+
+.EDM-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1.25;
+    word-break: keep-all;
+    flex: 1;
+    margin: 0;
+}
+
+.EDM-genreGroup {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+}
+
+.EDM-genreText {
+    font-size: 0.875rem;
+    margin: 0;
+    line-height: 1.25rem;
+    font-weight: 700;
+}
+
+/* Genre Color Palette (Renamed to avoid conflict) */
+.edm-text-red {
+    color: var(--genre-red-400);
+}
+
+.edm-text-orange {
+    color: var(--genre-orange-400);
+}
+
+.edm-text-amber {
+    color: var(--genre-amber-400);
+}
+
+.edm-text-yellow {
+    color: var(--genre-yellow-400);
+}
+
+.edm-text-lime {
+    color: var(--genre-lime-400);
+}
+
+.edm-text-green {
+    color: var(--genre-green-400);
+}
+
+.edm-text-emerald {
+    color: var(--genre-emerald-400);
+}
+
+.edm-text-teal {
+    color: var(--genre-teal-400);
+}
+
+.edm-text-cyan {
+    color: var(--genre-cyan-400);
+}
+
+.edm-text-sky {
+    color: var(--genre-sky-400);
+}
+
+.edm-text-blue {
+    color: var(--genre-blue-400);
+}
+
+.edm-text-indigo {
+    color: var(--genre-indigo-400);
+}
+
+.edm-text-violet {
+    color: var(--genre-violet-400);
+}
+
+.edm-text-purple {
+    color: var(--genre-purple-400);
+}
+
+.edm-text-fuchsia {
+    color: var(--genre-fuchsia-400);
+}
+
+.edm-text-pink {
+    color: var(--genre-pink-400);
+}
+
+.edm-text-rose {
+    color: var(--genre-rose-400);
+}
+
+.edm-text-gray {
+    color: var(--text-tertiary);
+}
+
+/* Views row */
+.views-row {
+    margin-bottom: var(--spacing-1);
+    opacity: 0.6;
+}
+
+.EDM-viewsText {
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+/* Info Items */
+.EDM-infoSection {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-4);
+    padding: 12px 18px;
+    background-color: transparent;
+    overflow-x: hidden;
+}
+
+.EDM-infoItem {
+    display: flex;
+    gap: var(--spacing-3);
+    align-items: flex-start;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
+.EDM-infoIcon {
+    font-size: 1.2rem;
+    color: var(--color-blue-400);
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.EDM-infoContent-flex {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: var(--spacing-2);
+    flex: 1;
+}
+
+.EDM-venueLink {
+    color: var(--color-blue-400);
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-1);
+    background: var(--bg-surface-2);
+    border: 1px solid var(--border-glass);
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    cursor: pointer;
+}
+
+.EDM-locationLink {
+    color: var(--text-tertiary);
+    padding: var(--spacing-1);
+}
+
+.EDM-locationLink:hover {
+    color: var(--color-blue-400);
+}
+
+.EDM-divider {
+    padding-top: var(--spacing-4);
+    border-top: 1px solid var(--border-glass-subtle);
+}
+
+.EDM-descHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--spacing-2);
+    width: 100%;
+}
+
+.EDM-sectionLabel {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-tertiary);
+    letter-spacing: 0.02em;
+}
+
+.EDM-descWrapper {
+    white-space: pre-wrap;
+    line-height: 1.6;
+    word-break: break-word;
+    margin-top: var(--spacing-1);
+}
+
+.EDM-link {
+    color: var(--genre-sky-400);
+    text-decoration: none;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.EDM-link:hover {
+    color: var(--genre-sky-300);
+    text-decoration: underline;
+}
+
+.EDM-editTrigger {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-md);
+    background: var(--bg-surface-2);
+    border: 1px solid var(--border-glass);
+    color: var(--text-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.EDM-editTrigger:hover {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--color-blue-400);
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.EDM-editTrigger.is-pill {
+    width: auto;
+    padding: 0 12px;
+    gap: 8px;
+    border-radius: var(--radius-full);
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.EDM-addLabel {
+    font-size: 0.8rem;
+}
+
+.EDM-genreHint {
+    font-size: 0.82rem;
+    color: var(--color-blue-400);
+    background: rgba(59, 130, 246, 0.05);
+    padding: 10px 14px;
+    border-radius: var(--radius-xl);
+    margin-bottom: var(--spacing-4);
+    line-height: 1.5;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    word-break: keep-all;
+}
+
+.EDM-scopeEditSection {
+    margin-top: var(--spacing-6);
+    padding-top: var(--spacing-6);
+    border-top: 1px solid var(--border-glass-subtle);
+}
+
+.EDM-inputLabel-small {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-tertiary);
+    margin-bottom: var(--spacing-3);
+}
+
+.EDM-scopeToggle {
+    display: flex;
+    gap: var(--spacing-2);
+}
+
+.EDM-scopeBtn {
+    flex: 1;
+    padding: 12px;
+    border-radius: var(--radius-xl);
+    background: var(--bg-surface-2);
+    border: 1px solid var(--border-glass);
+    color: var(--text-tertiary);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.EDM-scopeBtn.is-active {
+    background: var(--color-blue-500);
+    color: white;
+    border-color: var(--color-blue-400);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.EDM-scopeBtn.is-overseas.is-active {
+    background: var(--color-purple-500);
+    border-color: var(--color-purple-400);
+    box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3);
+}
+
+.EDM-scopeBadge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 700;
+    margin-left: var(--spacing-2);
+    vertical-align: middle;
+    text-transform: uppercase;
+}
+
+.EDM-scopeBadge.domestic {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--color-blue-500);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.EDM-scopeBadge.overseas {
+    background: rgba(168, 85, 247, 0.1);
+    color: var(--color-purple-500);
+    border: 1px solid rgba(168, 85, 247, 0.2);
+}
+
+/* Contact Section */
+.EDM-contactSection {
+    margin-top: var(--spacing-2);
+}
+
+.EDM-contactHeader {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-tertiary);
+    margin-bottom: var(--spacing-3);
+    display: block;
+}
+
+.EDM-contactSubHeader {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-tertiary);
+    opacity: 0.8;
+    margin-bottom: var(--spacing-2);
+    display: block;
+}
+
+.EDM-contactList {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2);
+}
+
+.EDM-contactItem {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-3);
+    background: var(--bg-surface-2);
+    border: 1px solid var(--border-glass-subtle);
+    padding: 10px 14px;
+    border-radius: var(--radius-xl);
+    width: 100%;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.EDM-contactItem:hover {
+    background: var(--bg-hover);
+    border-color: var(--color-blue-400);
+}
+
+.EDM-contactIcon {
+    font-size: 1.2rem;
+    color: var(--color-violet-400);
+}
+
+.EDM-contactTextGroup {
+    display: flex;
+    flex-direction: column;
+}
+
+.EDM-contactValue {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+}
+
+.EDM-contactHint {
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+}
+
+/* Admin Section */
+.EDM-adminSection {
+    background: rgba(239, 68, 68, 0.05);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: var(--radius-xl);
+    padding: var(--spacing-4);
+}
+
+.EDM-adminHeader {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    color: var(--color-red-400);
+    font-weight: 700;
+    font-size: 0.85rem;
+    margin-bottom: var(--spacing-3);
+}
+
+.EDM-adminItem {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin-top: var(--spacing-1);
+}
+
+.EDM-createdAt {
+    margin-top: var(--spacing-6);
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    text-align: center;
+}
+
+/* Footer & Actions */
+.EDM-footer {
+    padding: 16px 20px;
+
+    backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border-glass-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--spacing-3);
+    position: relative;
+    z-index: 100;
+}
+
+.EDM-footerLinks {
+    display: flex;
+    gap: var(--spacing-2);
+    overflow: hidden;
+    padding-bottom: 0;
+    flex: 1;
+    min-width: 0;
+    align-items: center;
+}
+
+.EDM-footerLink {
+    padding: 6px 12px;
+    background: rgba(59, 130, 246, 0.15);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: var(--radius-full);
+    color: var(--color-blue-400);
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s;
+    min-width: 0;
+    flex: 0 1 auto;
+    min-height: 38px;
+}
+
+.EDM-footerLinkText {
+    font-size: 0.75rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+}
+
+.EDM-footerLink:hover {
+    background: var(--color-blue-600);
+    color: var(--text-primary);
+    transform: translateY(-2px);
+}
+
+.EDM-actionGroup {
+    display: flex;
+    gap: var(--spacing-2-5);
+    align-items: center;
+}
+
+.EDM-actionBtn {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-xl);
+    background: var(--bg-surface-2);
+    border: 1px solid var(--border-glass-subtle);
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: var(--shadow-sm);
+}
+
+.EDM-actionBtn:hover {
+    background: var(--bg-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.EDM-actionBtn.is-share {
+    color: var(--color-green-400);
+}
+
+.EDM-actionBtn.is-share.copied {
+    color: var(--color-blue-400);
+}
+
+.EDM-actionBtn.is-delete {
+    color: var(--color-red-500);
+    background: rgba(239, 68, 68, 0.1);
+}
+
+.EDM-actionBtn.is-edit {
+    color: var(--color-amber-400);
+}
+
+.EDM-actionBtn.is-save.is-active {
+    background: var(--color-blue-600);
+    color: var(--text-inverse);
+}
+
+.EDM-closeBtn {
+    width: 44px;
+    height: 44px;
+    border-radius: var(--radius-xl);
+    background: var(--bg-surface-2);
+    border: 1px solid var(--border-glass);
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    box-shadow: var(--shadow-sm);
+}
+
+.EDM-actionIcon {
+    font-size: 1.5rem;
 }
 
 /* Fullscreen Image Portal (Global) */
@@ -1210,139 +1287,138 @@
     outline: none;
 }
 
-@scope (.EventDetailModal) {
 
-    /* Desktop Adjustments */
-    @media (min-width: 768px) {
-        .EDM-container {
-            max-width: 1100px;
-            height: 85vh;
-            max-height: 850px;
-            flex-direction: row;
-            border-radius: 28px;
-            border: 1px solid var(--border-glass-strong);
-            box-shadow: var(--shadow-elevated);
-        }
 
-        .EDM-container::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 1px;
-            background: linear-gradient(90deg, transparent, var(--border-glass-strong), transparent);
-            z-index: 100;
-        }
-
-        .EDM-scrollContainer {
-            display: flex;
-            flex-direction: row;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-        }
-
-        .EDM-content {
-            flex-direction: row;
-            width: 100%;
-        }
-
-        .EDM-imageArea {
-            width: 45%;
-            height: 100%;
-            min-height: 100%;
-            flex-shrink: 0;
-            border-right: 1px solid var(--border-glass);
-            background: var(--bg-surface-3);
-            animation: edm-imagePanelEnter 0.8s cubic-bezier(0.19, 1, 0.22, 1) both;
-        }
-
-        .EDM-imageWrapper {
-            max-width: 100%;
-            padding: 40px;
-            max-height: 95%;
-            filter: drop-shadow(0 30px 60px rgba(0, 0, 0, 0.9));
-            transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
-            animation: edm-posterFloat 1s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-            animation-delay: 0.2s;
-        }
-
-        .EDM-imageWrapper:hover {
-            transform: scale(1.03) translateY(-5px);
-            filter: drop-shadow(0 40px 80px rgba(0, 0, 0, 1));
-        }
-
-        .EDM-infoColumn {
-            width: 55%;
-            height: 100%;
-            position: relative;
-            overflow: hidden;
-            animation: edm-infoPanelEnter 0.8s cubic-bezier(0.19, 1, 0.22, 1) both;
-            animation-delay: 0.1s;
-        }
-
-        .EDM-infoSection {
-            flex: 1;
-            width: 100%;
-            height: 100%;
-            padding: 32px;
-            overflow-y: auto;
-            position: relative;
-            background-color: var(--bg-modal);
-            display: flex;
-            flex-direction: column;
-            padding-bottom: 100px;
-        }
-
-        .EDM-header {
-            padding: 24px 32px;
-            background: transparent;
-            border-bottom: none;
-            z-index: 50;
-            position: relative;
-        }
-
-        .EDM-footer {
-            position: absolute;
-            bottom: 0;
-            right: 0;
-            width: 100%;
-            background: var(--bg-surface-translucent);
-            backdrop-filter: blur(10px);
-            border-top: 1px solid var(--border-glass);
-            padding: 0 32px 20px 32px;
-            height: 100px;
-            align-items: flex-end;
-            z-index: var(--z-sticky);
-        }
+/* Desktop Adjustments */
+@media (min-width: 768px) {
+    .EDM-container {
+        max-width: 1100px;
+        height: 85vh;
+        max-height: 850px;
+        flex-direction: row;
+        border-radius: 28px;
+        border: 1px solid var(--border-glass-strong);
+        box-shadow: var(--shadow-elevated);
     }
 
-
-    @keyframes edm-infoPanelEnter {
-        from {
-            transform: translateX(40px);
-            opacity: 0;
-        }
+    .EDM-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, var(--border-glass-strong), transparent);
+        z-index: 100;
     }
 
-    @keyframes edm-imagePanelEnter {
-        from {
-            transform: translateX(-40px);
-            opacity: 0;
-            filter: brightness(0.5);
-        }
+    .EDM-scrollContainer {
+        display: flex;
+        flex-direction: row;
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
     }
 
-    @keyframes edm-posterFloat {
-        from {
-            transform: scale(0.9) translateY(20px);
-            opacity: 0;
-        }
+    .EDM-content {
+        flex-direction: row;
+        width: 100%;
+    }
 
-        to {
-            transform: scale(1) translateY(0);
-            opacity: 1;
-        }
+    .EDM-imageArea {
+        width: 45%;
+        height: 100%;
+        min-height: 100%;
+        flex-shrink: 0;
+        border-right: 1px solid var(--border-glass);
+        background: var(--bg-surface-3);
+        animation: edm-imagePanelEnter 0.8s cubic-bezier(0.19, 1, 0.22, 1) both;
+    }
+
+    .EDM-imageWrapper {
+        max-width: 100%;
+        padding: 40px;
+        max-height: 95%;
+        filter: drop-shadow(0 30px 60px rgba(0, 0, 0, 0.9));
+        transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+        animation: edm-posterFloat 1s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+        animation-delay: 0.2s;
+    }
+
+    .EDM-imageWrapper:hover {
+        transform: scale(1.03) translateY(-5px);
+        filter: drop-shadow(0 40px 80px rgba(0, 0, 0, 1));
+    }
+
+    .EDM-infoColumn {
+        width: 55%;
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+        animation: edm-infoPanelEnter 0.8s cubic-bezier(0.19, 1, 0.22, 1) both;
+        animation-delay: 0.1s;
+    }
+
+    .EDM-infoSection {
+        flex: 1;
+        width: 100%;
+        height: 100%;
+        padding: 32px;
+        overflow-y: auto;
+        position: relative;
+        background-color: var(--bg-modal);
+        display: flex;
+        flex-direction: column;
+        padding-bottom: 100px;
+    }
+
+    .EDM-header {
+        padding: 24px 32px;
+        background: transparent;
+        border-bottom: none;
+        z-index: 50;
+        position: relative;
+    }
+
+    .EDM-footer {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 100%;
+        background: var(--bg-surface-translucent);
+        backdrop-filter: blur(10px);
+        border-top: 1px solid var(--border-glass);
+        padding: 0 32px 20px 32px;
+        height: 100px;
+        align-items: flex-end;
+        z-index: var(--z-sticky);
+    }
+}
+
+
+@keyframes edm-infoPanelEnter {
+    from {
+        transform: translateX(40px);
+        opacity: 0;
+    }
+}
+
+@keyframes edm-imagePanelEnter {
+    from {
+        transform: translateX(-40px);
+        opacity: 0;
+        filter: brightness(0.5);
+    }
+}
+
+@keyframes edm-posterFloat {
+    from {
+        transform: scale(0.9) translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1) translateY(0);
+        opacity: 1;
     }
 }

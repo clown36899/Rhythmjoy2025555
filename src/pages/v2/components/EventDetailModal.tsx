@@ -465,10 +465,16 @@ export default function EventDetailModal({
 
     if (activeEditField === 'title') updates.title = value;
     if (activeEditField === 'genre') {
-      updates.genre = value;
+      if (typeof value === 'object' && value !== null) {
+        updates.genre = value.genre;
+        updates.scope = value.scope;
+      } else {
+        updates.genre = value;
+      }
       updates.category = category as any;
     }
     if (activeEditField === 'description') updates.description = value;
+    if (activeEditField === 'time') updates.time = value;
     if (activeEditField === 'date') {
       const dates = value.split(',').filter(Boolean).sort();
       if (dates.length > 1) {
@@ -516,7 +522,7 @@ export default function EventDetailModal({
     const fieldsToCheck = [
       'title', 'description', 'location', 'location_link', 'venue_id', 'genre', 'category',
       'link1', 'link_name1', 'link2', 'link_name2', 'link3', 'link_name3',
-      'date', 'start_date', 'end_date', 'event_dates'
+      'date', 'start_date', 'end_date', 'event_dates', 'time'
     ];
 
     console.log('[hasChanges] Checking for changes...');
@@ -570,7 +576,8 @@ export default function EventDetailModal({
         link2: draftEvent.link2,
         link_name2: draftEvent.link_name2,
         link3: draftEvent.link3,
-        link_name3: draftEvent.link_name3
+        link_name3: draftEvent.link_name3,
+        scope: draftEvent.scope
       };
 
 
@@ -1075,6 +1082,11 @@ export default function EventDetailModal({
                         {selectedEvent.genre ? (
                           <p className={`EDM-genreText ${getGenreColor(selectedEvent.genre)}`}>
                             {selectedEvent.genre}
+                            {selectedEvent.category === "event" && selectedEvent.scope && (
+                              <span className={`EDM-scopeBadge ${selectedEvent.scope}`}>
+                                {selectedEvent.scope === 'domestic' ? '국내' : '해외'}
+                              </span>
+                            )}
                           </p>
                         ) : (
                           <span className="EDM-noInfo">장르 미지정</span>
@@ -1200,6 +1212,27 @@ export default function EventDetailModal({
                         )}
                       </div>
                     </div>
+
+                    {(selectedEvent.time || isSelectionMode) && (
+                      <div className="EDM-infoItem">
+                        <i className="ri-time-line EDM-infoIcon"></i>
+                        <div className="EDM-infoContent-flex">
+                          <span>{selectedEvent.time || "시간 미정"}</span>
+                          {isSelectionMode && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveEditField('time');
+                              }}
+                              className="EDM-editTrigger"
+                              title="시간 수정"
+                            >
+                              <i className="ri-pencil-line"></i>
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
 
                     {/* 조회수 표시 */}
                     {selectedEvent.views !== undefined && selectedEvent.views !== null && (
@@ -1578,7 +1611,8 @@ export default function EventDetailModal({
                       }
 
                       // Special handling for social events: Delegate edit to parent (external modal)
-                      // Special handling for social events: Delegate edit to parent (external modal)
+                      // REMOVED: Now unified with inline edit
+                      /*
                       const isSocial = String(selectedEvent.id).startsWith('social-') ||
                         (selectedEvent as any).is_social_integrated ||
                         (selectedEvent as any).group_id ||
@@ -1589,6 +1623,7 @@ export default function EventDetailModal({
                         _onEdit(selectedEvent);
                         return;
                       }
+                      */
 
                       if (isSelectionMode) {
                         // In Edit Mode -> Check for changes

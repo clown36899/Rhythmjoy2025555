@@ -264,36 +264,7 @@ const SocialPage: React.FC = () => {
   }, [fetchWeekEvents, refreshSchedules]);
 
 
-  const handleEditSchedule = useCallback(async (schedule: SocialSchedule) => {
-
-
-    if (!user) {
-      alert("로그인이 필요합니다.");
-      return;
-    }
-
-    const isCreator = schedule.user_id === user.id;
-
-    if (!isCreator && !isAdmin) {
-      const inputPw = prompt("일정을 수정하려면 단체 관리 비밀번호가 필요합니다.");
-      if (!inputPw) return;
-
-      // 일정이 속한 그룹의 비밀번호 확인
-      const isValid = await verifyGroupPassword(schedule.group_id, inputPw);
-      if (!isValid) {
-        alert("비밀번호가 일치하지 않습니다.");
-        return;
-      }
-    }
-
-    // 상세 모달을 먼저 닫습니다.
-    socialDetailModal.close();
-
-    // 통합된 SocialScheduleModal 사용
-    setEditSchedule(schedule);
-    setInitialModalTab('social');
-    setIsEventModalOpen(true);
-  }, [user, isAdmin, verifyGroupPassword, socialDetailModal]);
+  // handleEditSchedule removed - unified with EventDetailModal inline edit
 
   const handleCopySchedule = useCallback((schedule: SocialSchedule) => {
     setEditSchedule(null);
@@ -318,6 +289,8 @@ const SocialPage: React.FC = () => {
 
   // Merge this week's events with schedules for WeeklySocial
   const schedulesWithEvents = useMemo(() => {
+    if (eventsThisWeek.length === 0) return schedules;
+
     const convertedEvents = eventsThisWeek.flatMap(e => {
       const mediumImage = e.image_medium ||
         (e.image && typeof e.image === 'string' && e.image.includes('/event-posters/full/')
@@ -370,10 +343,9 @@ const SocialPage: React.FC = () => {
     socialDetailModal.open({
       schedule,
       onCopy: handleCopySchedule,
-      onEdit: handleEditSchedule,
       isAdmin: isAdmin || (user && schedule.user_id === user.id)
     });
-  }, [isAdmin, user, socialDetailModal, handleCopySchedule, handleEditSchedule]);
+  }, [isAdmin, user, socialDetailModal, handleCopySchedule]);
 
   const handleEditGroup = useCallback(async (group: SocialGroup) => {
     if (!user) {

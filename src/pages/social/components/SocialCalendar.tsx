@@ -42,7 +42,6 @@ export default function SocialCalendar({
   const handleCardClick = (event: UnifiedSocialEvent) => {
     socialDetailModal.open({
       item: event,
-      onEdit: () => handleEditClick(event),
       readonly,
       onVenueClick: (venueId: string) => {
         venueDetailModal.open({ venueId });
@@ -52,47 +51,6 @@ export default function SocialCalendar({
 
 
 
-  const handleEditClick = async (unifiedEvent: UnifiedSocialEvent) => {
-    try {
-      // Get current user
-      const { data: { user } } = await supabase.auth.getUser();
-
-      // Fetch the event data from unified table
-      const { data: eventData, error } = await supabase
-        .from('events')
-        .select('*')
-        .eq('id', unifiedEvent.originalId)
-        .maybeSingle();
-
-      if (error || !eventData) {
-        console.error('Error fetching event:', error);
-        alert('일정을 불러오는 데 실패했습니다.');
-        return;
-      }
-
-      // Check permission: user_id must match OR user is admin
-      if (eventData.user_id !== user?.id && !isAdmin) {
-        alert('수정 권한이 없습니다. 본인이 등록한 일정만 수정할 수 있습니다.');
-        return;
-      }
-
-      // Permission granted - open integrated registration modal
-      eventRegisterModal.open({
-        editEventData: eventData,
-        groupId: eventData.group_id,
-        onEventUpdated: (data: any) => {
-          onEventUpdated(data);
-        },
-        onEventCreated: (data: any) => {
-          onEventUpdated(data);
-        }
-      });
-      socialDetailModal.close();
-    } catch (error) {
-      console.error('Permission check error:', error);
-      alert('권한 확인 중 오류가 발생했습니다.');
-    }
-  };
 
   const handleAddEvent = (dayId: number) => {
     eventRegisterModal.open({
