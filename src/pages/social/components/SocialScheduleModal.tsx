@@ -294,7 +294,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                 }
 
                 // 2. Prepare Data
-                let genre = 'Social';
+                let genre = '소셜';
                 if (category === 'club_lesson' || category === 'club_regular') {
                     genre = 'Lindy';
                 }

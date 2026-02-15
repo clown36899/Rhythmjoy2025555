@@ -254,7 +254,9 @@ function RootApp() {
 
       if (
         message.includes('Failed to fetch dynamically imported module') ||
-        message.includes('Importing a module script failed')
+        message.includes('Importing a module script failed') ||
+        message.includes('Failed to fetch') ||
+        message.includes('ChunkLoadError')
       ) {
         console.warn('⚠️ New version detected (Chunk load failed). Reloading...');
         // Prevent infinite reload loop if the error persists

@@ -1077,34 +1077,44 @@ export default function EventDetailModal({
                     </div>
 
                     {/* 장르 표시 */}
-                    {(selectedEvent.genre || isSelectionMode) && (
-                      <div className="EDM-genreGroup">
-                        {selectedEvent.genre ? (
-                          <p className={`EDM-genreText ${getGenreColor(selectedEvent.genre)}`}>
-                            {selectedEvent.genre}
-                            {selectedEvent.category === "event" && selectedEvent.scope && (
-                              <span className={`EDM-scopeBadge ${selectedEvent.scope}`}>
-                                {selectedEvent.scope === 'domestic' ? '국내' : '해외'}
-                              </span>
-                            )}
-                          </p>
-                        ) : (
-                          <span className="EDM-noInfo">장르 미지정</span>
-                        )}
-                        {isSelectionMode && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setActiveEditField('genre');
-                            }}
-                            className="EDM-editTrigger"
-                            title="장르 수정"
-                          >
-                            <i className="ri-pencil-line"></i>
-                          </button>
-                        )}
-                      </div>
-                    )}
+                    {(() => {
+                      const isSocial = String(selectedEvent.id).startsWith('social-') ||
+                        ['social', 'club_lesson', 'club_regular'].includes(selectedEvent.category || '');
+
+                      let displayGenre = selectedEvent.genre || (isSocial ? '소셜' : null);
+                      if (displayGenre === 'Social') displayGenre = '소셜';
+
+                      if (!displayGenre && !isSelectionMode) return null;
+
+                      return (
+                        <div className="EDM-genreGroup">
+                          {displayGenre ? (
+                            <p className={`EDM-genreText ${getGenreColor(displayGenre)}`}>
+                              {displayGenre}
+                              {selectedEvent.category === "event" && selectedEvent.scope && (
+                                <span className={`EDM-scopeBadge ${selectedEvent.scope}`}>
+                                  {selectedEvent.scope === 'domestic' ? '국내' : '해외'}
+                                </span>
+                              )}
+                            </p>
+                          ) : (
+                            <span className="EDM-noInfo">장르 미지정</span>
+                          )}
+                          {isSelectionMode && (
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setActiveEditField('genre');
+                              }}
+                              className="EDM-editTrigger"
+                              title="장르 수정"
+                            >
+                              <i className="ri-pencil-line"></i>
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* 세부 정보 */}

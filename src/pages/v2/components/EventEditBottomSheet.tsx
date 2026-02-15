@@ -71,7 +71,7 @@ const EventEditBottomSheet = React.memo(({
 
     const uniqueGenres = useMemo(() => {
         if (editCategory === 'social') {
-            return [];
+            return ['소셜'];
         }
         if (editCategory === 'club') {
             return ['정규강습', '린디합', '솔로재즈', '발보아', '블루스', '팀원모집', '기타'];
@@ -169,7 +169,7 @@ const EventEditBottomSheet = React.memo(({
                                         <span className="manual-label-wrapper"><span className="translated-part">Class</span><span className="fixed-part ko" translate="no">강습</span><span className="fixed-part en" translate="no">Class</span></span>
                                     </button>
                                     <button onClick={() => { setEditCategory('club'); setEditValue(''); }} className={`EDM-categoryToggleBtn is-club ${editCategory === 'club' ? 'is-active' : ''}`}>동호회</button>
-                                    <button onClick={() => { setEditCategory('social'); setEditValue(''); }} className={`EDM-categoryToggleBtn is-social ${editCategory === 'social' ? 'is-active' : ''}`}>소셜</button>
+                                    <button onClick={() => { setEditCategory('social'); setEditValue('소셜'); }} className={`EDM-categoryToggleBtn is-social ${editCategory === 'social' ? 'is-active' : ''}`}>소셜</button>
                                 </div>
 
                                 {editCategory === 'event' && (
