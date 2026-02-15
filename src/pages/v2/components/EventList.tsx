@@ -108,6 +108,10 @@ const EventList: React.FC<EventListProps> = ({
 
       // 🎯 [UPDATE] 라이브밴드 장르는 72시간 제한 없이 계속 노출 (단, 미래 이벤트여야 함)
       const isLiveBand = event.genre?.includes('라이브밴드');
+      const isSocial = event.category === 'social';
+
+      // [Request] 소셜 카테고리는 '라이브밴드'인 경우에만 노출 (DJ 등 제외)
+      if (isSocial && !isLiveBand) return false;
 
       return (isWithin72Hours || isLiveBand) && isFutureEvent;
     }).sort((a, b) => {

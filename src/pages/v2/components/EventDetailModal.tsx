@@ -410,6 +410,9 @@ export default function EventDetailModal({
     }
   }, [event, isAdminMode, user, authorNickname, isOpen]);
 
+  // Alias for render consistency
+  const selectedEvent = displayEvent;
+
   // Genre Management State
   const allHistoricalGenres = useHistoricalGenres();
 
