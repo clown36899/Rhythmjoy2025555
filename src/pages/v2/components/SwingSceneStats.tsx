@@ -74,7 +74,7 @@ export default function SwingSceneStats() {
                 .from('metrics_cache')
                 .select('value, updated_at')
                 .eq('key', 'scene_analytics')
-                .single();
+                .maybeSingle();
 
             if (data && data.value) {
                 const cached = data.value as any;
