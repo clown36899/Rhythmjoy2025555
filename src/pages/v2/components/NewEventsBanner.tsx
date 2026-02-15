@@ -165,13 +165,36 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                     onClick={() => onEventClick(event)}
                                 >
                                     <div className="NEB-imageWrapper">
+                                        <div className="NEB-category">
+                                            {event.category === 'class' ? '강습' : '행사'}
+                                        </div>
                                         <img
                                             src={eventThumbnail}
                                             alt={event.title}
                                             className="NEB-image"
                                         />
                                         <div className="NEB-overlay"></div>
-                                        {/* Full Image Preview Thumbnail */}
+                                    </div>
+
+                                    <div className="NEB-content">
+                                        <div className="NEB-textContent">
+                                            {event.genre && (
+                                                <div className="NEB-genre">{event.genre}</div>
+                                            )}
+                                            <div className="NEB-info">
+                                                <i className="ri-calendar-line"></i>
+                                                <span>{dateText}</span>
+                                            </div>
+                                            {event.location && (
+                                                <div className="NEB-info">
+                                                    <i className="ri-map-pin-line"></i>
+                                                    <span>{event.location}</span>
+                                                </div>
+                                            )}
+                                            <h4 className="NEB-eventTitle">{event.title}</h4>
+                                        </div>
+
+                                        {/* Full Image Preview Thumbnail (Moved inside content for split layout) */}
                                         <div className="NEB-mini-thumbnail">
                                             <img
                                                 src={eventThumbnail}
@@ -179,26 +202,6 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                                 className="NEB-mini-image"
                                             />
                                         </div>
-                                    </div>
-
-                                    <div className="NEB-content">
-                                        <div className="NEB-category">
-                                            {event.category === 'class' ? '강습' : '행사'}
-                                        </div>
-                                        {event.genre && (
-                                            <div className="NEB-genre">{event.genre}</div>
-                                        )}
-                                        <div className="NEB-info">
-                                            <i className="ri-calendar-line"></i>
-                                            <span>{dateText}</span>
-                                        </div>
-                                        {event.location && (
-                                            <div className="NEB-info">
-                                                <i className="ri-map-pin-line"></i>
-                                                <span>{event.location}</span>
-                                            </div>
-                                        )}
-                                        <h4 className="NEB-eventTitle">{event.title}</h4>
                                     </div>
                                 </div>
                             );
