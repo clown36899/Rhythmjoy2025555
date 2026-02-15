@@ -324,10 +324,31 @@ export default function SwingSceneStats() {
                                         {m.registrations > 0 && <span className="reg-label">+{m.registrations}</span>}
                                     </div>
                                     <div className="stacked-bar">
-                                        {/* Using percentage for accurate height proportion */}
-                                        <div className="bar-segment" style={{ height: `${((m.classes || 0) / maxMonthly) * 100}%`, minHeight: (m.classes || 0) > 0 ? '1px' : '0', background: COLORS.classes }}></div>
-                                        <div className="bar-segment" style={{ height: `${((m.events || 0) / maxMonthly) * 100}%`, minHeight: (m.events || 0) > 0 ? '1px' : '0', background: COLORS.events }}></div>
-                                        <div className="bar-segment" style={{ height: `${(((m.socials || 0) + (m.clubs || 0)) / maxMonthly) * 100}%`, minHeight: ((m.socials || 0) + (m.clubs || 0)) > 0 ? '1px' : '0', background: COLORS.socials }}></div>
+                                        {/* Segment order: Bottom to Top -> Classes, Events, Socials */}
+                                        <div className="bar-segment" style={{
+                                            height: `${((m.classes || 0) / maxMonthly) * 100}%`,
+                                            minHeight: (m.classes || 0) > 0 ? '1px' : '0',
+                                            background: COLORS.classes,
+                                            position: 'relative'
+                                        }}>
+                                            {(m.classes || 0) > 5 && <span className="segment-val">{m.classes}</span>}
+                                        </div>
+                                        <div className="bar-segment" style={{
+                                            height: `${((m.events || 0) / maxMonthly) * 100}%`,
+                                            minHeight: (m.events || 0) > 0 ? '1px' : '0',
+                                            background: COLORS.events,
+                                            position: 'relative'
+                                        }}>
+                                            {(m.events || 0) > 5 && <span className="segment-val">{m.events}</span>}
+                                        </div>
+                                        <div className="bar-segment" style={{
+                                            height: `${(((m.socials || 0) + (m.clubs || 0)) / maxMonthly) * 100}%`,
+                                            minHeight: ((m.socials || 0) + (m.clubs || 0)) > 0 ? '1px' : '0',
+                                            background: COLORS.socials,
+                                            position: 'relative'
+                                        }}>
+                                            {((m.socials || 0) + (m.clubs || 0)) > 5 && <span className="segment-val">{(m.socials || 0) + (m.clubs || 0)}</span>}
+                                        </div>
                                     </div>
                                     <div className="axis-group">
                                         <span className="axis-label">{m.month.split('-')[1]}월</span>
@@ -344,17 +365,18 @@ export default function SwingSceneStats() {
 
                         <div className="chart-info-footer">
                             <div className="info-item">
-                                <span className="info-label total">숫자</span>
-                                <span className="info-text">이벤트 시작일 기준 발생 수</span>
+                                <span className="info-label total">실행기준</span>
+                                <span className="info-text"> 숫자 : 이벤트 시작일 기준 발생 수</span>
                             </div>
                             <div className="info-item">
-                                <span className="info-label avg">5.4</span>
-                                <span className="info-text">해당 월의 일평균 이벤트수</span>
+                                <span className="info-label reg">등록기준</span>
+                                <span className="info-text"> +N : 신규 정보 등록 건수</span>
                             </div>
                             <div className="info-item">
-                                <span className="info-label reg">+N</span>
-                                <span className="info-text">신규 정보 등록 건수</span>
+                                <span className="info-label avg">일평균</span>
+                                <span className="info-text">5.4 : 해당 월의 일평균 이벤트수</span>
                             </div>
+
                         </div>
                     </div>
                 </div>
@@ -378,14 +400,31 @@ export default function SwingSceneStats() {
                                 <div key={i} className="bar-wrapper" style={{ cursor: 'pointer', opacity: inspectTypeDay && inspectTypeDay !== d.day ? 0.3 : 1 }} onClick={() => setInspectTypeDay(inspectTypeDay === d.day ? null : d.day)}>
                                     {d.count > 0 && <span className="total-label" style={{ color: inspectTypeDay === d.day ? 'var(--color-blue-400)' : 'var(--text-primary)' }}>{d.count}</span>}
                                     <div className="stacked-bar">
-                                        {d.typeBreakdown.map((tb, idx) => (
-                                            <div key={idx} className="bar-segment"
-                                                style={{
-                                                    height: `${(tb.count / maxDay) * 100}%`,
-                                                    minHeight: tb.count > 0 ? '1px' : '0',
-                                                    background: [COLORS.classes, COLORS.events, COLORS.socials][idx]
-                                                }}></div>
-                                        ))}
+                                        {/* Correct order (Bottom to Top): 0:Classes, 1:Events, 2:Socials */}
+                                        <div className="bar-segment" style={{
+                                            height: `${(d.typeBreakdown[0].count / maxDay) * 100}%`,
+                                            minHeight: d.typeBreakdown[0].count > 0 ? '1px' : '0',
+                                            background: COLORS.classes,
+                                            position: 'relative'
+                                        }}>
+                                            {d.typeBreakdown[0].count > 5 && <span className="segment-val">{d.typeBreakdown[0].count}</span>}
+                                        </div>
+                                        <div className="bar-segment" style={{
+                                            height: `${(d.typeBreakdown[1].count / maxDay) * 100}%`,
+                                            minHeight: d.typeBreakdown[1].count > 0 ? '1px' : '0',
+                                            background: COLORS.events,
+                                            position: 'relative'
+                                        }}>
+                                            {d.typeBreakdown[1].count > 5 && <span className="segment-val">{d.typeBreakdown[1].count}</span>}
+                                        </div>
+                                        <div className="bar-segment" style={{
+                                            height: `${(d.typeBreakdown[2].count / maxDay) * 100}%`,
+                                            minHeight: d.typeBreakdown[2].count > 0 ? '1px' : '0',
+                                            background: COLORS.socials,
+                                            position: 'relative'
+                                        }}>
+                                            {d.typeBreakdown[2].count > 5 && <span className="segment-val">{d.typeBreakdown[2].count}</span>}
+                                        </div>
                                     </div>
                                     <span className="axis-label" style={{ color: inspectTypeDay === d.day ? 'var(--color-blue-400)' : 'var(--text-muted)' }}>{d.day}</span>
                                 </div>
