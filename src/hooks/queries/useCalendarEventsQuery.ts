@@ -36,13 +36,10 @@ export const fetchCalendarEvents = async (startDateStr: string, endDateStr: stri
 
     const allItems = (data || []) as AppEvent[];
 
-    // 분류: group_id가 있으면 socialSchedules로, 없으면 일반 events로
-    // (이전 캘린더 로직이 socialSchedules를 별도 필드로 기대하므로 형식을 맞춰줌)
-    const events = allItems.filter(item => !item.group_id);
-    const socialSchedules = allItems.filter(item => !!item.group_id).map(item => ({
-        ...item,
-        place_name: item.location // social_schedules의 place_name은 events의 location에 매핑됨
-    }));
+    // 분류: group_id 유무와 상관없이 모두 events로 통합 반환
+    // FullEventCalendar 등에서 통합된 events 배열을 사용하여 렌더링함
+    const events = allItems;
+    const socialSchedules: any[] = [];
 
     return {
         events,
