@@ -3,7 +3,6 @@
  */
 
 export const GENRE_COLOR_PALETTE = [
-    'red',
     'orange',
     'amber',
     'yellow',
@@ -18,8 +17,6 @@ export const GENRE_COLOR_PALETTE = [
     'violet',
     'purple',
     'fuchsia',
-    'pink',
-    'rose',
 ];
 
 /**

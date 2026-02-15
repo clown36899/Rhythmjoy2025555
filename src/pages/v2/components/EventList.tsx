@@ -106,7 +106,10 @@ const EventList: React.FC<EventListProps> = ({
       const eventDate = event.end_date || event.date || "";
       const isFutureEvent = eventDate >= todayStr;
 
-      return isWithin72Hours && isFutureEvent;
+      // 🎯 [UPDATE] 라이브밴드 장르는 72시간 제한 없이 계속 노출 (단, 미래 이벤트여야 함)
+      const isLiveBand = event.genre?.includes('라이브밴드');
+
+      return (isWithin72Hours || isLiveBand) && isFutureEvent;
     }).sort((a, b) => {
       // 최신 등록순으로 정렬
       const timeA = new Date(a.created_at!).getTime();
@@ -330,7 +333,7 @@ const EventList: React.FC<EventListProps> = ({
                 if (eDate < todayStr || (e.start_date || eDate) > todayStr) return false; // Date Filtering
 
                 if (e.category === 'social') return true;
-                if (e.category === 'event' && !e.group_id) return true;
+                if (e.category === 'event') return true;
                 return false;
               })
               .map(e => ({
@@ -395,7 +398,7 @@ const EventList: React.FC<EventListProps> = ({
                 if (eDate < weekStartStr || eDate > twoWeeksEndStr) return false;
 
                 if (e.category === 'social') return true;
-                if (e.category === 'event' && !e.group_id) return true;
+                if (e.category === 'event') return true;
                 return false;
               })
               .map(e => ({

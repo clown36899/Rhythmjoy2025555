@@ -45,35 +45,11 @@ interface Event extends Omit<BaseEvent, 'date' | 'start_date' | 'end_date' | 'ev
   category?: string | null;
 }
 
-const genreColorPalette = [
-  'edm-text-red',
-  'edm-text-orange',
-  'edm-text-amber',
-  'edm-text-yellow',
-  'edm-text-lime',
-  'edm-text-green',
-  'edm-text-emerald',
-  'edm-text-teal',
-  'edm-text-cyan',
-  'edm-text-sky',
-  'edm-text-blue',
-  'edm-text-indigo',
-  'edm-text-violet',
-  'edm-text-purple',
-  'edm-text-fuchsia',
-  'edm-text-pink',
-  'edm-text-rose',
-];
+import { getGenreColorClass } from '../../../constants/genreColors';
 
-function getGenreColor(genre: string): string {
-  if (!genre) return 'edm-text-gray';
-  let hash = 0;
-  for (let i = 0; i < genre.length; i++) {
-    hash = genre.charCodeAt(i) + ((hash << 5) - hash);
-  }
-  const index = Math.abs(hash % genreColorPalette.length);
-  return genreColorPalette[index];
-}
+
+// getGenreColor was removed in favor of getGenreColorClass from constants
+
 
 interface EventDetailModalProps {
   event: Event | null;
@@ -1089,7 +1065,7 @@ export default function EventDetailModal({
                       return (
                         <div className="EDM-genreGroup">
                           {displayGenre ? (
-                            <p className={`EDM-genreText ${getGenreColor(displayGenre)}`}>
+                            <p className={`EDM-genreText ${getGenreColorClass(displayGenre, 'edm-text')}`}>
                               {displayGenre}
                               {selectedEvent.category === "event" && selectedEvent.scope && (
                                 <span className={`EDM-scopeBadge ${selectedEvent.scope}`}>

@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import type { Event as BaseEvent } from '../lib/supabase';
+import type { Event as BaseEvent } from '../pages/v2/utils/eventListUtils';
+import { getGenreColorClass } from '../constants/genreColors';
 import { useDefaultThumbnail } from '../hooks/useDefaultThumbnail';
 import { getEventThumbnail } from '../utils/getEventThumbnail';
 import { formatDateForInput } from '../utils/fileUtils';
@@ -63,22 +64,8 @@ interface EditableEventDetailProps {
     setScope?: (scope: "domestic" | "overseas") => void;
 }
 
-const genreColorPalette = [
-    'genre-color-red', 'genre-color-orange', 'genre-color-amber', 'genre-color-yellow',
-    'genre-color-lime', 'genre-color-green', 'genre-color-emerald', 'genre-color-teal',
-    'genre-color-cyan', 'genre-color-sky', 'genre-color-blue', 'genre-color-indigo',
-    'genre-color-violet', 'genre-color-purple', 'genre-color-fuchsia', 'genre-color-pink', 'genre-color-rose',
-];
+// getGenreColor was removed in favor of getGenreColorClass from constants
 
-function getGenreColor(genre: string): string {
-    if (!genre) return 'genre-color-gray';
-    let hash = 0;
-    for (let i = 0; i < genre.length; i++) {
-        hash = genre.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const index = Math.abs(hash % genreColorPalette.length);
-    return genreColorPalette[index];
-}
 
 // Edit Badge Component
 const EditBadge = ({ isStatic = false }: { isStatic?: boolean }) => (
@@ -418,7 +405,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                     <div className={`EED-category is-${event.category || 'default'}`}>
                                         {!event.category ? "분류" : (event.category === "class" ? "강습" : event.category === "club" ? "동호회" : "행사")}
                                     </div>
-                                    <div className={`EED-genre ${getGenreColor(event.genre || '')}`}>
+                                    <div className={`EED-genre ${getGenreColorClass(event.genre || '', 'genre-color')}`} style={{ borderColor: 'transparent' }}>
                                         {event.genre || <span className="EED-placeholder">장르 선택</span>}
                                     </div>
                                     <EditBadge isStatic />
@@ -611,8 +598,8 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                         (() => {
                                             const start = new Date(event.start_date);
                                             const end = event.end_date ? new Date(event.end_date) : null;
-                                            const startStr = `${start.getFullYear()}년 ${start.getMonth() + 1}월 ${start.getDate()}일`;
-                                            return (end && start.getTime() !== end.getTime()) ? `${startStr} ~ ${end.getMonth() + 1}월 ${end.getDate()}일` : startStr;
+                                            const startStr = `${start.getFullYear()}년 ${start.getMonth() + 1}월 ${start.getDate()} 일`;
+                                            return (end && start.getTime() !== end.getTime()) ? `${startStr} ~${end.getMonth() + 1}월 ${end.getDate()} 일` : startStr;
                                         })()
                                     ) : (
                                         <span className="EED-placeholder">날짜를 선택하세요</span>

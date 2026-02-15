@@ -1,6 +1,7 @@
 import '../styles/domains/events.css';
 import '../styles/components/EventCard.css';
 import '../styles/components/EditablePreviewCard.css';
+import { getGenreColorClass } from '../constants/genreColors';
 
 
 interface EditablePreviewCardProps {
@@ -27,22 +28,8 @@ interface EditablePreviewCardProps {
     showPlaceholders?: boolean;
 }
 
-const genreColorPalette = [
-    'card-genre-red', 'card-genre-orange', 'card-genre-amber', 'card-genre-yellow',
-    'card-genre-lime', 'card-genre-green', 'card-genre-emerald', 'card-genre-teal',
-    'card-genre-cyan', 'card-genre-sky', 'card-genre-blue', 'card-genre-indigo',
-    'card-genre-violet', 'card-genre-purple', 'card-genre-fuchsia', 'card-genre-pink', 'card-genre-rose',
-];
+// getGenreColor was removed in favor of getGenreColorClass from constants
 
-function getGenreColor(genre: string): string {
-    if (!genre) return 'card-genre-gray';
-    let hash = 0;
-    for (let i = 0; i < genre.length; i++) {
-        hash = genre.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const index = Math.abs(hash % genreColorPalette.length);
-    return genreColorPalette[index];
-}
 
 export const EditablePreviewCard: React.FC<EditablePreviewCardProps> = ({
     event,
@@ -157,7 +144,7 @@ export const EditablePreviewCard: React.FC<EditablePreviewCardProps> = ({
                                 if (e.key === 'Enter') onEditEnd?.();
                             }}
                             placeholder="장르 (직접 입력/선택)"
-                            className={`ECARD-genre ${getGenreColor(event.genre || '').replace('card-genre-', 'ECARD-genre-')}`}
+                            className={`ECARD-genre ${getGenreColorClass(event.genre || '', 'ECARD-genre')}`}
                             style={{
                                 width: '100%',
                                 background: 'transparent',
@@ -219,7 +206,7 @@ export const EditablePreviewCard: React.FC<EditablePreviewCardProps> = ({
                     // Only render genre element if it exists OR if in edit mode OR showPlaceholders is true
                     (event.genre || !readOnly || showPlaceholders) && (
                         <p
-                            className={`ECARD-genre ECARD-genre-${event.category} ${getGenreColor(event.genre || '').replace('card-genre-', 'ECARD-genre-')} ${!readOnly ? 'EPC-editableSection' : ''}`}
+                            className={`ECARD-genre ECARD-genre-${event.category} ${getGenreColorClass(event.genre || '', 'ECARD-genre')} ${!readOnly ? 'EPC-editableSection' : ''}`}
                             onClick={(e) => {
                                 e.stopPropagation();
                                 if (!readOnly) onEditStart?.('genre');
