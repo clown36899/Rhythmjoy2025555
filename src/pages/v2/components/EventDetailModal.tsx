@@ -9,6 +9,7 @@ import { logEvent, logPageView } from '../../../lib/analytics';
 import "../../../styles/domains/events.css";
 import "../../../styles/components/EventDetailModal.css";
 import { useAuth } from '../../../contexts/AuthContext';
+import { useModalActions } from '../../../contexts/ModalContext';
 const VenueSelectModal = React.lazy(() => import('./VenueSelectModal'));
 import ImageCropModal from '../../../components/ImageCropModal';
 import { createResizedImages } from '../../../utils/imageResize';
@@ -87,6 +88,7 @@ export default function EventDetailModal({
     : allGenres;
 
   const { user, signInWithKakao, isAdmin: isActualAdmin } = useAuth();
+  const { openModal } = useModalActions();
   const { showLoading, hideLoading } = useLoading();
 
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
@@ -409,9 +411,6 @@ export default function EventDetailModal({
       fetchDetail();
     }
   }, [event, isAdminMode, user, authorNickname, isOpen]);
-
-  // Alias for render consistency
-  const selectedEvent = displayEvent;
 
   // Genre Management State
   const allHistoricalGenres = useHistoricalGenres();
@@ -1299,9 +1298,16 @@ export default function EventDetailModal({
                                 e.preventDefault();
                                 e.stopPropagation();
                                 const venueId = (selectedEvent as any).venue_id;
-                                onOpenVenueDetail?.(venueId);
+                                if (venueId) {
+                                  if (onOpenVenueDetail) {
+                                    onOpenVenueDetail(String(venueId));
+                                  } else {
+                                    openModal('venueDetail', { venueId: String(venueId) });
+                                  }
+                                }
                               }}
                               className="EDM-venueLink"
+                              style={{ position: 'relative', zIndex: 10 }}
                             >
                               <span>{selectedEvent.location}</span>
                               <i className="ri-arrow-right-s-line"></i>
