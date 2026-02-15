@@ -161,10 +161,7 @@
         position: absolute;
         inset: 0;
         /* 상단은 투명, 하단은 텍스트를 위해 진하게 */
-        background: linear-gradient(to bottom,
-                transparent 0%,
-                rgba(0, 0, 0, 0.2) 40%,
-                rgba(0, 0, 0, 0.9) 100%);
+        background: linear-gradient(to bottom, transparent 0%, rgba(0, 0, 0, 0.4) 52%, rgb(0 0 0 / 69%) 100%);
         pointer-events: none;
         z-index: 1;
     }
@@ -205,14 +202,14 @@
         bottom: 0;
         left: 0;
         width: 100%;
-        padding: 12px 10px 10px 5px;
+        padding: 12px 1px 0px 5px;
         /* 패딩 약간 조정 */
         box-sizing: border-box;
         display: flex;
         flex-direction: column;
         justify-content: flex-end;
         z-index: 10;
-        gap: 2px;
+        gap: 0px;
     }
 
     .USS-dateLine {
@@ -250,13 +247,13 @@
     .USS-place {
         display: inline-flex;
         align-items: center;
+        margin-bottom: 7px;
         gap: 3px;
         padding: 0;
         background-color: transparent !important;
         border: none !important;
-        font-size: 0.8rem;
+        font-size: 0.7rem;
         color: rgba(255, 255, 255, 0.9);
-        /* 약간 투명한 흰색 */
         font-weight: 600;
         letter-spacing: -0.01em;
         margin-top: 4px;

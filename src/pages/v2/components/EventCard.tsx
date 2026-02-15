@@ -275,20 +275,20 @@ export const EventCard = memo(({
           </button>
         )}
 
-      </div>
+        {dDay && (
+          <div className={`ECARD-ddayBadge ${dDay === 'D-Day' ? 'is-today' : ''} ${dDay === 'NEW' ? 'is-new' : ''}`}>
+            {dDay}
+          </div>
+        )}
 
-      {dDay && (
-        <div className={`ECARD-ddayBadge ${dDay === 'D-Day' ? 'is-today' : ''} ${dDay === 'NEW' ? 'is-new' : ''}`}>
-          {dDay}
-        </div>
-      )}
-
-      <div className="ECARD-textContainer">
         {event.genre && !hideGenre && (
           <p className={`ECARD-genre ${getGenreColorClass(event.genre, 'ECARD-genre')}`}>
             {event.genre}
           </p>
         )}
+      </div>
+
+      <div className="ECARD-textContainer">
         <h3 className="ECARD-title">{event.title}</h3>
         {!hideDate && (
           <div className="ECARD-dateContainer">

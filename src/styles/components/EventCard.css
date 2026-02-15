@@ -158,18 +158,17 @@
 
     .ECARD-ddayBadge {
         position: absolute;
-        top: calc(-1 * var(--spacing-1-5));
-        left: calc(-1 * var(--spacing-1-5));
-        padding: var(--spacing-1) var(--spacing-2);
-        border-radius: var(--radius-md);
-        font-size: 11px;
-        font-weight: 700;
-        letter-spacing: 0.3px;
-        background: rgba(15, 23, 42, 0.85);
-        /* Slate-900 with opacity */
+        top: 6px;
+        left: 6px;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0;
+        background: rgba(0, 0, 0, 0.6);
         color: white;
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         z-index: 5;
     }
@@ -202,6 +201,7 @@
         /* Force white for visibility */
         transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         -webkit-tap-highlight-color: transparent;
+        z-index: 10;
     }
 
     .ECARD-favoriteBtn:hover {
@@ -244,13 +244,16 @@
         padding: 0.5rem 0 0.2rem 0;
         display: flex;
         flex-direction: column;
-        gap: 4px;
+        gap: 0;
         justify-content: flex-start;
     }
 
-    /* Genre - Chip Style Upgrade */
+    /* Genre - Chip Style Upgrade (Now Overlay) */
     .ECARD-genre {
-        font-size: 0.7rem;
+        position: absolute;
+        bottom: 6px;
+        left: 6px;
+        font-size: 10px;
         font-weight: 700;
         margin: 0;
         letter-spacing: 0;
@@ -258,8 +261,13 @@
         padding: 2px 6px;
         border-radius: 4px;
         line-height: 1.2;
-        align-self: flex-start;
-        /* Ensure chips don't stretch */
+        z-index: 5;
+        /* User Request: Remove blur, make background black for visibility */
+        background-color: rgba(0, 0, 0, 0.8) !important;
+
+        backdrop-filter: none;
+        -webkit-backdrop-filter: none;
+        box-shadow: none;
     }
 
     /* Genre Colors (Scoped map) - Prefix: ECARD-genre- */
