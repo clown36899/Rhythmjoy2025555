@@ -171,6 +171,19 @@
     /* Force minimum width for scroll */
     min-width: 45px;
     flex-shrink: 0;
+    transition: all 0.3s ease;
+    border-radius: var(--radius-lg);
+    padding: 4px 0;
+}
+
+.bar-wrapper.current-month {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-glass-strong);
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.1);
+}
+
+.bar-wrapper.current-month .axis-avg {
+    color: var(--color-blue-400);
 }
 
 .stacked-bar {
@@ -294,11 +307,12 @@
 .info-label {
     font-size: 0.7rem;
     font-weight: 700;
-    padding: 3px 8px;
+    padding: 3px 6px;
     border-radius: 6px;
-    min-width: 36px;
+    min-width: 52px;
     text-align: center;
     box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    white-space: nowrap;
 }
 
 .info-label.total {

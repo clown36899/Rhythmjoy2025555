@@ -186,10 +186,26 @@ export default function SwingSceneStats() {
         }
     }, [stats]);
 
-    // Scroll to end of chart on load or when range changes
+    // Scroll to current month on load
     useEffect(() => {
-        if (chartScrollRef.current) {
-            chartScrollRef.current.scrollLeft = chartScrollRef.current.scrollWidth;
+        if (chartScrollRef.current && stats?.monthly) {
+            const now = new Date();
+            const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+            const currentIndex = stats.monthly.findIndex(m => m.month === currentMonthStr);
+
+            if (currentIndex !== -1) {
+                const container = chartScrollRef.current;
+                const bars = container.querySelectorAll('.bar-wrapper');
+                if (bars[currentIndex]) {
+                    const bar = bars[currentIndex] as HTMLElement;
+                    const containerWidth = container.clientWidth;
+                    // Align the right edge of the bar with the right edge of the container
+                    const barRight = bar.offsetLeft + bar.offsetWidth + 16; // Add some gap padding
+                    container.scrollLeft = barRight - containerWidth;
+                }
+            } else {
+                chartScrollRef.current.scrollLeft = chartScrollRef.current.scrollWidth;
+            }
         }
     }, [stats, monthlyRange]);
 
@@ -317,45 +333,49 @@ export default function SwingSceneStats() {
                             </div>
                         </div>
                         <div className="chart-container" ref={chartScrollRef}>
-                            {currentMonthly.map((m, i) => (
-                                <div key={i} className="bar-wrapper">
-                                    <div className="bar-info-group">
-                                        {m.total > 0 && <span className="total-label">{m.total}</span>}
-                                        {m.registrations > 0 && <span className="reg-label">+{m.registrations}</span>}
-                                    </div>
-                                    <div className="stacked-bar">
-                                        {/* Segment order: Bottom to Top -> Classes, Events, Socials */}
-                                        <div className="bar-segment" style={{
-                                            height: `${((m.classes || 0) / maxMonthly) * 100}%`,
-                                            minHeight: (m.classes || 0) > 0 ? '1px' : '0',
-                                            background: COLORS.classes,
-                                            position: 'relative'
-                                        }}>
-                                            {(m.classes || 0) > 5 && <span className="segment-val">{m.classes}</span>}
+                            {currentMonthly.map((m, i) => {
+                                const [year, monthNum] = m.month.split('-').map(Number);
+                                const isThisMonth = year === new Date().getFullYear() && monthNum === (new Date().getMonth() + 1);
+                                return (
+                                    <div key={i} className={`bar-wrapper ${isThisMonth ? 'current-month' : ''}`}>
+                                        <div className="bar-info-group">
+                                            {m.total > 0 && <span className="total-label">{m.total}</span>}
+                                            {m.registrations > 0 && <span className="reg-label">+{m.registrations}</span>}
                                         </div>
-                                        <div className="bar-segment" style={{
-                                            height: `${((m.events || 0) / maxMonthly) * 100}%`,
-                                            minHeight: (m.events || 0) > 0 ? '1px' : '0',
-                                            background: COLORS.events,
-                                            position: 'relative'
-                                        }}>
-                                            {(m.events || 0) > 5 && <span className="segment-val">{m.events}</span>}
+                                        <div className="stacked-bar">
+                                            {/* Segment order: Bottom to Top -> Classes, Events, Socials */}
+                                            <div className="bar-segment" style={{
+                                                height: `${((m.classes || 0) / maxMonthly) * 100}%`,
+                                                minHeight: (m.classes || 0) > 0 ? '1px' : '0',
+                                                background: COLORS.classes,
+                                                position: 'relative'
+                                            }}>
+                                                {(m.classes || 0) > 5 && <span className="segment-val">{m.classes}</span>}
+                                            </div>
+                                            <div className="bar-segment" style={{
+                                                height: `${((m.events || 0) / maxMonthly) * 100}%`,
+                                                minHeight: (m.events || 0) > 0 ? '1px' : '0',
+                                                background: COLORS.events,
+                                                position: 'relative'
+                                            }}>
+                                                {(m.events || 0) > 5 && <span className="segment-val">{m.events}</span>}
+                                            </div>
+                                            <div className="bar-segment" style={{
+                                                height: `${(((m.socials || 0) + (m.clubs || 0)) / maxMonthly) * 100}%`,
+                                                minHeight: ((m.socials || 0) + (m.clubs || 0)) > 0 ? '1px' : '0',
+                                                background: COLORS.socials,
+                                                position: 'relative'
+                                            }}>
+                                                {((m.socials || 0) + (m.clubs || 0)) > 5 && <span className="segment-val">{(m.socials || 0) + (m.clubs || 0)}</span>}
+                                            </div>
                                         </div>
-                                        <div className="bar-segment" style={{
-                                            height: `${(((m.socials || 0) + (m.clubs || 0)) / maxMonthly) * 100}%`,
-                                            minHeight: ((m.socials || 0) + (m.clubs || 0)) > 0 ? '1px' : '0',
-                                            background: COLORS.socials,
-                                            position: 'relative'
-                                        }}>
-                                            {((m.socials || 0) + (m.clubs || 0)) > 5 && <span className="segment-val">{(m.socials || 0) + (m.clubs || 0)}</span>}
+                                        <div className="axis-group">
+                                            <span className="axis-label">{m.month.split('-')[1]}월</span>
+                                            <span className="axis-avg">{m.dailyAvg}</span>
                                         </div>
                                     </div>
-                                    <div className="axis-group">
-                                        <span className="axis-label">{m.month.split('-')[1]}월</span>
-                                        <span className="axis-avg">{m.dailyAvg}</span>
-                                    </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                         <div className="legend-grid">
                             <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.classes }}></span> 강습</div>
