@@ -80,6 +80,7 @@ const AdminPushTestPage = lazyWithRetry(() => import('./components/admin/AdminPu
 const ForumPage = lazyWithRetry(() => import('./pages/forum/ForumPage'));
 const BpmTapperPage = lazyWithRetry(() => import('./pages/bpm-tapper/BpmTapperPage'));
 const MetronomePage = lazyWithRetry(() => import('./pages/metronome/MetronomePage'));
+const EventIngestorPage = lazyWithRetry(() => import('./pages/admin/EventIngestor'));
 
 const BillboardFallback = () => (
   <div className="full-screen-fallback">
@@ -182,6 +183,7 @@ const router = createBrowserRouter([
       { path: "/auth/kakao-callback", element: <KakaoCallbackPage /> },
       { path: "/map", element: <SiteMapPage /> },
       { path: "/admin/push-test", element: <Suspense fallback={null}><AdminPushTestPage /></Suspense> },
+      { path: "/admin/ingestor", element: <Suspense fallback={null}><EventIngestorPage /></Suspense> },
 
       // 댄스 라이브러리 (Archive) Routes - MobileShell 내부에 중첩
       {

@@ -1,0 +1,105 @@
+[
+    {
+        "id": "gh_260217",
+        "keyword": "경성홀",
+        "source_url": "https://www.instagram.com/p/DUkaIwskkWy/",
+        "poster_url": "/scraped/kyungsunghall_260217_poster.png",
+        "extracted_text": "2026.02.17 설날 소셜 공지\nDJ 호두 / 8-11PM\nDela's Jitterbug Stroll 무료 워크숍\n장소: 경성홀\n입장료: 9,000원",
+        "structured_data": {
+            "date": "2026-02-17",
+            "day": "화",
+            "title": "경성홀 설날 소셜",
+            "status": "정상운영",
+            "djs": [
+                "호두"
+            ],
+            "times": [
+                "20:00 ~ 23:00"
+            ],
+            "fee": "9,000원",
+            "location": "경성홀",
+            "note": "무료 워크숍 포함"
+        },
+        "created_at": "2026-02-17T02:10:00Z"
+    },
+    {
+        "id": "sc_260218",
+        "keyword": "소셜클럽",
+        "source_url": "https://www.instagram.com/p/DUsAYNqk9AF/",
+        "poster_url": "/scraped/socialclub_260218_poster.png",
+        "extracted_text": "2026. 2. 18 Wednesday\n8:00~11:00\nBALBOA IN SOCIAL CLUB\nDJ. 라디앙\n현장: 10,000원 사전신청: 8,000원",
+        "structured_data": {
+            "date": "2026-02-18",
+            "day": "수",
+            "title": "Balboa in Social Club",
+            "status": "정상운영",
+            "djs": [
+                "라디앙"
+            ],
+            "times": [
+                "20:00 ~ 23:00"
+            ],
+            "location": "소셜클럽",
+            "fee": "현장 1만/사전 8천"
+        },
+        "created_at": "2026-02-17T02:10:00Z"
+    },
+    {
+        "id": "ns_260217_split",
+        "keyword": "네오스윙",
+        "source_url": "https://www.instagram.com/p/DUs2c1uAe1p/",
+        "poster_url": "/scraped/neo_workshop_260217.png",
+        "extracted_text": "새해 복 많이 받으세요~~\n동호회 휴강으로 토!/일 휴무!!\n17일 설 당일 네오 주최 워크숍과 쇼설이 진행됩니다.\n워크숍 18:00-19:30, 강사 폴린, 비용 1.5만",
+        "structured_data": {
+            "date": "2026-02-17",
+            "day": "화",
+            "title": "설 당일 네오 워크숍 & 소셜",
+            "status": "정상운영",
+            "djs": [
+                "폴린"
+            ],
+            "times": [
+                "18:00 ~ 19:30"
+            ],
+            "location": "해피홀",
+            "fee": "15,000원",
+            "note": "설 당일 특별 워크숍"
+        },
+        "created_at": "2026-02-17T02:15:00Z"
+    },
+    {
+        "id": "hb_260220_split",
+        "keyword": "해피바",
+        "source_url": "https://www.instagram.com/p/DUs2c1uAe1p/",
+        "poster_url": "/scraped/happybar_event_260220.png",
+        "extracted_text": "20날 금햅 이벤트(일찍오자!!!)\n8시 이전 입장 시 랜덤 할인권(무료입장권 등) 뽑기 이벤트 진행",
+        "structured_data": {
+            "date": "2026-02-20",
+            "day": "금",
+            "title": "금햅 일찍오자 이벤트",
+            "status": "정상운영",
+            "times": [
+                "20:00 ~"
+            ],
+            "location": "해피홀",
+            "note": "8시 이전 입장 시 뽑기 이벤트"
+        },
+        "created_at": "2026-02-17T02:15:00Z"
+    },
+    {
+        "id": "sf_260221_split",
+        "keyword": "스윙프렌즈",
+        "source_url": "https://www.instagram.com/p/DUs2c1uAe1p/",
+        "poster_url": "/scraped/happyhall_calendar_260216.png",
+        "extracted_text": "21일 토요일: 스윙프렌즈(스프) 정모 소셜 정상 운영",
+        "structured_data": {
+            "date": "2026-02-21",
+            "day": "토",
+            "title": "스윙프렌즈 정모 소셜",
+            "status": "정상운영",
+            "location": "해피홀",
+            "note": "스프 정규모임"
+        },
+        "created_at": "2026-02-17T02:15:00Z"
+    }
+]
