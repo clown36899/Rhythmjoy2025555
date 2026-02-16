@@ -41,14 +41,14 @@
         /* 간격 축소: 4 -> 3 */
         height: 100%;
         overflow: hidden;
-        padding-top: 50px;
-        /* Space for Header Controls */
+        padding-top: var(--spacing-3);
+        /* Reduced from 50px as controls moved to portal */
         padding-bottom: var(--spacing-3);
         padding-left: var(--spacing-3);
         padding-right: var(--spacing-3);
         /* 패딩 축소 */
-        font-size: 0.9rem;
-        /* [핵심] 데스크탑 기본 폰트 축소 */
+        font-size: 1rem;
+        /* [핵심] 데스크탑 기본 폰트 상향 (0.9 -> 1.0) */
     }
 
     /* 텍스트 크기 전반적 축소 */
@@ -56,9 +56,15 @@
     .stats-container h2,
     .stats-container h3,
     .section-title {
-        font-size: 1.1rem !important;
-        /* 제목 크기 축소 */
+        font-size: 1.2rem !important;
+        /* 제목 크기 상향 (1.1 -> 1.2) */
         margin-bottom: var(--spacing-2) !important;
+    }
+
+    .stats-header-controls {
+        position: static;
+        z-index: 1100;
+        /* Ensure it's above other elements if needed */
     }
 
     .stats-value,
@@ -72,8 +78,8 @@
     .chart-desc,
     .unit,
     .stats-period {
-        font-size: 0.8rem !important;
-        /* 보조 텍스트 축소 */
+        font-size: 0.85rem !important;
+        /* 보조 텍스트 상향 (0.8 -> 0.85) */
     }
 
     .stats-col-1,
@@ -240,10 +246,10 @@
 /* Vertical Responsive Scaling for Desktop */
 @media (min-width: 1024px) {
 
-    /* Height < 900px (Laptop) - Mild Zoom for comfort */
+    /* Height < 900px (Laptop) - Relax Zoom for readability */
     @media (max-height: 900px) {
         .stats-container {
-            zoom: 0.8;
+            zoom: 0.9;
         }
     }
 
@@ -358,7 +364,7 @@
     min-height: 380px;
     /* Ensure enough room for header + chart + footer */
     justify-content: flex-start;
-    gap: var(--spacing-4);
+
     overflow: visible;
     /* Prevent clipping labels */
 }
@@ -473,7 +479,7 @@
     height: 100%;
     justify-content: flex-end;
     position: relative;
-    min-width: 50px;
+    min-width: 37px;
     flex-shrink: 0;
     transition: all 0.3s ease;
     border-radius: var(--radius-lg);

@@ -179,6 +179,8 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
                             '--indicator-width': indicatorStyle.width
                         } as React.CSSProperties}></div>
                     </div>
+                    {/* Portal Target for Scene Stats Header Controls (Desktop) */}
+                    <div id="stats-header-portal-target"></div>
                 </div>
 
                 {loading ? (

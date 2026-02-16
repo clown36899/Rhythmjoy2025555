@@ -88,6 +88,26 @@
     /* Base Padding + Modal Offset simulation */
     padding: 24px 80px 16px 20px;
     margin-bottom: 0;
+    position: relative;
+}
+
+#stats-header-portal-target {
+    display: none;
+}
+
+@media (min-width: 1024px) {
+    .tabs-header {
+        justify-content: space-between;
+        padding-right: 64px;
+        /* Space for close button (36px + 14px + gap) */
+    }
+
+    #stats-header-portal-target {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-left: auto;
+    }
 }
 
 .tabs-header::-webkit-scrollbar {

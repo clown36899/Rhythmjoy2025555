@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { supabase } from '../../../lib/supabase';
 import LocalLoading from '../../../components/LocalLoading';
 import { useMonthlyBillboard } from '../hooks/useMonthlyBillboard';
@@ -73,6 +74,13 @@ export default function SwingSceneStats() {
     const [inspectTypeDay, setInspectTypeDay] = useState<string | null>(null);
     const [inspectGenreDay, setInspectGenreDay] = useState<string | null>(null);
     const chartScrollRef = useRef<HTMLDivElement>(null);
+    const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
+
+    useEffect(() => {
+        const handleResize = () => setIsDesktop(window.innerWidth >= 1024);
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     useEffect(() => {
         const checkAdmin = async () => {
@@ -313,9 +321,8 @@ export default function SwingSceneStats() {
         }
     };
 
-    return (
-        <div className="swing-scene-stats">
-            {/* [New] Top Right Header Controls */}
+    const renderHeaderControls = () => {
+        const controls = (
             <div className="stats-header-controls">
                 {isAdmin && (
                     <button onClick={handleRefreshMetrics} className="share-btn admin-refresh-btn" disabled={refreshing}>
@@ -327,6 +334,21 @@ export default function SwingSceneStats() {
                     <i className="ri-share-forward-line"></i> 통계 공유
                 </button>
             </div>
+        );
+
+        if (isDesktop) {
+            const portalTarget = document.getElementById('stats-header-portal-target');
+            if (portalTarget) {
+                return createPortal(controls, portalTarget);
+            }
+        }
+
+        return controls;
+    };
+
+    return (
+        <div className="swing-scene-stats">
+            {renderHeaderControls()}
 
             <div className="stats-container">
 
