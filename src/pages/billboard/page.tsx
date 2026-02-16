@@ -82,12 +82,14 @@ export default function BillboardPage() {
     document.documentElement.style.backgroundColor = '#000000';
     document.body.style.overflow = 'hidden';
     document.documentElement.style.overflow = 'hidden';
+    document.documentElement.classList.add('layout-wide-mode');
 
     return () => {
       document.body.style.backgroundColor = '';
       document.documentElement.style.backgroundColor = '';
       document.body.style.overflow = '';
       document.documentElement.style.overflow = '';
+      document.documentElement.classList.remove('layout-wide-mode');
     };
   }, []);
 

@@ -25,14 +25,17 @@
 
 .wall-portrait-card {
     position: relative;
-    background-size: cover;
-    background-position: top center;
+    background-size: contain;
+    background-position: center;
     background-repeat: no-repeat;
+    background-color: #000;
     overflow: hidden;
     border: none;
-    /* Removed border to eliminate gaps */
-    /* Key: Make all items vertical if possible */
 }
+
+/* Removed border to eliminate gaps */
+/* Key: Make all items vertical if possible */
+
 
 /* Sizing Logic for Vertical Impact */
 .main {
