@@ -1,1 +1,295 @@
-[]
+[
+  {
+    "id": "ss_260219_thu",
+    "keyword": "스윙스캔들",
+    "source_url": "https://www.instagram.com/p/DU1_gezGGVp/",
+    "poster_url": "/scraped/ss_260219_savoy.png",
+    "extracted_text": "목요일 소셜 (with 스윙스캔들)\\n날짜: 2026년 2월 19일 (목)\\n장소: 사보이볼룸\\nDJ: 안단테\\n시간: 19:30 ~ 23:00\\n비용: 9,000원\\n비고: 라이브 파티 참여자 50% 할인 가능",
+    "structured_data": {
+      "date": "2026-02-19",
+      "day": "목",
+      "title": "목요일 소셜 (with 스윙스캔들)",
+      "status": "정상운영",
+      "djs": [
+        "안단테 (Andante)"
+      ],
+      "times": [
+        "19:30 ~ 23:00"
+      ],
+      "location": "사보이볼룸 (Savoy Ballroom)",
+      "fee": "9,000원",
+      "note": "18일 라이브 파티 참여자 50% 할인 혜택 가능."
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/ss_260219_savoy.png",
+      "ocr_raw": "목사 DJ 안단테",
+      "extraction_mapping": {
+        "date": "이미지 상단 텍스트 및 캡션",
+        "djs": "이미지 중앙 안단테",
+        "fee": "캡션 정보"
+      }
+    },
+    "created_at": "2026-02-18T03:25:00+09:00",
+    "updated_at": "2026-02-18T03:25:00+09:00"
+  },
+  {
+    "id": "ss_260221_sat",
+    "keyword": "스윙스캔들",
+    "source_url": "https://www.instagram.com/p/DU1_gezGGVp/",
+    "poster_url": "/scraped/ss_260221_savoy.png",
+    "extracted_text": "토요일 소셜 (with 스윙스캔들)\\n날짜: 2026년 2월 21일 (토)\\n장소: 사보이볼룸\\nDJ: 몽룡\\n시간: 19:30 ~ 23:00\\n비용: 11,000원",
+    "structured_data": {
+      "date": "2026-02-21",
+      "day": "토",
+      "title": "토요일 소셜 (with 스윙스캔들)",
+      "status": "정상운영",
+      "djs": [
+        "몽룡 (Mongryong)"
+      ],
+      "times": [
+        "19:30 ~ 23:00"
+      ],
+      "location": "사보이볼룸 (Savoy Ballroom)",
+      "fee": "11,000원",
+      "note": "스윙스캔들과 함께하는 소셜."
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/ss_260221_savoy.png",
+      "ocr_raw": "토사 DJ 몽룡",
+      "extraction_mapping": {
+        "date": "이미지 하단 및 캡션",
+        "djs": "이미지 하단 몽룡",
+        "fee": "캡션 정보"
+      }
+    },
+    "created_at": "2026-02-18T03:25:01+09:00",
+    "updated_at": "2026-02-18T03:25:01+09:00"
+  },
+  {
+    "id": "ss_260218_wed",
+    "keyword": "스윙스캔들",
+    "source_url": "https://cafe.naver.com/f-e/cafes/14933600/articles/101953",
+    "poster_url": "/scraped/ss_260218_savoy.png",
+    "extracted_text": "February Savoy Live Night!!\\n날짜: 2026년 2월 18일 (수)\\n장소: 사보이 볼룸\\nDJ: 테일\\n라이브 공연: 서효상과 핫한 녀석들\\n비용: 사전 신청 21,000원, 현장 입장 24,000원\\n19:30 ~ 24:00",
+    "structured_data": {
+      "date": "2026-02-18",
+      "day": "수",
+      "title": "February Savoy Live Night!!",
+      "status": "정상운영",
+      "djs": [
+        "테일"
+      ],
+      "times": [
+        "19:30 ~ 24:00"
+      ],
+      "location": "사보이 볼룸",
+      "fee": "24,000원",
+      "note": "사전신청 21,000원. 라이브 밴드 공연 포함."
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/ss_260218_savoy.png",
+      "ocr_raw": "February Savoy Live Night!!\\n날짜: 2026년 2월 18일 (수)\\n장소: 사보이 볼룸\\nDJ: 테일\\n라이브 공연: 서효상과 핫한 녀석들\\n비용: 사전 신청 21,000원, 현장 입장 24,000원\\n19:30 ~ 24:00",
+      "extraction_mapping": {
+        "date": "게시물 상단 및 내용",
+        "djs": "내용 DJ 섹션",
+        "fee": "신청 안내 섹션"
+      }
+    },
+    "created_at": "2026-02-18T00:50:00+09:00",
+    "updated_at": "2026-02-17T15:49:43.037Z"
+  },
+  {
+    "id": "hh_260220_fri",
+    "keyword": "해피홀",
+    "source_url": "https://www.instagram.com/p/DU2eJmXEdk4/",
+    "poster_url": "/scraped/hh_260220_happyhall.png",
+    "extracted_text": "금요 소셜 (금햅)\\n날짜: 2026년 2월 20일 (금)\\n장소: 해피홀\\nDJ: 해림\\n시간: 20:30 ~ 23:00 (추정)\\n비용: 10,000원\\n비고: 무료라인강습 없음",
+    "structured_data": {
+      "date": "2026-02-20",
+      "day": "금",
+      "title": "금요 소셜 (금햅)",
+      "status": "정상운영",
+      "djs": [
+        "해림 (Haerim)"
+      ],
+      "times": [
+        "20:30 ~ 23:00"
+      ],
+      "location": "해피홀",
+      "fee": "10,000원",
+      "note": "무료라인강습 없음. 20:00 이전 입장 시 이벤트 참여 가능."
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/hh_260220_happyhall.png",
+      "ocr_raw": "02월 20일 금햅 DJ를 소개합니다. DJ 해림, Pm 8:30, ₩ 10,000",
+      "extraction_mapping": {
+        "date": "이미지 상단",
+        "djs": "이미지 중앙",
+        "fee": "이미지 하단"
+      }
+    },
+    "created_at": "2026-02-18T06:50:00+09:00",
+    "updated_at": "2026-02-18T06:50:00+09:00"
+  },
+  {
+    "id": "st_260218_wed",
+    "keyword": "스윙타임",
+    "source_url": "https://www.instagram.com/p/DUrq1egE32s/",
+    "poster_url": "/scraped/st_260222_swingtime.jpg",
+    "extracted_text": "수요 소셜\\n날짜: 2026년 2월 18일 (수)\\n장소: 스윙타임빠\\nDJ: 미표기\\n시간: 19:30 시작\\n비용: 11,000원\\n비고: 설 연휴 후 정상영업",
+    "structured_data": {
+      "date": "2026-02-18",
+      "day": "수",
+      "title": "수요 소셜",
+      "status": "정상운영",
+      "djs": [],
+      "times": [
+        "19:30 시작"
+      ],
+      "location": "스윙타임빠",
+      "fee": "11,000원",
+      "note": "DJ 미표기. 캡션 '15일(일), 18일(수), 21, 22일 정상영업' 기반 확인."
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/st_260222_swingtime.jpg",
+      "ocr_raw": "캡션에서 날짜 확인",
+      "extraction_mapping": {
+        "date": "캡션 '18일(수)' 문구",
+        "djs": "캡션에 DJ 미표기 (일요일만 DJ 메이져 명시)",
+        "fee": "정기권 기반 추정 11,000원"
+      }
+    },
+    "created_at": "2026-02-18T07:30:00+09:00",
+    "updated_at": "2026-02-18T07:30:00+09:00"
+  },
+  {
+    "id": "st_260221_sat",
+    "keyword": "스윙타임",
+    "source_url": "https://www.instagram.com/p/DUrq1egE32s/",
+    "poster_url": "/scraped/st_260222_swingtime.jpg",
+    "extracted_text": "토요 소셜\\n날짜: 2026년 2월 21일 (토)\\n장소: 스윙타임빠\\nDJ: 미표기\\n시간: 19:30 시작\\n비용: 11,000원\\n비고: 설 연휴 후 정상영업",
+    "structured_data": {
+      "date": "2026-02-21",
+      "day": "토",
+      "title": "토요 소셜",
+      "status": "정상운영",
+      "djs": [],
+      "times": [
+        "19:30 시작"
+      ],
+      "location": "스윙타임빠",
+      "fee": "11,000원",
+      "note": "DJ 미표기. 캡션 '21일 정상영업' 기반 확인."
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/st_260222_swingtime.jpg",
+      "ocr_raw": "캡션에서 날짜 확인",
+      "extraction_mapping": {
+        "date": "캡션 '21일' 문구",
+        "djs": "캡션에 DJ 미표기 (일요일만 DJ 메이져 명시)",
+        "fee": "정기권 기반 추정 11,000원"
+      }
+    },
+    "created_at": "2026-02-18T07:30:00+09:00",
+    "updated_at": "2026-02-18T07:30:00+09:00"
+  },
+  {
+    "id": "st_260222_sun",
+    "keyword": "스윙타임",
+    "source_url": "https://www.instagram.com/p/DUrq1egE32s/",
+    "poster_url": "/scraped/st_260222_swingtime.jpg",
+    "extracted_text": "일요 소셜 (DJ 메이져)\\n날짜: 2026년 2월 22일 (일)\\n장소: 스윙타임빠\\nDJ: 메이져\\n시간: 19:30 ~ 23:00 (1부 20:00~21:30, 2부 21:30~23:00)\\n비고: 정상영업 공지 기반",
+    "structured_data": {
+      "date": "2026-02-22",
+      "day": "일",
+      "title": "일요 소셜 (DJ 메이져)",
+      "status": "정상운영",
+      "djs": [
+        "메이져 (Major)"
+      ],
+      "times": [
+        "19:30 ~ 23:00"
+      ],
+      "location": "스윙타임빠",
+      "fee": "확인불가",
+      "note": "18일 실시간 스트리밍 제공 안내 포함."
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/st_260222_swingtime.jpg",
+      "ocr_raw": "일요일 소셜 DJ 메이져 PM 8:00~9:30, 9:30~11:00",
+      "extraction_mapping": {
+        "date": "내용 중 일요일 안내",
+        "djs": "DJ '메이져'",
+        "times": "1부/2부 시간 안내"
+      }
+    },
+    "created_at": "2026-02-18T06:55:00+09:00",
+    "updated_at": "2026-02-18T06:55:00+09:00"
+  },
+  {
+    "id": "sh_260221_sat",
+    "keyword": "스윙홀릭",
+    "source_url": "https://www.instagram.com/p/DULjF4CEmN5/",
+    "poster_url": "/scraped/sh_2602_schedule.png",
+    "extracted_text": "토요 소셜 (DJ 진웅)\\n날짜: 2026년 2월 21일 (토)\\n장소: 마얀 F3 (스윙홀릭)\\nDJ: 진웅\\n시간: 20:00 ~ 22:30\\n비용: 9,000원",
+    "structured_data": {
+      "date": "2026-02-21",
+      "day": "토",
+      "title": "토요 소셜 (DJ 진웅)",
+      "status": "정상운영",
+      "djs": [
+        "진웅"
+      ],
+      "times": [
+        "20:00 ~ 22:30"
+      ],
+      "location": "마얀 F3",
+      "fee": "9,000원",
+      "note": "2월 DJ 일정 포스터 기반 수집"
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/sh_2602_schedule.png",
+      "ocr_raw": "02.21 진웅, PM08:00 - 10:30, 9,000",
+      "extraction_mapping": {
+        "date": "포스터 중앙 왼쪽",
+        "djs": "포스터 중앙 왼쪽",
+        "fee": "포스터 하단"
+      }
+    },
+    "created_at": "2026-02-18T07:05:00+09:00",
+    "updated_at": "2026-02-18T07:25:00+09:00"
+  },
+  {
+    "id": "sh_260228_sat",
+    "keyword": "스윙홀릭",
+    "source_url": "https://www.instagram.com/p/DULjF4CEmN5/",
+    "poster_url": "/scraped/sh_2602_schedule.png",
+    "extracted_text": "토요 소셜 (DJ 자연인)\\n날짜: 2026년 2월 28일 (토)\\n장소: 마얀 F3 (스윙홀릭)\\nDJ: 자연인\\n시간: 20:00 ~ 22:30\\n비용: 9,000원",
+    "structured_data": {
+      "date": "2026-02-28",
+      "day": "토",
+      "title": "토요 소셜 (DJ 자연인)",
+      "status": "정상운영",
+      "djs": [
+        "자연인"
+      ],
+      "times": [
+        "20:00 ~ 22:30"
+      ],
+      "location": "마얀 F3",
+      "fee": "9,000원",
+      "note": "2월 DJ 일정 포스터 기반 수집"
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/sh_2602_schedule.png",
+      "ocr_raw": "02.28 자연인, PM08:00 - 10:30, 9,000",
+      "extraction_mapping": {
+        "date": "포스터 하단 중앙",
+        "djs": "포스터 하단 중앙",
+        "fee": "포스터 하단"
+      }
+    },
+    "created_at": "2026-02-18T07:05:00+09:00",
+    "updated_at": "2026-02-18T07:25:00+09:00"
+  }
+]
