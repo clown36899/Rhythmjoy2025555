@@ -347,7 +347,6 @@ const SocialPage: React.FC = () => {
 
   // Handlers
   const handleScheduleClick = useCallback((schedule: SocialSchedule) => {
-    console.log('[SocialPage] Opening socialDetail for:', schedule.title, { hasOnDelete: true });
     socialDetailModal.open({
       schedule,
       onCopy: handleCopySchedule,

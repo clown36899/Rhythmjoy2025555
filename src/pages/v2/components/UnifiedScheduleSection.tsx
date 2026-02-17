@@ -122,7 +122,6 @@ export const UnifiedScheduleSection: React.FC<UnifiedScheduleSectionProps> = ({
 
         const openDetail = (scheduleItem: SocialSchedule) => {
             const isOwner = user && scheduleItem.user_id === user.id;
-            console.log('[UnifiedScheduleSection] Opening socialDetail for:', scheduleItem.title);
             openModal('socialDetail', {
                 schedule: scheduleItem,
                 isAdmin: isOwner || isAdmin,

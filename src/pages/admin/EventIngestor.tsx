@@ -96,20 +96,20 @@ const EventIngestor: React.FC = () => {
     }, [venues]);
 
     // ===== DB 등록 함수 =====
-    const handleRegisterEvent = useCallback(async (scraped: ScrapedEvent) => {
+    const handleRegisterEvent = useCallback(async (scraped: ScrapedEvent, skipConfirm = false) => {
         if (!user) {
             alert('로그인이 필요합니다.');
-            return;
+            return false;
         }
-        if (registeringId) {
+        if (registeringId && !skipConfirm) { // 개별 등록 시에만 중복 클릭 방지
             alert('등록 진행 중입니다. 완료될 때까지 기다려주세요.');
-            return;
+            return false;
         }
 
         const data = scraped.structured_data;
         if (!data?.date || !data?.title) {
-            alert('날짜 또는 제목 데이터가 없어 등록할 수 없습니다.');
-            return;
+            if (!skipConfirm) alert('날짜 또는 제목 데이터가 없어 등록할 수 없습니다.');
+            return false;
         }
 
         // 제목 포맷: DJ 이름 | 제목
@@ -122,8 +122,8 @@ const EventIngestor: React.FC = () => {
         // 장소 매칭
         const matchedVenue = matchVenue(data.location || '');
 
-        if (!confirm(`다음 이벤트를 DB에 등록하시겠습니까?\n\n제목: ${formattedTitle}\n날짜: ${data.date}\n장소: ${data.location || '미정'}${matchedVenue ? ` → venue: ${matchedVenue.name}` : ''}\nDJ: ${djNames || '없음'}`)) {
-            return;
+        if (!skipConfirm && !confirm(`다음 이벤트를 DB에 등록하시겠습니까?\n\n제목: ${formattedTitle}\n날짜: ${data.date}\n장소: ${data.location || '미정'}${matchedVenue ? ` → venue: ${matchedVenue.name}` : ''}\nDJ: ${djNames || '없음'}`)) {
+            return false;
         }
 
         setRegisteringId(scraped.id);
@@ -221,15 +221,49 @@ const EventIngestor: React.FC = () => {
 
             console.log('✅ 이벤트 등록 성공:', result);
             setRegisteredIds(prev => new Set(prev).add(scraped.id));
-            alert(`등록 완료! (ID: ${result?.id})\n제목: ${formattedTitle}`);
-
+            if (!skipConfirm) alert(`등록 완료! (ID: ${result?.id})\n제목: ${formattedTitle}`);
+            return true;
         } catch (err: any) {
             console.error('이벤트 등록 실패:', err);
-            alert(`등록 실패: ${err.message}`);
+            if (!skipConfirm) alert(`등록 실패: ${err.message}`);
+            return false;
         } finally {
             setRegisteringId(null);
         }
     }, [user, registeringId, matchVenue]);
+
+    // ===== 일괄 처리 함수 =====
+    const handleBatchRegister = useCallback(async () => {
+        if (selectedIds.size === 0) return alert('선택된 항목이 없습니다.');
+        const targets = scrapedEvents.filter(e => selectedIds.has(e.id) && !registeredIds.has(e.id));
+        if (targets.length === 0) return alert('등록할 수 있는 새로운 항목이 없습니다.');
+
+        if (!confirm(`선택한 ${targets.length}개의 이벤트를 일괄 등록하시겠습니까?`)) return;
+
+        let successCount = 0;
+        let failCount = 0;
+
+        for (const event of targets) {
+            const success = await handleRegisterEvent(event, true);
+            if (success) successCount++;
+            else failCount++;
+        }
+
+        alert(`일괄 등록 완료!\n성공: ${successCount}건\n실패: ${failCount}건`);
+        setSelectedIds(new Set());
+    }, [selectedIds, scrapedEvents, registeredIds, handleRegisterEvent]);
+
+    const handleBatchDismiss = useCallback(() => {
+        if (selectedIds.size === 0) return alert('선택된 항목이 없습니다.');
+        if (!confirm(`선택한 ${selectedIds.size}개의 항목을 목록에서 제외하시겠습니까?`)) return;
+
+        setDismissedIds(prev => {
+            const next = new Set(prev);
+            selectedIds.forEach(id => next.add(id));
+            return next;
+        });
+        setSelectedIds(new Set());
+    }, [selectedIds]);
 
     const toggleSelect = (id: string) => {
         setSelectedIds(prev => {
@@ -515,7 +549,19 @@ const EventIngestor: React.FC = () => {
                             className={`btn-batch-copy ${selectedIds.size > 0 ? 'active' : ''}`}
                             onClick={copyBatchPrompt}
                         >
-                            선택({selectedIds.size}) 재수집 요청 복사
+                            📋 재수집 요청 복사
+                        </button>
+                        <button
+                            className={`btn-batch-dismiss ${selectedIds.size > 0 ? 'active' : ''}`}
+                            onClick={handleBatchDismiss}
+                        >
+                            ✕ 일괄 제외
+                        </button>
+                        <button
+                            className={`btn-batch-register ${selectedIds.size > 0 ? 'active' : ''}`}
+                            onClick={handleBatchRegister}
+                        >
+                            📥 일괄 등록
                         </button>
                     </div>
                 </div>

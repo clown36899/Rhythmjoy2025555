@@ -395,6 +395,48 @@ html.ingestor-fullscreen #root {
     color: #fff;
 }
 
+.btn-batch-dismiss {
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    border-radius: 6px;
+    border: 1px solid #ef4444;
+    background: rgba(239, 68, 68, 0.15);
+    color: #fca5a5;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 600;
+}
+
+.btn-batch-dismiss:hover {
+    background: rgba(239, 68, 68, 0.3);
+}
+
+.btn-batch-dismiss.active {
+    background: #ef4444;
+    color: #fff;
+}
+
+.btn-batch-register {
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    border-radius: 6px;
+    border: 1px solid #3b82f6;
+    background: rgba(59, 130, 246, 0.15);
+    color: #93c5fd;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 600;
+}
+
+.btn-batch-register:hover {
+    background: rgba(59, 130, 246, 0.3);
+}
+
+.btn-batch-register.active {
+    background: #3b82f6;
+    color: #fff;
+}
+
 /* === 유사(likely) 상태 === */
 .comparison-row.status-likely {
     background: rgba(139, 92, 246, 0.08);

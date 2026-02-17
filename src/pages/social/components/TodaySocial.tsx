@@ -94,7 +94,6 @@ const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll, on
             const isOwner = user && scheduleItem.user_id === user.id;
             const canEdit = (isOwner || isAdmin);
 
-            console.log('[TodaySocial] Opening socialDetail for:', scheduleItem.title, { hasOnDelete: true });
             openModal('socialDetail', {
                 schedule: scheduleItem,
                 isAdmin: canEdit,

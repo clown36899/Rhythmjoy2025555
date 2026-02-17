@@ -46,7 +46,6 @@ export default function SocialCalendar({
   ];
 
   const handleCardClick = (event: UnifiedSocialEvent) => {
-    console.log('[SocialCalendar] Opening socialDetail for:', event.title, { hasOnDelete: true });
     socialDetailModal.open({
       item: event,
       readonly,

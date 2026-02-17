@@ -125,7 +125,6 @@ const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules,
             const isOwner = user && scheduleItem.user_id === user.id;
             const canEdit = (isOwner || isAdmin) && isOneTimeSchedule;
 
-            console.log('[AllSocialSchedules] Opening socialDetail for:', scheduleItem.title);
             openModal('socialDetail', {
                 schedule: scheduleItem,
                 isAdmin: canEdit,
