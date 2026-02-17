@@ -32,6 +32,16 @@ const EventIngestor: React.FC = () => {
     const [scrapedEvents, setScrapedEvents] = useState<ScrapedEvent[]>([]);
     const [loadingScraped, setLoadingScraped] = useState(true);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+    const [showComparison, setShowComparison] = useState(false);
+    const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+
+    // 전체화면 모드: 650px 제한 해제 (스크롤 허용)
+    useEffect(() => {
+        document.documentElement.classList.add('ingestor-fullscreen');
+        return () => {
+            document.documentElement.classList.remove('ingestor-fullscreen');
+        };
+    }, []);
 
     useEffect(() => {
         const fetchScraped = async () => {
@@ -154,6 +164,165 @@ const EventIngestor: React.FC = () => {
         return { newList: newItemList, duplicateList: duplicateItemList };
     }, [scrapedEvents, existingEvents]);
 
+    // ===== 퍼지 매칭 유틸 =====
+    const normalize = (s: string) => s.replace(/[\s!\-_.,()（）]/g, '').toLowerCase();
+
+    const tokenize = (s: string): string[] => {
+        const stopwords = ['dj', '소셜', 'social', 'monthly', 'live', 'night', 'club', 'band', 'in', 'the', 'of'];
+        const cleaned = s.replace(/[^가-힣a-zA-Z0-9]/g, ' ');
+        return cleaned.split(/\s+/).filter(t => t.length >= 2 && !stopwords.includes(t.toLowerCase()));
+    };
+
+    const tokenOverlap = (a: string, b: string): number => {
+        const tokensA = tokenize(a);
+        const tokensB = tokenize(b);
+        if (tokensA.length === 0 || tokensB.length === 0) return 0;
+        let matchCount = 0;
+        tokensA.forEach(ta => {
+            if (tokensB.some(tb => ta.includes(tb) || tb.includes(ta))) matchCount++;
+        });
+        return matchCount / Math.max(tokensA.length, tokensB.length);
+    };
+
+    const calcMatchScore = (scraped: ScrapedEvent, db: any): { score: number; reasons: string[] } => {
+        const sDate = scraped.structured_data?.date || '';
+        const sTitle = normalize(scraped.structured_data?.title || scraped.id);
+        const sDjs = (scraped.structured_data?.djs || []).map(normalize);
+        const dbDate = db.date || '';
+        const dbTitle = normalize(db.title || '');
+        const dbDjs = ((db as any).dj ? [normalize((db as any).dj)] : []);
+        const dbOrganizer = normalize(db.organizer || '');
+
+        let score = 0;
+        const reasons: string[] = [];
+
+        // 1단계: 날짜 일치 (최우선, 40점)
+        if (sDate === dbDate) {
+            score += 40;
+            reasons.push('날짜 일치');
+        } else return { score: 0, reasons: [] };
+
+        // 2단계: DJ 일치 (최대 30점) — 날짜 다음으로 중요
+        let djMatched = false;
+        const allSDjs = sDjs;
+        // DB 제목에서 DJ 이름 추출 시도 (제목에 DJ가 포함된 경우)
+        const dbTitleDjs = dbTitle.match(/dj\s*([^\s,()]+)/gi)?.map(m => normalize(m)) || [];
+        const allDbDjs = [...dbDjs, ...dbTitleDjs];
+
+        if (allSDjs.length > 0 && allDbDjs.length > 0) {
+            djMatched = allSDjs.some(sd => allDbDjs.some(dd => sd.includes(dd) || dd.includes(sd)));
+            if (djMatched) {
+                score += 30;
+                reasons.push('DJ 일치');
+            }
+        }
+        // DJ 이름이 상대 제목에 포함되는지도 체크
+        if (!djMatched && allSDjs.length > 0) {
+            djMatched = allSDjs.some(sd => dbTitle.includes(sd));
+            if (djMatched) {
+                score += 25;
+                reasons.push('DJ→DB제목 포함');
+            }
+        }
+        if (!djMatched && allDbDjs.length > 0) {
+            const djInScraped = allDbDjs.some(dd => sTitle.includes(dd));
+            if (djInScraped) {
+                djMatched = true;
+                score += 25;
+                reasons.push('DB DJ→수집제목 포함');
+            }
+        }
+
+        // 3단계: 제목 유사도 (최대 25점)
+        if (sTitle === dbTitle) {
+            score += 25;
+            reasons.push('제목 완전일치');
+        } else if (sTitle.includes(dbTitle) || dbTitle.includes(sTitle)) {
+            score += 20;
+            reasons.push('제목 포함관계');
+        } else {
+            const overlap = tokenOverlap(
+                scraped.structured_data?.title || '',
+                db.title || ''
+            );
+            if (overlap >= 0.4) {
+                score += Math.round(overlap * 25);
+                reasons.push(`제목 토큰 ${Math.round(overlap * 100)}%`);
+            } else if (overlap > 0) {
+                score += Math.round(overlap * 15);
+                reasons.push(`제목 부분일치 ${Math.round(overlap * 100)}%`);
+            }
+            // DJ가 같으면 제목이 달라도 같은 이벤트일 가능성 높음
+            if (djMatched && overlap < 0.4) {
+                score += 10;
+                reasons.push('DJ일치+제목상이 보정');
+            }
+        }
+
+        // DJ가 양쪽 다 있는데 불일치하면 감점
+        if (!djMatched && allSDjs.length > 0 && allDbDjs.length > 0) {
+            score -= 20;
+            reasons.push('DJ 불일치 (-20)');
+        }
+
+        // 4단계: 주최/키워드 일치 (보너스 5점)
+        const sKeyword = normalize(scraped.keyword || '');
+        if (sKeyword && dbOrganizer && (sKeyword.includes(dbOrganizer) || dbOrganizer.includes(sKeyword))) {
+            score += 5;
+            reasons.push('주최 유사');
+        }
+
+        return { score, reasons };
+    };
+
+    // 비교 데이터: 수집 이벤트별 같은 날짜 DB 이벤트 전체 그룹
+    const comparisonData = useMemo(() => {
+        if (!showComparison) return [] as Array<{
+            scrapedId: string; scrapedTitle: string; scrapedDate: string; scrapedDjs: string;
+            dbMatches: Array<{ dbId: number; dbTitle: string; dbDjs: string; score: number; matchReasons: string[] }>;
+            bestStatus: 'match' | 'likely' | 'low' | 'new';
+        }>;
+
+        const groups: Array<{
+            scrapedId: string; scrapedTitle: string; scrapedDate: string; scrapedDjs: string;
+            dbMatches: Array<{ dbId: number; dbTitle: string; dbDjs: string; score: number; matchReasons: string[] }>;
+            bestStatus: 'match' | 'likely' | 'low' | 'new';
+        }> = [];
+
+        scrapedEvents.forEach(scraped => {
+            const sDate = scraped.structured_data?.date || '';
+            const sTitle = scraped.structured_data?.title || scraped.id;
+            const sDjs = scraped.structured_data?.djs?.join(', ') || '';
+
+            // 같은 날짜 모든 DB 이벤트
+            const dbMatches: Array<{ dbId: number; dbTitle: string; dbDjs: string; score: number; matchReasons: string[] }> = [];
+            existingEvents.forEach(db => {
+                if ((db.date || '') !== sDate) return;
+                const { score, reasons } = calcMatchScore(scraped, db);
+                dbMatches.push({
+                    dbId: db.id as number,
+                    dbTitle: db.title || '',
+                    dbDjs: (db as any).dj || '',
+                    score,
+                    matchReasons: reasons,
+                });
+            });
+            dbMatches.sort((a, b) => b.score - a.score);
+
+            let bestStatus: 'match' | 'likely' | 'low' | 'new' = 'new';
+            if (dbMatches.length > 0) {
+                const top = dbMatches[0].score;
+                if (top >= 65) bestStatus = 'match';
+                else if (top >= 45) bestStatus = 'likely';
+                else bestStatus = 'low';
+            }
+
+            groups.push({ scrapedId: scraped.id, scrapedTitle: sTitle, scrapedDate: sDate, scrapedDjs: sDjs, dbMatches, bestStatus });
+        });
+
+        return groups.sort((a, b) => a.scrapedDate.localeCompare(b.scrapedDate));
+    }, [showComparison, scrapedEvents, existingEvents]);
+
     if (existingLoading || loadingScraped) {
         return <div className="event-ingestor-container">데이터를 불러오는 중...</div>;
     }
@@ -165,6 +334,12 @@ const EventIngestor: React.FC = () => {
                     <h1>이벤트 인제스터 🔥</h1>
                     <div className="batch-actions">
                         <button
+                            className={`btn-compare ${showComparison ? 'active' : ''}`}
+                            onClick={() => setShowComparison(!showComparison)}
+                        >
+                            {showComparison ? '📊 비교 닫기' : '📊 기존 이벤트 비교'}
+                        </button>
+                        <button
                             className={`btn-batch-copy ${selectedIds.size > 0 ? 'active' : ''}`}
                             onClick={copyBatchPrompt}
                         >
@@ -174,28 +349,138 @@ const EventIngestor: React.FC = () => {
                 </div>
                 <div className="ingestor-stats">
                     <span>수집된 총 항목: <b>{scrapedEvents.length}</b></span>
-                    <span>신규 가능: <b>{newList.length}</b></span>
+                    <span>DB 등록 이벤트: <b>{existingEvents.length}</b></span>
+                    <span>신규 가능: <b>{newList.filter(i => !dismissedIds.has(i.id)).length}</b></span>
                     <span>중복 발견: <b>{duplicateList.length}</b></span>
+                    {dismissedIds.size > 0 && <span>제외됨: <b>{dismissedIds.size}</b></span>}
                 </div>
             </header>
 
             <main>
+                {/* 비교 테이블 */}
+                {showComparison && (
+                    <section className="ingestor-section comparison-section">
+                        <h2>
+                            <span className="icon">📊</span> 수집 ↔ DB 비교 결과
+                            <span className="count-badge">{comparisonData.length}</span>
+                            <span className="count-badge" data-type="match">
+                                ✅ {comparisonData.filter(r => r.bestStatus === 'match').length}
+                            </span>
+                            <span className="count-badge" data-type="likely">
+                                🔗 {comparisonData.filter(r => r.bestStatus === 'likely').length}
+                            </span>
+                            <span className="count-badge" data-type="low">
+                                ❓ {comparisonData.filter(r => r.bestStatus === 'low').length}
+                            </span>
+                            <span className="count-badge" data-type="new">
+                                🆕 {comparisonData.filter(r => r.bestStatus === 'new').length}
+                            </span>
+                        </h2>
+                        <div className="comparison-table-wrap">
+                            <table className="comparison-table">
+                                <thead>
+                                    <tr>
+                                        <th></th>
+                                        <th>날짜</th>
+                                        <th>수집 제목</th>
+                                        <th>수집 DJ</th>
+                                        <th>점수</th>
+                                        <th>DB 제목</th>
+                                        <th>DB DJ</th>
+                                        <th>매칭 근거</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {comparisonData.map((group) => {
+                                        const rowCount = Math.max(group.dbMatches.length, 1);
+                                        return Array.from({ length: rowCount }, (_, idx) => {
+                                            const db = group.dbMatches[idx];
+                                            return (
+                                                <tr key={`${group.scrapedId}-${idx}`} className={`comparison-row status-${idx === 0 ? group.bestStatus : (db && db.score >= 65 ? 'match' : db && db.score >= 45 ? 'likely' : 'low')}`}>
+                                                    {idx === 0 && (
+                                                        <>
+                                                            <td rowSpan={rowCount} className="dismiss-cell">
+                                                                <button
+                                                                    className={`btn-dismiss-card ${dismissedIds.has(group.scrapedId) ? 'dismissed' : ''}`}
+                                                                    onClick={() => {
+                                                                        setDismissedIds(prev => {
+                                                                            const next = new Set(prev);
+                                                                            if (next.has(group.scrapedId)) next.delete(group.scrapedId);
+                                                                            else next.add(group.scrapedId);
+                                                                            return next;
+                                                                        });
+                                                                    }}
+                                                                    title={dismissedIds.has(group.scrapedId) ? '복원' : '신규 목록에서 제외'}
+                                                                >
+                                                                    {dismissedIds.has(group.scrapedId) ? '↩' : '✕'}
+                                                                </button>
+                                                            </td>
+                                                            <td rowSpan={rowCount}>{group.scrapedDate}</td>
+                                                            <td rowSpan={rowCount}>{group.scrapedTitle}</td>
+                                                            <td rowSpan={rowCount}>{group.scrapedDjs || '-'}</td>
+                                                        </>
+                                                    )}
+                                                    {db ? (
+                                                        <>
+                                                            <td>
+                                                                <span className={`score-badge ${db.score >= 80 ? 'high' : db.score >= 60 ? 'mid' : 'low'}`}>
+                                                                    {db.score}
+                                                                </span>
+                                                            </td>
+                                                            <td>{db.dbTitle}</td>
+                                                            <td>{db.dbDjs || '-'}</td>
+                                                            <td className="reasons-cell">
+                                                                {db.matchReasons.length > 0 ? db.matchReasons.join(', ') : '-'}
+                                                            </td>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <td><span className="status-chip chip-new">🆕 신규</span></td>
+                                                            <td colSpan={3}>DB에 같은 날짜 이벤트 없음</td>
+                                                        </>
+                                                    )}
+                                                </tr>
+                                            );
+                                        });
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                )}
+
                 <section className="ingestor-section">
                     <h2>
                         <span className="icon">🆕</span> 신규 이벤트 후보
-                        <span className="count-badge">{newList.length}</span>
+                        <span className="count-badge">{newList.filter(i => !dismissedIds.has(i.id)).length}</span>
+                        {dismissedIds.size > 0 && (
+                            <span className="count-badge dismissed-count">제외 {dismissedIds.size}</span>
+                        )}
                     </h2>
-                    {newList.length === 0 ? (
+                    {newList.filter(i => !dismissedIds.has(i.id)).length === 0 ? (
                         <p className="no-data">새로운 수집 데이터가 없습니다.</p>
                     ) : (
                         <div className="ingestor-grid">
-                            {newList.map(item => (
+                            {newList.filter(i => !dismissedIds.has(i.id)).map(item => (
                                 <EventCard
                                     key={item.id}
                                     event={item}
                                     isDuplicate={false}
                                     isSelected={selectedIds.has(item.id)}
                                     onSelect={() => toggleSelect(item.id)}
+                                    onDismiss={() => {
+                                        setDismissedIds(prev => {
+                                            const next = new Set(prev);
+                                            next.add(item.id);
+                                            return next;
+                                        });
+                                    }}
+                                    matchInfo={(() => {
+                                        const g = comparisonData.find(c => c.scrapedId === item.id);
+                                        if (!g || g.dbMatches.length === 0) return undefined;
+                                        const top = g.dbMatches[0];
+                                        return { score: top.score, status: g.bestStatus, dbTitle: top.dbTitle, matchReasons: top.matchReasons };
+                                    })()}
                                 />
                             ))}
                         </div>
@@ -231,9 +516,11 @@ interface EventCardProps {
     isDuplicate: boolean;
     isSelected: boolean;
     onSelect: () => void;
+    onDismiss?: () => void;
+    matchInfo?: { score: number; status: string; dbTitle: string; matchReasons: string[] };
 }
 
-const EventCard: React.FC<EventCardProps & { event: any }> = ({ event, isDuplicate, isSelected, onSelect }) => {
+const EventCard: React.FC<EventCardProps & { event: any }> = ({ event, isDuplicate, isSelected, onSelect, onDismiss, matchInfo }) => {
     const data = event.structured_data || {
         date: event.parsed_data?.date || 'unknown',
         title: event.parsed_data?.title || 'No Title',
@@ -344,6 +631,21 @@ const EventCard: React.FC<EventCardProps & { event: any }> = ({ event, isDuplica
                     >
                         등록
                     </button>
+                    {onDismiss && (
+                        <button
+                            className="btn-dismiss-card btn-sm"
+                            onClick={onDismiss}
+                        >
+                            ✕ 제외
+                        </button>
+                    )}
+                    {matchInfo && (
+                        <span className={`card-match-badge ${matchInfo.score >= 65 ? 'match' : 'likely'}`}
+                            title={`DB: ${matchInfo.dbTitle}\n근거: ${matchInfo.matchReasons.join(', ')}`}
+                        >
+                            {matchInfo.score >= 65 ? '✅' : '🔗'} {matchInfo.score}점
+                        </span>
+                    )}
                 </div>
             </div>
         </div>

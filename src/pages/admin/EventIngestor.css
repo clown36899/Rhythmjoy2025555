@@ -208,3 +208,319 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* === 전체화면 모드: 650px 해제 + 스크롤 허용 === */
+html.ingestor-fullscreen,
+html.ingestor-fullscreen body,
+html.ingestor-fullscreen #root {
+    max-width: none !important;
+    width: 100% !important;
+    margin: 0 !important;
+    overflow: auto !important;
+}
+
+.event-ingestor-container {
+    padding-top: calc(70px + env(safe-area-inset-top));
+}
+
+/* === 비교 버튼 === */
+.btn-compare {
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    border-radius: 6px;
+    border: 1px solid #6366f1;
+    background: rgba(99, 102, 241, 0.15);
+    color: #a5b4fc;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 600;
+}
+
+.btn-compare:hover {
+    background: rgba(99, 102, 241, 0.3);
+}
+
+.btn-compare.active {
+    background: #6366f1;
+    color: #fff;
+}
+
+/* === 비교 테이블 === */
+.comparison-section {
+    margin-bottom: 40px;
+}
+
+.comparison-table-wrap {
+    overflow-x: auto;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.comparison-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+.comparison-table thead {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.comparison-table th {
+    padding: 10px 14px;
+    text-align: left;
+    font-weight: 700;
+    color: #ddd;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.comparison-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    color: #f0f0f0;
+    max-width: 250px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.comparison-row.status-match {
+    background: rgba(34, 197, 94, 0.12);
+}
+
+/* === 그룹 구분선 (rowSpan 첫 행) === */
+.comparison-row td[rowspan] {
+    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+    vertical-align: middle;
+}
+
+.dismiss-cell {
+    width: 36px;
+    text-align: center;
+    padding: 4px !important;
+}
+
+.btn-dismiss-card.dismissed {
+    border-color: rgba(34, 197, 94, 0.5);
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+}
+
+.comparison-row.status-likely {
+    background: rgba(139, 92, 246, 0.15);
+}
+
+.comparison-row.status-low {
+    background: rgba(156, 163, 175, 0.08);
+}
+
+.comparison-row.status-new {
+    background: rgba(59, 130, 246, 0.12);
+}
+
+.comparison-row.status-db-only {
+    background: rgba(156, 163, 175, 0.12);
+}
+
+.status-chip {
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.chip-match {
+    background: rgba(34, 197, 94, 0.2);
+    color: #4ade80;
+}
+
+.chip-mismatch {
+    background: rgba(234, 179, 8, 0.2);
+    color: #facc15;
+}
+
+.chip-new {
+    background: rgba(59, 130, 246, 0.2);
+    color: #60a5fa;
+}
+
+.chip-low {
+    background: rgba(156, 163, 175, 0.2);
+    color: #9ca3af;
+}
+
+.chip-db-only {
+    background: rgba(156, 163, 175, 0.2);
+    color: #9ca3af;
+}
+
+/* === 헤더 배치 조정 === */
+.event-ingestor-header .header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.batch-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.btn-batch-copy {
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    border-radius: 6px;
+    border: 1px solid #f97316;
+    background: rgba(249, 115, 22, 0.15);
+    color: #fdba74;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 600;
+}
+
+.btn-batch-copy:hover {
+    background: rgba(249, 115, 22, 0.3);
+}
+
+.btn-batch-copy.active {
+    background: #f97316;
+    color: #fff;
+}
+
+/* === 유사(likely) 상태 === */
+.comparison-row.status-likely {
+    background: rgba(139, 92, 246, 0.08);
+}
+
+.chip-likely {
+    background: rgba(139, 92, 246, 0.2);
+    color: #a78bfa;
+}
+
+/* === 점수 뱃지 === */
+.score-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    min-width: 28px;
+    text-align: center;
+}
+
+.score-badge.high {
+    background: rgba(34, 197, 94, 0.25);
+    color: #4ade80;
+}
+
+.score-badge.mid {
+    background: rgba(234, 179, 8, 0.25);
+    color: #facc15;
+}
+
+.score-badge.low {
+    background: rgba(239, 68, 68, 0.25);
+    color: #f87171;
+}
+
+/* === 제외 버튼 === */
+.btn-dismiss {
+    padding: 3px 8px;
+    font-size: 0.75rem;
+    border-radius: 4px;
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    background: rgba(239, 68, 68, 0.1);
+    color: #f87171;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.btn-dismiss:hover {
+    background: rgba(239, 68, 68, 0.25);
+}
+
+.btn-dismiss.active {
+    border-color: rgba(34, 197, 94, 0.4);
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+}
+
+/* === 카드 내 제외 버튼 === */
+.btn-dismiss-card {
+    padding: 5px 10px;
+    font-size: 0.75rem;
+    border-radius: 4px;
+    border: 1px solid rgba(239, 68, 68, 0.5);
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 600;
+}
+
+.btn-dismiss-card:hover {
+    background: rgba(239, 68, 68, 0.35);
+    color: #fff;
+}
+
+/* === 카드 매칭 배지 === */
+.card-match-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: help;
+}
+
+.card-match-badge.match {
+    background: rgba(34, 197, 94, 0.2);
+    color: #4ade80;
+    border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.card-match-badge.likely {
+    background: rgba(139, 92, 246, 0.2);
+    color: #a78bfa;
+    border: 1px solid rgba(139, 92, 246, 0.3);
+}
+
+/* === 매칭 근거 셀 === */
+.reasons-cell {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    max-width: 180px;
+}
+
+/* === 제외 횟수 뱃지 === */
+.dismissed-count {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+}
+
+/* === 상태별 카운트 뱃지 === */
+.count-badge[data-type="match"] {
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+}
+
+.count-badge[data-type="likely"] {
+    background: rgba(139, 92, 246, 0.15);
+    color: #a78bfa;
+}
+
+.count-badge[data-type="new"] {
+    background: rgba(59, 130, 246, 0.15);
+    color: #60a5fa;
+}
