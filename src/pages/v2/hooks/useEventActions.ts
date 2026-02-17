@@ -4,6 +4,7 @@ import { supabase } from "../../../lib/supabase";
 import type { Event as AppEvent } from "../../../lib/supabase";
 import type { User } from "@supabase/supabase-js";
 import { useModalActions } from "../../../contexts/ModalContext";
+import { queryClient } from "../../../lib/queryClient";
 
 interface UseEventActionsProps {
     adminType: "super" | "sub" | null;
@@ -123,6 +124,9 @@ export function useEventActions({ adminType, user, signInWithKakao }: UseEventAc
 
             // Success
             alert("삭제되었습니다."); // Keep consistent with V1
+
+            // [Persistence] TanStack Query 캐시 무효화 (캘린더 페이지 등 연동)
+            queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
 
             // Clean up state
             closeModal(); // Local cleanup

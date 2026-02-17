@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import type { Event as AppEvent } from '../lib/supabase';
+import { queryClient } from '../lib/queryClient';
 
 /**
  * 이벤트 모달 관리를 위한 Hook의 반환 타입
@@ -118,6 +119,9 @@ export function useEventModal(): UseEventModalReturn {
 
 
             alert("삭제되었습니다.");
+
+            // [Persistence] TanStack Query 캐시 무효화 (캘린더 페이지 등 연동)
+            queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
 
             // Clean up state
 

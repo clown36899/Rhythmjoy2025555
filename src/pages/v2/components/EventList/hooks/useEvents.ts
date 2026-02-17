@@ -133,5 +133,23 @@ export function useEvents({ isAdminMode }: UseEventsProps) {
         };
     }, [fetchEvents]);
 
+    // [Persistence] 앱 내부의 커스텀 이벤트(삭제/수정/생성) 수신 시 즉시 데이터 및 캐시 갱신
+    useEffect(() => {
+        const handleRefresh = () => {
+            console.log('[useEvents] Custom event detected, refetching...');
+            fetchEvents();
+        };
+
+        window.addEventListener('eventDeleted', handleRefresh);
+        window.addEventListener('eventUpdated', handleRefresh);
+        window.addEventListener('eventCreated', handleRefresh);
+
+        return () => {
+            window.removeEventListener('eventDeleted', handleRefresh);
+            window.removeEventListener('eventUpdated', handleRefresh);
+            window.removeEventListener('eventCreated', handleRefresh);
+        };
+    }, [fetchEvents]);
+
     return { events, loading, loadError, fetchEvents };
 }
