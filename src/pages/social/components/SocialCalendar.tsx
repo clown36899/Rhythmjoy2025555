@@ -4,6 +4,7 @@ import { useAuth } from '../../../contexts/AuthContext';
 import { useModal } from '../../../hooks/useModal';
 import type { UnifiedSocialEvent } from '../types';
 import './SocialCalendar.css';
+import { useEventActions } from '../../v2/hooks/useEventActions';
 
 interface SocialCalendarProps {
   events: UnifiedSocialEvent[];
@@ -27,7 +28,12 @@ export default function SocialCalendar({
   const socialDetailModal = useModal('socialDetail');
   const venueDetailModal = useModal('venueDetail');
 
-  const { isAdmin } = useAuth();
+  const { isAdmin, user, signInWithKakao } = useAuth();
+  const { handleDeleteClick, isDeleting, deleteProgress } = useEventActions({
+    adminType: null,
+    user,
+    signInWithKakao
+  });
 
   const weekdays = [
     { id: 0, name: "일" },
@@ -40,9 +46,18 @@ export default function SocialCalendar({
   ];
 
   const handleCardClick = (event: UnifiedSocialEvent) => {
+    console.log('[SocialCalendar] Opening socialDetail for:', event.title, { hasOnDelete: true });
     socialDetailModal.open({
       item: event,
       readonly,
+      onDelete: async (_data: any, e: any) => {
+        const success = await handleDeleteClick(event as any, e);
+        if (success) {
+          socialDetailModal.close();
+        }
+      },
+      isDeleting,
+      deleteProgress,
       onVenueClick: (venueId: string) => {
         venueDetailModal.open({ venueId });
       }

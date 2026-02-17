@@ -8,6 +8,8 @@ import { useSocialGroupFavorites } from './hooks/useSocialGroupFavorites';
 import { useModal } from '../../hooks/useModal';
 import { useSetPageAction } from '../../contexts/PageActionContext';
 import { getLocalDateString, getKSTDay } from '../v2/utils/eventListUtils';
+import { useEventActions } from '../v2/hooks/useEventActions';
+
 
 // Components
 import WeeklySocial from './components/WeeklySocial';
@@ -24,11 +26,17 @@ import './social.css';
 import type { SocialGroup, SocialSchedule } from './types';
 
 const SocialPage: React.FC = () => {
-  const { user, isAdmin } = useAuth();
-
-
-  // Data Hooks
   const { groups, refresh: refreshGroups } = useSocialGroups();
+  const { isAdmin, user, signInWithKakao } = useAuth();
+
+  const {
+    handleEditClick,
+    handleDeleteClick,
+    handleVenueClick,
+    isDeleting,
+    deleteProgress
+  } = useEventActions({ adminType: null, user, signInWithKakao });
+
   // View Date State for Weekly Fetching (Declared early for use in hooks)
   const [currentViewDate, setCurrentViewDate] = useState<Date>(new Date());
 
@@ -339,13 +347,23 @@ const SocialPage: React.FC = () => {
 
   // Handlers
   const handleScheduleClick = useCallback((schedule: SocialSchedule) => {
-
+    console.log('[SocialPage] Opening socialDetail for:', schedule.title, { hasOnDelete: true });
     socialDetailModal.open({
       schedule,
       onCopy: handleCopySchedule,
-      isAdmin: isAdmin || (user && schedule.user_id === user.id)
+      isAdmin: isAdmin || (user && schedule.user_id === user.id),
+      onEdit: handleEditClick,
+      onDelete: async (_data: any, e: any) => {
+        const success = await handleDeleteClick(schedule as any, e);
+        if (success) {
+          socialDetailModal.close();
+        }
+      },
+      onOpenVenueDetail: handleVenueClick,
+      isDeleting,
+      deleteProgress
     });
-  }, [isAdmin, user, socialDetailModal, handleCopySchedule]);
+  }, [isAdmin, user, socialDetailModal, handleCopySchedule, handleEditClick, handleDeleteClick, handleVenueClick, isDeleting, deleteProgress]);
 
   const handleEditGroup = useCallback(async (group: SocialGroup) => {
     if (!user) {

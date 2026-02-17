@@ -5,6 +5,7 @@ import { useModalActions } from '../../../contexts/ModalContext';
 import { HorizontalScrollNav } from '../../v2/components/HorizontalScrollNav';
 import { useAuth } from '../../../contexts/AuthContext';
 import { PWAInstallButton } from '../../../components/PWAInstallButton';
+import { useEventActions } from '../../v2/hooks/useEventActions';
 
 // 1. Props 인터페이스 수정
 interface TodaySocialProps {
@@ -15,8 +16,13 @@ interface TodaySocialProps {
 }
 
 const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll, onEventClick, onRefresh }) => {
-    const { openModal } = useModalActions();
-    const { isAdmin, user } = useAuth();
+    const { openModal, closeModal } = useModalActions();
+    const { isAdmin, user, signInWithKakao } = useAuth();
+    const { handleDeleteClick, isDeleting, deleteProgress } = useEventActions({
+        adminType: null,
+        user,
+        signInWithKakao
+    });
 
 
     // Sort schedules: Domestic (Time) -> Overseas (Time)
@@ -88,10 +94,19 @@ const TodaySocial: React.FC<TodaySocialProps> = memo(({ schedules, onViewAll, on
             const isOwner = user && scheduleItem.user_id === user.id;
             const canEdit = (isOwner || isAdmin);
 
+            console.log('[TodaySocial] Opening socialDetail for:', scheduleItem.title, { hasOnDelete: true });
             openModal('socialDetail', {
                 schedule: scheduleItem,
                 isAdmin: canEdit,
                 showCopyButton: false,
+                onDelete: async (_data: any, e: any) => {
+                    const success = await handleDeleteClick(scheduleItem as any, e);
+                    if (success) {
+                        closeModal('socialDetail');
+                    }
+                },
+                isDeleting,
+                deleteProgress,
                 onSuccess: (data: any) => {
                     if (onRefresh) onRefresh();
                     // 수정 후 변경된 데이터로 상세 모달 다시 열기 (UI 즉시 반영)

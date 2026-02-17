@@ -82,6 +82,17 @@ export default function EventDetailModal({
   allGenres = { class: [], event: [] },
   isDeleting = false,
 }: EventDetailModalProps) {
+  // Deep Logging for deletion bug
+  useEffect(() => {
+    if (isOpen) {
+      console.log('[EventDetailModal] Initial Props Check:', {
+        event: event?.title,
+        onDeleteType: typeof _onDelete,
+        isAdminMode,
+        isDeleting
+      });
+    }
+  }, [isOpen]);
   // Safe cast or normalization
   const structuredGenres = Array.isArray(allGenres)
     ? { class: [], event: [] } // Fallback or logic to distribute if we really needed, but generally we expect structured now
@@ -1639,8 +1650,21 @@ export default function EventDetailModal({
                     onClick={(e) => {
                       e.stopPropagation();
                       if (isDeleting) return;
+
+                      // [DEBUG LOGGING]
+                      console.log('[EventDetailModal] 삭제 버튼 클릭됨');
+                      console.log('[EventDetailModal] onDelete prop 타입:', typeof _onDelete);
+                      console.log('[EventDetailModal] selectedEvent 데이터:', selectedEvent);
+                      console.log('[EventDetailModal] isDeleting 상태:', isDeleting);
+
                       if (window.confirm('정말로 이 이벤트를 삭제하시겠습니까?')) {
-                        _onDelete(selectedEvent, e);
+                        if (typeof _onDelete === 'function') {
+                          console.log('[EventDetailModal] _onDelete 호출 시도');
+                          _onDelete(selectedEvent, e);
+                        } else {
+                          console.error('[EventDetailModal] _onDelete가 함수가 아닙니다! (삭제 불가)');
+                          alert('삭제 기능을 호출할 수 없습니다. (핸들러 누락)');
+                        }
                       }
                     }}
                     className={`EDM-actionBtn is-delete ${isDeleting ? 'is-loading' : ''}`}

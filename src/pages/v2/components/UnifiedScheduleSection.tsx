@@ -4,6 +4,7 @@ import { getLocalDateString, getKSTDay } from '../utils/eventListUtils';
 import { HorizontalScrollNav } from './HorizontalScrollNav';
 import { useAuth } from '../../../contexts/AuthContext';
 import { useModalActions } from '../../../contexts/ModalContext';
+import { useEventActions } from '../hooks/useEventActions';
 import { useNavigate } from 'react-router-dom';
 import "../../../styles/components/UnifiedScheduleSection.css";
 
@@ -21,8 +22,13 @@ export const UnifiedScheduleSection: React.FC<UnifiedScheduleSectionProps> = ({
     onRefresh
 }) => {
     const navigate = useNavigate();
-    const { openModal } = useModalActions();
-    const { isAdmin, user } = useAuth();
+    const { openModal, closeModal } = useModalActions();
+    const { isAdmin, user, signInWithKakao } = useAuth();
+    const { handleDeleteClick, isDeleting, deleteProgress } = useEventActions({
+        adminType: null,
+        user,
+        signInWithKakao
+    });
     const scrollerRef = useRef<HTMLDivElement>(null);
     const [activeTab, setActiveTab] = useState<'thisWeek' | 'nextWeek'>('thisWeek');
 
@@ -116,9 +122,18 @@ export const UnifiedScheduleSection: React.FC<UnifiedScheduleSectionProps> = ({
 
         const openDetail = (scheduleItem: SocialSchedule) => {
             const isOwner = user && scheduleItem.user_id === user.id;
+            console.log('[UnifiedScheduleSection] Opening socialDetail for:', scheduleItem.title);
             openModal('socialDetail', {
                 schedule: scheduleItem,
                 isAdmin: isOwner || isAdmin,
+                onDelete: async (_data: any, e: any) => {
+                    const success = await handleDeleteClick(scheduleItem as any, e);
+                    if (success) {
+                        closeModal('socialDetail');
+                    }
+                },
+                isDeleting,
+                deleteProgress,
                 onEdit: (s: SocialSchedule) => openModal('socialSchedule', {
                     editSchedule: s,
                     groupId: s.group_id,

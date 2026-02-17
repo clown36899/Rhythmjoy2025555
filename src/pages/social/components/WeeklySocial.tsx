@@ -2,6 +2,8 @@ import React, { useState, useMemo } from 'react';
 import type { SocialSchedule } from '../types';
 import { getLocalDateString, getKSTDay, getDayName } from '../../v2/utils/eventListUtils';
 import { useEventModal } from '../../../hooks/useEventModal';
+import { useAuth } from '../../../contexts/AuthContext';
+import { useEventActions } from '../../v2/hooks/useEventActions';
 import EventDetailModal from '../../v2/components/EventDetailModal';
 import EventRegistrationModal from '../../../components/EventRegistrationModal';
 import LocalLoading from '../../../components/LocalLoading';
@@ -59,7 +61,13 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
     // The previous WeeklySocial didn't use useAuth. We'll pass false or check if we need to add useAuth.
     // For now, let's keep it simple.
 
+    const { isAdmin, user, signInWithKakao } = useAuth();
     const eventModal = useEventModal(); // Use the global modal hook
+    const { handleDeleteClick, isDeleting: isDeletingAction, deleteProgress } = useEventActions({
+        adminType: null,
+        user,
+        signInWithKakao
+    });
 
     // Mapping schedules to DisplayFormat
     const displayItems = useMemo<DisplayItem[]>(() => {
@@ -645,8 +653,8 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                     event={eventModal.selectedEvent}
                     isOpen={!!eventModal.selectedEvent}
                     onClose={eventModal.closeAllModals}
-                    isAdminMode={false}
-                    isDeleting={eventModal.isDeleting}
+                    isAdminMode={isAdmin || (user && eventModal.selectedEvent && (eventModal.selectedEvent.user_id === user.id || schedules.find(s => s.id === (typeof eventModal.selectedEvent.id === 'string' ? parseInt(eventModal.selectedEvent.id.replace('social-', ''), 10) : eventModal.selectedEvent.id))?.user_id === user.id))}
+                    isDeleting={eventModal.isDeleting || isDeletingAction}
                     onEdit={(event) => {
                         const idStr = String(event.id);
                         if (idStr.startsWith('social-')) {
@@ -659,20 +667,12 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
                             }
                         }
                     }}
-                    onDelete={async (event) => {
-                        // 1. Identify real ID.
-                        const idStr = String(event.id);
-                        const realId = idStr.startsWith('social-') ? idStr.replace('social-', '') : idStr;
-
-                        // 2. Prompt Password (Required for Social Guest Delete)
-                        const password = prompt("이벤트 삭제를 위한 비밀번호를 입력하세요:");
-                        if (!password) return;
-
-                        // 3. Call Hook (API)
-                        await eventModal.handleDeleteEvent(realId, password);
-
-                        // 4. Refresh List
-                        onRefresh?.();
+                    onDelete={async (event, e) => {
+                        const success = await handleDeleteClick(event as any, e);
+                        if (success) {
+                            eventModal.closeAllModals();
+                            onRefresh?.();
+                        }
                     }}
                 />
             )}

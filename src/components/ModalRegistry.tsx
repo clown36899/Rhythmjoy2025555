@@ -168,6 +168,10 @@ export const ModalRegistry = memo(function ModalRegistry() {
 
         const props = getModalProps(modalId);
 
+        if (modalId === 'socialDetail') {
+            console.log(`[ModalRegistry] Rendering socialDetail with props:`, props);
+        }
+
         return (
             <Suspense key={modalId} fallback={null}>
                 <ModalComponent

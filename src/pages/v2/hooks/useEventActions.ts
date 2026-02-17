@@ -140,8 +140,10 @@ export function useEventActions({ adminType, user, signInWithKakao }: UseEventAc
         }
     };
 
-    const handleDeleteClick = useCallback(async (event: AppEvent, e?: React.MouseEvent): Promise<boolean> => {
-        e?.stopPropagation();
+    const handleDeleteClick = useCallback(async (event: AppEvent, e?: React.MouseEvent | any): Promise<boolean> => {
+        if (e && typeof e.stopPropagation === 'function') {
+            e.stopPropagation();
+        }
 
 
         // 1. Super Admin Request

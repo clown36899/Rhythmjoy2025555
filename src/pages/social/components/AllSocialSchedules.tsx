@@ -4,6 +4,7 @@ import './AllSocialSchedules.css';
 import { useModalActions } from '../../../contexts/ModalContext';
 import { HorizontalScrollNav } from '../../v2/components/HorizontalScrollNav';
 import { useAuth } from '../../../contexts/AuthContext';
+import { useEventActions } from '../../v2/hooks/useEventActions';
 import { getLocalDateString, getKSTDay } from '../../v2/utils/eventListUtils';
 
 interface AllSocialSchedulesProps {
@@ -14,8 +15,13 @@ interface AllSocialSchedulesProps {
 }
 
 const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules, onEventClick, onRefresh }) => {
-    const { openModal } = useModalActions();
-    const { isAdmin, user } = useAuth();
+    const { openModal, closeModal } = useModalActions();
+    const { isAdmin, user, signInWithKakao } = useAuth();
+    const { handleDeleteClick, isDeleting, deleteProgress } = useEventActions({
+        adminType: null,
+        user,
+        signInWithKakao
+    });
     const [weekMode, setWeekMode] = React.useState<'this' | 'next'>('this');
 
     // Get today's date in KST
@@ -119,10 +125,19 @@ const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules,
             const isOwner = user && scheduleItem.user_id === user.id;
             const canEdit = (isOwner || isAdmin) && isOneTimeSchedule;
 
+            console.log('[AllSocialSchedules] Opening socialDetail for:', scheduleItem.title);
             openModal('socialDetail', {
                 schedule: scheduleItem,
                 isAdmin: canEdit,
                 showCopyButton: false,
+                onDelete: async (_data: any, e: any) => {
+                    const success = await handleDeleteClick(scheduleItem as any, e);
+                    if (success) {
+                        closeModal('socialDetail');
+                    }
+                },
+                isDeleting,
+                deleteProgress,
                 onSuccess: (data: any) => {
                     if (onRefresh) onRefresh();
                     if (data && !data.deleted) openDetailModal(data);
