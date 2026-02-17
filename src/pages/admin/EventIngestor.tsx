@@ -1,5 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useEvents } from '../v2/components/EventList/hooks/useEvents';
+import { supabase } from '../../lib/supabase';
+import { createResizedImages } from '../../utils/imageResize';
+import { useAuth } from '../../contexts/AuthContext';
 import './EventIngestor.css';
 
 interface ScrapedEvent {
@@ -27,13 +30,23 @@ interface ScrapedEvent {
     created_at: string;
 }
 
+interface VenueRecord {
+    id: string | number;
+    name: string;
+    address?: string;
+}
+
 const EventIngestor: React.FC = () => {
+    const { user } = useAuth();
     const { events: existingEvents, loading: existingLoading } = useEvents({ isAdminMode: true });
     const [scrapedEvents, setScrapedEvents] = useState<ScrapedEvent[]>([]);
     const [loadingScraped, setLoadingScraped] = useState(true);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [showComparison, setShowComparison] = useState(false);
     const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
+    const [registeredIds, setRegisteredIds] = useState<Set<string>>(new Set());
+    const [registeringId, setRegisteringId] = useState<string | null>(null);
+    const [venues, setVenues] = useState<VenueRecord[]>([]);
 
     // 전체화면 모드: 650px 제한 해제 (스크롤 허용)
     useEffect(() => {
@@ -58,6 +71,165 @@ const EventIngestor: React.FC = () => {
         };
         fetchScraped();
     }, []);
+
+    // Venues 로딩 (장소 자동 매칭용)
+    useEffect(() => {
+        const fetchVenues = async () => {
+            const { data } = await supabase
+                .from('venues')
+                .select('id, name, address')
+                .eq('is_active', true);
+            if (data) setVenues(data);
+        };
+        fetchVenues();
+    }, []);
+
+    // 장소명으로 venue 매칭
+    const matchVenue = useCallback((locationName: string): VenueRecord | null => {
+        if (!locationName || venues.length === 0) return null;
+        const norm = (s: string) => s.replace(/[\s()（）\-_]/g, '').toLowerCase();
+        const target = norm(locationName);
+        return venues.find(v => {
+            const vn = norm(v.name);
+            return vn.includes(target) || target.includes(vn);
+        }) || null;
+    }, [venues]);
+
+    // ===== DB 등록 함수 =====
+    const handleRegisterEvent = useCallback(async (scraped: ScrapedEvent) => {
+        if (!user) {
+            alert('로그인이 필요합니다.');
+            return;
+        }
+        if (registeringId) {
+            alert('등록 진행 중입니다. 완료될 때까지 기다려주세요.');
+            return;
+        }
+
+        const data = scraped.structured_data;
+        if (!data?.date || !data?.title) {
+            alert('날짜 또는 제목 데이터가 없어 등록할 수 없습니다.');
+            return;
+        }
+
+        // 제목 포맷: DJ 이름 | 제목
+        const djNames = data.djs?.join(', ');
+        const formattedTitle = djNames ? `DJ ${djNames} | ${data.title}` : data.title;
+
+        // 시간 추출
+        const startTime = data.times?.[0]?.split('~')[0]?.trim() || '';
+
+        // 장소 매칭
+        const matchedVenue = matchVenue(data.location || '');
+
+        if (!confirm(`다음 이벤트를 DB에 등록하시겠습니까?\n\n제목: ${formattedTitle}\n날짜: ${data.date}\n장소: ${data.location || '미정'}${matchedVenue ? ` → venue: ${matchedVenue.name}` : ''}\nDJ: ${djNames || '없음'}`)) {
+            return;
+        }
+
+        setRegisteringId(scraped.id);
+
+        try {
+            // 1. 이미지 업로드 (4버전)
+            let imageUrl: string | null = null;
+            let imageMicro: string | null = null;
+            let imageThumbnail: string | null = null;
+            let imageMedium: string | null = null;
+            let imageFull: string | null = null;
+            let storagePath: string | null = null;
+
+            const posterUrl = scraped.poster_url || scraped.screenshot_url;
+            if (posterUrl) {
+                try {
+                    // 로컬 이미지 fetch → Blob → File
+                    const imgRes = await fetch(posterUrl);
+                    const imgBlob = await imgRes.blob();
+                    const imgFile = new File([imgBlob], 'poster.png', { type: imgBlob.type });
+
+                    // 4버전 리사이즈
+                    const resized = await createResizedImages(imgFile);
+
+                    const timestamp = Date.now();
+                    const randomStr = Math.random().toString(36).substring(2, 7);
+                    const folderName = `${timestamp}_${randomStr}`;
+                    const basePath = `social-events/${folderName}`;
+                    storagePath = basePath;
+
+                    const uploadImage = async (size: string, blob: Blob) => {
+                        const path = `${basePath}/${size}.webp`;
+                        const { error } = await supabase.storage.from('images').upload(path, blob, {
+                            contentType: 'image/webp',
+                            upsert: true
+                        });
+                        if (error) throw error;
+                        return supabase.storage.from('images').getPublicUrl(path).data.publicUrl;
+                    };
+
+                    const [microUrl, thumbUrl, medUrl, fullUrl] = await Promise.all([
+                        uploadImage('micro', resized.micro),
+                        uploadImage('thumbnail', resized.thumbnail),
+                        uploadImage('medium', resized.medium),
+                        uploadImage('full', resized.full)
+                    ]);
+
+                    imageMicro = microUrl;
+                    imageThumbnail = thumbUrl;
+                    imageMedium = medUrl;
+                    imageFull = fullUrl;
+                    imageUrl = fullUrl;
+                } catch (imgErr) {
+                    console.error('이미지 업로드 실패:', imgErr);
+                    if (!confirm('이미지 업로드에 실패했습니다. 이미지 없이 등록하시겠습니까?')) {
+                        setRegisteringId(null);
+                        return;
+                    }
+                }
+            }
+
+            // 2. 이벤트 데이터 구성
+            const eventData: any = {
+                title: formattedTitle,
+                date: data.date,
+                start_date: data.date,
+                time: startTime,
+                location: data.location || '',
+                category: 'social',
+                genre: 'DJ,소셜',
+                link1: scraped.source_url || '',
+                link_name1: scraped.keyword || '',
+                description: scraped.extracted_text || '',
+                user_id: user.id,
+                group_id: 2, // 댄스빌보드 (관리자 일괄 등록)
+                day_of_week: new Date(data.date).getDay(),
+                image: imageUrl,
+                image_micro: imageMicro,
+                image_thumbnail: imageThumbnail,
+                image_medium: imageMedium,
+                image_full: imageFull,
+                storage_path: storagePath,
+                venue_id: matchedVenue?.id || null,
+                venue_name: matchedVenue?.name || data.location || null,
+            };
+
+            // 3. DB insert
+            const { data: result, error } = await supabase
+                .from('events')
+                .insert([eventData])
+                .select()
+                .maybeSingle();
+
+            if (error) throw error;
+
+            console.log('✅ 이벤트 등록 성공:', result);
+            setRegisteredIds(prev => new Set(prev).add(scraped.id));
+            alert(`등록 완료! (ID: ${result?.id})\n제목: ${formattedTitle}`);
+
+        } catch (err: any) {
+            console.error('이벤트 등록 실패:', err);
+            alert(`등록 실패: ${err.message}`);
+        } finally {
+            setRegisteringId(null);
+        }
+    }, [user, registeringId, matchVenue]);
 
     const toggleSelect = (id: string) => {
         setSelectedIds(prev => {
@@ -475,6 +647,9 @@ const EventIngestor: React.FC = () => {
                                             return next;
                                         });
                                     }}
+                                    onRegister={() => handleRegisterEvent(item)}
+                                    isRegistered={registeredIds.has(item.id)}
+                                    isRegistering={registeringId === item.id}
                                     matchInfo={(() => {
                                         const g = comparisonData.find(c => c.scrapedId === item.id);
                                         if (!g || g.dbMatches.length === 0) return undefined;
@@ -517,10 +692,13 @@ interface EventCardProps {
     isSelected: boolean;
     onSelect: () => void;
     onDismiss?: () => void;
+    onRegister?: () => void;
+    isRegistered?: boolean;
+    isRegistering?: boolean;
     matchInfo?: { score: number; status: string; dbTitle: string; matchReasons: string[] };
 }
 
-const EventCard: React.FC<EventCardProps & { event: any }> = ({ event, isDuplicate, isSelected, onSelect, onDismiss, matchInfo }) => {
+const EventCard: React.FC<EventCardProps & { event: any }> = ({ event, isDuplicate, isSelected, onSelect, onDismiss, onRegister, isRegistered, isRegistering, matchInfo }) => {
     const data = event.structured_data || {
         date: event.parsed_data?.date || 'unknown',
         title: event.parsed_data?.title || 'No Title',
@@ -625,12 +803,17 @@ const EventCard: React.FC<EventCardProps & { event: any }> = ({ event, isDuplica
                     >
                         🔄 재수집
                     </button>
-                    <button
-                        className="btn-register btn-sm primary"
-                        onClick={() => alert('등록 연동 준비 중')}
-                    >
-                        등록
-                    </button>
+                    {isRegistered ? (
+                        <span className="btn-register btn-sm registered">✅ 등록완료</span>
+                    ) : (
+                        <button
+                            className={`btn-register btn-sm primary ${isRegistering ? 'loading' : ''}`}
+                            onClick={onRegister}
+                            disabled={isRegistering || !onRegister}
+                        >
+                            {isRegistering ? '⏳ 등록중...' : '📥 등록'}
+                        </button>
+                    )}
                     {onDismiss && (
                         <button
                             className="btn-dismiss-card btn-sm"
