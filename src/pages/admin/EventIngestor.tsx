@@ -59,16 +59,15 @@ const EventIngestor: React.FC = () => {
         const fetchScraped = async () => {
             setLoadingScraped(true);
             try {
-                // [DB전환] 로컬 JSON 대신 Supabase 데이터 조회
-                const { data, error } = await supabase
-                    .from('scraped_events')
-                    .select('*')
-                    .order('created_at', { ascending: false });
-
-                if (error) throw error;
+                // [로컬전환] Netlify Function API에서 로컬 JSON 데이터 조회
+                const res = await fetch('/.netlify/functions/scraped-events');
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                const data = await res.json();
+                // created_at 역순 정렬
+                data.sort((a: any, b: any) => (b.created_at || '').localeCompare(a.created_at || ''));
                 setScrapedEvents(data || []);
             } catch (e) {
-                console.error("Failed to load scraped events from DB:", e);
+                console.error("Failed to load scraped events:", e);
             } finally {
                 setLoadingScraped(false);
             }
@@ -259,21 +258,23 @@ const EventIngestor: React.FC = () => {
 
     const handleBatchDismiss = useCallback(async () => {
         if (selectedIds.size === 0) return alert('선택된 항목이 없습니다.');
-        if (!confirm(`선택한 ${selectedIds.size}개의 항목을 DB에서 영구적으로 삭제하시겠습니까?`)) return;
+        if (!confirm(`선택한 ${selectedIds.size}개의 항목을 영구 삭제하시겠습니까? (이미지 파일도 함께 삭제됩니다)`)) return;
 
         try {
             const idsToDelete = Array.from(selectedIds);
-            const { error } = await supabase
-                .from('scraped_events')
-                .delete()
-                .in('id', idsToDelete);
-
-            if (error) throw error;
+            const res = await fetch('/.netlify/functions/scraped-events', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: idsToDelete }),
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const result = await res.json();
 
             // 로컬 상태 업데이트
             setScrapedEvents(prev => prev.filter(e => !selectedIds.has(e.id)));
             setSelectedIds(new Set());
-            alert(`${idsToDelete.length}개의 항목이 성공적으로 삭제되었습니다.`);
+            const imgMsg = result.deletedImages?.length > 0 ? `\n삭제된 이미지: ${result.deletedImages.length}개` : '';
+            alert(`${idsToDelete.length}개의 항목이 삭제되었습니다.${imgMsg}`);
         } catch (err: any) {
             console.error('일괄 삭제 실패:', err);
             alert(`삭제 중 오류가 발생했습니다: ${err.message}`);
@@ -653,13 +654,14 @@ const EventIngestor: React.FC = () => {
                                                                 <button
                                                                     className="btn-dismiss-card"
                                                                     onClick={async () => {
-                                                                        if (!confirm('이 항목을 수집 목록에서 영구 삭제하시겠습니까?')) return;
+                                                                        if (!confirm('이 항목을 수집 목록에서 영구 삭제하시겠습니까? (이미지도 함께 삭제됩니다)')) return;
                                                                         try {
-                                                                            const { error } = await supabase
-                                                                                .from('scraped_events')
-                                                                                .delete()
-                                                                                .eq('id', group.scrapedId);
-                                                                            if (error) throw error;
+                                                                            const res = await fetch('/.netlify/functions/scraped-events', {
+                                                                                method: 'DELETE',
+                                                                                headers: { 'Content-Type': 'application/json' },
+                                                                                body: JSON.stringify({ id: group.scrapedId }),
+                                                                            });
+                                                                            if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
                                                                             setScrapedEvents(prev => prev.filter(e => e.id !== group.scrapedId));
                                                                         } catch (err: any) {
@@ -741,13 +743,14 @@ const EventIngestor: React.FC = () => {
                                     isSelected={selectedIds.has(item.id)}
                                     onSelect={() => toggleSelect(item.id)}
                                     onDismiss={async () => {
-                                        if (!confirm('이 항목을 수집 목록에서 영구 삭제하시겠습니까?')) return;
+                                        if (!confirm('이 항목을 수집 목록에서 영구 삭제하시겠습니까? (이미지도 함께 삭제됩니다)')) return;
                                         try {
-                                            const { error } = await supabase
-                                                .from('scraped_events')
-                                                .delete()
-                                                .eq('id', item.id);
-                                            if (error) throw error;
+                                            const res = await fetch('/.netlify/functions/scraped-events', {
+                                                method: 'DELETE',
+                                                headers: { 'Content-Type': 'application/json' },
+                                                body: JSON.stringify({ id: item.id }),
+                                            });
+                                            if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
                                             setScrapedEvents(prev => prev.filter(e => e.id !== item.id));
                                         } catch (err: any) {

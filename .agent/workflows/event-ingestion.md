@@ -5,7 +5,7 @@
 ---
 
 > [!CAUTION]
-> ## 절대 원칙 10계명 (위반 시 전체 수집 무효)
+> ## 절대 원칙 13계명 (위반 시 전체 수집 무효)
 >
 > ### 데이터 무결성
 > 1. **Zero-Tolerance 날짜 검증**: 모든 날짜는 **2026년**이어야 하며, 해당 날짜의 **요일이 2026년 달력과 일치**해야 합니다. 불일치 시 즉시 폐기합니다.
@@ -24,6 +24,11 @@
 > 8. **시각적 증거 기반 추출 (Evidence-Based)**: 텍스트 추출 전, 이미지의 레이아웃과 주요 시각 요소를 먼저 기술합니다.
 > 9. **교차 검증 필수**: `browser_subagent`가 수집한 정보를 메인 에이전트가 '비판적 검토자' 관점에서 재검증합니다.
 > 10. **중단 보상 (Safe-Fail)**: "데이터가 불확실" 또는 "결과 없음"을 찾아내는 것은 **가장 높은 품질의 임무 수행**입니다. 억지로 데이터를 만들어내지 마십시오.
+>
+> ### 환각(Hallucination) 방지
+> 11. **개별 게시물 URL만 source_url 허용**: `source_url`은 반드시 **개별 게시물 URL**(인스타 `/p/xxx/`, 네이버 카페 `/글번호`)이어야 합니다. 달력 URL, 프로필 페이지, 인덱스 URL은 source_url로 사용 금지입니다.
+> 12. **빈 페이지에서 추측 생성 절대 금지**: 검색 결과가 없거나 빈 페이지(빈 달력 등)면 **즉시 종료**합니다. "보통 이렇게 운영하니까"식 추측으로 데이터를 만들어내는 행위는 최악의 위반입니다.
+> 13. **이미지 파일 물리적 존재 필수**: `poster_url`에 지정된 파일이 `public/scraped/`에 **물리적으로 존재**하지 않으면 해당 이벤트를 즉시 REJECT합니다. 존재하지 않는 파일명을 참조하는 것은 데이터 날조입니다.
 
 ---
 
@@ -38,6 +43,9 @@
 > | 포스터에 DJ 이름 없이 "정기모임" | DJ를 추측하여 기입 | DJ 소셜이 아니므로 수집 제외 |
 > | 이미지가 흐려서 글자가 불확실 | 문맥에서 유추하여 기입 | null로 두고 note에 "이미지 불선명으로 확인 불가" 기록 |
 > | "102기 린디합 개강" 발견 | 교육 이벤트도 수집 | "개강"은 강습이므로 무조건 제외 |
+> | Google Calendar가 빈 페이지 | "보통 목/토에 소셜을 하니까" 추측으로 데이터 생성 | 빈 페이지 = 결과 없음, 즉시 종료 |
+> | 소스 URL이 프로필 페이지(`/username/`) | 프로필을 source_url로 등록 | 개별 게시물 URL(`/p/xxx/`)만 허용 |
+> | 이미지 파일 다운로드 실패 | 존재하지 않는 파일명으로 poster_url 등록 | 이미지 없으면 REJECT |
 
 ---
 
@@ -63,11 +71,11 @@
 
 ### Phase 0: 기존 수집 데이터 확인 (중복 방지)
 
-수집을 시작하기 전에, DB에 이미 저장된 `source_url` 목록을 조회하여 중복 방문을 방지합니다.
+수집을 시작하기 전에, 로컬 JSON에 이미 저장된 `source_url` 목록을 조회하여 중복 방문을 방지합니다.
 
-1. **기존 URL 목록 로드**: Supabase `scraped_events` 테이블에서 `source_url` 컬럼 전체를 조회합니다.
-   ```sql
-   SELECT source_url FROM scraped_events;
+1. **기존 URL 목록 로드**: 로컬 Netlify Function API에서 수집 데이터를 조회합니다.
+   ```bash
+   curl -s http://localhost:8888/.netlify/functions/scraped-events | python3 -c "import sys,json; [print(e['source_url']) for e in json.load(sys.stdin)]"
    ```
 2. **스킵 판정 규칙**:
    - Phase 1에서 게시물에 접근할 때, 해당 게시물의 URL이 기존 목록에 **완전히 일치(Exact Match)**하는 경우에만 스킵합니다.
@@ -166,10 +174,21 @@
 
 ## §4. 데이터 저장 및 품질 관리
 
-### 저장 방식 (Supabase DB)
-- 수집된 데이터는 Supabase의 **`scraped_events` 테이블**에 저장합니다. (`src/data/scraped_events.json`은 더 이상 사용하지 않습니다.)
-- 검증을 통과한 데이터를 `supabase.from('scraped_events').upsert(...)` 로 DB에 삽입합니다.
+### 저장 방식 (로컬 JSON + Netlify Function API)
+- 수집된 데이터는 로컬 개발 서버의 **Netlify Function API**를 통해 `src/data/scraped_events.json`에 저장합니다.
+- 저장 명령 예시:
+  ```bash
+  curl -X POST http://localhost:8888/.netlify/functions/scraped-events \
+    -H "Content-Type: application/json" \
+    -d '[{"id": "ss_260218_wed", "keyword": "스윙스캔들", ...}]'
+  ```
 - 삽입 전, **`keyword + date` 조합**으로 기존 `events` 테이블과 대조하여 이미 등록된 이벤트인지 이중 확인합니다 (사후 보험).
+- **삭제 시 이미지 자동 삭제**: DELETE 요청 시 `poster_url`에 해당하는 `public/scraped/` 이미지 파일도 함께 삭제됩니다.
+  ```bash
+  curl -X DELETE http://localhost:8888/.netlify/functions/scraped-events \
+    -H "Content-Type: application/json" \
+    -d '{"ids": ["ss_260219_thu", "ss_260305_thu"]}'
+  ```
 
 ### 품질 관리
 - 실물 이미지와 데이터의 일치성을 `/admin/ingestor`에서 최종 육안 확인
