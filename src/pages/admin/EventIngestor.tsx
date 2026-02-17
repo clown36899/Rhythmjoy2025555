@@ -58,15 +58,47 @@ const EventIngestor: React.FC = () => {
         });
     };
 
+    const buildEventDetail = (e: ScrapedEvent) => {
+        const data = e.structured_data;
+        const imageUrl = e.poster_url || e.screenshot_url;
+        const issues: string[] = [];
+        if (!imageUrl) issues.push('이미지 누락');
+        if (!data?.date) issues.push('날짜 누락');
+        if (!data?.djs || data.djs.length === 0) issues.push('DJ 미확인');
+        if (issues.length === 0) issues.push('이미지/데이터 정합성 검증 필요');
+
+        const lines = [
+            `- 키워드: ${e.keyword || '알수없음'}`,
+            `  URL: ${e.source_url}`,
+            `  날짜: ${data?.date || '미확인'} (${data?.day || '?'})`,
+            `  제목: ${data?.title || '미확인'}`,
+            `  DJ: ${data?.djs?.join(', ') || '미확인'}`,
+            `  현재 이미지: ${imageUrl || '없음'}`,
+            `  문제점: ${issues.join(', ')}`,
+        ];
+        return lines.join('\n');
+    };
+
     const copyBatchPrompt = () => {
         if (selectedIds.size === 0) return alert("항목을 선택해주세요.");
 
         const targets = scrapedEvents.filter(e => selectedIds.has(e.id));
-        const prompt = `Event Ingestion Recipe 가이드에 따라서 다음 이벤트들을 다시 정밀 수집해줘:\n\n` +
-            targets.map(e => `- 키워드: ${e.keyword || '알수없음'}, URL: ${e.source_url}`).join('\n');
+        const prompt = [
+            `Event Ingestion Recipe 가이드에 따라서 아래 이벤트들만 정밀 재수집해줘.`,
+            `전체 소스를 재검색하지 말고, 각 이벤트의 URL에서 해당 날짜의 포스트만 찾아서 이미지와 데이터를 수정해줘.`,
+            ``,
+            `## 재수집 대상 (${targets.length}건)`,
+            ...targets.map((e, i) => `\n### ${i + 1}. ${e.structured_data?.title || e.id}\n${buildEventDetail(e)}`),
+            ``,
+            `## 요구사항`,
+            `- 이미지: 포스터 전체가 크롭 없이 캡처되어야 함`,
+            `- 날짜: 2026년 달력 기준 요일 일치 검증 필수`,
+            `- 수집된 이미지는 public/scraped 폴더에 저장할 것`,
+            `- 위 이벤트만 수정하고 나머지 scraped_events.json 데이터는 건드리지 말 것`,
+        ].join('\n');
 
         navigator.clipboard.writeText(prompt);
-        alert("재수집 요청 스크립트가 복사되었습니다. 채팅창에 붙여넣으세요!");
+        alert("정밀 재수집 요청이 복사되었습니다. 채팅창에 붙여넣으세요!");
     };
 
     const { newList, duplicateList } = useMemo(() => {
@@ -212,9 +244,31 @@ const EventCard: React.FC<EventCardProps & { event: any }> = ({ event, isDuplica
     const keywords = event.allKeywords || (event.keyword ? [event.keyword] : []);
 
     const copySinglePrompt = () => {
-        const prompt = `Event Ingestion Recipe 가이드에 따라서 [${keywords.join(', ')}] 이벤트를 다시 정밀 수집해줄래? 고화질 이미지가 누락되었거나 내용이 부정확해.\n\nURL: ${event.source_url}`;
+        const issues: string[] = [];
+        if (!imageUrl) issues.push('이미지 누락');
+        if (!data?.djs || data.djs.length === 0) issues.push('DJ 미확인');
+        if (issues.length === 0) issues.push('이미지/데이터 정합성 검증 필요');
+
+        const prompt = [
+            `Event Ingestion Recipe 가이드에 따라서 아래 이벤트 1건만 정밀 재수집해줘.`,
+            `전체 소스를 재검색하지 말고, 이 URL에서 해당 날짜의 포스트만 찾아서 수정해줘.`,
+            ``,
+            `- 키워드: ${keywords.join(', ')}`,
+            `  URL: ${event.source_url}`,
+            `  날짜: ${data?.date || '미확인'} (${data?.day || '?'})`,
+            `  제목: ${data?.title || '미확인'}`,
+            `  DJ: ${data?.djs?.join(', ') || '미확인'}`,
+            `  현재 이미지: ${imageUrl || '없음'}`,
+            `  문제점: ${issues.join(', ')}`,
+            ``,
+            `요구사항:`,
+            `- 이미지: 포스터 전체가 크롭 없이 캡처되어야 함`,
+            `- 날짜: 2026년 달력 기준 요일 일치 검증 필수`,
+            `- 수집된 이미지는 public/scraped 폴더에 저장할 것`,
+            `- 이 이벤트만 수정하고 나머지 scraped_events.json 데이터는 건드리지 말 것`,
+        ].join('\n');
         navigator.clipboard.writeText(prompt);
-        alert("재수집 요청이 복사되었습니다.");
+        alert("정밀 재수집 요청이 복사되었습니다.");
     };
 
     return (
