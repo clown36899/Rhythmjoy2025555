@@ -29,13 +29,12 @@ const SocialPage: React.FC = () => {
   const { groups, refresh: refreshGroups } = useSocialGroups();
   const { isAdmin, user, signInWithKakao } = useAuth();
 
-  const {
-    handleEditClick,
-    handleDeleteClick,
-    handleVenueClick,
-    isDeleting,
-    deleteProgress
-  } = useEventActions({ adminType: null, user, signInWithKakao });
+  // Fetch event actions (Register/Edit/Delete)
+  const { handleEditClick: handleEditSocial, handleDeleteClick: handleDeleteSocial, handleVenueClick: handleVenueSocial, isDeleting: isDeletingSocial, deleteProgress: deleteProgressSocial } = useEventActions({
+    adminType: null,
+    user,
+    signInWithKakao
+  });
 
   // View Date State for Weekly Fetching (Declared early for use in hooks)
   const [currentViewDate, setCurrentViewDate] = useState<Date>(new Date());
@@ -351,18 +350,18 @@ const SocialPage: React.FC = () => {
       schedule,
       onCopy: handleCopySchedule,
       isAdmin: isAdmin || (user && schedule.user_id === user.id),
-      onEdit: handleEditClick,
+      onEdit: handleEditSocial,
       onDelete: async (_data: any, e: any) => {
-        const success = await handleDeleteClick(schedule as any, e);
+        const success = await handleDeleteSocial(schedule as any, e);
         if (success) {
           socialDetailModal.close();
         }
       },
-      onOpenVenueDetail: handleVenueClick,
-      isDeleting,
-      deleteProgress
+      onOpenVenueDetail: handleVenueSocial,
+      isDeleting: isDeletingSocial,
+      deleteProgress: deleteProgressSocial
     });
-  }, [isAdmin, user, socialDetailModal, handleCopySchedule, handleEditClick, handleDeleteClick, handleVenueClick, isDeleting, deleteProgress]);
+  }, [isAdmin, user, socialDetailModal, handleCopySchedule, handleEditSocial, handleDeleteSocial, handleVenueSocial, isDeletingSocial, deleteProgressSocial]);
 
   const handleEditGroup = useCallback(async (group: SocialGroup) => {
     if (!user) {

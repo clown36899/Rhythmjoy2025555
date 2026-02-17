@@ -43,7 +43,6 @@ const EventIngestor: React.FC = () => {
     const [loadingScraped, setLoadingScraped] = useState(true);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [showComparison, setShowComparison] = useState(false);
-    const [dismissedIds, setDismissedIds] = useState<Set<string>>(new Set());
     const [registeredIds, setRegisteredIds] = useState<Set<string>>(new Set());
     const [registeringId, setRegisteringId] = useState<string | null>(null);
     const [venues, setVenues] = useState<VenueRecord[]>([]);
@@ -58,13 +57,18 @@ const EventIngestor: React.FC = () => {
 
     useEffect(() => {
         const fetchScraped = async () => {
+            setLoadingScraped(true);
             try {
-                const res = await fetch(`/src/data/scraped_events.json?t=${Date.now()}`);
-                if (!res.ok) throw new Error("Failed to fetch");
-                const data = await res.json();
-                setScrapedEvents(data);
+                // [DB전환] 로컬 JSON 대신 Supabase 데이터 조회
+                const { data, error } = await supabase
+                    .from('scraped_events')
+                    .select('*')
+                    .order('created_at', { ascending: false });
+
+                if (error) throw error;
+                setScrapedEvents(data || []);
             } catch (e) {
-                console.error("Failed to load scraped events:", e);
+                console.error("Failed to load scraped events from DB:", e);
             } finally {
                 setLoadingScraped(false);
             }
@@ -253,16 +257,27 @@ const EventIngestor: React.FC = () => {
         setSelectedIds(new Set());
     }, [selectedIds, scrapedEvents, registeredIds, handleRegisterEvent]);
 
-    const handleBatchDismiss = useCallback(() => {
+    const handleBatchDismiss = useCallback(async () => {
         if (selectedIds.size === 0) return alert('선택된 항목이 없습니다.');
-        if (!confirm(`선택한 ${selectedIds.size}개의 항목을 목록에서 제외하시겠습니까?`)) return;
+        if (!confirm(`선택한 ${selectedIds.size}개의 항목을 DB에서 영구적으로 삭제하시겠습니까?`)) return;
 
-        setDismissedIds(prev => {
-            const next = new Set(prev);
-            selectedIds.forEach(id => next.add(id));
-            return next;
-        });
-        setSelectedIds(new Set());
+        try {
+            const idsToDelete = Array.from(selectedIds);
+            const { error } = await supabase
+                .from('scraped_events')
+                .delete()
+                .in('id', idsToDelete);
+
+            if (error) throw error;
+
+            // 로컬 상태 업데이트
+            setScrapedEvents(prev => prev.filter(e => !selectedIds.has(e.id)));
+            setSelectedIds(new Set());
+            alert(`${idsToDelete.length}개의 항목이 성공적으로 삭제되었습니다.`);
+        } catch (err: any) {
+            console.error('일괄 삭제 실패:', err);
+            alert(`삭제 중 오류가 발생했습니다: ${err.message}`);
+        }
     }, [selectedIds]);
 
     const toggleSelect = (id: string) => {
@@ -270,6 +285,19 @@ const EventIngestor: React.FC = () => {
             const next = new Set(prev);
             if (next.has(id)) next.delete(id);
             else next.add(id);
+            return next;
+        });
+    };
+
+    const handleToggleSelectAll = (ids: string[]) => {
+        const allSelected = ids.every(id => selectedIds.has(id));
+        setSelectedIds(prev => {
+            const next = new Set(prev);
+            if (allSelected) {
+                ids.forEach(id => next.delete(id));
+            } else {
+                ids.forEach(id => next.add(id));
+            }
             return next;
         });
     };
@@ -321,7 +349,12 @@ const EventIngestor: React.FC = () => {
         // 1. URL + Date 기반 내부 중복 제거 및 키워드 병합
         const uniqueMap = new Map<string, ScrapedEvent & { allKeywords: string[] }>();
 
-        scrapedEvents.forEach(event => {
+        console.log(`[EventIngestor] Memo re-calculating... Scraped: ${scrapedEvents.length}`);
+
+        // [Stability] Sort events to ensure consistent ID picking during merge
+        const sortedInput = [...scrapedEvents].sort((a, b) => a.id.localeCompare(b.id));
+
+        sortedInput.forEach(event => {
             const date = event.structured_data?.date || event.parsed_data?.date || 'unknown';
             const url = event.source_url;
             const key = `${url}_${date}`;
@@ -568,9 +601,8 @@ const EventIngestor: React.FC = () => {
                 <div className="ingestor-stats">
                     <span>수집된 총 항목: <b>{scrapedEvents.length}</b></span>
                     <span>DB 등록 이벤트: <b>{existingEvents.length}</b></span>
-                    <span>신규 가능: <b>{newList.filter(i => !dismissedIds.has(i.id)).length}</b></span>
+                    <span>신규 후보: <b>{newList.length}</b></span>
                     <span>중복 발견: <b>{duplicateList.length}</b></span>
-                    {dismissedIds.size > 0 && <span>제외됨: <b>{dismissedIds.size}</b></span>}
                 </div>
             </header>
 
@@ -619,18 +651,24 @@ const EventIngestor: React.FC = () => {
                                                         <>
                                                             <td rowSpan={rowCount} className="dismiss-cell">
                                                                 <button
-                                                                    className={`btn-dismiss-card ${dismissedIds.has(group.scrapedId) ? 'dismissed' : ''}`}
-                                                                    onClick={() => {
-                                                                        setDismissedIds(prev => {
-                                                                            const next = new Set(prev);
-                                                                            if (next.has(group.scrapedId)) next.delete(group.scrapedId);
-                                                                            else next.add(group.scrapedId);
-                                                                            return next;
-                                                                        });
+                                                                    className="btn-dismiss-card"
+                                                                    onClick={async () => {
+                                                                        if (!confirm('이 항목을 수집 목록에서 영구 삭제하시겠습니까?')) return;
+                                                                        try {
+                                                                            const { error } = await supabase
+                                                                                .from('scraped_events')
+                                                                                .delete()
+                                                                                .eq('id', group.scrapedId);
+                                                                            if (error) throw error;
+
+                                                                            setScrapedEvents(prev => prev.filter(e => e.id !== group.scrapedId));
+                                                                        } catch (err: any) {
+                                                                            alert(`삭제 실패: ${err.message}`);
+                                                                        }
                                                                     }}
-                                                                    title={dismissedIds.has(group.scrapedId) ? '복원' : '신규 목록에서 제외'}
+                                                                    title="신규 목록에서 영구 삭제"
                                                                 >
-                                                                    {dismissedIds.has(group.scrapedId) ? '↩' : '✕'}
+                                                                    ✕
                                                                 </button>
                                                             </td>
                                                             <td rowSpan={rowCount}>{group.scrapedDate}</td>
@@ -668,30 +706,53 @@ const EventIngestor: React.FC = () => {
                 )}
 
                 <section className="ingestor-section">
-                    <h2>
-                        <span className="icon">🆕</span> 신규 이벤트 후보
-                        <span className="count-badge">{newList.filter(i => !dismissedIds.has(i.id)).length}</span>
-                        {dismissedIds.size > 0 && (
-                            <span className="count-badge dismissed-count">제외 {dismissedIds.size}</span>
+                    <div className="section-header-row">
+                        <h2>
+                            <span className="icon">🆕</span> 신규 이벤트 후보
+                            <span className="count-badge">{newList.length}</span>
+                        </h2>
+                        {newList.length > 0 && (
+                            <label className="select-all-label">
+                                <input
+                                    type="checkbox"
+                                    checked={newList.every(item => selectedIds.has(item.id))}
+                                    ref={el => {
+                                        if (el) {
+                                            const someSelected = newList.some(item => selectedIds.has(item.id));
+                                            const allSelected = newList.every(item => selectedIds.has(item.id));
+                                            el.indeterminate = someSelected && !allSelected;
+                                        }
+                                    }}
+                                    onChange={() => handleToggleSelectAll(newList.map(item => item.id))}
+                                />
+                                <span>전체 선택</span>
+                            </label>
                         )}
-                    </h2>
-                    {newList.filter(i => !dismissedIds.has(i.id)).length === 0 ? (
+                    </div>
+                    {newList.length === 0 ? (
                         <p className="no-data">새로운 수집 데이터가 없습니다.</p>
                     ) : (
                         <div className="ingestor-grid">
-                            {newList.filter(i => !dismissedIds.has(i.id)).map(item => (
+                            {newList.map(item => (
                                 <EventCard
                                     key={item.id}
                                     event={item}
                                     isDuplicate={false}
                                     isSelected={selectedIds.has(item.id)}
                                     onSelect={() => toggleSelect(item.id)}
-                                    onDismiss={() => {
-                                        setDismissedIds(prev => {
-                                            const next = new Set(prev);
-                                            next.add(item.id);
-                                            return next;
-                                        });
+                                    onDismiss={async () => {
+                                        if (!confirm('이 항목을 수집 목록에서 영구 삭제하시겠습니까?')) return;
+                                        try {
+                                            const { error } = await supabase
+                                                .from('scraped_events')
+                                                .delete()
+                                                .eq('id', item.id);
+                                            if (error) throw error;
+
+                                            setScrapedEvents(prev => prev.filter(e => e.id !== item.id));
+                                        } catch (err: any) {
+                                            alert(`삭제 실패: ${err.message}`);
+                                        }
                                     }}
                                     onRegister={() => handleRegisterEvent(item)}
                                     isRegistered={registeredIds.has(item.id)}
@@ -710,10 +771,29 @@ const EventIngestor: React.FC = () => {
 
                 {duplicateList.length > 0 && (
                     <section className="ingestor-section duplicate-section">
-                        <h2>
-                            <span className="icon">⚠️</span> 발견된 중복 항목 (DB 존재)
-                            <span className="count-badge">{duplicateList.length}</span>
-                        </h2>
+                        <div className="section-header-row">
+                            <h2>
+                                <span className="icon">⚠️</span> 발견된 중복 항목 (DB 존재)
+                                <span className="count-badge">{duplicateList.length}</span>
+                            </h2>
+                            {duplicateList.length > 0 && (
+                                <label className="select-all-label">
+                                    <input
+                                        type="checkbox"
+                                        checked={duplicateList.every(item => selectedIds.has(item.id))}
+                                        ref={el => {
+                                            if (el) {
+                                                const someSelected = duplicateList.some(item => selectedIds.has(item.id));
+                                                const allSelected = duplicateList.every(item => selectedIds.has(item.id));
+                                                el.indeterminate = someSelected && !allSelected;
+                                            }
+                                        }}
+                                        onChange={() => handleToggleSelectAll(duplicateList.map(item => item.id))}
+                                    />
+                                    <span>전체 선택</span>
+                                </label>
+                            )}
+                        </div>
                         <div className="ingestor-grid">
                             {duplicateList.map(item => (
                                 <EventCard
@@ -728,7 +808,7 @@ const EventIngestor: React.FC = () => {
                     </section>
                 )}
             </main>
-        </div>
+        </div >
     );
 };
 

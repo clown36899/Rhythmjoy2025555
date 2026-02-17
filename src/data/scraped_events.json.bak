@@ -1,0 +1,140 @@
+[
+    {
+        "id": "ks_260217_tuesday",
+        "keyword": "경성홀",
+        "source_url": "https://www.instagram.com/p/DUkaSBPEtaP/",
+        "poster_url": "/scraped/kyungsung_hall_20260217_1771318009799.png",
+        "extracted_text": "Kyungsung Hall / 2026.02.17 / 설날 소셜 공지 / DJ 호두 / 8-11PM / Dela's <Jitterbug Stroll> 무료 워크샵",
+        "structured_data": {
+            "date": "2026-02-17",
+            "day": "화",
+            "title": "설날 소셜 (DJ 호두)",
+            "status": "정상운영",
+            "djs": [
+                "호두"
+            ],
+            "times": [
+                "20:00 ~ 23:00"
+            ],
+            "location": "경성홀",
+            "fee": "9,000원",
+            "note": "설날 당일 소셜, 무료 지터벅 스트롤 워크샵 포함"
+        },
+        "created_at": "2026-02-17T17:55:00Z"
+    },
+    {
+        "id": "ss_260218_wednesday",
+        "keyword": "스윙스캔들",
+        "source_url": "https://cafe.naver.com/f-e/101953",
+        "poster_url": "/scraped/ss_260218_savoy_live_night.png",
+        "extracted_text": "February Savoy Live Night!! / 2월 18일(수), 설 연휴의 마지막 날! / DJ 테일 / 라이브 밴드 서효상과 핫한 녀석들 / 24,000원",
+        "structured_data": {
+            "date": "2026-02-18",
+            "day": "수",
+            "title": "February Savoy Live Night!! (DJ 테일)",
+            "status": "정상운영",
+            "djs": [
+                "테일"
+            ],
+            "times": [
+                "19:30 ~ 00:00"
+            ],
+            "location": "사보이 볼룸",
+            "fee": "24,000원",
+            "note": "정밀 재수집 완료 (원본 이미지 확보, DJ 테일 확인)"
+        },
+        "created_at": "2026-02-17T12:35:00Z"
+    },
+    {
+        "id": "sf_260218_wednesday",
+        "keyword": "스윙프렌즈",
+        "source_url": "https://www.instagram.com/p/DUPlMGJkw6r/",
+        "poster_url": "/scraped/sf_260218_balboa_social.png",
+        "extracted_text": "2/18(수) 발보아 쏘셜 (8:00-11:00) / DJ 라디앙 (Radi-ang)",
+        "structured_data": {
+            "date": "2026-02-18",
+            "day": "수",
+            "title": "발보아 쏘셜 (DJ 라디앙)",
+            "status": "정상운영",
+            "djs": [
+                "라디앙"
+            ],
+            "times": [
+                "20:00 ~ 23:00"
+            ],
+            "location": "쏘셜클럽 (합정)",
+            "fee": "null",
+            "note": "정밀 재수집 완료 (날짜별 전용 포스터 확보, DJ 라디앙 확인)"
+        },
+        "created_at": "2026-02-17T17:55:00Z"
+    },
+    {
+        "id": "hh_260220_friday",
+        "keyword": "해피홀",
+        "source_url": "https://www.instagram.com/p/DU2eJmXEdk4/",
+        "poster_url": "/scraped/happy_hall_20260220_1771318029350.png",
+        "extracted_text": "02월 20일 금햄DJ를 소개합니다 / DJ: ❤️해림❤️ / DJtime : Pm 8:30 / ₩ 10,000 / 무료라인강습은 -없습니다-",
+        "structured_data": {
+            "date": "2026-02-20",
+            "day": "금",
+            "title": "해피홀 금요소셜 (DJ 해림)",
+            "status": "정상운영",
+            "djs": [
+                "해림"
+            ],
+            "times": [
+                "20:30 ~ 23:30"
+            ],
+            "location": "해피홀",
+            "fee": "10,000원",
+            "note": "금햄DJ 특집"
+        },
+        "created_at": "2026-02-17T17:55:00Z"
+    },
+    {
+        "id": "sh_260221_saturday",
+        "keyword": "스윙홀릭",
+        "source_url": "https://www.instagram.com/swingholic/",
+        "poster_url": "/scraped/sh_260221_monthly_jinwoong.png",
+        "extracted_text": "SWING HOLIC / Monthly DJ Social / 02.21 진웅 / PM08-10:30 / MAYAN F3 / 9,000",
+        "structured_data": {
+            "date": "2026-02-21",
+            "day": "토",
+            "title": "스윙홀릭 Monthly DJ 소셜 (DJ 진웅)",
+            "status": "정상운영",
+            "djs": [
+                "진웅"
+            ],
+            "times": [
+                "20:00 ~ 22:30"
+            ],
+            "location": "광주 마얀 F3",
+            "fee": "9,000원",
+            "note": "정밀 재수집 완료 (원본 캘린더 이미지 확보, DJ 진웅 확인)"
+        },
+        "created_at": "2026-02-17T12:35:00Z"
+    },
+    {
+        "id": "sf_260225_wednesday",
+        "keyword": "스윙프렌즈",
+        "source_url": "https://www.instagram.com/p/DUPlMGJkw6r/",
+        "poster_url": "/scraped/sf_260225_balboa_social.png",
+        "extracted_text": "2/25(수) 발보아 쏘셜 (8:00-11:00) / DJ 아드리아 (Adria)",
+        "structured_data": {
+            "date": "2026-02-25",
+            "day": "수",
+            "title": "발보아 쏘셜 (DJ 아드리아)",
+            "status": "정상운영",
+            "djs": [
+                "아드리아"
+            ],
+            "times": [
+                "20:00 ~ 23:00"
+            ],
+            "location": "쏘셜클럽 (합정)",
+            "fee": "null",
+            "note": "정밀 재수집 완료 (날짜별 전용 포스터 확보, DJ 아드리아 확인)"
+        },
+        "created_at": "2026-02-17T17:55:00Z"
+    }
+]
