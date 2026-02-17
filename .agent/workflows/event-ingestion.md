@@ -54,12 +54,29 @@
 | 7 | 대전스윙피버 | [인스타그램](https://www.instagram.com/daejeon.swingfever/) |
 | 8 | 스윙홀릭 | [인스타그램](https://www.instagram.com/swingholic/) |
 
-- **필터링**: 검색 엔진의 도구/옵션에서 '지난 1개월' 필터를 사용합니다.
+- **필터링**: 검색 엔진의 도구/옵션에서 '지난 1주일' 필터를 사용합니다.
 - **위 8개 외의 소스에서 발견된 데이터는 아무리 유용해도 수집하지 않습니다.**
 
 ---
 
-## §2. 2단계 수집 프로세스
+## §2. 3단계 수집 프로세스
+
+### Phase 0: 기존 수집 데이터 확인 (중복 방지)
+
+수집을 시작하기 전에, DB에 이미 저장된 `source_url` 목록을 조회하여 중복 방문을 방지합니다.
+
+1. **기존 URL 목록 로드**: Supabase `scraped_events` 테이블에서 `source_url` 컬럼 전체를 조회합니다.
+   ```sql
+   SELECT source_url FROM scraped_events;
+   ```
+2. **스킵 판정 규칙**:
+   - Phase 1에서 게시물에 접근할 때, 해당 게시물의 URL이 기존 목록에 **완전히 일치(Exact Match)**하는 경우에만 스킵합니다.
+   - **부분 일치, 도메인 일치, prefix 일치로는 절대 스킵하지 않습니다.**
+   - 예: DB에 `instagram.com/p/ABC123/`이 있을 때, `instagram.com/p/XYZ789/`는 스킵하지 않습니다.
+   - 예: DB에 `instagram.com/p/ABC123/`이 있을 때, `instagram.com/`은 스킵하지 않습니다.
+3. **스킵 시 보고**: 스킵한 URL 수와 새로 수집 대상이 되는 URL 수를 요약 보고합니다.
+
+---
 
 ### Phase 1: 수집 (browser_subagent + 메인 에이전트)
 
@@ -149,7 +166,12 @@
 
 ## §4. 데이터 저장 및 품질 관리
 
-- `src/data/scraped_events.json` 업데이트 시 기존 데이터와의 중복 여부(날짜+장소) 확인
+### 저장 방식 (Supabase DB)
+- 수집된 데이터는 Supabase의 **`scraped_events` 테이블**에 저장합니다. (`src/data/scraped_events.json`은 더 이상 사용하지 않습니다.)
+- 검증을 통과한 데이터를 `supabase.from('scraped_events').upsert(...)` 로 DB에 삽입합니다.
+- 삽입 전, **`keyword + date` 조합**으로 기존 `events` 테이블과 대조하여 이미 등록된 이벤트인지 이중 확인합니다 (사후 보험).
+
+### 품질 관리
 - 실물 이미지와 데이터의 일치성을 `/admin/ingestor`에서 최종 육안 확인
 - **2026년이 아닌 날짜, 허용 목록 외 소스, DJ 미명시 이벤트가 하나라도 포함되면 전체 배치를 재검증합니다**
 
