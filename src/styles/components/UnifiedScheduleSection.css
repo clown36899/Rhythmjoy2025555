@@ -95,7 +95,7 @@
     gap: 12px;
     overflow-x: auto;
     overflow-y: hidden;
-    padding: 10px 16px 20px 16px;
+    padding: 16px 16px 20px 16px;
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
@@ -189,7 +189,7 @@
 
 /* 장소 */
 .USS-container .USS-place {
-    display: inline-flex;
+    display: flex;
     align-items: center;
     gap: 2px;
     padding: 0;
@@ -203,6 +203,12 @@
     overflow: hidden;
     text-overflow: ellipsis;
     text-align: center;
+    max-width: 100%;
+}
+
+.USS-container .USS-place span {
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .USS-container .USS-place i {
@@ -213,7 +219,7 @@
 
 .USS-container .USS-ddayBadge {
     position: absolute;
-    top: -6px;
+    top: -12px;
     left: -6px;
     padding: 3px 8px;
     border-radius: 6px;
