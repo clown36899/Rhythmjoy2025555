@@ -319,13 +319,11 @@
         window.location.reload();
       });
 
-      // 대기 중인 SW가 있으면 자동으로 업데이트 적용 (중복 호출 방지)
-      var _swUpdateApplied = false;
+      // 업데이트 대기 플래그: 사용 중에는 리로드하지 않고, 자연스러운 전환 시점에 적용
+      // window.__SW_UPDATE_PENDING = true → React 라우트 전환 시 체크
       function autoApplyUpdate(reg) {
         if (window.location.pathname.includes('/billboard/')) return;
         if (!reg || !reg.waiting) return;
-        if (_swUpdateApplied) return;
-        _swUpdateApplied = true;
         window.__BOOT_LOG && window.__BOOT_LOG('Auto-applying SW update');
         var urlParams = new URLSearchParams(window.location.search);
         if (!urlParams.has('code') && !urlParams.has('error')) {
@@ -337,6 +335,15 @@
           var p = new URLSearchParams(window.location.search);
           if (!p.has('code') && !p.has('error')) window.location.reload();
         }, 3000);
+      }
+
+      // 새 SW가 대기 중임을 표시만 하고, 리로드는 자연스러운 시점까지 미룸
+      function markUpdatePending(reg) {
+        if (window.location.pathname.includes('/billboard/')) return;
+        if (!reg || !reg.waiting) return;
+        window.__SW_UPDATE_PENDING = true;
+        window.__SW_REG = reg;
+        window.__BOOT_LOG && window.__BOOT_LOG('SW update pending (waiting for navigation)');
       }
 
       window.addEventListener('load', function () {
@@ -351,10 +358,9 @@
           window.__SW_REG = reg;
           window.__BOOT_LOG && window.__BOOT_LOG('SW Registered', { version: 'v50' });
 
-          // 1) 페이지 로드 시 이미 대기 중인 SW가 있을 때
+          // 1) 페이지 로드 시 이미 대기 중인 SW가 있을 때 → 즉시 적용 (새로고침/PWA실행 등 자연스러운 진입점)
           if (reg.waiting) {
             if (navigator.serviceWorker.controller) {
-              // 업데이트: 기존 SW → 새 SW 교체
               autoApplyUpdate(reg);
             } else {
               // 최초 설치: controller 없음 → skipWaiting으로 즉시 활성화
@@ -363,15 +369,16 @@
             return;
           }
 
-          // 2) 새 SW 설치 완료(waiting) 시
+          // 2) 사용 중 새 SW 설치 완료(waiting) → 즉시 리로드하지 않고 대기
+          //    라우트 전환/포커스 복귀/다음 페이지 로드 시 적용됨
           reg.addEventListener('updatefound', function () {
             var worker = reg.installing;
             if (!worker) return;
             worker.addEventListener('statechange', function () {
               if (worker.state === 'installed') {
                 if (navigator.serviceWorker.controller) {
-                  // 업데이트: 자동 적용
-                  autoApplyUpdate(reg);
+                  // 사용 중 업데이트 감지: 대기만 하고 리로드는 미룸
+                  markUpdatePending(reg);
                 } else {
                   // 최초 설치: 즉시 활성화
                   reg.waiting && reg.waiting.postMessage({ type: 'SKIP_WAITING' });
@@ -381,9 +388,15 @@
           });
         });
 
-        // 3) PWA 재실행 / 탭 포커스 복귀 시 → 업데이트 체크 후 자동 적용
+        // 3) PWA 재실행 / 탭 포커스 복귀 시 → 자연스러운 전환 시점이므로 즉시 적용
         document.addEventListener('visibilitychange', function () {
           if (document.visibilityState === 'visible' && window.__SW_REG) {
+            // 이미 대기 중인 업데이트가 있으면 즉시 적용
+            if (window.__SW_UPDATE_PENDING && window.__SW_REG.waiting) {
+              autoApplyUpdate(window.__SW_REG);
+              return;
+            }
+            // 서버에 새 SW가 있는지 체크
             window.__SW_REG.update().then(function () {
               if (window.__SW_REG.waiting && navigator.serviceWorker.controller) {
                 autoApplyUpdate(window.__SW_REG);

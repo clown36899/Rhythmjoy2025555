@@ -238,6 +238,17 @@ function AppContent() {
   useEffect(() => {
     clearNotifications();
 
+    // [SW Update] 라우트 전환 = 자연스러운 전환 시점 → 대기 중인 SW 업데이트 적용
+    if ((window as any).__SW_UPDATE_PENDING && (window as any).__SW_REG) {
+      const reg = (window as any).__SW_REG;
+      if (reg.waiting) {
+        (window as any).__SW_UPDATE_PENDING = false;
+        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+        // controllerchange 이벤트가 리로드를 처리함
+        return;
+      }
+    }
+
     // "/" 경로는 "/v2"로 즉시 리다이렉트되므로 페이지뷰 기록 안함
     if (location.pathname === '/') {
       return;
