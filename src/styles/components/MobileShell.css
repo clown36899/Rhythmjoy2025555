@@ -63,8 +63,8 @@
   overscroll-behavior: contain;
 
   /* [Foggy Boundary] 하단 바 자체의 상단을 마스크 처리 */
-  -webkit-mask-image: var(--bottom-nav-mask-image);
-  mask-image: var(--bottom-nav-mask-image);
+  /* -webkit-mask-image: var(--bottom-nav-mask-image);
+  mask-image: var(--bottom-nav-mask-image); */
 }
 
 
