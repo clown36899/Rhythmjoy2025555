@@ -2,12 +2,18 @@
 const CACHE_NAME = 'rhythmjoy-cache-v1.0.3';
 // Last updated: 2026-02-15 (v49)
 self.addEventListener('install', (event) => {
-  // index.html을 반드시 캐시한 후 skipWaiting (navigate fallback 보장)
+  // PWA 설치 요건: 루트(/)와 필수 에셋이 캐시되어야 오프라인 신뢰성을 인정받음
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => cache.add('/index.html'))
+      .then(cache => cache.addAll([
+        '/',
+        '/index.html',
+        '/manifest.json',
+        '/icon-192.png',
+        '/?utm_source=pwa'
+      ]))
       .then(() => {
-        console.log('[SW] index.html pre-cached');
+        console.log('[SW] Essential assets pre-cached (V49) - MDN Compliant');
         return self.skipWaiting();
       })
   );
@@ -75,8 +81,9 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // hashed assets (/assets/*) → 네트워크 전용, 실패 시 브라우저 기본 처리
-  // main.tsx의 handleChunkError가 404를 감지하여 리로드 처리
+  // [PWA Reliable] 그 외 모든 동일 출처 요청에 대해 respondWith 보장
+  // 크롬의 PWA 설치 기준(WebAPK)은 fetch 핸들러가 존재하고 유효한 응답을 내놓는지를 체크합니다.
+  event.respondWith(fetch(event.request));
 });
 
 self.addEventListener('message', (event) => {

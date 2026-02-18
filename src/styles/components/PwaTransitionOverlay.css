@@ -110,6 +110,22 @@
     font-size: 18px;
 }
 
+.PTO-ios-subtitle {
+    font-size: 13px;
+    font-weight: 600;
+    color: #FFD700;
+    margin-bottom: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.PTO-footer-note {
+    margin-top: 24px;
+    font-size: 12px;
+    color: #777;
+    line-height: 1.5;
+}
+
 .PTO-ios-step-text strong {
     color: #fff;
     font-weight: 600;

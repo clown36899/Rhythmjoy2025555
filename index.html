@@ -5,7 +5,7 @@
   <meta charset="UTF-8" />
   <meta name="google" content="notranslate" />
   <base href="/" />
-  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <link rel="icon" type="image/png" href="/icon-192.png" />
   <meta name="viewport"
     content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover, shrink-to-fit=no" />
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
@@ -43,8 +43,9 @@
     })();
   </script>
 
-  <!-- PWA 설정 - 동적 manifest -->
-  <link rel="manifest" id="manifest-placeholder" />
+  <!-- PWA 설정 - 기본 manifest 정적 배치 (PWA 감지 안정성) -->
+  <link rel="manifest" id="manifest-placeholder" href="/manifest.json" />
+  <meta name="theme-color" content="#000000" />
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -65,27 +66,22 @@
   <meta property="twitter:description" content="전국의 다채로운 스윙 댄스 소셜, 강습, 파티 정보를 한눈에 확인하고 공유하세요." />
   <meta property="twitter:image" content="https://swingenjoy.com/kakao-share-card.png" />
 
-  <!-- 동적 Manifest 생성 -->
+  <!-- 빌보드 전용 동적 Manifest 전환 (격리 정책 유지) -->
   <script>
     (function () {
       const currentPath = window.location.pathname;
       const baseUrl = window.location.origin;
 
-      // 빌보드 페이지면 서버에서 동적 manifest 가져오기
+      // 빌보드 페이지일 때만 정적 manifest를 동적 manifest로 교체
       if (currentPath.includes('/billboard/')) {
         const userId = currentPath.split('/billboard/')[1];
         if (userId) {
-          // 프로덕션: Netlify Functions, 개발: Auth Server
           const manifestUrl = window.location.hostname === 'localhost'
             ? 'http://localhost:3001/api/billboard-manifest?userId=' + userId
             : baseUrl + '/.netlify/functions/billboard-manifest?userId=' + userId;
           document.getElementById('manifest-placeholder').setAttribute('href', manifestUrl);
-          return;
         }
       }
-
-      // 기본 manifest (빌보드가 아닌 경우)
-      document.getElementById('manifest-placeholder').setAttribute('href', '/manifest.json');
     })();
 
     // PWA 설치 프롬프트 조기 캡처
@@ -341,7 +337,7 @@
     // 언어 변경 함수
     function changeLanguage(lang) {
       if (window.location.pathname.includes('/billboard/')) return;
-      
+
       const select = document.querySelector('.goog-te-combo');
 
       if (select) {
@@ -385,9 +381,9 @@
           return;
         }
 
-        var swUrl = '/service-worker.js?v=20260214_v48';
+        var swUrl = '/service-worker.js?v=20260215_v49';
         navigator.serviceWorker.register(swUrl).then(function (reg) {
-          window.__BOOT_LOG && window.__BOOT_LOG('SW Registered', { version: 'v48' });
+          window.__BOOT_LOG && window.__BOOT_LOG('SW Registered', { version: 'v49' });
           if (reg.waiting && navigator.serviceWorker.controller) showUpdateToast(reg);
           reg.addEventListener('updatefound', function () {
             var worker = reg.installing;
@@ -440,7 +436,7 @@
     function showUpdateToast(reg) {
       // 빌보드 페이지에서는 업데이트 토스트 UI 노출 차단
       if (window.location.pathname.includes('/billboard/')) return;
-      
+
       if (document.getElementById('sw-update-overlay')) return;
       window.__SW_REG = reg;
       var overlay = document.createElement('div');

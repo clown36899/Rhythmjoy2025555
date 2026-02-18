@@ -1,31 +1,28 @@
 {
   "name": "댄스빌보드",
   "short_name": "댄스빌보드",
-  "description": "이벤트 빌보드 디스플레이",
+  "description": "전국의 스윙 댄스 이벤트 공유 플랫폼",
+  "id": "/",
   "start_url": "/?utm_source=pwa",
-  "display": "fullscreen",
+  "display": "standalone",
   "scope": "/",
-  "handle_links": "preferred",
+  "background_color": "#000000",
+  "theme_color": "#000000",
   "launch_handler": {
     "client_mode": "navigate-existing"
   },
-  "background_color": "#000000",
-  "theme_color": "#000000",
-  "permissions": [
-    "notifications"
-  ],
   "icons": [
     {
-      "src": "icon-192.png",
+      "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     },
     {
-      "src": "icon-512.png",
+      "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
-      "purpose": "any"
+      "purpose": "any maskable"
     }
   ]
 }

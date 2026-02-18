@@ -69,25 +69,29 @@ export const PWAInstallButton = () => {
     };
 
     const handleInstallClick = async () => {
+        const activePrompt = promptEvent || (window as any).deferredPrompt;
+
+        console.log('🔘 [PWAInstallButton] Install Clicked', {
+            contextPrompt: !!promptEvent,
+            windowPrompt: !!(window as any).deferredPrompt,
+            isInstalled
+        });
+
         // PWA가 이미 설치되어 있으면 앱 열기
         if (isInstalled) {
+            console.log('ℹ️ [PWAInstallButton] Already installed according to state');
             handleOpenApp();
             return;
         }
 
-
-        // 1. React Context의 promptEvent 확인
-        // 2. 전역 window.deferredPrompt 확인 (최후의 수단 fallback)
-        const activePrompt = promptEvent || (window as any).deferredPrompt;
-
         if (activePrompt) {
             try {
+                console.log('🚀 [PWAInstallButton] Triggering native prompt...');
                 await activePrompt.prompt();
                 const { outcome } = await activePrompt.userChoice;
+                console.log('🏁 [PWAInstallButton] User choice outcome:', outcome);
 
                 if (outcome === 'accepted') {
-                    // 데스크탑인 경우 (모바일이 아님) -> 프로그레스 바 없이 바로 완료 처리
-                    // 데스크탑은 설치 즉시 새 창이 뜨므로 여기서 뭘 보여줄 필요가 없음
                     const isDesktop = !isIOS && !/Android/i.test(navigator.userAgent);
 
                     if (isDesktop) {
@@ -97,48 +101,25 @@ export const PWAInstallButton = () => {
                         return;
                     }
 
-                    // 모바일인 경우에만 진행바 표시
-                    // 설치 시작 시간 기록
+                    // 모바일 프로그레스 표시
                     const installStartTime = Date.now();
-
-                    // 설치 시작 - 프로그레스 표시
                     setIsInstalling(true);
                     setInstallProgress(0);
 
-                    // 프로그레스 애니메이션
                     const progressInterval = setInterval(() => {
-                        setInstallProgress(prev => {
-                            if (prev >= 95) return 95;
-                            return prev + 1;
-                        });
+                        setInstallProgress(prev => (prev >= 95 ? 95 : prev + 1));
                     }, 300);
 
-                    // API 확인용 루프 (혹시 모를 대기용)
-                    const verifyInterval = setInterval(async () => {
-                        try {
-                            // nothing
-                        } catch (e) {
-                            // ignore
-                        }
-                    }, 2000);
-
                     let isFinishCalled = false;
-
-                    // 설치 완료 처리 함수
                     const finishInstallation = () => {
                         if (isFinishCalled) return;
                         isFinishCalled = true;
-
                         clearInterval(progressInterval);
-                        clearInterval(verifyInterval);
 
-                        // 95% -> 100% 부드럽게 채우기 (0.5초 동안)
                         const finalInterval = setInterval(() => {
                             setInstallProgress(prev => {
                                 if (prev >= 100) {
                                     clearInterval(finalInterval);
-
-                                    // 100% 도달 후 0.5초 뒤에 완료 모달 표시
                                     setTimeout(() => {
                                         setIsInstalling(false);
                                         setInstallProgress(0);
@@ -146,56 +127,41 @@ export const PWAInstallButton = () => {
                                     }, 500);
                                     return 100;
                                 }
-                                return prev + 5; // 빠르게 증가
+                                return prev + 5;
                             });
                         }, 50);
-
                         window.removeEventListener('appinstalled', handleAppInstalled);
                     };
 
-                    // appinstalled 이벤트 리스너
                     const handleAppInstalled = () => {
-                        const timeElapsed = Date.now() - installStartTime;
-
-                        // 4초 미만 무시
-                        if (timeElapsed < 4000) {
-                            return;
-                        }
-
-                        // 진짜 신호가 오면 -> 여기서부터 3초 뒤에 완료 처리 시작
-                        setTimeout(() => {
-                            finishInstallation();
-                        }, 3000);
+                        console.log('✅ [PWAInstallButton] appinstalled event caught!');
+                        if (Date.now() - installStartTime < 3000) return;
+                        setTimeout(finishInstallation, 2000);
                     };
                     window.addEventListener('appinstalled', handleAppInstalled);
 
-
-
-                    // 60초 타임아웃
                     setTimeout(() => {
                         if (isInstalling && !isFinishCalled) {
-                            clearInterval(progressInterval);
-                            clearInterval(verifyInterval);
-                            window.removeEventListener('appinstalled', handleAppInstalled);
-
-                            // 타임아웃 시에도 새로고침 대신 안내 모달 시도
-                            setIsInstalling(false);
-                            setShowSuccessModal(true);
+                            console.log('⏰ [PWAInstallButton] Install timeout - showing success anyway');
+                            finishInstallation();
                         }
-                    }, 60000);
+                    }, 45000);
 
                     setPromptEvent(null);
                     (window as any).deferredPrompt = null;
                 }
             } catch (error) {
+                console.error('❌ [PWAInstallButton] Prompt error:', error);
                 setIsInstalling(false);
                 setInstallProgress(0);
                 setShowInstructions(true);
             }
         } else {
-            // promptEvent가 없는 경우 - iOS이거나 설치 불가능한 환경
-            // iOS는 수동 설치만 가능하므로 안내 표시
+            console.warn('⚠️ [PWAInstallButton] No active prompt detected');
             if (isIOS) {
+                setShowInstructions(true);
+            } else {
+                // 안드로이드/PC에서 프롬프트가 없으면 브라우저 수동 안내 시도
                 setShowInstructions(true);
             }
         }

@@ -23,34 +23,36 @@ export const InstallPromptProvider: React.FC<{ children: React.ReactNode }> = ({
         // console.log('🔍 [InstallPromptProvider] Initializing...');
 
         // 1. 초기 로드 시 감지 로직
-        const checkInitialState = () => {
+        const checkInitialState = async () => {
+            // PWA 모드로 진입한 경우
             if (isPWAMode()) {
-                // console.log('✅ [InstallPromptProvider] Running in standalone mode');
                 setIsInstalled(true);
-                localStorage.setItem('pwa_installed', 'true');
                 return;
             }
 
-            // B. 브라우저 환경이지만 설치 이벤트가 이미 발생했는지 확인 (window.deferredPrompt)
-            // 이 값이 존재하면 브라우저가 "설치 안 됨"이라고 판단한 것임
+            // [MDN 가이드 반영] 브라우저에서 이미 설치된 앱이 있는지 확인
+            if ('getInstalledRelatedApps' in navigator) {
+                try {
+                    const relatedApps = await (navigator as any).getInstalledRelatedApps();
+                    // 설치된 관련 앱이 하나라도 있다면 설치된 것으로 간주
+                    if (relatedApps && relatedApps.length > 0) {
+                        console.log('📱 [InstallPromptProvider] Installed PWA detected via getInstalledRelatedApps');
+                        setIsInstalled(true);
+                        return;
+                    }
+                } catch (err) {
+                    console.error('❌ Failed to get installed related apps:', err);
+                }
+            }
+
+            // [Recovery] index.html에서 조기 캡처한 프롬프트가 있다면 가져옴
             if ((window as any).deferredPrompt) {
-                // console.log('📉 [InstallPromptProvider] Found deferredPrompt -> App is NOT installed');
                 setIsInstalled(false);
                 setPromptEvent((window as any).deferredPrompt);
-                localStorage.removeItem('pwa_installed'); // 설치 기록 제거
                 return;
             }
 
-            // C. localStorage 기록 확인 (이전에 설치했다고 기록됨)
-            // 주의: 브라우저는 설치 여부를 API로 알려주지 않으므로, 이 기록을 믿습니다.
-            // 단, 나중에 beforeinstallprompt 이벤트가 발생하면 오판이었음을 확인하고 기록을 지웁니다.
-            const storedInstalled = localStorage.getItem('pwa_installed');
-            if (storedInstalled === 'true') {
-                // console.log('✅ [InstallPromptProvider] Previously installed (from localStorage)');
-                setIsInstalled(true);
-            } else {
-                // console.log('📱 [InstallPromptProvider] No install record found');
-            }
+            setIsInstalled(false);
         };
 
         checkInitialState();
@@ -63,7 +65,14 @@ export const InstallPromptProvider: React.FC<{ children: React.ReactNode }> = ({
 
             // 설치 안 된 상태로 강제 전환
             setIsInstalled(false);
-            localStorage.removeItem('pwa_installed');
+
+            // [Cleanup] 기기에 설치되지 않았음이 확실해지면 확증 플래그 청소
+            // 모든 유저의 기록을 지우기 위해 pwa_verified_user_ 접두사 키 탐색
+            Object.keys(localStorage).forEach(key => {
+                if (key.startsWith('pwa_verified_user_')) {
+                    localStorage.removeItem(key);
+                }
+            });
 
             setPromptEvent(e as BeforeInstallPromptEvent);
             (window as any).deferredPrompt = e;
