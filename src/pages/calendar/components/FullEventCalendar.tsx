@@ -534,6 +534,8 @@ export default memo(function FullEventCalendar({
                 .map(({ event }) => {
                   const categoryColor = getEventColor(event.id);
                   const thumbnailUrl = event.image_thumbnail || event.image_micro || event.image_medium;
+                  const isSocialEvent = String(event.id).startsWith('social-') || event.is_social_integrated || event.category === 'social';
+                  const locationText = isSocialEvent ? (event.place_name || event.location || '') : '';
 
                   const eStart = (event.start_date || event.date || '').substring(0, 10);
                   const eEnd = (event.end_date || event.date || '').substring(0, 10);
@@ -564,6 +566,11 @@ export default memo(function FullEventCalendar({
                               decoding="async"
                               draggable="false"
                             />
+                            {locationText && (
+                              <span className="calendar-fullscreen-location-overlay">
+                                {locationText}
+                              </span>
+                            )}
                           </div>
                         ) : (
                           <div className={`calendar-fullscreen-placeholder ${categoryColor} ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>

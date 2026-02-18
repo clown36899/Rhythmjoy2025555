@@ -1645,6 +1645,25 @@
   overflow: hidden;
   background-color: var(--bg-secondary);
   /* gray-700 */
+  position: relative;
+}
+
+.calendar-fullscreen-location-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 2px 4px;
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1.2;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
 }
 
 .calendar-fullscreen-image {
