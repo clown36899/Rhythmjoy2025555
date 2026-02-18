@@ -25,7 +25,11 @@ export const PwaTransitionOverlay: React.FC = () => {
 
         if (isStandalone && !isForced) {
             // PWA 모드에서 로그인되어 있다면 '확증된 PWA 사용자'로 기록 (브라우저와 세션 공유됨)
-            localStorage.setItem(`pwa_verified_user_${user.id}`, 'true');
+            try {
+                localStorage.setItem(`pwa_verified_user_${user.id}`, 'true');
+            } catch (e) {
+                console.warn('[PwaTransitionOverlay] Failed to save PWA verification to localStorage:', e);
+            }
             setIsVisible(false);
             return;
         }
@@ -39,7 +43,12 @@ export const PwaTransitionOverlay: React.FC = () => {
          * 이 방식은 PWA 설치를 '추측'하지 않고 '확인'된 경우에만 작동하므로
          * 설치 안 된 사용자에게 모달이 뜨는 문제를 완벽히 해결합니다.
          */
-        const isVerifiedPwaUser = localStorage.getItem(`pwa_verified_user_${user.id}`) === 'true';
+        let isVerifiedPwaUser = false;
+        try {
+            isVerifiedPwaUser = localStorage.getItem(`pwa_verified_user_${user.id}`) === 'true';
+        } catch (e) {
+            console.warn('[PwaTransitionOverlay] Failed to read PWA verification from localStorage:', e);
+        }
 
         if ((isVerifiedPwaUser || isForced) && !isStandalone) {
             setIsVisible(true);

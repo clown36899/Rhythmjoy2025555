@@ -13,7 +13,7 @@ import { isPWAMode } from './lib/pwaDetect'
 
 // Mobile Drag & Drop Polyfill
 import { polyfill } from 'mobile-drag-drop';
-import { scrollBehaviourDragImageTranslateOverride } from 'mobile-drag-drop/scroll-behaviour';
+import { scrollBehaviourDragImageTranslateOverride } from "mobile-drag-drop/scroll-behaviour";
 
 // [Critical Fix] Mobile Safari (iOS) Compatibility
 if (typeof window !== 'undefined' && /iPhone|iPad|iPod/i.test(navigator.userAgent) && typeof (window as any).TouchEvent === 'undefined') {
@@ -47,13 +47,19 @@ import HomePageV2 from './pages/v2/Page';
 
 // 배포 후 구버전 청크 로드 실패 시 1회 재시도 후 리로드하는 래퍼
 function lazyWithRetry(importFn: () => Promise<any>) {
-  return lazy(() =>
-    importFn().catch(() => {
-      // 1회 재시도 (캐시 무효화를 위해 timestamp 쿼리 추가는 Vite에서 불필요 - 해시가 다름)
-      // 재시도 실패 시 에러를 그대로 throw → handleChunkError가 처리
-      return importFn();
-    })
-  );
+  return lazy(async () => {
+    try {
+      return await importFn();
+    } catch (error) {
+      // 1회 재시도 (캐시 무효화를 위해 timestamp 쿼리 추가 시도)
+      // Vite/Rollup 환경에서 import(url + query)는 브라우저 캐시를 무시하게 함
+      console.warn('📦 Chunk load failed, retrying with cache-buster...', error);
+
+      // 재시도 시 이미 실패한 모듈을 다시 불러오기 위해 약간의 지연 후 시도
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return await importFn();
+    }
+  });
 }
 
 // Lazy Loaded Pages (with retry)
@@ -228,71 +234,104 @@ function RootApp() {
     initGAWithEngagement();
 
     // 📱 Mobile PWA Orientation Lock
-    // 데스크탑은 회전/리사이즈 자유, 모바일 PWA만 세로 모드 고정
     const lockMobileOrientation = async () => {
       const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
       if (isMobile && isPWAMode()) {
-        // iOS 등 JS Lock 미지원 기기를 위한 CSS 타겟팅 클래스 추가
         document.body.classList.add('mobile-pwa');
 
         if ('orientation' in screen && 'lock' in screen.orientation) {
           try {
             await (screen.orientation as any).lock('portrait');
-            console.log('🔒 Screen locked to portrait');
           } catch (e) {
-            console.log('Rotation lock not supported or failed:', e);
+            console.log('Rotation lock failed:', e);
           }
         }
       }
     };
     lockMobileOrientation();
 
-    // 🚀 Version Mismatch Auto-Reload Logic
-    // 배포 후 구버전 사용자가 청크 로드 실패 시 자동 새로고침
-    const handleChunkError = (event: ErrorEvent | PromiseRejectionEvent) => {
+    // 🚀 Global Error Handler (Previous: handleChunkError)
+    // 모바일 디버깅을 위해 에러 필터링을 완화하고 화면에 직접 출력
+    const handleGlobalError = (event: ErrorEvent | PromiseRejectionEvent) => {
+      // 🛡️ Safety Net (spinner-off timeout)
+      const urlParams = new URLSearchParams(window.location.search);
+      const hash = window.location.hash;
+      const hasAuthParams = urlParams.has('code') || urlParams.has('error') || hash.includes('access_token=') || hash.includes('refresh_token=');
+
+      // [Optimization] 일반 진입 시 5초, 인증 콜백 시 12초로 단축하여 사용자 대기 시간 감소
+      const safetyTimeoutMillis = hasAuthParams ? 12000 : 5000;
+
       const error = 'reason' in event ? event.reason : event.error;
-      const message = error?.message || '';
+      const message = error?.message || error?.toString?.() || 'Unknown Error';
+      const stack = error?.stack || '';
 
-      if (
-        message.includes('Failed to fetch dynamically imported module') ||
-        message.includes('Importing a module script failed') ||
-        message.includes('Failed to fetch') ||
-        message.includes('ChunkLoadError')
-      ) {
-        console.warn('⚠️ New version detected (Chunk load failed). Reloading...');
-        // Prevent infinite reload loop if the error persists
-        const lastReload = sessionStorage.getItem('chunk_reload');
-        if (lastReload && Date.now() - parseInt(lastReload) < 10000) {
-          console.error('Reload loop detected, stopping auto-reload.');
-
-
-
-          // Loop detected: Show fallback UI instead of white screen
-          document.body.innerHTML = `
-            <div class="crash-fallback-container">
-              <h2 class="crash-fallback-title">업데이트 문제 발생</h2>
-              <p class="crash-fallback-desc">최신 버전을 로딩하는 중 문제가 발생했습니다.</p>
-              <button onclick="sessionStorage.clear(); localStorage.clear(); window.location.reload();" 
-                class="crash-fallback-btn">
-                앱 초기화 및 다시 불러오기
-              </button>
-            </div>
-          `;
-          return;
-        }
-
-        sessionStorage.setItem('chunk_reload', Date.now().toString());
-        window.location.reload();
+      // [Debug Mode] 모든 에러를 화면에 표시 (사용자 요청)
+      // 단, 불필요한 노이즈(ResizeObserver 등)는 제외
+      if (message.includes('ResizeObserver loop') || message.includes('Script error')) {
+        return;
       }
+
+      console.warn('⚠️ Global Error Caught:', { message, stack });
+
+      // 이미 에러 화면이 떠있다면 중복 렌더링 방지
+      if (document.getElementById('crash-fallback-overlay')) return;
+
+      const overlay = document.createElement('div');
+      overlay.id = 'crash-fallback-overlay';
+      overlay.innerHTML = `
+        <div class="crash-fallback-container" style="
+          position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+          background: #000; z-index: 2147483647; padding: 20px;
+          display: flex; flex-direction: column; justify-content: center; align-items: center;
+          color: #fff; font-family: sans-serif; text-align: center;
+          overflow-y: auto; box-sizing: border-box;
+        ">
+          <h2 class="crash-fallback-title" style="color: #ef4444; margin-bottom: 20px;">오류가 발생했습니다</h2>
+          <p class="crash-fallback-desc" style="margin-bottom: 20px;">앱을 실행하는 도중 예기치 못한 문제가 발생했습니다.</p>
+          
+          <div class="crash-error-code" style="
+            font-size: 11px; color: #a1a1aa; background: #18181b; 
+            padding: 15px; border-radius: 8px; margin: 10px 0; width: 100%; 
+            overflow-x: auto; white-space: pre-wrap; text-align: left;
+            border: 1px solid #333; max-height: 300px;
+          ">
+            <strong>Error:</strong> ${message}<br/><br/>
+            <strong>UA:</strong> ${navigator.userAgent}<br/><br/>
+            <strong>Stack:</strong><br/>${stack}
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-top: 20px;">
+            <button onclick="sessionStorage.clear(); localStorage.clear(); if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister()))}; window.location.reload();" 
+              class="crash-fallback-btn" style="
+              padding: 12px 24px; background: #2563eb; color: white; border: none; 
+              border-radius: 8px; font-weight: bold; font-size: 14px;
+            ">
+              앱 초기화 및 재시작
+            </button>
+            <button onclick="document.getElementById('crash-fallback-overlay').remove();" 
+              class="crash-fallback-btn" style="
+              padding: 12px 24px; background: #3f3f46; color: white; border: none; 
+              border-radius: 8px; font-weight: bold; font-size: 14px;
+            ">
+              닫기 (무시)
+            </button>
+          </div>
+          
+          <p class="crash-footer" style="margin-top: 30px; font-size: 12px; color: #52525b;">
+            화면 캡처 후 관리자에게 문의해주시면 해결에 도움이 됩니다.
+          </p>
+        </div>
+      `;
+      document.body.appendChild(overlay);
     };
 
-    window.addEventListener('error', handleChunkError);
-    window.addEventListener('unhandledrejection', handleChunkError);
+    window.addEventListener('error', handleGlobalError);
+    window.addEventListener('unhandledrejection', handleGlobalError);
 
     return () => {
-      window.removeEventListener('error', handleChunkError);
-      window.removeEventListener('unhandledrejection', handleChunkError);
+      window.removeEventListener('error', handleGlobalError);
+      window.removeEventListener('unhandledrejection', handleGlobalError);
     };
   }, []);
 
@@ -324,5 +363,5 @@ console.log('[Main] 🏁 Executing createRoot...');
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <RootApp />
-  </StrictMode>,
-)
+  </StrictMode>
+);

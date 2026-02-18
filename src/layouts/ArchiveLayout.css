@@ -124,3 +124,62 @@
         font-size: 0.8rem;
     }
 }
+
+/* Legacy Guard Styles */
+.legacy-guard {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #09090b;
+    padding: 0 24px;
+    z-index: 100;
+}
+
+.legacy-guard-content {
+    text-align: center;
+    max-width: 320px;
+    padding: 32px 24px;
+    background: #18181b;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.guard-icon {
+    font-size: 4rem;
+    color: #f87171;
+    margin-bottom: 20px;
+    display: inline-block;
+}
+
+.guard-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: #fafafa;
+}
+
+.guard-desc {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: #a1a1aa;
+    margin-bottom: 28px;
+}
+
+.guard-back-btn {
+    width: 100%;
+    padding: 14px;
+    background: #fafafa;
+    color: #09090b;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, opacity 0.2s;
+}
+
+.guard-back-btn:active {
+    transform: scale(0.98);
+    opacity: 0.9;
+}

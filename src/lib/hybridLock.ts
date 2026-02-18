@@ -28,32 +28,46 @@ class LocalStorageLock {
         const start = Date.now();
         const myId = Math.random().toString(36).substring(2);
 
+        // [Secret Mode Safe Guard] localStorage 접근 가능 여부 체크
+        try {
+            localStorage.setItem(`${this.lockKey}-test`, '1');
+            localStorage.removeItem(`${this.lockKey}-test`);
+        } catch (e) {
+            console.warn('[HybridLock] LocalStorage access blocked (Secret Mode?). Bypassing lock.');
+            return await fn();
+        }
+
         // Polling loop
         while (Date.now() - start < this.timeout) {
-            const currentLock = localStorage.getItem(this.lockKey);
+            try {
+                const currentLock = localStorage.getItem(this.lockKey);
 
-            // 락이 없거나, 락이 있어도 너무 오래된 경우(Dead Lock 방지 - 5초)
-            if (!currentLock || (Date.now() - parseInt(currentLock.split('|')[1]) > 5000)) {
-                // Try to acquire
-                const timestamp = Date.now();
-                localStorage.setItem(this.lockKey, `${myId}|${timestamp}`);
+                // 락이 없거나, 락이 있어도 너무 오래된 경우(Dead Lock 방지 - 5초)
+                if (!currentLock || (Date.now() - parseInt(currentLock.split('|')[1]) > 5000)) {
+                    // Try to acquire
+                    const timestamp = Date.now();
+                    localStorage.setItem(this.lockKey, `${myId}|${timestamp}`);
 
-                // Verification (Double check for race condition)
-                await new Promise(r => setTimeout(r, 10));
-                const verify = localStorage.getItem(this.lockKey);
+                    // Verification (Double check for race condition)
+                    await new Promise(r => setTimeout(r, 10));
+                    const verify = localStorage.getItem(this.lockKey);
 
-                if (verify && verify.startsWith(myId)) {
-                    // Lock Acquired
-                    try {
-                        return await fn();
-                    } finally {
-                        // Release check
-                        const current = localStorage.getItem(this.lockKey);
-                        if (current && current.startsWith(myId)) {
-                            localStorage.removeItem(this.lockKey);
+                    if (verify && verify.startsWith(myId)) {
+                        // Lock Acquired
+                        try {
+                            return await fn();
+                        } finally {
+                            // Release check
+                            const current = localStorage.getItem(this.lockKey);
+                            if (current && current.startsWith(myId)) {
+                                localStorage.removeItem(this.lockKey);
+                            }
                         }
                     }
                 }
+            } catch (e) {
+                console.warn('[HybridLock] Error during lock acquisition:', e);
+                break; // 에러 발생 시 루프 중단 후 Fallback 실행
             }
 
             // Wait before retry
@@ -61,7 +75,7 @@ class LocalStorageLock {
         }
 
         // Timeout fallback: Just run it (unsafe but better than crash)
-        console.warn('[HybridLock] Lock acquisition timed out, bypassing lock');
+        console.warn('[HybridLock] Lock acquisition timed out or failed, bypassing lock');
         return await fn();
     }
 }

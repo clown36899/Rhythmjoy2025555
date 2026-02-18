@@ -1,5 +1,6 @@
 import { supabase } from '../lib/supabase';
 import { SITE_ANALYTICS_CONFIG } from '../config/analytics';
+import { generateUUID } from './uuid';
 
 export interface AnalyticsLog {
     target_id: string;
@@ -31,25 +32,34 @@ let sessionStartTime: number | null = null;
  * 세션 ID 생성 또는 가져오기
  */
 export const getOrCreateSessionId = (): string => {
+    // 메모리에 있으면 반환
     if (sessionId) return sessionId;
 
-    // 세션 스토리지에서 확인 (탭 단위 세션)
-    const storedId = sessionStorage.getItem('analytics_session_id');
-    const storedStart = sessionStorage.getItem('analytics_session_start');
+    try {
+        // 세션 스토리지에서 확인 (탭 단위 세션)
+        const storedId = sessionStorage.getItem('analytics_session_id');
+        const storedStart = sessionStorage.getItem('analytics_session_start');
 
-    if (storedId) {
-        sessionId = storedId;
-        if (storedStart) sessionStartTime = parseInt(storedStart);
-        return sessionId;
+        if (storedId) {
+            sessionId = storedId;
+            if (storedStart) sessionStartTime = parseInt(storedStart);
+            return sessionId;
+        }
+    } catch (e) {
+        // SecurityError 등으로 sessionStorage 접근 불가 시 무시
     }
 
     // 새 세션 생성
-    sessionId = crypto.randomUUID();
+    sessionId = generateUUID();
     sessionStartTime = Date.now();
     sessionSequence = 0;
 
-    sessionStorage.setItem('analytics_session_id', sessionId);
-    sessionStorage.setItem('analytics_session_start', sessionStartTime.toString());
+    try {
+        sessionStorage.setItem('analytics_session_id', sessionId);
+        sessionStorage.setItem('analytics_session_start', sessionStartTime.toString());
+    } catch (e) {
+        // 접근 불가 시 메모리 세션만 사용
+    }
 
     return sessionId;
 };

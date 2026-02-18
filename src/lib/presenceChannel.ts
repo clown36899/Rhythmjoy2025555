@@ -1,8 +1,9 @@
 import { supabase } from './supabase';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { generateUUID } from '../utils/uuid';
 
 // 세션 고유 ID
-export const sessionId = crypto.randomUUID();
+export const sessionId = generateUUID();
 
 // 전역 단일 채널 인스턴스
 let channel: RealtimeChannel | null = null;

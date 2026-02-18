@@ -11,6 +11,7 @@ import {
 } from '../lib/pushNotifications';
 import { SITE_MENU_SECTIONS, MENU_LABELS_EN } from '../config/menuConfig';
 import { useOnlineUsers } from '../hooks/useOnlineUsers';
+import { isLegacyIOS } from '../lib/pwaDetect';
 import '../styles/domains/overlays.css';
 
 interface SideDrawerProps {
@@ -492,7 +493,13 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
                                                             </span>
                                                         </div>
                                                     ))}
-                                                    <div className="SD-submenuItem" onClick={() => handleNavigation('/board?category=history')}>
+                                                    <div className="SD-submenuItem" onClick={() => {
+                                                        if (isLegacyIOS()) {
+                                                            alert('알림: 구형 기기에서는 라이브러리 기능이 작동하지 않습니다.');
+                                                            return;
+                                                        }
+                                                        handleNavigation('/board?category=history');
+                                                    }}>
                                                         <i className="ri-book-mark-line"></i>
                                                         <span className="manual-label-wrapper">
                                                             <span className="translated-part">Library</span>

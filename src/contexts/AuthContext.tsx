@@ -79,10 +79,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const [billboardUserId, setBillboardUserId] = useState<string | null>(() => {
-    return localStorage.getItem('billboardUserId');
+    try {
+      return localStorage.getItem('billboardUserId');
+    } catch { return null; }
   });
   const [billboardUserName, setBillboardUserName] = useState<string | null>(() => {
-    return localStorage.getItem('billboardUserName');
+    try {
+      return localStorage.getItem('billboardUserName');
+    } catch { return null; }
   });
 
   // helper to ensure board_users exists and is up to date
@@ -521,7 +525,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const urlParams = new URLSearchParams(window.location.search);
     const hash = window.location.hash;
     const hasAuthParams = urlParams.has('code') || urlParams.has('error') || hash.includes('access_token=') || hash.includes('refresh_token=');
-    const safetyTimeoutMillis = hasAuthParams ? 15000 : 8000;
+    // [Optimization] 일반 진입 시 5초, 인증 콜백 시 12초로 단축하여 사용자 대기 시간 감소
+    const safetyTimeoutMillis = hasAuthParams ? 12000 : 5000;
 
     authLogger.log('[AuthContext] 🛡️ Initial URL Analysis:', {
       path: window.location.pathname,
@@ -593,9 +598,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []); // 의존성 없음 - 초기 마운트 시 1회 실행
 
   // 3. Broadcast Channel for Cross-Tab Sync (v9.0)
-  const authChannel = useMemo(() => new BroadcastChannel('auth_channel'), []);
+  // [iOS Safe Guard] Safari 15.4 미만에서는 BroadcastChannel이 없으므로 생성 시 존재 여부 체크
+  const authChannel = useMemo(() => {
+    if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
+      try {
+        return new BroadcastChannel('auth_channel');
+      } catch (e) {
+        console.warn('[AuthContext] Failed to create BroadcastChannel:', e);
+        return null;
+      }
+    }
+    return null;
+  }, []);
 
   useEffect(() => {
+    if (!authChannel) return;
+
     const handleAuthMessage = (event: MessageEvent) => {
       if (event.data?.type === 'LOGOUT') {
         authLogger.log('[AuthContext] 📡 Received LOGOUT signal from another tab');
@@ -619,7 +637,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       authChannel.removeEventListener('message', handleAuthMessage);
       authChannel.close();
     };
-  }, [isLoggingOut]);
+  }, [isLoggingOut, authChannel]);
 
   // 2. Auth State Change 구독 (별도 분리)
   useEffect(() => {
@@ -769,8 +787,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.removeItem('billboardUserId');
       localStorage.removeItem('billboardUserName');
 
-      // 🔥 [Sync] 다른 탭에 로그아웃 알림
-      authChannel.postMessage({ type: 'LOGOUT' });
+      // 🔥 [Sync] 다른 탭에 로그아웃 알림 (Safe Guard 적용)
+      if (authChannel) {
+        authChannel.postMessage({ type: 'LOGOUT' });
+      }
 
       logToStorage('[AuthContext.signOut] 4단계: localStorage 정리 완료: ' + (keysToRemove.length + 1) + '개 항목');
 

@@ -93,7 +93,7 @@ function HistoryTimelinePage() {
     // 3. 리소스 데이터 로딩 (서랍용)
     const fetchResourceData = useCallback(async () => {
         try {
-
+            (window as any).logDebug?.('📥 fetchResourceData START');
             // 1. Categories (Folders) - These are still in learning_categories according to migrations
             const { data: catData, error: catError } = await supabase
                 .from('learning_categories')
@@ -104,6 +104,7 @@ function HistoryTimelinePage() {
             let finalCategories = catData || [];
             if (catError) {
                 console.warn('⚠️ [HistoryTimelinePage] learning_categories failed, trying learning_resources fallback:', catError);
+                (window as any).logDebug?.('⚠️ learning_categories failed, fallback...');
                 const { data: resCatData, error: resCatError } = await supabase
                     .from('learning_resources')
                     .select('*')
@@ -123,6 +124,7 @@ function HistoryTimelinePage() {
             if (resError) throw resError;
 
             const resources = allResources || [];
+            (window as any).logDebug?.(`✅ Resources fetched: ${resources.length}`);
 
             // A Folder is: type='general' AND lacks playlist markers
             const folderResources = resources.filter(r =>
@@ -159,9 +161,13 @@ function HistoryTimelinePage() {
                 documents: resources.filter(r => r.type === 'document' || r.type === 'person'),
                 videos: resources.filter(r => r.type === 'video')
             });
+            (window as any).logDebug?.('✨ Resource Data Set Complete');
 
-        } catch (err) {
+        } catch (err: any) {
             console.error('❌ [HistoryTimelinePage] fetchResourceData failed:', err);
+            (window as any).logDebug?.(`❌ Resource Load Failed: ${err.message}`);
+            // [Mobile Debug] 화면에 에러 표시
+            alert(`리소스 로딩 실패:\n${err?.message || 'Unknown Error'}\n\n잠시 후 다시 시도해주세요.`);
         }
     }, []);
 
@@ -807,49 +813,48 @@ function HistoryTimelinePage() {
     }, [nodes, handleViewDetail, handlePreviewLinkedResource]);
 
     useEffect(() => {
-
-
-        // Guard: Wait for loading to finish and nodes to exist
-        if (loading || allNodesRef.current.size === 0) { // 🔥 Fix: Use allNodesRef instead of nodes
-
+        // Guard: Wait for core initialization
+        if (allNodesRef.current.size === 0 && !handlersInitializedRef.current) {
             return;
         }
 
-
-
-        // 1. Always inject handlers into Master Refs (This operation is cheap)
-        allNodesRef.current.forEach(node => {
-            node.data.onEdit = handleEditNode;
-            node.data.onViewDetail = handleViewDetail;
-            node.data.onPlayVideo = handlePlayVideo;
-            node.data.onPreviewLinkedResource = handlePreviewLinkedResource;
-            node.data.isEditMode = isEditMode;
-            node.data.isSelectionMode = isSelectionMode;
-            node.data.isShiftPressed = isShiftPressed;
-            node.connectable = isEditMode;
-            node.data.onResizeStop = handleResizeStop;
-        });
-
         // 2. Decide if we need to sync visualization
         // We sync if:
-        // A. Handlers haven't been initialized yet (First Load)
+        // A. Handlers haven't been initialized yet (First Load after data fetch)
         // B. Edit Mode or Selection Mode changed (State Change)
         // C. Search Query changed (Filter Change)
-        // D. Root ID changed (Navigation) - handled by dependency
-        // E. isShiftPressed changed (for selection behavior)
+        // D. isShiftPressed usage changed (Selection behavior)
 
-        const shouldSync = !handlersInitializedRef.current ||
+        // 🔥 Ref Check: Has changed?
+        const hasModeChanged =
             prevEditModeRef.current !== isEditMode ||
-            prevSelectionModeRef.current !== isSelectionMode ||
-            prevShiftPressedRef.current !== isShiftPressed ||
-            prevSearchQueryRef.current !== searchQuery; // 🔥 Fix: Detect Search Change
+            prevSelectionModeRef.current !== isSelectionMode;
 
+        const hasSearchChanged = prevSearchQueryRef.current !== searchQuery;
 
-
-        if (shouldSync) {
+        if (!handlersInitializedRef.current || hasModeChanged || hasSearchChanged) {
+            // 1. Re-inject handlers (cheap)
+            allNodesRef.current.forEach(node => {
+                node.data.onEdit = handleEditNode;
+                node.data.onViewDetail = handleViewDetail;
+                node.data.onPlayVideo = handlePlayVideo;
+                node.data.onPreviewLinkedResource = handlePreviewLinkedResource;
+                node.data.isEditMode = isEditMode;
+                node.data.isSelectionMode = isSelectionMode;
+                node.data.isShiftPressed = isShiftPressed;
+                node.connectable = isEditMode;
+                node.data.onResizeStop = handleResizeStop;
+            });
 
             const filters = searchQuery ? { search: searchQuery } : undefined;
-            syncVisualization(currentRootId, filters);
+            // Debounce for search
+            if (hasSearchChanged) {
+                const timer = setTimeout(() => syncVisualization(currentRootId, filters), 300);
+                return () => clearTimeout(timer);
+            } else {
+                syncVisualization(currentRootId, filters);
+            }
+
             handlersInitializedRef.current = true;
         }
 
@@ -857,14 +862,14 @@ function HistoryTimelinePage() {
         prevEditModeRef.current = isEditMode;
         prevSelectionModeRef.current = isSelectionMode;
         prevShiftPressedRef.current = isShiftPressed;
-        prevSearchQueryRef.current = searchQuery; // 🔥 Update Ref
+        prevSearchQueryRef.current = searchQuery;
 
     }, [
         // Dependencies that SHOULD trigger a potential update
-        isEditMode, isSelectionMode, isShiftPressed, currentRootId, searchQuery, loading,
+        isEditMode, isSelectionMode, isShiftPressed, currentRootId, searchQuery,
         // Stable References
         handleEditNode, handleViewDetail, handlePlayVideo, syncVisualization, handleResizeStop, handlePreviewLinkedResource,
-        nodes.length // Only react to count changes, not data mutations
+        // Removed: nodes.length, loading
     ]);
 
     // 🔥 Logic 1: Auto fitView when navigating levels (Folders) or Filtering (Search)

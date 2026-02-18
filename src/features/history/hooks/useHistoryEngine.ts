@@ -377,8 +377,10 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
             syncVisualization(currentRootId);
             // console.log('✅ [useHistoryEngine] loadTimeline Complete', { nodesLoaded: flowNodes.length, edgesLoaded: flowEdges.length });
 
-        } catch (error) {
+        } catch (error: any) {
             console.error('🚨 [useHistoryEngine] Load Failed:', error);
+            // [Mobile Debug] 화면에 에러 표시
+            alert(`데이터 로딩 실패:\n${error?.message || 'Unknown Error'}`);
         } finally {
             setLoading(false);
         }
@@ -446,9 +448,13 @@ export const useHistoryEngine = ({ userId, initialSpaceId = null, isEditMode }: 
 
     // 🔥 Force sync when Edit Mode changes to update draggable/ui state
     useEffect(() => {
-        syncVisualization(currentRootId);
+        // Debounce sync slightly to avoid rapid toggles
+        const timer = setTimeout(() => {
+            syncVisualization(currentRootId);
+        }, 50);
+        return () => clearTimeout(timer);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isEditMode, currentRootId]); // Removed syncVisualization from deps to prevent unnecessary re-renders
+    }, [isEditMode]); // Only react to Edit Mode changes. RootId change is handled by handleNavigate.
 
     /**
      * Edge Highlighting on Node Selection
