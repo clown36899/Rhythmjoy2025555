@@ -4,6 +4,7 @@ import { supabase } from '../../../lib/supabase';
 import type { Event as BaseEvent } from '../../../lib/supabase';
 import { useDefaultThumbnail } from '../../../hooks/useDefaultThumbnail';
 import { getEventThumbnail } from '../../../utils/getEventThumbnail';
+import { formatDateForInput } from '../../../utils/fileUtils';
 import { parseMultipleContacts, copyToClipboard } from '../../../utils/contactLink';
 import { logEvent, logPageView } from '../../../lib/analytics';
 import "../../../styles/domains/events.css";
@@ -183,7 +184,7 @@ export default function EventDetailModal({
   // Check if event has started (for hiding edit/delete buttons)
   const isPastEvent = useMemo(() => {
     if (!displayEvent) return false;
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const today = formatDateForInput(new Date()); // YYYY-MM-DD (Local)
     const startDate = displayEvent.start_date || displayEvent.date;
     return startDate ? startDate < today : false;
   }, [displayEvent]);

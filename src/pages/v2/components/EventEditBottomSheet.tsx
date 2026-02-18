@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import DatePicker from "react-datepicker";
 import { ko } from "date-fns/locale/ko";
+import { formatDateForInput } from '../../../utils/fileUtils';
+import { parseDateSafe } from '../utils/eventListUtils';
 
 interface BottomSheetProps {
     activeField: string | null;
@@ -127,18 +129,35 @@ const EventEditBottomSheet = React.memo(({
                                 )}
                                 <div className="EDM-calendarWrapper">
                                     <DatePicker
-                                        selected={dateMode === 'single' && editValue ? new Date(editValue) : null}
+                                        selected={(() => {
+                                            if (dateMode === 'single' && editValue) {
+                                                const d = parseDateSafe(editValue);
+                                                console.log('[DEBUG-EDM] selected date for single mode:', { editValue, parsed: d });
+                                                return d;
+                                            }
+                                            return null;
+                                        })()}
                                         onChange={(d: Date | null) => {
                                             if (!d) return;
-                                            const dateStr = d.toISOString().split('T')[0];
+                                            console.log('[DEBUG-EDM] DatePicker onChange (d):', d);
+                                            console.log('[DEBUG-EDM] d.toString():', d.toString());
+
+                                            const dateStr = formatDateForInput(d);
+                                            console.log('[DEBUG-EDM] formatted dateStr:', dateStr);
+
                                             if (dateMode === 'single') setEditValue(dateStr);
                                             else {
                                                 const currentDates = editValue.split(',').filter(Boolean);
+                                                console.log('[DEBUG-EDM] currentDates:', currentDates);
                                                 const newDates = currentDates.includes(dateStr) ? currentDates.filter(ed => ed !== dateStr) : [...currentDates, dateStr].sort();
+                                                console.log('[DEBUG-EDM] newDates:', newDates);
                                                 setEditValue(newDates.join(','));
                                             }
                                         }}
-                                        highlightDates={dateMode === 'dates' ? editValue.split(',').filter(Boolean).map(d => new Date(d)) : []}
+                                        highlightDates={dateMode === 'dates' ? editValue.split(',').filter(Boolean).map(d => {
+                                            const hd = parseDateSafe(d);
+                                            return hd;
+                                        }) : []}
                                         locale={ko} inline monthsShown={1} shouldCloseOnSelect={dateMode === 'single'}
                                     />
                                 </div>

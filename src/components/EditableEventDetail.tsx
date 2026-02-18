@@ -574,7 +574,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                 <div className="EED-infoValue">
                                     {eventDates && eventDates.length > 0 ? (
                                         <div className="EED-tagGroup">
-                                            {console.log('[DEBUG] Rendering eventDates:', eventDates)}
+                                            {(() => { console.log('[DEBUG] Rendering eventDates:', eventDates); return null; })()}
                                             {eventDates.map(d => (
                                                 <div key={d} className="EED-tag">
                                                     <span>{d.substring(5)}</span>

@@ -1,408 +1,162 @@
 [
-    {
-        "id": "swf_260213_lesson",
-        "keyword": "스윙패밀리 카페",
-        "source_url": "https://cafe.naver.com/f-e/cafes/10342583/articles/155792",
-        "poster_url": "/scraped/swf_260213_workshop.png",
-        "extracted_text": "견우&뽈의 '블루스 입문(Level1.)' (2/13~)\n날짜 : 2월 13, 20, 27일 금요일 20:00~22:00\n장소 : 신촌 연습실\n신청: https://forms.gle/zQN772RNVEY575WVA",
-        "structured_data": {
-            "date": "2026-02-13",
-            "day": "금",
-            "title": "견우&뽈의 '블루스 입문'",
-            "status": "정상운영",
-            "type": "강습",
-            "djs": [],
-            "instructor": "견우&뽈",
-            "times": [
-                "20:00 ~ 22:00"
-            ],
-            "location": "신촌 연습실",
-            "fee": null,
-            "registration_url": "https://forms.gle/zQN772RNVEY575WVA",
-            "note": "2/13, 2/20, 2/27 진행"
-        },
-        "evidence": {
-            "screenshot_path": "/scraped/swf_260213_workshop.png",
-            "ocr_raw": "본문 텍스트 추출",
-            "extraction_mapping": {
-                "date": "2월 13일 (시작일)"
-            }
-        },
-        "created_at": "2026-02-18T08:18:00+09:00",
-        "updated_at": "2026-02-18T08:30:00+09:00"
+  {
+    "id": "swf_260220_workshop",
+    "keyword": "스윙패밀리 카페",
+    "source_url": "https://cafe.naver.com/f-e/cafes/10342583/articles/155802",
+    "poster_url": "/scraped/swf_260220_workshop.jpg",
+    "extracted_text": "째의 턴&밸런스 특강\n📅 일정: 2월20일 27일 저녁8:10-9시 50분\n📍 장소: 신촌 연습실 \n신청: https://forms.gle/4STyePpwqMfcKnz68",
+    "structured_data": {
+      "date": "2026-02-20",
+      "day": "금",
+      "title": "째의 턴&밸런스",
+      "status": "정상운영",
+      "type": "워크숍",
+      "djs": [],
+      "instructor": "째",
+      "times": [
+        "20:10 ~ 21:50"
+      ],
+      "location": "신촌 연습실",
+      "fee": null,
+      "registration_url": "https://forms.gle/4STyePpwqMfcKnz68",
+      "note": "2/20, 2/27 진행"
     },
-    {
-        "id": "swf_260215_workshop",
-        "keyword": "스윙패밀리 카페",
-        "source_url": "https://cafe.naver.com/f-e/cafes/10342583/articles/155787",
-        "poster_url": "/scraped/swf_260215_workshop.jpg",
-        "extracted_text": "[2/15일 슬로우 린디합 & 블루스 데이 - 웍샵 & 소셜 신청]\n강사: 미쉐르 & 안단테, 요래 & 청산, 지히 & 뀨\n링크: https://litt.ly/swing_fiesta",
-        "structured_data": {
-            "date": "2026-02-15",
-            "day": "일",
-            "title": "슬로우 린디합 & 블루스 데이",
-            "status": "정상운영",
-            "type": "워크숍",
-            "djs": [],
-            "instructor": "미쉐르&안단테 외",
-            "times": [],
-            "location": "확인 필요",
-            "fee": null,
-            "registration_url": "https://litt.ly/swing_fiesta",
-            "note": "워크숍 & 소셜 섞인 행사"
-        },
-        "evidence": {
-            "screenshot_path": "/scraped/swf_260215_workshop.jpg",
-            "ocr_raw": "본문 텍스트 추출",
-            "extraction_mapping": {
-                "date": "2/15일"
-            }
-        },
-        "created_at": "2026-02-18T08:18:00+09:00",
-        "updated_at": "2026-02-18T08:30:00+09:00"
+    "evidence": {
+      "screenshot_path": "/scraped/swf_260220_workshop.jpg",
+      "ocr_raw": "본문 텍스트 추출",
+      "extraction_mapping": {
+        "date": "2월20일 (시작일)"
+      }
     },
-    {
-        "id": "swf_260220_workshop",
-        "keyword": "스윙패밀리 카페",
-        "source_url": "https://cafe.naver.com/f-e/cafes/10342583/articles/155802",
-        "poster_url": "/scraped/swf_260220_workshop.jpg",
-        "extracted_text": "째의 턴&밸런스 특강\n📅 일정: 2월20일 27일 저녁8:10-9시 50분\n📍 장소: 신촌 연습실 \n신청: https://forms.gle/4STyePpwqMfcKnz68",
-        "structured_data": {
-            "date": "2026-02-20",
-            "day": "금",
-            "title": "째의 턴&밸런스",
-            "status": "정상운영",
-            "type": "워크숍",
-            "djs": [],
-            "instructor": "째",
-            "times": [
-                "20:10 ~ 21:50"
-            ],
-            "location": "신촌 연습실",
-            "fee": null,
-            "registration_url": "https://forms.gle/4STyePpwqMfcKnz68",
-            "note": "2/20, 2/27 진행"
-        },
-        "evidence": {
-            "screenshot_path": "/scraped/swf_260220_workshop.jpg",
-            "ocr_raw": "본문 텍스트 추출",
-            "extraction_mapping": {
-                "date": "2월20일 (시작일)"
-            }
-        },
-        "created_at": "2026-02-18T08:10:00+09:00",
-        "updated_at": "2026-02-18T08:30:00+09:00"
+    "created_at": "2026-02-18T08:10:00+09:00",
+    "updated_at": "2026-02-18T08:30:00+09:00"
+  },
+  {
+    "id": "swf_260223_bunny",
+    "keyword": "스윙패밀리 카페",
+    "source_url": "https://cafe.naver.com/f-e/cafes/10342583/articles/155764",
+    "poster_url": "/scraped/swf_260223_bunny.png",
+    "extracted_text": "시옷x피치봉 버니합에서 팀원을 모집 합니다.(2/23 월 시작!)\n6주간 진행되는 린디합 패턴 클래스입니다.\n신청: https://buly.kr/3j9iU5L",
+    "structured_data": {
+      "date": "2026-02-23",
+      "day": "월",
+      "title": "시옷x피치봉 버니합 팀원 모집",
+      "status": "정상운영",
+      "type": "강습",
+      "djs": [],
+      "instructor": "시옷, 피치봉",
+      "times": [
+        "20:00 ~ 22:00"
+      ],
+      "location": "시옷쓰기 연습실",
+      "fee": null,
+      "registration_url": "https://buly.kr/3j9iU5L",
+      "note": "6주 과정"
     },
-    {
-        "id": "swf_260223_bunny",
-        "keyword": "스윙패밀리 카페",
-        "source_url": "https://cafe.naver.com/f-e/cafes/10342583/articles/155764",
-        "poster_url": "/scraped/swf_260223_bunny.png",
-        "extracted_text": "시옷x피치봉 버니합에서 팀원을 모집 합니다.(2/23 월 시작!)\n6주간 진행되는 린디합 패턴 클래스입니다.\n신청: https://buly.kr/3j9iU5L",
-        "structured_data": {
-            "date": "2026-02-23",
-            "day": "월",
-            "title": "시옷x피치봉 버니합 팀원 모집",
-            "status": "정상운영",
-            "type": "강습",
-            "djs": [],
-            "instructor": "시옷, 피치봉",
-            "times": [
-                "20:00 ~ 22:00"
-            ],
-            "location": "시옷쓰기 연습실",
-            "fee": null,
-            "registration_url": "https://buly.kr/3j9iU5L",
-            "note": "6주 과정"
-        },
-        "evidence": {
-            "screenshot_path": "/scraped/swf_260223_bunny.png",
-            "ocr_raw": "본문 텍스트 추출",
-            "extraction_mapping": {
-                "date": "2/23 (시작일)"
-            }
-        },
-        "created_at": "2026-02-18T08:25:00+09:00",
-        "updated_at": "2026-02-18T08:30:00+09:00"
+    "evidence": {
+      "screenshot_path": "/scraped/swf_260223_bunny.png",
+      "ocr_raw": "본문 텍스트 추출",
+      "extraction_mapping": {
+        "date": "2/23 (시작일)"
+      }
     },
-    {
-        "id": "swf_260223_lesson",
-        "keyword": "스윙패밀리 카페",
-        "source_url": "https://cafe.naver.com/f-e/cafes/10342583/articles/155768",
-        "poster_url": "/scraped/swf_260223_lesson.jpg",
-        "extracted_text": "로빈 JAZZSEASON Solo JazZ 강습\n베이직 및 루틴반 클래스가 매주 월요일 진행됩니다.\n시작일: 2/23",
-        "structured_data": {
-            "date": "2026-02-23",
-            "day": "월",
-            "title": "로빈 JAZZSEASON Solo JazZ",
-            "status": "정상운영",
-            "type": "강습",
-            "djs": [],
-            "instructor": "로빈",
-            "times": [],
-            "location": "확인 필요",
-            "fee": null,
-            "registration_url": "https://forms.gle/zugvcMXQrwRmMn147",
-            "note": "매주 월요일 진행"
-        },
-        "evidence": {
-            "screenshot_path": "/scraped/swf_260223_lesson.jpg",
-            "ocr_raw": "본문 텍스트 추출",
-            "extraction_mapping": {
-                "date": "2/23 (시작일)"
-            }
-        },
-        "created_at": "2026-02-18T08:20:00+09:00",
-        "updated_at": "2026-02-18T08:30:00+09:00"
+    "created_at": "2026-02-18T08:25:00+09:00",
+    "updated_at": "2026-02-18T08:30:00+09:00"
+  },
+  {
+    "id": "swf_260304_lesson",
+    "keyword": "스윙패밀리 카페",
+    "source_url": "https://cafe.naver.com/f-e/cafes/10342583/articles/155778",
+    "poster_url": "/scraped/swf_260304_lesson.png",
+    "extracted_text": "Solo Jazz Team COCO with Meti 뉴시즌 모집!\n일정: 3/4, 3/11, 3/18, 4/1, 4/8, 4/15 (매주 수요일 20:00-22:00)",
+    "structured_data": {
+      "date": "2026-03-04",
+      "day": "수",
+      "title": "Solo Jazz Team COCO 뉴시즌",
+      "status": "정상운영",
+      "type": "강습",
+      "djs": [],
+      "instructor": "Meti",
+      "times": [
+        "20:00 ~ 22:00"
+      ],
+      "location": "확인 필요",
+      "fee": null,
+      "registration_url": "https://forms.gle/vPQi8XhK7uYfN5eR6",
+      "note": "6주 공연팀 연습"
     },
-    {
-        "id": "swf_260208_performance",
-        "keyword": "스윙패밀리 카페",
-        "source_url": "https://cafe.naver.com/f-e/cafes/10342583/articles/155762",
-        "poster_url": "/scraped/swf_260208_performance.jpg",
-        "extracted_text": "Team At the Savoy 15시즌, 16시즌 안내\n5월 상하이 RSF 공연을 목표로 팀원을 모집합니다.\n강사: 테일, 스톰, 하고, 까미\n일요일 오후 4시~7시 연습",
-        "structured_data": {
-            "date": "2026-02-08",
-            "day": "일",
-            "title": "Team At the Savoy 15/16시즌",
-            "status": "정상운영",
-            "type": "강습",
-            "djs": [],
-            "instructor": "테일, 스톰, 하고, 까미",
-            "times": [
-                "16:00 ~ 19:00"
-            ],
-            "location": "사보이 볼룸",
-            "fee": null,
-            "registration_url": "https://forms.gle/C8JzVXDvkYKZMLNW8",
-            "note": "공연팀 모집"
-        },
-        "evidence": {
-            "screenshot_path": "/scraped/swf_260208_performance.jpg",
-            "ocr_raw": "본문 텍스트 추출",
-            "extraction_mapping": {
-                "date": "2/8 (모집/진행 기준)"
-            }
-        },
-        "created_at": "2026-02-18T08:25:00+09:00",
-        "updated_at": "2026-02-18T08:30:00+09:00"
+    "evidence": {
+      "screenshot_path": "/scraped/swf_260304_lesson.png",
+      "ocr_raw": "본문 텍스트 추출",
+      "extraction_mapping": {
+        "date": "3/4 (시작일)"
+      }
     },
-    {
-        "id": "swf_260304_lesson",
-        "keyword": "스윙패밀리 카페",
-        "source_url": "https://cafe.naver.com/f-e/cafes/10342583/articles/155778",
-        "poster_url": "/scraped/swf_260304_lesson.png",
-        "extracted_text": "Solo Jazz Team COCO with Meti 뉴시즌 모집!\n일정: 3/4, 3/11, 3/18, 4/1, 4/8, 4/15 (매주 수요일 20:00-22:00)",
-        "structured_data": {
-            "date": "2026-03-04",
-            "day": "수",
-            "title": "Solo Jazz Team COCO 뉴시즌",
-            "status": "정상운영",
-            "type": "강습",
-            "djs": [],
-            "instructor": "Meti",
-            "times": [
-                "20:00 ~ 22:00"
-            ],
-            "location": "확인 필요",
-            "fee": null,
-            "registration_url": "https://forms.gle/vPQi8XhK7uYfN5eR6",
-            "note": "6주 공연팀 연습"
-        },
-        "evidence": {
-            "screenshot_path": "/scraped/swf_260304_lesson.png",
-            "ocr_raw": "본문 텍스트 추출",
-            "extraction_mapping": {
-                "date": "3/4 (시작일)"
-            }
-        },
-        "created_at": "2026-02-18T08:20:00+09:00",
-        "updated_at": "2026-02-18T08:30:00+09:00"
+    "created_at": "2026-02-18T08:20:00+09:00",
+    "updated_at": "2026-02-18T08:30:00+09:00"
+  },
+  {
+    "id": "swf_260305_workshop",
+    "keyword": "스윙패밀리 카페",
+    "source_url": "https://cafe.naver.com/f-e/cafes/10342583/articles/155793",
+    "poster_url": "/scraped/swf_260305_workshop.jpg",
+    "extracted_text": "문이화 베이직원정대 “Over Rotated & Swivel“ (3/5_목 시작)\n▶ 일시: 3/5 - 4/2 목요일 PM8~ 총 5주간",
+    "structured_data": {
+      "date": "2026-03-05",
+      "day": "목",
+      "title": "문이화 베이직원정대",
+      "status": "정상운영",
+      "type": "강습",
+      "djs": [],
+      "instructor": "문이화",
+      "times": [
+        "20:00 ~"
+      ],
+      "location": "남부터미널 빅애플",
+      "fee": null,
+      "registration_url": "https://forms.gle/qLTnXb41KUg7jZrdA",
+      "note": "5주 강습"
     },
-    {
-        "id": "swf_260305_workshop",
-        "keyword": "스윙패밀리 카페",
-        "source_url": "https://cafe.naver.com/f-e/cafes/10342583/articles/155793",
-        "poster_url": "/scraped/swf_260305_workshop.jpg",
-        "extracted_text": "문이화 베이직원정대 “Over Rotated & Swivel“ (3/5_목 시작)\n▶ 일시: 3/5 - 4/2 목요일 PM8~ 총 5주간",
-        "structured_data": {
-            "date": "2026-03-05",
-            "day": "목",
-            "title": "문이화 베이직원정대",
-            "status": "정상운영",
-            "type": "강습",
-            "djs": [],
-            "instructor": "문이화",
-            "times": [
-                "20:00 ~"
-            ],
-            "location": "남부터미널 빅애플",
-            "fee": null,
-            "registration_url": "https://forms.gle/qLTnXb41KUg7jZrdA",
-            "note": "5주 강습"
-        },
-        "evidence": {
-            "screenshot_path": "/scraped/swf_260305_workshop.jpg",
-            "ocr_raw": "본문 텍스트 추출",
-            "extraction_mapping": {
-                "date": "3/5 (시작일)"
-            }
-        },
-        "created_at": "2026-02-18T08:15:00+09:00",
-        "updated_at": "2026-02-18T08:30:00+09:00"
+    "evidence": {
+      "screenshot_path": "/scraped/swf_260305_workshop.jpg",
+      "ocr_raw": "본문 텍스트 추출",
+      "extraction_mapping": {
+        "date": "3/5 (시작일)"
+      }
     },
-    {
-        "id": "swf_260309_balboa",
-        "keyword": "스윙패밀리 카페",
-        "source_url": "https://cafe.naver.com/f-e/cafes/10342583/articles/155777",
-        "poster_url": "/scraped/swf_260309_balboa.jpg",
-        "extracted_text": "다이나믹 발보아 ‘초중급’ (3월) - 라디앙&소피아(@쏘셜클럽)\n장소는 합정 쏘셜클럽입니다.\n시작일: 3/9",
-        "structured_data": {
-            "date": "2026-03-09",
-            "day": "월",
-            "title": "다이나믹 발보아 ‘초중급’",
-            "status": "정상운영",
-            "type": "강습",
-            "djs": [],
-            "instructor": "라디앙&소피아",
-            "times": [],
-            "location": "합정 쏘셜클럽",
-            "fee": null,
-            "registration_url": "https://forms.gle/MkdtaDGF3Uw87Gvs6",
-            "note": "발보아 초중급"
-        },
-        "evidence": {
-            "screenshot_path": "/scraped/swf_260309_balboa.jpg",
-            "ocr_raw": "본문 텍스트 추출",
-            "extraction_mapping": {
-                "date": "3/9 (시작일)"
-            }
-        },
-        "created_at": "2026-02-18T08:20:00+09:00",
-        "updated_at": "2026-02-18T08:30:00+09:00"
+    "created_at": "2026-02-18T08:15:00+09:00",
+    "updated_at": "2026-02-18T08:30:00+09:00"
+  },
+  {
+    "id": "swf_260309_lesson",
+    "keyword": "스윙패밀리 카페",
+    "source_url": "https://cafe.naver.com/f-e/cafes/10342583/articles/155785",
+    "poster_url": "/scraped/swf_260309_lesson.png",
+    "extracted_text": "문탄+이화 Monthly Jazz 3월 : 공연으로 빚어내는 이달의 재즈\n일시: 3/9 ~ 3/30 매주 월요일 저녁 8시 (총 4주)\n장소: 사당 더그라운즈",
+    "structured_data": {
+      "date": "2026-03-09",
+      "day": "월",
+      "title": "문탄+이화 Monthly Jazz 3월",
+      "status": "정상운영",
+      "type": "강습",
+      "djs": [],
+      "instructor": "문탄, 이화",
+      "times": [
+        "20:00 ~"
+      ],
+      "location": "사당 더그라운즈",
+      "fee": null,
+      "registration_url": "https://forms.gle/156Qn4XkTZKqXAif9",
+      "note": "4주 공연반 강습"
     },
-    {
-        "id": "swf_260309_lesson",
-        "keyword": "스윙패밀리 카페",
-        "source_url": "https://cafe.naver.com/f-e/cafes/10342583/articles/155785",
-        "poster_url": "/scraped/swf_260309_lesson.png",
-        "extracted_text": "문탄+이화 Monthly Jazz 3월 : 공연으로 빚어내는 이달의 재즈\n일시: 3/9 ~ 3/30 매주 월요일 저녁 8시 (총 4주)\n장소: 사당 더그라운즈",
-        "structured_data": {
-            "date": "2026-03-09",
-            "day": "월",
-            "title": "문탄+이화 Monthly Jazz 3월",
-            "status": "정상운영",
-            "type": "강습",
-            "djs": [],
-            "instructor": "문탄, 이화",
-            "times": [
-                "20:00 ~"
-            ],
-            "location": "사당 더그라운즈",
-            "fee": null,
-            "registration_url": "https://forms.gle/156Qn4XkTZKqXAif9",
-            "note": "4주 공연반 강습"
-        },
-        "evidence": {
-            "screenshot_path": "/scraped/swf_260309_lesson.png",
-            "ocr_raw": "본문 텍스트 추출",
-            "extraction_mapping": {
-                "date": "3/9 (시작일)"
-            }
-        },
-        "created_at": "2026-02-18T08:20:00+09:00",
-        "updated_at": "2026-02-18T08:30:00+09:00"
+    "evidence": {
+      "screenshot_path": "/scraped/swf_260309_lesson.png",
+      "ocr_raw": "본문 텍스트 추출",
+      "extraction_mapping": {
+        "date": "3/9 (시작일)"
+      }
     },
-    {
-        "id": "swf_260311_workshop",
-        "keyword": "스윙패밀리 카페",
-        "source_url": "https://cafe.naver.com/f-e/cafes/10342583/articles/155796",
-        "poster_url": "/scraped/swf_260311_workshop.jpg",
-        "extracted_text": "YUYU의 FOLLOWER'S DRILL 3월 강습 신청\n🔵일정: 3월 11,18일 (수요일 오후 8:00-10:00시)\n🔵장소: 사당 리듬앤조이",
-        "structured_data": {
-            "date": "2026-03-11",
-            "day": "수",
-            "title": "YUYU의 FOLLOWER'S DRILL",
-            "status": "정상운영",
-            "type": "강습",
-            "djs": [],
-            "instructor": "YUYU",
-            "times": [
-                "20:00 ~ 22:00"
-            ],
-            "location": "사당 리듬앤조이",
-            "fee": null,
-            "registration_url": "https://forms.gle/hKRwVdkPzNFXA86g6",
-            "note": "3/11, 3/18 진행"
-        },
-        "evidence": {
-            "screenshot_path": "/scraped/swf_260311_workshop.jpg",
-            "ocr_raw": "본문 텍스트 추출",
-            "extraction_mapping": {
-                "date": "3월 11일 (시작일)"
-            }
-        },
-        "created_at": "2026-02-18T08:12:00+09:00",
-        "updated_at": "2026-02-18T08:30:00+09:00"
-    },
-    {
-        "id": "swf_260417_workshop",
-        "keyword": "스윙패밀리 카페",
-        "source_url": "https://cafe.naver.com/f-e/cafes/10342583/articles/155786",
-        "poster_url": "/scraped/swf_260417_workshop.jpg",
-        "extracted_text": "가평에서 열리는 48h 소규모 댄스 워크샵 JAZZ STAY\n일시: 2026-04-17 (금) 시작",
-        "structured_data": {
-            "date": "2026-04-17",
-            "day": "금",
-            "title": "JAZZ STAY 워크숍",
-            "status": "정상운영",
-            "type": "워크숍",
-            "djs": [],
-            "instructor": "이정, 안단테, YUYU",
-            "times": [],
-            "location": "가평",
-            "fee": null,
-            "registration_url": "https://docs.google.com/forms/d/e/1FAIpQLSenPx3_SFZ1pWMYw6AoNKJatNrA7u1uH0ERfYQOzLG7D6eO5w/viewform",
-            "note": "2박 3일 스테이 행사"
-        },
-        "evidence": {
-            "screenshot_path": "/scraped/swf_260417_workshop.jpg",
-            "ocr_raw": "본문 텍스트 추출",
-            "extraction_mapping": {
-                "date": "2026-04-17 (시작일)"
-            }
-        },
-        "created_at": "2026-02-18T08:20:00+09:00",
-        "updated_at": "2026-02-18T08:30:00+09:00"
-    },
-    {
-        "id": "swf_260501_event",
-        "keyword": "스윙패밀리 카페",
-        "source_url": "https://cafe.naver.com/f-e/cafes/10342583/articles/155776",
-        "poster_url": null,
-        "extracted_text": "부산린디합위캔 BLW 파티팩 오픈했어요🎉\n일정: 5월 1일부터 3일까지 진행됩니다.",
-        "structured_data": {
-            "date": "2026-05-01",
-            "day": "금",
-            "title": "부산린디합위캔 BLW 파티팩",
-            "status": "정상운영",
-            "type": "행사",
-            "djs": [],
-            "instructor": "Todd & Ramona",
-            "times": [],
-            "location": "부산",
-            "fee": "89,000원",
-            "registration_url": "https://linktr.ee/bslhw",
-            "note": "파티팩 오픈 안내"
-        },
-        "evidence": {
-            "screenshot_path": null,
-            "ocr_raw": "본문 텍스트 추출",
-            "extraction_mapping": {
-                "date": "5월 1일 (시작일)"
-            }
-        },
-        "created_at": "2026-02-18T08:20:00+09:00",
-        "updated_at": "2026-02-18T08:30:00+09:00"
-    }
+    "created_at": "2026-02-18T08:20:00+09:00",
+    "updated_at": "2026-02-18T08:30:00+09:00"
+  }
 ]
