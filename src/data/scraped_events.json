@@ -291,5 +291,69 @@
     },
     "created_at": "2026-02-18T07:05:00+09:00",
     "updated_at": "2026-02-18T07:25:00+09:00"
+  },
+  {
+    "id": "sf_260220_workshop",
+    "keyword": "스윙프렌즈",
+    "source_url": "https://forms.gle/4STyePpwqMfcKnz68",
+    "poster_url": null,
+    "extracted_text": "째의 턴&밸런스 특강\n댄서의 폼은 밸런스에서 나온다!\n밸런스 개념부터 이해하고 트레이닝하는 코어가 단단해지는 수업\n리더 & 팔뤄 모두 신청 가능\n일정: 2월20일 저녁8:10-9시50분\n장소: 신촌 연습실\n강사: 째",
+    "structured_data": {
+      "date": "2026-02-20",
+      "day": "금",
+      "title": "째의 턴&밸런스 특강",
+      "status": "정상운영",
+      "djs": [],
+      "instructor": "째",
+      "times": [
+        "20:10 ~ 21:50"
+      ],
+      "location": "신촌 연습실",
+      "fee": null,
+      "note": "리더 & 팔뤄 모두 신청 가능. 밸런스 트레이닝 수업. 출처: 스윙프렌즈 네이버 카페 (째님 작성)"
+    },
+    "evidence": {
+      "screenshot_path": null,
+      "ocr_raw": "수동 텍스트 입력",
+      "extraction_mapping": {
+        "date": "원문 '2월20일'",
+        "instructor": "원문 작성자 '째님'",
+        "times": "원문 '저녁8:10-9시50분'"
+      }
+    },
+    "created_at": "2026-02-18T07:54:00+09:00",
+    "updated_at": "2026-02-18T07:54:00+09:00"
+  },
+  {
+    "id": "sf_260227_workshop",
+    "keyword": "스윙프렌즈",
+    "source_url": "https://forms.gle/4STyePpwqMfcKnz68",
+    "poster_url": null,
+    "extracted_text": "째의 턴&밸런스 특강\n댄서의 폼은 밸런스에서 나온다!\n밸런스 개념부터 이해하고 트레이닝하는 코어가 단단해지는 수업\n리더 & 팔뤄 모두 신청 가능\n일정: 2월27일 저녁8:10-9시50분\n장소: 신촌 연습실\n강사: 째",
+    "structured_data": {
+      "date": "2026-02-27",
+      "day": "금",
+      "title": "째의 턴&밸런스 특강",
+      "status": "정상운영",
+      "djs": [],
+      "instructor": "째",
+      "times": [
+        "20:10 ~ 21:50"
+      ],
+      "location": "신촌 연습실",
+      "fee": null,
+      "note": "리더 & 팔뤄 모두 신청 가능. 밸런스 트레이닝 수업. 출처: 스윙프렌즈 네이버 카페 (째님 작성)"
+    },
+    "evidence": {
+      "screenshot_path": null,
+      "ocr_raw": "수동 텍스트 입력",
+      "extraction_mapping": {
+        "date": "원문 '2월27일'",
+        "instructor": "원문 작성자 '째님'",
+        "times": "원문 '저녁8:10-9시50분'"
+      }
+    },
+    "created_at": "2026-02-18T07:54:00+09:00",
+    "updated_at": "2026-02-18T07:54:00+09:00"
   }
 ]

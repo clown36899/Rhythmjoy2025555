@@ -19,6 +19,7 @@ import type { Event as AppEvent } from "../lib/supabase";
 import { useModalHistory } from "../hooks/useModalHistory";
 import { useLoading } from "../contexts/LoadingContext";
 import { retryOperation } from "../utils/asyncUtils";
+import { parseDateSafe, formatDateForInput } from "../pages/v2/utils/eventListUtils";
 
 // Extended Event type for preview
 interface ExtendedEvent extends AppEvent {
@@ -26,6 +27,7 @@ interface ExtendedEvent extends AppEvent {
   venue_id?: string | null;
   venue_name?: string | null;
   venue_custom_link?: string | null;
+  scope?: "domestic" | "overseas" | null;
 }
 
 interface EventRegistrationModalProps {
@@ -43,13 +45,6 @@ interface EventRegistrationModalProps {
   groupId?: number | null;
   dayOfWeek?: number | null;
 }
-
-const formatDateForInput = (date: Date): string => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
 
 // 한국어 locale 등록 moved to EditableEventDetail
 
@@ -246,8 +241,9 @@ export default memo(function EventRegistrationModal({
       if (editEventData) {
         // Edit Mode: Populate form
         setTitle(editEventData.title);
-        setDate(editEventData.date ? new Date(editEventData.date) : (editEventData.start_date ? new Date(editEventData.start_date) : null));
-        setEndDate(editEventData.end_date ? new Date(editEventData.end_date) : null);
+        const parsedDate = editEventData.date ? parseDateSafe(editEventData.date) : (editEventData.start_date ? parseDateSafe(editEventData.start_date) : null);
+        setDate(parsedDate);
+        setEndDate(editEventData.end_date ? parseDateSafe(editEventData.end_date) : null);
         setEventDates(editEventData.event_dates || []);
         setLocation(editEventData.location || "");
         setAddress((editEventData as any).address || "");
@@ -925,14 +921,14 @@ export default memo(function EventRegistrationModal({
       // Date handling
       case 'date':
         if (value) {
-          setDate(new Date(value));
+          setDate(parseDateSafe(value));
         } else {
           setDate(null);
         }
         break;
       case 'end_date':
         if (value) {
-          setEndDate(new Date(value));
+          setEndDate(parseDateSafe(value));
         } else {
           setEndDate(null);
         }

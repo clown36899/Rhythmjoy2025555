@@ -3,6 +3,7 @@ import { useEvents } from '../v2/components/EventList/hooks/useEvents';
 import { supabase } from '../../lib/supabase';
 import { createResizedImages } from '../../utils/imageResize';
 import { useAuth } from '../../contexts/AuthContext';
+import { parseDateSafe } from '../v2/utils/eventListUtils';
 import './EventIngestor.css';
 
 interface ScrapedEvent {
@@ -39,6 +40,7 @@ interface VenueRecord {
 const EventIngestor: React.FC = () => {
     const { user } = useAuth();
     const { events: existingEvents, loading: existingLoading } = useEvents({ isAdminMode: true });
+    const [currentTab, setCurrentTab] = useState<'social' | 'lessons'>('social');
     const [scrapedEvents, setScrapedEvents] = useState<ScrapedEvent[]>([]);
     const [loadingScraped, setLoadingScraped] = useState(true);
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -46,6 +48,7 @@ const EventIngestor: React.FC = () => {
     const [registeredIds, setRegisteredIds] = useState<Set<string>>(new Set());
     const [registeringId, setRegisteringId] = useState<string | null>(null);
     const [venues, setVenues] = useState<VenueRecord[]>([]);
+    const [genreMap, setGenreMap] = useState<Record<string, string[]>>({}); // scraped.id -> genres[]
 
     // 전체화면 모드: 650px 제한 해제 (스크롤 허용)
     useEffect(() => {
@@ -55,25 +58,28 @@ const EventIngestor: React.FC = () => {
         };
     }, []);
 
+    const fetchScraped = useCallback(async () => {
+        setLoadingScraped(true);
+        try {
+            // [로컬전환] Netlify Function API에서 로컬 JSON 데이터 조회
+            const res = await fetch(`/.netlify/functions/scraped-events?type=${currentTab}`);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const data = await res.json();
+            // created_at 역순 정렬
+            data.sort((a: any, b: any) => (b.created_at || '').localeCompare(a.created_at || ''));
+            setScrapedEvents(data || []);
+            // 탭 전환 시 선택 초기화
+            setSelectedIds(new Set());
+        } catch (e) {
+            console.error("Failed to load scraped events:", e);
+        } finally {
+            setLoadingScraped(false);
+        }
+    }, [currentTab]);
+
     useEffect(() => {
-        const fetchScraped = async () => {
-            setLoadingScraped(true);
-            try {
-                // [로컬전환] Netlify Function API에서 로컬 JSON 데이터 조회
-                const res = await fetch('/.netlify/functions/scraped-events');
-                if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const data = await res.json();
-                // created_at 역순 정렬
-                data.sort((a: any, b: any) => (b.created_at || '').localeCompare(a.created_at || ''));
-                setScrapedEvents(data || []);
-            } catch (e) {
-                console.error("Failed to load scraped events:", e);
-            } finally {
-                setLoadingScraped(false);
-            }
-        };
         fetchScraped();
-    }, []);
+    }, [fetchScraped]);
 
     // Venues 로딩 (장소 자동 매칭용)
     useEffect(() => {
@@ -195,14 +201,18 @@ const EventIngestor: React.FC = () => {
                 start_date: data.date,
                 time: startTime,
                 location: data.location || '',
-                category: 'social',
-                genre: 'DJ,소셜',
+                category: currentTab === 'lessons' ? 'class' : 'social',
+                genre: (() => {
+                    const selected = genreMap[scraped.id];
+                    if (selected && selected.length > 0) return selected.join(',');
+                    return currentTab === 'lessons' ? '강습,워크숍' : 'DJ,소셜';
+                })(),
                 link1: scraped.source_url || '',
                 link_name1: scraped.keyword || '',
                 description: scraped.extracted_text || '',
                 user_id: user.id,
-                group_id: 2, // 댄스빌보드 (관리자 일괄 등록)
-                day_of_week: new Date(data.date).getDay(),
+                group_id: currentTab === 'lessons' ? null : 2, // 강습은 일반, 소셜은 댄스빌보드 그룹
+                day_of_week: parseDateSafe(data.date).getDay(),
                 image: imageUrl,
                 image_micro: imageMicro,
                 image_thumbnail: imageThumbnail,
@@ -233,7 +243,18 @@ const EventIngestor: React.FC = () => {
         } finally {
             setRegisteringId(null);
         }
-    }, [user, registeringId, matchVenue]);
+    }, [user, currentTab, registeringId, matchVenue, genreMap]);
+
+    const toggleGenre = useCallback((id: string, genre: string) => {
+        setGenreMap(prev => {
+            const current = prev[id] || [];
+            if (current.includes(genre)) {
+                return { ...prev, [id]: current.filter(g => g !== genre) };
+            } else {
+                return { ...prev, [id]: [...current, genre] };
+            }
+        });
+    }, []);
 
     // ===== 일괄 처리 함수 =====
     const handleBatchRegister = useCallback(async () => {
@@ -262,7 +283,7 @@ const EventIngestor: React.FC = () => {
 
         try {
             const idsToDelete = Array.from(selectedIds);
-            const res = await fetch('/.netlify/functions/scraped-events', {
+            const res = await fetch(`/.netlify/functions/scraped-events?type=${currentTab}`, {
                 method: 'DELETE',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ids: idsToDelete }),
@@ -279,7 +300,7 @@ const EventIngestor: React.FC = () => {
             console.error('일괄 삭제 실패:', err);
             alert(`삭제 중 오류가 발생했습니다: ${err.message}`);
         }
-    }, [selectedIds]);
+    }, [selectedIds, currentTab]);
 
     const toggleSelect = (id: string) => {
         setSelectedIds(prev => {
@@ -599,6 +620,20 @@ const EventIngestor: React.FC = () => {
                         </button>
                     </div>
                 </div>
+                <div className="ingestor-tabs">
+                    <button
+                        className={`tab-item ${currentTab === 'social' ? 'active' : ''}`}
+                        onClick={() => setCurrentTab('social')}
+                    >
+                        🎶 소셜 이벤트
+                    </button>
+                    <button
+                        className={`tab-item ${currentTab === 'lessons' ? 'active' : ''}`}
+                        onClick={() => setCurrentTab('lessons')}
+                    >
+                        🎓 강습/워크숍
+                    </button>
+                </div>
                 <div className="ingestor-stats">
                     <span>수집된 총 항목: <b>{scrapedEvents.length}</b></span>
                     <span>DB 등록 이벤트: <b>{existingEvents.length}</b></span>
@@ -760,6 +795,9 @@ const EventIngestor: React.FC = () => {
                                     onRegister={() => handleRegisterEvent(item)}
                                     isRegistered={registeredIds.has(item.id)}
                                     isRegistering={registeringId === item.id}
+                                    currentTab={currentTab}
+                                    selectedGenres={genreMap[item.id] || []}
+                                    onToggleGenre={(genre) => toggleGenre(item.id, genre)}
                                     matchInfo={(() => {
                                         const g = comparisonData.find(c => c.scrapedId === item.id);
                                         if (!g || g.dbMatches.length === 0) return undefined;
@@ -805,6 +843,9 @@ const EventIngestor: React.FC = () => {
                                     isDuplicate={true}
                                     isSelected={selectedIds.has(item.id)}
                                     onSelect={() => toggleSelect(item.id)}
+                                    currentTab={currentTab}
+                                    selectedGenres={genreMap[item.id] || []}
+                                    onToggleGenre={(genre) => toggleGenre(item.id, genre)}
                                 />
                             ))}
                         </div>
@@ -825,9 +866,15 @@ interface EventCardProps {
     isRegistered?: boolean;
     isRegistering?: boolean;
     matchInfo?: { score: number; status: string; dbTitle: string; matchReasons: string[] };
+    currentTab?: 'social' | 'lessons';
+    selectedGenres?: string[];
+    onToggleGenre?: (genre: string) => void;
 }
 
-const EventCard: React.FC<EventCardProps & { event: any }> = ({ event, isDuplicate, isSelected, onSelect, onDismiss, onRegister, isRegistered, isRegistering, matchInfo }) => {
+const EventCard: React.FC<EventCardProps & { event: any }> = ({
+    event, isDuplicate, isSelected, onSelect, onDismiss, onRegister,
+    isRegistered, isRegistering, matchInfo, currentTab, selectedGenres = [], onToggleGenre
+}) => {
     const data = event.structured_data || {
         date: event.parsed_data?.date || 'unknown',
         title: event.parsed_data?.title || 'No Title',
@@ -912,6 +959,23 @@ const EventCard: React.FC<EventCardProps & { event: any }> = ({ event, isDuplica
                         </div>
                     )}
                 </div>
+
+                {currentTab === 'lessons' && (
+                    <div className="genre-selector">
+                        {['린디합', '블루스', '발보아', '솔로재즈', '지터벅', '기타'].map(g => (
+                            <button
+                                key={g}
+                                className={`genre-chip ${selectedGenres.includes(g) ? 'active' : ''}`}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    onToggleGenre?.(g);
+                                }}
+                            >
+                                {g}
+                            </button>
+                        ))}
+                    </div>
+                )}
 
                 {event.extracted_text && (
                     <div className="extracted-box" title="추출된 본문 텍스트">

@@ -4,8 +4,12 @@ import * as path from 'path';
 
 // netlify dev 환경에서 프로젝트 루트 기준 경로
 const PROJECT_ROOT = path.resolve(process.cwd());
-const JSON_PATH = path.join(PROJECT_ROOT, 'src/data/scraped_events.json');
 const SCRAPED_DIR = path.join(PROJECT_ROOT, 'public/scraped');
+
+function getJsonPath(type: string | undefined): string {
+    const filename = type === 'lessons' ? 'scraped_lessons.json' : 'scraped_events.json';
+    return path.join(PROJECT_ROOT, 'src/data/', filename);
+}
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -34,17 +38,18 @@ interface ScrapedEvent {
     updated_at?: string;
 }
 
-function readEvents(): ScrapedEvent[] {
+function readEvents(jsonPath: string): ScrapedEvent[] {
     try {
-        const raw = fs.readFileSync(JSON_PATH, 'utf-8');
+        if (!fs.existsSync(jsonPath)) return [];
+        const raw = fs.readFileSync(jsonPath, 'utf-8');
         return JSON.parse(raw);
     } catch {
         return [];
     }
 }
 
-function writeEvents(events: ScrapedEvent[]): void {
-    fs.writeFileSync(JSON_PATH, JSON.stringify(events, null, 2), 'utf-8');
+function writeEvents(jsonPath: string, events: ScrapedEvent[]): void {
+    fs.writeFileSync(jsonPath, JSON.stringify(events, null, 2), 'utf-8');
 }
 
 function deleteImageFile(posterUrl: string | null | undefined): boolean {
@@ -69,10 +74,13 @@ export const handler: Handler = async (event) => {
         return { statusCode: 204, headers: corsHeaders, body: '' };
     }
 
+    const type = event.queryStringParameters?.type; // 'social' | 'lessons'
+    const jsonPath = getJsonPath(type);
+
     try {
         // ===== GET: 전체 목록 조회 =====
         if (event.httpMethod === 'GET') {
-            const events = readEvents();
+            const events = readEvents(jsonPath);
             return {
                 statusCode: 200,
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -93,7 +101,7 @@ export const handler: Handler = async (event) => {
                 };
             }
 
-            const events = readEvents();
+            const events = readEvents(jsonPath);
             const now = new Date().toISOString();
 
             for (const item of incoming) {
@@ -110,7 +118,7 @@ export const handler: Handler = async (event) => {
                 }
             }
 
-            writeEvents(events);
+            writeEvents(jsonPath, events);
 
             return {
                 statusCode: 201,
@@ -132,7 +140,7 @@ export const handler: Handler = async (event) => {
                 };
             }
 
-            const events = readEvents();
+            const events = readEvents(jsonPath);
             const deletedImages: string[] = [];
 
             // 삭제 대상의 이미지 파일도 함께 삭제
@@ -146,7 +154,7 @@ export const handler: Handler = async (event) => {
             }
 
             const remaining = events.filter(e => !idsToDelete.includes(e.id));
-            writeEvents(remaining);
+            writeEvents(jsonPath, remaining);
 
             return {
                 statusCode: 200,

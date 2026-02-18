@@ -49,10 +49,11 @@ export const DEFAULT_GENRE_WEIGHTS: GenreWeightSettings = {
     "기타": 1.0
 };
 
-// 한국 시간(KST) 기준 날짜 문자열 반환 (YYYY-MM-DD) - 절대적인 수동 방식
+// 한국 시간(KST) 기준 날짜 문자열 반환 (YYYY-MM-DD) - 절대적인 KST 기준
 export const getLocalDateString = (date: Date = new Date()) => {
-    // 1. UTC 시간에 9시간을 더해 한국 날짜 객체를 만듦
-    const kstDate = new Date(date.getTime() + (9 * 60 * 60 * 1000));
+    // UTC 시간에 9시간을 더해 한국 날짜 객체를 모방
+    const kstOffset = 9 * 60 * 60 * 1000;
+    const kstDate = new Date(date.getTime() + kstOffset);
     const y = kstDate.getUTCFullYear();
     const m = String(kstDate.getUTCMonth() + 1).padStart(2, '0');
     const d = String(kstDate.getUTCDate()).padStart(2, '0');
@@ -223,11 +224,14 @@ export const sortEvents = (
 };
 
 /**
- * 날짜 파싱 헬퍼 (YYYY-MM-DD 형식일 때만 T12:00:00 추가)
+ * 날짜 파싱 헬퍼 (YYYY-MM-DD 형식일 때 타임존 오차 방지를 위해 수동 생성)
  */
-export const parseDateSafe = (dateStr: string) => {
-    if (dateStr.length === 10) {
-        return new Date(`${dateStr}T12:00:00`);
+export const parseDateSafe = (dateStr: string | null | undefined): Date => {
+    if (!dateStr) return new Date();
+    if (dateStr.length === 10 && dateStr.includes('-')) {
+        const [y, m, d] = dateStr.split('-').map(Number);
+        // month는 0-indexed 임에 주의. 정오(12:00)로 설정하여 타임존 오차 방어
+        return new Date(y, m - 1, d, 12, 0, 0);
     }
     return new Date(dateStr);
 };

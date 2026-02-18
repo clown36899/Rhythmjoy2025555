@@ -11,6 +11,7 @@ import { ko } from "date-fns/locale/ko";
 import "react-datepicker/dist/react-datepicker.css";
 import "../styles/domains/events.css"; // 2026 Pure Semantic CSS: Events Domain
 import "../styles/components/EditableEventDetail.css";
+import { parseDateSafe } from '../pages/v2/utils/eventListUtils';
 import GlobalLoadingOverlay from './GlobalLoadingOverlay';
 import LocalLoading from './LocalLoading';
 
@@ -232,13 +233,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
 
     // handleSave removed // Unused
 
-    // Helper to format date string YYYY-MM-DD
-    const formatDateStr = (d: Date) => {
-        const year = d.getFullYear();
-        const month = String(d.getMonth() + 1).padStart(2, '0');
-        const day = String(d.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-    };
+    // formatDateStr was removed in favor of formatDateForInput from eventListUtils
 
     // Title Font Scaling Logic
     const titleRef = useRef<HTMLHeadingElement>(null);
@@ -579,6 +574,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                 <div className="EED-infoValue">
                                     {eventDates && eventDates.length > 0 ? (
                                         <div className="EED-tagGroup">
+                                            {console.log('[DEBUG] Rendering eventDates:', eventDates)}
                                             {eventDates.map(d => (
                                                 <div key={d} className="EED-tag">
                                                     <span>{d.substring(5)}</span>
@@ -596,8 +592,8 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                         </div>
                                     ) : event.start_date ? (
                                         (() => {
-                                            const start = new Date(event.start_date);
-                                            const end = event.end_date ? new Date(event.end_date) : null;
+                                            const start = parseDateSafe(event.start_date);
+                                            const end = event.end_date ? parseDateSafe(event.end_date) : null;
                                             const startStr = `${start.getFullYear()}년 ${start.getMonth() + 1}월 ${start.getDate()} 일`;
                                             return (end && start.getTime() !== end.getTime()) ? `${startStr} ~${end.getMonth() + 1}월 ${end.getDate()} 일` : startStr;
                                         })()
@@ -624,7 +620,7 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                                     {dateMode === 'single' ? (
                                                         <div className="EED-dateBox is-active">
                                                             <span className="EED-dateLabel">선택일</span>
-                                                            <span className="EED-dateValue">{date ? formatDateStr(date) : '-'}</span>
+                                                            <span className="EED-dateValue">{date ? formatDateForInput(date) : '-'}</span>
                                                         </div>
                                                     ) : (
                                                         <div className="EED-tagGroup is-large">
@@ -642,13 +638,31 @@ const EditableEventDetail = React.forwardRef<EditableEventDetailRef, EditableEve
                                                         selected={dateMode === 'single' ? date : null}
                                                         onChange={(d: Date | null) => {
                                                             if (!d) return;
-                                                            if (dateMode === 'single') { setDate(d); setEndDate(d); setEventDates([]); }
+                                                            console.log('[DEBUG] Selected Date Object (d):', d);
+                                                            console.log('[DEBUG] d.toString():', d.toString());
+                                                            console.log('[DEBUG] d.toISOString():', d.toISOString());
+
+                                                            // DatePicker가 주는 Date 객체를 YYYY-MM-DD 문자열로 안전하게 변환
+                                                            const dateStr = formatDateForInput(d);
+                                                            console.log('[DEBUG] Formatted dateStr:', dateStr);
+
+                                                            if (dateMode === 'single') {
+                                                                const safeDate = parseDateSafe(dateStr);
+                                                                console.log('[DEBUG] single mode safeDate:', safeDate);
+                                                                setDate(safeDate);
+                                                                setEndDate(safeDate);
+                                                                setEventDates([]);
+                                                            }
                                                             else {
-                                                                const dateStr = formatDateStr(d);
-                                                                setEventDates(eventDates.includes(dateStr) ? eventDates.filter(ed => ed !== dateStr) : [...eventDates, dateStr].sort());
+                                                                console.log('[DEBUG] multi mode prev eventDates:', eventDates);
+                                                                const newDates = eventDates.includes(dateStr)
+                                                                    ? eventDates.filter(ed => ed !== dateStr)
+                                                                    : [...eventDates, dateStr].sort();
+                                                                console.log('[DEBUG] multi mode new eventDates:', newDates);
+                                                                setEventDates(newDates);
                                                             }
                                                         }}
-                                                        highlightDates={dateMode === 'dates' ? eventDates.map(d => new Date(d)) : undefined}
+                                                        highlightDates={dateMode === 'dates' ? eventDates.map(d => parseDateSafe(d)) : undefined}
                                                         locale={ko} inline shouldCloseOnSelect={false}
                                                     />
                                                 </div>
