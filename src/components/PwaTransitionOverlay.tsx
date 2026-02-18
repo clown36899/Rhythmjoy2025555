@@ -36,15 +36,19 @@ export const PwaTransitionOverlay: React.FC = () => {
     }, [isInstalled]);
 
     const handleLaunchApp = () => {
-        // target="_blank"로 같은 도메인의 URL을 열면 브라우저가 설치된 PWA로 핸들링할 확률이 높음
-        // 하지만 브라우저에서 열릴 경우를 대비해 pwaDetect.ts에서 URL 파라미터 감지를 제거함
         const url = window.location.origin + '/?utm_source=pwa';
 
         if (isAndroid) {
-            // 안드로이드의 경우 window.open 대신 location.href를 사용하면 
-            // 시스템이 더 잘 가로챌 수 있는 경우가 있음
-            window.location.href = url;
+            // 안드로이드 크롬에서 설치된 PWA를 강제로 열기 위한 Intent URL 구성
+            // scheme=https를 사용하고, 브라우저가 직접 핸들링하도록 유도
+            const domain = window.location.hostname;
+            const path = window.location.pathname + window.location.search;
+            const intentUrl = `intent://${domain}${path}#Intent;scheme=https;action=android.intent.action.VIEW;end`;
+
+            // 새 탭을 열지 않고 현재 탭에서 이동 시도 (무한 탭 생성 방지)
+            window.location.href = intentUrl;
         } else {
+            // iOS 및 기타 데스크톱은 기존 방식 유지
             const a = document.createElement('a');
             a.href = url;
             a.target = '_blank';
