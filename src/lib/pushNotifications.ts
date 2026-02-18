@@ -165,6 +165,41 @@ export const saveSubscriptionToSupabase = async (subscription: PushSubscription,
     // Get Endpoint (Unique Device ID)
     const endpoint = subscription.endpoint;
 
+    // 새 구독 저장 전, 같은 유저 + 같은 기기의 이전(죽은) 구독만 정리
+    // 다른 기기(iOS vs Android vs Mac 등)의 구독은 유지
+    try {
+        const currentUA = navigator.userAgent;
+        const { data: oldSubs } = await supabase
+            .from('user_push_subscriptions')
+            .select('id, endpoint, user_agent')
+            .eq('user_id', user.id)
+            .neq('endpoint', endpoint);
+
+        if (oldSubs && oldSubs.length > 0) {
+            // 같은 기기 판별: OS 키워드 기반 매칭
+            const getDeviceKey = (ua: string): string => {
+                if (/iPhone|iPad/.test(ua)) return 'ios';
+                if (/Android/.test(ua)) return 'android';
+                if (/Mac/.test(ua)) return 'mac';
+                if (/Windows/.test(ua)) return 'windows';
+                return 'unknown';
+            };
+            const currentDevice = getDeviceKey(currentUA);
+            const sameDeviceSubs = oldSubs.filter(s => getDeviceKey(s.user_agent) === currentDevice);
+
+            if (sameDeviceSubs.length > 0) {
+                const oldIds = sameDeviceSubs.map(s => s.id);
+                console.log(`[Push] Cleaning ${oldIds.length} old subscription(s) for same device (${currentDevice})`);
+                await supabase
+                    .from('user_push_subscriptions')
+                    .delete()
+                    .in('id', oldIds);
+            }
+        }
+    } catch (e) {
+        console.warn('[Push] Old subscription cleanup failed (non-critical):', e);
+    }
+
     // Prepare Payload
     const defaultPrefs: PushPreferences = {
         pref_events: true,

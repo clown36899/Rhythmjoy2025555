@@ -1,20 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { saveSubscriptionToSupabase, subscribeToPush } from '../../lib/pushNotifications';
+
+interface SubscriptionInfo {
+    id: string;
+    user_agent: string;
+    created_at: string;
+    endpoint: string;
+}
 
 export const AdminPushTest: React.FC = () => {
     const { user, isAdmin } = useAuth();
-    const [title, setTitle] = useState('폴린의 솔로재즈 베이직');
+    const [title, setTitle] = useState('test의 솔로재즈 베이직');
     const [body, setBody] = useState('2026-02-17 화요일 | 해피홀(신촌)');
     const [imageUrl, setImageUrl] = useState('https://swingenjoy.com/logo512.png');
     const [category, setCategory] = useState<'event' | 'class' | 'club'>('class');
     const [genre, setGenre] = useState('솔로재즈');
-    const [content, setContent] = useState('폴린 선생님과 함께하는 즐거운 솔로재즈 시간! 초보자 환영합니다. 놓치지 마세요!');
+    const [content, setContent] = useState('test 선생님과 함께하는 즐거운 솔로재즈 시간! 초보자 환영합니다. 놓치지 마세요!');
     const [targetUrl, setTargetUrl] = useState(window.location.origin);
     const [loading, setLoading] = useState(false);
-    const [subscribing, setSubscribing] = useState(false);
     const [result, setResult] = useState<string | null>(null);
+    const [mySubscriptions, setMySubscriptions] = useState<SubscriptionInfo[]>([]);
+    const [subsLoading, setSubsLoading] = useState(false);
 
     if (!isAdmin) return (
         <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
@@ -22,30 +29,109 @@ export const AdminPushTest: React.FC = () => {
         </div>
     );
 
-    const handleSubscribe = async () => {
-        setSubscribing(true);
+    const fetchMySubscriptions = async () => {
+        if (!user) return;
+        setSubsLoading(true);
+        try {
+            const { data, error } = await supabase
+                .from('user_push_subscriptions')
+                .select('id, user_agent, created_at, endpoint')
+                .eq('user_id', user.id);
+            if (error) throw error;
+            setMySubscriptions(data || []);
+        } catch (err: any) {
+            console.error('[AdminPushTest] Failed to fetch subscriptions:', err);
+            setMySubscriptions([]);
+        } finally {
+            setSubsLoading(false);
+        }
+    };
+
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    useEffect(() => {
+        fetchMySubscriptions();
+    }, [user?.id]);
+
+    const handleDeleteSubscription = async (subId: string) => {
+        try {
+            await supabase
+                .from('user_push_subscriptions')
+                .delete()
+                .eq('id', subId);
+            setMySubscriptions(prev => prev.filter(s => s.id !== subId));
+            setResult('삭제 완료');
+        } catch (err: any) {
+            setResult(`❌ 삭제 실패: ${err.message}`);
+        }
+    };
+
+    const getDeviceKey = (ua: string): string => {
+        if (/iPhone|iPad/.test(ua)) return 'ios';
+        if (/Android/.test(ua)) return 'android';
+        if (/Mac/.test(ua)) return 'mac';
+        if (/Windows/.test(ua)) return 'windows';
+        return 'unknown';
+    };
+
+    const handleCleanupAll = async () => {
+        if (!user) return;
+        setSubsLoading(true);
         setResult(null);
         try {
-            const sub = await subscribeToPush();
-            if (sub) {
-                await saveSubscriptionToSupabase(sub);
-                setResult('✅ 이 기기의 알림 수신기가 성공적으로 연결되었습니다!');
-            } else {
-                setResult('❌ PWA 모드 확인 또는 알림 권한 허용이 필요합니다.');
+            // 전체 유저의 중복 구독 정리: 각 user_id + 기기종류별로 가장 최신 1개만 남기고 삭제
+            const { data: allSubs, error } = await supabase
+                .from('user_push_subscriptions')
+                .select('id, user_id, user_agent, created_at')
+                .order('created_at', { ascending: false });
+
+            if (error) throw error;
+            if (!allSubs) return;
+
+            const keepIds = new Set<string>();
+            const seenKeys = new Set<string>();
+            for (const sub of allSubs) {
+                const key = `${sub.user_id}:${getDeviceKey(sub.user_agent)}`;
+                if (!seenKeys.has(key)) {
+                    seenKeys.add(key);
+                    keepIds.add(sub.id);
+                }
             }
+
+            const deleteIds = allSubs.filter(s => !keepIds.has(s.id)).map(s => s.id);
+
+            if (deleteIds.length === 0) {
+                setResult('정리할 중복 구독이 없습니다.');
+            } else {
+                for (let i = 0; i < deleteIds.length; i += 50) {
+                    const chunk = deleteIds.slice(i, i + 50);
+                    await supabase
+                        .from('user_push_subscriptions')
+                        .delete()
+                        .in('id', chunk);
+                }
+                setResult(`${deleteIds.length}개 중복 구독 정리 완료 (기기종류별 최신 1개만 유지)`);
+            }
+            await fetchMySubscriptions();
         } catch (err: any) {
-            setResult(`❌ 오류: ${err.message}`);
+            setResult(`❌ 정리 실패: ${err.message}`);
         } finally {
-            setSubscribing(false);
+            setSubsLoading(false);
         }
+    };
+
+    const parseUserAgent = (ua: string): string => {
+        if (/iPhone|iPad/.test(ua)) return 'iOS';
+        if (/Android/.test(ua)) return 'Android';
+        if (/Mac/.test(ua)) return 'Mac';
+        if (/Windows/.test(ua)) return 'Windows';
+        return 'Unknown';
     };
 
     const handleSendTest = async (targetType: 'me' | 'all-admin') => {
         setLoading(true);
         setResult(null);
 
-        // 사용자가 요청한 포맷 적용 테스트 (제목 + 분류)
-        const finalTitle = `${title} (${category === 'class' ? '강습' : '행사'})`;
+        const finalTitle = `${title} (${category === 'class' ? '강습' : category === 'club' ? '동호회' : '행사'})`;
 
         try {
             const { data, error } = await supabase.functions.invoke('send-push-notification', {
@@ -55,13 +141,17 @@ export const AdminPushTest: React.FC = () => {
                     image: imageUrl,
                     category: category,
                     genre: genre,
-                    content: content, // [NEW] 상세 내용 포함
+                    content: content,
                     userId: targetType === 'me' ? user?.id : 'ALL',
                     url: targetUrl
                 }
             });
 
             if (error) throw error;
+            if (data?.status === 'error') {
+                setResult(`❌ 서버 오류: ${data.message}`);
+                return;
+            }
             setResult(`🚀 발송 완료! (결과: ${JSON.stringify(data.summary)})`);
         } catch (err: any) {
             setResult(`❌ 발송 실패: ${err.message}`);
@@ -90,28 +180,95 @@ export const AdminPushTest: React.FC = () => {
             </header>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                {/* 1. Subscription Area */}
+                {/* 1. My Registered Devices */}
                 <section style={{ padding: '16px', background: '#f8fafc', borderRadius: '16px', border: '1px solid #f1f5f9' }}>
-                    <h2 style={{ fontSize: '15px', fontWeight: 700, margin: '0 0 12px 0', color: '#334155' }}>
-                        1. 내 기기 연결
-                    </h2>
-                    <button
-                        onClick={handleSubscribe}
-                        disabled={subscribing}
-                        style={{
-                            width: '100%',
-                            padding: '12px',
-                            background: '#10b981',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '12px',
-                            fontWeight: 600,
-                            cursor: 'pointer',
-                            opacity: subscribing ? 0.7 : 1
-                        }}
-                    >
-                        {subscribing ? '연결 중...' : '현재 기기 알림 구독하기'}
-                    </button>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                        <h2 style={{ fontSize: '15px', fontWeight: 700, margin: 0, color: '#334155' }}>
+                            1. 내 등록 기기 현황
+                        </h2>
+                        <button
+                            onClick={fetchMySubscriptions}
+                            disabled={subsLoading}
+                            style={{
+                                padding: '4px 10px',
+                                background: 'none',
+                                border: '1px solid #e2e8f0',
+                                borderRadius: '8px',
+                                fontSize: '12px',
+                                color: '#64748b',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            {subsLoading ? '...' : '새로고침'}
+                        </button>
+                    </div>
+
+                    {mySubscriptions.length === 0 ? (
+                        <div style={{ padding: '12px', background: '#fef2f2', borderRadius: '10px', fontSize: '13px', color: '#991b1b' }}>
+                            등록된 기기가 없습니다. PWA에서 알림을 허용해야 합니다.
+                        </div>
+                    ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            {mySubscriptions.map((sub) => (
+                                <div key={sub.id} style={{
+                                    padding: '10px 12px',
+                                    background: '#ffffff',
+                                    borderRadius: '10px',
+                                    border: '1px solid #e2e8f0',
+                                    fontSize: '13px',
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center'
+                                }}>
+                                    <div>
+                                        <span style={{ fontWeight: 600, color: '#334155' }}>
+                                            {parseUserAgent(sub.user_agent)}
+                                        </span>
+                                        <span style={{ color: '#94a3b8', marginLeft: '8px', fontSize: '11px' }}>
+                                            {new Date(sub.created_at).toLocaleDateString('ko-KR')} 등록
+                                        </span>
+                                    </div>
+                                    <button
+                                        onClick={() => handleDeleteSubscription(sub.id)}
+                                        style={{
+                                            padding: '2px 8px',
+                                            background: '#fee2e2',
+                                            color: '#991b1b',
+                                            border: 'none',
+                                            borderRadius: '6px',
+                                            fontSize: '11px',
+                                            fontWeight: 600,
+                                            cursor: 'pointer'
+                                        }}
+                                    >삭제</button>
+                                </div>
+                            ))}
+                            <p style={{ fontSize: '11px', color: '#94a3b8', margin: '4px 0 0 0' }}>
+                                "나에게만 발송" 클릭 시 위 {mySubscriptions.length}개 기기에 푸시가 갑니다.
+                            </p>
+                        </div>
+                    )}
+
+                    {mySubscriptions.length > 1 && (
+                        <button
+                            onClick={handleCleanupAll}
+                            disabled={subsLoading}
+                            style={{
+                                marginTop: '8px',
+                                width: '100%',
+                                padding: '10px',
+                                background: '#fef3c7',
+                                color: '#92400e',
+                                border: '1px solid #fde68a',
+                                borderRadius: '10px',
+                                fontWeight: 600,
+                                fontSize: '13px',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            전체 유저 중복 구독 정리 (유저당 최신 1개만 유지)
+                        </button>
+                    )}
                 </section>
 
                 {/* 2. Payload Area */}
@@ -198,19 +355,19 @@ export const AdminPushTest: React.FC = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
                     <button
                         onClick={() => handleSendTest('me')}
-                        disabled={loading}
+                        disabled={loading || mySubscriptions.length === 0}
                         style={{
                             padding: '14px',
-                            background: '#2563eb',
+                            background: mySubscriptions.length === 0 ? '#94a3b8' : '#2563eb',
                             color: 'white',
                             border: 'none',
                             borderRadius: '12px',
                             fontWeight: 700,
-                            cursor: 'pointer',
-                            boxShadow: '0 4px 10px rgba(37, 99, 235, 0.2)'
+                            cursor: mySubscriptions.length === 0 ? 'not-allowed' : 'pointer',
+                            boxShadow: mySubscriptions.length > 0 ? '0 4px 10px rgba(37, 99, 235, 0.2)' : 'none'
                         }}
                     >
-                        🎯 나에게만 즉시 발송
+                        🎯 나에게만 발송 ({mySubscriptions.length}개 기기)
                     </button>
                     <button
                         onClick={() => handleSendTest('all-admin')}

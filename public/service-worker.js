@@ -1,6 +1,6 @@
-// 빌보드 PWA 서비스 워커 (Version: 20260215 - V49/Genre Color & Filter Logic Fix)
-const CACHE_NAME = 'rhythmjoy-cache-v1.0.3';
-// Last updated: 2026-02-15 (v49)
+// PWA 서비스 워커 (Version: 20260219 - V50/Update Lifecycle Fix)
+const CACHE_NAME = 'rhythmjoy-cache-v1.0.4';
+// Last updated: 2026-02-19 (v50)
 self.addEventListener('install', (event) => {
   // PWA 설치 요건: 루트(/)와 필수 에셋이 캐시되어야 오프라인 신뢰성을 인정받음
   event.waitUntil(
@@ -10,11 +10,12 @@ self.addEventListener('install', (event) => {
         '/index.html',
         '/manifest.json',
         '/icon-192.png',
-        '/?utm_source=pwa'
       ]))
       .then(() => {
-        console.log('[SW] Essential assets pre-cached (V49) - MDN Compliant');
-        return self.skipWaiting();
+        console.log('[SW] Essential assets pre-cached (V50)');
+        // skipWaiting()을 여기서 호출하지 않음
+        // 클라이언트가 SKIP_WAITING 메시지를 보낼 때까지 waiting 상태 유지
+        // → 클라이언트가 적절한 시점(페이지 로드, 포커스 복귀 등)에 자동으로 업데이트 적용
       })
   );
 });

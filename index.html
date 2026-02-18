@@ -226,91 +226,6 @@
       background-color: var(--header-bg-color);
     }
 
-    /* SW Update Bottom Sheet */
-    #sw-update-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.5);
-      z-index: 2147483647;
-      display: flex;
-      align-items: flex-end;
-      justify-content: center;
-      -webkit-backdrop-filter: blur(4px);
-      backdrop-filter: blur(4px);
-    }
-
-    .sw-update-sheet {
-      width: 100%;
-      max-width: 420px;
-      background: #1a1a2e;
-      border-radius: 20px 20px 0 0;
-      padding: 12px 24px calc(env(safe-area-inset-bottom, 16px) + 16px);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 10px;
-      transform: translateY(0);
-      transition: transform 0.3s ease;
-    }
-
-    .sw-update-handle {
-      width: 36px;
-      height: 4px;
-      border-radius: 2px;
-      background: rgba(255, 255, 255, 0.2);
-      margin-bottom: 8px;
-    }
-
-    .sw-update-icon {
-      font-size: 40px;
-      line-height: 1;
-    }
-
-    .sw-update-title {
-      font-family: Pretendard, sans-serif;
-      font-size: 18px;
-      font-weight: 700;
-      color: #fff;
-    }
-
-    .sw-update-desc {
-      font-family: Pretendard, sans-serif;
-      font-size: 14px;
-      color: rgba(255, 255, 255, 0.6);
-      margin-bottom: 8px;
-    }
-
-    .sw-update-btn {
-      width: 100%;
-      padding: 14px;
-      border: none;
-      border-radius: 12px;
-      background: linear-gradient(135deg, #6366f1, #4f46e5);
-      color: #fff;
-      font-family: Pretendard, sans-serif;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-    }
-
-    .sw-update-btn:active {
-      opacity: 0.85;
-      transform: scale(0.98);
-    }
-
-    .sw-update-later {
-      width: 100%;
-      padding: 12px;
-      border: none;
-      border-radius: 12px;
-      background: transparent;
-      color: rgba(255, 255, 255, 0.45);
-      font-family: Pretendard, sans-serif;
-      font-size: 14px;
-      cursor: pointer;
-      -webkit-tap-highlight-color: transparent;
-    }
   </style>
 </head>
 
@@ -391,6 +306,39 @@
      * 빌보드는 데이터/배포 실시간 동기화를 위해 SW(캐시)를 사용하지 않고 독립적으로 운영된다.
      */
     if ('serviceWorker' in navigator) {
+      // 최초 설치(controller 없음→생김)와 업데이트(controller 교체)를 구분
+      var _hadController = !!navigator.serviceWorker.controller;
+
+      // SW 교체 완료 시 자동 리로드 (자신이 트리거했든, 다른 탭이 트리거했든)
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        // 최초 설치(controller가 없던 상태→생김)에서는 리로드 불필요
+        if (!_hadController) { _hadController = true; return; }
+        // OAuth 콜백 중(code= 파라미터)이면 인증 코드 무효화 방지를 위해 리로드 안 함
+        var params = new URLSearchParams(window.location.search);
+        if (params.has('code') || params.has('error')) return;
+        window.location.reload();
+      });
+
+      // 대기 중인 SW가 있으면 자동으로 업데이트 적용 (중복 호출 방지)
+      var _swUpdateApplied = false;
+      function autoApplyUpdate(reg) {
+        if (window.location.pathname.includes('/billboard/')) return;
+        if (!reg || !reg.waiting) return;
+        if (_swUpdateApplied) return;
+        _swUpdateApplied = true;
+        window.__BOOT_LOG && window.__BOOT_LOG('Auto-applying SW update');
+        var urlParams = new URLSearchParams(window.location.search);
+        if (!urlParams.has('code') && !urlParams.has('error')) {
+          try { sessionStorage.clear(); } catch (e) { }
+        }
+        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+        // 안전장치: 3초 내 controllerchange가 발생하지 않으면 강제 리로드 (auth 콜백 중엔 스킵)
+        setTimeout(function () {
+          var p = new URLSearchParams(window.location.search);
+          if (!p.has('code') && !p.has('error')) window.location.reload();
+        }, 3000);
+      }
+
       window.addEventListener('load', function () {
         // 빌보드 페이지에서는 서비스 워커 등록 및 업데이트 체크 원천 차단
         if (window.location.pathname.includes('/billboard/')) {
@@ -398,16 +346,50 @@
           return;
         }
 
-        var swUrl = '/service-worker.js?v=20260215_v49';
+        var swUrl = '/service-worker.js?v=20260219_v50';
         navigator.serviceWorker.register(swUrl).then(function (reg) {
-          window.__BOOT_LOG && window.__BOOT_LOG('SW Registered', { version: 'v49' });
-          if (reg.waiting && navigator.serviceWorker.controller) showUpdateToast(reg);
+          window.__SW_REG = reg;
+          window.__BOOT_LOG && window.__BOOT_LOG('SW Registered', { version: 'v50' });
+
+          // 1) 페이지 로드 시 이미 대기 중인 SW가 있을 때
+          if (reg.waiting) {
+            if (navigator.serviceWorker.controller) {
+              // 업데이트: 기존 SW → 새 SW 교체
+              autoApplyUpdate(reg);
+            } else {
+              // 최초 설치: controller 없음 → skipWaiting으로 즉시 활성화
+              reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+            }
+            return;
+          }
+
+          // 2) 새 SW 설치 완료(waiting) 시
           reg.addEventListener('updatefound', function () {
             var worker = reg.installing;
+            if (!worker) return;
             worker.addEventListener('statechange', function () {
-              if (worker.state === 'installed' && navigator.serviceWorker.controller) showUpdateToast(reg);
+              if (worker.state === 'installed') {
+                if (navigator.serviceWorker.controller) {
+                  // 업데이트: 자동 적용
+                  autoApplyUpdate(reg);
+                } else {
+                  // 최초 설치: 즉시 활성화
+                  reg.waiting && reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+                }
+              }
             });
           });
+        });
+
+        // 3) PWA 재실행 / 탭 포커스 복귀 시 → 업데이트 체크 후 자동 적용
+        document.addEventListener('visibilitychange', function () {
+          if (document.visibilityState === 'visible' && window.__SW_REG) {
+            window.__SW_REG.update().then(function () {
+              if (window.__SW_REG.waiting && navigator.serviceWorker.controller) {
+                autoApplyUpdate(window.__SW_REG);
+              }
+            }).catch(function () { });
+          }
         });
       });
     }
@@ -425,51 +407,12 @@
           .then(function (data) {
             if (data.buildTime && data.buildTime !== currentBuild) {
               window.navigator.serviceWorker.getRegistration().then(function (reg) {
-                if (reg) reg.update(); else showUpdateToast(null);
+                if (reg) reg.update(); // updatefound → installed → autoApplyUpdate
               });
             }
           }).catch(function () { });
       }, 3 * 60 * 1000);
     })();
-
-    function applyUpdate() {
-      if (window.location.pathname.includes('/billboard/')) return;
-
-      window.__BOOT_LOG && window.__BOOT_LOG('Applying update...');
-      window.__SW_UPDATING = true;
-      var urlParams = new URLSearchParams(window.location.search);
-      if (!urlParams.has('code') && !urlParams.has('error')) {
-        try { sessionStorage.clear(); } catch (e) { }
-      }
-      var reg = window.__SW_REG;
-      if (reg && reg.waiting) {
-        reg.waiting.postMessage({ type: 'SKIP_WAITING' });
-        setTimeout(function () { window.location.href = '/?utm_source=pwa_restart&t=' + Date.now(); }, 500);
-      } else {
-        window.location.href = '/?utm_source=pwa_fallback&t=' + Date.now();
-      }
-    }
-
-    function showUpdateToast(reg) {
-      // 빌보드 페이지에서는 업데이트 토스트 UI 노출 차단
-      if (window.location.pathname.includes('/billboard/')) return;
-
-      if (document.getElementById('sw-update-overlay')) return;
-      window.__SW_REG = reg;
-      var overlay = document.createElement('div');
-      overlay.id = 'sw-update-overlay';
-      overlay.innerHTML = '<div class="sw-update-sheet"><div class="sw-update-handle"></div><div class="sw-update-icon">&#x1f680;</div><div class="sw-update-title">새 버전이 준비되었습니다</div><div class="sw-update-desc">더 나은 경험을 위해 업데이트해 주세요.</div><button class="sw-update-btn" onclick="applyUpdate()">지금 업데이트</button><button class="sw-update-later" onclick="dismissUpdate()">나중에</button></div>';
-      document.body.appendChild(overlay);
-      overlay.addEventListener('click', function (e) { if (e.target === overlay) dismissUpdate(); });
-    }
-
-    function dismissUpdate() {
-      var el = document.getElementById('sw-update-overlay');
-      if (el) {
-        el.querySelector('.sw-update-sheet').style.transform = 'translateY(100%)';
-        setTimeout(function () { el.remove(); }, 300);
-      }
-    }
   </script>
 </body>
 

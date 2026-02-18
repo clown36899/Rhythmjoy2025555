@@ -31,7 +31,13 @@ Deno.serve(async (req) => {
                 vapidPrivateKey
             );
         } else {
-            console.warn('[Push] VAPID keys are missing in environment variables.');
+            return new Response(JSON.stringify({
+                status: 'error',
+                message: 'VAPID keys are missing in environment variables.'
+            }), {
+                headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+                status: 200,
+            });
         }
 
         console.log(`[Push] Starting process: userID=${userId}, category=${category}`);
