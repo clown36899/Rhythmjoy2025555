@@ -10,7 +10,6 @@ export function isPWAMode(): boolean {
         window.matchMedia('(display-mode: standalone)').matches ||
         window.matchMedia('(display-mode: fullscreen)').matches ||
         window.matchMedia('(display-mode: minimal-ui)').matches ||
-        (window.navigator as any).standalone === true ||
-        window.location.search.includes('utm_source=pwa')
+        (window.navigator as any).standalone === true
     );
 }

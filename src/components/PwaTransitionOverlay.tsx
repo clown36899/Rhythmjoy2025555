@@ -37,14 +37,22 @@ export const PwaTransitionOverlay: React.FC = () => {
 
     const handleLaunchApp = () => {
         // target="_blank"로 같은 도메인의 URL을 열면 브라우저가 설치된 PWA로 핸들링할 확률이 높음
+        // 하지만 브라우저에서 열릴 경우를 대비해 pwaDetect.ts에서 URL 파라미터 감지를 제거함
         const url = window.location.origin + '/?utm_source=pwa';
-        const a = document.createElement('a');
-        a.href = url;
-        a.target = '_blank';
-        a.rel = 'noopener noreferrer';
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+
+        if (isAndroid) {
+            // 안드로이드의 경우 window.open 대신 location.href를 사용하면 
+            // 시스템이 더 잘 가로챌 수 있는 경우가 있음
+            window.location.href = url;
+        } else {
+            const a = document.createElement('a');
+            a.href = url;
+            a.target = '_blank';
+            a.rel = 'noopener noreferrer';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
     };
 
     if (!isVisible) return null;
