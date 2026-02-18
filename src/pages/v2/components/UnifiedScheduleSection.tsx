@@ -207,7 +207,24 @@ export const UnifiedScheduleSection: React.FC<UnifiedScheduleSectionProps> = ({
                                 data-group={isFirstInGroup ? item.group : undefined}
                                 onClick={(e) => handleScheduleClick(e, item)}
                             >
-                                <div className="USS-cardImage">
+                                {isTodayItem && (
+                                    <div className="USS-ddayBadge is-today">오늘</div>
+                                )}
+                                {item.group === 'thisWeek' && !isTodayItem && (
+                                    <div className="USS-ddayBadge">이번주</div>
+                                )}
+                                {item.group === 'nextWeek' && (
+                                    <div className="USS-ddayBadge is-next">다음주</div>
+                                )}
+
+                                {item.date && (
+                                    <div className="USS-dateLine">
+                                        {new Date(item.date + 'T00:00:00').toLocaleDateString('ko-KR', { weekday: 'short' })} {new Date(item.date + 'T00:00:00').getDate()}일
+                                        {item.start_time && <span className="USS-time"> {item.start_time.substring(0, 5)}</span>}
+                                    </div>
+                                )}
+
+                                <div className="USS-cardAvatar">
                                     {(item.image_thumbnail || item.image_medium || item.image_url) ? (
                                         <img
                                             src={item.image_thumbnail || item.image_medium || item.image_url || ''}
@@ -215,43 +232,17 @@ export const UnifiedScheduleSection: React.FC<UnifiedScheduleSectionProps> = ({
                                         />
                                     ) : (
                                         <div className="USS-placeholder">
-                                            <i className="ri-calendar-event-line"></i>
+                                            <i className="ri-music-2-line"></i>
                                         </div>
                                     )}
-                                    {item.start_time && (
-                                        <div className="USS-cardOverlay">
-                                            <span className="USS-time">{item.start_time.substring(0, 5)}</span>
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="USS-cardInfo">
-                                    {item.date && (
-                                        <div className="USS-dateLine">
-                                            {new Date(item.date + 'T00:00:00').toLocaleDateString('ko-KR', { weekday: 'short' })} {new Date(item.date + 'T00:00:00').getDate()}일
-                                        </div>
-                                    )}
-                                    <h3 className="USS-title">{item.title}</h3>
-                                    <p className="USS-place">
-                                        <i className="ri-map-pin-line"></i>
-                                        <span>{item.place_name || '장소 미정'}</span>
-                                    </p>
                                 </div>
 
-                                {isTodayItem && (
-                                    <div className="USS-ddayBadge is-today">
-                                        오늘
-                                    </div>
-                                )}
-                                {item.group === 'thisWeek' && !isTodayItem && (
-                                    <div className="USS-ddayBadge">
-                                        이번주
-                                    </div>
-                                )}
-                                {item.group === 'nextWeek' && (
-                                    <div className="USS-ddayBadge is-next">
-                                        다음주
-                                    </div>
-                                )}
+                                <h3 className="USS-title">{item.title}</h3>
+
+                                <p className="USS-place">
+                                    <i className="ri-map-pin-line"></i>
+                                    <span>{item.place_name || '장소 미정'}</span>
+                                </p>
                             </div>
                         );
                     })}
