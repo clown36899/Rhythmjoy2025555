@@ -151,12 +151,23 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                         style={{ transform: `translateX(-${currentIndex * 100}%)` }}
                     >
                         {events.map((event) => {
-                            // 큰 배너이므로 고해상도 이미지 우선 사용
                             const eventThumbnail = event.image_full ||
                                 event.image ||
                                 event.image_medium ||
                                 event.image_thumbnail ||
                                 getEventThumbnail(event, defaultThumbnailClass, defaultThumbnailEvent);
+
+                            // 슬라이드별 날짜 계산
+                            let slideDateText = '';
+                            if (event.event_dates && event.event_dates.length > 0) {
+                                slideDateText = event.event_dates.map(formatEventDate).join(', ');
+                            } else {
+                                const s = event.start_date || event.date;
+                                const e = event.end_date || event.date;
+                                if (s && e) {
+                                    slideDateText = s !== e ? `${formatEventDate(s)}~${formatEventDate(e)}` : formatEventDate(s);
+                                }
+                            }
 
                             return (
                                 <div
@@ -165,15 +176,15 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                     onClick={() => onEventClick(event)}
                                 >
                                     <div className="NEB-imageWrapper">
-                                        <div className="NEB-category">
-                                            {event.category === 'class' ? '강습' : '행사'}
-                                        </div>
                                         <img
                                             src={eventThumbnail}
                                             alt={event.title}
                                             className="NEB-image"
                                         />
                                         <div className="NEB-overlay"></div>
+                                        <div className="NEB-category">
+                                            {event.category === 'class' ? '강습' : '행사'}
+                                        </div>
                                     </div>
 
                                     <div className="NEB-content">
@@ -183,7 +194,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                             )}
                                             <div className="NEB-info">
                                                 <i className="ri-calendar-line"></i>
-                                                <span>{dateText}</span>
+                                                <span>{slideDateText}</span>
                                             </div>
                                             {event.location && (
                                                 <div className="NEB-info">
@@ -193,8 +204,6 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                             )}
                                             <h4 className="NEB-eventTitle">{event.title}</h4>
                                         </div>
-
-                                        {/* Full Image Preview Thumbnail (Moved inside content for split layout) */}
                                         <div className="NEB-mini-thumbnail">
                                             <img
                                                 src={eventThumbnail}
@@ -207,33 +216,9 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                             );
                         })}
                     </div>
-
-                    {/* 네비게이션 버튼 */}
-                    {events.length > 1 && (
-                        <>
-                            <button
-                                className="NEB-navBtn NEB-navBtn-prev"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    goToPrevious();
-                                }}
-                            >
-                                <i className="ri-arrow-left-s-line"></i>
-                            </button>
-                            <button
-                                className="NEB-navBtn NEB-navBtn-next"
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    goToNext();
-                                }}
-                            >
-                                <i className="ri-arrow-right-s-line"></i>
-                            </button>
-                        </>
-                    )}
                 </div>
 
-                {/* 인디케이터 */}
+                {/* 인디케이터 + 카운터 */}
                 {events.length > 1 && (
                     <div className="NEB-indicators">
                         {events.map((_, index) => (

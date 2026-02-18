@@ -1,53 +1,57 @@
+/* QuickNoticeInput.css - 전광판 입력 폼 */
+
 .quick-notice-form {
     display: flex;
-    border: 1px solid var(--border-light);
-    border-radius: 33px;
-    margin: 0 10px;
-    gap: 8px;
-    padding: 0px 16px;
-    background-color: var(--card-bg);
     align-items: center;
+    margin: 0 16px;
+    gap: 0;
+    padding: 4px 4px 4px 16px;
+    background: var(--bg-surface-2);
+    border: 1px solid var(--border-glass-subtle);
+    border-radius: 28px;
 }
 
 .quick-notice-input {
     flex: 1;
-    height: 40px;
-    padding: 0 12px;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    font-size: 14px;
-    background-color: var(--input-bg);
-    color: var(--text-color);
+    height: 36px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    font-size: 13px;
+    color: var(--text-primary);
     min-width: 0;
-    /* Flex item overflow 방지 */
+}
+
+.quick-notice-input::placeholder {
+    color: var(--text-muted);
+    font-size: 12px;
 }
 
 .quick-notice-input:focus {
     outline: none;
-    border-color: var(--primary-color);
 }
 
 .quick-notice-btn {
-    height: 40px;
+    height: 32px;
     padding: 0 16px;
-    background-color: var(--primary-color);
-    color: white;
+    background: var(--text-tertiary);
+    color: var(--bg-base);
     border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 500;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
     cursor: pointer;
     white-space: nowrap;
-    transition: background-color 0.2s;
+    transition: all 0.2s;
+    flex-shrink: 0;
 }
 
 .quick-notice-btn:disabled {
-    background-color: var(--disabled-bg, #ccc);
+    opacity: 0.35;
     cursor: not-allowed;
-    opacity: 0.7;
 }
 
-.quick-notice-btn:hover:not(:disabled) {
-    background-color: var(--primary-hover, #4f46e5);
-    /* 예시 */
+.quick-notice-btn:not(:disabled) {
+    background: #fbbf24;
+    color: #000;
 }
