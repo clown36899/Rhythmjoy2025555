@@ -1,373 +1,369 @@
 /* 2026 Pure Semantic CSS: Settings Domain */
 
-@scope (.NotificationSettingsModal) {
+.NotificationSettingsModal {
+    --nsm-overlay-bg: var(--bg-overlay);
+    --nsm-container-bg: var(--bg-modal);
+    --nsm-border: var(--border-glass-strong);
+    --nsm-primary: var(--gradient-accent);
+    --nsm-accent: var(--color-blue-500);
+    --nsm-text: var(--text-primary);
+    --nsm-text-muted: var(--text-tertiary);
+    --nsm-glass-shadow: var(--shadow-premium);
+    --nsm-item-bg: var(--bg-surface-2);
+    --nsm-hover-bg: var(--bg-hover);
+}
 
-    /* Variables specific to this scope */
-    :scope {
-        --nsm-overlay-bg: var(--bg-overlay);
-        --nsm-container-bg: var(--bg-modal);
-        --nsm-border: var(--border-glass-strong);
-        --nsm-primary: var(--gradient-accent);
-        --nsm-accent: var(--color-blue-500);
-        --nsm-text: var(--text-primary);
-        --nsm-text-muted: var(--text-tertiary);
-        --nsm-glass-shadow: var(--shadow-premium);
-        --nsm-item-bg: var(--bg-surface-2);
-        --nsm-hover-bg: var(--bg-hover);
+.NotificationSettingsModal .NSM-overlay,
+.NotificationSettingsModal {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    background: var(--nsm-overlay-bg) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    z-index: var(--z-modal-base) !important;
+    padding: 20px !important;
+    animation: nsm-fadeIn 0.25s ease-out;
+}
+
+.NotificationSettingsModal .NSM-container {
+    background: var(--nsm-container-bg);
+    width: 100%;
+    max-width: 440px;
+    border-radius: 28px;
+    border: 1px solid var(--nsm-border);
+    box-shadow: var(--nsm-glass-shadow);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    animation: nsm-slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.NotificationSettingsModal .NSM-header {
+    padding: 24px 28px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-surface-translucent);
+    border-bottom: 1px solid var(--nsm-border);
+}
+
+.NotificationSettingsModal .NSM-title {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--nsm-text);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    letter-spacing: -0.02em;
+}
+
+.NotificationSettingsModal .NSM-title i {
+    color: var(--nsm-accent);
+    filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.5));
+}
+
+.NotificationSettingsModal .NSM-closeBtn {
+    background: var(--bg-surface-3);
+    border: none;
+    color: var(--nsm-text);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.NotificationSettingsModal .NSM-closeBtn:hover {
+    background: var(--bg-hover);
+    transform: rotate(90deg);
+}
+
+.NotificationSettingsModal .NSM-body {
+    padding: 28px;
+    max-height: 65vh;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+.NotificationSettingsModal .NSM-pwaTip {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(79, 70, 229, 0.03));
+    border: 1px solid rgba(37, 99, 235, 0.2);
+    border-radius: 24px;
+    padding: 24px;
+    margin-bottom: 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.NotificationSettingsModal .NSM-pwaHeader {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.NotificationSettingsModal .NSM-pwaHeader i {
+    font-size: 1.6rem;
+    color: var(--nsm-accent);
+}
+
+.NotificationSettingsModal .NSM-pwaText {
+    margin: 0;
+    font-size: 0.95rem;
+    color: var(--nsm-text);
+    line-height: 1.5;
+    font-weight: 600;
+}
+
+.NotificationSettingsModal .NSM-installSteps {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.NotificationSettingsModal .NSM-stepItem {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.NotificationSettingsModal .NSM-stepNumber {
+    width: 22px;
+    height: 22px;
+    background: var(--nsm-accent);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 800;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.NotificationSettingsModal .NSM-stepText {
+    font-size: 0.9rem;
+    color: var(--nsm-text-muted);
+    line-height: 1.4;
+}
+
+.NotificationSettingsModal .NSM-stepText strong {
+    color: var(--nsm-text);
+    font-weight: 700;
+}
+
+.NotificationSettingsModal .NSM-sectionLabel {
+    display: block;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--nsm-text-muted);
+    margin-bottom: 16px;
+    font-weight: 700;
+}
+
+.NotificationSettingsModal .NSM-masterRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 0;
+    border-bottom: 1px solid var(--nsm-border);
+    margin-bottom: 32px;
+}
+
+.NotificationSettingsModal .NSM-labelTitle {
+    display: block;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--nsm-text);
+    margin-bottom: 4px;
+}
+
+.NotificationSettingsModal .NSM-labelDesc {
+    font-size: 0.9rem;
+    color: var(--nsm-text-muted);
+}
+
+/* Switch - No Utility, Pure CSS */
+.NotificationSettingsModal .NSM-switch {
+    width: 56px;
+    height: 30px;
+    background: var(--bg-surface-3);
+    border-radius: 99px;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid var(--border-light);
+}
+
+.NotificationSettingsModal .NSM-switch.is-active {
+    background: var(--nsm-primary);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 15px rgba(37, 99, 235, 0.3);
+}
+
+.NotificationSettingsModal .NSM-switch.is-disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.NotificationSettingsModal .NSM-switchThumb {
+    position: absolute;
+    top: 3px;
+    left: 4px;
+    width: 22px;
+    height: 22px;
+    background: white;
+    border-radius: 50%;
+    transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+}
+
+.NotificationSettingsModal .NSM-switch.is-active .NSM-switchThumb {
+    transform: translateX(24px);
+}
+
+.NotificationSettingsModal .NSM-card {
+    background: var(--nsm-item-bg);
+    border: 1px solid var(--nsm-border);
+    border-radius: 20px;
+    padding: 20px;
+    margin-bottom: 14px;
+    transition: all 0.2s;
+}
+
+.NotificationSettingsModal .NSM-cardHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+}
+
+.NotificationSettingsModal .NSM-cardTitle {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--nsm-text);
+}
+
+.NotificationSettingsModal .NSM-tagGrid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 18px;
+    padding-top: 18px;
+    border-top: 1px solid var(--nsm-border);
+}
+
+.NotificationSettingsModal .NSM-chip {
+    background: var(--bg-surface-3);
+    border: 1px solid var(--border-light);
+    color: var(--nsm-text-muted);
+    padding: 8px 16px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.NotificationSettingsModal .NSM-chip:hover {
+    background: var(--bg-hover);
+    color: var(--nsm-text);
+}
+
+.NotificationSettingsModal .NSM-chip.is-active {
+    background: rgba(37, 99, 235, 0.15);
+    border-color: rgba(37, 99, 235, 0.4);
+    color: var(--nsm-accent);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
+}
+
+.NotificationSettingsModal .NSM-footer {
+    padding: 28px;
+    border-top: 1px solid var(--nsm-border);
+    background: var(--bg-surface-glass);
+}
+
+.NotificationSettingsModal .NSM-saveBtn {
+    width: 100%;
+    padding: 18px;
+    border-radius: 18px;
+    border: none;
+    background: var(--bg-surface-3);
+    color: var(--nsm-text-muted);
+    font-size: 1.05rem;
+    font-weight: 800;
+    cursor: not-allowed;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.NotificationSettingsModal .NSM-saveBtn.is-ready {
+    background: var(--nsm-primary);
+    color: white;
+    cursor: pointer;
+    box-shadow: 0 12px 24px -6px rgba(37, 99, 235, 0.5);
+}
+
+/* Animations */
+@keyframes nsm-fadeIn {
+    from {
+        opacity: 0;
     }
 
-    .NSM-overlay,
-    &:scope {
-        position: fixed !important;
-        top: 0 !important;
-        left: 0 !important;
-        right: 0 !important;
-        bottom: 0 !important;
-        background: var(--nsm-overlay-bg) !important;
-        backdrop-filter: blur(12px) !important;
-        -webkit-backdrop-filter: blur(12px) !important;
-        display: flex !important;
-        justify-content: center !important;
-        align-items: center !important;
-        z-index: var(--z-modal-base) !important;
-        padding: 20px !important;
-        animation: nsm-fadeIn 0.25s ease-out;
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes nsm-slideUp {
+    from {
+        transform: translateY(30px) scale(0.96);
+        opacity: 0;
     }
 
-    .NSM-container {
-        background: var(--nsm-container-bg);
-        width: 100%;
-        max-width: 440px;
-        border-radius: 28px;
-        border: 1px solid var(--nsm-border);
-        box-shadow: var(--nsm-glass-shadow);
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        position: relative;
-        animation: nsm-slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    to {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+/* Mobile Adjustments */
+@media (max-width: 480px) {
+    .NotificationSettingsModal.NSM-overlay {
+        align-items: flex-end !important;
+        padding: 0 !important;
     }
 
-    .NSM-header {
-        padding: 24px 28px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        background: var(--bg-surface-translucent);
-        border-bottom: 1px solid var(--nsm-border);
+    .NotificationSettingsModal .NSM-container {
+        max-width: 100%;
+        border-radius: 32px 32px 0 0;
+        margin-top: auto;
+        animation: nsm-mobileSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+}
+
+@keyframes nsm-mobileSlideUp {
+    from {
+        transform: translateY(100%);
     }
 
-    .NSM-title {
-        margin: 0;
-        font-size: 1.3rem;
-        font-weight: 800;
-        color: var(--nsm-text);
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        letter-spacing: -0.02em;
-    }
-
-    .NSM-title i {
-        color: var(--nsm-accent);
-        filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.5));
-    }
-
-    .NSM-closeBtn {
-        background: var(--bg-surface-3);
-        border: none;
-        color: var(--nsm-text);
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-    .NSM-closeBtn:hover {
-        background: var(--bg-hover);
-        transform: rotate(90deg);
-    }
-
-    .NSM-body {
-        padding: 28px;
-        max-height: 65vh;
-        overflow-y: auto;
-        scrollbar-width: thin;
-        scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
-    }
-
-    .NSM-pwaTip {
-        background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), rgba(79, 70, 229, 0.03));
-        border: 1px solid rgba(37, 99, 235, 0.2);
-        border-radius: 24px;
-        padding: 24px;
-        margin-bottom: 32px;
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-    }
-
-    .NSM-pwaHeader {
-        display: flex;
-        align-items: center;
-        gap: 14px;
-    }
-
-    .NSM-pwaHeader i {
-        font-size: 1.6rem;
-        color: var(--nsm-accent);
-    }
-
-    .NSM-pwaText {
-        margin: 0;
-        font-size: 0.95rem;
-        color: var(--nsm-text);
-        line-height: 1.5;
-        font-weight: 600;
-    }
-
-    .NSM-installSteps {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        padding-top: 16px;
-        border-top: 1px solid rgba(255, 255, 255, 0.05);
-    }
-
-    .NSM-stepItem {
-        display: flex;
-        align-items: flex-start;
-        gap: 12px;
-    }
-
-    .NSM-stepNumber {
-        width: 22px;
-        height: 22px;
-        background: var(--nsm-accent);
-        color: white;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 12px;
-        font-weight: 800;
-        flex-shrink: 0;
-        margin-top: 2px;
-    }
-
-    .NSM-stepText {
-        font-size: 0.9rem;
-        color: var(--nsm-text-muted);
-        line-height: 1.4;
-    }
-
-    .NSM-stepText strong {
-        color: var(--nsm-text);
-        font-weight: 700;
-    }
-
-    .NSM-sectionLabel {
-        display: block;
-        font-size: 0.85rem;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        color: var(--nsm-text-muted);
-        margin-bottom: 16px;
-        font-weight: 700;
-    }
-
-    .NSM-masterRow {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 20px 0;
-        border-bottom: 1px solid var(--nsm-border);
-        margin-bottom: 32px;
-    }
-
-    .NSM-labelTitle {
-        display: block;
-        font-size: 1.15rem;
-        font-weight: 700;
-        color: var(--nsm-text);
-        margin-bottom: 4px;
-    }
-
-    .NSM-labelDesc {
-        font-size: 0.9rem;
-        color: var(--nsm-text-muted);
-    }
-
-    /* Switch - No Utility, Pure CSS */
-    .NSM-switch {
-        width: 56px;
-        height: 30px;
-        background: var(--bg-surface-3);
-        border-radius: 99px;
-        position: relative;
-        cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        border: 1px solid var(--border-light);
-    }
-
-    .NSM-switch.is-active {
-        background: var(--nsm-primary);
-        border-color: rgba(255, 255, 255, 0.2);
-        box-shadow: 0 0 15px rgba(37, 99, 235, 0.3);
-    }
-
-    .NSM-switch.is-disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
-    }
-
-    .NSM-switchThumb {
-        position: absolute;
-        top: 3px;
-        left: 4px;
-        width: 22px;
-        height: 22px;
-        background: white;
-        border-radius: 50%;
-        transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-    }
-
-    .NSM-switch.is-active .NSM-switchThumb {
-        transform: translateX(24px);
-    }
-
-    .NSM-card {
-        background: var(--nsm-item-bg);
-        border: 1px solid var(--nsm-border);
-        border-radius: 20px;
-        padding: 20px;
-        margin-bottom: 14px;
-        transition: all 0.2s;
-    }
-
-    .NSM-cardHeader {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        cursor: pointer;
-    }
-
-    .NSM-cardTitle {
-        font-size: 1rem;
-        font-weight: 600;
-        color: var(--nsm-text);
-    }
-
-    .NSM-tagGrid {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-top: 18px;
-        padding-top: 18px;
-        border-top: 1px solid var(--nsm-border);
-    }
-
-    .NSM-chip {
-        background: var(--bg-surface-3);
-        border: 1px solid var(--border-light);
-        color: var(--nsm-text-muted);
-        padding: 8px 16px;
-        border-radius: 12px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-
-    .NSM-chip:hover {
-        background: var(--bg-hover);
-        color: var(--nsm-text);
-    }
-
-    .NSM-chip.is-active {
-        background: rgba(37, 99, 235, 0.15);
-        border-color: rgba(37, 99, 235, 0.4);
-        color: var(--nsm-accent);
-        transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
-    }
-
-    .NSM-footer {
-        padding: 28px;
-        border-top: 1px solid var(--nsm-border);
-        background: var(--bg-surface-glass);
-    }
-
-    .NSM-saveBtn {
-        width: 100%;
-        padding: 18px;
-        border-radius: 18px;
-        border: none;
-        background: var(--bg-surface-3);
-        color: var(--nsm-text-muted);
-        font-size: 1.05rem;
-        font-weight: 800;
-        cursor: not-allowed;
-        transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    .NSM-saveBtn.is-ready {
-        background: var(--nsm-primary);
-        color: white;
-        cursor: pointer;
-        box-shadow: 0 12px 24px -6px rgba(37, 99, 235, 0.5);
-    }
-
-    /* Animations */
-    @keyframes nsm-fadeIn {
-        from {
-            opacity: 0;
-        }
-
-        to {
-            opacity: 1;
-        }
-    }
-
-    @keyframes nsm-slideUp {
-        from {
-            transform: translateY(30px) scale(0.96);
-            opacity: 0;
-        }
-
-        to {
-            transform: translateY(0) scale(1);
-            opacity: 1;
-        }
-    }
-
-    /* Mobile Adjustments */
-    @media (max-width: 480px) {
-        .NSM-overlay {
-            align-items: flex-end !important;
-            padding: 0 !important;
-        }
-
-        .NSM-container {
-            max-width: 100%;
-            border-radius: 32px 32px 0 0;
-            margin-top: auto;
-            animation: nsm-mobileSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-        }
-    }
-
-    @keyframes nsm-mobileSlideUp {
-        from {
-            transform: translateY(100%);
-        }
-
-        to {
-            transform: translateY(0);
-        }
+    to {
+        transform: translateY(0);
     }
 }

@@ -1,220 +1,218 @@
 /* NewEventsListModal.css - 신규 등록 이벤트 전체보기 모달 스타일 */
 
-@scope (.NewEventsListModal) {
-    :scope {
-        position: fixed;
-        inset: 0;
-        background-color: rgba(0, 0, 0, 0.85);
-        /* Slightly darker for focus */
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: var(--z-modal-base, 10003);
-        backdrop-filter: blur(var(--blur-glass, 12px));
-        -webkit-backdrop-filter: blur(var(--blur-glass, 12px));
-        padding: var(--spacing-4, 16px);
-        animation: nel-fadeIn 0.2s ease-out;
+.NewEventsListModal {
+    position: fixed;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.85);
+    /* Slightly darker for focus */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: var(--z-modal-base, 10003);
+    backdrop-filter: blur(var(--blur-glass, 12px));
+    -webkit-backdrop-filter: blur(var(--blur-glass, 12px));
+    padding: var(--spacing-4, 16px);
+    animation: nel-fadeIn 0.2s ease-out;
+}
+
+.NewEventsListModal .NEL-container {
+    background: var(--bg-surface-1);
+    width: 100%;
+    max-width: 650px;
+    /* Slightly wider than DateEventsModal if needed */
+    max-height: 85vh;
+    border-radius: var(--radius-3xl, 24px);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: var(--shadow-premium);
+    border: 1px solid var(--border-glass);
+    animation: nel-slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.NewEventsListModal .NEL-header {
+    padding: var(--spacing-4, 16px) var(--spacing-5, 20px);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-glass-subtle);
+    background: var(--bg-surface-glass);
+}
+
+.NewEventsListModal .NEL-titleInfo {
+    display: flex;
+    flex-direction: column;
+}
+
+.NewEventsListModal .NEL-title {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--text-primary, #ffffff);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.NewEventsListModal .NEL-badge {
+    font-size: 0.7rem;
+    background: var(--color-blue-500);
+    color: var(--text-inverse);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 900;
+}
+
+.NewEventsListModal .NEL-subtitle {
+    font-size: 0.8rem;
+    color: var(--text-tertiary, #9ca3af);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 2px;
+}
+
+.NewEventsListModal .NEL-closeBtn {
+    background: var(--border-glass);
+    border: none;
+    color: var(--text-primary);
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.NewEventsListModal .NEL-closeBtn:hover {
+    background: var(--border-glass-strong, rgba(255, 255, 255, 0.2));
+}
+
+.NewEventsListModal .NEL-body {
+    padding: var(--spacing-3, 12px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-glass, rgba(255, 255, 255, 0.1)) transparent;
+    display: flex;
+    flex-direction: column;
+}
+
+.NewEventsListModal .NEL-grid {
+    display: grid;
+    gap: var(--spacing-1-5, 6px);
+    grid-template-columns: repeat(var(--grid-cols, 2), 1fr);
+    align-content: start;
+}
+
+.NewEventsListModal .NEL-item {
+    background: var(--bg-surface-2);
+    border-radius: var(--radius-xl, 16px);
+    padding: var(--spacing-2, 8px);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-1-5, 6px);
+    cursor: pointer;
+    border: 1px solid var(--border-glass-subtle);
+    transition: transform 0.2s, background 0.2s;
+    height: fit-content;
+    min-width: 0;
+}
+
+.NewEventsListModal .NEL-item:active {
+    transform: scale(0.98);
+}
+
+.NewEventsListModal .NEL-thumbnail {
+    width: 100%;
+    aspect-ratio: 1/1;
+    /* 신규 이벤트는 정방형이 정보 노출에 유리할 수 있음. 3/4와 비교 고민. */
+    border-radius: var(--radius-md, 8px);
+    overflow: hidden;
+    background: var(--bg-surface-3);
+    position: relative;
+}
+
+.NewEventsListModal .NEL-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.NewEventsListModal .NEL-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.NewEventsListModal .NEL-category {
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 4px;
+    align-self: flex-start;
+    color: var(--text-primary, #ffffff);
+    margin-bottom: 2px;
+}
+
+.NewEventsListModal .NEL-eventTitle {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--text-primary, #ffffff);
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    word-break: break-all;
+}
+
+.NewEventsListModal .NEL-date {
+    font-size: 0.7rem;
+    color: var(--color-blue-400, #60a5fa);
+    font-weight: 600;
+    margin-top: 2px;
+}
+
+@keyframes nel-fadeIn {
+    from {
+        opacity: 0;
     }
 
-    .NEL-container {
-        background: var(--bg-surface-1);
-        width: 100%;
-        max-width: 650px;
-        /* Slightly wider than DateEventsModal if needed */
-        max-height: 85vh;
-        border-radius: var(--radius-3xl, 24px);
-        display: flex;
-        flex-direction: column;
-        overflow: hidden;
-        box-shadow: var(--shadow-premium);
-        border: 1px solid var(--border-glass);
-        animation: nel-slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes nel-slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
     }
 
-    .NEL-header {
-        padding: var(--spacing-4, 16px) var(--spacing-5, 20px);
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        border-bottom: 1px solid var(--border-glass-subtle);
-        background: var(--bg-surface-glass);
+    to {
+        transform: translateY(0);
+        opacity: 1;
     }
+}
 
-    .NEL-titleInfo {
-        display: flex;
-        flex-direction: column;
-    }
+/* 반응형 density 대응 (DateEventsModal 로직 차용) */
+.NewEventsListModal.density-medium .NEL-eventTitle {
+    font-size: 0.75rem;
+}
 
-    .NEL-title {
-        font-size: 1.4rem;
-        font-weight: 800;
-        color: var(--text-primary, #ffffff);
-        display: flex;
-        align-items: center;
-        gap: 8px;
-    }
+.NewEventsListModal.density-high .NEL-item {
+    padding: 6px;
+    gap: 4px;
+}
 
-    .NEL-badge {
-        font-size: 0.7rem;
-        background: var(--color-blue-500);
-        color: var(--text-inverse);
-        padding: 2px 6px;
-        border-radius: 4px;
-        font-weight: 900;
-    }
+.NewEventsListModal.density-high .NEL-eventTitle {
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+    font-size: 0.7rem;
+}
 
-    .NEL-subtitle {
-        font-size: 0.8rem;
-        color: var(--text-tertiary, #9ca3af);
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-top: 2px;
-    }
-
-    .NEL-closeBtn {
-        background: var(--border-glass);
-        border: none;
-        color: var(--text-primary);
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: background 0.2s;
-    }
-
-    .NEL-closeBtn:hover {
-        background: var(--border-glass-strong, rgba(255, 255, 255, 0.2));
-    }
-
-    .NEL-body {
-        padding: var(--spacing-3, 12px);
-        overflow-y: auto;
-        scrollbar-width: thin;
-        scrollbar-color: var(--border-glass, rgba(255, 255, 255, 0.1)) transparent;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .NEL-grid {
-        display: grid;
-        gap: var(--spacing-1-5, 6px);
-        grid-template-columns: repeat(var(--grid-cols, 2), 1fr);
-        align-content: start;
-    }
-
-    .NEL-item {
-        background: var(--bg-surface-2);
-        border-radius: var(--radius-xl, 16px);
-        padding: var(--spacing-2, 8px);
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-1-5, 6px);
-        cursor: pointer;
-        border: 1px solid var(--border-glass-subtle);
-        transition: transform 0.2s, background 0.2s;
-        height: fit-content;
-        min-width: 0;
-    }
-
-    .NEL-item:active {
-        transform: scale(0.98);
-    }
-
-    .NEL-thumbnail {
-        width: 100%;
-        aspect-ratio: 1/1;
-        /* 신규 이벤트는 정방형이 정보 노출에 유리할 수 있음. 3/4와 비교 고민. */
-        border-radius: var(--radius-md, 8px);
-        overflow: hidden;
-        background: var(--bg-surface-3);
-        position: relative;
-    }
-
-    .NEL-thumbnail img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-
-    .NEL-info {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-    }
-
-    .NEL-category {
-        font-size: 0.65rem;
-        font-weight: 700;
-        padding: 2px 6px;
-        border-radius: 4px;
-        align-self: flex-start;
-        color: var(--text-primary, #ffffff);
-        margin-bottom: 2px;
-    }
-
-    .NEL-eventTitle {
-        font-size: 0.85rem;
-        font-weight: 700;
-        color: var(--text-primary, #ffffff);
-        line-height: 1.3;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-        word-break: break-all;
-    }
-
-    .NEL-date {
-        font-size: 0.7rem;
-        color: var(--color-blue-400, #60a5fa);
-        font-weight: 600;
-        margin-top: 2px;
-    }
-
-    @keyframes nel-fadeIn {
-        from {
-            opacity: 0;
-        }
-
-        to {
-            opacity: 1;
-        }
-    }
-
-    @keyframes nel-slideUp {
-        from {
-            transform: translateY(20px);
-            opacity: 0;
-        }
-
-        to {
-            transform: translateY(0);
-            opacity: 1;
-        }
-    }
-
-    /* 반응형 density 대응 (DateEventsModal 로직 차용) */
-    :scope.density-medium .NEL-eventTitle {
-        font-size: 0.75rem;
-    }
-
-    :scope.density-high .NEL-item {
-        padding: 6px;
-        gap: 4px;
-    }
-
-    :scope.density-high .NEL-eventTitle {
-        -webkit-line-clamp: 1;
-        line-clamp: 1;
-        font-size: 0.7rem;
-    }
-
-    :scope.density-high .NEL-date {
-        display: none;
-    }
+.NewEventsListModal.density-high .NEL-date {
+    display: none;
 }

@@ -1,453 +1,451 @@
 /* EventCard.css - EventCard 컴포넌트 전용 스타일 */
 
-@scope (.ECARD-container) {
-    :scope {
-        cursor: pointer;
-        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s;
-        max-width: 100%;
-        min-width: 0;
-        position: relative;
+.ECARD-container {
+    cursor: pointer;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), background-color 0.3s;
+    max-width: 100%;
+    min-width: 0;
+    position: relative;
+}
+
+/* Variant Overrides */
+.ECARD-container.is-variant-favorite {
+    width: 100% !important;
+    max-width: none !important;
+    flex: 0 0 auto !important;
+}
+
+.ECARD-container.is-variant-favorite .ECARD-imageWrapper {
+    width: 100% !important;
+    max-width: none !important;
+}
+
+.ECARD-container.ECARD-cat-event {
+    flex: 0 0 auto !important;
+    width: 120px;
+}
+
+.ECARD-container.ECARD-cat-class {
+    flex: 0 0 auto !important;
+    width: 120px;
+}
+
+/* Image Wrapper */
+.ECARD-container .ECARD-imageWrapper {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+    aspect-ratio: 13 / 16;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border-radius: var(--radius-2xl);
+    border: 1px solid var(--border-glass-subtle);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    /* Hardware accel removed for mobile stability */
+    background-color: var(--bg-surface-2);
+}
+
+/* Hover Effect for Desktop */
+@media (hover: hover) {
+    .ECARD-container:hover .ECARD-imageWrapper {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-xl);
+        border-color: var(--border-glass);
+    }
+}
+
+.ECARD-container .ECARD-imageWrapper.is-highlighted,
+.ECARD-container.ECARD-qrHighlighted .ECARD-imageWrapper {
+    box-shadow: 0 0 0 3px var(--color-blue-500);
+    animation: ecard-qrHighlight 1.5s ease-in-out infinite;
+}
+
+/* Image */
+.ECARD-container .ECARD-image {
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Overlays */
+.ECARD-container .ECARD-overlayCenter {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+}
+
+.ECARD-container .ECARD-overlayText-semi {
+    color: var(--text-tertiary);
+    font-size: 2.25rem;
+    font-weight: 700;
+}
+
+.ECARD-container .ECARD-overlayText-faint {
+    color: var(--border-glass);
+    font-size: 2.25rem;
+    font-weight: 700;
+    position: relative;
+}
+
+.ECARD-container .ECARD-placeholderBg {
+    height: 100%;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--bg-surface-2) 0%, var(--bg-surface-3) 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+.ECARD-container .ECARD-placeholderBg::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    opacity: 0.05;
+    background-image: radial-gradient(var(--text-primary) 1px, transparent 1px);
+    background-size: 12px 12px;
+}
+
+.ECARD-container .ECARD-bgOverlay-purple {
+    position: absolute;
+    inset: 0;
+    background-color: rgba(168, 85, 247, 0.3);
+}
+
+.ECARD-container .ECARD-bgOverlay-blue {
+    position: absolute;
+    inset: 0;
+    background-color: rgba(59, 130, 246, 0.3);
+}
+
+/* Badges */
+.ECARD-container .ECARD-badge {
+    position: absolute;
+    top: var(--spacing-1);
+    right: var(--spacing-0-5);
+    display: none;
+    padding: var(--spacing-0-5) var(--spacing-1-5);
+    border-radius: var(--radius-3xl);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: var(--shadow-sm);
+    z-index: 2;
+    transition: all 0.3s ease;
+}
+
+.ECARD-container .ECARD-badge.is-event {
+    background: rgba(59, 130, 246, 0.9);
+    color: white;
+}
+
+.ECARD-container .ECARD-badge.is-class {
+    background: rgba(147, 51, 234, 0.9);
+    color: white;
+}
+
+.ECARD-container .ECARD-badge.is-past {
+    background: rgba(100, 100, 100, 0.9);
+    color: var(--text-secondary);
+}
+
+.ECARD-container .ECARD-ddayBadge {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    z-index: 5;
+}
+
+.ECARD-container .ECARD-ddayBadge.is-today {
+    background: rgba(220, 38, 38, 0.9);
+    /* Red-600 */
+}
+
+.ECARD-container .ECARD-ddayBadge.is-new {
+    background: rgba(22, 163, 74, 0.9);
+    /* Green-600 */
+}
+
+/* Favorite Button */
+.ECARD-container .ECARD-favoriteBtn {
+    position: absolute;
+    top: 1px;
+    right: 1px;
+    background: var(--bg-overlay);
+    border: none;
+    width: 27px;
+    height: 27px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    border-radius: var(--radius-full);
+    color: white;
+    /* Force white for visibility */
+    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    -webkit-tap-highlight-color: transparent;
+    z-index: 10;
+}
+
+.ECARD-container .ECARD-favoriteBtn:hover {
+    transform: scale(1.15);
+}
+
+.ECARD-container .ECARD-favoriteBtn:active {
+    transform: scale(0.9);
+}
+
+.ECARD-container .ECARD-favoriteBtn.is-active {
+    color: var(--color-red-500);
+}
+
+.ECARD-container .ECARD-favoriteIcon {
+    font-size: 24px;
+    transition: all 0.2s ease;
+}
+
+.ECARD-container .ECARD-favoriteBtn.is-active .ECARD-favoriteIcon {
+    animation: ecard-heartPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes ecard-heartPop {
+    0% {
+        transform: scale(0.5);
     }
 
-    /* Variant Overrides */
-    :scope.is-variant-favorite {
-        width: 100% !important;
-        max-width: none !important;
-        flex: 0 0 auto !important;
+    50% {
+        transform: scale(1.3);
     }
 
-    :scope.is-variant-favorite .ECARD-imageWrapper {
-        width: 100% !important;
-        max-width: none !important;
+    100% {
+        transform: scale(1);
+    }
+}
+
+/* Text Container */
+.ECARD-container .ECARD-textContainer {
+    padding: 0.5rem 0 0.2rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    justify-content: flex-start;
+}
+
+/* Genre - Chip Style Upgrade (Now Overlay) */
+.ECARD-container .ECARD-genre {
+    position: absolute;
+    bottom: 6px;
+    left: 6px;
+    font-size: 10px;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: 0;
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    line-height: 1.2;
+    z-index: 5;
+    /* User Request: Remove blur, make background black for visibility */
+    background-color: rgba(0, 0, 0, 0.8) !important;
+
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: none;
+}
+
+/* Genre Colors (Scoped map) - Prefix: ECARD-genre- */
+/* Using rgba for background opacity (approx 10-15%) & Darker text for contrast */
+
+.ECARD-container .ECARD-genre-red {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: var(--color-red-600);
+}
+
+.ECARD-container .ECARD-genre-orange {
+    background-color: rgba(249, 115, 22, 0.1);
+    color: var(--color-orange-600);
+}
+
+.ECARD-container .ECARD-genre-amber {
+    background-color: rgba(245, 158, 11, 0.1);
+    color: var(--color-amber-600);
+    /* Darker than 400 */
+}
+
+.ECARD-container .ECARD-genre-yellow {
+    background-color: rgba(234, 179, 8, 0.15);
+    /* Yellow needs more opacity */
+    color: #ca8a04;
+    /* yellow-600 hex override for visibility */
+}
+
+.ECARD-container .ECARD-genre-lime {
+    background-color: rgba(132, 204, 22, 0.15);
+    color: var(--color-lime-600);
+}
+
+.ECARD-container .ECARD-genre-green {
+    background-color: rgba(34, 197, 94, 0.1);
+    color: var(--color-green-600);
+}
+
+.ECARD-container .ECARD-genre-emerald {
+    background-color: rgba(16, 185, 129, 0.1);
+    color: var(--color-emerald-600);
+}
+
+.ECARD-container .ECARD-genre-teal {
+    background-color: rgba(20, 184, 166, 0.1);
+    color: var(--color-teal-600);
+}
+
+.ECARD-container .ECARD-genre-cyan {
+    background-color: rgba(6, 182, 212, 0.1);
+    color: var(--color-cyan-600);
+}
+
+.ECARD-container .ECARD-genre-sky {
+    background-color: rgba(14, 165, 233, 0.1);
+    color: var(--color-sky-600);
+}
+
+.ECARD-container .ECARD-genre-blue {
+    background-color: rgba(59, 130, 246, 0.1);
+    color: var(--color-blue-600);
+}
+
+.ECARD-container .ECARD-genre-indigo {
+    background-color: rgba(99, 102, 241, 0.1);
+    color: var(--color-indigo-600);
+}
+
+.ECARD-container .ECARD-genre-violet {
+    background-color: rgba(139, 92, 246, 0.1);
+    color: var(--color-violet-400);
+}
+
+.ECARD-container .ECARD-genre-purple {
+    background-color: rgba(168, 85, 247, 0.1);
+    color: var(--color-purple-600);
+}
+
+.ECARD-container .ECARD-genre-fuchsia {
+    background-color: rgba(217, 70, 239, 0.1);
+    color: var(--color-fuchsia-600);
+}
+
+.ECARD-container .ECARD-genre-pink {
+    background-color: rgba(236, 72, 153, 0.1);
+    color: var(--color-pink-600);
+}
+
+.ECARD-container .ECARD-genre-rose {
+    background-color: rgba(244, 63, 94, 0.1);
+    color: var(--color-rose-600);
+}
+
+.ECARD-container .ECARD-genre-gray {
+    background-color: rgba(107, 114, 128, 0.1);
+    color: var(--color-gray-600);
+}
+
+/* Title */
+.ECARD-container .ECARD-title {
+    font-size: clamp(0.8rem, 3vw, 1.05rem);
+    font-weight: 600;
+    /* Clean look from 700 */
+    line-height: 1.35;
+    letter-spacing: -0.015em;
+    color: var(--text-primary);
+    margin: 0;
+    /* Handled by container gap */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.ECARD-container.ECARD-cat-class .ECARD-title {
+    font-size: 0.8375rem;
+    font-weight: 800;
+    color: var(--text-primary);
+}
+
+/* Date */
+.ECARD-container .ECARD-dateContainer {
+    margin-top: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.75rem;
+    color: var(--text-tertiary);
+    letter-spacing: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    font-weight: 500;
+}
+
+.ECARD-container .ECARD-dateIndicator {
+    width: 6px;
+    height: 6px;
+    border-radius: var(--radius-full);
+    background-color: var(--color-blue-500);
+    flex-shrink: 0;
+}
+
+.ECARD-container .ECARD-date {
+    font-size: 0.7125rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    border-radius: var(--radius-xl);
+    padding: 2px 8px;
+    background-color: var(--bg-surface-3);
+    border: 1px solid var(--border-glass);
+}
+
+/* Highlight Colors by Category */
+.ECARD-container.is-highlighted.ECARD-cat-class {
+    --highlight-color: var(--color-purple-600);
+}
+
+.ECARD-container.is-highlighted.ECARD-cat-event {
+    --highlight-color: var(--color-blue-600);
+}
+
+/* QR/Highlight Animation */
+@keyframes ecard-qrHighlight {
+
+    0%,
+    100% {
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
     }
 
-    :scope.ECARD-cat-event {
-        flex: 0 0 auto !important;
-        width: 120px;
+    50% {
+        box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.8);
     }
+}
 
-    :scope.ECARD-cat-class {
-        flex: 0 0 auto !important;
-        width: 120px;
-    }
-
-    /* Image Wrapper */
-    .ECARD-imageWrapper {
-        position: relative;
-        width: 100%;
-        overflow: hidden;
-        aspect-ratio: 13 / 16;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-        border-radius: var(--radius-2xl);
-        border: 1px solid var(--border-glass-subtle);
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-        /* Hardware accel removed for mobile stability */
-        background-color: var(--bg-surface-2);
-    }
-
-    /* Hover Effect for Desktop */
-    @media (hover: hover) {
-        .ECARD-container:hover .ECARD-imageWrapper {
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-xl);
-            border-color: var(--border-glass);
-        }
-    }
-
-    .ECARD-imageWrapper.is-highlighted,
-    :scope.ECARD-qrHighlighted .ECARD-imageWrapper {
-        box-shadow: 0 0 0 3px var(--color-blue-500);
-        animation: ecard-qrHighlight 1.5s ease-in-out infinite;
-    }
-
-    /* Image */
-    .ECARD-image {
-        height: 100%;
-        width: 100%;
-        object-fit: cover;
-        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-
-    /* Overlays */
-    .ECARD-overlayCenter {
-        position: absolute;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        pointer-events: none;
-    }
-
-    .ECARD-overlayText-semi {
-        color: var(--text-tertiary);
-        font-size: 2.25rem;
-        font-weight: 700;
-    }
-
-    .ECARD-overlayText-faint {
-        color: var(--border-glass);
-        font-size: 2.25rem;
-        font-weight: 700;
-        position: relative;
-    }
-
-    .ECARD-placeholderBg {
-        height: 100%;
-        width: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: linear-gradient(135deg, var(--bg-surface-2) 0%, var(--bg-surface-3) 100%);
-        position: relative;
-        overflow: hidden;
-    }
-
-    .ECARD-placeholderBg::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        opacity: 0.05;
-        background-image: radial-gradient(var(--text-primary) 1px, transparent 1px);
-        background-size: 12px 12px;
-    }
-
-    .ECARD-bgOverlay-purple {
-        position: absolute;
-        inset: 0;
-        background-color: rgba(168, 85, 247, 0.3);
-    }
-
-    .ECARD-bgOverlay-blue {
-        position: absolute;
-        inset: 0;
-        background-color: rgba(59, 130, 246, 0.3);
-    }
-
-    /* Badges */
-    .ECARD-badge {
-        position: absolute;
-        top: var(--spacing-1);
-        right: var(--spacing-0-5);
-        display: none;
-        padding: var(--spacing-0-5) var(--spacing-1-5);
-        border-radius: var(--radius-3xl);
-        font-size: 11px;
-        font-weight: 600;
-        letter-spacing: 0.5px;
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        box-shadow: var(--shadow-sm);
-        z-index: 2;
-        transition: all 0.3s ease;
-    }
-
-    .ECARD-badge.is-event {
-        background: rgba(59, 130, 246, 0.9);
-        color: white;
-    }
-
-    .ECARD-badge.is-class {
-        background: rgba(147, 51, 234, 0.9);
-        color: white;
-    }
-
-    .ECARD-badge.is-past {
-        background: rgba(100, 100, 100, 0.9);
-        color: var(--text-secondary);
-    }
-
-    .ECARD-ddayBadge {
-        position: absolute;
-        top: 6px;
-        left: 6px;
-        padding: 2px 6px;
-        border-radius: 4px;
-        font-size: 10px;
-        font-weight: 800;
-        letter-spacing: 0;
-        background: rgba(0, 0, 0, 0.6);
-        color: white;
-        backdrop-filter: blur(4px);
-        -webkit-backdrop-filter: blur(4px);
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-        z-index: 5;
-    }
-
-    .ECARD-ddayBadge.is-today {
-        background: rgba(220, 38, 38, 0.9);
-        /* Red-600 */
-    }
-
-    .ECARD-ddayBadge.is-new {
-        background: rgba(22, 163, 74, 0.9);
-        /* Green-600 */
-    }
-
-    /* Favorite Button */
-    .ECARD-favoriteBtn {
-        position: absolute;
-        top: 1px;
-        right: 1px;
-        background: var(--bg-overlay);
-        border: none;
-        width: 27px;
-        height: 27px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        border-radius: var(--radius-full);
-        color: white;
-        /* Force white for visibility */
-        transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        -webkit-tap-highlight-color: transparent;
-        z-index: 10;
-    }
-
-    .ECARD-favoriteBtn:hover {
-        transform: scale(1.15);
-    }
-
-    .ECARD-favoriteBtn:active {
-        transform: scale(0.9);
-    }
-
-    .ECARD-favoriteBtn.is-active {
-        color: var(--color-red-500);
-    }
-
-    .ECARD-favoriteIcon {
-        font-size: 24px;
-        transition: all 0.2s ease;
-    }
-
-    .ECARD-favoriteBtn.is-active .ECARD-favoriteIcon {
-        animation: ecard-heartPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-
-    @keyframes ecard-heartPop {
-        0% {
-            transform: scale(0.5);
-        }
-
-        50% {
-            transform: scale(1.3);
-        }
-
-        100% {
-            transform: scale(1);
-        }
-    }
-
-    /* Text Container */
-    .ECARD-textContainer {
-        padding: 0.5rem 0 0.2rem 0;
-        display: flex;
-        flex-direction: column;
-        gap: 0;
-        justify-content: flex-start;
-    }
-
-    /* Genre - Chip Style Upgrade (Now Overlay) */
-    .ECARD-genre {
-        position: absolute;
-        bottom: 6px;
-        left: 6px;
-        font-size: 10px;
-        font-weight: 700;
-        margin: 0;
-        letter-spacing: 0;
-        display: inline-block;
-        padding: 2px 6px;
-        border-radius: 4px;
-        line-height: 1.2;
-        z-index: 5;
-        /* User Request: Remove blur, make background black for visibility */
-        background-color: rgba(0, 0, 0, 0.8) !important;
-
-        backdrop-filter: none;
-        -webkit-backdrop-filter: none;
-        box-shadow: none;
-    }
-
-    /* Genre Colors (Scoped map) - Prefix: ECARD-genre- */
-    /* Using rgba for background opacity (approx 10-15%) & Darker text for contrast */
-
-    .ECARD-genre-red {
-        background-color: rgba(239, 68, 68, 0.1);
-        color: var(--color-red-600);
-    }
-
-    .ECARD-genre-orange {
-        background-color: rgba(249, 115, 22, 0.1);
-        color: var(--color-orange-600);
-    }
-
-    .ECARD-genre-amber {
-        background-color: rgba(245, 158, 11, 0.1);
-        color: var(--color-amber-600);
-        /* Darker than 400 */
-    }
-
-    .ECARD-genre-yellow {
-        background-color: rgba(234, 179, 8, 0.15);
-        /* Yellow needs more opacity */
-        color: #ca8a04;
-        /* yellow-600 hex override for visibility */
-    }
-
-    .ECARD-genre-lime {
-        background-color: rgba(132, 204, 22, 0.15);
-        color: var(--color-lime-600);
-    }
-
-    .ECARD-genre-green {
-        background-color: rgba(34, 197, 94, 0.1);
-        color: var(--color-green-600);
-    }
-
-    .ECARD-genre-emerald {
-        background-color: rgba(16, 185, 129, 0.1);
-        color: var(--color-emerald-600);
-    }
-
-    .ECARD-genre-teal {
-        background-color: rgba(20, 184, 166, 0.1);
-        color: var(--color-teal-600);
-    }
-
-    .ECARD-genre-cyan {
-        background-color: rgba(6, 182, 212, 0.1);
-        color: var(--color-cyan-600);
-    }
-
-    .ECARD-genre-sky {
-        background-color: rgba(14, 165, 233, 0.1);
-        color: var(--color-sky-600);
-    }
-
-    .ECARD-genre-blue {
-        background-color: rgba(59, 130, 246, 0.1);
-        color: var(--color-blue-600);
-    }
-
-    .ECARD-genre-indigo {
-        background-color: rgba(99, 102, 241, 0.1);
-        color: var(--color-indigo-600);
-    }
-
-    .ECARD-genre-violet {
-        background-color: rgba(139, 92, 246, 0.1);
-        color: var(--color-violet-400);
-    }
-
-    .ECARD-genre-purple {
-        background-color: rgba(168, 85, 247, 0.1);
-        color: var(--color-purple-600);
-    }
-
-    .ECARD-genre-fuchsia {
-        background-color: rgba(217, 70, 239, 0.1);
-        color: var(--color-fuchsia-600);
-    }
-
-    .ECARD-genre-pink {
-        background-color: rgba(236, 72, 153, 0.1);
-        color: var(--color-pink-600);
-    }
-
-    .ECARD-genre-rose {
-        background-color: rgba(244, 63, 94, 0.1);
-        color: var(--color-rose-600);
-    }
-
-    .ECARD-genre-gray {
-        background-color: rgba(107, 114, 128, 0.1);
-        color: var(--color-gray-600);
-    }
-
-    /* Title */
-    .ECARD-title {
-        font-size: clamp(0.8rem, 3vw, 1.05rem);
-        font-weight: 600;
-        /* Clean look from 700 */
-        line-height: 1.35;
-        letter-spacing: -0.015em;
-        color: var(--text-primary);
-        margin: 0;
-        /* Handled by container gap */
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-
-    :scope.ECARD-cat-class .ECARD-title {
-        font-size: 0.8375rem;
-        font-weight: 800;
-        color: var(--text-primary);
-    }
-
-    /* Date */
-    .ECARD-dateContainer {
-        margin-top: 0;
-        display: flex;
-        align-items: center;
-        gap: 0.375rem;
-        font-size: 0.75rem;
-        color: var(--text-tertiary);
-        letter-spacing: 0;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        font-weight: 500;
-    }
-
-    .ECARD-dateIndicator {
-        width: 6px;
-        height: 6px;
-        border-radius: var(--radius-full);
-        background-color: var(--color-blue-500);
-        flex-shrink: 0;
-    }
-
-    .ECARD-date {
-        font-size: 0.7125rem;
-        color: var(--text-secondary);
-        font-weight: 500;
-        border-radius: var(--radius-xl);
-        padding: 2px 8px;
-        background-color: var(--bg-surface-3);
-        border: 1px solid var(--border-glass);
-    }
-
-    /* Highlight Colors by Category */
-    :scope.is-highlighted.ECARD-cat-class {
-        --highlight-color: var(--color-purple-600);
-    }
-
-    :scope.is-highlighted.ECARD-cat-event {
-        --highlight-color: var(--color-blue-600);
-    }
-
-    /* QR/Highlight Animation */
-    @keyframes ecard-qrHighlight {
-
-        0%,
-        100% {
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
-        }
-
-        50% {
-            box-shadow: 0 0 0 6px rgba(59, 130, 246, 0.8);
-        }
-    }
-
-    .ECARD-imageWrapper.is-active-qr {
-        animation: ecard-qrHighlight 2s ease-in-out 3;
-        position: relative;
-        z-index: 10;
-    }
+.ECARD-container .ECARD-imageWrapper.is-active-qr {
+    animation: ecard-qrHighlight 2s ease-in-out 3;
+    position: relative;
+    z-index: 10;
 }

@@ -1,59 +1,57 @@
 /* page.css - PrivacyPage 전용 스타일 */
-@scope (.PrivacyPage) {
-    :scope {
-        padding: 4rem 1rem 10rem 1rem;
-        color: var(--color-gray-300);
-        min-height: 100vh;
-        background-color: var(--bg-black);
-    }
+.PrivacyPage {
+    padding: 4rem 1rem 10rem 1rem;
+    color: var(--color-gray-300);
+    min-height: 100vh;
+    background-color: var(--bg-black);
+}
 
-    .privacy-title {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: white;
-        margin-bottom: 1.5rem;
-    }
+.PrivacyPage .privacy-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 1.5rem;
+}
 
-    .privacy-content {
-        display: flex;
-        flex-direction: column;
-        gap: 1.5rem;
-    }
+.PrivacyPage .privacy-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
 
-    .privacy-section-title {
-        font-size: 1.25rem;
-        font-weight: 700;
-        color: white;
-        margin-bottom: 0.5rem;
-    }
+.PrivacyPage .privacy-section-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 0.5rem;
+}
 
-    .privacy-list {
-        list-style-type: disc;
-        list-style-position: inside;
-        margin-top: 0.5rem;
-        font-size: 0.875rem;
-        color: var(--color-gray-400);
-    }
+.PrivacyPage .privacy-list {
+    list-style-type: disc;
+    list-style-position: inside;
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--color-gray-400);
+}
 
-    .privacy-link {
-        color: var(--color-blue-400);
-        text-decoration: underline;
-        transition: color 0.2s;
-    }
+.PrivacyPage .privacy-link {
+    color: var(--color-blue-400);
+    text-decoration: underline;
+    transition: color 0.2s;
+}
 
-    .privacy-link:hover {
-        color: var(--color-blue-300);
-        text-decoration: none;
-    }
+.PrivacyPage .privacy-link:hover {
+    color: var(--color-blue-300);
+    text-decoration: none;
+}
 
-    .privacy-contact {
-        margin-top: 0.5rem;
-        color: var(--color-blue-400);
-    }
+.PrivacyPage .privacy-contact {
+    margin-top: 0.5rem;
+    color: var(--color-blue-400);
+}
 
-    .privacy-note {
-        margin-top: 0.5rem;
-        font-size: 0.875rem;
-        color: var(--color-gray-400);
-    }
+.PrivacyPage .privacy-note {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--color-gray-400);
 }

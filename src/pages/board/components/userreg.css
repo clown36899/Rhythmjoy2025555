@@ -1,220 +1,217 @@
 /* userreg.css - Modern, Clean Design */
 
-@scope (.userreg-overlay) {
-  :scope {
-    --ur-bg-overlay: var(--bg-overlay);
-    --ur-bg-modal: var(--bg-modal);
-    --ur-text-primary: var(--text-primary);
-    --ur-text-secondary: var(--text-tertiary);
-    --ur-border-color: var(--border-glass-strong);
-    --ur-accent-color: var(--color-yellow-400);
-    --ur-accent-text: #000000;
-    --ur-radius: 16px;
-    --ur-shadow: var(--shadow-premium);
-  }
+.userreg-overlay {
+  --ur-bg-overlay: var(--bg-overlay);
+  --ur-bg-modal: var(--bg-modal);
+  --ur-text-primary: var(--text-primary);
+  --ur-text-secondary: var(--text-tertiary);
+  --ur-border-color: var(--border-glass-strong);
+  --ur-accent-color: var(--color-yellow-400);
+  --ur-accent-text: #000000;
+  --ur-radius: 16px;
+  --ur-shadow: var(--shadow-premium);
+}
 
-  /* ===== 모달 오버레이 ===== */
-  :scope {
-    position: fixed;
-    inset: 0;
-    background-color: var(--ur-bg-overlay);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 5px;
-    z-index: var(--z-modal-stack-1);
-    animation: fadeIn 0.2s ease-out;
-  }
+/* ===== 모달 오버레이 ===== */
+.userreg-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: var(--ur-bg-overlay);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 5px;
+  z-index: var(--z-modal-stack-1);
+  animation: fadeIn 0.2s ease-out;
+}
 
-  /* ===== 모달 컨테이너 ===== */
-  .userreg-modal {
-    background-color: var(--ur-bg-modal);
-    border-radius: var(--ur-radius);
-    box-shadow: var(--ur-shadow);
-    width: 100%;
-    max-width: 360px;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-    border: 1px solid var(--ur-border-color);
-    animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  }
+/* ===== 모달 컨테이너 ===== */
+.userreg-overlay .userreg-modal {
+  background-color: var(--ur-bg-modal);
+  border-radius: var(--ur-radius);
+  box-shadow: var(--ur-shadow);
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--ur-border-color);
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
 
-  /* ===== 헤더 ===== */
-  .userreg-header {
-    padding: 24px 24px 0 24px;
-    text-align: center;
-    position: relative;
-  }
+/* ===== 헤더 ===== */
+.userreg-overlay .userreg-header {
+  padding: 24px 24px 0 24px;
+  text-align: center;
+  position: relative;
+}
 
-  .userreg-title {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: var(--ur-text-primary);
-    margin: 0;
-    letter-spacing: -0.02em;
-  }
+.userreg-overlay .userreg-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--ur-text-primary);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
 
-  .userreg-subtitle {
-    color: var(--ur-text-secondary);
-    font-size: 0.95rem;
-    margin-top: 8px;
-    line-height: 1.5;
-  }
+.userreg-overlay .userreg-subtitle {
+  color: var(--ur-text-secondary);
+  font-size: 0.95rem;
+  margin-top: 8px;
+  line-height: 1.5;
+}
 
-  .userreg-close-btn {
-    position: absolute;
-    top: 16px;
-    right: 16px;
-    color: var(--ur-text-secondary);
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    padding: 8px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s;
-  }
+.userreg-overlay .userreg-close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  color: var(--ur-text-secondary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
 
-  .userreg-close-btn:hover {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: var(--ur-text-primary);
-  }
+.userreg-overlay .userreg-close-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  color: var(--ur-text-primary);
+}
 
-  /* ===== 폼 컨텐츠 ===== */
-  .userreg-form {
-    padding: 0 24px 24px 24px;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-  }
+/* ===== 폼 컨텐츠 ===== */
+.userreg-overlay .userreg-form {
+  padding: 0 24px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
 
-  .userreg-field {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+.userreg-overlay .userreg-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
 
-  }
+.userreg-overlay .userreg-label {
+  display: block;
+  color: var(--ur-text-secondary);
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-left: 4px;
+}
 
-  .userreg-label {
-    display: block;
-    color: var(--ur-text-secondary);
-    font-size: 0.85rem;
-    font-weight: 600;
-    margin-left: 4px;
-  }
+.userreg-overlay .userreg-input {
+  width: 100%;
+  background-color: #27272a;
+  color: var(--ur-text-primary);
+  border: 1px solid var(--ur-border-color);
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  outline: none;
+}
 
-  .userreg-input {
-    width: 100%;
-    background-color: #27272a;
-    color: var(--ur-text-primary);
-    border: 1px solid var(--ur-border-color);
-    border-radius: 12px;
-    padding: 14px 16px;
-    font-size: 1rem;
-    transition: all 0.2s ease;
-    outline: none;
-  }
+.userreg-overlay .userreg-input:focus {
+  border-color: #71717a;
+  background-color: #313135;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.05);
+}
 
-  .userreg-input:focus {
-    border-color: #71717a;
-    background-color: #313135;
-    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.05);
-  }
+.userreg-overlay .userreg-input::placeholder {
+  color: #52525b;
+}
 
-  .userreg-input::placeholder {
-    color: #52525b;
-  }
+/* ===== 버튼 ===== */
+.userreg-overlay .userreg-submit-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: transform 0.1s ease, filter 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
 
-  /* ===== 버튼 ===== */
-  .userreg-submit-btn {
-    width: 100%;
-    padding: 14px;
-    border-radius: 12px;
-    font-size: 1rem;
-    font-weight: 600;
-    cursor: pointer;
-    border: none;
-    transition: transform 0.1s ease, filter 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-  }
+.userreg-overlay .userreg-submit-btn:hover {
+  filter: brightness(1.05);
+}
 
-  .userreg-submit-btn:hover {
-    filter: brightness(1.05);
-  }
+.userreg-overlay .userreg-submit-btn:active {
+  transform: scale(0.98);
+}
 
-  .userreg-submit-btn:active {
-    transform: scale(0.98);
-  }
+.userreg-overlay .userreg-submit-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
 
-  .userreg-submit-btn:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-    transform: none;
-  }
-
-  /* ===== 애니메이션 ===== */
-  @keyframes fadeIn {
-    from {
-      opacity: 0;
-    }
-
-    to {
-      opacity: 1;
-    }
-  }
-
-  @keyframes slideUp {
-    from {
-      opacity: 0;
-      transform: translateY(20px) scale(0.95);
-    }
-
-    to {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-  }
-
-  /* ===== 프로필 이미지 업로드 ===== */
-  .profile-upload-container {
-    position: relative;
-    width: 100px;
-    height: 100px;
-    margin: 0 auto;
-    border-radius: 50%;
-    overflow: hidden;
-    cursor: pointer;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    transition: transform 0.2s;
-    background-color: #27272a;
-    border: 2px solid var(--ur-border-color);
-  }
-
-  .profile-upload-container:hover {
-    transform: scale(1.05);
-    border-color: #71717a;
-  }
-
-  .profile-upload-overlay {
-    position: absolute;
-    inset: 0;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
+/* ===== 애니메이션 ===== */
+@keyframes fadeIn {
+  from {
     opacity: 0;
-    transition: opacity 0.2s;
   }
 
-  .profile-upload-container:hover .profile-upload-overlay {
+  to {
     opacity: 1;
   }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ===== 프로필 이미지 업로드 ===== */
+.userreg-overlay .profile-upload-container {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  margin: 0 auto;
+  border-radius: 50%;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s;
+  background-color: #27272a;
+  border: 2px solid var(--ur-border-color);
+}
+
+.userreg-overlay .profile-upload-container:hover {
+  transform: scale(1.05);
+  border-color: #71717a;
+}
+
+.userreg-overlay .profile-upload-overlay {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.userreg-overlay .profile-upload-container:hover .profile-upload-overlay {
+  opacity: 1;
 }

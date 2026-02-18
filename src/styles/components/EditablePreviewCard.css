@@ -1,180 +1,178 @@
 /* EditablePreviewCard.css - EditablePreviewCard 컴포넌트 전용 스타일 */
 
 /* Based on ECARD-container scope since EPC classes are used within it */
-@scope (.ECARD-container) {
-    .EPC-inlineBtn {
-        background: rgba(0, 0, 0, 0.5);
-        border: none;
-        color: var(--text-primary);
-        padding: var(--spacing-1) var(--spacing-2);
-        border-radius: var(--radius-full);
-        font-size: 0.75rem;
-        font-weight: 600;
-        cursor: pointer;
-        backdrop-filter: blur(4px);
-        transition: all 0.2s;
+.ECARD-container .EPC-inlineBtn {
+    background: rgba(0, 0, 0, 0.5);
+    border: none;
+    color: var(--text-primary);
+    padding: var(--spacing-1) var(--spacing-2);
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    backdrop-filter: blur(4px);
+    transition: all 0.2s;
+}
+
+.ECARD-container .EPC-inlineBtn:hover {
+    background: var(--bg-hover);
+    transform: translateY(-1px);
+}
+
+.ECARD-container .EPC-backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.2);
+    z-index: 5;
+}
+
+.ECARD-container .EPC-editableSection {
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s;
+}
+
+.ECARD-container .EPC-editableSection:hover {
+    outline: 2px dashed var(--color-blue-500);
+    outline-offset: 2px;
+    background-color: rgba(59, 130, 246, 0.05);
+}
+
+.ECARD-container .EPC-textContainer .EPC-editableSection {
+    border-radius: var(--radius-default);
+    padding: 2px 4px;
+    margin: -2px -4px;
+}
+
+.ECARD-container .EPC-textContainer .EPC-editableSection:hover {
+    background-color: var(--bg-hover);
+}
+
+.ECARD-container .EPC-textContainer input {
+    width: 100%;
+    background: var(--bg-surface-3);
+    border: 1px solid var(--color-blue-500);
+    color: var(--text-primary);
+    font-size: inherit;
+    font-family: inherit;
+    padding: 2px 4px;
+    border-radius: var(--radius-default);
+    outline: none;
+}
+
+.ECARD-container .EPC-inlineIcon {
+    font-size: 0.75rem;
+    margin-left: var(--spacing-1);
+    color: var(--color-blue-400);
+    opacity: 0.7;
+}
+
+.ECARD-container .EPC-editableSection:hover .EPC-inlineIcon {
+    opacity: 1;
+}
+
+.ECARD-container .EPC-overlayIcon {
+    font-size: 1.5rem;
+    color: var(--text-primary);
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
+}
+
+.ECARD-container .ECARD-imageWrapper.EPC-editableSection:hover .EPC-overlayIcon {
+    transform: scale(1.1);
+}
+
+/* Date Management Tabs */
+.ECARD-container .EPC-dateTabs {
+    display: flex;
+    gap: var(--spacing-1);
+    background: var(--bg-surface-2);
+    padding: 2px;
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--spacing-2);
+}
+
+.ECARD-container .EPC-dateTab {
+    flex: 1;
+    text-align: center;
+    padding: var(--spacing-1) var(--spacing-2);
+    border-radius: var(--radius-md);
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-tertiary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ECARD-container .EPC-dateTab.is-active {
+    background-color: var(--color-blue-600);
+    color: white;
+    box-shadow: var(--shadow-sm);
+}
+
+/* Specific Date Tags */
+.ECARD-container .EPC-dateList {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-2);
+    margin-top: var(--spacing-2);
+}
+
+.ECARD-container .EPC-dateTag {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-1);
+    padding: 4px 8px;
+    background-color: var(--bg-surface-2);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    color: var(--text-primary);
+}
+
+.ECARD-container .EPC-dateRemove {
+    border: none;
+    background: none;
+    cursor: pointer;
+    color: var(--color-red-400);
+    padding: 0;
+    display: flex;
+    align-items: center;
+}
+
+.ECARD-container .EPC-dateRemove:hover {
+    color: var(--color-red-600);
+}
+
+/* Preview Mode Notice */
+.ECARD-container .EPC-previewNotice {
+    position: absolute;
+    top: var(--spacing-4);
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: var(--bg-glass-heavy);
+    color: var(--text-primary);
+    padding: var(--spacing-2) var(--spacing-4);
+    border-radius: var(--radius-3xl);
+    font-size: 0.875rem;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    pointer-events: none;
+    white-space: nowrap;
+    backdrop-filter: blur(4px);
+    border: 1px solid var(--border-glass);
+    animation: EPC-fadeIn 0.3s ease-out;
+}
+
+@keyframes EPC-fadeIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -10px);
     }
 
-    .EPC-inlineBtn:hover {
-        background: var(--bg-hover);
-        transform: translateY(-1px);
-    }
-
-    .EPC-backdrop {
-        position: absolute;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.2);
-        z-index: 5;
-    }
-
-    .EPC-editableSection {
-        cursor: pointer;
-        position: relative;
-        transition: all 0.2s;
-    }
-
-    .EPC-editableSection:hover {
-        outline: 2px dashed var(--color-blue-500);
-        outline-offset: 2px;
-        background-color: rgba(59, 130, 246, 0.05);
-    }
-
-    .EPC-textContainer .EPC-editableSection {
-        border-radius: var(--radius-default);
-        padding: 2px 4px;
-        margin: -2px -4px;
-    }
-
-    .EPC-textContainer .EPC-editableSection:hover {
-        background-color: var(--bg-hover);
-    }
-
-    .EPC-textContainer input {
-        width: 100%;
-        background: var(--bg-surface-3);
-        border: 1px solid var(--color-blue-500);
-        color: var(--text-primary);
-        font-size: inherit;
-        font-family: inherit;
-        padding: 2px 4px;
-        border-radius: var(--radius-default);
-        outline: none;
-    }
-
-    .EPC-inlineIcon {
-        font-size: 0.75rem;
-        margin-left: var(--spacing-1);
-        color: var(--color-blue-400);
-        opacity: 0.7;
-    }
-
-    .EPC-editableSection:hover .EPC-inlineIcon {
+    to {
         opacity: 1;
-    }
-
-    .EPC-overlayIcon {
-        font-size: 1.5rem;
-        color: var(--text-primary);
-        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5));
-    }
-
-    .ECARD-imageWrapper.EPC-editableSection:hover .EPC-overlayIcon {
-        transform: scale(1.1);
-    }
-
-    /* Date Management Tabs */
-    .EPC-dateTabs {
-        display: flex;
-        gap: var(--spacing-1);
-        background: var(--bg-surface-2);
-        padding: 2px;
-        border-radius: var(--radius-lg);
-        margin-bottom: var(--spacing-2);
-    }
-
-    .EPC-dateTab {
-        flex: 1;
-        text-align: center;
-        padding: var(--spacing-1) var(--spacing-2);
-        border-radius: var(--radius-md);
-        font-size: 0.75rem;
-        font-weight: 500;
-        color: var(--text-tertiary);
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-    .EPC-dateTab.is-active {
-        background-color: var(--color-blue-600);
-        color: white;
-        box-shadow: var(--shadow-sm);
-    }
-
-    /* Specific Date Tags */
-    .EPC-dateList {
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--spacing-2);
-        margin-top: var(--spacing-2);
-    }
-
-    .EPC-dateTag {
-        display: flex;
-        align-items: center;
-        gap: var(--spacing-1);
-        padding: 4px 8px;
-        background-color: var(--bg-surface-2);
-        border: 1px solid var(--border-glass);
-        border-radius: var(--radius-full);
-        font-size: 0.75rem;
-        color: var(--text-primary);
-    }
-
-    .EPC-dateRemove {
-        border: none;
-        background: none;
-        cursor: pointer;
-        color: var(--color-red-400);
-        padding: 0;
-        display: flex;
-        align-items: center;
-    }
-
-    .EPC-dateRemove:hover {
-        color: var(--color-red-600);
-    }
-
-    /* Preview Mode Notice */
-    .EPC-previewNotice {
-        position: absolute;
-        top: var(--spacing-4);
-        left: 50%;
-        transform: translateX(-50%);
-        background-color: var(--bg-glass-heavy);
-        color: var(--text-primary);
-        padding: var(--spacing-2) var(--spacing-4);
-        border-radius: var(--radius-3xl);
-        font-size: 0.875rem;
-        z-index: 20;
-        display: flex;
-        align-items: center;
-        gap: var(--spacing-2);
-        pointer-events: none;
-        white-space: nowrap;
-        backdrop-filter: blur(4px);
-        border: 1px solid var(--border-glass);
-        animation: EPC-fadeIn 0.3s ease-out;
-    }
-
-    @keyframes EPC-fadeIn {
-        from {
-            opacity: 0;
-            transform: translate(-50%, -10px);
-        }
-
-        to {
-            opacity: 1;
-            transform: translate(-50%, 0);
-        }
+        transform: translate(-50%, 0);
     }
 }
