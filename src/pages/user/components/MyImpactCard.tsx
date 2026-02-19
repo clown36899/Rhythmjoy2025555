@@ -7,9 +7,11 @@ interface MyImpactCardProps {
     posts: StandardBoardPost[];
     events: SupabaseEvent[];
     initialExpanded?: boolean;
+    onInsertItem?: (type: string, name: string, config: any) => void;
+    section?: 'summary' | 'top-posts' | 'top-events';
 }
 
-export default function MyImpactCard({ posts, events, initialExpanded = false }: MyImpactCardProps) {
+export default function MyImpactCard({ posts, events, initialExpanded = false, onInsertItem, section }: MyImpactCardProps) {
     const [showDetail, setShowDetail] = useState(initialExpanded);
 
     // 1. Calculate Aggregates (Client-Side)
@@ -229,122 +231,210 @@ export default function MyImpactCard({ posts, events, initialExpanded = false }:
                     font-size: 12px;
                     color: var(--text-muted);
                 }
+
+                .mic-insert-btn {
+                    padding: 4px 8px;
+                    background: var(--color-blue-600);
+                    color: white;
+                    border: none;
+                    border-radius: 4px;
+                    font-size: 11px;
+                    font-weight: 600;
+                    cursor: pointer;
+                }
+
+                .mic-insert-btn-sm {
+                    padding: 2px 6px;
+                    background: var(--bg-surface-3);
+                    color: var(--text-secondary);
+                    border: 1px solid var(--border-glass);
+                    border-radius: 4px;
+                    font-size: 10px;
+                    cursor: pointer;
+                }
+
+                .mic-card.section-view {
+                    background: transparent;
+                    padding: 0;
+                    margin-bottom: 0;
+                    box-shadow: none;
+                    border: none;
+                    cursor: default;
+                }
+
+                .mic-card.section-view .mic-expanded {
+                    margin-top: 0;
+                    padding-top: 0;
+                    border-top: none;
+                }
             `}</style>
 
-            {/* Background Decoration */}
-            <div className="mic-bg-deco" style={{ background: impactLevel.color }}></div>
+            <div className={`mic-card ${section ? 'section-view' : ''}`} onClick={() => !section && setShowDetail(!showDetail)}>
+                {/* ... styles ... */}
 
-            {/* Header */}
-            <div className="mic-header">
-                <div style={{ display: 'flex', flexDirection: 'column' }}>
-                    <h3 className="mic-title">
-                        <i className="ri-bar-chart-groupped-fill" style={{ color: impactLevel.color }}></i>
-                        내 활동
-                    </h3>
-                    <span className="mic-subtitle">
-                        지금까지 <strong>{stats.totalViews.toLocaleString()}명</strong>에게 영감을 주셨어요!
-                    </span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <i className={`ri-arrow-down-s-line mic-arrow ${showDetail ? 'rotated' : ''}`}></i>
-                </div>
-            </div>
+                {/* Background Decoration */}
+                {!section && <div className="mic-bg-deco" style={{ background: impactLevel.color }}></div>}
 
-            {/* Stats Grid */}
-            <div className="mic-stats-grid">
-                {/* 1. Total Views */}
-                <div className="mic-stat-box">
-                    <span className="mic-stat-label">누적 조회수</span>
-                    <span className="mic-stat-val">
-                        {stats.totalViews.toLocaleString()}
-                    </span>
-                </div>
-
-                {/* 2. Likes/Engagement */}
-                <div className="mic-stat-box">
-                    <span className="mic-stat-label">받은 좋아요</span>
-                    <span className="mic-stat-val pink">
-                        {stats.totalLikes.toLocaleString()}
-                    </span>
-                </div>
-            </div>
-
-            {/* Footer / Breakdown */}
-            {!showDetail && (
-                <div className="mic-footer">
-                    <div className="mic-footer-counts">
-                        <span>게시글 {stats.postCount}개</span>
-                        <span>행사 {stats.eventCount}개</span>
+                {/* Header */}
+                {(!section || section === 'summary') && (
+                    <div className="mic-header">
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                            <h3 className="mic-title">
+                                <i className="ri-bar-chart-groupped-fill" style={{ color: impactLevel.color }}></i>
+                                내 활동
+                            </h3>
+                            {!section && (
+                                <span className="mic-subtitle">
+                                    지금까지 <strong>{stats.totalViews.toLocaleString()}명</strong>에게 영감을 주셨어요!
+                                </span>
+                            )}
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            {onInsertItem && (
+                                <button
+                                    className="mic-insert-btn"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onInsertItem('my-impact-summary', '활동 요약', { stats });
+                                    }}
+                                >
+                                    본문에 삽입
+                                </button>
+                            )}
+                            {!section && <i className={`ri-arrow-down-s-line mic-arrow ${showDetail ? 'rotated' : ''}`}></i>}
+                        </div>
                     </div>
-                    <span><i className="ri-arrow-down-circle-line"></i> 자세히 보기</span>
-                </div>
-            )}
+                )}
 
-            {/* EXPANDED DETAIL VIEW */}
-            {showDetail && (
-                <div className="mic-expanded">
+                {/* Stats Grid */}
+                {(!section || section === 'summary') && (
+                    <div className="mic-stats-grid">
+                        {/* 1. Total Views */}
+                        <div className="mic-stat-box">
+                            <span className="mic-stat-label">누적 조회수</span>
+                            <span className="mic-stat-val">
+                                {stats.totalViews.toLocaleString()}
+                            </span>
+                        </div>
 
-                    {/* Top Posts */}
-                    <div className="mic-section-margin">
-                        <h4 className="mic-section-title">
-                            <i className="ri-fire-fill" style={{ color: 'var(--color-red-500)' }}></i> 인기 게시글 TOP 5
-                        </h4>
-                        {topPosts.length > 0 ? (
-                            <ul className="mic-list">
-                                {topPosts.map(post => (
-                                    <li key={post.id} className="mic-list-item">
-                                        <div className="mic-item-info">
-                                            <div className="mic-badge" style={{
-                                                background: `${getExposureStatus(post, 'post').color}15`,
-                                                color: getExposureStatus(post, 'post').color,
-                                                border: `1px solid ${getExposureStatus(post, 'post').color}30`
-                                            }}>
-                                                {getExposureStatus(post, 'post').label}
-                                            </div>
-                                            <span className="mic-item-title max-w-140">{post.title}</span>
-                                        </div>
-                                        <div className="mic-item-stats">
-                                            <span className="mic-stat-view"><i className="ri-eye-line"></i> {post.views?.toLocaleString()}</span>
-                                            <span className="mic-stat-like"><i className="ri-heart-3-fill"></i> {post.likes}</span>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p className="mic-empty">작성한 게시글이 없습니다.</p>
+                        {/* 2. Likes/Engagement */}
+                        <div className="mic-stat-box">
+                            <span className="mic-stat-label">받은 좋아요</span>
+                            <span className="mic-stat-val pink">
+                                {stats.totalLikes.toLocaleString()}
+                            </span>
+                        </div>
+                    </div>
+                )}
+
+                {/* Footer / Breakdown */}
+                {!showDetail && !section && (
+                    <div className="mic-footer">
+                        <div className="mic-footer-counts">
+                            <span>게시글 {stats.postCount}개</span>
+                            <span>행사 {stats.eventCount}개</span>
+                        </div>
+                        <span><i className="ri-arrow-down-circle-line"></i> 자세히 보기</span>
+                    </div>
+                )}
+
+                {/* EXPANDED DETAIL VIEW */}
+                {(showDetail || section === 'top-posts' || section === 'top-events') && (
+                    <div className="mic-expanded">
+
+                        {/* Top Posts */}
+                        {(!section || section === 'top-posts') && (
+                            <div className="mic-section-margin">
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                    <h4 className="mic-section-title" style={{ marginBottom: 0 }}>
+                                        <i className="ri-fire-fill" style={{ color: 'var(--color-red-500)' }}></i> 인기 게시글 TOP 5
+                                    </h4>
+                                    {onInsertItem && (
+                                        <button
+                                            className="mic-insert-btn-sm"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onInsertItem('my-top-posts', '인기 게시글 TOP 5', { posts: topPosts });
+                                            }}
+                                        >
+                                            삽입
+                                        </button>
+                                    )}
+                                </div>
+                                {/* ... list ... */}
+                                {topPosts.length > 0 ? (
+                                    <ul className="mic-list">
+                                        {topPosts.map(post => (
+                                            <li key={post.id} className="mic-list-item">
+                                                <div className="mic-item-info">
+                                                    <div className="mic-badge" style={{
+                                                        background: `${getExposureStatus(post, 'post').color}15`,
+                                                        color: getExposureStatus(post, 'post').color,
+                                                        border: `1px solid ${getExposureStatus(post, 'post').color}30`
+                                                    }}>
+                                                        {getExposureStatus(post, 'post').label}
+                                                    </div>
+                                                    <span className="mic-item-title max-w-140">{post.title}</span>
+                                                </div>
+                                                <div className="mic-item-stats">
+                                                    <span className="mic-stat-view"><i className="ri-eye-line"></i> {post.views?.toLocaleString()}</span>
+                                                    <span className="mic-stat-like"><i className="ri-heart-3-fill"></i> {post.likes}</span>
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="mic-empty">작성한 게시글이 없습니다.</p>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Top Events */}
+                        {(!section || section === 'top-events') && (
+                            <div>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                    <h4 className="mic-section-title" style={{ marginBottom: 0 }}>
+                                        <i className="ri-calendar-event-fill" style={{ color: 'var(--color-blue-500)' }}></i> 인기 행사 TOP 5
+                                    </h4>
+                                    {onInsertItem && (
+                                        <button
+                                            className="mic-insert-btn-sm"
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onInsertItem('my-top-events', '인기 행사 TOP 5', { events: topEvents });
+                                            }}
+                                        >
+                                            삽입
+                                        </button>
+                                    )}
+                                </div>
+                                {/* ... list ... */}
+                                {topEvents.length > 0 ? (
+                                    <ul className="mic-list">
+                                        {topEvents.map(event => (
+                                            <li key={event.id} className="mic-list-item">
+                                                <div className="mic-item-info">
+                                                    <div className="mic-badge" style={{
+                                                        background: `${getExposureStatus(event, 'event').color}15`,
+                                                        color: getExposureStatus(event, 'event').color,
+                                                        border: `1px solid ${getExposureStatus(event, 'event').color}30`
+                                                    }}>
+                                                        {getExposureStatus(event, 'event').label}
+                                                    </div>
+                                                    <span className="mic-item-title max-w-160">{event.title}</span>
+                                                </div>
+                                                <span className="mic-stat-view" style={{ fontSize: '12px' }}><i className="ri-eye-line"></i> {event.views?.toLocaleString()}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="mic-empty">등록한 행사가 없습니다.</p>
+                                )}
+                            </div>
                         )}
                     </div>
-
-                    {/* Top Events */}
-                    <div>
-                        <h4 className="mic-section-title">
-                            <i className="ri-calendar-event-fill" style={{ color: 'var(--color-blue-500)' }}></i> 인기 행사 TOP 5
-                        </h4>
-                        {topEvents.length > 0 ? (
-                            <ul className="mic-list">
-                                {topEvents.map(event => (
-                                    <li key={event.id} className="mic-list-item">
-                                        <div className="mic-item-info">
-                                            <div className="mic-badge" style={{
-                                                background: `${getExposureStatus(event, 'event').color}15`,
-                                                color: getExposureStatus(event, 'event').color,
-                                                border: `1px solid ${getExposureStatus(event, 'event').color}30`
-                                            }}>
-                                                {getExposureStatus(event, 'event').label}
-                                            </div>
-                                            <span className="mic-item-title max-w-160">{event.title}</span>
-                                        </div>
-                                        <span className="mic-stat-view" style={{ fontSize: '12px' }}><i className="ri-eye-line"></i> {event.views?.toLocaleString()}</span>
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p className="mic-empty">등록한 행사가 없습니다.</p>
-                        )}
-                    </div>
-
-                </div>
-            )}
+                )}
+            </div>
         </div>
     );
 }

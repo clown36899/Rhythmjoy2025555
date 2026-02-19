@@ -63,7 +63,31 @@ interface MonthlyStat {
     dailyAvg: number;
 }
 
-export default function SwingSceneStats() {
+interface SwingSceneStatsProps {
+    onInsertItem?: (type: string, name: string, config: any) => void;
+    section?: 'summary' | 'monthly' | 'weekly-type' | 'weekly-genre' | 'lead-time';
+}
+
+const GENRE_COLORS: { [key: string]: string } = {
+    '린디합': 'var(--color-blue-600)',
+    '솔로재즈': 'var(--color-rose-600)',
+    '발보아': 'var(--color-amber-500)',
+    '블루스': 'var(--color-teal-600)',
+    '동호회 정규강습': 'var(--color-lime-400)',
+    '팀원모집': 'var(--color-violet-500)',
+    '행사': 'var(--color-teal-600)',
+    '지터벅': 'var(--color-emerald-500)',
+    '샤그': 'var(--color-emerald-400)',
+    '탭댄스': 'var(--color-sky-500)',
+    '웨스트코스트스윙': 'var(--color-violet-400)',
+    '슬로우린디': 'var(--color-indigo-500)',
+    '버번': 'var(--color-rose-500)',
+    '기타': 'var(--color-slate-500)'
+};
+
+const COLORS = { classes: 'var(--color-blue-500)', events: 'var(--color-amber-400)', socials: 'var(--color-emerald-500)' };
+
+export default function SwingSceneStats({ onInsertItem, section }: SwingSceneStatsProps) {
     const [stats, setStats] = useState<SceneStats | null>(null);
     const [loading, setLoading] = useState(true);
     // Removed useMonthlyBillboard hook
@@ -347,283 +371,335 @@ export default function SwingSceneStats() {
     };
 
     return (
-        <div className="swing-scene-stats">
-            {renderHeaderControls()}
+        <div className={`swing-scene-stats ${section ? 'section-view' : ''}`}>
+            {!section && renderHeaderControls()}
 
             <div className="stats-container">
 
                 {/* Column 1: Summary & Monthly */}
-                <div className="stats-col-1">
-                    {/* Share container moved out */}
-
-                    <div className="stats-card-grid">
-                        <div className="stats-card">
-                            <div className="card-label">최근 1년 이벤트 등록수</div>
-                            <div className="card-value">{stats.summary.totalItems}건</div>
-                            <div className="card-hint">시작일 기준</div>
-                        </div>
-                        <div className="stats-card">
-                            <div className="card-label">일평균 이벤트</div>
-                            <div className="card-value">{stats.summary.dailyAverage}건</div>
-                            <div className="card-hint">시작일 기준</div>
-                        </div>
-                        <div className="stats-card">
-                            <div className="card-label">최고 활성</div>
-                            <div className="card-value">{stats.summary.topDay}요일</div>
-                            <div className="card-hint">누적 통계</div>
-                        </div>
-                    </div>
-
-                    <div className="stats-section">
-                        <div className="stats-header">
-                            <h4 className="section-title">
-                                <i className="ri-bar-chart-fill"></i> 월별 활동 추이
-                                <span className="title-sub">(시작일 기준)</span>
-                            </h4>
-                            <div className="tab-group">
-                                <button onClick={() => setMonthlyRange('6m')} className={`tab-btn ${monthlyRange === '6m' ? 'active' : ''}`}>6개월</button>
-                                <button onClick={() => setMonthlyRange('1y')} className={`tab-btn ${monthlyRange === '1y' ? 'active' : ''}`}>1년</button>
+                {(!section || section === 'summary' || section === 'monthly') && (
+                    <div className="stats-col-1">
+                        {/* Summary Section */}
+                        {(!section || section === 'summary') && (
+                            <div className="stats-card-grid">
+                                <div className="stats-card">
+                                    <div className="card-label">최근 1년 이벤트 등록수</div>
+                                    <div className="card-value">{stats.summary.totalItems}건</div>
+                                    <div className="card-hint">시작일 기준</div>
+                                </div>
+                                <div className="stats-card">
+                                    <div className="card-label">일평균 이벤트</div>
+                                    <div className="card-value">{stats.summary.dailyAverage}건</div>
+                                    <div className="card-hint">시작일 기준</div>
+                                </div>
+                                <div className="stats-card">
+                                    <div className="card-label">최고 활성</div>
+                                    <div className="card-value">{stats.summary.topDay}요일</div>
+                                    <div className="card-hint">누적 통계</div>
+                                </div>
+                                {onInsertItem && (
+                                    <div className="card-insert-row">
+                                        <button
+                                            className="mw-insert-btn"
+                                            onClick={() => onInsertItem('scene-summary', '스윙씬 활동 요약', { summary: stats.summary })}
+                                        >
+                                            <i className="ri-add-line"></i> 요약 정보 본문에 삽입
+                                        </button>
+                                    </div>
+                                )}
                             </div>
-                        </div>
-                        <div className="chart-container" ref={chartScrollRef}>
-                            {currentMonthly.map((m, i) => {
-                                const [year, monthNum] = m.month.split('-').map(Number);
-                                const isThisMonth = year === new Date().getFullYear() && monthNum === (new Date().getMonth() + 1);
-                                return (
-                                    <div key={i} className={`bar-wrapper ${isThisMonth ? 'current-month' : ''}`}>
-                                        <div className="bar-info-group">
-                                            {m.total > 0 && <span className="total-label">{m.total}</span>}
-                                            {m.registrations > 0 && <span className="reg-label">+{m.registrations}</span>}
-                                        </div>
+                        )}
+
+                        {/* Monthly Chart Section */}
+                        {(!section || section === 'monthly') && (
+                            <div className="stats-section">
+                                <div className="stats-header">
+                                    <h4 className="section-title">
+                                        <i className="ri-bar-chart-fill"></i> 월별 활동 추이
+                                        <span className="title-sub">(시작일 기준)</span>
+                                    </h4>
+                                    {onInsertItem && (
+                                        <button
+                                            className="mw-insert-btn"
+                                            onClick={() => onInsertItem('scene-monthly', '월별 활동 추이', { range: monthlyRange })}
+                                        >
+                                            <i className="ri-add-line"></i> 본문에 삽입
+                                        </button>
+                                    )}
+                                    <div className="tab-group">
+                                        <button onClick={() => setMonthlyRange('6m')} className={`tab-btn ${monthlyRange === '6m' ? 'active' : ''}`}>6개월</button>
+                                        <button onClick={() => setMonthlyRange('1y')} className={`tab-btn ${monthlyRange === '1y' ? 'active' : ''}`}>1년</button>
+                                    </div>
+                                </div>
+                                <div className="chart-container" ref={chartScrollRef}>
+                                    {/* ... bars mapping ... */}
+                                    {currentMonthly.map((m, i) => {
+                                        const [year, monthNum] = m.month.split('-').map(Number);
+                                        const isThisMonth = year === new Date().getFullYear() && monthNum === (new Date().getMonth() + 1);
+                                        return (
+                                            <div key={i} className={`bar-wrapper ${isThisMonth ? 'current-month' : ''}`}>
+                                                <div className="bar-info-group">
+                                                    {m.total > 0 && <span className="total-label">{m.total}</span>}
+                                                    {m.registrations > 0 && <span className="reg-label">+{m.registrations}</span>}
+                                                </div>
+                                                <div className="stacked-bar">
+                                                    {/* Segment order: Bottom to Top -> Classes, Events, Socials */}
+                                                    <div className="bar-segment" style={{
+                                                        height: `${((m.classes || 0) / maxMonthly) * 100}%`,
+                                                        minHeight: (m.classes || 0) > 0 ? '1px' : '0',
+                                                        background: COLORS.classes,
+                                                        position: 'relative'
+                                                    }}>
+                                                        {(m.classes || 0) > 5 && <span className="segment-val">{m.classes}</span>}
+                                                    </div>
+                                                    <div className="bar-segment" style={{
+                                                        height: `${((m.events || 0) / maxMonthly) * 100}%`,
+                                                        minHeight: (m.events || 0) > 0 ? '1px' : '0',
+                                                        background: COLORS.events,
+                                                        position: 'relative'
+                                                    }}>
+                                                        {(m.events || 0) > 5 && <span className="segment-val">{m.events}</span>}
+                                                    </div>
+                                                    <div className="bar-segment" style={{
+                                                        height: `${(((m.socials || 0) + (m.clubs || 0)) / maxMonthly) * 100}%`,
+                                                        minHeight: ((m.socials || 0) + (m.clubs || 0)) > 0 ? '1px' : '0',
+                                                        background: COLORS.socials,
+                                                        position: 'relative'
+                                                    }}>
+                                                        {((m.socials || 0) + (m.clubs || 0)) > 5 && <span className="segment-val">{(m.socials || 0) + (m.clubs || 0)}</span>}
+                                                    </div>
+                                                </div>
+                                                <div className="axis-group">
+                                                    <span className="axis-label">
+                                                        {m.month.split('-')[1]}월
+                                                        {isThisMonth && <span className="today-badge">오늘까지</span>}
+                                                    </span>
+                                                    <span className="axis-avg">{m.dailyAvg}</span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                <div className="legend-grid">
+                                    <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.classes }}></span> 강습</div>
+                                    <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.events }}></span> 행사</div>
+                                    <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.socials }}></span> 동호회 이벤트+소셜</div>
+                                </div>
+
+                                <div className="chart-info-footer">
+                                    <div className="info-item">
+                                        <span className="info-label total">실행기준</span>
+                                        <span className="info-text"> 숫자 : 이벤트 시작일 기준 발생 수</span>
+                                    </div>
+                                    <div className="info-item">
+                                        <span className="info-label reg">등록기준</span>
+                                        <span className="info-text"> +N : 신규 정보 등록 건수</span>
+                                    </div>
+                                    <div className="info-item">
+                                        <span className="info-label avg">일평균</span>
+                                        <span className="info-text">5.4 : 해당 월의 일평균 이벤트수 (이번 달은 오늘까지 기준)</span>
+                                    </div>
+
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {/* Column 2: Weekly Types */}
+                {(!section || section === 'weekly-type') && (
+                    <div className="stats-col-2">
+                        {!section && (
+                            <div className="stats-header weekly-header">
+                                <h3 className="weekly-title">주간 집중 분석</h3>
+                                <div className="tab-group">
+                                    <button onClick={() => { setWeeklyTab('total'); setInspectTypeDay(null); setInspectGenreDay(null); }} className={`tab-btn ${weeklyTab === 'total' ? 'active' : ''}`}>전체</button>
+                                    <button onClick={() => { setWeeklyTab('monthly'); setInspectTypeDay(null); setInspectGenreDay(null); }} className={`tab-btn ${weeklyTab === 'monthly' ? 'active' : ''}`}>이번 달</button>
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="stats-section">
+                            <div className="stats-header">
+                                <h4 className="section-title"><i className="ri-calendar-todo-line"></i> 요일별 유형 비중</h4>
+                                {onInsertItem && (
+                                    <button
+                                        className="mw-insert-btn"
+                                        onClick={() => onInsertItem('scene-weekly-type', '요일별 유형 비중', { weeklyTab })}
+                                    >
+                                        <i className="ri-add-line"></i> 본문에 삽입
+                                    </button>
+                                )}
+                            </div>
+                            <div className="touch-hint">* 그래프 터치하여 상세 보기</div>
+
+                            <div className="chart-container weekly-chart">
+                                {currentWeekly.map((d, i) => (
+                                    <div key={i} className="bar-wrapper" style={{ cursor: 'pointer', opacity: inspectTypeDay && inspectTypeDay !== d.day ? 0.3 : 1 }} onClick={() => setInspectTypeDay(inspectTypeDay === d.day ? null : d.day)}>
+                                        {d.count > 0 && <span className="total-label" style={{ color: inspectTypeDay === d.day ? 'var(--color-blue-400)' : 'var(--text-primary)' }}>{d.count}</span>}
                                         <div className="stacked-bar">
-                                            {/* Segment order: Bottom to Top -> Classes, Events, Socials */}
+                                            {/* Correct order (Bottom to Top): 0:Classes, 1:Events, 2:Socials */}
                                             <div className="bar-segment" style={{
-                                                height: `${((m.classes || 0) / maxMonthly) * 100}%`,
-                                                minHeight: (m.classes || 0) > 0 ? '1px' : '0',
+                                                height: `${(d.typeBreakdown[0].count / maxDay) * 100}%`,
+                                                minHeight: d.typeBreakdown[0].count > 0 ? '1px' : '0',
                                                 background: COLORS.classes,
                                                 position: 'relative'
                                             }}>
-                                                {(m.classes || 0) > 5 && <span className="segment-val">{m.classes}</span>}
+                                                {d.typeBreakdown[0].count > 5 && <span className="segment-val">{d.typeBreakdown[0].count}</span>}
                                             </div>
                                             <div className="bar-segment" style={{
-                                                height: `${((m.events || 0) / maxMonthly) * 100}%`,
-                                                minHeight: (m.events || 0) > 0 ? '1px' : '0',
+                                                height: `${(d.typeBreakdown[1].count / maxDay) * 100}%`,
+                                                minHeight: d.typeBreakdown[1].count > 0 ? '1px' : '0',
                                                 background: COLORS.events,
                                                 position: 'relative'
                                             }}>
-                                                {(m.events || 0) > 5 && <span className="segment-val">{m.events}</span>}
+                                                {d.typeBreakdown[1].count > 5 && <span className="segment-val">{d.typeBreakdown[1].count}</span>}
                                             </div>
                                             <div className="bar-segment" style={{
-                                                height: `${(((m.socials || 0) + (m.clubs || 0)) / maxMonthly) * 100}%`,
-                                                minHeight: ((m.socials || 0) + (m.clubs || 0)) > 0 ? '1px' : '0',
+                                                height: `${(d.typeBreakdown[2].count / maxDay) * 100}%`,
+                                                minHeight: d.typeBreakdown[2].count > 0 ? '1px' : '0',
                                                 background: COLORS.socials,
                                                 position: 'relative'
                                             }}>
-                                                {((m.socials || 0) + (m.clubs || 0)) > 5 && <span className="segment-val">{(m.socials || 0) + (m.clubs || 0)}</span>}
+                                                {d.typeBreakdown[2].count > 5 && <span className="segment-val">{d.typeBreakdown[2].count}</span>}
                                             </div>
                                         </div>
-                                        <div className="axis-group">
-                                            <span className="axis-label">
-                                                {m.month.split('-')[1]}월
-                                                {isThisMonth && <span className="today-badge">오늘까지</span>}
-                                            </span>
-                                            <span className="axis-avg">{m.dailyAvg}</span>
-                                        </div>
+                                        <span className="axis-label" style={{ color: inspectTypeDay === d.day ? 'var(--color-blue-400)' : 'var(--text-muted)' }}>{d.day}</span>
                                     </div>
-                                );
-                            })}
-                        </div>
-                        <div className="legend-grid">
-                            <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.classes }}></span> 강습</div>
-                            <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.events }}></span> 행사</div>
-                            <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.socials }}></span> 동호회 이벤트+소셜</div>
-                        </div>
-
-                        <div className="chart-info-footer">
-                            <div className="info-item">
-                                <span className="info-label total">실행기준</span>
-                                <span className="info-text"> 숫자 : 이벤트 시작일 기준 발생 수</span>
-                            </div>
-                            <div className="info-item">
-                                <span className="info-label reg">등록기준</span>
-                                <span className="info-text"> +N : 신규 정보 등록 건수</span>
-                            </div>
-                            <div className="info-item">
-                                <span className="info-label avg">일평균</span>
-                                <span className="info-text">5.4 : 해당 월의 일평균 이벤트수 (이번 달은 오늘까지 기준)</span>
+                                ))}
                             </div>
 
+                            <div className="legend-grid">
+                                <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.classes }}></span> 강습</div>
+                                <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.events }}></span> 행사</div>
+                                <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.socials }}></span> 동호회 이벤트+소셜</div>
+                            </div>
+
+                            <div className="chart-desc">
+                                <p>• <strong>동호회 이벤트+소셜</strong> 항목은 <strong>{getTypePeak('동호회 이벤트+소셜')}요일</strong>, 행사는 <strong>{getTypePeak('행사')}요일</strong>에 가장 활발합니다.</p>
+                            </div>
+
+                            {inspectTypeDay && (
+                                <DataInspectorModal day={inspectTypeDay} items={getTypeItems(inspectTypeDay)} sortBy="type" onClose={() => setInspectTypeDay(null)} />
+                            )}
                         </div>
                     </div>
-                </div>
-
-                {/* Column 2: Weekly Types */}
-                <div className="stats-col-2">
-                    <div className="stats-header weekly-header">
-                        <h3 className="weekly-title">주간 집중 분석</h3>
-                        <div className="tab-group">
-                            <button onClick={() => { setWeeklyTab('total'); setInspectTypeDay(null); setInspectGenreDay(null); }} className={`tab-btn ${weeklyTab === 'total' ? 'active' : ''}`}>전체</button>
-                            <button onClick={() => { setWeeklyTab('monthly'); setInspectTypeDay(null); setInspectGenreDay(null); }} className={`tab-btn ${weeklyTab === 'monthly' ? 'active' : ''}`}>이번 달</button>
-                        </div>
-                    </div>
-
-                    <div className="stats-section">
-                        <h4 className="section-title"><i className="ri-calendar-todo-line"></i> 요일별 유형 비중</h4>
-                        <div className="touch-hint">* 그래프 터치하여 상세 보기</div>
-
-                        <div className="chart-container weekly-chart">
-                            {currentWeekly.map((d, i) => (
-                                <div key={i} className="bar-wrapper" style={{ cursor: 'pointer', opacity: inspectTypeDay && inspectTypeDay !== d.day ? 0.3 : 1 }} onClick={() => setInspectTypeDay(inspectTypeDay === d.day ? null : d.day)}>
-                                    {d.count > 0 && <span className="total-label" style={{ color: inspectTypeDay === d.day ? 'var(--color-blue-400)' : 'var(--text-primary)' }}>{d.count}</span>}
-                                    <div className="stacked-bar">
-                                        {/* Correct order (Bottom to Top): 0:Classes, 1:Events, 2:Socials */}
-                                        <div className="bar-segment" style={{
-                                            height: `${(d.typeBreakdown[0].count / maxDay) * 100}%`,
-                                            minHeight: d.typeBreakdown[0].count > 0 ? '1px' : '0',
-                                            background: COLORS.classes,
-                                            position: 'relative'
-                                        }}>
-                                            {d.typeBreakdown[0].count > 5 && <span className="segment-val">{d.typeBreakdown[0].count}</span>}
-                                        </div>
-                                        <div className="bar-segment" style={{
-                                            height: `${(d.typeBreakdown[1].count / maxDay) * 100}%`,
-                                            minHeight: d.typeBreakdown[1].count > 0 ? '1px' : '0',
-                                            background: COLORS.events,
-                                            position: 'relative'
-                                        }}>
-                                            {d.typeBreakdown[1].count > 5 && <span className="segment-val">{d.typeBreakdown[1].count}</span>}
-                                        </div>
-                                        <div className="bar-segment" style={{
-                                            height: `${(d.typeBreakdown[2].count / maxDay) * 100}%`,
-                                            minHeight: d.typeBreakdown[2].count > 0 ? '1px' : '0',
-                                            background: COLORS.socials,
-                                            position: 'relative'
-                                        }}>
-                                            {d.typeBreakdown[2].count > 5 && <span className="segment-val">{d.typeBreakdown[2].count}</span>}
-                                        </div>
-                                    </div>
-                                    <span className="axis-label" style={{ color: inspectTypeDay === d.day ? 'var(--color-blue-400)' : 'var(--text-muted)' }}>{d.day}</span>
-                                </div>
-                            ))}
-                        </div>
-
-                        <div className="legend-grid">
-                            <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.classes }}></span> 강습</div>
-                            <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.events }}></span> 행사</div>
-                            <div className="legend-item"><span className="legend-dot" style={{ background: COLORS.socials }}></span> 동호회 이벤트+소셜</div>
-                        </div>
-
-                        <div className="chart-desc">
-                            <p>• <strong>동호회 이벤트+소셜</strong> 항목은 <strong>{getTypePeak('동호회 이벤트+소셜')}요일</strong>, 행사는 <strong>{getTypePeak('행사')}요일</strong>에 가장 활발합니다.</p>
-                        </div>
-
-                        {inspectTypeDay && (
-                            <DataInspectorModal day={inspectTypeDay} items={getTypeItems(inspectTypeDay)} sortBy="type" onClose={() => setInspectTypeDay(null)} />
-                        )}
-                    </div>
-                </div>
+                )}
 
                 {/* Column 3: Weekly Genres */}
-                <div className="stats-col-3">
-                    <div className="spacer-52"></div> {/* Spacer to align with Section 2 */}
+                {(!section || section === 'weekly-genre') && (
+                    <div className="stats-col-3">
+                        {!section && <div className="spacer-52"></div>}
 
-                    <div className="stats-section">
-                        <h4 className="section-title"><i className="ri-medal-2-line"></i> 외부강습 요일별 장르 비중</h4>
+                        <div className="stats-section">
+                            <h4 className="section-title"><i className="ri-medal-2-line"></i> 외부강습 요일별 장르 비중</h4>
 
-                        <div className="chart-container weekly-chart">
-                            {currentWeekly.map((d, i) => (
-                                <div key={i} className="bar-wrapper" style={{ cursor: 'pointer', opacity: inspectGenreDay && inspectGenreDay !== d.day ? 0.3 : 1 }} onClick={() => setInspectGenreDay(inspectGenreDay === d.day ? null : d.day)}>
-                                    {d.count > 0 && <span className="total-label" style={{ color: inspectGenreDay === d.day ? 'var(--color-blue-400)' : 'var(--text-primary)' }}>{d.count}</span>}
-                                    <div className="stacked-bar">
-                                        {d.genreBreakdown.map((gb, idx) => (
-                                            <div key={idx} className="bar-segment"
-                                                style={{
-                                                    height: `${(gb.count / maxDay) * 100}%`,
-                                                    minHeight: gb.count > 0 ? '1px' : '0',
-                                                    width: '100%',
-                                                    background: getGenreColor(gb.name)
-                                                }}></div>
-                                        ))}
+                            <div className="chart-container weekly-chart">
+                                {currentWeekly.map((d, i) => (
+                                    <div key={i} className="bar-wrapper" style={{ cursor: 'pointer', opacity: inspectGenreDay && inspectGenreDay !== d.day ? 0.3 : 1 }} onClick={() => setInspectGenreDay(inspectGenreDay === d.day ? null : d.day)}>
+                                        {d.count > 0 && <span className="total-label" style={{ color: inspectGenreDay === d.day ? 'var(--color-blue-400)' : 'var(--text-primary)' }}>{d.count}</span>}
+                                        <div className="stacked-bar">
+                                            {d.genreBreakdown.map((gb, idx) => (
+                                                <div key={idx} className="bar-segment"
+                                                    style={{
+                                                        height: `${(gb.count / maxDay) * 100}%`,
+                                                        minHeight: gb.count > 0 ? '1px' : '0',
+                                                        width: '100%',
+                                                        background: getGenreColor(gb.name)
+                                                    }}></div>
+                                            ))}
+                                        </div>
+                                        <span className="axis-label" style={{ color: inspectGenreDay === d.day ? 'var(--color-blue-400)' : 'var(--text-muted)' }}>{d.day}</span>
                                     </div>
-                                    <span className="axis-label" style={{ color: inspectGenreDay === d.day ? 'var(--color-blue-400)' : 'var(--text-muted)' }}>{d.day}</span>
-                                </div>
-                            ))}
-                        </div>
-
-                        <div className="legend-grid three-cols">
-                            {stats.topGenresList.map((g, i) => (
-                                <div key={i} className="legend-item">
-                                    <span className="legend-dot" style={{ background: getGenreColor(g) }}></span>
-                                    <span>{g}</span>
-                                </div>
-                            ))}
-                        </div>
-
-                        <div className="chart-desc">
-                            <p>• {stats.topGenresList[0]} 장르는 <strong>{getGenrePeak(stats.topGenresList[0])}요일</strong>에 가장 핫합니다.</p>
-                        </div>
-
-                        {inspectGenreDay && (
-                            <DataInspectorModal day={inspectGenreDay} items={getGenreItems(inspectGenreDay)} sortBy="genre" onClose={() => setInspectGenreDay(null)} />
-                        )}
-                    </div>
-                </div>
-
-                {/* Column 4: Promo Stats (Moved from Col 3) */}
-                <div className="stats-col-4">
-                    <div className="spacer-52"></div> {/* Align with top headers */}
-                    {stats.leadTimeAnalysis && (
-                        <div className="promo-analysis-section">
-                            <h4 className="section-title"><i className="ri-flashlight-line"></i> 홍보 시작 시점별 조회 도달율</h4>
-                            <p className="touch-hint" style={{ textAlign: 'left', marginTop: 0 }}>* 등록일부터 행사 시작일까지의 준비 기간별 분석</p>
-
-                            <div className="promo-chart-container">
-                                {/* Class bars */}
-                                <div className="promo-bar-group">
-                                    <div className="card-label" style={{ textAlign: 'left' }}>정규 강습</div>
-                                    <div className="promo-bar-item">
-                                        <div className="promo-label-row"><span>얼리버드 (21일 전)</span> <span className="promo-value">{stats.leadTimeAnalysis.classEarly} pv</span></div>
-                                        <div className="promo-bar-bg"><div className="promo-bar-fill early" style={{ width: `${Math.min(100, (stats.leadTimeAnalysis.classEarly / Math.max(1, stats.leadTimeAnalysis.classEarly, stats.leadTimeAnalysis.classMid, stats.leadTimeAnalysis.classLate)) * 100)}%` }}></div></div>
-                                    </div>
-                                    <div className="promo-bar-item">
-                                        <div className="promo-label-row"><span>적기 홍보 (7~21일)</span> <span className="promo-value">{stats.leadTimeAnalysis.classMid} pv</span></div>
-                                        <div className="promo-bar-bg"><div className="promo-bar-fill mid" style={{ width: `${Math.min(100, (stats.leadTimeAnalysis.classMid / Math.max(1, stats.leadTimeAnalysis.classEarly, stats.leadTimeAnalysis.classMid, stats.leadTimeAnalysis.classLate)) * 100)}%` }}></div></div>
-                                    </div>
-                                    <div className="promo-bar-item">
-                                        <div className="promo-label-row"><span>긴급 등록 (7일 이내)</span> <span className="promo-value">{stats.leadTimeAnalysis.classLate} pv</span></div>
-                                        <div className="promo-bar-bg"><div className="promo-bar-fill late" style={{ width: `${Math.min(100, (stats.leadTimeAnalysis.classLate / Math.max(1, stats.leadTimeAnalysis.classEarly, stats.leadTimeAnalysis.classMid, stats.leadTimeAnalysis.classLate)) * 100)}%` }}></div></div>
-                                    </div>
-                                </div>
-
-                                {/* Event bars */}
-                                <div className="promo-bar-group">
-                                    <div className="card-label" style={{ textAlign: 'left' }}>파티 및 이벤트</div>
-                                    <div className="promo-bar-item">
-                                        <div className="promo-label-row"><span>얼리버드 (35일 전)</span> <span className="promo-value">{stats.leadTimeAnalysis.eventEarly} pv</span></div>
-                                        <div className="promo-bar-bg"><div className="promo-bar-fill early" style={{ width: `${Math.min(100, (stats.leadTimeAnalysis.eventEarly / Math.max(1, stats.leadTimeAnalysis.eventEarly, stats.leadTimeAnalysis.eventMid, stats.leadTimeAnalysis.eventLate)) * 100)}%` }}></div></div>
-                                    </div>
-                                    <div className="promo-bar-item">
-                                        <div className="promo-label-row"><span>적기 홍보 (14~35일)</span> <span className="promo-value">{stats.leadTimeAnalysis.eventMid} pv</span></div>
-                                        <div className="promo-bar-bg"><div className="promo-bar-fill mid" style={{ width: `${Math.min(100, (stats.leadTimeAnalysis.eventMid / Math.max(1, stats.leadTimeAnalysis.eventEarly, stats.leadTimeAnalysis.eventMid, stats.leadTimeAnalysis.eventLate)) * 100)}%` }}></div></div>
-                                    </div>
-                                    <div className="promo-bar-item">
-                                        <div className="promo-label-row"><span>긴급 등록 (14일 이내)</span> <span className="promo-value">{stats.leadTimeAnalysis.eventLate} pv</span></div>
-                                        <div className="promo-bar-bg"><div className="promo-bar-fill late" style={{ width: `${Math.min(100, (stats.leadTimeAnalysis.eventLate / Math.max(1, stats.leadTimeAnalysis.eventEarly, stats.leadTimeAnalysis.eventMid, stats.leadTimeAnalysis.eventLate)) * 100)}%` }}></div></div>
-                                    </div>
-                                </div>
+                                ))}
                             </div>
 
-                            <p className="touch-hint" style={{ textAlign: 'left', lineHeight: 1.4 }}>
-                                * 리드타임이 길수록 잠재 고객 노출 기회가 많아집니다.<br />
-                                * 강습은 최소 21일 전, 이벤트는 35일 전 등록을 권장합니다.
-                            </p>
+                            <div className="legend-grid three-cols">
+                                {stats.topGenresList.map((g, i) => (
+                                    <div key={i} className="legend-item">
+                                        <span className="legend-dot" style={{ background: getGenreColor(g) }}></span>
+                                        <span>{g}</span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="chart-desc">
+                                <p>• {stats.topGenresList[0]} 장르는 <strong>{getGenrePeak(stats.topGenresList[0])}요일</strong>에 가장 핫합니다.</p>
+                            </div>
+
+                            {inspectGenreDay && (
+                                <DataInspectorModal day={inspectGenreDay} items={getGenreItems(inspectGenreDay)} sortBy="genre" onClose={() => setInspectGenreDay(null)} />
+                            )}
                         </div>
-                    )}
-                </div>
+                    </div>
+                )}
+
+                {/* Column 4: Promo Stats (Moved from Col 3) */}
+                {(!section || section === 'lead-time') && (
+                    <div className="stats-col-4">
+                        {!section && <div className="spacer-52"></div>}
+                        {stats.leadTimeAnalysis && (
+                            <div className="promo-analysis-section">
+                                <div className="stats-header">
+                                    <h4 className="section-title"><i className="ri-flashlight-line"></i> 홍보 시작 시점별 조회 도달율</h4>
+                                    {onInsertItem && (
+                                        <button
+                                            className="mw-insert-btn"
+                                            onClick={() => onInsertItem('scene-lead-time', '홍보 리드타임 분석', {})}
+                                        >
+                                            <i className="ri-add-line"></i> 본문에 삽입
+                                        </button>
+                                    )}
+                                </div>
+                                <p className="touch-hint" style={{ textAlign: 'left', marginTop: 0 }}>* 등록일부터 행사 시작일까지의 준비 기간별 분석</p>
+
+                                <div className="promo-chart-container">
+                                    {/* Class bars */}
+                                    <div className="promo-bar-group">
+                                        <div className="card-label" style={{ textAlign: 'left' }}>정규 강습</div>
+                                        <div className="promo-bar-item">
+                                            <div className="promo-label-row"><span>얼리버드 (21일 전)</span> <span className="promo-value">{stats.leadTimeAnalysis.classEarly} pv</span></div>
+                                            <div className="promo-bar-bg"><div className="promo-bar-fill early" style={{ width: `${Math.min(100, (stats.leadTimeAnalysis.classEarly / Math.max(1, stats.leadTimeAnalysis.classEarly, stats.leadTimeAnalysis.classMid, stats.leadTimeAnalysis.classLate)) * 100)}%` }}></div></div>
+                                        </div>
+                                        <div className="promo-bar-item">
+                                            <div className="promo-label-row"><span>적기 홍보 (7~21일)</span> <span className="promo-value">{stats.leadTimeAnalysis.classMid} pv</span></div>
+                                            <div className="promo-bar-bg"><div className="promo-bar-fill mid" style={{ width: `${Math.min(100, (stats.leadTimeAnalysis.classMid / Math.max(1, stats.leadTimeAnalysis.classEarly, stats.leadTimeAnalysis.classMid, stats.leadTimeAnalysis.classLate)) * 100)}%` }}></div></div>
+                                        </div>
+                                        <div className="promo-bar-item">
+                                            <div className="promo-label-row"><span>긴급 등록 (7일 이내)</span> <span className="promo-value">{stats.leadTimeAnalysis.classLate} pv</span></div>
+                                            <div className="promo-bar-bg"><div className="promo-bar-fill late" style={{ width: `${Math.min(100, (stats.leadTimeAnalysis.classLate / Math.max(1, stats.leadTimeAnalysis.classEarly, stats.leadTimeAnalysis.classMid, stats.leadTimeAnalysis.classLate)) * 100)}%` }}></div></div>
+                                        </div>
+                                    </div>
+
+                                    {/* Event bars */}
+                                    <div className="promo-bar-group">
+                                        <div className="card-label" style={{ textAlign: 'left' }}>파티 및 이벤트</div>
+                                        <div className="promo-bar-item">
+                                            <div className="promo-label-row"><span>얼리버드 (35일 전)</span> <span className="promo-value">{stats.leadTimeAnalysis.eventEarly} pv</span></div>
+                                            <div className="promo-bar-bg"><div className="promo-bar-fill early" style={{ width: `${Math.min(100, (stats.leadTimeAnalysis.eventEarly / Math.max(1, stats.leadTimeAnalysis.eventEarly, stats.leadTimeAnalysis.eventMid, stats.leadTimeAnalysis.eventLate)) * 100)}%` }}></div></div>
+                                        </div>
+                                        <div className="promo-bar-item">
+                                            <div className="promo-label-row"><span>적기 홍보 (14~35일)</span> <span className="promo-value">{stats.leadTimeAnalysis.eventMid} pv</span></div>
+                                            <div className="promo-bar-bg"><div className="promo-bar-fill mid" style={{ width: `${Math.min(100, (stats.leadTimeAnalysis.eventMid / Math.max(1, stats.leadTimeAnalysis.eventEarly, stats.leadTimeAnalysis.eventMid, stats.leadTimeAnalysis.eventLate)) * 100)}%` }}></div></div>
+                                        </div>
+                                        <div className="promo-bar-item">
+                                            <div className="promo-label-row"><span>긴급 등록 (14일 이내)</span> <span className="promo-value">{stats.leadTimeAnalysis.eventLate} pv</span></div>
+                                            <div className="promo-bar-bg"><div className="promo-bar-fill late" style={{ width: `${Math.min(100, (stats.leadTimeAnalysis.eventLate / Math.max(1, stats.leadTimeAnalysis.eventEarly, stats.leadTimeAnalysis.eventMid, stats.leadTimeAnalysis.eventLate)) * 100)}%` }}></div></div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <p className="touch-hint" style={{ textAlign: 'left', lineHeight: 1.4 }}>
+                                    * 리드타임이 길수록 잠재 고객 노출 기회가 많아집니다.<br />
+                                    * 강습은 최소 21일 전, 이벤트는 35일 전 등록을 권장합니다.
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                )}
             </div>
         </div>
     );
-
 }
 
 
@@ -696,24 +772,5 @@ const DataInspectorModal = ({ day, items, sortBy, onClose }: { day: string, item
         </div>
     );
 };
-
-const GENRE_COLORS: { [key: string]: string } = {
-    '린디합': 'var(--color-blue-600)',
-    '솔로재즈': 'var(--color-rose-600)',
-    '발보아': 'var(--color-amber-500)',
-    '블루스': 'var(--color-teal-600)',
-    '동호회 정규강습': 'var(--color-lime-400)',
-    '팀원모집': 'var(--color-violet-500)',
-    '행사': 'var(--color-teal-600)',
-    '지터벅': 'var(--color-emerald-500)',
-    '샤그': 'var(--color-emerald-400)',
-    '탭댄스': 'var(--color-sky-500)',
-    '웨스트코스트스윙': 'var(--color-violet-400)',
-    '슬로우린디': 'var(--color-indigo-500)',
-    '버번': 'var(--color-rose-500)',
-    '기타': 'var(--color-slate-500)'
-};
-
-const COLORS = { classes: 'var(--color-blue-500)', events: 'var(--color-amber-400)', socials: 'var(--color-emerald-500)' };
 
 

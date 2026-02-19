@@ -27,12 +27,10 @@ export interface BillboardData {
         rawHourlyData: { hour: number; class: number; event: number }[];
     };
     leadTime: {
-        classEarly: number;
-        classMid: number;
-        classLate: number;
-        eventEarly: number;
-        eventMid: number;
-        eventLate: number;
+        classD28: number;
+        classD7: number;
+        eventD42: number;
+        eventD14: number;
     };
     topContents: RankingItem[];
 }
@@ -234,12 +232,10 @@ export const useMonthlyBillboard = (initialTarget?: { year: number, month: numbe
                     eventPeakHour: eventPeak
                 },
                 leadTime: stats.leadTime || {
-                    classEarly: 0,
-                    classMid: 0,
-                    classLate: 0,
-                    eventEarly: 0,
-                    eventMid: 0,
-                    eventLate: 0
+                    classD28: 0,
+                    classD7: 0,
+                    eventD42: 0,
+                    eventD14: 0
                 },
                 topContents: sortedRanking
             };

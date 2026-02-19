@@ -1,14 +1,66 @@
+/* Insertion UI for Editor */
+.card-insert-row {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: flex-end;
+    margin-top: -0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.mw-insert-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background-color: var(--color-blue-600);
+    color: white;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    user-select: none;
+    z-index: 10;
+}
+
+.mw-insert-btn:hover {
+    background-color: var(--color-blue-700);
+}
+
+.stats-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
 .swing-scene-stats {
-    color: var(--text-primary);
-    font-family: var(--font-family-base, 'Pretendard', sans-serif);
-    height: 100%;
-    height: 100%;
-    width: 100%;
-    overflow: hidden;
-    position: relative;
-    /* For absolute positioning of header controls */
     background: var(--bg-main);
     color: var(--text-primary);
+    position: relative;
+    height: 100%;
+    width: 100%;
+}
+
+.swing-scene-stats.section-view {
+    background: transparent;
+    padding: 0;
+    height: auto;
+}
+
+.swing-scene-stats.section-view .stats-container {
+    display: block;
+    grid-template-columns: none;
+    padding: 0;
+}
+
+.swing-scene-stats.section-view .stats-col-1,
+.swing-scene-stats.section-view .stats-col-2,
+.swing-scene-stats.section-view .stats-col-3,
+.swing-scene-stats.section-view .stats-col-4 {
+    border-left: none;
+    padding-left: 0;
 }
 
 .stats-header-controls {

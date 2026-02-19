@@ -385,3 +385,53 @@
   transform: scale(1.1);
   color: #93c5fd;
 }
+
+/* ===== Admin Webzine Floating Tab ===== */
+.admin-side-tab {
+  position: fixed;
+  right: 0;
+  bottom: calc(20% + 80px);
+  /* Positioned above the stats tab */
+  transform: translateY(-50%);
+  z-index: 50;
+  background: rgba(40, 10, 10, 0.95);
+  /* Dark Red background for Admin */
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 16px 5px;
+  border-radius: 12px 0 0 12px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+  border: 1px solid rgba(255, 99, 71, 0.4);
+  border-right: none;
+  min-width: 34px;
+}
+
+.admin-side-tab:hover {
+  background: rgba(60, 20, 20, 1);
+  padding-left: 8px;
+  border-color: rgba(255, 99, 71, 0.8);
+}
+
+.admin-side-tab .stats-side-tab-text {
+  color: #ffcccc;
+}
+
+.admin-side-tab:hover .stats-side-tab-text {
+  color: #fff;
+}
+
+.admin-side-tab .stats-side-tab-icon {
+  color: #ff6347;
+  /* Tomato Red */
+  filter: drop-shadow(0 0 4px rgba(255, 99, 71, 0.5));
+}
+
+.admin-side-tab:hover .stats-side-tab-icon {
+  transform: scale(1.1);
+  color: #ff9980;
+}

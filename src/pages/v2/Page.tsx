@@ -255,6 +255,14 @@ export default function HomePageV2() {
     return (
         <div ref={containerRef} className="home-container">
             <div className="home-main" ref={eventListElementRef}>
+                {/* Floating Admin Webzine Tab */}
+                {effectiveIsAdmin && (
+                    <div className="admin-side-tab" onClick={() => navigate('/admin/webzine')}>
+                        <i className="ri-article-line stats-side-tab-icon"></i>
+                        <span className="stats-side-tab-text">웹진 관리</span>
+                    </div>
+                )}
+
                 {/* Floating Side Stats Tab */}
                 <div className="stats-side-tab" onClick={async () => {
                     if (!user) {
