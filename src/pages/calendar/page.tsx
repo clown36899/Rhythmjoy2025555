@@ -246,7 +246,7 @@ export default function CalendarPage() {
                 }
             }
 
-            // [정밀 수치] 날짜 숫자 헤더(30px) + 이벤트 카드(이미지:CellWidth-4 + Titles:24 + Margin:10 = CellWidth+30)
+            // [정밀 오늘이동 수치] 날짜 숫자 헤더(30px) + 이벤트 카드(이미지:CellWidth-4 + Titles:24 + Margin:10 = CellWidth+30)
             const weekContentHeight = 30 + (maxInWeek * (cellWidth + 33));
             const actualWeekHeight = Math.max(baseCellHeight, weekContentHeight);
 
@@ -294,12 +294,14 @@ export default function CalendarPage() {
     }, [calendarMetrics]);
 
     useLayoutEffect(() => {
-        if (calendarMetrics.isSameMonth && calendarData && !initialJumpDoneRef.current) {
-            console.log('⚡ [useLayoutEffect] 데이터 수신 직후 1단계 워프 실행');
+        // [One-Shot Warp Trigger] 초기 진입 시 혹은 탭 전환 시 상단 안착 실행
+        if (calendarMetrics.isSameMonth && calendarData && (!initialJumpDoneRef.current || shouldScrollToTodayRef.current)) {
+            console.log('⚡ [useLayoutEffect] 데이터/탭 전환 워프 실행');
             handleScrollToToday('instant', true);
             initialJumpDoneRef.current = true;
+            shouldScrollToTodayRef.current = false; // 플래그 소모
         }
-    }, [calendarMetrics.isSameMonth, !!calendarData, handleScrollToToday]);
+    }, [calendarMetrics.isSameMonth, !!calendarData, handleScrollToToday, tabFilter, calendarMetrics.targetY]);
 
     useEffect(() => {
         userInteractedRef.current = false;
