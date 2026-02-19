@@ -705,6 +705,15 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
 
 
 const DataInspectorModal = ({ day, items, sortBy, onClose }: { day: string, items: StatItem[], sortBy: 'type' | 'genre', onClose: () => void }) => {
+    // Escape key to close
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onClose();
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [onClose]);
+
     const sortedItems = [...items].sort((a, b) => {
         if (sortBy === 'type') {
             if (a.type !== b.type) return a.type.localeCompare(b.type);
@@ -724,7 +733,7 @@ const DataInspectorModal = ({ day, items, sortBy, onClose }: { day: string, item
     });
 
     return (
-        <div className="inspector-overlay">
+        <div className="inspector-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
             <div className="inspector-modal">
                 <div className="inspector-header">
                     <h4 className="inspector-title">

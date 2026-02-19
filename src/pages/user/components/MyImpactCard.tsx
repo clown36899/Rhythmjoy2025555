@@ -66,7 +66,7 @@ export default function MyImpactCard({ posts, events, initialExpanded = false, o
     };
 
     return (
-        <div className="mic-card" onClick={() => setShowDetail(!showDetail)}>
+        <div className={`mic-card ${section ? 'section-view' : ''}`} onClick={() => !section && setShowDetail(!showDetail)}>
             <style>{`
                 .mic-card {
                     background: var(--bg-card);
@@ -269,9 +269,6 @@ export default function MyImpactCard({ posts, events, initialExpanded = false, o
                 }
             `}</style>
 
-            <div className={`mic-card ${section ? 'section-view' : ''}`} onClick={() => !section && setShowDetail(!showDetail)}>
-                {/* ... styles ... */}
-
                 {/* Background Decoration */}
                 {!section && <div className="mic-bg-deco" style={{ background: impactLevel.color }}></div>}
 
@@ -434,7 +431,6 @@ export default function MyImpactCard({ posts, events, initialExpanded = false, o
                         )}
                     </div>
                 )}
-            </div>
         </div>
     );
 }

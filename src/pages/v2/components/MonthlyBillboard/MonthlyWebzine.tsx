@@ -72,20 +72,16 @@ const MonthlyWebzine = ({ onInsertItem, section }: MonthlyWebzineProps) => {
 
     const monthOptions = useMemo(() => {
         const opts = [];
-        // Generate last 12 months (excluding current month, as per requirement, or including logic handled by hook default?)
-        // Requirement: "Normally analyzes previous month on the 1st". 
-        // We will show options starting from Previous Month back to 12 months ago.
-
         const d = new Date();
-        d.setDate(1); // Safety
+        d.setDate(1);
         d.setMonth(d.getMonth() - 1); // Start from previous month
 
         for (let i = 0; i < 12; i++) {
             const y = d.getFullYear();
             const m = d.getMonth();
 
-            // Limit: Start from Jan 2026
-            if (y < 2026) break;
+            // Limit: Don't go earlier than Jan 2025 (service start)
+            if (y < 2025) break;
 
             const label = `${y}년 ${m + 1}월`;
             opts.push({ value: `${y}-${m}`, label });

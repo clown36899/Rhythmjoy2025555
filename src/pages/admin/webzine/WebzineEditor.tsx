@@ -120,6 +120,9 @@ const WebzineEditor = () => {
     // States
     const [isLoading, setIsLoading] = useState(true);
     const [isSaving, setIsSaving] = useState(false);
+    const [saveMessage, setSaveMessage] = useState<string | null>(null);
+    const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const initRef = useRef(false);
     const [post, setPost] = useState<WebzinePost | null>(null);
 
     // Form States
@@ -151,6 +154,8 @@ const WebzineEditor = () => {
     useEffect(() => {
         const initEditor = async () => {
             if (!user) return;
+            if (!id && initRef.current) return; // Prevent duplicate draft creation
+            initRef.current = true;
 
             try {
                 // Load User Data for MyImpactCard
@@ -281,7 +286,11 @@ const WebzineEditor = () => {
             if (publishOverride !== undefined) {
                 setIsPublished(targetPublished);
             }
-            console.log('[WebzineEditor] Saved successfully');
+            if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+            setSaveMessage(publishOverride !== undefined
+                ? (targetPublished ? '발행되었습니다' : '비공개로 전환되었습니다')
+                : '저장 완료');
+            saveTimerRef.current = setTimeout(() => setSaveMessage(null), 2000);
         } catch (err) {
             console.error('[WebzineEditor] Save failed:', err);
             alert('저장 실패');
@@ -299,7 +308,9 @@ const WebzineEditor = () => {
             attrs: {
                 type,
                 name,
-                config
+                config,
+                width: '100%',
+                alignment: 'center',
             }
         }).run();
     };
@@ -351,6 +362,9 @@ const WebzineEditor = () => {
                 </div>
 
                 <div className="we-header-actions">
+                    {saveMessage && (
+                        <span className="we-save-message">{saveMessage}</span>
+                    )}
                     <button onClick={() => window.open(`/webzine/${id}`, '_blank')} className="we-btn we-btn-secondary">
                         미리보기
                     </button>

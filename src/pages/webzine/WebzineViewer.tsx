@@ -5,7 +5,6 @@ import { useAuth } from '../../contexts/AuthContext';
 import LocalLoading from '../../components/LocalLoading';
 import MonthlyWebzine from '../v2/components/MonthlyBillboard/MonthlyWebzine';
 import SwingSceneStats from '../v2/components/SwingSceneStats';
-import MyImpactCard from '../user/components/MyImpactCard';
 import './WebzineViewer.css';
 
 interface WebzinePost {
@@ -116,12 +115,25 @@ const WebzineViewer = () => {
                             {node.attrs?.title && <p className="wv-image-caption">{node.attrs.title}</p>}
                         </div>
                     );
-                case 'statsNode':
+                case 'statsNode': {
+                    const alignment = node.attrs?.alignment || 'center';
+                    const width = node.attrs?.width || '100%';
+                    const statsStyle: React.CSSProperties = {
+                        width,
+                        float: alignment === 'center' ? 'none' : (alignment as 'left' | 'right'),
+                        clear: alignment === 'center' ? 'both' : 'none',
+                        margin: alignment === 'center'
+                            ? '2.5rem auto'
+                            : alignment === 'left'
+                                ? '0 1.5rem 1rem 0'
+                                : '0 0 1rem 1.5rem',
+                    };
                     return (
-                        <div key={idx} className="wv-stats-container">
+                        <div key={idx} className="wv-stats-container" style={statsStyle}>
                             {renderStatsItem(node.attrs)}
                         </div>
                     );
+                }
                 default:
                     return null;
             }
@@ -129,7 +141,7 @@ const WebzineViewer = () => {
     };
 
     const renderStatsItem = (attrs: any) => {
-        const { type, config } = attrs;
+        const { type } = attrs;
 
         // 1. Scene Stats
         if (type.startsWith('scene-')) {
@@ -138,24 +150,28 @@ const WebzineViewer = () => {
         }
 
         // 2. Monthly Billboard
-        if (['lifecycle', 'hourly-pattern', 'lead-time', 'top-20'].includes(type)) {
-            return <MonthlyWebzine section={type as any} />;
+        if (['lifecycle', 'hourly-pattern', 'lead-time', 'top-20', 'top-contents'].includes(type)) {
+            const sectionMap: Record<string, string> = { 'top-contents': 'top-20' };
+            return <MonthlyWebzine section={(sectionMap[type] || type) as any} />;
         }
 
-        // 3. My Impact
+        // 3. My Impact - show placeholder with better styling
         if (type.startsWith('my-')) {
-            const section = type.replace('my-impact-', '').replace('my-', '') as any;
-            // Note: MyImpactCard still needs actual data if we want to show it in the viewer
-            // For now, we'll keep the placeholder or try to load contextually if it's the author's own view
             return (
                 <div className="wv-stats-placeholder">
                     <i className="ri-user-heart-fill"></i>
-                    <span>[{attrs.name}] - 작성자의 활동 데이터가 렌더링됩니다.</span>
+                    <span>{attrs.name || '활동 데이터'}</span>
+                    <span className="wv-stats-placeholder-sub">작성자의 개인 통계는 본인에게만 표시됩니다.</span>
                 </div>
             );
         }
 
-        return <div className="wv-stats-placeholder">Unknown Stats: {type}</div>;
+        return (
+            <div className="wv-stats-placeholder">
+                <i className="ri-bar-chart-fill"></i>
+                <span>{attrs.name || type}</span>
+            </div>
+        );
     };
 
     if (loading) return <LocalLoading />;
@@ -218,17 +234,13 @@ const WebzineViewer = () => {
             <article className="wv-body">
                 {renderContent(post.content)}
 
-                {/* Developer Debug (JSON) */}
+                {/* Empty content fallback */}
                 {(post.content && (!post.content.content || post.content.content.length === 0)) && (
-                    <div className="wv-json-debug">
-                        <h3 className="wv-debug-title">Content Data (Developer Preview)</h3>
-                        <pre className="wv-json-blue">{JSON.stringify(post.content, null, 2)}</pre>
+                    <div className="wv-empty-content">
+                        <i className="ri-article-line"></i>
+                        <span>아직 작성된 내용이 없습니다.</span>
                     </div>
                 )}
-
-                <div style={{ marginTop: '4rem', textAlign: 'center', color: '#6b7280', fontSize: '0.875rem' }}>
-                    * 렌더러 고도화 중입니다.
-                </div>
             </article>
         </div>
     );

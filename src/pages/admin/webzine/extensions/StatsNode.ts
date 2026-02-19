@@ -1,9 +1,12 @@
 import { Node, mergeAttributes } from '@tiptap/core';
+import { ReactNodeViewRenderer } from '@tiptap/react';
+import { StatsNodeView } from './StatsNodeView';
 
 export const StatsNode = Node.create({
     name: 'statsNode',
     group: 'block',
-    atom: true, // This makes the node act as a single unit (cannot be edited letter by letter)
+    atom: true,
+    draggable: true,
 
     addAttributes() {
         return {
@@ -15,6 +18,16 @@ export const StatsNode = Node.create({
             },
             config: {
                 default: {},
+            },
+            width: {
+                default: '100%',
+                parseHTML: element => element.getAttribute('data-width') || '100%',
+                renderHTML: attributes => ({ 'data-width': attributes.width }),
+            },
+            alignment: {
+                default: 'center',
+                parseHTML: element => element.getAttribute('data-alignment') || 'center',
+                renderHTML: attributes => ({ 'data-alignment': attributes.alignment }),
             },
         };
     },
@@ -42,5 +55,9 @@ export const StatsNode = Node.create({
             ],
             ['div', { class: 'we-stats-node-body' }, `Type: ${HTMLAttributes.type}`],
         ];
+    },
+
+    addNodeView() {
+        return ReactNodeViewRenderer(StatsNodeView);
     },
 });

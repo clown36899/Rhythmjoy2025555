@@ -81,6 +81,19 @@
 .we-header-actions {
     display: flex;
     gap: 0.75rem;
+    align-items: center;
+}
+
+.we-save-message {
+    font-size: 0.8rem;
+    color: #4ade80;
+    font-weight: 500;
+    animation: we-fadeIn 0.3s ease;
+}
+
+@keyframes we-fadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
 }
 
 .we-btn {
@@ -438,6 +451,7 @@
 }
 
 .ProseMirror p {
+    margin-top: 0;
     margin-bottom: 1rem;
 }
 
@@ -558,4 +572,104 @@
     margin-left: 0.5rem;
     font-size: 0.75rem;
     color: #6b7280;
+}
+
+/* === StatsNode NodeView === */
+.sn-node-wrapper {
+    position: relative;
+    transition: box-shadow 0.2s;
+}
+
+.sn-preview-container {
+    position: relative;
+    background: var(--bg-surface-glass);
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--border-glass);
+    overflow: hidden;
+    min-height: 60px;
+}
+
+.sn-selected .sn-preview-container {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.4);
+}
+
+.sn-selected .we-stats-node-placeholder {
+    border-color: #2563eb;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.4);
+}
+
+/* Toolbar */
+.sn-toolbar {
+    position: absolute;
+    top: -2.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    background: #111827;
+    border: 1px solid #374151;
+    border-radius: 0.5rem;
+    padding: 0.25rem;
+    z-index: 20;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.sn-toolbar-group {
+    display: flex;
+    gap: 2px;
+}
+
+.sn-toolbar-btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    background: transparent;
+    color: #9ca3af;
+    border: none;
+    border-radius: 0.25rem;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.sn-toolbar-btn:hover {
+    background: #1f2937;
+    color: #fff;
+}
+
+.sn-toolbar-btn.active {
+    background: #2563eb;
+    color: #fff;
+}
+
+.sn-toolbar-divider {
+    width: 1px;
+    height: 1.25rem;
+    background: #374151;
+    margin: 0 0.25rem;
+}
+
+.sn-size-badge {
+    margin-left: auto;
+    font-size: 0.65rem;
+    opacity: 0.7;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 1px 6px;
+    border-radius: 4px;
+}
+
+/* Float clearing for ProseMirror */
+.ProseMirror .sn-node-wrapper[data-alignment="left"],
+.ProseMirror .sn-node-wrapper[data-alignment="right"] {
+    margin-bottom: 0.5rem;
+}
+
+/* Mobile: force full width */
+@media (max-width: 768px) {
+    .sn-node-wrapper {
+        width: 100% !important;
+        float: none !important;
+        margin: 1rem 0 !important;
+    }
 }
