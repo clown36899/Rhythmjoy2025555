@@ -115,60 +115,78 @@ const CalendarCell = memo(({
       </div>
 
       <div className="calendar-cell-fullscreen-body">
-        {shouldRenderEvents && events.map((event) => {
-          const categoryColor = getEventColor(event.id);
-          const thumbnailUrl = event.image_thumbnail || event.image_micro || event.image_medium;
-          const isSocialEvent = event.is_social_integrated || event.category === 'social' || String(event.id).startsWith('social-');
-          const locationText = isSocialEvent ? (event.place_name || event.location || '') : '';
+        {shouldRenderEvents ? (
+          events.map((event) => {
+            const categoryColor = getEventColor(event.id);
+            const thumbnailUrl = event.image_thumbnail || event.image_micro || event.image_medium;
+            const isSocialEvent = event.is_social_integrated || event.category === 'social' || String(event.id).startsWith('social-');
+            const locationText = isSocialEvent ? (event.place_name || event.location || '') : '';
 
-          const eStart = (event.start_date || event.date || '').substring(0, 10);
-          const eEnd = (event.end_date || event.date || '').substring(0, 10);
+            const eStart = (event.start_date || event.date || '').substring(0, 10);
+            const eEnd = (event.end_date || event.date || '').substring(0, 10);
 
-          const isContinueLeft = eStart < dateString;
-          const isContinueRight = eEnd > dateString;
+            const isContinueLeft = eStart < dateString;
+            const isContinueRight = eEnd > dateString;
 
-          return (
+            return (
+              <div
+                key={event.id}
+                className={`calendar-fullscreen-event-card ${isContinueLeft ? 'calendar-event-continue-left' : ''} ${isContinueRight ? 'calendar-event-continue-right' : ''}`}
+                data-event-id={event.id}
+                role="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEventClick(event);
+                }}
+              >
+                <div className="calendar-fullscreen-card-inner">
+                  {thumbnailUrl ? (
+                    <div className={`calendar-fullscreen-image-container ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
+                      <img
+                        src={thumbnailUrl}
+                        alt=""
+                        className="calendar-fullscreen-image"
+                        loading="lazy"
+                        decoding="async"
+                        draggable="false"
+                      />
+                      {locationText && (
+                        <span className="calendar-fullscreen-location-overlay">
+                          {locationText}
+                        </span>
+                      )}
+                    </div>
+                  ) : (
+                    <div className={`calendar-fullscreen-placeholder ${categoryColor} ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
+                      <span className="calendar-placeholder-text">
+                        {event.title.charAt(0)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <div className="calendar-fullscreen-title-container">
+                  <div className="calendar-fullscreen-title">{event.title}</div>
+                </div>
+              </div>
+            );
+          })
+        ) : (
+          /* [Skeleton One-shot Fix] 렌더링 전 높이 확보용 스켈레톤 */
+          events.map((event) => (
             <div
-              key={event.id}
-              className={`calendar-fullscreen-event-card ${isContinueLeft ? 'calendar-event-continue-left' : ''} ${isContinueRight ? 'calendar-event-continue-right' : ''}`}
-              data-event-id={event.id}
-              role="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                onEventClick(event);
-              }}
+              key={`skeleton-${event.id}`}
+              className="calendar-fullscreen-event-card skeleton"
+              style={{ opacity: 0 }} /* 공간만 차지하도록 */
             >
               <div className="calendar-fullscreen-card-inner">
-                {thumbnailUrl ? (
-                  <div className={`calendar-fullscreen-image-container ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
-                    <img
-                      src={thumbnailUrl}
-                      alt=""
-                      className="calendar-fullscreen-image"
-                      loading="lazy"
-                      decoding="async"
-                      draggable="false"
-                    />
-                    {locationText && (
-                      <span className="calendar-fullscreen-location-overlay">
-                        {locationText}
-                      </span>
-                    )}
-                  </div>
-                ) : (
-                  <div className={`calendar-fullscreen-placeholder ${categoryColor} ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
-                    <span className="calendar-placeholder-text">
-                      {event.title.charAt(0)}
-                    </span>
-                  </div>
-                )}
+                <div className="calendar-fullscreen-image-container" />
               </div>
               <div className="calendar-fullscreen-title-container">
-                <div className="calendar-fullscreen-title">{event.title}</div>
+                <div className="calendar-fullscreen-title">&nbsp;</div>
               </div>
             </div>
-          );
-        })}
+          ))
+        )}
       </div>
     </div>
   );

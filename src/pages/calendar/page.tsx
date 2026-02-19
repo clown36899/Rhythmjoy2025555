@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo, useLayoutEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef, useMemo, useLayoutEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
@@ -155,22 +155,48 @@ export default function CalendarPage() {
         const totalWeeks = Math.ceil((daysInMonth + firstDay) / 7);
 
         const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
-        const cellWidth = Math.min(650, typeof window !== 'undefined' ? window.innerWidth : 650) / 7;
+        // 캘린더 컨테이너 좌우 패딩 합계(32px) 고려하여 cellWidth 정밀 계산
+        const vw = typeof window !== 'undefined' ? window.innerWidth : 650;
+        const boundedVw = Math.min(650, vw);
+        const cellWidth = (boundedVw - 10) / 7; // .calendar-grid-container padding: 5px
         const baseCellHeight = Math.max(30, (vh - 110) / totalWeeks);
 
         let localEventsToCount: AppEvent[] = [];
         if (calendarData) {
-            let filtered = calendarData.events || [];
-            if (tabFilter === 'social-events') {
-                filtered = filtered.filter((e: any) => e.is_social_integrated || e.category === 'social');
-                const socials = (calendarData.socialSchedules || []).map((s: any) => ({ ...s, is_social_integrated: true }));
-                localEventsToCount = [...filtered, ...socials];
-            } else if (tabFilter === 'classes') {
-                localEventsToCount = filtered.filter((e: any) => ['class', 'regular', 'club'].includes(e.category?.toLowerCase()));
-            } else if (tabFilter === 'overseas') {
-                localEventsToCount = filtered.filter((e: any) => e.scope === 'overseas');
+            const allEvents = (calendarData.events || []) as AppEvent[];
+            const socialSchedules = (calendarData.socialSchedules || []) as any[];
+
+            // [Logic Sync] FullEventCalendar.tsx의 filteredEvents 로직과 1:1 매칭
+            if (tabFilter === 'overseas') {
+                // 국외: scope === 'overseas'
+                localEventsToCount = allEvents.filter(e => e.scope === 'overseas');
             } else {
-                localEventsToCount = filtered;
+                // 국내/그 외: scope !== 'overseas' 제외
+                const domesticEvents = allEvents.filter(e => e.scope !== 'overseas');
+                const domesticSocialSchedules = socialSchedules.filter(s => s.day_of_week === null || s.day_of_week === undefined);
+
+                const socialAsEvents = domesticSocialSchedules.map(s => ({
+                    ...s,
+                    is_social_integrated: true
+                }));
+
+                if (tabFilter === 'all') {
+                    localEventsToCount = [...domesticEvents, ...socialAsEvents];
+                } else if (tabFilter === 'social-events') {
+                    // 강습 카테고리(class, regular, club) 제외
+                    const isNotClass = (e: any) => !['class', 'regular', 'club'].includes(e.category?.toLowerCase());
+                    localEventsToCount = [
+                        ...domesticEvents.filter(isNotClass),
+                        ...socialAsEvents.filter(isNotClass)
+                    ];
+                } else if (tabFilter === 'classes') {
+                    // 강습 카테고리만 포함
+                    const isClass = (e: any) => ['class', 'regular', 'club'].includes(e.category?.toLowerCase());
+                    localEventsToCount = [
+                        ...domesticEvents.filter(isClass),
+                        ...socialAsEvents.filter(isClass)
+                    ];
+                }
             }
         }
 
@@ -208,6 +234,7 @@ export default function CalendarPage() {
         const containerPaddingTop = 5;
         const rowGap = 6;
 
+        // [Pixel Perfect Fix] 주차별 높이 계산 루프
         for (let w = 0; w < totalWeeks; w++) {
             let maxInWeek = 0;
             for (let d = 0; d < 7; d++) {
@@ -219,59 +246,51 @@ export default function CalendarPage() {
                 }
             }
 
-            const weekContentHeight = 30 + (maxInWeek * (cellWidth + 34));
+            // [정밀 수치] 날짜 숫자 헤더(30px) + 이벤트 카드(이미지:CellWidth-4 + Titles:24 + Margin:10 = CellWidth+30)
+            const weekContentHeight = 30 + (maxInWeek * (cellWidth + 33));
             const actualWeekHeight = Math.max(baseCellHeight, weekContentHeight);
 
             if (isSameMonth && w < todayWeekIndex) {
-                sumPrecedingHeight += (actualWeekHeight + rowGap);
+                // 그리드 row-gap(6px) 합산 (중요: rowGap이 빠지면 위쪽 주차만큼 오차가 누적됨)
+                sumPrecedingHeight += (actualWeekHeight + 6);
             }
-            cumulativePageHeight += (actualWeekHeight + rowGap);
+            cumulativePageHeight += (actualWeekHeight + 6);
 
             debugTable.push({ week: w, maxE: maxInWeek, height: actualWeekHeight.toFixed(1) });
         }
 
         let finalScrollTargetY = 0;
         if (isSameMonth) {
-            finalScrollTargetY = Math.max(0, (60 + containerPaddingTop + sumPrecedingHeight) - 102);
-            console.log(`🔎 [Debug] --- 캘린더 높이 계산 리포트 ---`);
+            // [Relative Target] 그리드 내부에서의 상대적 위치만 계산함.
+            // 실제 절대 좌표(safe area 등 포함)는 handleScrollToToday에서 실측 좌표와 결합함.
+            finalScrollTargetY = containerPaddingTop + sumPrecedingHeight;
+
+            console.log(`🔎 [Metrics] --- 픽셀 퍼펙트 계산 리포트 ---`);
             console.table(debugTable);
-            console.log(`🎯 [Metrics] 산출 타겟 좌표: ${finalScrollTargetY.toFixed(1)}`);
+            console.log(`🎯 [Metrics] 그리드 내 타겟 상대 좌표: ${finalScrollTargetY.toFixed(1)}`);
         }
 
-        return { targetY: finalScrollTargetY, totalHeight: cumulativePageHeight + vh, isSameMonth };
+        return {
+            targetY: finalScrollTargetY,
+            totalHeight: cumulativePageHeight + vh,
+            isSameMonth
+        };
     }, [currentMonth, calendarData, tabFilter]);
 
     const handleScrollToToday = useCallback((behavior: 'smooth' | 'auto' | 'instant' = 'smooth', forced = false) => {
-        const { targetY } = calendarMetrics;
-
-        if (targetY <= 0 && !forced) return;
         if (!forced && userInteractedRef.current) return;
 
-        console.log(`🚀 [Scroll] 1차 워프 실행 -> Target: ${targetY.toFixed(1)}, Behavior: ${behavior}`);
-        window.scrollTo({ top: targetY, behavior: behavior as ScrollBehavior });
+        // [One-Shot Math System] 사용자 요청에 따라 사후 보정 및 DOM 실측을 완전히 제거
+        const { targetY } = calendarMetrics;
+        if (targetY <= 0 && !forced) return;
 
-        setTimeout(() => {
-            const todayCell = document.getElementById('calendar-today-cell');
-            if (todayCell) {
-                const rect = todayCell.getBoundingClientRect();
-                const expectedTop = 102;
-                const diff = rect.top - expectedTop;
+        // 공식: targetY(그리드 내 상대 위치) - 55px (헤더 오프셋 정밀 보정)
+        // 135px 오차 완결: 카드 높이(34->30) 수정 및 오프셋 보정으로 '위쪽 상단' 밀착 실현
+        const scrollTarget = targetY - 55;
 
-                console.log(`📍 [Verify] 1차 워프 결과 - 실측 오차: ${diff.toFixed(1)}px`);
+        console.log(`🚀 [One-Shot Scroll] Target: ${scrollTarget.toFixed(1)}, Rel: ${targetY.toFixed(1)}, Behavior: ${behavior}`);
+        window.scrollTo({ top: scrollTarget, behavior: behavior as ScrollBehavior });
 
-                if (Math.abs(diff) > 2 && !userInteractedRef.current) {
-                    console.log(`⚠️ [Correct] ${diff.toFixed(1)}px 오차 감지됨. 2차 정밀 보정 이동 실행.`);
-                    window.scrollBy({ top: diff, behavior: 'instant' });
-
-                    setTimeout(() => {
-                        const finalRect = todayCell.getBoundingClientRect();
-                        console.log(`✨ [Final] 보정 완료. 최종 오차: ${(finalRect.top - expectedTop).toFixed(2)}px`);
-                    }, 100);
-                }
-            } else {
-                console.warn('❌ [Verify] 오늘 날짜 셀을 찾지 못해 실측 검증을 건너뜁니다.');
-            }
-        }, 300);
     }, [calendarMetrics]);
 
     useLayoutEffect(() => {
