@@ -141,7 +141,7 @@ const CalendarCell = memo(({
               >
                 <div className="calendar-fullscreen-card-inner">
                   {thumbnailUrl ? (
-                    <div className={`calendar-fullscreen-image-container ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
+                    <div className={`calendar-fullscreen-image-container ${isSocialEvent ? 'is-social' : ''} ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
                       <img
                         src={thumbnailUrl}
                         alt=""
@@ -157,7 +157,7 @@ const CalendarCell = memo(({
                       )}
                     </div>
                   ) : (
-                    <div className={`calendar-fullscreen-placeholder ${categoryColor} ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
+                    <div className={`calendar-fullscreen-placeholder ${categoryColor} ${isSocialEvent ? 'is-social' : ''} ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
                       <span className="calendar-placeholder-text">
                         {event.title.charAt(0)}
                       </span>

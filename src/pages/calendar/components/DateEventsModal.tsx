@@ -150,11 +150,11 @@ export default function DateEventsModal({
                                         className="DEM-item"
                                         onClick={() => onEventClick(event)}
                                     >
-                                        <div className="DEM-thumbnail">
+                                        <div className={`DEM-thumbnail ${event.category === 'social' ? 'is-social' : ''}`}>
                                             {imageUrl ? (
                                                 <img src={imageUrl} alt={event.title} loading="lazy" draggable="false" />
                                             ) : (
-                                                <div className="DEM-fallback">
+                                                <div className={`DEM-fallback ${event.category === 'social' ? 'is-social' : ''}`}>
                                                     <i className="ri-calendar-event-line"></i>
                                                 </div>
                                             )}

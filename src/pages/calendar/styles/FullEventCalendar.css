@@ -1648,6 +1648,10 @@
   position: relative;
 }
 
+.calendar-fullscreen-image-container.is-social {
+  border-radius: 50%;
+}
+
 .calendar-fullscreen-location-overlay {
   position: absolute;
   bottom: 0;
@@ -1687,6 +1691,11 @@
   justify-content: center;
   color: var(--color-white);
   font-size: 12px;
+}
+
+.calendar-fullscreen-placeholder.is-social {
+  border-radius: 50%;
+  aspect-ratio: 1 / 1;
 }
 
 .calendar-fullscreen-title-container {

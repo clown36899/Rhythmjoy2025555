@@ -125,6 +125,11 @@
     transition: aspect-ratio 0.3s ease;
 }
 
+.DateEventsModal .DEM-thumbnail.is-social {
+    border-radius: 50%;
+    aspect-ratio: 1/1;
+}
+
 .DateEventsModal .DEM-thumbnail img {
     width: 100%;
     height: 100%;
@@ -141,6 +146,10 @@
     color: var(--text-muted);
     font-size: 1.5rem;
     font-weight: 800;
+}
+
+.DateEventsModal .DEM-fallback.is-social {
+    border-radius: 50%;
 }
 
 .DateEventsModal .DEM-category {
