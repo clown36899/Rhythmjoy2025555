@@ -27,6 +27,10 @@ interface FullEventCalendarProps {
   tabFilter?: 'all' | 'social-events' | 'classes' | 'overseas';
   seed?: number;
   onDataLoaded?: () => void;
+  // 부모로부터 전달받는 데이터 프롭스 추가
+  calendarData?: any;
+  isLoading?: boolean;
+  refetchCalendarData?: () => void;
 }
 
 // [Performance Fix] 개별 날짜 셀을 위한 메모이제이션된 컴포넌트
@@ -188,6 +192,9 @@ export default memo(function FullEventCalendar({
   tabFilter = 'all',
   seed = 42,
   onDataLoaded,
+  calendarData,
+  isLoading,
+  refetchCalendarData,
 }: FullEventCalendarProps) {
   const { t } = useTranslation();
   const [events, setEvents] = useState<AppEvent[]>([]);
@@ -195,14 +202,13 @@ export default memo(function FullEventCalendar({
   const [showRegistrationModal, setShowRegistrationModal] = useState(false);
   const [yearRangeBase, setYearRangeBase] = useState(new Date().getFullYear());
 
-  // React Query 통합: 수동 fetch 대신 훅 사용
-  const { data: calendarData, refetch: refetchCalendarData, isLoading } = useCalendarEventsQuery(currentMonth);
+  // React Query 통합: 부모(Page.tsx)에서 관리하도록 변경됨.
 
-  // 쿼리 데이터와 연동
+  // 쿼리 데이터와 연동 (부모로부터 받은 데이터 사용)
   useEffect(() => {
     if (calendarData) {
-      setEvents(calendarData.events);
-      setSocialSchedules(calendarData.socialSchedules);
+      setEvents(calendarData.events || []);
+      setSocialSchedules(calendarData.socialSchedules || []);
       if (onEventsUpdate) onEventsUpdate();
     }
   }, [calendarData, onEventsUpdate]);
@@ -438,7 +444,7 @@ export default memo(function FullEventCalendar({
   }, [refetchCalendarData]);
 
   const fetchEvents = useCallback(() => {
-    refetchCalendarData();
+    if (refetchCalendarData) refetchCalendarData();
   }, [refetchCalendarData]);
 
   // [Pure Fix] 데이터 로딩 완료 및 레이아웃(높이)이 DOM에 실제 반영된 시점 감지
