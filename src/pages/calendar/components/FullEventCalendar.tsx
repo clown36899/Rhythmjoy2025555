@@ -266,11 +266,8 @@ export default memo(function FullEventCalendar({
   // 수정 로직: 최소 높이만 보장하고 컨텐츠에 맞게 늘어나도록 함 (30px은 기본 헤더/날짜 높이)
   const getCellHeight = (monthDate: Date) => {
     // [Fix] Page.tsx의 수학적 스크롤 계산과 100% 일치하도록 보정
-    if (!calendarHeightPx) return 30;
-
-    const weeks = getActualWeeksCount(monthDate);
-    // Page.tsx: Math.max(30, (calendarHeightPx - 10) / totalWeeks);
-    return Math.max(30, (calendarHeightPx - 10) / weeks);
+    // 이벤트가 없으면 불필요하게 늘리지 않고 최소 높이(30px)만 유지
+    return 30;
   };
 
   // 카테고리에 따라 이벤트 필터링 (기존 로직 유지)

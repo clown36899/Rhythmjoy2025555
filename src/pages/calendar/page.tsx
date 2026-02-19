@@ -155,11 +155,15 @@ export default function CalendarPage() {
         const totalWeeks = Math.ceil((daysInMonth + firstDay) / 7);
 
         const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
-        // 캘린더 컨테이너 좌우 패딩 합계(32px) 고려하여 cellWidth 정밀 계산
-        const vw = typeof window !== 'undefined' ? window.innerWidth : 650;
+        // [Dynamic Fix] window.innerWidth(스크롤바 포함) 대신 clientWidth(스크롤바 제외) 사용
+        // 실제 CSS Grid가 사용하는 가용 너비와 100% 일치시킴
+        const vw = typeof document !== 'undefined' ? document.documentElement.clientWidth : 650;
         const boundedVw = Math.min(650, vw);
-        const cellWidth = (boundedVw - 10) / 7; // .calendar-grid-container padding: 5px
-        const baseCellHeight = Math.max(30, (vh - 110) / totalWeeks);
+        const cellWidth = (boundedVw - 42) / 7; // .calendar-grid-container padding: 5px (좌우 합 10px)
+        console.log('cellWidth', cellWidth);
+        // [One-Shot Fix] FullEventCalendar와 100% 동일한 로직 적용 (오프셋 110 -> 100 수정)
+        // 이벤트가 없어도 화면을 채우는 기본 높이(baseCellHeight)가 확보되어야 스크롤이 가능함
+        const baseCellHeight = Math.max(30, (vh - 100) / totalWeeks);
 
         let localEventsToCount: AppEvent[] = [];
         if (calendarData) {
@@ -247,8 +251,9 @@ export default function CalendarPage() {
             }
 
             // [정밀 오늘이동 수치] 날짜 숫자 헤더(30px) + 이벤트 카드(이미지:CellWidth-4 + Titles:24 + Margin:10 = CellWidth+30)
-            const weekContentHeight = 30 + (maxInWeek * (cellWidth + 33));
-            const actualWeekHeight = Math.max(baseCellHeight, weekContentHeight);
+            const weekContentHeight = 38 + (maxInWeek * (cellWidth + 33));
+            // [One-Shot Fix] 이벤트가 없으면 최소 높이(30px)만 유지하고, 강제로 늘리지 않음
+            const actualWeekHeight = Math.max(30, weekContentHeight);
 
             if (isSameMonth && w < todayWeekIndex) {
                 // 그리드 row-gap(6px) 합산 (중요: rowGap이 빠지면 위쪽 주차만큼 오차가 누적됨)
@@ -281,14 +286,23 @@ export default function CalendarPage() {
         if (!forced && userInteractedRef.current) return;
 
         // [One-Shot Math System] 사용자 요청에 따라 사후 보정 및 DOM 실측을 완전히 제거
-        const { targetY } = calendarMetrics;
+        const { targetY, totalHeight } = calendarMetrics;
         if (targetY <= 0 && !forced) return;
 
         // 공식: targetY(그리드 내 상대 위치) - 55px (헤더 오프셋 정밀 보정)
-        // 135px 오차 완결: 카드 높이(34->30) 수정 및 오프셋 보정으로 '위쪽 상단' 밀착 실현
-        const scrollTarget = targetY - 55;
+        // 135px 오차 완결: 카드 높이(34->33) 수정 및 오프셋 보정으로 '위쪽 상단' 밀착 실현
+        let scrollTarget = targetY - 55;
 
-        console.log(`🚀 [One-Shot Scroll] Target: ${scrollTarget.toFixed(1)}, Rel: ${targetY.toFixed(1)}, Behavior: ${behavior}`);
+        // [Safety Check] 스크롤 가능한 최대 높이보다 더 이동하려는 경우 방지
+        // 내용이 화면보다 짧거나 바닥에 가까운 경우, 억지로 헤더 아래로 맞추려다 오작동하는 것을 막음
+        // DOM 측정 대신 수학적으로 계산된 totalHeight를 신뢰하여 미리 판단
+        const predictedMaxScroll = Math.max(0, totalHeight - window.innerHeight);
+
+        if (scrollTarget > predictedMaxScroll) {
+            scrollTarget = predictedMaxScroll;
+        }
+
+        console.log(`🚀 [One-Shot Scroll] Target: ${scrollTarget.toFixed(1)}, Rel: ${targetY.toFixed(1)}, Max: ${predictedMaxScroll}, Behavior: ${behavior}`);
         window.scrollTo({ top: scrollTarget, behavior: behavior as ScrollBehavior });
 
     }, [calendarMetrics]);
