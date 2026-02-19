@@ -2,7 +2,7 @@
 
 /* Apply scroll-padding to html for window-level scrolling */
 html {
-    scroll-padding-top: 110px;
+    scroll-padding-top: calc(60px + env(safe-area-inset-top));
 }
 
 .calendar-page-container {
@@ -107,8 +107,8 @@ html {
     width: 100%;
     max-width: 650px;
     margin: 0 auto;
-    padding-top: calc(110px + env(safe-area-inset-top));
-    /* 글로벌 헤더(60px) + 요일 헤더(50px) */
+    padding-top: calc(60px + env(safe-area-inset-top));
+    /* 글로벌 헤더(60px)만 - 요일 헤더는 제거됨 */
     padding-bottom: calc(56px + env(safe-area-inset-bottom));
     /* 탭 메뉴 + 바텀 내비게이션 공간 확보 */
 }
