@@ -19,13 +19,14 @@ class LocalStorageLock {
     private lockKey: string;
     private timeout: number;
 
-    constructor(name: string, timeout: number = 5000) {
+    constructor(name: string, timeout: number = 1500) {
         this.lockKey = `sb-lock-${name}`;
-        this.timeout = timeout;
+        // [Safety] 타임아웃이 0 이하로 들어오거나 너무 짧으면 최소 500ms 보장 (경쟁 상황 대비)
+        this.timeout = (timeout <= 0) ? 1500 : Math.max(timeout, 500);
     }
 
     async acquire(fn: () => Promise<any> | any): Promise<any> {
-        const start = Date.now();
+        let start = Date.now();
         const myId = Math.random().toString(36).substring(2);
 
         // [Secret Mode Safe Guard] localStorage 접근 가능 여부 체크
@@ -37,13 +38,22 @@ class LocalStorageLock {
             return await fn();
         }
 
+        // [Performance Fix] 메인 스레드 점유로 인해 루프 진입 전 이미 타임아웃된 경우 체크
+        const beforeLoop = Date.now();
+        const initialDrift = beforeLoop - start;
+
+        if (initialDrift >= this.timeout) {
+            console.warn(`[HybridLock] Main thread was blocked for ${initialDrift}ms (Timeout: ${this.timeout}ms). This is a 'Long Task' issue in the app, bypassing lock.`);
+        }
+
         // Polling loop
         while (Date.now() - start < this.timeout) {
             try {
                 const currentLock = localStorage.getItem(this.lockKey);
 
-                // 락이 없거나, 락이 있어도 너무 오래된 경우(Dead Lock 방지 - 5초)
-                if (!currentLock || (Date.now() - parseInt(currentLock.split('|')[1]) > 5000)) {
+                // 락이 없거나, 락이 있어도 너무 오래된 경우(Dead Lock 방지 - 2.5초)
+                // 타임아웃(1.5초)보다 약간 길게 설정하여 안전 확보
+                if (!currentLock || (Date.now() - parseInt(currentLock.split('|')[1]) > 2500)) {
                     // Try to acquire
                     const timestamp = Date.now();
                     localStorage.setItem(this.lockKey, `${myId}|${timestamp}`);
@@ -71,19 +81,32 @@ class LocalStorageLock {
             }
 
             // Wait before retry
+            const loopTick = Date.now();
             await new Promise(r => setTimeout(r, 50));
+
+            // [Anti-Saturation] 만약 setTimeout이 50ms보다 훨씬 늦게 실행되었다면 (예: 200ms+)
+            // 메인 스레드가 심각하게 잠긴 것이므로 락 획득 시도를 잠시 멈추거나 조건부 우회 검토
+            const gap = Date.now() - loopTick;
+            if (gap > 200) {
+                console.warn(`[HybridLock] High main thread saturation detected (${gap}ms gap). Extending tolerance.`);
+                start += gap;
+                await new Promise(r => setTimeout(r, 100)); // 휴식 시간 연장
+            }
         }
 
         // Timeout fallback: Just run it (unsafe but better than crash)
-        console.warn('[HybridLock] Lock acquisition timed out or failed, bypassing lock');
+        console.warn(`[HybridLock] Lock acquisition timed out (${this.timeout}ms), bypassing lock`);
         return await fn();
     }
 }
 
-export const hybridLock = async (name: string, timeout: number = 5000, fn: () => Promise<any> | any) => {
+export const hybridLock = async (name: string, timeout: number = 1500, fn: () => Promise<any> | any) => {
+    // [Safety] Supabase 내부에서 timeout을 0이나 undefined로 넘길 경우 기본값 적용
+    const effectiveTimeout = (!timeout || timeout <= 0) ? 1500 : timeout;
+
     // 1. Safari나 모바일 환경이면 무조건 커스텀 락 사용 (안전 최우선)
     if (isSafariOrMobile()) {
-        const locker = new LocalStorageLock(name, timeout);
+        const locker = new LocalStorageLock(name, effectiveTimeout);
         return locker.acquire(fn);
     }
 

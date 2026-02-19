@@ -50,8 +50,31 @@ export const fetchCalendarEvents = async (startDateStr: string, endDateStr: stri
 /**
  * 캘린더 데이터를 서버에서 가져오거나 캐시에서 반환하는 React Query 훅입니다.
  */
+import { useQueryClient } from '@tanstack/react-query';
+import { useEffect } from 'react';
+
 export const useCalendarEventsQuery = (currentMonth: Date) => {
+    const queryClient = useQueryClient();
     const { startDateStr, endDateStr } = getCalendarRange(currentMonth);
+
+    // [New] 지능형 인접 월 프리페칭 (Smart Pre-fetching)
+    // 현재 보고 있는 달의 전후 3개월 범위를 미리 로드하여 탐색 딜레이를 제거함
+    useEffect(() => {
+        const prefetch = async (offsetMonth: number) => {
+            const targetDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + offsetMonth, 1);
+            const { startDateStr: s, endDateStr: e } = getCalendarRange(targetDate);
+
+            queryClient.prefetchQuery({
+                queryKey: ['calendar-events', s, e],
+                queryFn: () => fetchCalendarEvents(s, e),
+                staleTime: 1000 * 60 * 5,
+            });
+        };
+
+        // 전후 1개월씩 미리 로드
+        prefetch(-1);
+        prefetch(1);
+    }, [currentMonth, queryClient]);
 
     return useQuery<CalendarData>({
         queryKey: ['calendar-events', startDateStr, endDateStr],

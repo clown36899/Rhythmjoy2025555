@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo, useLayoutEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
@@ -91,22 +91,26 @@ export default function CalendarPage() {
     //     };
     // }, []);
 
+    // [Lint Fix] 모든 레퍼런스를 컴포넌트 최상단으로 집결하여 중복 방지
+    const userInteractedRef = useRef(false);
+    const shouldScrollToTodayRef = useRef(false);
+    const initialJumpDoneRef = useRef(false);
+    const mountTimeRef = useRef(Date.now());
+
     // [Fix] 브라우저 자동 스크롤 복원 차단 (SPA에서 직접 제어하기 위함)
-    useEffect(() => {
+    useLayoutEffect(() => {
         if ('scrollRestoration' in window.history) {
-            console.log('[캘린더] 브라우저 스크롤 복원 모드 -> manual 설정');
             window.history.scrollRestoration = 'manual';
         }
     }, []);
 
-    // [Fix] 사용자 조작 감지 (자동 스크롤 재시도 시 방해 금지용)
-    const userInteractedRef = useRef(false);
-    const mountTimeRef = useRef(Date.now());
     useEffect(() => {
         const handleInteraction = (e: Event) => {
-            // [Fix] 페이지 진입 직후의 클릭이 스크롤을 방해하지 않도록 1초 유예
-            if (Date.now() - mountTimeRef.current < 1000) return;
-
+            if (Date.now() - mountTimeRef.current < 1500) return;
+            const target = e.target as HTMLElement;
+            if (target.closest('button') || target.closest('a') || target.getAttribute('role') === 'button') {
+                return;
+            }
             if (!userInteractedRef.current) {
                 console.log(`👤 [캘린더] 사용자 조작 감지 (${e.type}) - 스크롤 중단`);
                 userInteractedRef.current = true;
@@ -115,7 +119,6 @@ export default function CalendarPage() {
         window.addEventListener('touchstart', handleInteraction, { passive: true });
         window.addEventListener('wheel', handleInteraction, { passive: true });
         window.addEventListener('mousedown', handleInteraction, { passive: true });
-
         return () => {
             window.removeEventListener('touchstart', handleInteraction);
             window.removeEventListener('wheel', handleInteraction);
@@ -161,61 +164,47 @@ export default function CalendarPage() {
         // For now, syncing from useAuth is safest.
     }, [authIsAdmin]);
 
-    const handleScrollToToday = useCallback(() => {
-        // 1. 활성 슬라이드 내의 오늘 날짜 요소 찾기
-        const selector = '.calendar-month-slide[data-active-month="true"] .calendar-date-number-today';
-        const todayEl = document.querySelector(selector) as HTMLElement;
-
-        if (!todayEl) {
-            console.log(`🔎 [캘린더] 오늘 요소를 찾을 수 없습니다: ${selector}`);
-            return false;
-        }
-
-        // [Simple Fix] 모든 복잡한 계산을 제거하고 표준 API 사용
-        // FullEventCalendar.css에 추가된 scroll-margin-top과 연동됩니다.
-        requestAnimationFrame(() => {
-            if (userInteractedRef.current) {
-                console.log('� [캘린더] 사용자 조작 감지 - 스크롤 취소');
-                return;
-            }
-
-            const rect = todayEl.getBoundingClientRect();
-            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-
-            // 목표 Y: 헤더 바로 아래 + 5px 여백
-            const headerEl = document.querySelector('.shell-header') as HTMLElement;
-            const headerBottom = headerEl ? headerEl.getBoundingClientRect().bottom : 0;
-            const targetY = scrollTop + rect.top - headerBottom - 5;
-
-            console.log(`🚀 [캘린더] 오늘 위치 정밀 스크롤 (Target Y: ${targetY})`);
-            window.scrollTo({
-                top: Math.max(0, targetY),
-                behavior: 'smooth'
-            });
-
-            // URL 정리
-            const urlParams = new URLSearchParams(window.location.search);
-            if (urlParams.get('scrollToToday') === 'true') {
-                const newUrl = window.location.pathname + window.location.search.replace(/[&?]scrollToToday=true/, '');
-                window.history.replaceState({}, '', newUrl);
-            }
-        });
-
-        return true;
-    }, [currentMonth]);
-
-    // [Fix] State 대신 Ref를 사용하여 렌더링 사이클 지연으로 인한 스크롤 무시 방지
-    const shouldScrollToTodayRef = useRef(false);
-
-    // 초기 상태 설정
-    useEffect(() => {
+    // [New] 캘린더 위치 및 높이 사전 계산기 (Render-time)
+    // 이 계산은 렌더링 중에 즉시 수행되어 스타일로 주입됩니다.
+    const calendarMetrics = useMemo(() => {
         const today = new Date();
+        const firstDay = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1).getDay();
+        const daysInMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0).getDate();
+        const totalWeeks = Math.ceil((daysInMonth + firstDay) / 7);
+
+        const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
+        const cellHeight = Math.max(30, (viewportHeight - 110) / totalWeeks);
+        const totalHeight = (totalWeeks * cellHeight) + 150;
+
+        let targetY = 0;
         const isSameMonth = currentMonth.getFullYear() === today.getFullYear() &&
             currentMonth.getMonth() === today.getMonth();
+
         if (isSameMonth) {
-            shouldScrollToTodayRef.current = true;
+            const weekIndex = Math.floor((today.getDate() + firstDay - 1) / 7);
+            // [Fix] -10px 여유를 주어 '오늘' 행이 헤더(110px) 아래에 명확하게 보이도록 보정
+            targetY = Math.max(0, (weekIndex * cellHeight) - 10);
         }
-    }, []); // 마운트 시 최초 1회만
+
+        return { targetY, totalHeight, isSameMonth };
+    }, [currentMonth]);
+
+    const handleScrollToToday = useCallback((behavior: 'smooth' | 'auto' | 'instant' = 'smooth', forced = false) => {
+        const { targetY } = calendarMetrics;
+        if (targetY === 0) return;
+
+        if (!forced && userInteractedRef.current) return;
+
+        console.log(`🚀 [캘린더] 위치 고정 실행 (Target: ${targetY}, Mode: ${behavior})`);
+        window.scrollTo({ top: targetY, behavior: behavior as ScrollBehavior });
+    }, [calendarMetrics]);
+
+    useLayoutEffect(() => {
+        if (calendarMetrics.isSameMonth && !initialJumpDoneRef.current) {
+            handleScrollToToday('instant', true);
+            initialJumpDoneRef.current = true;
+        }
+    }, [calendarMetrics.isSameMonth, handleScrollToToday]);
 
     // 월 변경 등 렌더링 후 스크롤 로직 실행 (MutationObserver 제거됨)
     // 부모인 CalendarPage에서는 전역적인 상태 감시보다는 FullEventCalendar의 알림에 의존합니다.
@@ -383,7 +372,10 @@ export default function CalendarPage() {
     // Event Listeners
     useEffect(() => {
         const handleSetFullscreenMode = () => {
-            navigate('/v2');
+            // [Fix] 메인 스레드가 바쁠 때 navigate가 씹히지 않도록 Task Queue로 보냄
+            setTimeout(() => {
+                navigate('/v2');
+            }, 0);
         };
 
         const handleOpenCalendarSearch = () => {
@@ -534,7 +526,10 @@ export default function CalendarPage() {
 
             {/* Sticky Weekday Header */}
 
-            <div className="calendar-page-main">
+            <div
+                className="calendar-page-main"
+                style={{ minHeight: calendarMetrics.totalHeight }}
+            >
                 <FullEventCalendar
                     currentMonth={currentMonth}
                     selectedDate={selectedDate}
@@ -542,10 +537,7 @@ export default function CalendarPage() {
                     onMonthChange={handleMonthChange}
                     onDataLoaded={() => {
                         console.log('📡 [CalendarPage] Data and Layout ready.');
-                        if (shouldScrollToTodayRef.current) {
-                            handleScrollToToday();
-                            shouldScrollToTodayRef.current = false;
-                        }
+                        // [Optimized] 2단계 스크롤 로직 삭제 - 초기 useLayoutEffect 점프로 일원화
                     }}
                     viewMode={viewMode}
                     onViewModeChange={setViewMode}

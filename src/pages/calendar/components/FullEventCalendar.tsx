@@ -29,6 +29,147 @@ interface FullEventCalendarProps {
   onDataLoaded?: () => void;
 }
 
+// [Performance Fix] 개별 날짜 셀을 위한 메모이제이션된 컴포넌트
+const CalendarCell = memo(({
+  day,
+  isToday,
+  isLastRow,
+  cellHeight,
+  events,
+  highlightedEventId,
+  getEventColor,
+  onDateClick,
+  onDateNumberClick,
+  onEventClick,
+  t // translations
+}: {
+  day: Date;
+  isToday: boolean;
+  isLastRow: boolean;
+  cellHeight: number;
+  events: AppEvent[];
+  highlightedEventId: number | string | null;
+  getEventColor: (id: number | string) => string;
+  onDateClick: (date: Date, e?: React.MouseEvent) => void;
+  onDateNumberClick: (e: React.MouseEvent, date: Date) => void;
+  onEventClick: (event: AppEvent) => void;
+  t: any;
+}) => {
+  const [shouldRenderEvents, setShouldRenderEvents] = useState(false);
+
+  // [Performance] 초기 42개 셀이 마운트될 때 이벤트 카드까지 한꺼번에 그리면 메인 스레드가 마비됨.
+  // 셀의 골격만 먼저 렌더링하고, 이벤트 카드는 다음 틱에 나눠서 렌더링하여 'Long Task' 방지.
+  useEffect(() => {
+    // requestIdleCallback이 지원되면 사용, 아니면 setTimeout으로 분산
+    if ('requestIdleCallback' in window) {
+      const handle = (window as any).requestIdleCallback(() => setShouldRenderEvents(true), { timeout: 200 });
+      return () => (window as any).cancelIdleCallback(handle);
+    } else {
+      const timer = setTimeout(() => setShouldRenderEvents(true), 50);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  const year = day.getFullYear();
+  const month = String(day.getMonth() + 1).padStart(2, "0");
+  const dayNum = String(day.getDate()).padStart(2, "0");
+  const dateString = `${year}-${month}-${dayNum}`;
+
+  return (
+    <div
+      data-date={dateString}
+      id={isToday ? 'calendar-today-cell' : undefined}
+      onClick={(e) => onDateClick(day, e)}
+      className={`calendar-cell-fullscreen ${isToday ? 'is-today' : ''} ${isLastRow ? 'is-last-row' : ''}`}
+      style={{ '--cell-min-height': `${cellHeight}px` } as any}
+    >
+      <div className="calendar-cell-fullscreen-header">
+        <span
+          onClick={(e) => onDateNumberClick(e, day)}
+          className={`calendar-date-number-fullscreen ${isToday
+            ? "calendar-date-number-today"
+            : day.getDay() === 0
+              ? "calendar-date-sunday"
+              : day.getDay() === 6
+                ? "calendar-date-saturday"
+                : ""
+            } cursor-pointer`}
+        >
+          <span className="calendar-date-digit">{day.getDate()}</span>
+          <span className="weekday-wrapper">
+            <span className="translated-part">
+              {isToday ? t('today') : t(`weekdays.${['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][day.getDay()]}`)}
+            </span>
+            <span className="fixed-part ko" translate="no">
+              {(() => { const days = ['일', '월', '화', '수', '목', '금', '토']; return isToday ? '오늘' : days[day.getDay()]; })()}
+            </span>
+            <span className="fixed-part en" translate="no">
+              {(() => { const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']; return isToday ? 'Today' : days[day.getDay()]; })()}
+            </span>
+          </span>
+        </span>
+      </div>
+
+      <div className="calendar-cell-fullscreen-body">
+        {shouldRenderEvents && events.map((event) => {
+          const categoryColor = getEventColor(event.id);
+          const thumbnailUrl = event.image_thumbnail || event.image_micro || event.image_medium;
+          const isSocialEvent = event.is_social_integrated || event.category === 'social' || String(event.id).startsWith('social-');
+          const locationText = isSocialEvent ? (event.place_name || event.location || '') : '';
+
+          const eStart = (event.start_date || event.date || '').substring(0, 10);
+          const eEnd = (event.end_date || event.date || '').substring(0, 10);
+
+          const isContinueLeft = eStart < dateString;
+          const isContinueRight = eEnd > dateString;
+
+          return (
+            <div
+              key={event.id}
+              className={`calendar-fullscreen-event-card ${isContinueLeft ? 'calendar-event-continue-left' : ''} ${isContinueRight ? 'calendar-event-continue-right' : ''}`}
+              data-event-id={event.id}
+              role="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onEventClick(event);
+              }}
+            >
+              <div className="calendar-fullscreen-card-inner">
+                {thumbnailUrl ? (
+                  <div className={`calendar-fullscreen-image-container ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
+                    <img
+                      src={thumbnailUrl}
+                      alt=""
+                      className="calendar-fullscreen-image"
+                      loading="lazy"
+                      decoding="async"
+                      draggable="false"
+                    />
+                    {locationText && (
+                      <span className="calendar-fullscreen-location-overlay">
+                        {locationText}
+                      </span>
+                    )}
+                  </div>
+                ) : (
+                  <div className={`calendar-fullscreen-placeholder ${categoryColor} ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
+                    <span className="calendar-placeholder-text">
+                      {event.title.charAt(0)}
+                    </span>
+                  </div>
+                )}
+              </div>
+              <div className="calendar-fullscreen-title-container">
+                <div className="calendar-fullscreen-title">{event.title}</div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+});
+
 export default memo(function FullEventCalendar({
   currentMonth,
   selectedDate,
@@ -100,12 +241,12 @@ export default memo(function FullEventCalendar({
   // 이전 로직: 화면 높이에 맞춰서 늘림 -> 문제: 이벤트가 적어도 강제로 늘어남
   // 수정 로직: 최소 높이만 보장하고 컨텐츠에 맞게 늘어나도록 함 (30px은 기본 헤더/날짜 높이)
   const getCellHeight = (monthDate: Date) => {
-    // 화면 높이에 맞춰서 최소 높이 분배 (이벤트 없을 때 꽉 차게)
-    // 단, 30px보다는 작아지지 않도록 함
+    // [Fix] Page.tsx의 수학적 스크롤 계산과 100% 일치하도록 보정
     if (!calendarHeightPx) return 30;
 
-    // 약간의 여유분(헤더 등)을 고려해 보정값 -10 정도
-    return Math.max(30, (calendarHeightPx - 10) / getActualWeeksCount(monthDate));
+    const weeks = getActualWeeksCount(monthDate);
+    // Page.tsx: Math.max(30, (calendarHeightPx - 10) / totalWeeks);
+    return Math.max(30, (calendarHeightPx - 10) / weeks);
   };
 
   // 카테고리에 따라 이벤트 필터링 (기존 로직 유지)
@@ -364,35 +505,73 @@ export default memo(function FullEventCalendar({
     return days;
   };
 
-  const getEventsForDate = (date: Date) => {
+  // [Performance Fix] 이벤트를 날짜별로 미리 인덱싱하여 렌더링 루프(42일 * N개 이벤트) 성능 최적화
+  const eventsByDate = useMemo(() => {
+    const map: Record<string, AppEvent[]> = {};
+
+    filteredEvents.forEach(event => {
+      // 1. 특정 날짜들 (event_dates) 기반 인덱싱
+      if (event.event_dates && event.event_dates.length > 0) {
+        const sortedDates = [...event.event_dates].sort();
+        const isClass = event.category && ['class', 'regular', 'club'].includes(event.category.toLowerCase());
+
+        event.event_dates.forEach(d => {
+          const dateStr = d.substring(0, 10);
+          // 강습은 첫 번째 날짜에만 표시하도록 원본 로직 유지
+          if (isClass && dateStr !== sortedDates[0].substring(0, 10)) return;
+
+          if (!map[dateStr]) map[dateStr] = [];
+          map[dateStr].push(event);
+        });
+      }
+      // 2. 기간 (start_date ~ end_date) 기반 인덱싱
+      else {
+        const startStr = (event.start_date || event.date || "").substring(0, 10);
+        const endStr = (event.end_date || event.date || "").substring(0, 10);
+
+        if (startStr && endStr) {
+          // 성능을 위해 문자열 비교로 범위 내 날짜들 매핑 (현재 달 범위 내만)
+          // 실제로는 렌더링 시점에 map[dateStr]을 조회하므로, 필요한 모든 날짜를 채워야 함
+          let curr = new Date(startStr);
+          const end = new Date(endStr);
+          // 안전을 위해 최대 365일 제한
+          let limit = 0;
+          while (curr <= end && limit < 365) {
+            const dateStr = curr.toISOString().split('T')[0];
+            if (!map[dateStr]) map[dateStr] = [];
+            map[dateStr].push(event);
+            curr.setDate(curr.getDate() + 1);
+            limit++;
+          }
+        }
+      }
+    });
+
+    // 각 날짜별 이벤트 미리 정렬 (기간이 긴 순 -> 가중치(ID) 순)
+    Object.keys(map).forEach(dateStr => {
+      map[dateStr].sort((a, b) => {
+        const getDur = (e: AppEvent) => {
+          const s = new Date(e.start_date || e.date || '').getTime();
+          const e_time = new Date(e.end_date || e.date || '').getTime();
+          return e_time - s;
+        };
+        const durA = getDur(a);
+        const durB = getDur(b);
+        if (durB !== durA) return durB - durA;
+        return String(a.id).localeCompare(String(b.id)); // ID로 안정적인 정렬
+      });
+    });
+
+    return map;
+  }, [filteredEvents]);
+
+  const getEventsForDate = useCallback((date: Date) => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
     const dateString = `${year}-${month}-${day}`;
-
-    return filteredEvents.filter((event) => {
-      // 특정 날짜 모드
-      if (event.event_dates && event.event_dates.length > 0) {
-        // 강습(class, regular, club)은 개별 선택된 날짜 중 첫 번째 날짜에만 표시
-        const isClass = event.category && (event.category.toLowerCase() === 'class' || event.category === 'regular' || event.category === 'club');
-
-        if (isClass) {
-          // event_dates 배열을 정렬하여 첫 번째(가장 이른) 날짜만 사용
-          const sortedDates = [...event.event_dates].sort();
-          const firstDate = sortedDates[0];
-          return dateString === firstDate;
-        }
-        // 행사(event) 등 나머지는 등록된 모든 날짜 표시
-        return event.event_dates.some((d: string) => d.startsWith(dateString));
-      }
-      // 연속 기간 모드
-      const startDate = (event.start_date || event.date || "").substring(0, 10);
-      const endDate = (event.end_date || event.date || "").substring(0, 10);
-      return (
-        startDate && endDate && dateString >= startDate && dateString <= endDate
-      );
-    });
-  };
+    return eventsByDate[dateString] || [];
+  }, [eventsByDate]);
 
   const isToday = (date: Date) => {
     const today = new Date();
@@ -447,151 +626,27 @@ export default memo(function FullEventCalendar({
 
   // 전체화면 모드 그리드 렌더링
   const renderFullscreenGrid = (days: Date[], monthDate: Date) => {
+    const cellHeight = getCellHeight(monthDate);
+
     return days.map((day, index) => {
-      const year = day.getFullYear();
-      const month = String(day.getMonth() + 1).padStart(2, "0");
-      const dayNum = String(day.getDate()).padStart(2, "0");
-      const dateString = `${year}-${month}-${dayNum}`;
-      const todayFlag = isToday(day);
       const isLastRow = index >= days.length - 7;
       const dayEvents = getEventsForDate(day);
 
       return (
-        <div
-          key={dateString}
-          data-date={dateString}
-          id={todayFlag ? 'calendar-today-cell' : undefined}
-          onClick={(e) => handleFullscreenDateClick(day, e)}
-          className={`calendar-cell-fullscreen ${todayFlag ? 'is-today' : ''} ${isLastRow ? 'is-last-row' : ''}`}
-          style={{
-            '--cell-min-height': `${getCellHeight(monthDate)}px`,
-          } as any}
-        >
-          {/* 헤더: 날짜 숫자 */}
-          <div className="calendar-cell-fullscreen-header">
-            <span
-              onClick={(e) => handleDateNumberClick(e, day)}
-              className={`calendar-date-number-fullscreen ${todayFlag
-                ? "calendar-date-number-today"
-                : day.getDay() === 0
-                  ? "calendar-date-sunday"
-                  : day.getDay() === 6
-                    ? "calendar-date-saturday"
-                    : ""
-                } cursor-pointer`}
-            >
-              <span className="calendar-date-digit">{day.getDate()}</span>
-              <span className="weekday-wrapper">
-                <span className="translated-part">
-                  {todayFlag ? t('today') : t(`weekdays.${['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'][day.getDay()]}`)}
-                </span>
-                {/* User defined short forms for each language */}
-                <span className="fixed-part ko" translate="no">
-                  {(() => { const days = ['일', '월', '화', '수', '목', '금', '토']; return todayFlag ? '오늘' : days[day.getDay()]; })()}
-                </span>
-                <span className="fixed-part en" translate="no">
-                  {(() => { const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']; return todayFlag ? 'Today' : days[day.getDay()]; })()}
-                </span>
-              </span>
-            </span>
-          </div>
-
-          {/* 바디: 이벤트 리스트 */}
-          <div className="calendar-cell-fullscreen-body">
-            {(() => {
-              // 랜덤 정렬 시드 기반 헬퍼
-              const seededRandom = (s: number) => {
-                const mask = 0xffffffff;
-                let m_w = (123456789 + s) & mask;
-                let m_z = (987654321 - s) & mask;
-                return () => {
-                  m_z = (36969 * (m_z & 65535) + (m_z >> 16)) & mask;
-                  m_w = (18000 * (m_w & 65535) + (m_w >> 16)) & mask;
-                  const result = ((m_z << 16) + (m_w & 65535)) >>> 0;
-                  return result / 4294967296;
-                };
-              };
-
-              // 각 날짜별 + 세션 시드 조합하여 고유하지만 세션 내에서는 고정된 시드 생성
-              const daySeed = day.getTime() + seed;
-              const randomHelper = seededRandom(daySeed);
-
-              // [Fix] 기간이 긴 일정을 우선순위로 두고, 나머지는 안정적인 랜덤 가중치로 정렬
-              return dayEvents
-                .map(event => {
-                  const start = new Date(event.start_date || event.date || '').getTime();
-                  const end = new Date(event.end_date || event.date || '').getTime();
-                  return {
-                    event,
-                    weight: randomHelper(),
-                    duration: end - start
-                  };
-                })
-                .sort((a, b) => {
-                  if (b.duration !== a.duration) return b.duration - a.duration;
-                  return a.weight - b.weight;
-                })
-                .map(({ event }) => {
-                  const categoryColor = getEventColor(event.id);
-                  const thumbnailUrl = event.image_thumbnail || event.image_micro || event.image_medium;
-                  const isSocialEvent = String(event.id).startsWith('social-') || event.is_social_integrated || event.category === 'social';
-                  const locationText = isSocialEvent ? (event.place_name || event.location || '') : '';
-
-                  const eStart = (event.start_date || event.date || '').substring(0, 10);
-                  const eEnd = (event.end_date || event.date || '').substring(0, 10);
-                  const currDate = dateString;
-
-                  const isContinueLeft = eStart < currDate;
-                  const isContinueRight = eEnd > currDate;
-
-                  return (
-                    <div
-                      key={event.id}
-                      className={`calendar-fullscreen-event-card ${isContinueLeft ? 'calendar-event-continue-left' : ''} ${isContinueRight ? 'calendar-event-continue-right' : ''}`}
-                      data-event-id={event.id}
-                      role="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (onEventClick) onEventClick(event);
-                      }}
-                    >
-                      <div className="calendar-fullscreen-card-inner">
-                        {thumbnailUrl ? (
-                          <div className={`calendar-fullscreen-image-container ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
-                            <img
-                              src={thumbnailUrl}
-                              alt=""
-                              className="calendar-fullscreen-image"
-                              loading="lazy"
-                              decoding="async"
-                              draggable="false"
-                            />
-                            {locationText && (
-                              <span className="calendar-fullscreen-location-overlay">
-                                {locationText}
-                              </span>
-                            )}
-                          </div>
-                        ) : (
-                          <div className={`calendar-fullscreen-placeholder ${categoryColor} ${highlightedEventId === event.id ? 'calendar-event-highlighted' : ''}`}>
-                            <span className="calendar-placeholder-text">
-                              {event.title.charAt(0)}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="calendar-fullscreen-title-container">
-                        <div className="calendar-fullscreen-title">
-                          {event.title}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                });
-            })()}
-          </div>
-        </div>
+        <CalendarCell
+          key={day.toISOString()}
+          day={day}
+          isToday={isToday(day)}
+          isLastRow={isLastRow}
+          cellHeight={cellHeight}
+          events={dayEvents}
+          highlightedEventId={highlightedEventId}
+          getEventColor={getEventColor}
+          onDateClick={handleFullscreenDateClick}
+          onDateNumberClick={handleDateNumberClick}
+          onEventClick={onEventClick}
+          t={t}
+        />
       );
     });
   };
@@ -644,12 +699,29 @@ export default memo(function FullEventCalendar({
               } as any}
             >
               {[prevMonth, currentMonth, nextMonth].map((month, idx) => {
+                const isCurrentMonth = idx === 1;
+
+                // [Optimization] 지연 렌더링 구현 (초기 부하 분산)
+                // 현재 달이 아닌 슬라이드는 마운트 직후 약간의 지연 시간을 두고 렌더링을 허용함
+                const [shouldRender, setShouldRender] = useState(isCurrentMonth);
+
+                useEffect(() => {
+                  if (!isCurrentMonth) {
+                    const timer = setTimeout(() => setShouldRender(true), 300);
+                    return () => clearTimeout(timer);
+                  }
+                }, [isCurrentMonth]);
+
+                if (!shouldRender) {
+                  return <div key={`${month.getFullYear()}-${month.getMonth()}`} className="calendar-month-slide" />;
+                }
+
                 const days = idx === 0 ? prevDays : idx === 1 ? currentDays : nextDays;
                 return (
                   <div
                     key={`${month.getFullYear()}-${month.getMonth()}`}
                     className="calendar-month-slide"
-                    data-active-month={idx === 1}
+                    data-active-month={isCurrentMonth}
                   >
                     <div
                       className="calendar-grid-container"

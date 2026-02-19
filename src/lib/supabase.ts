@@ -85,6 +85,8 @@ export interface Event {
   views?: number; // Added for analytics
   group_id?: number | null; // [New] For integrated social schedules
   day_of_week?: number | null; // [New] For integrated social schedules
+  is_social_integrated?: boolean; // [New] 통합 소셜 여부
+  place_name?: string | null; // [New] 장소명 (소셜용)
 }
 
 export interface BillboardUser {
@@ -198,7 +200,7 @@ let validationPromise: Promise<any> | null = null;
 export const validateAndRecoverSession = async (): Promise<any> => {
   // 1. 이미 검증이 진행 중이라면 해당 프로미스 반환 (중복 호출 방지)
   if (validationPromise) {
-    authLogger.log('[Supabase] 🔄 Already validating, returning existing promise');
+    authLogger.log('[Supabase] 🔄 Existing validation promise found - Attaching');
     return validationPromise;
   }
 
@@ -206,15 +208,16 @@ export const validateAndRecoverSession = async (): Promise<any> => {
     let localSession: any = null;
     const now = Date.now();
     try {
-      authLogger.log('[Supabase] 🚀 validateAndRecoverSession started');
+      authLogger.log('[Supabase] 🚀 validateAndRecoverSession started (Lock Owner)');
 
       // [Safari Fix] 사파리에서 localStorage 로드가 늦어지는 'Ghost Storage' 현상 대응
       if (typeof window !== 'undefined') {
         const checkToken = () => !!localStorage.getItem('sb-auth-token');
 
-        if (!checkToken()) {
-          authLogger.log('[Supabase] ⏳ Safari: Token not found yet. Waiting 300ms and retrying...');
-          await new Promise(resolve => setTimeout(resolve, 300));
+        // 이미 세션 캐시가 유효하다면 대기하지 않음
+        if (!checkToken() && (now - lastValidationTime > VALIDATION_CACHE_TIME)) {
+          authLogger.log('[Supabase] ⏳ Safari: Token not found yet. Waiting 200ms and retrying...');
+          await new Promise(resolve => setTimeout(resolve, 200));
         }
 
         if (checkToken()) {
