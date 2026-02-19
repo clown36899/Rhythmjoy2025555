@@ -159,12 +159,8 @@ export default function CalendarPage() {
         // 실제 CSS Grid가 사용하는 가용 너비와 100% 일치시킴
         const vw = typeof document !== 'undefined' ? document.documentElement.clientWidth : 650;
         const boundedVw = Math.min(650, vw);
-        const cellWidth = (boundedVw - 42) / 7; // .calendar-grid-container padding: 5px (좌우 합 10px)
+        const cellWidth = (boundedVw - 10) / 7; // .calendar-grid-container padding: 5px (좌우 합 10px)
         console.log('cellWidth', cellWidth);
-        // [One-Shot Fix] FullEventCalendar와 100% 동일한 로직 적용 (오프셋 110 -> 100 수정)
-        // 이벤트가 없어도 화면을 채우는 기본 높이(baseCellHeight)가 확보되어야 스크롤이 가능함
-        const baseCellHeight = Math.max(30, (vh - 100) / totalWeeks);
-
         let localEventsToCount: AppEvent[] = [];
         if (calendarData) {
             const allEvents = (calendarData.events || []) as AppEvent[];
@@ -223,8 +219,25 @@ export default function CalendarPage() {
                     eventsByLocalDate[dateStr] = (eventsByLocalDate[dateStr] || 0) + 1;
                 });
             } else {
-                const dateStr = getLocalStr(event.start_date || event.date || event.schedule_date);
-                if (dateStr) eventsByLocalDate[dateStr] = (eventsByLocalDate[dateStr] || 0) + 1;
+                // [Fix] FullEventCalendar.tsx eventsByDate와 동일하게 start_date~end_date 전체 범위 카운트
+                const startStr = event.start_date || event.date || event.schedule_date;
+                const endStr = event.end_date || event.date || event.schedule_date;
+                const startDate = startStr ? new Date(startStr) : null;
+                const endDate = endStr ? new Date(endStr) : null;
+
+                if (startDate && endDate && !isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+                    const curr = new Date(startDate);
+                    let limit = 0;
+                    while (curr <= endDate && limit < 365) {
+                        const dateStr = `${curr.getFullYear()}-${String(curr.getMonth() + 1).padStart(2, '0')}-${String(curr.getDate()).padStart(2, '0')}`;
+                        eventsByLocalDate[dateStr] = (eventsByLocalDate[dateStr] || 0) + 1;
+                        curr.setDate(curr.getDate() + 1);
+                        limit++;
+                    }
+                } else {
+                    const dateStr = getLocalStr(startStr);
+                    if (dateStr) eventsByLocalDate[dateStr] = (eventsByLocalDate[dateStr] || 0) + 1;
+                }
             }
         });
 
@@ -236,7 +249,27 @@ export default function CalendarPage() {
 
         const debugTable: any[] = [];
         const containerPaddingTop = 5;
-        const rowGap = 6;
+
+        // [Dynamic Title Math] CSS clamp(0rem, 2.4vw, 0.9rem) & line-height: 1.2 구현
+        // 2.4vw가 14.4px(0.9rem)을 넘지 않도록 제한 (약 600px 이상에서 고정됨)
+        const titleFontSize = Math.min(14.4, vw * 0.024);
+        const titleLineHeight = titleFontSize * 1.2;
+
+        // CSS -webkit-line-clamp: 2 → 최대 2줄까지 표시됨
+        // min-height: 24px (.calendar-fullscreen-title-container)
+        const dynamicTitleHeight = Math.max(24, titleLineHeight * 2);
+        console.log('dynamicTitleHeight', dynamicTitleHeight);
+        const cardVerticalPadding = 10; // .calendar-fullscreen-event-card margin-bottom: 10px
+
+        // [정밀 오늘이동 수치] 날짜 숫자 헤더(30px) + 이벤트 카드
+        // 이미지: aspect-ratio 5/5(1:1), placeholder: aspect-ratio 5/6(1:1.2)
+        // cellWidth - 1(border-right) - 4(card padding 2px*2) = 실제 이미지 너비
+        const imageWidth = cellWidth - 5;
+        console.log('imageWidth', imageWidth);
+        const imageHeight = imageWidth * (5 / 5);
+        console.log('imageHeight', imageHeight);
+        const cardHeight = imageHeight + dynamicTitleHeight + cardVerticalPadding;
+        console.log('cardHeight', cardHeight);
 
         // [Pixel Perfect Fix] 주차별 높이 계산 루프
         for (let w = 0; w < totalWeeks; w++) {
@@ -250,8 +283,7 @@ export default function CalendarPage() {
                 }
             }
 
-            // [정밀 오늘이동 수치] 날짜 숫자 헤더(30px) + 이벤트 카드(이미지:CellWidth-4 + Titles:24 + Margin:10 = CellWidth+30)
-            const weekContentHeight = 38 + (maxInWeek * (cellWidth + 33));
+            const weekContentHeight = 30 + (maxInWeek * cardHeight);
             // [One-Shot Fix] 이벤트가 없으면 최소 높이(30px)만 유지하고, 강제로 늘리지 않음
             const actualWeekHeight = Math.max(30, weekContentHeight);
 
@@ -271,14 +303,19 @@ export default function CalendarPage() {
             finalScrollTargetY = containerPaddingTop + sumPrecedingHeight;
 
             console.log(`🔎 [Metrics] --- 픽셀 퍼펙트 계산 리포트 ---`);
+            console.log(`📏 [Metrics] VIEWPORT: vw=${vw}px, bounded=${boundedVw}px, cellWidth=${cellWidth.toFixed(2)}px`);
             console.table(debugTable);
             console.log(`🎯 [Metrics] 그리드 내 타겟 상대 좌표: ${finalScrollTargetY.toFixed(1)}`);
         }
 
+        // .calendar-cell-fullscreen.is-last-row { padding-bottom: calc(60px + env(safe-area-inset-bottom)) }
+        const lastRowExtraPadding = 60; // + safe-area-inset-bottom (기기별 상이)
+
         return {
             targetY: finalScrollTargetY,
-            totalHeight: cumulativePageHeight + vh,
-            isSameMonth
+            totalHeight: cumulativePageHeight + lastRowExtraPadding + vh,
+            isSameMonth,
+            debugTitleHeight: dynamicTitleHeight
         };
     }, [currentMonth, calendarData, tabFilter]);
 
@@ -289,9 +326,15 @@ export default function CalendarPage() {
         const { targetY, totalHeight } = calendarMetrics;
         if (targetY <= 0 && !forced) return;
 
-        // 공식: targetY(그리드 내 상대 위치) - 55px (헤더 오프셋 정밀 보정)
-        // 135px 오차 완결: 카드 높이(34->33) 수정 및 오프셋 보정으로 '위쪽 상단' 밀착 실현
-        let scrollTarget = targetY - 55;
+        // [DOM 실측] 그리드의 실제 절대 위치를 기준으로 스크롤 타겟 계산
+        // safe-area-inset, 헤더, padding-top 등 모든 오프셋이 자동 반영됨
+        let scrollTarget = targetY;
+        const gridEl = document.querySelector('[data-active-month="true"] .calendar-grid-container');
+        if (gridEl) {
+            const gridAbsoluteTop = gridEl.getBoundingClientRect().top + window.scrollY;
+            // [Fix] 메인 헤더(약 55px) 아래로 안착되도록 오프셋 감산
+            scrollTarget = gridAbsoluteTop + targetY - 55;
+        }
 
         // [Safety Check] 스크롤 가능한 최대 높이보다 더 이동하려는 경우 방지
         // 내용이 화면보다 짧거나 바닥에 가까운 경우, 억지로 헤더 아래로 맞추려다 오작동하는 것을 막음
