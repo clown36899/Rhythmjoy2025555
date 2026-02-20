@@ -189,7 +189,13 @@ export interface MetronomePreset {
 }
 
 // 세션 검증 결과 캐싱 및 락킹을 위한 변수
-let lastValidationTime = 0;
+// sessionStorage에서 복원 → 새로고침해도 60초 캐시 유지 (getUser() 서버 호출 생략)
+const SESSION_VALIDATION_KEY = 'sb-validation-time';
+let lastValidationTime: number = (() => {
+  try {
+    return parseInt(sessionStorage.getItem(SESSION_VALIDATION_KEY) || '0', 10) || 0;
+  } catch { return 0; }
+})();
 const VALIDATION_CACHE_TIME = 60000; // 60초
 let validationPromise: Promise<any> | null = null;
 
@@ -323,6 +329,7 @@ export const validateAndRecoverSession = async (): Promise<any> => {
           } else if (data.session) {
             authLogger.log('[Supabase] ✅ Session refreshed');
             lastValidationTime = Date.now();
+            try { sessionStorage.setItem(SESSION_VALIDATION_KEY, String(lastValidationTime)); } catch {}
             return data.session;
           }
         }
@@ -352,6 +359,7 @@ export const validateAndRecoverSession = async (): Promise<any> => {
       }
 
       lastValidationTime = Date.now();
+      try { sessionStorage.setItem(SESSION_VALIDATION_KEY, String(lastValidationTime)); } catch {}
       return session;
     } catch (e) {
       authLogger.log('[Supabase] 💥 recovery failed:', e);

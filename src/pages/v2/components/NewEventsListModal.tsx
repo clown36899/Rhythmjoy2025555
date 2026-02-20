@@ -121,10 +121,10 @@ export default function NewEventsListModal({
                                                 </div>
                                             )}
                                         </div>
+                                        <span className={`NEL-category ${categoryClass}`}>
+                                            {categoryName}
+                                        </span>
                                         <div className="NEL-info">
-                                            <span className={`NEL-category ${categoryClass}`}>
-                                                {categoryName}
-                                            </span>
                                             <span className="NEL-eventTitle">{event.title}</span>
                                             {dateStr && <span className="NEL-date">{dateStr}</span>}
                                         </div>
