@@ -19,7 +19,7 @@ import type { Event as AppEvent } from "../lib/supabase";
 import { useModalHistory } from "../hooks/useModalHistory";
 import { useLoading } from "../contexts/LoadingContext";
 import { retryOperation } from "../utils/asyncUtils";
-import { parseDateSafe, formatDateForInput } from "../pages/v2/utils/eventListUtils";
+import { parseDateSafe, formatDateForInput, getLocalDateString } from "../pages/v2/utils/eventListUtils";
 
 // Extended Event type for preview
 interface ExtendedEvent extends AppEvent {
@@ -771,33 +771,47 @@ export default memo(function EventRegistrationModal({
               const weekDay = createdEvent.date ? ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'][new Date(createdEvent.date).getDay()] : '';
               const pushBody = `${createdEvent.date || ''} ${weekDay} | ${createdEvent.location || '장소 미정'}`;
 
-              console.log("[Push] Queuing delayed notification...", {
-                title: pushTitle,
-                category: pushCategory,
-                scheduledAt: scheduledAt
-              });
+              // [Strict Rule] Only notify for NEW registration and TODAY/FUTURE events
+              const today = getLocalDateString();
+              const eventDateStr = createdEvent.start_date || createdEvent.date;
+              const isPastEvent = eventDateStr && eventDateStr < today;
 
-              supabase.from('notification_queue').insert({
-                event_id: createdEvent.id,
-                title: pushTitle,
-                body: pushBody,
-                category: pushCategory,
-                payload: {
-                  url: `${window.location.origin}/calendar?id=${createdEvent.id}`,
-                  userId: 'ALL',
-                  genre: createdEvent.genre,
-                  image: createdEvent.image_thumbnail, // [NEW] 이미지 URL 추가
-                  content: createdEvent.description // [NEW] 상세 내용 추가
-                },
-                scheduled_at: scheduledAt,
-                status: 'pending'
-              }).then(({ error }) => {
-                if (error) {
-                  console.error('[Push] Queue insert failed:', error);
-                } else {
-                  console.log('[Push] Notification queued successfully.');
-                }
-              });
+              if (isPastEvent) {
+                console.log("[Push] Skipping notification for past event:", {
+                  title: pushTitle,
+                  date: eventDateStr,
+                  today: today
+                });
+              } else {
+                console.log("[Push] Queuing delayed notification...", {
+                  title: pushTitle,
+                  category: pushCategory,
+                  scheduledAt: scheduledAt,
+                  today: today
+                });
+
+                supabase.from('notification_queue').insert({
+                  event_id: createdEvent.id,
+                  title: pushTitle,
+                  body: pushBody,
+                  category: pushCategory,
+                  payload: {
+                    url: `${window.location.origin}/calendar?id=${createdEvent.id}`,
+                    userId: 'ALL',
+                    genre: createdEvent.genre,
+                    image: createdEvent.image_thumbnail,
+                    content: createdEvent.description
+                  },
+                  scheduled_at: scheduledAt,
+                  status: 'pending'
+                }).then(({ error }) => {
+                  if (error) {
+                    console.error('[Push] Queue insert failed:', error);
+                  } else {
+                    console.log('[Push] Notification queued successfully.');
+                  }
+                });
+              }
 
               // Analytics: Log Create
               logEvent('Event', 'Create', `${title} (ID: ${createdEvent.id})`);

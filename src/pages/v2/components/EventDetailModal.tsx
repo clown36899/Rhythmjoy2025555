@@ -1648,7 +1648,7 @@ export default function EventDetailModal({
                 )}
 
                 {/* Delete Button (Only in Selection/Edit Mode) */}
-                {isSelectionMode && !isPastEvent && (
+                {isSelectionMode && (isAdminMode || isActualAdmin || !isPastEvent) && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -1671,8 +1671,8 @@ export default function EventDetailModal({
                   </button>
                 )}
 
-                {/* Edit/Save Button - Only show if authorized (Admin or Owner) AND event hasn't started */}
-                {(isAdminMode || ((currentUserId || user?.id) && selectedEvent.user_id === (currentUserId || user?.id))) && !isPastEvent && (
+                {/* Edit/Save Button - Only show if authorized (Admin or Owner) AND event hasn't started (unless admin) */}
+                {(isAdminMode || isActualAdmin || ((currentUserId || user?.id) && selectedEvent.user_id === (currentUserId || user?.id) && !isPastEvent)) && (
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
