@@ -73,7 +73,7 @@ export default function NoticeTicker() {
                 .eq('is_hidden', false)
                 .eq('prefix_id', targetPrefixId)
                 .order('created_at', { ascending: false })
-                .limit(10);
+                .limit(1);
 
             if (postsError) throw postsError;
 
@@ -135,7 +135,7 @@ export default function NoticeTicker() {
 
                         if (!error && data && !(data as any).is_hidden) {
                             const prefixInfo = { name: prefixData.name, color: prefixData.color };
-                            setNotices(prev => [normalizeNotice(data, prefixInfo), ...prev].slice(0, 10));
+                            setNotices([normalizeNotice(data, prefixInfo)]);
                         }
 
                     } else if (payload.eventType === 'UPDATE') {
@@ -165,14 +165,7 @@ export default function NoticeTicker() {
 
                                 if (data) {
                                     const prefixInfo = { name: prefixData.name, color: prefixData.color };
-                                    setNotices(prev => {
-                                        const exists = prev.find(n => n.id === newPost.id);
-                                        if (exists) {
-                                            return prev.map(n => n.id === newPost.id ? normalizeNotice(data, prefixInfo) : n);
-                                        } else {
-                                            return [normalizeNotice(data, prefixInfo), ...prev].slice(0, 10);
-                                        }
-                                    });
+                                    setNotices([normalizeNotice(data, prefixInfo)]);
                                 }
                             } else {
                                 // 전광판이 아니면 목록에서 제거
