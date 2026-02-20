@@ -71,17 +71,18 @@ export default function NotificationHistoryModal({
 
                 console.log('[NotificationHistory] Search Strategy:', { realId, isSocialPath, isFullCalendarOffset });
 
-                // [Fetch Strategy] events 테이블 단일 조회
+                // [Fetch Strategy] events 테이블 단일 조회 (social_groups 제외 - 400 에러 방지)
                 console.log('[NotificationHistory] Fetching from events...');
                 const { data, error } = await supabase
                     .from('events')
-                    .select('*, board_users(nickname), social_groups(name)')
+                    .select('*, board_users(nickname)')
                     .eq('id', realId)
                     .maybeSingle();
 
                 if (error) {
                     console.error('[NotificationHistory] Fetch error:', error);
-                    throw error;
+                    // navigate 대신 여기서 중단 (URL 변경으로 인한 모달 재오픈 방지)
+                    return;
                 }
 
                 if (data) {
@@ -149,8 +150,7 @@ export default function NotificationHistoryModal({
             }
         } catch (err) {
             console.warn('[NotificationHistory] Failed to process click:', err);
-            const fallbackPath = targetUrl ? targetUrl.replace(window.location.origin, '') : '/';
-            navigate(fallbackPath);
+            // navigate 제거: URL 변경이 deeplink 로직을 트리거해 모달이 재오픈되는 루프 방지
         } finally {
             setIsProcessing(false);
             onRefresh();
