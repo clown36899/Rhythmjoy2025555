@@ -377,8 +377,8 @@
             worker.addEventListener('statechange', function () {
               if (worker.state === 'installed') {
                 if (navigator.serviceWorker.controller) {
-                  // 사용 중 업데이트 감지: 대기만 하고 리로드는 미룸
-                  markUpdatePending(reg);
+                  // 사용 중 업데이트 감지: 즉시 적용 (PWA 껐다 켜지 않아도 반영)
+                  autoApplyUpdate(reg);
                 } else {
                   // 최초 설치: 즉시 활성화
                   reg.waiting && reg.waiting.postMessage({ type: 'SKIP_WAITING' });
