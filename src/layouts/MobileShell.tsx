@@ -61,6 +61,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
   const isMyActivitiesPage = currentPath === '/my-activities';
   const isArchivePage = currentPath.startsWith('/learning') || currentPath.startsWith('/history') || (currentPath === '/board' && category === 'history');
   const isLearningDetailPage = currentPath.startsWith('/learning/') && currentPath !== '/learning';
+  const isMetronomePage = currentPath === '/metronome';
 
   const isAdmin = isAdminProp || authIsAdmin;
 
@@ -307,9 +308,9 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
   };
 
   return (
-    <div className={`shell-container ${isWideLayout ? 'layout-wide' : 'layout-compact'} ${isFullscreen ? 'fullscreen-mode' : ''}`}>
+    <div className={`shell-container ${isWideLayout ? 'layout-wide' : 'layout-compact'} ${isFullscreen ? 'fullscreen-mode' : ''} ${isMetronomePage ? 'metronome-shell' : ''}`}>
       {/* Global Fixed Header */}
-      {!isFullscreen && (
+      {!isFullscreen && !isMetronomePage && (
         <header className={`shell-header global-header-fixed ${isEventsPage ? 'has-ticker' : ''}`}>
           {/* Main Page Ticker */}
           {isEventsPage && <NoticeTicker />}
@@ -530,7 +531,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
       </div>
 
       {/* Bottom Navigation */}
-      {!isFullscreen && (
+      {!isFullscreen && !isMetronomePage && (
         <div data-id="bottom-nav" className="shell-bottom-nav">
           {/* Top Bar Removed - Replaced by FAB Logic */}
           <BottomNavigation pageAction={pageAction} onPageActionClick={handlePageAction} />

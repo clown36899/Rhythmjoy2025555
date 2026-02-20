@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import './metronome.css';
 import { supabase } from '../../lib/supabase';
 import type { MetronomePreset } from '../../lib/supabase';
@@ -6,6 +7,7 @@ import { useAuth } from '../../contexts/AuthContext';
 
 const MetronomePage: React.FC = () => {
     const { user, isAdmin } = useAuth();
+    const navigate = useNavigate();
 
     // State
     const [isPlaying, setIsPlaying] = useState(false);
@@ -615,6 +617,15 @@ const MetronomePage: React.FC = () => {
 
     return (
         <div className="metronome-container" onClick={() => setShowRhythmList(false)}>
+            {/* 전용 뒤로가기 버튼 추가 */}
+            <button
+                className="metronome-back-btn"
+                onClick={() => navigate('/forum')}
+                title="포럼 허브로 돌아가기"
+            >
+                <i className="ri-arrow-left-line"></i>
+            </button>
+
             <div className="metronome-content">
                 {/* P4: Enhanced Info Modal */}
                 {showInfo && (

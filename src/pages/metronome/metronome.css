@@ -7,11 +7,41 @@
     box-sizing: border-box;
     overflow: hidden;
     position: relative;
-    padding-top: calc(var(--header-height, 51px) + env(safe-area-inset-top));
+    /* Fullscreen adjustment: remove extra padding from shell header */
+    padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
-    /* Content padding handles the rest */
     padding-left: 20px;
     padding-right: 20px;
+}
+
+/* Back to Forum Button */
+.metronome-back-btn {
+    position: absolute;
+    top: calc(15px + env(safe-area-inset-top));
+    left: 20px;
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    background: var(--bg-surface-glass);
+    border: 1px solid var(--border-glass-strong);
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 1000;
+    backdrop-filter: blur(12px);
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.metronome-back-btn:active {
+    transform: scale(0.9);
+    background: var(--bg-surface-2);
+}
+
+.metronome-back-btn i {
+    font-size: 1.4rem;
 }
 
 /* Global Header Support */

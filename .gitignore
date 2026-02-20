@@ -41,3 +41,7 @@ attached_assets/
 
 # AI Tool Worktrees
 .claude
+
+# Scraped Data
+scraped/
+public/scraped/
