@@ -99,6 +99,9 @@ export default function EventDetailModal({
   const itemType = event?.id && String(event.id).startsWith('social-') ? 'schedule' : 'event';
   const { incrementView } = useViewTracking(eventId, itemType as 'event' | 'schedule');
 
+  // Ref to prevent re-fetching detail for the same event
+  const hasFetchedDetailRef = useRef<string | number | null>(null);
+
   // console.log('[EventDetailModal] 모달 열림 - event:', event?.title, 'isActualAdmin:', isActualAdmin, 'board_users:', (event as any)?.board_users);
 
 
@@ -179,7 +182,9 @@ export default function EventDetailModal({
       // 3. 조회수 증가
       incrementView();
     }
-  }, [isOpen, event, incrementView]);
+    // event?.id 사용: event 객체 참조가 바뀌어도 ID가 같으면 재호출 방지
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, event?.id]);
 
   // Check if event has started (for hiding edit/delete buttons)
   const isPastEvent = useMemo(() => {
@@ -357,16 +362,24 @@ export default function EventDetailModal({
 
   // Moved fetching logic here to access authorNickname
   useEffect(() => {
+    // 다른 이벤트로 바뀌면 ref 초기화
+    if (hasFetchedDetailRef.current !== null && hasFetchedDetailRef.current !== event?.id) {
+      hasFetchedDetailRef.current = null;
+    }
+
     // On-Demand Fetching: 필수 필드 누락 시 또는 권한이 있는데 작성자 닉네임이 없을 때 조회
-    const shouldFetch = event?.id && (
-      event.description === undefined ||
-      !event.user_id ||
-      event.link1 === undefined ||
-      // 관리자거나 본인인데 닉네임이 없으면 정보 조회를 위해 fetch
-      ((isAdminMode || (user && user.id === event.user_id)) && !authorNickname && !(event as any).board_users)
-    );
+    const shouldFetch = event?.id &&
+      hasFetchedDetailRef.current !== event.id && // 이미 fetch한 이벤트는 재호출 방지
+      (
+        event.description === undefined ||
+        !event.user_id ||
+        event.link1 === undefined ||
+        // 관리자거나 본인인데 닉네임이 없으면 정보 조회를 위해 fetch
+        ((isAdminMode || (user && user.id === event.user_id)) && !authorNickname && !(event as any).board_users)
+      );
 
     if (shouldFetch) {
+      hasFetchedDetailRef.current = event!.id; // 즉시 마킹해서 중복 호출 차단
       const fetchDetail = async () => {
         try {
           setIsFetchingDetail(true);
