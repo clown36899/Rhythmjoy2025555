@@ -94,6 +94,13 @@ export default function MyActivitiesPage() {
                 setSocialSchedules(socialItems);
             }
 
+            // 3. Social Groups
+            if (groupsRes.error) {
+                console.error('[MyActivities] ❌ Groups fetch error:', groupsRes.error);
+            } else {
+                setSocialGroups(groupsRes.data || []);
+            }
+
             // 4. Board Posts
             if (postsRes.error) {
                 console.error('[MyActivities] ❌ Posts fetch error:', postsRes.error);
