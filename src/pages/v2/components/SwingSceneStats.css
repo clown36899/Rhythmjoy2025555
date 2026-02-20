@@ -761,6 +761,12 @@
     font-weight: 600;
 }
 
+.tab-btn.static {
+    cursor: default;
+    pointer-events: none;
+    user-select: none;
+}
+
 .share-btn {
     background: var(--bg-surface-glass);
     border: 1px solid var(--border-glass);
@@ -851,7 +857,7 @@
         position: static;
         display: flex;
         justify-content: flex-end;
-        padding: 16px 16px 0 16px;
+        padding: 16px 16px 16px 16px;
         margin-bottom: -10px;
     }
 

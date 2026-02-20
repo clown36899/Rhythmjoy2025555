@@ -33,16 +33,24 @@ export const handler: Handler = async (event) => {
             .eq('key', 'scene_analytics')
             .single();
 
-        const now = new Date();
+        // Initialize KST Date
+        const getKSTDate = (date: Date) => {
+            return new Date(date.getTime() + (9 * 60 * 60 * 1000));
+        };
+        const kstNow = getKSTDate(new Date());
+        const kstTodayStr = kstNow.toISOString().split('T')[0];
+        const kstMonthStr = kstTodayStr.substring(0, 7);
+        const kstDayOfMonth = kstNow.getUTCDate(); // Since we added 9h, UTC date of this object is KST date
+
         const refreshParam = event.queryStringParameters?.refresh === 'true';
-        console.log(`[get-site-stats] 📥 Request received. Refresh Param: ${refreshParam}`);
+        console.log(`[get-site-stats] 📥 Request received. KST: ${kstTodayStr}, Refresh: ${refreshParam}`);
 
         let resultData = null;
         let shouldUseCache = false;
 
         if (cacheData && cacheData.value && !refreshParam) {
             const lastUpdated = new Date(cacheData.updated_at);
-            const diffMs = now.getTime() - lastUpdated.getTime();
+            const diffMs = new Date().getTime() - lastUpdated.getTime();
             if (diffMs < 24 * 60 * 60 * 1000) {
                 console.log('[get-site-stats] ⚡ Cache Hit!');
                 shouldUseCache = true;
@@ -70,7 +78,7 @@ export const handler: Handler = async (event) => {
                 memberCount: Number(liveMetrics?.find(m => m.metric_type === 'user_count')?.val || 0),
                 pwaCount: Number(liveMetrics?.find(m => m.metric_type === 'pwa_count')?.val || 0),
                 pushCount: Number(liveMetrics?.find(m => m.metric_type === 'push_count')?.val || 0),
-                calculatedAt: now.toISOString()
+                calculatedAt: new Date().toISOString()
             };
 
             const { data: eventMetrics } = await supabaseAdmin
@@ -83,15 +91,20 @@ export const handler: Handler = async (event) => {
             const genreMap: any = {};
             let totalItems = 0;
 
-            const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-            const monthlyWeeklyMap: any = {};
+            // [FIX] Use KST Month Start/End for strict "This Month" filtering
+            const kstYear = kstNow.getUTCFullYear();
+            const kstMonth = kstNow.getUTCMonth() + 1;
+            const currentMonthStart = `${kstYear}-${String(kstMonth).padStart(2, '0')}-01`;
+            const currentMonthEnd = new Date(Date.UTC(kstYear, kstMonth, 0)).toISOString().split('T')[0];
 
+            const monthlyWeeklyMap: any = {};
             const EXCLUDE_KEYWORDS = ['워크샵', '라이브밴드', '파티', '대회', '행사'];
 
             eventMetrics?.forEach(row => {
-                const date = new Date(row.ref_date);
+                // [FIX] Explicit KST Day of Week calculation to avoid TZ shifts
+                const dateObj = new Date(row.ref_date + 'T00:00:00+09:00');
+                const dow = dateObj.getDay();
                 const month = row.ref_date.substring(0, 7);
-                const dow = date.getUTCDay();
                 const val = Number(row.val);
 
                 if (row.metric_type === 'act_count') {
@@ -120,7 +133,8 @@ export const handler: Handler = async (event) => {
                                 weeklyMap[dow].genres[finalG] = (weeklyMap[dow].genres[finalG] || 0) + weightPerGenre;
                                 genreMap[finalG] = (genreMap[finalG] || 0) + weightPerGenre;
 
-                                if (row.ref_date >= oneMonthAgo) {
+                                // [FIX] Add End Date Filter for "This Month"
+                                if (row.ref_date >= currentMonthStart && row.ref_date <= currentMonthEnd) {
                                     if (!monthlyWeeklyMap[dow]) {
                                         monthlyWeeklyMap[dow] = { dow, count: 0, classes: 0, socials: 0, clubs: 0, events: 0, genres: {} };
                                     }
@@ -138,7 +152,8 @@ export const handler: Handler = async (event) => {
                     else if (row.dim_cat === 'social') weeklyMap[dow].socials += val;
                     else weeklyMap[dow].events += val;
 
-                    if (row.ref_date >= oneMonthAgo) {
+                    // [FIX] Add End Date Filter for "This Month"
+                    if (row.ref_date >= currentMonthStart && row.ref_date <= currentMonthEnd) {
                         if (!monthlyWeeklyMap[dow]) {
                             monthlyWeeklyMap[dow] = { dow, count: 0, classes: 0, socials: 0, clubs: 0, events: 0, genres: {} };
                         }
@@ -157,8 +172,8 @@ export const handler: Handler = async (event) => {
 
             const monthly = Object.values(monthlyMap).map((m: any) => {
                 const [year, monthNum] = m.month.split('-').map(Number);
-                const isCurrentMonth = year === now.getFullYear() && (monthNum - 1) === now.getMonth();
-                const daysInMonth = isCurrentMonth ? now.getDate() : new Date(year, monthNum, 0).getDate();
+                const isCurrentMonth = year === (kstNow.getUTCFullYear()) && monthNum === (kstNow.getUTCMonth() + 1);
+                const daysInMonth = isCurrentMonth ? kstDayOfMonth : new Date(year, monthNum, 0).getDate();
                 return { ...m, dailyAvg: Number((m.total / (daysInMonth || 1)).toFixed(1)) };
             }).sort((a: any, b: any) => a.month.localeCompare(b.month));
 
@@ -219,9 +234,8 @@ export const handler: Handler = async (event) => {
                 };
             }).sort((a, b) => (dowOrder[a.day] || 0) - (dowOrder[b.day] || 0));
 
-            const currentMonthKey = now.toISOString().substring(0, 7);
-            const currentMonthData: any = monthlyMap[currentMonthKey];
-            const dailyAverage = currentMonthData ? Number((currentMonthData.total / now.getDate()).toFixed(1)) : 0;
+            const currentMonthData: any = monthlyMap[kstMonthStr];
+            const dailyAverage = currentMonthData ? Number((currentMonthData.total / kstDayOfMonth).toFixed(1)) : 0;
 
             resultData = {
                 summary: { ...summaryStats, totalItems, dailyAverage, topDay: [...totalWeekly].sort((a, b) => b.count - a.count)[0]?.day || '-' },
@@ -234,7 +248,7 @@ export const handler: Handler = async (event) => {
             await supabaseAdmin.from('metrics_cache').upsert({
                 key: 'scene_analytics',
                 value: resultData,
-                updated_at: now.toISOString()
+                updated_at: new Date().toISOString()
             });
             const { data: promoMetrics } = await supabaseAdmin
                 .from('site_stats_index')
@@ -284,7 +298,7 @@ export const handler: Handler = async (event) => {
             await supabaseAdmin.from('metrics_cache').upsert({
                 key: 'scene_analytics',
                 value: { ...resultData, leadTimeAnalysis },
-                updated_at: now.toISOString()
+                updated_at: new Date().toISOString()
             });
 
             return {

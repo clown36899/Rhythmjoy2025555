@@ -91,8 +91,7 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
     const [stats, setStats] = useState<SceneStats | null>(null);
     const [loading, setLoading] = useState(true);
     // Removed useMonthlyBillboard hook
-    const [weeklyTab, setWeeklyTab] = useState<'total' | 'monthly'>('total');
-    const [monthlyRange, setMonthlyRange] = useState<'6m' | '1y'>('6m');
+    const [weeklyTab, setWeeklyTab] = useState<'total' | 'monthly'>('monthly');
     const [isAdmin, setIsAdmin] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
     const [inspectTypeDay, setInspectTypeDay] = useState<string | null>(null);
@@ -262,7 +261,7 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
                 chartScrollRef.current.scrollLeft = chartScrollRef.current.scrollWidth;
             }
         }
-    }, [stats, monthlyRange]);
+    }, [stats]);
 
     if (loading || !stats) {
         return (
@@ -421,17 +420,22 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
                                     {onInsertItem && (
                                         <button
                                             className="mw-insert-btn"
-                                            onClick={() => onInsertItem('scene-monthly', '월별 활동 추이', { range: monthlyRange })}
+                                            onClick={() => onInsertItem('scene-monthly', '월별 활동 추이', { range: '1y' })}
                                         >
                                             <i className="ri-add-line"></i> 본문에 삽입
                                         </button>
                                     )}
                                     <div className="tab-group">
-                                        <button onClick={() => setMonthlyRange('6m')} className={`tab-btn ${monthlyRange === '6m' ? 'active' : ''}`}>6개월</button>
-                                        <button onClick={() => setMonthlyRange('1y')} className={`tab-btn ${monthlyRange === '1y' ? 'active' : ''}`}>1년</button>
+                                        <span className="tab-btn active static">최근 1년</span>
                                     </div>
                                 </div>
-                                <div className="chart-container" ref={chartScrollRef}>
+                                <div
+                                    className="chart-container"
+                                    ref={chartScrollRef}
+                                    onTouchStart={(e) => e.stopPropagation()}
+                                    onTouchMove={(e) => e.stopPropagation()}
+                                    onTouchEnd={(e) => e.stopPropagation()}
+                                >
                                     {/* ... bars mapping ... */}
                                     {currentMonthly.map((m, i) => {
                                         const [year, monthNum] = m.month.split('-').map(Number);
@@ -533,7 +537,12 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
                             </div>
                             <div className="touch-hint">* 그래프 터치하여 상세 보기</div>
 
-                            <div className="chart-container weekly-chart">
+                            <div
+                                className="chart-container weekly-chart"
+                                onTouchStart={(e) => e.stopPropagation()}
+                                onTouchMove={(e) => e.stopPropagation()}
+                                onTouchEnd={(e) => e.stopPropagation()}
+                            >
                                 {currentWeekly.map((d, i) => (
                                     <div key={i} className="bar-wrapper" style={{ cursor: 'pointer', opacity: inspectTypeDay && inspectTypeDay !== d.day ? 0.3 : 1 }} onClick={() => setInspectTypeDay(inspectTypeDay === d.day ? null : d.day)}>
                                         {d.count > 0 && <span className="total-label" style={{ color: inspectTypeDay === d.day ? 'var(--color-blue-400)' : 'var(--text-primary)' }}>{d.count}</span>}
@@ -594,7 +603,12 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
                         <div className="stats-section">
                             <h4 className="section-title"><i className="ri-medal-2-line"></i> 외부강습 요일별 장르 비중</h4>
 
-                            <div className="chart-container weekly-chart">
+                            <div
+                                className="chart-container weekly-chart"
+                                onTouchStart={(e) => e.stopPropagation()}
+                                onTouchMove={(e) => e.stopPropagation()}
+                                onTouchEnd={(e) => e.stopPropagation()}
+                            >
                                 {currentWeekly.map((d, i) => (
                                     <div key={i} className="bar-wrapper" style={{ cursor: 'pointer', opacity: inspectGenreDay && inspectGenreDay !== d.day ? 0.3 : 1 }} onClick={() => setInspectGenreDay(inspectGenreDay === d.day ? null : d.day)}>
                                         {d.count > 0 && <span className="total-label" style={{ color: inspectGenreDay === d.day ? 'var(--color-blue-400)' : 'var(--text-primary)' }}>{d.count}</span>}
@@ -744,7 +758,12 @@ const DataInspectorModal = ({ day, items, sortBy, onClose }: { day: string, item
                     </button>
                 </div>
 
-                <div className="inspector-content custom-scrollbar">
+                <div
+                    className="inspector-content custom-scrollbar"
+                    onTouchStart={(e) => e.stopPropagation()}
+                    onTouchMove={(e) => e.stopPropagation()}
+                    onTouchEnd={(e) => e.stopPropagation()}
+                >
                     {sortedItems.length === 0 ? (
                         <div className="inspector-empty">데이터가 없습니다.</div>
                     ) : (
