@@ -1,43 +1,10 @@
 [
   {
-    "id": "ss_260219_thu",
-    "keyword": "스윙스캔들",
-    "source_url": "https://www.instagram.com/p/DU1_gezGGVp/",
-    "poster_url": "/scraped/ss_260219_savoy.png",
-    "extracted_text": "목요일 소셜 (with 스윙스캔들)\\n날짜: 2026년 2월 19일 (목)\\n장소: 사보이볼룸\\nDJ: 안단테\\n시간: 19:30 ~ 23:00\\n비용: 9,000원\\n비고: 라이브 파티 참여자 50% 할인 가능",
-    "structured_data": {
-      "date": "2026-02-19",
-      "day": "목",
-      "title": "목요일 소셜 (with 스윙스캔들)",
-      "status": "정상운영",
-      "djs": [
-        "안단테 (Andante)"
-      ],
-      "times": [
-        "19:30 ~ 23:00"
-      ],
-      "location": "사보이볼룸 (Savoy Ballroom)",
-      "fee": "9,000원",
-      "note": "18일 라이브 파티 참여자 50% 할인 혜택 가능."
-    },
-    "evidence": {
-      "screenshot_path": "/scraped/ss_260219_savoy.png",
-      "ocr_raw": "목사 DJ 안단테",
-      "extraction_mapping": {
-        "date": "이미지 상단 텍스트 및 캡션",
-        "djs": "이미지 중앙 안단테",
-        "fee": "캡션 정보"
-      }
-    },
-    "created_at": "2026-02-18T03:25:00+09:00",
-    "updated_at": "2026-02-18T03:25:00+09:00"
-  },
-  {
     "id": "ss_260221_sat",
     "keyword": "스윙스캔들",
     "source_url": "https://www.instagram.com/p/DU1_gezGGVp/",
     "poster_url": "/scraped/ss_260221_savoy.png",
-    "extracted_text": "토요일 소셜 (with 스윙스캔들)\\n날짜: 2026년 2월 21일 (토)\\n장소: 사보이볼룸\\nDJ: 몽룡\\n시간: 19:30 ~ 23:00\\n비용: 11,000원",
+    "extracted_text": "토요일 소셜 (with 스윙스캔들)\n날짜: 2026년 2월 21일 (토)\n장소: 사보이볼룸\nDJ: 몽룡\n시간: 19:30 ~ 23:00\n비용: 11,000원",
     "structured_data": {
       "date": "2026-02-21",
       "day": "토",
@@ -63,47 +30,273 @@
       }
     },
     "created_at": "2026-02-18T03:25:01+09:00",
-    "updated_at": "2026-02-18T03:25:01+09:00"
+    "updated_at": "2026-02-18T10:30:00+09:00"
   },
   {
-    "id": "ss_260218_wed",
-    "keyword": "스윙스캔들",
-    "source_url": "https://cafe.naver.com/f-e/cafes/14933600/articles/101953",
-    "poster_url": "/scraped/ss_260218_savoy.png",
-    "extracted_text": "February Savoy Live Night!!\\n날짜: 2026년 2월 18일 (수)\\n장소: 사보이 볼룸\\nDJ: 테일\\n라이브 공연: 서효상과 핫한 녀석들\\n비용: 사전 신청 21,000원, 현장 입장 24,000원\\n19:30 ~ 24:00",
+    "id": "hh_260220_fri",
+    "keyword": "해피홀",
+    "source_url": "https://www.instagram.com/happyhall2004/",
+    "poster_url": "/scraped/happyhall_260220.png",
+    "extracted_text": "금요 소셜\n날짜: 2026년 2월 20일 (금)\nDJ: 해림\n시간: 20:30 ~\n비용: 10,000원",
     "structured_data": {
-      "date": "2026-02-18",
-      "day": "수",
-      "title": "February Savoy Live Night!!",
+      "date": "2026-02-20",
+      "day": "금",
+      "title": "금요 소셜 (DJ 해림)",
       "status": "정상운영",
       "djs": [
-        "테일"
+        "해림"
       ],
       "times": [
-        "19:30 ~ 24:00"
+        "20:30 ~"
       ],
-      "location": "사보이 볼룸",
-      "fee": "24,000원",
-      "note": "사전신청 21,000원. 라이브 밴드 공연 포함."
+      "location": "해피홀",
+      "fee": "10,000원",
+      "note": "금요일 정기 소셜"
     },
     "evidence": {
-      "screenshot_path": "/scraped/ss_260218_savoy.png",
-      "ocr_raw": "February Savoy Live Night!!\\n날짜: 2026년 2월 18일 (수)\\n장소: 사보이 볼룸\\nDJ: 테일\\n라이브 공연: 서효상과 핫한 녀석들\\n비용: 사전 신청 21,000원, 현장 입장 24,000원\\n19:30 ~ 24:00",
+      "screenshot_path": "/scraped/happyhall_260220.png",
+      "ocr_raw": "2/20 금 DJ 해림",
       "extraction_mapping": {
-        "date": "게시물 상단 및 내용",
-        "djs": "내용 DJ 섹션",
-        "fee": "신청 안내 섹션"
+        "date": "포스터 및 캡션",
+        "djs": "포스터 중앙",
+        "fee": "캡션 정보"
       }
     },
-    "created_at": "2026-02-18T00:50:00+09:00",
-    "updated_at": "2026-02-17T15:49:43.037Z"
+    "created_at": "2026-02-18T10:30:00+09:00",
+    "updated_at": "2026-02-18T10:30:00+09:00"
+  },
+  {
+    "id": "st_260221_sat",
+    "keyword": "스윙타임",
+    "source_url": "https://www.instagram.com/swingtimebar/",
+    "poster_url": "/scraped/swingtime_260221_22.png",
+    "extracted_text": "토요 소셜\n날짜: 2026년 2월 21일 (토)\nDJ: 홍군 (20:15-22:15)\n소셜 시작: 19:30",
+    "structured_data": {
+      "date": "2026-02-21",
+      "day": "토",
+      "title": "토요 소셜 (DJ 홍군)",
+      "status": "정상운영",
+      "djs": [
+        "홍군"
+      ],
+      "times": [
+        "19:30 ~ 22:15"
+      ],
+      "location": "스윙타임",
+      "fee": null,
+      "note": "소셜 시작 19:30, DJ 서비스 20:15-22:15"
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/swingtime_260221_22.png",
+      "ocr_raw": "2/21 Sat DJ 홍군",
+      "extraction_mapping": {
+        "date": "포스터 텍스트",
+        "djs": "포스터 텍스트"
+      }
+    },
+    "created_at": "2026-02-18T10:30:00+09:00",
+    "updated_at": "2026-02-18T10:30:00+09:00"
+  },
+  {
+    "id": "st_260222_sun",
+    "keyword": "스윙타임",
+    "source_url": "https://www.instagram.com/swingtimebar/",
+    "poster_url": "/scraped/swingtime_260221_22.png",
+    "extracted_text": "일요 소셜\n날짜: 2026년 2월 22일 (일)\nDJ: 켄 (1부 20:00-21:30, 2부 21:30-23:00)\n소셜 시작: 19:30",
+    "structured_data": {
+      "date": "2026-02-22",
+      "day": "일",
+      "title": "일요 소셜 (DJ 켄)",
+      "status": "정상운영",
+      "djs": [
+        "켄"
+      ],
+      "times": [
+        "19:30 ~ 23:00"
+      ],
+      "location": "스윙타임",
+      "fee": null,
+      "note": "소셜 시작 19:30, DJ 서비스 20:00-23:00"
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/swingtime_260221_22.png",
+      "ocr_raw": "2/22 Sun DJ 켄",
+      "extraction_mapping": {
+        "date": "포스터 텍스트",
+        "djs": "포스터 텍스트"
+      }
+    },
+    "created_at": "2026-02-18T10:30:00+09:00",
+    "updated_at": "2026-02-18T10:30:00+09:00"
+  },
+  {
+    "id": "kh_260221_sat",
+    "keyword": "경성홀",
+    "source_url": "https://www.instagram.com/kyungsunghall/",
+    "poster_url": "/scraped/kyungsunghall_260221.png",
+    "extracted_text": "토요일 소셜\n날짜: 2026년 2월 21일 (토)\nDJ: 조춘식이\n시간: 19:30 - 23:00\n비용: 11,000원",
+    "structured_data": {
+      "date": "2026-02-21",
+      "day": "토",
+      "title": "토요일 소셜 (DJ 조춘식이)",
+      "status": "정상운영",
+      "djs": [
+        "조춘식이"
+      ],
+      "times": [
+        "19:30 ~ 23:00"
+      ],
+      "location": "경성홀",
+      "fee": "11,000원",
+      "note": "경성홀 토요 소셜 (정밀 재수집 완료)"
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/kyungsunghall_260221.png",
+      "ocr_raw": "2/21 Sat DJ 조춘식이",
+      "extraction_mapping": {
+        "date": "포스터 텍스트",
+        "djs": "포스터 텍스트"
+      }
+    },
+    "created_at": "2026-02-18T10:30:00+09:00",
+    "updated_at": "2026-02-20T06:15:00+09:00"
+  },
+  {
+    "id": "kh_260222_sun",
+    "keyword": "경성홀",
+    "source_url": "https://www.instagram.com/kyungsunghall/",
+    "poster_url": "/scraped/kyungsunghall_260222.png",
+    "extracted_text": "일요일 소셜\n날짜: 2026년 2월 22일 (일)\nDJ: 고즈\n시간: 19:30 - 23:00\n비용: 11,000원",
+    "structured_data": {
+      "date": "2026-02-22",
+      "day": "일",
+      "title": "일요일 소셜 (DJ 고즈)",
+      "status": "정상운영",
+      "djs": [
+        "고즈"
+      ],
+      "times": [
+        "19:30 ~ 23:00"
+      ],
+      "location": "경성홀",
+      "fee": "11,000원",
+      "note": "경성홀 일요 소셜 (정밀 재수집 완료)"
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/kyungsunghall_260222.png",
+      "ocr_raw": "2/22 Sun DJ 고즈",
+      "extraction_mapping": {
+        "date": "포스터 텍스트",
+        "djs": "포스터 텍스트"
+      }
+    },
+    "created_at": "2026-02-18T10:30:00+09:00",
+    "updated_at": "2026-02-20T06:15:00+09:00"
+  },
+  {
+    "id": "kh_260224_tue",
+    "keyword": "경성홀",
+    "source_url": "https://www.instagram.com/kyungsunghall/",
+    "poster_url": "/scraped/kyungsunghall_260224.png",
+    "extracted_text": "화요일 소셜\n날짜: 2026년 2월 24일 (화)\nDJ: 스톰\n시간: 20:00 - 23:00\n비용: 9,000원",
+    "structured_data": {
+      "date": "2026-02-24",
+      "day": "화",
+      "title": "화요일 소셜 (DJ 스톰)",
+      "status": "정상운영",
+      "djs": [
+        "스톰"
+      ],
+      "times": [
+        "20:00 ~ 23:00"
+      ],
+      "location": "경성홀",
+      "fee": "9,000원",
+      "note": "경성홀 화요 소셜 (정밀 재수집 완료)"
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/kyungsunghall_260224.png",
+      "ocr_raw": "2/24 Tue DJ 스톰",
+      "extraction_mapping": {
+        "date": "포스터 텍스트",
+        "djs": "포스터 텍스트"
+      }
+    },
+    "created_at": "2026-02-18T10:30:00+09:00",
+    "updated_at": "2026-02-20T06:15:00+09:00"
+  },
+  {
+    "id": "bs_260221_sat",
+    "keyword": "박쥐스윙",
+    "source_url": "https://www.instagram.com/batswing2003/",
+    "poster_url": "/scraped/batswing_260221.png",
+    "extracted_text": "박쥐 소셜 타임\n날짜: 2026년 2월 21일 (토)\nDJ: 다카포\n시간: 19:30 ~\n장소: 인더무드 신림\n비용: 10,000원",
+    "structured_data": {
+      "date": "2026-02-21",
+      "day": "토",
+      "title": "박쥐 소셜 타임 (DJ 다카포)",
+      "status": "정상운영",
+      "djs": [
+        "다카포"
+      ],
+      "times": [
+        "19:30 ~"
+      ],
+      "location": "인더무드 신림",
+      "fee": "10,000원",
+      "note": "박쥐스윙 정기 소셜"
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/batswing_260221.png",
+      "ocr_raw": "2/21 Sat DJ 다카포",
+      "extraction_mapping": {
+        "date": "캡션 및 하이라이트",
+        "djs": "캡션",
+        "fee": "소셜 안내 하이라이트"
+      }
+    },
+    "created_at": "2026-02-18T10:30:00+09:00",
+    "updated_at": "2026-02-18T10:30:00+09:00"
+  },
+  {
+    "id": "sh_260221_sat",
+    "keyword": "스윙홀릭",
+    "source_url": "https://www.instagram.com/swingholic/",
+    "poster_url": "/scraped/swingholic_feb_schedule.png",
+    "extracted_text": "토요 소셜 (DJ 진웅)\n날짜: 2026년 2월 21일 (토)\n장소: 마얀 F3\nDJ: 진웅\n시간: 20:00 ~ 22:30\n비용: 9,000원",
+    "structured_data": {
+      "date": "2026-02-21",
+      "day": "토",
+      "title": "토요 소셜 (DJ 진웅)",
+      "status": "정상운영",
+      "djs": [
+        "진웅"
+      ],
+      "times": [
+        "20:00 ~ 22:30"
+      ],
+      "location": "마얀 F3",
+      "fee": "9,000원",
+      "note": "2월 DJ 라인업 포스터 기반 수집"
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/swingholic_feb_schedule.png",
+      "ocr_raw": "02.21 진웅, PM08:00 - 10:30, 9,000",
+      "extraction_mapping": {
+        "date": "포스터 하단",
+        "djs": "포스터 하단",
+        "fee": "포스터 하단"
+      }
+    },
+    "created_at": "2026-02-18T10:30:00+09:00",
+    "updated_at": "2026-02-18T10:30:00+09:00"
   },
   {
     "id": "sh_260228_sat",
     "keyword": "스윙홀릭",
-    "source_url": "https://www.instagram.com/p/DULjF4CEmN5/",
-    "poster_url": "/scraped/sh_2602_schedule.png",
-    "extracted_text": "토요 소셜 (DJ 자연인)\\n날짜: 2026년 2월 28일 (토)\\n장소: 마얀 F3 (스윙홀릭)\\nDJ: 자연인\\n시간: 20:00 ~ 22:30\\n비용: 9,000원",
+    "source_url": "https://www.instagram.com/swingholic/",
+    "poster_url": "/scraped/swingholic_feb_schedule.png",
+    "extracted_text": "토요 소셜 (DJ 자연인)\n날짜: 2026년 2월 28일 (토)\n장소: 마얀 F3\nDJ: 자연인\n시간: 20:00 ~ 22:30\n비용: 9,000원",
     "structured_data": {
       "date": "2026-02-28",
       "day": "토",
@@ -117,50 +310,18 @@
       ],
       "location": "마얀 F3",
       "fee": "9,000원",
-      "note": "2월 DJ 일정 포스터 기반 수집"
+      "note": "2월 DJ 라인업 포스터 기반 수집"
     },
     "evidence": {
-      "screenshot_path": "/scraped/sh_2602_schedule.png",
+      "screenshot_path": "/scraped/swingholic_feb_schedule.png",
       "ocr_raw": "02.28 자연인, PM08:00 - 10:30, 9,000",
       "extraction_mapping": {
-        "date": "포스터 하단 중앙",
-        "djs": "포스터 하단 중앙",
+        "date": "포스터 하단",
+        "djs": "포스터 하단",
         "fee": "포스터 하단"
       }
     },
     "created_at": "2026-02-18T07:05:00+09:00",
-    "updated_at": "2026-02-18T07:25:00+09:00"
-  },
-  {
-    "id": "sf_260220_workshop",
-    "keyword": "스윙프렌즈",
-    "source_url": "https://forms.gle/4STyePpwqMfcKnz68",
-    "poster_url": null,
-    "extracted_text": "째의 턴&밸런스 특강\n댄서의 폼은 밸런스에서 나온다!\n밸런스 개념부터 이해하고 트레이닝하는 코어가 단단해지는 수업\n리더 & 팔뤄 모두 신청 가능\n일정: 2월20일 저녁8:10-9시50분\n장소: 신촌 연습실\n강사: 째",
-    "structured_data": {
-      "date": "2026-02-20",
-      "day": "금",
-      "title": "째의 턴&밸런스 특강",
-      "status": "정상운영",
-      "djs": [],
-      "instructor": "째",
-      "times": [
-        "20:10 ~ 21:50"
-      ],
-      "location": "신촌 연습실",
-      "fee": null,
-      "note": "리더 & 팔뤄 모두 신청 가능. 밸런스 트레이닝 수업. 출처: 스윙프렌즈 네이버 카페 (째님 작성)"
-    },
-    "evidence": {
-      "screenshot_path": null,
-      "ocr_raw": "수동 텍스트 입력",
-      "extraction_mapping": {
-        "date": "원문 '2월20일'",
-        "instructor": "원문 작성자 '째님'",
-        "times": "원문 '저녁8:10-9시50분'"
-      }
-    },
-    "created_at": "2026-02-18T07:54:00+09:00",
-    "updated_at": "2026-02-18T07:54:00+09:00"
+    "updated_at": "2026-02-18T10:30:00+09:00"
   }
 ]

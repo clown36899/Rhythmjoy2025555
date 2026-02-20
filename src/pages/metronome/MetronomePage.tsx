@@ -71,7 +71,25 @@ const MetronomePage: React.FC = () => {
     useEffect(() => { triplet2ndRef.current = triplet2ndAccent; }, [triplet2ndAccent]);
     useEffect(() => { triplet3rdSwingRef.current = triplet3rdSwing; }, [triplet3rdSwing]);
     useEffect(() => { soundIdRef.current = soundId; }, [soundId]);
-    useEffect(() => { beatVolumesRef.current = beatVolumes; }, [beatVolumes]);
+    useEffect(() => {
+        beatVolumesRef.current = beatVolumes;
+    }, [beatVolumes]);
+
+    // [Fix] Subdivision 또는 Beats 변경 시 볼륨 배열 길이 자동 동기화
+    useEffect(() => {
+        const requiredLength = beatsPerMeasure * subdivision;
+        if (beatVolumes.length !== requiredLength) {
+            setBeatVolumes(prev => {
+                const next = Array(requiredLength).fill(3);
+                // 기존 데이터 보존 시도
+                for (let i = 0; i < Math.min(prev.length, requiredLength); i++) {
+                    next[i] = prev[i];
+                }
+                beatVolumesRef.current = next;
+                return next;
+            });
+        }
+    }, [beatsPerMeasure, subdivision]);
 
     // Web Audio Refs
     const audioContextRef = useRef<AudioContext | null>(null);
@@ -409,10 +427,17 @@ const MetronomePage: React.FC = () => {
 
         if (data && !error) {
             setUserPresets(data);
+
+            // [Fix] 초기 로드 시 현재 'rhythmName' (Straight)과 일치하는 저장된 데이터가 있으면 자동 적용
+            const savedDefault = data.find(p => p.name === rhythmName);
+            if (savedDefault) {
+                console.log('[Metronome] Auto-applying saved preset:', savedDefault.name);
+                applyUserPreset(savedDefault, true); // true: do not auto-start
+            }
         }
     };
 
-    const applyUserPreset = useCallback((preset: MetronomePreset) => {
+    const applyUserPreset = useCallback((preset: MetronomePreset, preventStart: boolean = false) => {
         stopEngine();
 
         setBpm(preset.bpm);
@@ -451,7 +476,9 @@ const MetronomePage: React.FC = () => {
         console.log('[Preset] Applied:', preset.name, isSaving ? '(saving...)' : '');
 
         setShowRhythmList(false);
-        setTimeout(() => startEngine(), 50);
+        if (!preventStart) {
+            setTimeout(() => startEngine(), 50);
+        }
     }, [stopEngine, startEngine, isSaving]);
 
     const saveCurrentPreset = async () => {
@@ -569,21 +596,10 @@ const MetronomePage: React.FC = () => {
         setRhythmName(name);
         setActiveUserPreset(null);
 
-        const totalBeats = beatsPerMeasure * newSub;
-        const newVolumes = Array(totalBeats).fill(3);
-
-        setBeatVolumes(newVolumes);
-        beatVolumesRef.current = newVolumes;
-
-        // Immediate Sync
-        subRef.current = newSub;
-        swingRef.current = newSwing;
-        offbeat13Ref.current = newAccent;
-        offbeat24Ref.current = newAccent;
-        downbeat13Ref.current = newDownbeat;
-        backbeatRef.current = newBackbeat;
         triplet2ndRef.current = 50;
         triplet3rdSwingRef.current = 0;
+
+        // [Note] beatVolumes scaling is now handled by the useEffect(…, [beatsPerMeasure, subdivision])
 
         setShowInfo(false);
         setShowRhythmList(false);
@@ -591,7 +607,7 @@ const MetronomePage: React.FC = () => {
         setTimeout(() => {
             startEngine();
         }, 50);
-    }, [stopEngine, startEngine]);
+    }, [stopEngine, startEngine, beatsPerMeasure]);
 
     // Swing ratio display helper
     const swingRatioLong = Math.round(50 + (swingFactor * 0.25));
