@@ -84,7 +84,7 @@ export default function NewEventsListModal({
                 <div className="NEL-header">
                     <div className="NEL-titleInfo">
                         <h3 className="NEL-title">
-                            신규 등록 <span className="NEL-badge">NEW</span>
+                            신규 이벤트 <span className="NEL-badge">NEW</span>
                         </h3>
                         <span className="NEL-subtitle">최근 72시간 내 업데이트</span>
                     </div>
