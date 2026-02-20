@@ -275,9 +275,21 @@ function RootApp() {
       const message = error?.message || error?.toString?.() || 'Unknown Error';
       const stack = error?.stack || '';
 
-      // [Debug Mode] 모든 에러를 화면에 표시 (사용자 요청)
-      // 단, 불필요한 노이즈(ResizeObserver 등)는 제외
+      // 불필요한 노이즈 무시
       if (message.includes('ResizeObserver loop') || message.includes('Script error')) {
+        return;
+      }
+
+      // 배포 후 구버전 청크 로드 실패 → 에러창 없이 조용히 새로고침
+      const isChunkError =
+        message.includes('Failed to fetch dynamically imported module') ||
+        message.includes('Importing a module script failed') ||
+        message.includes('Loading chunk') ||
+        message.includes('dynamically imported module') ||
+        message.includes('fetch dynamically imported');
+      if (isChunkError) {
+        console.warn('📦 Chunk load failed, reloading silently...');
+        window.location.reload();
         return;
       }
 
