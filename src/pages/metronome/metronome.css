@@ -709,6 +709,55 @@
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+    position: relative;
+}
+
+/* Premium Tooltip */
+.sound-btn::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 12px);
+    left: 50%;
+    transform: translateX(-50%) translateY(8px);
+    background: var(--bg-surface-glass);
+    color: var(--text-primary);
+    padding: 6px 12px;
+    border-radius: 10px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    white-space: nowrap;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border-glass-strong);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    z-index: 2000;
+    pointer-events: none;
+}
+
+/* Tooltip Arrow */
+.sound-btn::before {
+    content: '';
+    position: absolute;
+    bottom: calc(100% + 4px);
+    left: 50%;
+    transform: translateX(-50%) translateY(8px);
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 8px solid var(--border-glass-strong);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    z-index: 2000;
+    pointer-events: none;
+}
+
+.sound-btn:hover::after,
+.sound-btn:hover::before {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
 }
 
 .sound-btn:hover {
@@ -722,7 +771,7 @@
 
 .sound-btn.active {
     background: var(--color-amber-500);
-    color: #000;
+    color: #000 !important;
     border-color: var(--color-amber-500);
     box-shadow: 0 0 15px rgba(245, 158, 11, 0.4);
 }

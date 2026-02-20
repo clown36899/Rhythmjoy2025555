@@ -13,6 +13,28 @@ const listeners = new Set<(state: any) => void>();
 // 보안 컨텍스트(HTTPS)가 아닌 환경에서도 동작하도록 fallback 추가 (via utils/uuid)
 const sessionId = generateUUID();
 
+// 비로그인 전용 영속 ID: localStorage에 저장해 탭 여러 개를 열어도 같은 브라우저면 동일 ID를 반환.
+// 6시간이 지나면 새 ID 발급 → 재방문으로 카운트.
+const ANON_ID_KEY = 'presence_anon_id';
+const ANON_TTL_KEY = 'presence_anon_ttl';
+const SIX_HOURS = 6 * 60 * 60 * 1000;
+
+const getAnonId = (): string => {
+    try {
+        const existing = localStorage.getItem(ANON_ID_KEY);
+        const ttl = localStorage.getItem(ANON_TTL_KEY);
+        if (existing && ttl && (Date.now() - parseInt(ttl)) < SIX_HOURS) {
+            return existing;
+        }
+        const newId = generateUUID();
+        localStorage.setItem(ANON_ID_KEY, newId);
+        localStorage.setItem(ANON_TTL_KEY, Date.now().toString());
+        return newId;
+    } catch {
+        return generateUUID(); // localStorage 접근 불가 환경 fallback
+    }
+};
+
 export function useOnlinePresence() {
     const { user, userProfile, isAdmin } = useAuth();
     const [isSubscribed, setIsSubscribed] = useState(false);
@@ -42,6 +64,7 @@ export function useOnlinePresence() {
         const presenceData = {
             session_id: sessionId,
             user_id: user?.id || null,
+            anon_id: user ? null : getAnonId(), // 비로그인 전용 영속 ID (6시간 TTL)
             nickname: userProfile?.nickname || null,
             profile_image_url: userProfile?.profile_image || null,
             type: type,

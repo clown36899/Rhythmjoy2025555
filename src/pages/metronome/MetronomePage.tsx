@@ -30,13 +30,17 @@ const MetronomePage: React.FC = () => {
     const [userPresets, setUserPresets] = useState<MetronomePreset[]>([]);
     const [activeUserPreset, setActiveUserPreset] = useState<MetronomePreset | null>(null);
     const [isSaving, setIsSaving] = useState(false);
-    const [soundId, setSoundId] = useState<'classic' | 'wood' | 'elec' | 'perc' | 'brush'>('brush');
+    const [soundId, setSoundId] = useState<'classic' | 'wood' | 'elec' | 'perc' | 'brush' | 'kick' | 'hat' | 'cowbell' | 'clave'>('brush');
     const [beatVolumes, setBeatVolumes] = useState<number[]>(() => Array(4).fill(3));
 
     const sounds = [
         { id: 'classic', name: 'Classic', icon: 'ri-rhythm-line' },
         { id: 'perc', name: 'Rimshot', icon: 'ri-focus-3-line' },
         { id: 'brush', name: 'Brush', icon: 'ri-sketching' },
+        { id: 'kick', name: 'Kick', icon: 'ri-checkbox-blank-circle-fill' },
+        { id: 'hat', name: 'Hi-Hat', icon: 'ri-shining-line' },
+        { id: 'cowbell', name: 'Cowbell', icon: 'ri-bell-line' },
+        { id: 'clave', name: 'Clave', icon: 'ri-heavy-showers-line' },
     ] as const;
 
     const presets = [
@@ -172,12 +176,65 @@ const MetronomePage: React.FC = () => {
             return;
         }
 
-        // Oscillator-based sounds — same frequency for every beat
+        // Noise generators for Hi-Hat
+        if (soundIdRef.current === 'hat') {
+            const duration = 0.05;
+            const bufferSize = ctx.sampleRate * duration;
+            const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+            const noise = ctx.createBufferSource();
+            noise.buffer = buffer;
+
+            const filter = ctx.createBiquadFilter();
+            filter.type = 'highpass';
+            filter.frequency.setValueAtTime(8000, time);
+
+            const hatGain = ctx.createGain();
+            hatGain.gain.setValueAtTime(0, time);
+            hatGain.gain.linearRampToValueAtTime(volume * 0.4, time + 0.001);
+            hatGain.gain.exponentialRampToValueAtTime(0.001, time + duration);
+
+            noise.connect(filter);
+            filter.connect(hatGain);
+            hatGain.connect(ctx.destination);
+
+            noise.start(time);
+            noise.stop(time + duration);
+            return;
+        }
+
+        // Oscillator-based sounds
         const osc = ctx.createOscillator();
+        const osc2 = ctx.createOscillator(); // Extra for complex sounds like Cowbell
         let attackTime = 0.002;
         let releaseTime = 0.05;
+        let useOsc2 = false;
 
         switch (soundIdRef.current) {
+            case 'kick':
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(150, time);
+                osc.frequency.exponentialRampToValueAtTime(40, time + 0.1);
+                attackTime = 0.005;
+                releaseTime = 0.15;
+                break;
+            case 'cowbell':
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(560, time);
+                osc2.type = 'square';
+                osc2.frequency.setValueAtTime(845, time);
+                attackTime = 0.001;
+                releaseTime = 0.1;
+                useOsc2 = true;
+                break;
+            case 'clave':
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(2500, time);
+                attackTime = 0.001;
+                releaseTime = 0.04;
+                break;
             case 'wood':
                 osc.type = 'sine';
                 osc.frequency.setValueAtTime(900, time);
@@ -208,10 +265,16 @@ const MetronomePage: React.FC = () => {
         envelope.gain.exponentialRampToValueAtTime(0.001, time + attackTime + releaseTime);
 
         osc.connect(envelope);
+        if (useOsc2) osc2.connect(envelope);
+
         envelope.connect(ctx.destination);
 
         osc.start(time);
         osc.stop(time + attackTime + releaseTime + 0.05);
+        if (useOsc2) {
+            osc2.start(time);
+            osc2.stop(time + attackTime + releaseTime + 0.05);
+        }
     }, []);
 
     /**
@@ -458,7 +521,7 @@ const MetronomePage: React.FC = () => {
         downbeat13Ref.current = preset.downbeat_13_accent;
         setBackbeatAccent(preset.backbeat_accent);
         backbeatRef.current = preset.backbeat_accent;
-        const safeSoundId = preset.sound_id as 'classic' | 'wood' | 'elec' | 'perc' | 'brush';
+        const safeSoundId = preset.sound_id as 'classic' | 'wood' | 'elec' | 'perc' | 'brush' | 'kick' | 'hat' | 'cowbell' | 'clave';
         setSoundId(safeSoundId);
         soundIdRef.current = safeSoundId;
         setRhythmName(preset.name);
@@ -805,7 +868,7 @@ const MetronomePage: React.FC = () => {
                                         key={s.id}
                                         className={`sound-btn ${soundId === s.id ? 'active' : ''}`}
                                         onClick={() => setSoundId(s.id)}
-                                        title={s.name}
+                                        data-tooltip={s.name}
                                     >
                                         <i className={s.icon}></i>
                                     </button>
