@@ -14,6 +14,8 @@
 /* 래퍼: 트랙을 감싸는 역할 */
 .notice-ticker-wrapper {
     width: 100%;
+    max-width: 650px;
+    margin: 0 auto;
     overflow: hidden;
     display: flex;
 }
