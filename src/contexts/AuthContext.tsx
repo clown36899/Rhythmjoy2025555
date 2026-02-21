@@ -561,37 +561,51 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, safetyTimeoutMillis);
 
     const checkInitialSession = async () => {
-      authLogger.log('[AuthContext] 🔍 Starting validateAndRecoverSession()...');
+      authLogger.log('[AuthContext] 🔍 [1단계] 로컬 세션 즉시 확인...');
       try {
-        const recoveredSession = await validateAndRecoverSession();
+        // 1단계: 로컬 getSession() - 네트워크 없이 즉시 반환
+        const { data: { session: localSession } } = await supabase.auth.getSession();
         if (!isMounted) return;
 
-        authLogger.log('[AuthContext] 📥 Recovery result:', {
-          hasSession: !!recoveredSession,
-          userId: recoveredSession?.user?.id,
-          email: recoveredSession?.user?.email
+        if (localSession) {
+          authLogger.log('[AuthContext] ⚡ 로컬 세션 즉시 적용:', { userId: localSession.user?.id });
+          setSession(localSession);
+          setUser(localSession.user);
+          refreshAdminStatus(localSession.user);
+          setUserId(localSession.user.id);
+        }
+
+        // UI 즉시 확정 (로그인/로그아웃 상태 바로 표시)
+        if (!hasAuthParams) setIsAuthProcessing(false);
+        setLoading(false);
+        setIsAuthCheckComplete(true);
+
+        // 2단계: 백그라운드 서버 검증 (UI 블로킹 없음)
+        authLogger.log('[AuthContext] 🌐 [2단계] 백그라운드 서버 검증 시작...');
+        validateAndRecoverSession().then(recoveredSession => {
+          if (!isMounted) return;
+          authLogger.log('[AuthContext] 📥 백그라운드 검증 완료:', { hasSession: !!recoveredSession });
+          if (!recoveredSession && localSession) {
+            // 서버가 토큰 무효 확인 시에만 로그아웃
+            authLogger.log('[AuthContext] 🚫 서버 검증 실패 - 세션 정리');
+            cleanupStaleSession();
+          } else if (recoveredSession && recoveredSession.user?.id !== localSession?.user?.id) {
+            // 드문 케이스: 서버 세션과 로컬 세션 사용자가 다를 때
+            setSession(recoveredSession);
+            setUser(recoveredSession.user);
+            setUserId(recoveredSession.user.id);
+          }
+        }).catch(err => {
+          authLogger.log('[AuthContext] ⚠️ 백그라운드 검증 오류 (무시):', err);
         });
 
-        if (recoveredSession) {
-          setSession(recoveredSession);
-          setUser(recoveredSession.user);
-          refreshAdminStatus(recoveredSession.user);
-          setUserId(recoveredSession.user.id);
-        }
-
-        if (!hasAuthParams) {
-          setIsAuthProcessing(false);
-        }
       } catch (error) {
         if (!isMounted) return;
         authLogger.log('[AuthContext] 💥 Session init error:', error);
         await cleanupStaleSession();
         setIsAuthProcessing(false);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-          setIsAuthCheckComplete(true);
-        }
+        setLoading(false);
+        setIsAuthCheckComplete(true);
       }
     };
 

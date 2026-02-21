@@ -110,6 +110,19 @@
     color: #9ca3af;
 }
 
+/* Post Header (이미지 없는 제목/부제/메타 영역) */
+.wv-post-header {
+    max-width: 48rem;
+    margin: 0 auto;
+    padding: 2.5rem 1.5rem 1rem;
+}
+
+@media (min-width: 768px) {
+    .wv-post-header {
+        padding: 3.5rem 3rem 1.5rem;
+    }
+}
+
 /* Content Body */
 .wv-body {
     max-width: 1400px;

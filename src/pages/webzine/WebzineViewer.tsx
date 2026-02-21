@@ -1,11 +1,10 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import LocalLoading from '../../components/LocalLoading';
-import MonthlyWebzine from '../v2/components/MonthlyBillboard/MonthlyWebzine';
-import SwingSceneStats from '../v2/components/SwingSceneStats';
 import WebzineRenderer from './components/WebzineRenderer';
+import WebzinePostHeader from './components/WebzinePostHeader';
 import './WebzineViewer.css';
 
 interface WebzinePost {
@@ -96,28 +95,14 @@ const WebzineViewer = () => {
                 </div>
             )}
 
-            {/* Hero Section */}
-            <div className="wv-hero">
-                {post.cover_image ? (
-                    <img src={post.cover_image} alt={post.title} className="wv-cover-img" />
-                ) : (
-                    <div className="wv-cover-placeholder">
-                        <span className="wv-placeholder-text">No Cover</span>
-                    </div>
-                )}
-                <div className="wv-hero-overlay" />
-
-                <div className="wv-hero-content">
-                    <h1 className="wv-title">{post.title}</h1>
-                    {post.subtitle && <p className="wv-subtitle">{post.subtitle}</p>}
-                    <div className="wv-meta">
-                        <span>{new Date(post.created_at).toLocaleDateString()}</span>
-                        <span>•</span>
-                        <span>조회 {post.views}</span>
-                        {!post.is_published && <span style={{ color: '#ef4444' }}>(DRAFT)</span>}
-                    </div>
-                </div>
-            </div>
+            <WebzinePostHeader
+                title={post.title}
+                subtitle={post.subtitle}
+                createdAt={post.created_at}
+                views={post.views}
+                isPublished={post.is_published}
+                className="wv-post-header"
+            />
 
             {/* Content Body */}
             <article className="wv-body">

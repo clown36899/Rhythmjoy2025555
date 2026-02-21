@@ -4,6 +4,7 @@ import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import LocalLoading from '../../../components/LocalLoading';
 import WebzineRenderer from '../../webzine/components/WebzineRenderer';
+import WebzinePostHeader from '../../webzine/components/WebzinePostHeader';
 import './AdminWebzineList.css';
 
 interface WebzinePost {
@@ -200,37 +201,13 @@ const AdminWebzineList = () => {
                     <LocalLoading />
                 ) : post ? (
                     <article className="aw-content-body" id={`post-container-${post.id}`}>
-                        <section className="aw-hero" id="aw-post-hero">
-                            {post.cover_image ? (
-                                <img
-                                    src={post.cover_image}
-                                    alt={post.title}
-                                    className="aw-cover-img"
-                                    loading="lazy"
-                                />
-                            ) : (
-                                <div className="aw-cover-placeholder">
-                                    <span>Billboard Monthly</span>
-                                </div>
-                            )}
-                            <div className="aw-hero-overlay" />
-                            <div className="aw-hero-content">
-                                <h1 className="aw-title-large">{post.title}</h1>
-                                {post.subtitle && <p className="aw-subtitle-large">{post.subtitle}</p>}
-                                <div className="aw-post-meta">
-                                    <time dateTime={post.created_at}>
-                                        {new Date(post.created_at).toLocaleDateString('ko-KR', {
-                                            year: 'numeric',
-                                            month: 'long',
-                                            day: 'numeric'
-                                        })}
-                                    </time>
-                                    <span className="aw-meta-divider">|</span>
-                                    <span>조회 {post.views.toLocaleString()}회</span>
-                                    {!post.is_published && <span className="aw-draft-tag">임시저장</span>}
-                                </div>
-                            </div>
-                        </section>
+                        <WebzinePostHeader
+                            title={post.title}
+                            subtitle={post.subtitle}
+                            createdAt={post.created_at}
+                            views={post.views}
+                            isPublished={post.is_published}
+                        />
 
                         <section className="aw-renderer-wrapper" id="aw-post-content">
                             <WebzineRenderer content={post.content} />

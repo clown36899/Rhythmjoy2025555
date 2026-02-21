@@ -33,39 +33,6 @@
     "updated_at": "2026-02-18T10:30:00+09:00"
   },
   {
-    "id": "hh_260220_fri",
-    "keyword": "해피홀",
-    "source_url": "https://www.instagram.com/happyhall2004/",
-    "poster_url": "/scraped/happyhall_260220.png",
-    "extracted_text": "금요 소셜\n날짜: 2026년 2월 20일 (금)\nDJ: 해림\n시간: 20:30 ~\n비용: 10,000원",
-    "structured_data": {
-      "date": "2026-02-20",
-      "day": "금",
-      "title": "금요 소셜 (DJ 해림)",
-      "status": "정상운영",
-      "djs": [
-        "해림"
-      ],
-      "times": [
-        "20:30 ~"
-      ],
-      "location": "해피홀",
-      "fee": "10,000원",
-      "note": "금요일 정기 소셜"
-    },
-    "evidence": {
-      "screenshot_path": "/scraped/happyhall_260220.png",
-      "ocr_raw": "2/20 금 DJ 해림",
-      "extraction_mapping": {
-        "date": "포스터 및 캡션",
-        "djs": "포스터 중앙",
-        "fee": "캡션 정보"
-      }
-    },
-    "created_at": "2026-02-18T10:30:00+09:00",
-    "updated_at": "2026-02-18T10:30:00+09:00"
-  },
-  {
     "id": "st_260221_sat",
     "keyword": "스윙타임",
     "source_url": "https://www.instagram.com/swingtimebar/",
@@ -226,72 +193,6 @@
     "updated_at": "2026-02-20T06:15:00+09:00"
   },
   {
-    "id": "bs_260221_sat",
-    "keyword": "박쥐스윙",
-    "source_url": "https://www.instagram.com/batswing2003/",
-    "poster_url": "/scraped/batswing_260221.png",
-    "extracted_text": "박쥐 소셜 타임\n날짜: 2026년 2월 21일 (토)\nDJ: 다카포\n시간: 19:30 ~\n장소: 인더무드 신림\n비용: 10,000원",
-    "structured_data": {
-      "date": "2026-02-21",
-      "day": "토",
-      "title": "박쥐 소셜 타임 (DJ 다카포)",
-      "status": "정상운영",
-      "djs": [
-        "다카포"
-      ],
-      "times": [
-        "19:30 ~"
-      ],
-      "location": "인더무드 신림",
-      "fee": "10,000원",
-      "note": "박쥐스윙 정기 소셜"
-    },
-    "evidence": {
-      "screenshot_path": "/scraped/batswing_260221.png",
-      "ocr_raw": "2/21 Sat DJ 다카포",
-      "extraction_mapping": {
-        "date": "캡션 및 하이라이트",
-        "djs": "캡션",
-        "fee": "소셜 안내 하이라이트"
-      }
-    },
-    "created_at": "2026-02-18T10:30:00+09:00",
-    "updated_at": "2026-02-18T10:30:00+09:00"
-  },
-  {
-    "id": "sh_260221_sat",
-    "keyword": "스윙홀릭",
-    "source_url": "https://www.instagram.com/swingholic/",
-    "poster_url": "/scraped/swingholic_feb_schedule.png",
-    "extracted_text": "토요 소셜 (DJ 진웅)\n날짜: 2026년 2월 21일 (토)\n장소: 마얀 F3\nDJ: 진웅\n시간: 20:00 ~ 22:30\n비용: 9,000원",
-    "structured_data": {
-      "date": "2026-02-21",
-      "day": "토",
-      "title": "토요 소셜 (DJ 진웅)",
-      "status": "정상운영",
-      "djs": [
-        "진웅"
-      ],
-      "times": [
-        "20:00 ~ 22:30"
-      ],
-      "location": "마얀 F3",
-      "fee": "9,000원",
-      "note": "2월 DJ 라인업 포스터 기반 수집"
-    },
-    "evidence": {
-      "screenshot_path": "/scraped/swingholic_feb_schedule.png",
-      "ocr_raw": "02.21 진웅, PM08:00 - 10:30, 9,000",
-      "extraction_mapping": {
-        "date": "포스터 하단",
-        "djs": "포스터 하단",
-        "fee": "포스터 하단"
-      }
-    },
-    "created_at": "2026-02-18T10:30:00+09:00",
-    "updated_at": "2026-02-18T10:30:00+09:00"
-  },
-  {
     "id": "sh_260228_sat",
     "keyword": "스윙홀릭",
     "source_url": "https://www.instagram.com/swingholic/",
@@ -323,5 +224,70 @@
     },
     "created_at": "2026-02-18T07:05:00+09:00",
     "updated_at": "2026-02-18T10:30:00+09:00"
+  },
+  {
+    "id": "bs_260221_sat",
+    "keyword": "박쥐스윙",
+    "source_url": "https://www.instagram.com/batswing2003/",
+    "poster_url": "/scraped/batswing_post_feb21_dj_dacapo.png",
+    "extracted_text": "소셜 안내\n날짜: 2026년 2월 21일 (토)\nDJ: 다카포\n시간: 19:30 부터\n비용: 미기재",
+    "structured_data": {
+      "date": "2026-02-21",
+      "day": "토",
+      "title": "소셜 안내 (DJ 다카포)",
+      "status": "정상운영",
+      "djs": [
+        "다카포"
+      ],
+      "times": [
+        "19:30 부터"
+      ],
+      "location": "인더무드신림",
+      "fee": null,
+      "note": "상세 가격 미기재"
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/batswing_post_feb21_dj_dacapo.png",
+      "ocr_raw": "DJ 다카포 19:30",
+      "extraction_mapping": {
+        "date": "인스타그램 캡션",
+        "djs": "인스타그램 캡션"
+      }
+    },
+    "created_at": "2026-02-21T22:35:00+09:00",
+    "updated_at": "2026-02-21T22:35:00+09:00"
+  },
+  {
+    "id": "sh_260221_sat",
+    "keyword": "스윙홀릭",
+    "source_url": "https://www.instagram.com/swingholic/",
+    "poster_url": "/scraped/swingholic_poster.png",
+    "extracted_text": "토요 소셜 (DJ 진용)\n날짜: 2026년 2월 21일 (토)\n장소: 마얀 F3\nDJ: 진용\n시간: 20:00 ~ 22:30\n비용: 9,000원",
+    "structured_data": {
+      "date": "2026-02-21",
+      "day": "토",
+      "title": "토요 소셜 (DJ 진용)",
+      "status": "정상운영",
+      "djs": [
+        "진용"
+      ],
+      "times": [
+        "20:00 ~ 22:30"
+      ],
+      "location": "마얀 F3",
+      "fee": "9,000원",
+      "note": "2월 DJ 라인업 포스터 기반 수집"
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/swingholic_poster.png",
+      "ocr_raw": "02.21 진용, PM08:00 - 10:30, 9,000",
+      "extraction_mapping": {
+        "date": "포스터 하단",
+        "djs": "포스터 하단",
+        "fee": "포스터 하단"
+      }
+    },
+    "created_at": "2026-02-21T22:35:00+09:00",
+    "updated_at": "2026-02-21T22:35:00+09:00"
   }
 ]
