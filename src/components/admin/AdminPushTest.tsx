@@ -23,6 +23,7 @@ export const AdminPushTest: React.FC = () => {
     const [mySubscriptions, setMySubscriptions] = useState<SubscriptionInfo[]>([]);
     const [subsLoading, setSubsLoading] = useState(false);
     const [fetchingLatest, setFetchingLatest] = useState(false);
+    const [forceError, setForceError] = useState(false); // [New] 고의 에러 유발 옵션
 
     // [New] 실제 데이터에서 불러오기 함수
     const fetchLatestData = async (type: 'class' | 'event') => {
@@ -159,7 +160,9 @@ export const AdminPushTest: React.FC = () => {
         return 'Unknown';
     };
 
-    const handleSendTest = async (targetType: 'me' | 'all-admin') => {
+    const CLOWN_USER_ID = '91b04b25-7449-4d64-8fc2-4e328b2659ab'; // clown313joy@gmail.com
+
+    const handleSendTest = async (targetType: 'me' | 'clown') => {
         setLoading(true);
         setResult(null);
 
@@ -174,7 +177,7 @@ export const AdminPushTest: React.FC = () => {
                     category: category,
                     genre: genre,
                     content: content,
-                    userId: targetType === 'me' ? user?.id : 'ALL',
+                    userId: targetType === 'me' ? user?.id : CLOWN_USER_ID,
                     url: targetUrl
                 }
             });
@@ -187,6 +190,40 @@ export const AdminPushTest: React.FC = () => {
             setResult(`🚀 발송 완료! (결과: ${JSON.stringify(data.summary)})`);
         } catch (err: any) {
             setResult(`❌ 발송 실패: ${err.message}`);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // [New] 실제 등록과 유사한 '큐 방식' 테스트 (10초 지연)
+    const handleSendDelayedQueueTest = async (targetType: 'me' | 'clown') => {
+        setLoading(true);
+        setResult(null);
+
+        const finalTitle = `[10초지연] ${title} (${category === 'class' ? '강습' : category === 'club' ? '동호회' : '행사'})`;
+        const scheduledAt = new Date(Date.now() + 10 * 1000).toISOString(); // 10 seconds later
+
+        try {
+            const { error } = await supabase.from('notification_queue').insert({
+                title: finalTitle,
+                body: body,
+                category: category,
+                payload: {
+                    url: targetUrl,
+                    userId: targetType === 'me' ? user?.id : CLOWN_USER_ID,
+                    genre: genre,
+                    image: imageUrl,
+                    content: content,
+                    error_test: forceError // payload 안으로 이동
+                },
+                scheduled_at: scheduledAt,
+                status: 'pending'
+            });
+
+            if (error) throw error;
+            setResult(`✅ 큐 등록 성공! 10초 뒤에 [process-notification-queue]가 실행될 때 발송됩니다. (예약시간: ${new Date(scheduledAt).toLocaleTimeString()})`);
+        } catch (err: any) {
+            setResult(`❌ 큐 등록 실패: ${err.message}`);
         } finally {
             setLoading(false);
         }
@@ -403,37 +440,91 @@ export const AdminPushTest: React.FC = () => {
 
                 {/* 3. Action Area */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
-                    <button
-                        onClick={() => handleSendTest('me')}
-                        disabled={loading || mySubscriptions.length === 0}
-                        style={{
-                            padding: '14px',
-                            background: mySubscriptions.length === 0 ? '#94a3b8' : '#2563eb',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '12px',
-                            fontWeight: 700,
-                            cursor: mySubscriptions.length === 0 ? 'not-allowed' : 'pointer',
-                            boxShadow: mySubscriptions.length > 0 ? '0 4px 10px rgba(37, 99, 235, 0.2)' : 'none'
-                        }}
-                    >
-                        🎯 나에게만 발송 ({mySubscriptions.length}개 기기)
-                    </button>
-                    <button
-                        onClick={() => handleSendTest('all-admin')}
-                        disabled={loading}
-                        style={{
-                            padding: '14px',
-                            background: '#6366f1',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '12px',
-                            fontWeight: 700,
-                            cursor: 'pointer'
-                        }}
-                    >
-                        📢 모든 유저/기기에 방송 (주의)
-                    </button>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                        <button
+                            onClick={() => handleSendTest('me')}
+                            disabled={loading || mySubscriptions.length === 0}
+                            style={{
+                                padding: '12px',
+                                background: mySubscriptions.length === 0 ? '#94a3b8' : '#2563eb',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '12px',
+                                fontWeight: 700,
+                                fontSize: '13px',
+                                cursor: mySubscriptions.length === 0 ? 'not-allowed' : 'pointer'
+                            }}
+                        >
+                            🎯 즉시 (나)
+                        </button>
+                        <button
+                            onClick={() => handleSendTest('clown')}
+                            disabled={loading}
+                            style={{
+                                padding: '12px',
+                                background: '#6366f1',
+                                color: 'white',
+                                border: 'none',
+                                borderRadius: '12px',
+                                fontWeight: 700,
+                                fontSize: '13px',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            🤡 즉시 (clown)
+                        </button>
+                    </div>
+
+                    <div style={{ padding: '12px', background: '#fffbeb', borderRadius: '16px', border: '1px solid #fef3c7' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                            <p style={{ fontSize: '12px', color: '#92400e', margin: 0, fontWeight: 600 }}>
+                                🧪 에러 재현용 (10초 지연 큐 방식)
+                            </p>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#b45309', cursor: 'pointer' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={forceError}
+                                    onChange={e => setForceError(e.target.checked)}
+                                    style={{ cursor: 'pointer' }}
+                                />
+                                고의 에러 유발
+                            </label>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                            <button
+                                onClick={() => handleSendDelayedQueueTest('me')}
+                                disabled={loading}
+                                style={{
+                                    padding: '12px',
+                                    background: '#f59e0b',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '12px',
+                                    fontWeight: 700,
+                                    fontSize: '13px',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                ⏳ 10s (나)
+                            </button>
+                            <button
+                                onClick={() => handleSendDelayedQueueTest('clown')}
+                                disabled={loading}
+                                style={{
+                                    padding: '12px',
+                                    background: '#d97706',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '12px',
+                                    fontWeight: 700,
+                                    fontSize: '13px',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                ⏳ 10s (clown)
+                            </button>
+                        </div>
+                    </div>
                 </div>
 
                 {result && (

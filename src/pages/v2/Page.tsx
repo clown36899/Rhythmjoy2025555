@@ -31,7 +31,7 @@ export default function HomePageV2() {
     const navigate = useNavigate();
     const { isAdmin, user, signInWithKakao } = useAuth();
     const { openModal, closeModal } = useModalActions();
-    const { modalStack } = useModalState();
+    // const { modalStack } = useModalState(); // [Loop Fix] 불필요한 구독 제거 (모달 오픈 시 리렌더링 방지)
 
     registerLocale("ko", ko);
 
@@ -92,37 +92,41 @@ export default function HomePageV2() {
     // [Standard Fix] Open Detail Modal via Global Registry
     const lastOpenedEventIdRef = useRef<string | number | null>(null);
 
+    // [Proper Fix] Modal Props Memoization to prevent infinite render loops
+    const eventDetailProps = useMemo(() => {
+        if (!selectedEvent) return null;
+        return {
+            event: selectedEvent,
+            onEdit: handleEditClick,
+            onDelete: async (e: any) => {
+                const success = await handleDeleteClick(selectedEvent, e);
+                if (success) closeModal('eventDetail');
+            },
+            isAdminMode: effectiveIsAdmin,
+            currentUserId: user?.id,
+            onOpenVenueDetail: handleVenueClick,
+            allGenres: allGenres,
+            isFavorite: favoriteEventIds.has(Number(selectedEvent.id)),
+            onToggleFavorite: (e: React.MouseEvent) => toggleFavorite(selectedEvent.id, e),
+            isDeleting,
+            deleteProgress,
+            onClose: () => {
+                setSelectedEvent(null);
+                closeModal('eventDetail');
+            }
+        };
+    }, [selectedEvent, handleEditClick, handleDeleteClick, effectiveIsAdmin, user?.id, handleVenueClick, allGenres, favoriteEventIds, toggleFavorite, isDeleting, deleteProgress, setSelectedEvent, closeModal]);
+
     useEffect(() => {
-        if (selectedEvent) {
-            // Update props even if ID is the same to sync state (isFavorite, deleteProgress etc.)
+        if (eventDetailProps && selectedEvent) {
+            // [Proper Fix] ID가 같더라도 props가 변경되면 (favorite, progress 등) openModal을 호출하여 상세 페이지만 갱신
+            // 단, modalStack 구독을 해제했으므로 렌더링 루프가 발생하지 않음
+            openModal('eventDetail', eventDetailProps);
             lastOpenedEventIdRef.current = selectedEvent.id;
-            openModal('eventDetail', {
-                event: selectedEvent,
-                onEdit: handleEditClick,
-                onDelete: async (e: any) => {
-                    const success = await handleDeleteClick(e);
-                    if (success) {
-                        closeModal('eventDetail'); // Explicitly close global modal
-                    }
-                },
-                isAdminMode: effectiveIsAdmin,
-                currentUserId: user?.id,
-                onOpenVenueDetail: handleVenueClick,
-                allGenres: allGenres,
-                isFavorite: favoriteEventIds.has(Number(selectedEvent.id)),
-                onToggleFavorite: (e: React.MouseEvent) => toggleFavorite(selectedEvent.id, e),
-                isDeleting: isDeleting,
-                deleteProgress: deleteProgress,
-                onClose: () => {
-                    setSelectedEvent(null);
-                    lastOpenedEventIdRef.current = null;
-                    closeModal('eventDetail'); // Sync with global stack
-                }
-            });
-        } else {
+        } else if (!selectedEvent) {
             lastOpenedEventIdRef.current = null;
         }
-    }, [selectedEvent, openModal, handleEditClick, handleDeleteClick, effectiveIsAdmin, user?.id, handleVenueClick, allGenres, favoriteEventIds, toggleFavorite, isDeleting, deleteProgress, setSelectedEvent]);
+    }, [eventDetailProps, openModal, selectedEvent]);
 
     useEffect(() => {
         let active = true;
@@ -155,13 +159,8 @@ export default function HomePageV2() {
     const eventListElementRef = useRef<HTMLDivElement>(null!);
 
     useEffect(() => {
-        // [Safety Check] inert attribute is experimental and can glitch HMR updates or interaction threads.
-        // Commenting out to restore native interaction chain.
-        // const isAnyModalOpen = modalStack.length > 0 || showInputModal || showRegistrationModal || !!selectedEvent;
-        // const container = containerRef.current;
-        // if (container) container.inert = isAnyModalOpen;
-        // return () => { if (container) container.inert = false; };
-    }, [modalStack.length, showInputModal, showRegistrationModal, selectedEvent]);
+        // [Optimization] inert 로직 비활성화 유지 - modalStack 구독 제거
+    }, [showInputModal, showRegistrationModal, selectedEvent]);
 
     const handleHorizontalSwipe = useCallback((direction: 'next' | 'prev') => {
         changeMonth(direction);

@@ -26,8 +26,6 @@ Deno.serve(async (req) => {
                 vapidPublicKey,
                 vapidPrivateKey
             );
-        } else {
-            console.warn('[Queue] VAPID keys missing.');
         }
 
         // 1. Fetch pending items that are due
@@ -37,12 +35,11 @@ Deno.serve(async (req) => {
             .select('*')
             .eq('status', 'pending')
             .lte('scheduled_at', now)
-            .limit(10); // Batch size
+            .limit(10);
 
         if (fetchError) throw fetchError;
 
         if (!pendingItems || pendingItems.length === 0) {
-            console.log('[Queue] No pending notifications to send.');
             return new Response(JSON.stringify({ message: 'No pending items' }), {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             });
@@ -52,85 +49,96 @@ Deno.serve(async (req) => {
 
         const results = [];
 
-        // 2. Process each item (re-use send-push-notification logic roughly)
-        // Ideally, we would invoke the OTHER function, but to save cold starts/complexity, we can inline simple sending logic here.
-        // OR, simply invoke 'send-push-notification' for each item. Invoking is cleaner for code reuse.
-
         for (const item of pendingItems) {
             try {
-                // Update status to 'processing'
-                await supabaseClient
+                // [Atomic Update] 'pending' -> 'processing' (Double-check status to avoid race conditions)
+                const { data: updateData, error: updateError } = await supabaseClient
                     .from('notification_queue')
-                    .update({ status: 'processing' })
-                    .eq('id', item.id);
+                    .update({ status: 'processing', updated_at: new Date().toISOString() })
+                    .eq('id', item.id)
+                    .eq('status', 'pending') // Only update if still pending
+                    .select();
 
-                const { title, body, category, payload, event_id } = item;
-                const { url, userId, genre, image, content } = payload || {};
-
-                // [Feature] 발송 직전 최신 데이터 동기화
-                if (event_id) {
-                    const { data: latestEvent, error: eventError } = await supabaseClient
-                        .from('events')
-                        .select('*')
-                        .eq('id', event_id)
-                        .single();
-
-                    if (eventError || !latestEvent) {
-                        console.log(`[Queue] Event ${event_id} not found. Canceling notification.`);
-                        await supabaseClient
-                            .from('notification_queue')
-                            .update({ status: 'canceled' })
-                            .eq('id', item.id);
-                        results.push({ id: item.id, status: 'canceled' });
-                        continue;
-                    }
-
-                    // 최신 데이터로 업데이트
-                    const isLesson = latestEvent.category === 'class' || latestEvent.category === 'regular' || latestEvent.category === 'club';
-                    const pushCategory = isLesson ? 'class' : 'event';
-                    const weekDay = latestEvent.date ? ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'][new Date(latestEvent.date).getDay()] : '';
-
-                    title = `${latestEvent.title} (${pushCategory === 'class' ? '강습' : '행사'})`;
-                    body = `${latestEvent.date || ''} ${weekDay} | ${latestEvent.location || '장소 미정'}`;
-                    category = pushCategory;
-                    genre = latestEvent.genre;
-                    image = latestEvent.image_thumbnail;
-                    content = latestEvent.description;
-                    url = `${Deno.env.get('SITE_URL') || 'https://swingenjoy.com'}/calendar?id=${latestEvent.id}`;
+                // If no row updated, someone else is processing it
+                if (updateError || !updateData || updateData.length === 0) {
+                    console.log(`[Queue] Item ${item.id} already being processed or not found.`);
+                    continue;
                 }
 
-                console.log(`[Queue] Invoking send-push for Item ${item.id} (${title})`);
+                const { title, body, category, payload, event_id } = item;
+                const { url, userId, genre, image, content, error_test } = payload || {};
 
-                // Invoke send-push-notification
-                const { data, error } = await supabaseClient.functions.invoke('send-push-notification', {
+                // [Debug] 고의 에러 재현 (테스트용)
+                if (error_test === true) {
+                    console.error(`[Queue-Test] Forcing error for Item ${item.id}`);
+                    throw new Error("REPRODUCED_QUEUE_ERROR: Intentional test failure");
+                }
+
+                // 2. Fetch latest event data if event_id exists
+                let finalTitle = title;
+                let finalBody = body;
+                let finalCategory = category;
+                let finalUrl = url;
+                let finalImage = image;
+                let finalContent = content;
+                let finalGenre = genre;
+
+                if (event_id) {
+                    const { data: ev } = await supabaseClient.from('events').select('*').eq('id', event_id).single();
+                    if (ev) {
+                        const isLesson = ev.category === 'class' || ev.category === 'regular' || ev.category === 'club';
+                        const pushCat = isLesson ? 'class' : 'event';
+                        const weekDay = ev.date ? ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'][new Date(ev.date).getDay()] : '';
+
+                        finalTitle = `${ev.title} (${pushCat === 'class' ? '강습' : '행사'})`;
+                        finalBody = `${ev.date || ''} ${weekDay} | ${ev.location || '장소 미정'}`;
+                        finalCategory = pushCat;
+                        finalGenre = ev.genre;
+                        finalImage = ev.image_thumbnail;
+                        finalContent = ev.description;
+                        finalUrl = `${Deno.env.get('SITE_URL') || 'https://swingenjoy.com'}/calendar?id=${ev.id}`;
+                    }
+                }
+
+                console.log(`[Queue] Invoking push for Item ${item.id}`);
+
+                // 3. Invoke send-push-notification
+                const { data, error: invokeError } = await supabaseClient.functions.invoke('send-push-notification', {
                     body: {
-                        title: title,
-                        body: body,
-                        url: url,
+                        title: finalTitle,
+                        body: finalBody,
+                        url: finalUrl,
                         userId: userId,
-                        category: category,
-                        genre: genre,
-                        image: image,
-                        content: content
+                        category: finalCategory,
+                        genre: finalGenre,
+                        image: finalImage,
+                        content: finalContent
                     }
                 });
 
-                if (error) throw error;
+                if (invokeError) throw invokeError;
 
-                // Update status to 'sent'
+                // [Atomic Update] 'processing' -> 'sent'
                 await supabaseClient
                     .from('notification_queue')
-                    .update({ status: 'sent' })
+                    .update({ status: 'sent', updated_at: new Date().toISOString() })
                     .eq('id', item.id);
 
                 results.push({ id: item.id, status: 'sent', result: data });
 
             } catch (err: any) {
-                console.error(`[Queue] Failed to process item ${item.id}:`, err);
+                console.error(`[Queue Error] Item ${item.id}:`, err.message);
+
+                // [Critical Fix] 무조건 'failed' 상태로 마킹하여 무한 루프 방지
                 await supabaseClient
                     .from('notification_queue')
-                    .update({ status: 'failed', payload: { ...item.payload, error: err.message } })
+                    .update({
+                        status: 'failed',
+                        payload: { ...item.payload, last_error: err.message },
+                        updated_at: new Date().toISOString()
+                    })
                     .eq('id', item.id);
+
                 results.push({ id: item.id, status: 'failed', error: err.message });
             }
         }
@@ -140,9 +148,11 @@ Deno.serve(async (req) => {
         });
 
     } catch (err: any) {
+        console.error('[Fatal Queue Error]', err.message);
         return new Response(JSON.stringify({ error: err.message }), {
             headers: { ...corsHeaders, 'Content-Type': 'application/json' },
             status: 500
         });
     }
 });
+

@@ -1,6 +1,6 @@
 import { useLocation } from "react-router-dom";
 import { MobileShell } from "./layouts/MobileShell";
-import { Suspense, useEffect, useCallback } from "react";
+import { Suspense, useEffect, useCallback, useState, useRef } from "react";
 import { logPageView } from "./lib/analytics";
 import { useOnlinePresence } from "./hooks/useOnlinePresence";
 import { PageActionProvider } from './contexts/PageActionContext';
@@ -15,9 +15,9 @@ import { GlobalPlayerProvider } from './contexts/GlobalPlayerContext';
 import { getPushSubscription, saveSubscriptionToSupabase, subscribeToPush, getPushPreferences } from './lib/pushNotifications';
 import { isPWAMode } from './lib/pwaDetect';
 import { PwaNotificationModal } from './components/PwaNotificationModal';
-import { useState } from 'react';
+
 import { notificationStore } from './lib/notificationStore';
-import { useModalActions } from './contexts/ModalContext';
+import { useModalActions, useModalState } from './contexts/ModalContext';
 import { getCalendarRange, fetchCalendarEvents } from './hooks/queries/useCalendarEventsQuery';
 import LocalLoading from './components/LocalLoading';
 import './styles/devtools.css';
@@ -56,21 +56,53 @@ function AppContent() {
   const { user, isAdmin } = useAuth();
   const [showPwaModal, setShowPwaModal] = useState(false);
   const { openModal } = useModalActions();
+  const { modalStack } = useModalState();
+  const modalStackRef = useRef<string[]>([]);
+
+  // modalStack 상태가 변할 때마다 Ref 최신화 (리스너/콜백용)
+  useEffect(() => {
+    modalStackRef.current = modalStack;
+  }, [modalStack]);
 
 
-  // [History] 읽지 않은 알림 로드 (forceOpen: 파라미터 감지 시 강제 오픈)
+  // [History] 읽지 않은 알림 로드 및 자동 알림 제어 로직 (정석 Fix)
+  // 단순 포커스 이벤트로 인한 무한 루프를 방지하기 위해 신규 알림이 발생했거나 강제 오픈 시에만 실행
+  const lastUnreadCountRef = useRef<number>(0);
+  const isRefreshingRef = useRef<boolean>(false);
+
   const loadUnreadNotifications = useCallback(async (forceOpen = false) => {
+    // 1. 이미 처리 중이면 중복 실행 방지 (동시성 가드)
+    if (isRefreshingRef.current) return;
+    isRefreshingRef.current = true;
+
     try {
       const unread = await notificationStore.getUnread();
-      // 읽지 않은 게 있거나, 알림을 클릭해서 들어온 경우 모달 오픈
-      if (unread.length > 0 || forceOpen) {
-        openModal('notificationHistory', {
-          notifications: unread,
-          onRefresh: () => loadUnreadNotifications(false)
-        });
+      const currentCount = unread.length;
+
+      // 2. [Proper Fix] 상태 업데이트를 로직 초기에 수행
+      // 모달 오픈이나 다른 비동기 작업 중 발생하는 재진입(focus 등) 시
+      // 이미 업데이트된 Count를 참조하게 하여 무한 루프를 원천 차단함
+      const previousCount = lastUnreadCountRef.current;
+      lastUnreadCountRef.current = currentCount;
+
+      // 3. 자동 오픈 조건 정밀화
+      const isNewArrival = currentCount > previousCount;
+      const currentStack = modalStackRef.current;
+      const isOtherModalOpen = currentStack.filter(id => id !== 'notificationHistory').length > 0;
+
+      if (forceOpen || (isNewArrival && !isOtherModalOpen)) {
+        if (currentCount > 0 || forceOpen) {
+          openModal('notificationHistory', {
+            notifications: unread,
+            onRefresh: () => loadUnreadNotifications(false)
+          });
+        }
       }
     } catch (err) {
       console.warn('[App] Failed to load unread notifications:', err);
+    } finally {
+      // 처리가 완전히 끝난 후 배포 잠금 해제
+      isRefreshingRef.current = false;
     }
   }, [openModal]);
 
@@ -219,7 +251,7 @@ function AppContent() {
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('focus', handleVisibilityChange); // 데스크탑 포커스 대응
     window.addEventListener('click', handleInteraction);      // 클릭 대응
-    window.addEventListener('touchstart', handleInteraction); // 모바일 터치 대응
+    window.addEventListener('touchstart', handleInteraction, { passive: true }); // 모바일 터치 대응
 
     // D. 초기 로드 시 알림 확인 및 정리
     loadUnreadNotifications();

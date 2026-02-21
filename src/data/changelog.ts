@@ -8,6 +8,15 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '3.8.8',
+        date: '2026-02-21',
+        changes: [
+            '[🔧 Fixed] 모바일 PWA 무한 루프 에러 정석 해결 (타임아웃 제거 버전)',
+            '[✨ Feature] 알림 발송 테스트 고의 에러 모드 추가 및 로직 강화',
+            '[🎨 UI] NotificationHistoryModal 인라인 스타일 제거 및 시멘틱 CSS 전환'
+        ]
+    },
+    {
         version: '3.8.7',
         date: '2026-02-21',
         changes: [

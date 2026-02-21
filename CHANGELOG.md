@@ -1,5 +1,15 @@
 # 변경 이력 (버전별)
  
+## [3.8.8] - 2026-02-21
+### Fixed
+- **모바일 PWA 무한 루프 에러 정석 해결**:
+  - `App.tsx`: 알람 카운트 업데이트 시점 보정을 통해 '타임아웃 없이' 동기적 루프 완벽 차단.
+  - `Page.tsx`: 모달 스택 직접 구독(`modalStack`) 해제 및 프롭스 메모이제이션으로 렌더링 무한 루프 원천 제거.
+- **알람 발송 테스트 안정화**: 고의 에러 테스트 모드 및 복구 로직 강화.
+
+### Optimized
+- **스타일 시멘틱화**: `NotificationHistoryModal`의 인라인 스타일을 모두 제거하고 [NotificationHistoryModal.css](file:///Users/inteyeo/Rhythmjoy2025555-5/src/styles/components/NotificationHistoryModal.css)로 분리 (사용자 규칙 준수).
+
 ## [3.8.7] - 2026-02-21
 ### Fixed
 - **알림 클릭 후 PWA 진입 시 내역 미노출 문제 해결**:
