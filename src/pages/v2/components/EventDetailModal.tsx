@@ -23,6 +23,7 @@ import { useViewTracking } from '../../../hooks/useViewTracking';
 import LocalLoading from '../../../components/LocalLoading';
 import EventEditBottomSheet from './EventEditBottomSheet';
 import { useHistoricalGenres } from '../hooks/useHistoricalGenres';
+import EventKakaoMap from '../../../components/EventKakaoMap';
 
 registerLocale("ko", ko);
 
@@ -956,7 +957,9 @@ export default function EventDetailModal({
                 {(() => {
                   // Progressive Loading: thumbnail priority logic handled by state
                   const hasImage = !!(thumbnailSrc || highResSrc);
-                  const isDefaultThumbnail = !selectedEvent.image_thumbnail && !highResSrc && !!thumbnailSrc;
+                  const isSocialMap = selectedEvent.category === "social" || selectedEvent.category === "club_lesson" || selectedEvent.category === "club_regular";
+                  const showImageArea = hasImage || isSocialMap;
+                  const isDefaultThumbnail = !selectedEvent.image_thumbnail && !highResSrc && !!thumbnailSrc && !isSocialMap;
 
                   // Transform style (shared)
                   const imageStyle = {
@@ -965,58 +968,81 @@ export default function EventDetailModal({
 
                   return (
                     <div
-                      className={`EDM-imageArea ${hasImage ? "has-image" : "has-pattern"}`}
+                      className={`EDM-imageArea ${showImageArea ? "has-image" : "has-pattern"}`}
                     >
-                      {hasImage ? (
+                      {showImageArea ? (
                         <>
-                          <div className="EDM-imageWrapper">
-                            {/* 1. Base Layer: Thumbnail */}
-                            {thumbnailSrc && (
-                              <img
-                                src={thumbnailSrc}
-                                alt={selectedEvent.title}
-                                className="EDM-imageContent"
-                                loading="eager"
-                                draggable={false}
-                                style={{
-                                  ...imageStyle,
-                                  zIndex: 1,
-                                  opacity: 1,
+                          <div className="EDM-imageWrapper" style={isSocialMap ? { backgroundColor: '#111' } : undefined}>
+                            {isSocialMap ? (
+                              <EventKakaoMap
+                                key="social-map"
+                                address={selectedEvent.location || "서울"}
+                                placeName={selectedEvent.place_name || selectedEvent.venue_name || selectedEvent.location}
+                                imageUrl={thumbnailSrc || highResSrc}
+                                onMarkerClick={() => {
+                                  const venueId = (selectedEvent as any).venue_id;
+                                  if (venueId) {
+                                    if (onOpenVenueDetail) {
+                                      onOpenVenueDetail(String(venueId));
+                                    } else {
+                                      openModal('venueDetail', { venueId: String(venueId) });
+                                    }
+                                  } else if (selectedEvent.location_link || (selectedEvent as any).venue_custom_link) {
+                                    window.open((selectedEvent as any).venue_custom_link || selectedEvent.location_link, '_blank');
+                                  }
                                 }}
                               />
-                            )}
+                            ) : (
+                              <React.Fragment key="event-images">
+                                {/* 1. Base Layer: Thumbnail */}
+                                {thumbnailSrc && (
+                                  <img
+                                    src={thumbnailSrc}
+                                    alt={selectedEvent.title}
+                                    className="EDM-imageContent"
+                                    loading="eager"
+                                    draggable={false}
+                                    style={{
+                                      ...imageStyle,
+                                      zIndex: 1,
+                                      opacity: 1,
+                                    }}
+                                  />
+                                )}
 
-                            {/* 2. Overlay Layer: HighRes (Cross-fade) */}
-                            {highResSrc && highResSrc !== thumbnailSrc && (
-                              <img
-                                src={highResSrc}
-                                alt={selectedEvent.title}
-                                className="EDM-imageContent"
-                                loading="eager"
-                                decoding="async"
-                                draggable={false}
-                                style={{
-                                  ...imageStyle,
-                                  zIndex: 2,
-                                  opacity: isHighResLoaded ? 1 : 0,
-                                  transition: "opacity 0.4s ease-in-out",
-                                }}
-                              />
-                            )}
+                                {/* 2. Overlay Layer: HighRes (Cross-fade) */}
+                                {highResSrc && highResSrc !== thumbnailSrc && (
+                                  <img
+                                    src={highResSrc}
+                                    alt={selectedEvent.title}
+                                    className="EDM-imageContent"
+                                    loading="eager"
+                                    decoding="async"
+                                    draggable={false}
+                                    style={{
+                                      ...imageStyle,
+                                      zIndex: 2,
+                                      opacity: isHighResLoaded ? 1 : 0,
+                                      transition: "opacity 0.4s ease-in-out",
+                                    }}
+                                  />
+                                )}
 
-                            {/* Fallback if only HighRes exists and no thumbnail */}
-                            {!thumbnailSrc && highResSrc && (
-                              <img
-                                src={highResSrc}
-                                alt={selectedEvent.title}
-                                className="EDM-imageContent"
-                                loading="eager"
-                              />
+                                {/* Fallback if only HighRes exists and no thumbnail */}
+                                {!thumbnailSrc && highResSrc && (
+                                  <img
+                                    src={highResSrc}
+                                    alt={selectedEvent.title}
+                                    className="EDM-imageContent"
+                                    loading="eager"
+                                  />
+                                )}
+                              </React.Fragment>
                             )}
                           </div>
 
                           {/* Gradient Overlay */}
-                          <div className="EDM-imageGradient" />
+                          <div className="EDM-imageGradient" style={isSocialMap ? { pointerEvents: 'none' } : undefined} />
 
                           {isDefaultThumbnail && (
                             <div className="EDM-defaultThumb">
@@ -1205,15 +1231,15 @@ export default function EventDetailModal({
                               );
 
                               if (sameYearMonth) {
-                                // 같은 년월: "2025년 10월 11일, 25일, 31일"
+                                // 같은 년월: "2025년 10월 11일(토요일), 25일(토요일), 31일(금요일)"
                                 const days = dates
-                                  .map((d) => d.getDate())
-                                  .join("일, ");
-                                return `${year}년 ${month} ${days}일`;
+                                  .map((d) => `${d.getDate()}일 (${['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'][d.getDay()]})`)
+                                  .join(", ");
+                                return `${year}년 ${month} ${days}`;
                               } else {
-                                // 다른 년월: "10/11, 11/25, 12/31"
+                                // 다른 년월: "10/11(토요일), 11/25(화요일), 12/31(수요일)"
                                 return dates
-                                  .map((d) => `${d.getMonth() + 1}/${d.getDate()}`)
+                                  .map((d) => `${d.getMonth() + 1}/${d.getDate()} (${['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'][d.getDay()]})`)
                                   .join(", ");
                               }
                             }
@@ -1233,6 +1259,7 @@ export default function EventDetailModal({
                               month: "long",
                             });
                             const startDay = start.getDate();
+                            const startDow = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'][start.getDay()];
 
                             if (endDate && endDate !== startDate) {
                               const end = safeDate(endDate);
@@ -1242,18 +1269,19 @@ export default function EventDetailModal({
                                   month: "long",
                                 });
                                 const endDay = end.getDate();
+                                const endDow = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'][end.getDay()];
 
                                 if (startYear === endYear && startMonth === endMonth) {
-                                  return `${startYear}년 ${startMonth} ${startDay}~${endDay}일`;
+                                  return `${startYear}년 ${startMonth} ${startDay}일 (${startDow}) ~ ${endDay}일 (${endDow})`;
                                 } else if (startYear === endYear) {
-                                  return `${startYear}년 ${startMonth} ${startDay}일~${endMonth} ${endDay}일`;
+                                  return `${startYear}년 ${startMonth} ${startDay}일 (${startDow}) ~ ${endMonth} ${endDay}일 (${endDow})`;
                                 } else {
-                                  return `${startYear}년 ${startMonth} ${startDay}일~${endYear}년 ${endMonth} ${endDay}일`;
+                                  return `${startYear}년 ${startMonth} ${startDay}일 (${startDow}) ~ ${endYear}년 ${endMonth} ${endDay}일 (${endDow})`;
                                 }
                               }
                             }
 
-                            return `${startYear}년 ${startMonth} ${startDay}일`;
+                            return `${startYear}년 ${startMonth} ${startDay}일 (${startDow})`;
                           })()}
                         </span>
                         {isSelectionMode && (

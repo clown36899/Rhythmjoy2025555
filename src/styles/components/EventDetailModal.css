@@ -195,6 +195,10 @@
     background-color: var(--page-bg-color);
 }
 
+.EDM-imageArea:has(.EKM-container) {
+    min-height: 300px;
+}
+
 .EDM-imageArea.has-pattern {
     background-size: cover;
     background-position: center;
@@ -210,6 +214,12 @@
     position: relative;
     z-index: 5;
     margin: 0 auto;
+}
+
+.EDM-imageWrapper:has(.EKM-container) {
+    height: 300px;
+    width: 100%;
+    max-width: 100%;
 }
 
 .EDM-imageContent {
