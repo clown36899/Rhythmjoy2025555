@@ -8,6 +8,15 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '3.8.7',
+        date: '2026-02-21',
+        changes: [
+            '[🔧 Fixed] 알림 클릭 후 PWA 진입 시 알림 내역 모달 미노출 이슈 해결',
+            '[✨ Feature] 알림 테스트 페이지(Admin) 실제 데이터 불러오기 기능 추가',
+            '[🧹 Clean] 프로젝트 전체 린트 에러 및 경고 수정 (no-empty, unused-vars 등)'
+        ]
+    },
+    {
         version: '3.8.6',
         date: '2026-02-21',
         changes: [

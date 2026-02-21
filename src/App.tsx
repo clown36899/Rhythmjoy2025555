@@ -1,6 +1,6 @@
 import { useLocation } from "react-router-dom";
 import { MobileShell } from "./layouts/MobileShell";
-import { Suspense, useEffect } from "react";
+import { Suspense, useEffect, useCallback } from "react";
 import { logPageView } from "./lib/analytics";
 import { useOnlinePresence } from "./hooks/useOnlinePresence";
 import { PageActionProvider } from './contexts/PageActionContext';
@@ -58,20 +58,21 @@ function AppContent() {
   const { openModal } = useModalActions();
 
 
-  // [History] 읽지 않은 알림 로드
-  const loadUnreadNotifications = async () => {
+  // [History] 읽지 않은 알림 로드 (forceOpen: 파라미터 감지 시 강제 오픈)
+  const loadUnreadNotifications = useCallback(async (forceOpen = false) => {
     try {
       const unread = await notificationStore.getUnread();
-      if (unread.length > 0) {
+      // 읽지 않은 게 있거나, 알림을 클릭해서 들어온 경우 모달 오픈
+      if (unread.length > 0 || forceOpen) {
         openModal('notificationHistory', {
           notifications: unread,
-          onRefresh: loadUnreadNotifications
+          onRefresh: () => loadUnreadNotifications(false)
         });
       }
     } catch (err) {
       console.warn('[App] Failed to load unread notifications:', err);
     }
-  };
+  }, [openModal]);
 
   // [PWA Auto-Subscribe] 로그인 후 & 앱 최초 실행 시(PWA) 알림 권한 처리
   useEffect(() => {
@@ -249,12 +250,25 @@ function AppContent() {
       }
     }
 
+    // [Feature] 알림 클릭 진입 감지 (open_notifications 파라미터)
+    const params = new URLSearchParams(location.search);
+    if (params.get('open_notifications') === 'true') {
+      loadUnreadNotifications(true); // 강제 오픈
+
+      // URL에서 파라미터 제거 (뒤로가기 시 중복 방지)
+      const newParams = new URLSearchParams(location.search);
+      newParams.delete('open_notifications');
+      const newSearch = newParams.toString();
+      const newUrl = location.pathname + (newSearch ? `?${newSearch}` : '') + location.hash;
+      window.history.replaceState({}, '', newUrl);
+    }
+
     // "/" 경로는 "/v2"로 즉시 리다이렉트되므로 페이지뷰 기록 안함
     if (location.pathname === '/') {
       return;
     }
     logPageView(location.pathname + location.search);
-  }, [location]);
+  }, [location, loadUnreadNotifications]);
 
   return (
     <>

@@ -242,7 +242,7 @@ self.addEventListener('push', (event) => {
 
       // 3. [Update] 알림 수신 시 새 SW 버전 백그라운드 체크
       // 사용자가 알림을 탭해서 앱을 열 때쯤엔 새 버전이 준비 완료되어 자동 적용됨
-      self.registration.update().catch(() => {});
+      self.registration.update().catch(() => { });
     } catch (err) {
       console.error('[SW] Push processing failed:', err);
     }
@@ -269,22 +269,31 @@ self.addEventListener('notificationclick', (event) => {
 
   const urlToOpen = event.notification.data?.url || '/';
   const dbId = event.notification.data?.dbId;
-
-  // [Feature] 클릭 시 DB에서도 읽음 처리
+  // [Update] 알림 클릭 시 읽음 처리는 앱(클라이언트)이 맡음
+  // SW에서 즉시 처리해버리면 앱 진입 시 '읽지 않은 알림' 목록이 비어있게 되기 때문
+  /* 
   if (dbId) {
     markAsReadInDB(dbId);
   }
+  */
+
+  // [Update] 앱이 알림을 통해 진입했음을 알 수 있도록 파라미터 추가
+  const url = new URL(urlToOpen, self.location.origin);
+  url.searchParams.set('open_notifications', 'true');
+  const finalUrl = url.href;
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
+        // 이미 같은 URL이 열려있다면 해당 창 포커스
         for (const client of clientList) {
-          if (client.url === new URL(urlToOpen, self.location.origin).href && 'focus' in client) {
+          if (client.url === finalUrl && 'focus' in client) {
             return client.focus();
           }
         }
+        // 없으면 새 창
         if (clients.openWindow) {
-          return clients.openWindow(urlToOpen);
+          return clients.openWindow(finalUrl);
         }
       })
   );
