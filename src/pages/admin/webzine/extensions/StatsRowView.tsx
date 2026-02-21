@@ -165,6 +165,13 @@ export const StatsRowView: React.FC<NodeViewProps> = ({ node, updateAttributes, 
         window.addEventListener('mouseup', onMouseUp);
     };
 
+    // divider는 10px씩 차지 → 각 컬럼이 비례해서 공간을 나눔
+    const totalDividerPx = (columns.length - 1) * 10;
+    const colFlexBasis = (w: number) =>
+        totalDividerPx > 0
+            ? `calc(${w}% - ${((w / 100) * totalDividerPx).toFixed(1)}px)`
+            : `${w}%`;
+
     return (
         <NodeViewWrapper
             className={`sr-node-wrapper ${selected ? 'sr-selected' : ''} ${isDragging ? 'sr-dragging' : ''}`}
@@ -175,7 +182,7 @@ export const StatsRowView: React.FC<NodeViewProps> = ({ node, updateAttributes, 
                         {/* Column */}
                         <div
                             className={`sr-column ${col.type === 'text' ? 'sr-column-text' : 'sr-column-stats'}`}
-                            style={{ width: `${col.width}%` }}
+                            style={{ flex: `0 0 ${colFlexBasis(col.width)}`, minWidth: '80px' }}
                         >
                             {/* Per-column controls — visible when row is selected or text is being edited */}
                             {showControls && (

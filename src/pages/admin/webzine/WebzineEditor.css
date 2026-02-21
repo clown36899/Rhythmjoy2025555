@@ -157,9 +157,10 @@
     background-color: rgba(239, 68, 68, 0.1);
 }
 
-/* Main Layout */
+/* Main Layout — always stacked so the editor column keeps full width */
 .we-main-layout {
     display: flex;
+    flex-direction: column;
     gap: 1.5rem;
     padding: 0 1rem;
     max-width: 1400px;
@@ -178,9 +179,9 @@
     /* Prevent overflow */
 }
 
-/* Stats Column (Sidebar) */
+/* Stats Column (Sidebar) — always full-width below the editor */
 .we-stats-column {
-    width: 400px;
+    width: 100%;
     display: flex;
     flex-direction: column;
     gap: 1rem;
@@ -189,10 +190,7 @@
     border-radius: 0.75rem;
     border: 1px solid #374151;
     overflow: hidden;
-    position: sticky;
-    top: calc(env(safe-area-inset-top, 0px) + 80px);
-    /* header + extra space */
-    height: calc(100vh - env(safe-area-inset-top, 0px) - 100px);
+    height: 500px;
 }
 
 .we-stats-header {
@@ -576,18 +574,7 @@ div.tiptap.ProseMirror {
     background-color: #111827;
 }
 
-/* Media Queries */
-@media (max-width: 1024px) {
-    .we-main-layout {
-        flex-direction: column;
-    }
-
-    .we-stats-column {
-        width: 100%;
-        height: 500px;
-        position: static;
-    }
-}
+/* Media Queries — main layout is always stacked; no extra breakpoint needed */
 
 /* New Semantic Classes for strict separation */
 .we-hidden {
@@ -801,17 +788,17 @@ div.tiptap.ProseMirror {
 }
 
 /* ----- 컬럼 ----- */
+/* flex-grow/shrink/basis는 인라인 style={{ flex: '0 0 calc(...)' }}로 제어 */
 .sr-column {
     position: relative;
-    flex-shrink: 0;
-    min-width: 80px;
     display: flex;
     flex-direction: column;
+    overflow: visible; /* 피커 드롭다운이 컬럼 밖으로 나올 수 있게 */
 }
 
 .sr-col-content {
     flex: 1;
-    overflow: hidden;
+    overflow: visible;
 }
 
 /* ----- 컬럼 툴바 ----- */
@@ -1003,24 +990,10 @@ div.tiptap.ProseMirror {
     opacity: 0.4;
 }
 
-/* 모바일 */
+/* 편집기 편집 비율 그대로 유지 — 스택 없음
+   좁은 화면에서는 가로 스크롤 허용 */
 @media (max-width: 768px) {
-    .sr-row {
-        flex-direction: column;
-    }
-
-    .sr-column {
-        width: 100% !important;
-    }
-
-    .sr-divider {
-        width: 100%;
-        height: 10px;
-        cursor: row-resize;
-    }
-
-    .sr-divider::after {
-        width: 36px;
-        height: 3px;
+    .sr-node-wrapper {
+        overflow-x: auto;
     }
 }

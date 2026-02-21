@@ -1,6 +1,7 @@
 import React from 'react';
 import SwingSceneStats from '../../v2/components/SwingSceneStats';
 import MonthlyWebzine from '../../v2/components/MonthlyBillboard/MonthlyWebzine';
+import './WebzineRenderer.css';
 
 interface WebzineRendererProps {
     content: any;
@@ -119,6 +120,58 @@ const WebzineRenderer: React.FC<WebzineRendererProps> = ({ content }) => {
                     </section>
                 );
             }
+            case 'statsRow': {
+                const cols: any[] = node.attrs?.columns || [];
+                const totalDividerPx = (cols.length - 1) * 10;
+                const colFlexBasis = (rawW: any) => {
+                    const w = Number(rawW) || 0;
+                    return totalDividerPx > 0
+                        ? `calc(${w}% - ${((w / 100) * totalDividerPx).toFixed(1)}px)`
+                        : `${w}%`;
+                };
+                return (
+                    <div key={idx} className="wv-stats-row" style={{ display: 'flex', flexDirection: 'row', alignItems: 'stretch', width: '100%' }}>
+                        {cols.map((col: any, colIdx: number) => (
+                            <React.Fragment key={col.id || colIdx}>
+                                <div
+                                    className="wv-stats-col"
+                                    style={{
+                                        flexGrow: 0,
+                                        flexShrink: 0,
+                                        flexBasis: colFlexBasis(col.width),
+                                        minWidth: '80px',
+                                    }}
+                                >
+                                    {col.type === 'stats'
+                                        ? renderStatsItem({ type: col.statsType, ...col.statsConfig })
+                                        : (
+                                            <div
+                                                className="wv-text-col"
+                                                dangerouslySetInnerHTML={{ __html: col.textContent || '' }}
+                                            />
+                                        )
+                                    }
+                                </div>
+                                {colIdx < cols.length - 1 && (
+                                    <div className="wv-col-gap" />
+                                )}
+                            </React.Fragment>
+                        ))}
+                    </div>
+                );
+            }
+            case 'resizableImage':
+                return (
+                    <figure key={idx} className="wv-image-container">
+                        <img
+                            src={node.attrs?.src}
+                            alt={node.attrs?.alt || '웹진 이미지'}
+                            className="wv-image"
+                            loading="lazy"
+                            style={{ width: node.attrs?.width || '100%' }}
+                        />
+                    </figure>
+                );
             default:
                 return null;
         }

@@ -112,11 +112,20 @@
 
 /* Content Body */
 .wv-body {
-    max-width: 800px;
+    max-width: 1400px;
     margin: 0 auto;
     padding: 3rem 1.5rem;
     color: var(--text-primary);
     line-height: 1.8;
+}
+
+/* 텍스트 단락 가독성 — 너무 넓어지지 않도록 제한 */
+.wv-body .wv-heading-1,
+.wv-body .wv-heading-2,
+.wv-body .wv-paragraph,
+.wv-body .wv-bullet-list,
+.wv-body .wv-ordered-list {
+    max-width: 800px;
 }
 
 .wv-body::after {
@@ -325,4 +334,133 @@
     color: #9ca3af;
     margin-top: 0.75rem;
     font-style: italic;
+}
+
+/* List styles (wv-bullet-list / wv-ordered-list) */
+.wv-bullet-list,
+.wv-ordered-list {
+    margin-bottom: 1.5rem;
+    padding-left: 1.5rem;
+    color: #d1d5db;
+}
+
+.wv-bullet-list {
+    list-style-type: disc;
+}
+
+.wv-ordered-list {
+    list-style-type: decimal;
+}
+
+.wv-bullet-list li,
+.wv-ordered-list li {
+    margin-bottom: 0.5rem;
+    line-height: 1.7;
+}
+
+/* Image styles */
+.wv-image-container {
+    margin: 2rem 0;
+    border-radius: 0.75rem;
+    overflow: hidden;
+    display: block;
+}
+
+.wv-image {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    border-radius: 0.75rem;
+}
+
+/* Legacy statsNode (backward compat) */
+.wv-stats-section {
+    border-radius: 0.75rem;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+/* ===================================================
+   StatsRow 뷰어 레이아웃
+   =================================================== */
+.wv-stats-row {
+    display: flex;
+    align-items: stretch;
+    width: 100%;          /* ensure container has definite size for % flex-basis */
+    margin: 2rem 0;
+    overflow: visible;
+    box-sizing: border-box;
+}
+
+/* 컬럼 사이 gap (divider 역할, 공간만 차지) */
+.wv-col-gap {
+    width: 10px;
+    flex-shrink: 0;
+}
+
+/* 각 컬럼 — flex-basis는 인라인 스타일로 설정 */
+.wv-stats-col {
+    min-width: 0;
+    overflow: visible;
+    box-sizing: border-box;
+}
+
+/* 컬럼 내부 직접 자식이 컬럼 너비를 채우도록 */
+.wv-stats-col > * {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* MonthlyWebzine의 @media(min-width:1024px) height:75vh가
+   뷰어 컬럼 안에서 레이아웃을 망가뜨리지 않도록 height 리셋 */
+.wv-stats-col .mw-dashboard {
+    height: auto !important;
+}
+
+.wv-stats-col .mw-grid {
+    height: auto !important;
+}
+
+.wv-stats-col .mw-col {
+    height: auto !important;
+}
+
+/* 텍스트 컬럼 — 에디터에서 입력한 HTML을 그대로 렌더 */
+.wv-text-col {
+    padding: 1rem 1.25rem;
+    font-size: 1rem;
+    line-height: 1.8;
+    color: #e5e7eb;
+}
+
+.wv-text-col p {
+    margin: 0 0 0.75rem;
+}
+
+.wv-text-col p:last-child {
+    margin-bottom: 0;
+}
+
+.wv-text-col strong {
+    font-weight: 700;
+    color: #f9fafb;
+}
+
+.wv-text-col em {
+    font-style: italic;
+}
+
+.wv-text-col a {
+    color: #60a5fa;
+    text-decoration: underline;
+}
+
+/* 편집 비율 그대로 유지 — 반응형 스택 없음
+   좁은 화면에서 가로 스크롤 허용 */
+@media (max-width: 768px) {
+    .wv-stats-row {
+        overflow-x: auto;
+        overflow-y: visible;
+    }
 }
