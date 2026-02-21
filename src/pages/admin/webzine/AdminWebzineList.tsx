@@ -1,146 +1,255 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo, startTransition } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import LocalLoading from '../../../components/LocalLoading';
+import WebzineRenderer from '../../webzine/components/WebzineRenderer';
 import './AdminWebzineList.css';
 
 interface WebzinePost {
     id: number;
     title: string;
+    subtitle: string | null;
+    content: any;
+    cover_image: string | null;
     is_published: boolean;
     created_at: string;
     views: number;
     author_id: string;
+    target_year?: number;
+    target_month?: number;
 }
 
 const AdminWebzineList = () => {
     const navigate = useNavigate();
-    const { isAdmin } = useAuth();
-    const [posts, setPosts] = useState<WebzinePost[]>([]);
+    const { isAdmin, user } = useAuth();
+
+    const now = new Date();
+    const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+    const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
+
+    const [post, setPost] = useState<WebzinePost | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetchPosts();
-    }, []);
+        let active = true;
+        fetchPostByMonth(selectedYear, selectedMonth, active);
+        return () => { active = false; };
+    }, [selectedYear, selectedMonth]);
 
-    const fetchPosts = async () => {
+    const fetchPostByMonth = async (year: number, month: number, active: boolean) => {
         try {
             setLoading(true);
+            // 한국 시간 기준 해당 월의 범위 계산
+            const startDate = new Date(year, month - 1, 1, 0, 0, 0).toISOString();
+            const endDate = new Date(year, month, 0, 23, 59, 59).toISOString();
+
             const { data, error } = await supabase
                 .from('webzine_posts')
-                .select('id, title, is_published, created_at, views, author_id')
-                .order('created_at', { ascending: false });
+                .select('*')
+                .gte('created_at', startDate)
+                .lte('created_at', endDate)
+                .order('created_at', { ascending: false })
+                .limit(1);
 
+            if (!active) return;
             if (error) throw error;
-            setPosts(data || []);
+            setPost(data && data.length > 0 ? data[0] : null);
         } catch (err) {
-            console.error('[AdminWebzineList] Failed to fetch posts:', err);
-            alert('목록 로드 실패');
+            console.error('[AdminWebzineList] Failed to fetch post:', err);
         } finally {
-            setLoading(false);
+            if (active) setLoading(false);
         }
     };
+
+    const handlePrevMonth = () => {
+        startTransition(() => {
+            if (selectedMonth === 1) {
+                setSelectedYear(prev => prev - 1);
+                setSelectedMonth(12);
+            } else {
+                setSelectedMonth(prev => prev - 1);
+            }
+        });
+    };
+
+    const handleNextMonth = () => {
+        startTransition(() => {
+            if (selectedMonth === 12) {
+                setSelectedYear(prev => prev + 1);
+                setSelectedMonth(1);
+            } else {
+                setSelectedMonth(prev => prev + 1);
+            }
+        });
+    };
+
+    const years = useMemo(() => {
+        const currentYear = new Date().getFullYear();
+        const startYear = 2024;
+        const range = [];
+        for (let y = currentYear + 1; y >= startYear; y--) {
+            range.push(y);
+        }
+        return range;
+    }, []);
+
+    const months = Array.from({ length: 12 }, (_, i) => i + 1);
 
     const handleCreateNew = () => {
         navigate('/admin/webzine/new');
     };
 
-    const handleDelete = async (id: number) => {
-        if (!window.confirm('정말 삭제하시겠습니까? 복구할 수 없습니다.')) return;
-
-        try {
-            const { error } = await supabase
-                .from('webzine_posts')
-                .delete()
-                .eq('id', id);
-
-            if (error) throw error;
-            fetchPosts(); // Reload
-        } catch (err) {
-            console.error('Delete failed:', err);
-            alert('삭제 실패');
-        }
+    const handleEdit = () => {
+        if (post) navigate(`/admin/webzine/edit/${post.id}`);
     };
 
-    if (!isAdmin) {
-        return <div className="aw-access-denied">접근 권한이 없습니다.</div>;
-    }
-
-    if (loading) return <LocalLoading />;
-
     return (
-        <div className="aw-container">
-            <header className="aw-header">
-                <div className="aw-title-group">
-                    <h1 className="aw-title">웹진 관리</h1>
-                    <p className="aw-subtitle">월간 빌보드 웹진 콘텐츠를 관리합니다.</p>
+        <div className="aw-container" id="admin-webzine-portal">
+            <header className="aw-header" id="aw-main-header">
+                <div className="aw-header-left">
+                    <button
+                        id="aw-btn-back-home"
+                        onClick={() => navigate('/v2')}
+                        className="aw-back-btn"
+                        aria-label="홈으로 돌아가기"
+                    >
+                        <i className="ri-arrow-left-line"></i>
+                    </button>
+                    <nav className="aw-nav-controls" aria-label="발행 호수 선택">
+                        <button
+                            id="aw-btn-nav-prev"
+                            onClick={handlePrevMonth}
+                            className="aw-nav-btn"
+                            aria-label="이전 달 보기"
+                        >
+                            <i className="ri-arrow-left-s-line"></i>
+                        </button>
+
+                        <div className="aw-date-selector">
+                            <select
+                                id="aw-select-year"
+                                value={selectedYear}
+                                onChange={(e) => {
+                                    const val = Number(e.target.value);
+                                    startTransition(() => {
+                                        setSelectedYear(val);
+                                    });
+                                }}
+                                className="aw-select"
+                                aria-label="연도 선택"
+                            >
+                                {years.map(y => <option key={y} value={y}>{y}년</option>)}
+                            </select>
+                            <select
+                                id="aw-select-month"
+                                value={selectedMonth}
+                                onChange={(e) => {
+                                    const val = Number(e.target.value);
+                                    startTransition(() => {
+                                        setSelectedMonth(val);
+                                    });
+                                }}
+                                className="aw-select"
+                                aria-label="월 선택"
+                            >
+                                {months.map(m => <option key={m} value={m}>{m}월</option>)}
+                            </select>
+                        </div>
+
+                        <button
+                            id="aw-btn-nav-next"
+                            onClick={handleNextMonth}
+                            className="aw-nav-btn"
+                            aria-label="다음 달 보기"
+                        >
+                            <i className="ri-arrow-right-s-line"></i>
+                        </button>
+                    </nav>
                 </div>
-                <button
-                    onClick={handleCreateNew}
-                    className="aw-btn-create"
-                >
-                    <i className="ri-edit-pen-line"></i>
-                    <span>새 글 작성</span>
-                </button>
+
+                {isAdmin && (
+                    <div className="aw-header-right">
+                        {post ? (
+                            <button
+                                id="aw-btn-edit-current"
+                                onClick={handleEdit}
+                                className="aw-btn-admin aw-btn-edit"
+                                title="현재 게시물 수정"
+                            >
+                                <i className="ri-pencil-line"></i>
+                                <span>편집하기</span>
+                            </button>
+                        ) : (
+                            <button
+                                id="aw-btn-publish-new"
+                                onClick={handleCreateNew}
+                                className="aw-btn-admin aw-btn-create"
+                                title="새 월간 빌보드 발행"
+                            >
+                                <i className="ri-add-line"></i>
+                                <span>발행하기</span>
+                            </button>
+                        )}
+                    </div>
+                )}
             </header>
 
-            <main className="aw-main">
-                {posts.length === 0 ? (
-                    <div className="aw-empty-state">
-                        <p className="aw-empty-text">아직 작성된 웹진 글이 없습니다.</p>
-                        <button onClick={handleCreateNew} className="aw-empty-link">
-                            첫 글 작성하기
-                        </button>
-                    </div>
-                ) : (
-                    posts.map(post => (
-                        <div key={post.id} className="aw-post-card">
-                            <div className="aw-post-content">
+            <main className="aw-main-viewer" id="aw-content-root">
+                {loading ? (
+                    <LocalLoading />
+                ) : post ? (
+                    <article className="aw-content-body" id={`post-container-${post.id}`}>
+                        <section className="aw-hero" id="aw-post-hero">
+                            {post.cover_image ? (
+                                <img
+                                    src={post.cover_image}
+                                    alt={post.title}
+                                    className="aw-cover-img"
+                                    loading="lazy"
+                                />
+                            ) : (
+                                <div className="aw-cover-placeholder">
+                                    <span>Billboard Monthly</span>
+                                </div>
+                            )}
+                            <div className="aw-hero-overlay" />
+                            <div className="aw-hero-content">
+                                <h1 className="aw-title-large">{post.title}</h1>
+                                {post.subtitle && <p className="aw-subtitle-large">{post.subtitle}</p>}
                                 <div className="aw-post-meta">
-                                    {post.is_published ? (
-                                        <span className="aw-badge aw-badge-published">Published</span>
-                                    ) : (
-                                        <span className="aw-badge aw-badge-draft">Draft</span>
-                                    )}
-                                    <span className="aw-post-id">#{post.id}</span>
-                                </div>
-                                <h3 className="aw-post-title" onClick={() => navigate(`/webzine/${post.id}`)}>
-                                    {post.title || '(제목 없음)'}
-                                </h3>
-
-                                <div className="aw-post-info">
-                                    <span>작성: {new Date(post.created_at).toLocaleString()}</span>
-                                    <span>•</span>
-                                    <span>조회수: {post.views}</span>
+                                    <time dateTime={post.created_at}>
+                                        {new Date(post.created_at).toLocaleDateString('ko-KR', {
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric'
+                                        })}
+                                    </time>
+                                    <span className="aw-meta-divider">|</span>
+                                    <span>조회 {post.views.toLocaleString()}회</span>
+                                    {!post.is_published && <span className="aw-draft-tag">임시저장</span>}
                                 </div>
                             </div>
+                        </section>
 
-                            <div className="aw-actions">
-                                <button
-                                    onClick={() => window.open(`/webzine/${post.id}`, '_blank')}
-                                    className="aw-action-btn aw-btn-view"
-                                    title="미리보기"
-                                >
-                                    <i className="ri-external-link-line aw-icon-lg"></i>
-                                </button>
-                                <button
-                                    onClick={() => navigate(`/admin/webzine/edit/${post.id}`)}
-                                    className="aw-action-btn aw-btn-edit"
-                                    title="수정"
-                                >
-                                    <i className="ri-pencil-line aw-icon-lg"></i>
-                                </button>
-                                <button
-                                    onClick={() => handleDelete(post.id)}
-                                    className="aw-action-btn aw-btn-delete"
-                                    title="삭제"
-                                >
-                                    <i className="ri-delete-bin-line aw-icon-lg"></i>
-                                </button>
-                            </div>
-                        </div>
-                    ))
+                        <section className="aw-renderer-wrapper" id="aw-post-content">
+                            <WebzineRenderer content={post.content} />
+                        </section>
+                    </article>
+                ) : (
+                    <div className="aw-empty-viewer" id="aw-no-content">
+                        <i className="ri-article-line aw-empty-icon" aria-hidden="true"></i>
+                        <p>{selectedYear}년 {selectedMonth}월에 발행된 콘텐츠가 없습니다.</p>
+                        {isAdmin && (
+                            <button
+                                id="aw-btn-create-empty"
+                                onClick={handleCreateNew}
+                                className="aw-btn-create-large"
+                            >
+                                새 월간 빌보드 아티클 작성
+                            </button>
+                        )}
+                    </div>
                 )}
             </main>
         </div>

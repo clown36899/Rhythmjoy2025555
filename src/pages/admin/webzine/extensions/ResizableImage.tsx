@@ -1,23 +1,23 @@
 import { Node, mergeAttributes } from '@tiptap/core';
 import { ReactNodeViewRenderer } from '@tiptap/react';
-import { StatsNodeView } from './StatsNodeView';
+import { ResizableImageView } from './ResizableImageView';
 
-export const StatsNode = Node.create({
-    name: 'statsNode',
+export const ResizableImage = Node.create({
+    name: 'resizableImage',
     group: 'block',
     atom: true,
     draggable: true,
 
     addAttributes() {
         return {
-            type: {
-                default: 'unknown',
+            src: {
+                default: null,
             },
-            name: {
-                default: '통계 항목',
+            alt: {
+                default: null,
             },
-            config: {
-                default: {},
+            title: {
+                default: null,
             },
             width: {
                 default: '100%',
@@ -40,29 +40,34 @@ export const StatsNode = Node.create({
     parseHTML() {
         return [
             {
-                tag: 'div[data-type="stats-node"]',
+                tag: 'img[data-type="resizable-image"]',
             },
+            {
+                tag: 'img',
+                getAttrs: element => {
+                    if (typeof element === 'string') return null;
+                    const img = element as HTMLImageElement;
+                    return {
+                        src: img.getAttribute('src'),
+                        alt: img.getAttribute('alt'),
+                        title: img.getAttribute('title'),
+                    };
+                },
+            }
         ];
     },
 
     renderHTML({ HTMLAttributes }) {
         return [
-            'div',
+            'img',
             mergeAttributes(HTMLAttributes, {
-                'data-type': 'stats-node',
-                class: 'we-stats-node-placeholder',
+                'data-type': 'resizable-image',
+                class: 'we-resizable-image',
             }),
-            [
-                'div',
-                { class: 'we-stats-node-header' },
-                ['i', { class: 'ri-bar-chart-fill' }],
-                ['span', {}, HTMLAttributes.name],
-            ],
-            ['div', { class: 'we-stats-node-body' }, `Type: ${HTMLAttributes.type}`],
         ];
     },
 
     addNodeView() {
-        return ReactNodeViewRenderer(StatsNodeView);
+        return ReactNodeViewRenderer(ResizableImageView);
     },
 });

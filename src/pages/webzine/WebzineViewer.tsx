@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import LocalLoading from '../../components/LocalLoading';
 import MonthlyWebzine from '../v2/components/MonthlyBillboard/MonthlyWebzine';
 import SwingSceneStats from '../v2/components/SwingSceneStats';
+import WebzineRenderer from './components/WebzineRenderer';
 import './WebzineViewer.css';
 
 interface WebzinePost {
@@ -61,118 +62,6 @@ const WebzineViewer = () => {
 
         fetchPost();
     }, [id, isAdmin, user, navigate]);
-
-    // Simple Tiptap JSON Renderer
-    const renderContent = (content: any) => {
-        if (!content || !content.content) return null;
-
-        return content.content.map((node: any, idx: number) => {
-            const renderMarks = (textNode: any) => {
-                let element = <span>{textNode.text}</span>;
-                if (textNode.marks) {
-                    textNode.marks.forEach((mark: any) => {
-                        if (mark.type === 'bold') element = <strong>{element}</strong>;
-                        if (mark.type === 'italic') element = <em>{element}</em>;
-                        if (mark.type === 'underline') element = <u style={{ textDecoration: 'underline' }}>{element}</u>;
-                        if (mark.type === 'link') element = <a href={mark.attrs.href} target="_blank" rel="noopener noreferrer" className="wv-link">{element}</a>;
-                    });
-                }
-                return <React.Fragment key={idx + '_' + Math.random()}>{element}</React.Fragment>;
-            };
-
-            const nodeContent = node.content?.map((child: any) => {
-                if (child.type === 'text') return renderMarks(child);
-                return null;
-            });
-
-            switch (node.type) {
-                case 'heading':
-                    const level = node.attrs?.level || 1;
-                    const HeadingTag = `h${level}` as any;
-                    return <HeadingTag key={idx} className={`wv-heading-${level}`}>{nodeContent}</HeadingTag>;
-                case 'paragraph':
-                    return <p key={idx} className="wv-paragraph">{nodeContent}</p>;
-                case 'bulletList':
-                    return (
-                        <ul key={idx} className="wv-list">
-                            {node.content?.map((li: any, lidx: number) => (
-                                <li key={lidx}>{li.content?.[0]?.content?.map((c: any) => renderMarks(c))}</li>
-                            ))}
-                        </ul>
-                    );
-                case 'orderedList':
-                    return (
-                        <ol key={idx} className="wv-list">
-                            {node.content?.map((li: any, lidx: number) => (
-                                <li key={lidx}>{li.content?.[0]?.content?.map((c: any) => renderMarks(c))}</li>
-                            ))}
-                        </ol>
-                    );
-                case 'image':
-                    return (
-                        <div key={idx} className="wv-image-node">
-                            <img src={node.attrs?.src} alt={node.attrs?.alt || ''} />
-                            {node.attrs?.title && <p className="wv-image-caption">{node.attrs.title}</p>}
-                        </div>
-                    );
-                case 'statsNode': {
-                    const alignment = node.attrs?.alignment || 'center';
-                    const width = node.attrs?.width || '100%';
-                    const statsStyle: React.CSSProperties = {
-                        width,
-                        float: alignment === 'center' ? 'none' : (alignment as 'left' | 'right'),
-                        clear: alignment === 'center' ? 'both' : 'none',
-                        margin: alignment === 'center'
-                            ? '2.5rem auto'
-                            : alignment === 'left'
-                                ? '0 1.5rem 1rem 0'
-                                : '0 0 1rem 1.5rem',
-                    };
-                    return (
-                        <div key={idx} className="wv-stats-container" style={statsStyle}>
-                            {renderStatsItem(node.attrs)}
-                        </div>
-                    );
-                }
-                default:
-                    return null;
-            }
-        });
-    };
-
-    const renderStatsItem = (attrs: any) => {
-        const { type } = attrs;
-
-        // 1. Scene Stats
-        if (type.startsWith('scene-')) {
-            const section = type.replace('scene-', '') as any;
-            return <SwingSceneStats section={section} />;
-        }
-
-        // 2. Monthly Billboard
-        if (['lifecycle', 'hourly-pattern', 'lead-time', 'top-20', 'top-contents'].includes(type)) {
-            const sectionMap: Record<string, string> = { 'top-contents': 'top-20' };
-            return <MonthlyWebzine section={(sectionMap[type] || type) as any} />;
-        }
-
-        // 3. My Impact - show placeholder with better styling
-        if (type.startsWith('my-')) {
-            return (
-                <div className="wv-stats-placeholder">
-                    <i className="ri-user-heart-fill"></i>
-                    <span>{attrs.name || '활동 데이터'}</span>
-                    <span className="wv-stats-placeholder-sub">작성자의 개인 통계는 본인에게만 표시됩니다.</span>
-                </div>
-            );
-        }
-
-        return (
-            <div className="wv-stats-placeholder">
-                <i className="ri-bar-chart-fill"></i>
-                <span>{attrs.name || type}</span>
-            </div>
-        );
-    };
 
     if (loading) return <LocalLoading />;
 
@@ -232,7 +121,7 @@ const WebzineViewer = () => {
 
             {/* Content Body */}
             <article className="wv-body">
-                {renderContent(post.content)}
+                <WebzineRenderer content={post.content} />
 
                 {/* Empty content fallback */}
                 {(post.content && (!post.content.content || post.content.content.length === 0)) && (

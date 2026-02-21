@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -8,11 +8,12 @@ import './WebzineEditor.css';
 // Tiptap Imports
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import Image from '@tiptap/extension-image';
 import Link from '@tiptap/extension-link';
 import Underline from '@tiptap/extension-underline';
 import Placeholder from '@tiptap/extension-placeholder';
 import { StatsNode } from './extensions/StatsNode';
+import { StatsRow } from './extensions/StatsRow';
+import { ResizableImage } from './extensions/ResizableImage.tsx';
 
 // Stats Components
 import MyImpactCard from '../../user/components/MyImpactCard';
@@ -101,9 +102,12 @@ const MenuBar = ({ editor }: { editor: any }) => {
             <button
                 onClick={() => {
                     const url = window.prompt('이미지 URL을 입력하세요');
-                    if (url) editor.chain().focus().setImage({ src: url }).run();
+                    if (url) editor.chain().focus().insertContent({
+                        type: 'resizableImage',
+                        attrs: { src: url }
+                    }).run();
                 }}
-                title="Add Image URL"
+                title="이미지 삽입"
             >
                 <i className="ri-image-line"></i>
             </button>
@@ -111,11 +115,25 @@ const MenuBar = ({ editor }: { editor: any }) => {
     );
 };
 
+// Tiptap Extensions Configuration (Global to prevent re-creation)
+const EDITOR_EXTENSIONS = [
+    StarterKit.configure({
+        codeBlock: false,
+    }),
+    Underline,
+    Link.configure({ openOnClick: false }),
+    ResizableImage,
+    StatsNode,
+    StatsRow,
+    Placeholder.configure({
+        placeholder: '이곳에 본문 내용을 작성하거나 통계를 삽입하세요...',
+    }),
+];
+
 const WebzineEditor = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const { user } = useAuth();
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
     // States
     const [isLoading, setIsLoading] = useState(true);
@@ -123,35 +141,68 @@ const WebzineEditor = () => {
     const [saveMessage, setSaveMessage] = useState<string | null>(null);
     const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const initRef = useRef(false);
+    const initTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [post, setPost] = useState<WebzinePost | null>(null);
 
     // Form States
     const [title, setTitle] = useState('');
     const [subtitle, setSubtitle] = useState('');
-    const [coverImage, setCoverImage] = useState<string | null>(null);
     const [isPublished, setIsPublished] = useState(false);
 
     // Stats View State
     const [activeStatsTab, setActiveStatsTab] = useState<'my' | 'scene' | 'monthly'>('monthly');
     const [statsData, setStatsData] = useState<any>(null); // To hold data for MyImpactCard
 
-    // Tiptap Editor
+    const [isEditorInitialized, setIsEditorInitialized] = useState(false);
+
+    const isMounted = useRef(false);
+    useEffect(() => {
+        isMounted.current = true;
+        console.log('[WebzineEditor] [Lifecycle] MOUNTED');
+        return () => {
+            isMounted.current = false;
+            if (initTimerRef.current) clearTimeout(initTimerRef.current);
+            console.log('[WebzineEditor] [Lifecycle] UNMOUNTED (Timers Cleared)');
+        };
+    }, []);
+
+    // Filter extensions to ensure absolutely no duplicates by name
+    const uniqueExtensions = useMemo(() => {
+        const seen = new Set();
+        return EDITOR_EXTENSIONS.filter(ext => {
+            const name = (ext as any).name || (ext as any).config?.name;
+            if (!name || seen.has(name)) return false;
+            seen.add(name);
+            return true;
+        });
+    }, []);
+
+    // Log the current extension names to see if they are duplicates in the array itself
+    console.log('[WebzineEditor] [Debug] EDITOR_EXTENSIONS Names:', EDITOR_EXTENSIONS.map(e => (e as any).name || (e as any).config?.name || 'unknown'));
+
     const editor = useEditor({
-        extensions: [
-            StarterKit,
-            Underline,
-            Link.configure({ openOnClick: false }),
-            Image,
-            StatsNode,
-            Placeholder.configure({
-                placeholder: '이곳에 본문 내용을 작성하거나 통계를 삽입하세요...',
-            }),
-        ],
+        extensions: uniqueExtensions,
         content: '',
     });
 
+    // Handle Editor Initialization Safely
+    useEffect(() => {
+        if (editor && !editor.isDestroyed && !isEditorInitialized) {
+            console.log('[WebzineEditor] [Lifecycle] Editor detected, starting final initialization sequence');
+            if (initTimerRef.current) clearTimeout(initTimerRef.current);
+
+            initTimerRef.current = setTimeout(() => {
+                if (isMounted.current) {
+                    setIsEditorInitialized(true);
+                    console.log('[WebzineEditor] [Lifecycle] setIsEditorInitialized(true) success via useEffect');
+                }
+            }, 50);
+        }
+    }, [editor, isEditorInitialized]);
+
     // 1. Initialize (Draft-First Strategy) & Load Stats Data
     useEffect(() => {
+        let active = true;
         const initEditor = async () => {
             if (!user) return;
             if (!id && initRef.current) return; // Prevent duplicate draft creation
@@ -164,6 +215,8 @@ const WebzineEditor = () => {
                     supabase.from('board_posts').select('*, prefix:board_prefixes(*)').eq('user_id', user.id).order('created_at', { ascending: false }),
                     supabase.from('board_users').select('profile_image, nickname').eq('user_id', user.id).maybeSingle()
                 ]);
+
+                if (!active) return;
 
                 if (postsRes.data) {
                     const profileImage = userRes.data?.profile_image || null;
@@ -193,6 +246,7 @@ const WebzineEditor = () => {
                         .select()
                         .single();
 
+                    if (!active) return;
                     if (error) throw error;
                     if (data) {
                         navigate(`/admin/webzine/edit/${data.id}`, { replace: true });
@@ -207,62 +261,38 @@ const WebzineEditor = () => {
                     .eq('id', id)
                     .single();
 
+                if (!active) return;
                 if (error) throw error;
 
                 if (data) {
                     setPost(data);
                     setTitle(data.title);
                     setSubtitle(data.subtitle || '');
-                    setCoverImage(data.cover_image);
                     setIsPublished(data.is_published || false);
 
                     if (editor && data.content) {
-                        editor.commands.setContent(data.content);
+                        // Use a slightly longer delay to ensure React lifecycle is cleared
+                        setTimeout(() => {
+                            if (active && editor && !editor.isDestroyed) {
+                                console.log('[WebzineEditor] Applying content after delay...');
+                                editor.commands.setContent(data.content);
+                            }
+                        }, 150);
                     }
                 }
             } catch (err) {
                 console.error('[WebzineEditor] Error:', err);
-                alert('데이터 로드 실패');
+                if (active) alert('데이터 로드 실패');
             } finally {
-                setIsLoading(false);
+                if (active) setIsLoading(false);
             }
         };
 
         if (editor) {
             initEditor();
         }
+        return () => { active = false; };
     }, [id, user, navigate, editor]);
-
-    // 2. Image Upload Handler
-    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!e.target.files || e.target.files.length === 0 || !id) return;
-
-        const file = e.target.files[0];
-        const fileExt = file.name.split('.').pop();
-        const fileName = `cover_${Date.now()}.${fileExt}`;
-        const filePath = `webzine/${id}/${fileName}`;
-
-        try {
-            setIsSaving(true);
-            const { error: uploadError } = await supabase.storage.from('images').upload(filePath, file);
-            if (uploadError) throw uploadError;
-
-            const { data: { publicUrl } } = supabase.storage.from('images').getPublicUrl(filePath);
-            setCoverImage(publicUrl);
-
-            const { error: dbError } = await supabase
-                .from('webzine_posts')
-                .update({ cover_image: publicUrl, updated_at: new Date().toISOString() })
-                .eq('id', id);
-
-            if (dbError) throw dbError;
-        } catch (err) {
-            console.error('[WebzineEditor] Image upload failed:', err);
-            alert('이미지 업로드 실패');
-        } finally {
-            setIsSaving(false);
-        }
-    };
 
     // 3. Save Handler
     const handleSave = async (publishOverride?: boolean) => {
@@ -299,19 +329,25 @@ const WebzineEditor = () => {
         }
     };
 
-    // 4. Insert Stat Handler
+    // 4. Insert Stat Handler — inserts as a StatsRow (self-contained flex container)
+    //    StatsNode is kept for backward-compat with existing documents.
     const handleInsertStat = (type: string, name: string, config: any) => {
         if (!editor) return;
 
         editor.chain().focus().insertContent({
-            type: 'statsNode',
+            type: 'statsRow',
             attrs: {
-                type,
-                name,
-                config,
-                width: '100%',
-                alignment: 'center',
-            }
+                columns: [
+                    {
+                        id: `col-${Date.now()}`,
+                        type: 'stats',
+                        width: 100,
+                        statsType: type,
+                        statsName: name,
+                        statsConfig: config,
+                    },
+                ],
+            },
         }).run();
     };
 
@@ -350,7 +386,7 @@ const WebzineEditor = () => {
             {/* Header */}
             <header className="we-header">
                 <div className="we-header-left">
-                    <button onClick={() => navigate(-1)} className="we-back-btn">
+                    <button onClick={() => navigate('/admin/webzine')} className="we-back-btn">
                         <i className="ri-arrow-left-line we-back-icon"></i>
                     </button>
                     <h1 className="we-title">
@@ -384,34 +420,7 @@ const WebzineEditor = () => {
             <div className="we-main-layout">
                 {/* Editor Column */}
                 <main className="we-editor-column">
-                    {/* 1. Cover Image */}
-                    <section className="we-section">
-                        <label className="we-label">커버 이미지</label>
-                        <div className="we-cover-upload" onClick={() => fileInputRef.current?.click()}>
-                            {coverImage ? (
-                                <>
-                                    <img src={coverImage} alt="Cover" className="we-cover-img" />
-                                    <div className="we-cover-overlay">
-                                        <span className="we-cover-overlay-text">이미지 변경</span>
-                                    </div>
-                                </>
-                            ) : (
-                                <div className="we-cover-placeholder">
-                                    <i className="ri-image-add-line we-cover-placeholder-icon"></i>
-                                    <span>커버 이미지 업로드 (클릭)</span>
-                                </div>
-                            )}
-                            <input
-                                type="file"
-                                ref={fileInputRef}
-                                className="we-hidden"
-                                accept="image/*"
-                                onChange={handleImageUpload}
-                            />
-                        </div>
-                    </section>
-
-                    {/* 2. Titles */}
+                    {/* Titles */}
                     <section className="we-section">
                         <input
                             type="text"
@@ -436,7 +445,12 @@ const WebzineEditor = () => {
                         <label className="we-label">본문 작성</label>
                         <div className="we-editor-wrapper">
                             <MenuBar editor={editor} />
-                            <EditorContent editor={editor} className="we-tiptap-content" />
+                            {isEditorInitialized && editor && (
+                                <EditorContent editor={editor} className="we-tiptap-content" />
+                            )}
+                            {!isEditorInitialized && (
+                                <div className="we-editor-placeholder-loading">에디터 준비 중...</div>
+                            )}
                         </div>
                     </section>
                 </main>

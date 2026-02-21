@@ -125,13 +125,17 @@ export default function HomePageV2() {
     }, [selectedEvent, openModal, handleEditClick, handleDeleteClick, effectiveIsAdmin, user?.id, handleVenueClick, allGenres, favoriteEventIds, toggleFavorite, isDeleting, deleteProgress, setSelectedEvent]);
 
     useEffect(() => {
+        let active = true;
         const modalType = searchParams.get("modal");
         if (modalType === "stats" && user) {
             openModal('stats', { userId: user.id, initialTab: 'scene' });
             const newParams = new URLSearchParams(searchParams);
             newParams.delete("modal");
-            setSearchParams(newParams, { replace: true });
+            if (active) {
+                setSearchParams(newParams, { replace: true });
+            }
         }
+        return () => { active = false; };
     }, [searchParams, setSearchParams, user, openModal]);
 
     // --------------------------------------------------------------------------------
@@ -258,8 +262,7 @@ export default function HomePageV2() {
                 {/* Floating Admin Webzine Tab */}
                 {effectiveIsAdmin && (
                     <div className="admin-side-tab" onClick={() => navigate('/admin/webzine')}>
-                        <i className="ri-article-line stats-side-tab-icon"></i>
-                        <span className="stats-side-tab-text">웹진 관리</span>
+                        <span className="stats-side-tab-text">월간 빌보드</span>
                     </div>
                 )}
 

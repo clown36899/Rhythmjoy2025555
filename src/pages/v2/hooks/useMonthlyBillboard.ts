@@ -56,11 +56,18 @@ export const useMonthlyBillboard = (initialTarget?: { year: number, month: numbe
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        let active = true;
         setLoading(true);
-        fetchMonthlyData(targetDate);
+        fetchMonthlyData(targetDate, (result) => {
+            if (active) {
+                setData(result);
+                setLoading(false);
+            }
+        });
+        return () => { active = false; };
     }, [targetDate]);
 
-    const fetchMonthlyData = async (target: { year: number, month: number } | 'all') => {
+    const fetchMonthlyData = async (target: { year: number, month: number } | 'all', callback: (data: BillboardData) => void) => {
         try {
             let startStr, endStr, monthLabel, monthKor, rangeStr, eventStartStr, eventEndStr;
             const monthNames = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
@@ -240,16 +247,19 @@ export const useMonthlyBillboard = (initialTarget?: { year: number, month: numbe
                 topContents: sortedRanking
             };
 
-            setData(result);
-            setLoading(false);
+            callback(result);
 
         } catch (error) {
             console.error('[Billboard] Fetch error:', error);
-            setLoading(false);
+            // Even on error, we should stop loading with empty/previous data
+            // but for simplicity we skip state update here and rely on the UI or provided callback
         }
     };
 
-    const refetch = () => fetchMonthlyData(targetDate);
+    const refetch = () => fetchMonthlyData(targetDate, (result) => {
+        setData(result);
+        setLoading(false);
+    });
 
     return useMemo(() => ({ data, loading, targetDate, setTargetDate, refetch }), [data, loading, targetDate]);
 };

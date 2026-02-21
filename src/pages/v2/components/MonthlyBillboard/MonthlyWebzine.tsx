@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, startTransition } from 'react';
 import { useMonthlyBillboard, type BillboardData, type RankingItem } from '../../hooks/useMonthlyBillboard';
 import MonthlyLogDetailModal from './MonthlyLogDetailModal';
 import LocalLoading from '../../../../components/LocalLoading';
@@ -36,7 +36,9 @@ const MonthlyWebzine = ({ onInsertItem, section }: MonthlyWebzineProps) => {
             const maxIdx = traffic.indexOf(maxVal);
             if (maxIdx !== -1) {
                 const days = ['일', '월', '화', '수', '목', '금', '토'];
-                setUserActivityInfo({ day: days[maxIdx], val: maxVal, idx: maxIdx });
+                startTransition(() => {
+                    setUserActivityInfo({ day: days[maxIdx], val: maxVal, idx: maxIdx });
+                });
             }
         }
     }, [data, userActivityInfo]);
@@ -62,12 +64,14 @@ const MonthlyWebzine = ({ onInsertItem, section }: MonthlyWebzineProps) => {
     // --- Month Selection Logic ---
     const handleMonthChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const val = e.target.value;
-        if (val === 'all') {
-            setTargetDate('all');
-        } else {
-            const [y, m] = val.split('-').map(Number);
-            setTargetDate({ year: y, month: m });
-        }
+        startTransition(() => {
+            if (val === 'all') {
+                setTargetDate('all');
+            } else {
+                const [y, m] = val.split('-').map(Number);
+                setTargetDate({ year: y, month: m });
+            }
+        });
     };
 
     const monthOptions = useMemo(() => {

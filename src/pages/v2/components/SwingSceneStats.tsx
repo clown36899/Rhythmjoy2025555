@@ -94,6 +94,12 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
     const [weeklyTab, setWeeklyTab] = useState<'total' | 'monthly'>('monthly');
     const [isAdmin, setIsAdmin] = useState(false);
     const [refreshing, setRefreshing] = useState(false);
+    const isMounted = useRef(false);
+
+    useEffect(() => {
+        isMounted.current = true;
+        return () => { isMounted.current = false; };
+    }, []);
     const [inspectTypeDay, setInspectTypeDay] = useState<string | null>(null);
     const [inspectGenreDay, setInspectGenreDay] = useState<string | null>(null);
     const chartScrollRef = useRef<HTMLDivElement>(null);
@@ -106,13 +112,15 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
     }, []);
 
     useEffect(() => {
+        let active = true;
         const checkAdmin = async () => {
             const { data: { user } } = await supabase.auth.getUser();
-            if (user?.email === import.meta.env.VITE_ADMIN_EMAIL) setIsAdmin(true);
+            if (active && user?.email === import.meta.env.VITE_ADMIN_EMAIL) setIsAdmin(true);
         };
         checkAdmin();
-        loadServerCache();
+        loadServerCache(); // loadServerCache/fetchSceneStats already use setStats(...) internally, need internal active check or passing it
         fetchSceneStats();
+        return () => { active = false; };
     }, []);
 
     const handleRefreshMetrics = async () => {
@@ -131,7 +139,9 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
             console.error('[SwingSceneStats] ❌ Refresh Error:', err);
             alert('갱신 실패: ' + (err as any).message);
         } finally {
-            setRefreshing(false);
+            if (isMounted.current) {
+                setRefreshing(false);
+            }
         }
     };
 
@@ -143,7 +153,7 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
                 .eq('key', 'scene_analytics')
                 .maybeSingle();
 
-            if (data && data.value) {
+            if (isMounted.current && data && data.value) {
                 const cached = data.value as any;
                 // Merge into state (Summary & Monthly only)
                 setStats(prev => {
@@ -206,22 +216,33 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
             console.log('[SwingSceneStats] Top Genres:', newStats.topGenresList);
             console.log('[SwingSceneStats] Lead Time:', newStats.leadTimeAnalysis);
 
-            setStats(newStats);
+            if (isMounted.current) {
+                setStats(newStats);
+            }
 
-            window.dispatchEvent(new CustomEvent('statsUpdated', {
-                detail: {
-                    total: newStats.summary.totalItems,
-                    avg: newStats.summary.dailyAverage,
-                    memberCount: newStats.summary.memberCount,
-                    pwaCount: newStats.summary.pwaCount,
-                    pushCount: newStats.summary.pushCount
+            // Dispatch event for other components (like SideDrawer)
+            // Wrap in setTimeout to avoid flushSync warning in React 18/19 
+            // by moving it to the next macrotask
+            setTimeout(() => {
+                if (isMounted.current) {
+                    window.dispatchEvent(new CustomEvent('statsUpdated', {
+                        detail: {
+                            total: newStats.summary.totalItems,
+                            avg: newStats.summary.dailyAverage,
+                            memberCount: newStats.summary.memberCount,
+                            pwaCount: newStats.summary.pwaCount,
+                            pushCount: newStats.summary.pushCount
+                        }
+                    }));
                 }
-            }));
+            }, 0);
 
         } catch (error) {
             console.error('[SwingSceneStats] API Error:', error);
         } finally {
-            setLoading(false);
+            if (isMounted.current) {
+                setLoading(false);
+            }
         }
     };
 

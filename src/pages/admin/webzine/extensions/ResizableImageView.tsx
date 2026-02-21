@@ -1,8 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { NodeViewWrapper } from '@tiptap/react';
 import type { NodeViewProps } from '@tiptap/react';
-import MonthlyWebzine from '../../../v2/components/MonthlyBillboard/MonthlyWebzine';
-import SwingSceneStats from '../../../v2/components/SwingSceneStats';
 
 const WIDTH_OPTIONS = ['25%', '33%', '50%', '66%', '75%', '100%'] as const;
 const ALIGN_OPTIONS = [
@@ -11,40 +9,11 @@ const ALIGN_OPTIONS = [
     { value: 'right', icon: 'ri-align-right', label: '우측' },
 ] as const;
 
-const StatsPreview: React.FC<{ type: string; name: string }> = ({ type, name }) => {
-    // Scene Stats
-    if (type.startsWith('scene-')) {
-        const section = type.replace('scene-', '') as any;
-        return <SwingSceneStats section={section} />;
-    }
-
-    // Monthly Billboard
-    if (['lifecycle', 'hourly-pattern', 'lead-time', 'top-20', 'top-contents'].includes(type)) {
-        const sectionMap: Record<string, string> = { 'top-contents': 'top-20' };
-        return <MonthlyWebzine section={(sectionMap[type] || type) as any} />;
-    }
-
-    // My Impact / Unknown - keep placeholder
-    return (
-        <div className="we-stats-node-placeholder">
-            <div className="we-stats-node-header">
-                <i className="ri-bar-chart-fill" />
-                <span>{name}</span>
-            </div>
-            <div className="we-stats-node-body">
-                <i className="ri-line-chart-line" style={{ fontSize: '1.5rem', opacity: 0.3 }} />
-                <span>{type}</span>
-            </div>
-        </div>
-    );
-};
-
-export const StatsNodeView: React.FC<NodeViewProps> = ({ node, updateAttributes, selected }) => {
-    const { type, name, width, alignment, clearance } = node.attrs;
+export const ResizableImageView: React.FC<NodeViewProps> = ({ node, updateAttributes, selected }) => {
+    const { src, alt, width, alignment, clearance } = node.attrs;
     const wrapperRef = useRef<HTMLDivElement>(null);
     const [isResizing, setIsResizing] = useState(false);
 
-    // Apply float styles to the outermost ProseMirror container (parent of NodeViewWrapper)
     useEffect(() => {
         const el = wrapperRef.current?.closest('[data-node-view-wrapper]')?.parentElement
             || wrapperRef.current?.parentElement;
@@ -126,8 +95,7 @@ export const StatsNodeView: React.FC<NodeViewProps> = ({ node, updateAttributes,
     };
 
     return (
-        <NodeViewWrapper ref={wrapperRef} className={`sn-node-wrapper ${selected ? 'sn-selected' : ''} ${isResizing ? 'is-resizing' : ''}`}>
-            {/* Toolbar - visible on select */}
+        <NodeViewWrapper ref={wrapperRef} className={`ri-node-wrapper ${selected ? 'sn-selected' : ''} ${isResizing ? 'is-resizing' : ''}`}>
             {selected && (
                 <div className="sn-toolbar" contentEditable={false}>
                     <div className="sn-toolbar-group">
@@ -173,8 +141,9 @@ export const StatsNodeView: React.FC<NodeViewProps> = ({ node, updateAttributes,
                 </div>
             )}
 
-            {/* Live Stats Preview */}
-            <div className="sn-preview-container">
+            <div className="ri-image-container">
+                <img src={src} alt={alt} className="ri-img" />
+
                 {selected && (
                     <div
                         className="sn-resizer-handle"
@@ -182,10 +151,10 @@ export const StatsNodeView: React.FC<NodeViewProps> = ({ node, updateAttributes,
                         contentEditable={false}
                     />
                 )}
+
                 {width !== '100%' && (
-                    <span className="sn-size-badge" style={{ position: 'absolute', bottom: 8, right: 8, zIndex: 5 }}>{width}</span>
+                    <span className="sn-size-badge" style={{ position: 'absolute', bottom: 8, right: 8 }}>{width}</span>
                 )}
-                <StatsPreview type={type} name={name} />
             </div>
         </NodeViewWrapper>
     );
