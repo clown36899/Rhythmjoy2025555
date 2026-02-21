@@ -11,17 +11,49 @@ interface SubscriptionInfo {
 
 export const AdminPushTest: React.FC = () => {
     const { user, isAdmin } = useAuth();
-    const [title, setTitle] = useState('test의 솔로재즈 베이직');
-    const [body, setBody] = useState('2026-02-17 화요일 | 해피홀(신촌)');
+    const [title, setTitle] = useState('살사/바차타 정기 소셜 파티');
+    const [body, setBody] = useState('2026-03-01 일요일 | 신촌 해피홀');
     const [imageUrl, setImageUrl] = useState('https://swingenjoy.com/logo512.png');
     const [category, setCategory] = useState<'event' | 'class' | 'club'>('class');
     const [genre, setGenre] = useState('솔로재즈');
     const [content, setContent] = useState('test 선생님과 함께하는 즐거운 솔로재즈 시간! 초보자 환영합니다. 놓치지 마세요!');
-    const [targetUrl, setTargetUrl] = useState(window.location.origin);
+    const [targetUrl, setTargetUrl] = useState('https://swingenjoy.com/v2?id=667');
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<string | null>(null);
     const [mySubscriptions, setMySubscriptions] = useState<SubscriptionInfo[]>([]);
     const [subsLoading, setSubsLoading] = useState(false);
+    const [fetchingLatest, setFetchingLatest] = useState(false);
+
+    // [New] 실제 데이터에서 불러오기 함수
+    const fetchLatestData = async (type: 'class' | 'event') => {
+        setFetchingLatest(true);
+        try {
+            // events 테이블에서 조회 (board_posts에는 type/category 컬럼이 없을 수 있음)
+            const { data, error } = await supabase
+                .from('events')
+                .select('*')
+                .eq('category', type)
+                .order('created_at', { ascending: false })
+                .limit(1)
+                .single();
+
+            if (error) throw error;
+            if (data) {
+                setTitle(data.title || '');
+                setBody(`${data.date || ''} | ${data.location || '장소 미정'}`);
+                setCategory(type);
+                setGenre(data.genre || '');
+                setContent(data.description?.substring(0, 100) || '');
+                setImageUrl(data.image || 'https://swingenjoy.com/logo512.png');
+                setTargetUrl(`${window.location.origin}/v2?id=${data.id}`);
+            }
+        } catch (err: any) {
+            console.error('[AdminPushTest] Failed to fetch latest data:', err);
+            setResult(`❌ 데이터 로드 실패: ${err.message}`);
+        } finally {
+            setFetchingLatest(false);
+        }
+    };
 
     if (!isAdmin) return (
         <div style={{ padding: '40px', textAlign: 'center', color: '#64748b' }}>
@@ -273,9 +305,27 @@ export const AdminPushTest: React.FC = () => {
 
                 {/* 2. Payload Area */}
                 <section style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <h2 style={{ fontSize: '15px', fontWeight: 700, margin: '0', color: '#334155' }}>
-                        2. 알림 내용 구성
-                    </h2>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                        <h2 style={{ fontSize: '15px', fontWeight: 700, margin: '0', color: '#334155' }}>
+                            2. 알림 내용 구성
+                        </h2>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                            <button
+                                onClick={() => fetchLatestData('class')}
+                                disabled={fetchingLatest}
+                                style={{ padding: '4px 8px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}
+                            >
+                                최근 강습 채우기
+                            </button>
+                            <button
+                                onClick={() => fetchLatestData('event')}
+                                disabled={fetchingLatest}
+                                style={{ padding: '4px 8px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: '6px', fontSize: '11px', cursor: 'pointer' }}
+                            >
+                                최근 행사 채우기
+                            </button>
+                        </div>
+                    </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         <label style={{ fontSize: '12px', fontWeight: 600, color: '#64748b' }}>알림 제목 (자동으로 분류가 뒤에 붙음)</label>
@@ -410,6 +460,6 @@ export const AdminPushTest: React.FC = () => {
                     홈으로 돌아가기
                 </button>
             </footer>
-        </div>
+        </div >
     );
 };

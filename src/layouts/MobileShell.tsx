@@ -144,7 +144,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
     // Show login modal immediately
     loginModal.open({ message: '댄스빌보드 로그인' });
     sessionStorage.setItem('hasShownLoginPrompt', 'true');
-  }, [user, isEventsPage, loginModal.isOpen, loginModal.open, isAuthCheckComplete, isLoggingOut]);
+  }, [user, isEventsPage, loginModal, isAuthCheckComplete, isLoggingOut]);
 
   // 🔄 Global Scroll Reset on Route Change
   useEffect(() => {

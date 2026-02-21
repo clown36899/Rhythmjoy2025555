@@ -330,7 +330,7 @@ export const validateAndRecoverSession = async (): Promise<any> => {
           if (data.session) {
             authLogger.log('[Supabase] ✅ Session refreshed');
             lastValidationTime = Date.now();
-            try { localStorage.setItem(SESSION_VALIDATION_KEY, String(lastValidationTime)); } catch { }
+            try { localStorage.setItem(SESSION_VALIDATION_KEY, String(lastValidationTime)); } catch { /* ignore */ }
             return data.session;
           }
         }
@@ -355,12 +355,11 @@ export const validateAndRecoverSession = async (): Promise<any> => {
             return null;
           }
         }
-      } catch (e) {
-        authLogger.log('[Supabase] ⏱️ getUser timeout - proceeding');
-      }
+      } catch { /* getUser might fail on network issue */ }
+      authLogger.log('[Supabase] ⏱️ getUser timeout - proceeding');
 
       lastValidationTime = Date.now();
-      try { localStorage.setItem(SESSION_VALIDATION_KEY, String(lastValidationTime)); } catch { }
+      try { localStorage.setItem(SESSION_VALIDATION_KEY, String(lastValidationTime)); } catch { /* ignore */ }
       return session;
     } catch (e) {
       authLogger.log('[Supabase] 💥 recovery failed:', e);
