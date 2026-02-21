@@ -8,6 +8,14 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '3.8.6',
+        date: '2026-02-21',
+        changes: [
+            '[🚀 Performance] 헤더 렌더링 최적화: 초기 마운트 프로필 보존 및 PWA 키 통합으로 깜빡임 제거',
+            '[🚀 Performance] 세션 검증 캐시 localStorage 이전으로 PWA 재진입 속도 향상',
+            '[🔧 Stability] NoticeTicker 로전 캐싱 및 레이아웃 시프트 방지 플레이스홀더 적용'
+        ]
+    }, {
         version: '3.8.5',
         date: '2026-02-17',
         changes: [

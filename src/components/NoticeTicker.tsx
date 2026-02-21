@@ -14,7 +14,13 @@ interface BoardPostSimple {
 }
 
 export default function NoticeTicker() {
-    const [notices, setNotices] = useState<BoardPostSimple[]>([]);
+    const [notices, setNotices] = useState<BoardPostSimple[]>(() => {
+        // [Optimistic] 로컬 캐시에서 마지막 공지사항 로드
+        try {
+            const cached = localStorage.getItem('last_notices');
+            return cached ? JSON.parse(cached) : [];
+        } catch { return []; }
+    });
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
@@ -81,6 +87,8 @@ export default function NoticeTicker() {
                 // prefix 정보를 수동으로 주입
                 const normalizedData = postsData.map(item => normalizeNotice(item, prefixInfo));
                 setNotices(normalizedData);
+                // 다음 접속을 위해 캐시 저장
+                localStorage.setItem('last_notices', JSON.stringify(normalizedData));
             }
         } catch (err) {
             console.error('[NoticeTicker] Failed to fetch notices:', err);
@@ -196,7 +204,11 @@ export default function NoticeTicker() {
 
     const tickerKey = notices.length > 0 ? notices[0].id : 'empty';
 
-    if (loading || notices.length === 0) return null;
+    // [Fix] loading 중이거나 notices가 없더라도 null 대신 고정 높이 컨테이너 유지
+    // 헤더 레이아웃 시프트(높이 튐) 방지
+    if (notices.length === 0) {
+        return <div className="notice-ticker-container empty" style={{ height: '40px' }}></div>;
+    }
 
     return (
         <div className="notice-ticker-container">

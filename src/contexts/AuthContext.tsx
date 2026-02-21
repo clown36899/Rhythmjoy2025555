@@ -239,7 +239,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // User Profile State - 초기값 localStorage에서 로드 (깜빡임 방지)
   const [userProfile, setUserProfile] = useState<{ nickname: string; profile_image: string | null } | null>(() => {
-    const cached = localStorage.getItem('userProfile');
+    // [Fix] PWA 모드와 일반 브라우저 모드의 캐시 키 통합 체크
+    const isPWA = isPWAMode();
+    const storagePrefix = isPWA ? 'pwa-' : '';
+    const cached = localStorage.getItem(`${storagePrefix}userProfile`) || localStorage.getItem('userProfile');
+
     if (cached) {
       try {
         return JSON.parse(cached);
@@ -479,7 +483,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         refreshUserProfile();
         refreshAdminStatus(user);
       }
-    } else {
+    } else if (isAuthCheckComplete && !user) {
+      // [Fix] 세션 체크가 완료된 후에만, 유저가 진짜 없을 때 프로필을 비움
+      // 초기화 단계에서 리셋되는 것을 방지하여 헤더 깜빡임 해결
       lastProcessedUserId.current = null;
       setUserProfile(null);
       setIsAdmin(false);
