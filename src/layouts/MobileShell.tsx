@@ -473,7 +473,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
               </button>
 
               {/* Search button - only visible when logged in */}
-              {user && (
+              {(user || userProfile) && (
                 <button
                   className="header-search-btn"
                   onClick={() => {
@@ -493,7 +493,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
               )}
 
               {/* User/Login button */}
-              {user ? (
+              {user || userProfile ? (
                 <button
                   className="header-user-btn"
                   onClick={() => window.dispatchEvent(new CustomEvent('openDrawer'))}
