@@ -1,6 +1,20 @@
 console.log('%c[Main] 🏁 JavaScript Bundle Execution Started', 'background: #4f46e5; color: white; font-weight: bold;');
 (window as any).__APP_STARTED = true;
 
+// [Vite 표준] 배포 후 old chunk hash가 서버에서 삭제되어 404가 날 때 자동 reload
+// lazyWithRetry의 재시도보다 신뢰성 높은 Vite 공식 권장 방식 (Vite 4.4+)
+window.addEventListener('vite:preloadError', (event) => {
+  event.preventDefault();
+  const retries = parseInt(sessionStorage.getItem('chunkRetries') || '0');
+  if (retries >= 2) return; // 2회 초과 시 포기 (서버 장애 등 무한루프 방지)
+  sessionStorage.setItem('chunkRetries', String(retries + 1));
+  window.location.reload();
+});
+// 앱이 정상 로드되면 카운터 초기화
+window.addEventListener('load', () => {
+  setTimeout(() => sessionStorage.removeItem('chunkRetries'), 3000);
+});
+
 import { StrictMode, useEffect, lazy, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
@@ -45,51 +59,35 @@ import LocalLoading from './components/LocalLoading';
 // Pages - HomePage stays static for instant first paint
 import HomePageV2 from './pages/v2/Page';
 
-// 배포 후 구버전 청크 로드 실패 시 1회 재시도 후 리로드하는 래퍼
-function lazyWithRetry(importFn: () => Promise<any>) {
-  return lazy(async () => {
-    try {
-      return await importFn();
-    } catch (error) {
-      // 1회 재시도 (캐시 무효화를 위해 timestamp 쿼리 추가 시도)
-      // Vite/Rollup 환경에서 import(url + query)는 브라우저 캐시를 무시하게 함
-      console.warn('📦 Chunk load failed, retrying with cache-buster...', error);
-
-      // 재시도 시 이미 실패한 모듈을 다시 불러오기 위해 약간의 지연 후 시도
-      await new Promise(resolve => setTimeout(resolve, 500));
-      return await importFn();
-    }
-  });
-}
-
-// Lazy Loaded Pages (with retry)
-const SocialPage = lazyWithRetry(() => import('./pages/social/page'));
-const PracticePage = lazyWithRetry(() => import('./pages/practice/page'));
-const BoardPage = lazyWithRetry(() => import('./pages/board/page'));
-const ShoppingPage = lazyWithRetry(() => import('./pages/shopping/page'));
-const GuidePage = lazyWithRetry(() => import('./pages/guide/page'));
-const PrivacyPage = lazyWithRetry(() => import('./pages/privacy/page'));
-const BillboardPage = lazyWithRetry(() => import('./pages/billboard/page'));
-const BillboardPreviewPage = lazyWithRetry(() => import('./pages/billboard/preview/page'));
-const BillboardCatalogPage = lazyWithRetry(() => import('./pages/billboard/preview/CatalogPage'));
-const CalendarPage = lazyWithRetry(() => import('./pages/calendar/page'));
-const MyActivitiesPage = lazyWithRetry(() => import('./pages/user/MyActivitiesPage'));
-const ArchiveLayout = lazyWithRetry(() => import('./layouts/ArchiveLayout'));
-const LearningPage = lazyWithRetry(() => import('./pages/learning/Page'));
-const LearningDetailPage = lazyWithRetry(() => import('./pages/learning/detail/Page'));
-const HistoryTimelinePage = lazyWithRetry(() => import('./pages/history/HistoryTimelinePage'));
-const KakaoCallbackPage = lazyWithRetry(() => import('./pages/auth/kakao-callback/page'));
-const SiteMapPage = lazyWithRetry(() => import('./pages/sitemap/SiteMapPage'));
-const MainV2TestPage = lazyWithRetry(() => import('./pages/test/MainV2TestPage'));
-const SurveyTestPage = lazyWithRetry(() => import('./pages/test/SurveyTestPage'));
-const AdminPushTestPage = lazyWithRetry(() => import('./components/admin/AdminPushTest').then(m => ({ default: m.AdminPushTest })));
-const ForumPage = lazyWithRetry(() => import('./pages/forum/ForumPage'));
-const BpmTapperPage = lazyWithRetry(() => import('./pages/bpm-tapper/BpmTapperPage'));
-const MetronomePage = lazyWithRetry(() => import('./pages/metronome/MetronomePage'));
-const EventIngestorPage = lazyWithRetry(() => import('./pages/admin/EventIngestor'));
-const WebzineViewer = lazyWithRetry(() => import('./pages/webzine/WebzineViewer'));
-const AdminWebzineList = lazyWithRetry(() => import('./pages/admin/webzine/AdminWebzineList'));
-const WebzineEditor = lazyWithRetry(() => import('./pages/admin/webzine/WebzineEditor'));
+// Lazy Loaded Pages
+// chunk 로드 실패(배포 후 old hash 404)는 위의 vite:preloadError 핸들러가 처리
+const SocialPage = lazy(() => import('./pages/social/page'));
+const PracticePage = lazy(() => import('./pages/practice/page'));
+const BoardPage = lazy(() => import('./pages/board/page'));
+const ShoppingPage = lazy(() => import('./pages/shopping/page'));
+const GuidePage = lazy(() => import('./pages/guide/page'));
+const PrivacyPage = lazy(() => import('./pages/privacy/page'));
+const BillboardPage = lazy(() => import('./pages/billboard/page'));
+const BillboardPreviewPage = lazy(() => import('./pages/billboard/preview/page'));
+const BillboardCatalogPage = lazy(() => import('./pages/billboard/preview/CatalogPage'));
+const CalendarPage = lazy(() => import('./pages/calendar/page'));
+const MyActivitiesPage = lazy(() => import('./pages/user/MyActivitiesPage'));
+const ArchiveLayout = lazy(() => import('./layouts/ArchiveLayout'));
+const LearningPage = lazy(() => import('./pages/learning/Page'));
+const LearningDetailPage = lazy(() => import('./pages/learning/detail/Page'));
+const HistoryTimelinePage = lazy(() => import('./pages/history/HistoryTimelinePage'));
+const KakaoCallbackPage = lazy(() => import('./pages/auth/kakao-callback/page'));
+const SiteMapPage = lazy(() => import('./pages/sitemap/SiteMapPage'));
+const MainV2TestPage = lazy(() => import('./pages/test/MainV2TestPage'));
+const SurveyTestPage = lazy(() => import('./pages/test/SurveyTestPage'));
+const AdminPushTestPage = lazy(() => import('./components/admin/AdminPushTest').then(m => ({ default: m.AdminPushTest })));
+const ForumPage = lazy(() => import('./pages/forum/ForumPage'));
+const BpmTapperPage = lazy(() => import('./pages/bpm-tapper/BpmTapperPage'));
+const MetronomePage = lazy(() => import('./pages/metronome/MetronomePage'));
+const EventIngestorPage = lazy(() => import('./pages/admin/EventIngestor'));
+const WebzineViewer = lazy(() => import('./pages/webzine/WebzineViewer'));
+const AdminWebzineList = lazy(() => import('./pages/admin/webzine/AdminWebzineList'));
+const WebzineEditor = lazy(() => import('./pages/admin/webzine/WebzineEditor'));
 
 const BillboardFallback = () => (
   <div className="full-screen-fallback">

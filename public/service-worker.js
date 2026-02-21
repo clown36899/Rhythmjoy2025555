@@ -239,6 +239,10 @@ self.addEventListener('push', (event) => {
       if (navigator.setAppBadge) {
         await navigator.setAppBadge(1);
       }
+
+      // 3. [Update] 알림 수신 시 새 SW 버전 백그라운드 체크
+      // 사용자가 알림을 탭해서 앱을 열 때쯤엔 새 버전이 준비 완료되어 자동 적용됨
+      self.registration.update().catch(() => {});
     } catch (err) {
       console.error('[SW] Push processing failed:', err);
     }

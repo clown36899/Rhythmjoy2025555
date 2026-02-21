@@ -310,9 +310,13 @@
       var _hadController = !!navigator.serviceWorker.controller;
 
       // SW 교체 완료 시 자동 리로드 (자신이 트리거했든, 다른 탭이 트리거했든)
+      var _swRefreshing = false; // iOS 무한 reload 루프 방지 guard
       navigator.serviceWorker.addEventListener('controllerchange', function () {
         // 최초 설치(controller가 없던 상태→생김)에서는 리로드 불필요
         if (!_hadController) { _hadController = true; return; }
+        // 이미 reload 중이면 무시 (iOS에서 controllerchange가 reload를 재유발하는 버그 방어)
+        if (_swRefreshing) return;
+        _swRefreshing = true;
         // OAuth 콜백 중(code= 파라미터)이면 인증 코드 무효화 방지를 위해 리로드 안 함
         var params = new URLSearchParams(window.location.search);
         if (params.has('code') || params.has('error')) return;
