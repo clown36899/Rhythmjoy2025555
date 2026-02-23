@@ -51,7 +51,8 @@ public/scraped/
 !supabase/migrations/*.sql
 *.json
 !package.json
-!tsconfig.json
 !package-lock.json
+!tsconfig*.json
+!manifest.json
 supabase/migrations_backup/
 supabase/migrations_backup_v2/
