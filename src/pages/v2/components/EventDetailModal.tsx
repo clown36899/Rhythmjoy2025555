@@ -432,23 +432,42 @@ export default function EventDetailModal({
 
   const handleVenueSelect = (venue: any) => {
     if (!draftEvent) return;
-    setDraftEvent({
-      ...draftEvent,
+
+    const updates: Partial<Event> = {
       venue_id: venue.id,
       venue_name: venue.name,
+      location: venue.name, // [FIX] location 필드 동기화
       address: venue.address || '',
-      location_name: venue.address_city || ''
+      location_link: venue.kakao_maps_url || venue.naver_maps_url || venue.google_maps_url || null
+    };
+
+    setDraftEvent({
+      ...draftEvent,
+      ...updates,
+      location_name: venue.address_city || '' // 로컬 상태에는 유지 (필요할 경우)
     });
+
+    // DB 즉시 저장
+    saveChangesToDB(updates);
   };
 
   const handleManualVenueInput = (venueName: string, address: string) => {
     if (!draftEvent) return;
-    setDraftEvent({
-      ...draftEvent,
+
+    const updates: Partial<Event> = {
       venue_name: venueName,
+      location: venueName, // [FIX] location 필드 동기화
       address: address,
       venue_id: null
+    };
+
+    setDraftEvent({
+      ...draftEvent,
+      ...updates
     });
+
+    // DB 즉시 저장
+    saveChangesToDB(updates);
   };
 
   // 🎯 [UPDATE] 데이터베이스 즉시 저장 함수 (모듈화)
@@ -466,9 +485,10 @@ export default function EventDetailModal({
       });
 
       const originalId = String(draftEvent.id).replace('social-', '');
+      const targetId = Number(originalId) >= 10000000 ? String(Number(originalId) - 10000000) : originalId;
 
-      // [FIX] FullCalendar Offset Handling (ID > 10,000,000)
-      const targetId = Number(originalId) > 10000000 ? String(Number(originalId) - 10000000) : originalId;
+      console.log('[saveChangesToDB] Updating event:', { targetId, updates });
+
 
       const { data, error } = await supabase
         .from('events')
@@ -610,23 +630,22 @@ export default function EventDetailModal({
         title: draftEvent.title,
         genre: draftEvent.genre,
         category: draftEvent.category,
-        description: draftEvent.description,
+        date: draftEvent.date,
+        time: draftEvent.time, // [FIX] time 필드 포함
         location: draftEvent.location,
+        address: draftEvent.address, // [FIX] address 필드 추가
         location_link: draftEvent.location_link,
         venue_id: draftEvent.venue_id,
-        // Add date fields
-        date: draftEvent.date,
-        start_date: draftEvent.start_date,
-        end_date: draftEvent.end_date,
-        event_dates: draftEvent.event_dates,
-        // Add link fields
+        description: draftEvent.description,
+        image: draftEvent.image,
+        updated_at: new Date().toISOString(),
         link1: draftEvent.link1,
         link_name1: draftEvent.link_name1,
         link2: draftEvent.link2,
         link_name2: draftEvent.link_name2,
         link3: draftEvent.link3,
         link_name3: draftEvent.link_name3,
-        scope: draftEvent.scope
+        scope: draftEvent.scope,
       };
 
 
@@ -739,12 +758,18 @@ export default function EventDetailModal({
       let error = null;
 
       const originalId = String(draftEvent.id).replace('social-', '');
+      // [FIX] FullCalendar Offset Handling (ID > 10,000,000)
+      const targetId = Number(originalId) >= 10000000 ? String(Number(originalId) - 10000000) : originalId;
+
+      console.log('[handleFinalSave] Updating event record:', { targetId, updates });
+
+      console.log('[handleFinalSave] Updating event record:', { targetId, updates });
 
       const result = await retryOperation(async () =>
         await supabase
           .from('events')
           .update(updates)
-          .eq('id', originalId)
+          .eq('id', targetId)
           .select()
           .maybeSingle()
       ) as any;
