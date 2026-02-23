@@ -1,0 +1,290 @@
+import { useState, useEffect } from 'react';
+import type { AnonymousBoardPost } from '../../../types/board';
+import CommentSection from './CommentSection';
+import './BoardPostList.css';
+import '../../../components/UniversalEditor/Core/UniversalEditor.css'; // [New] Import Editor Styles
+
+interface AnonymousPostListProps {
+    posts: AnonymousBoardPost[];
+    onPostClick: (post: AnonymousBoardPost) => void;
+    // currentUserId?: string; // Not strictly needed if handled by parent/context
+    onPostCreated: () => void;
+    isAdmin: boolean;
+    likedPostIds?: Set<number | string>;
+    onToggleLike?: (postId: number) => void;
+    dislikedPostIds?: Set<number | string>;
+    onToggleDislike?: (postId: number) => void;
+    onEditPost?: (post: AnonymousBoardPost, password?: string) => void;
+}
+
+export default function AnonymousPostList({
+    posts,
+    onPostClick,
+    isAdmin,
+    likedPostIds,
+    onToggleLike,
+    dislikedPostIds,
+    onToggleDislike,
+    onEditPost
+}: AnonymousPostListProps) {
+    const [expandedCommentPostId, setExpandedCommentPostId] = useState<number | null>(null);
+    const [selectedImage, setSelectedImage] = useState<string | null>(null);
+    const [unfoldedPostIds, setUnfoldedPostIds] = useState<Set<number>>(new Set());
+
+    // Restore expanded comment from URL parameter and scroll position
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search);
+        const commentPostId = params.get('comment');
+        if (commentPostId) {
+            const postId = parseInt(commentPostId, 10);
+            console.log('[AnonymousPostList] Restoring comment section for post:', postId);
+            setExpandedCommentPostId(postId);
+            // Remove URL parameter after restoring
+            params.delete('comment');
+            const newUrl = `${window.location.pathname}?${params.toString()}`;
+            window.history.replaceState({}, '', newUrl);
+        }
+
+        // Restore scroll position (로그인 후 복귀 시)
+        const savedScrollY = sessionStorage.getItem('kakao_login_scroll_y');
+        if (savedScrollY) {
+            const scrollY = parseInt(savedScrollY, 10);
+            console.log('[AnonymousPostList] Restoring scroll position:', scrollY);
+
+            // DOM이 완전히 렌더링된 후 스크롤 복원 (애니메이션 없음)
+            requestAnimationFrame(() => {
+                requestAnimationFrame(() => {
+                    const boardContainer = document.querySelector('.board-posts-container');
+                    console.log('[AnonymousPostList] Executing scroll restore to:', scrollY, 'targeting:', boardContainer ? 'container' : 'window');
+                    if (boardContainer) {
+                        boardContainer.scrollTo(0, scrollY);
+                    } else {
+                        window.scrollTo(0, scrollY);
+                    }
+                    sessionStorage.removeItem('kakao_login_scroll_y');
+                });
+            });
+        }
+    }, []);
+
+    const isUnfolded = (postId: number) => unfoldedPostIds.has(postId);
+
+    const toggleFold = (postId: number, e: React.MouseEvent) => {
+        e.stopPropagation();
+        setUnfoldedPostIds(prev => {
+            const next = new Set(prev);
+            if (next.has(postId)) next.delete(postId);
+            else next.add(postId);
+            return next;
+        });
+    };
+
+    const handleEditClick = (post: AnonymousBoardPost) => {
+        if (!onEditPost) return;
+
+        if (isAdmin) {
+            onEditPost(post);
+        } else {
+            const input = prompt('비밀번호를 입력해주세요:');
+            if (input) {
+                onEditPost(post, input);
+            }
+        }
+    };
+
+    const toggleComments = (postId: number, e: React.MouseEvent) => {
+        e.stopPropagation();
+        const newState = expandedCommentPostId === postId ? null : postId;
+        setExpandedCommentPostId(newState);
+
+        // Update URL parameter when opening/closing comments (for logout restoration)
+        const params = new URLSearchParams(window.location.search);
+        if (newState !== null) {
+            params.set('comment', String(newState));
+        } else {
+            params.delete('comment');
+        }
+        const newUrl = `${window.location.pathname}?${params.toString()}`;
+        window.history.replaceState({}, '', newUrl);
+    };
+
+    return (
+        <div className="board-post-list anonymous-mode">
+            <div className="anonymous-view">
+                {posts.map((post) => {
+                    const isBlind = (post.dislikes || 0) >= 20;
+                    const isCommentsOpen = expandedCommentPostId === post.id;
+
+                    return (
+                        <div key={post.id} className={`board-post-card is-memo ${isBlind ? 'blinded' : ''}`}>
+                            {/* Meta Info (Bottom) */}
+                            <div className="board-post-meta">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                    {/* Anonymous Avatar */}
+                                    <div className="anonymous-avatar" style={{ backgroundColor: 'var(--bg-surface-2)', color: 'var(--color-white)' }}>
+                                        <i className="ri-user-3-fill"></i>
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', lineHeight: '1.2' }}>
+                                        <span className="board-post-meta-nickname">
+                                            {post.author_nickname || '익명'}
+                                            {post.is_notice && (
+                                                <i className="ri-megaphone-fill" style={{ marginLeft: '4px', color: 'var(--color-amber-400)', verticalAlign: 'middle' }} title="공지사항"></i>
+                                            )}
+                                        </span>
+                                        <span style={{ fontSize: '0.75rem', opacity: 0.5 }}>
+                                            {new Date(post.created_at).toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+
+
+                            {/* Main Content Body */}
+                            <div className={`board-post-body ${post.is_notice && !isUnfolded(post.id) ? 'is-folded' : ''}`}>
+                                {/* Title / Header Row */}
+                                {post.title && (
+                                    <div className="board-post-title-row" onClick={(e) => post.is_notice && toggleFold(post.id, e)} style={{ cursor: post.is_notice ? 'pointer' : 'default' }}>
+                                        <h3 className="board-post-title">{post.title}</h3>
+                                        {post.is_notice && (
+                                            <button className="fold-toggle-btn" onClick={(e) => toggleFold(post.id, e)}>
+                                                <i className={isUnfolded(post.id) ? "ri-arrow-up-s-line" : "ri-arrow-down-s-line"}></i>
+                                                <span>{isUnfolded(post.id) ? '접기' : '펼치기'}</span>
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Blind Warning */}
+                                {isBlind && (
+                                    <div className="blind-warning" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 0', fontSize: '0.9rem' }}>
+                                        <i className="ri-alarm-warning-fill"></i>
+                                        <span>신고 20회 누적으로 가려진 글입니다.</span>
+                                    </div>
+                                )}
+
+                                {/* Content - Hidden if blinded by reports OR if folded notice */}
+                                {!isBlind && (!post.is_notice || isUnfolded(post.id)) && (
+                                    <div className="board-post-content universal-editor-content">
+                                        <div
+                                            onClick={() => onPostClick(post)}
+                                            style={{ cursor: 'pointer' }}
+                                            dangerouslySetInnerHTML={{ __html: post.content || '' }}
+                                        />
+
+                                        {post.image && (
+                                            <div
+                                                className="memo-thumbnail-wrapper"
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setSelectedImage(post.image || null);
+                                                }}
+                                            >
+                                                <img
+                                                    src={post.image_thumbnail || post.image}
+                                                    alt="Memo attachment"
+                                                    loading="lazy"
+                                                />
+                                                <div className="thumbnail-zoom-overlay">
+                                                    <i className="ri-zoom-in-line"></i>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
+
+
+                            {/* Interaction Bar */}
+                            <div className="memo-interaction-bar">
+                                <button
+                                    className={`memo-comment-toggle ${isCommentsOpen ? 'active' : ''}`}
+                                    onClick={(e) => toggleComments(post.id, e)}
+                                >
+                                    <i className="ri-chat-3-line"></i>
+                                    <span className="comment-label">댓글</span>
+                                    <span className="comment-count">{post.comment_count || 0}</span>
+                                </button>
+
+                                <div className="memo-btns">
+                                    {onToggleLike && (
+                                        <button
+                                            className={`memo-btn like-btn ${likedPostIds?.has(post.id) ? 'active' : ''}`}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onToggleLike(post.id);
+                                            }}
+                                        >
+                                            <i className={likedPostIds?.has(post.id) ? "ri-thumb-up-fill" : "ri-thumb-up-line"}></i>
+                                            <span>{post.likes || 0}</span>
+                                        </button>
+                                    )}
+                                    {!post.is_notice && onToggleDislike && (
+                                        <button
+                                            className={`memo-btn dislike-btn ${dislikedPostIds?.has(post.id) ? 'active' : ''}`}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                onToggleDislike(post.id);
+                                            }}
+                                        >
+                                            <i className={dislikedPostIds?.has(post.id) ? "ri-thumb-down-fill" : "ri-thumb-down-line"}></i>
+                                            <span>{post.dislikes || 0}</span>
+                                        </button>
+                                    )}
+
+                                    {/* Edit Button moved here */}
+                                    <button
+                                        className="memo-btn"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleEditClick(post);
+                                        }}
+                                        style={{ color: 'var(--text-muted)' }}
+                                    >
+                                        <i className="ri-pencil-line"></i>
+                                        <span>수정</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Inline Comment Section */}
+                            {isCommentsOpen && (
+                                <div className="inline-comment-section">
+                                    <div className="inline-comment-section-dot"></div>
+                                    <CommentSection
+                                        postId={post.id}
+                                        category="anonymous"
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+
+            {/* Lightbox Overlay */}
+            {selectedImage && (
+                <div
+                    className="memo-lightbox-overlay"
+                    onClick={() => setSelectedImage(null)}
+                >
+                    <div className="memo-lightbox-content">
+                        <img src={selectedImage} alt="Enlarged view" />
+                        <button
+                            className="lightbox-close-btn"
+                            onClick={() => setSelectedImage(null)}
+                            style={{
+                                position: 'absolute', top: '20px', right: '20px',
+                                background: 'rgba(0,0,0,0.5)', border: 'none', color: 'white',
+                                borderRadius: '50%', width: '40px', height: '40px', cursor: 'pointer',
+                                fontSize: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                            }}
+                        >
+                            <i className="ri-close-line"></i>
+                        </button>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}

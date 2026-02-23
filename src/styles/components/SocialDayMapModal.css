@@ -1,0 +1,546 @@
+/* Social Day Map Modal Premium Glassmorphism Variables */
+:root {
+    --sdm-bg: rgba(15, 23, 42, 0.85);
+    /* Dark Slate Glass */
+    --sdm-surface: rgba(30, 41, 59, 0.6);
+    /* Translucent surface */
+    --sdm-border: rgba(255, 255, 255, 0.1);
+    /* Subtle white border */
+    --sdm-text: #f8fafc;
+    --sdm-text-muted: #94a3b8;
+    --sdm-primary: #ec4899;
+    --sdm-primary-glow: rgba(236, 72, 153, 0.6);
+    --sdm-secondary: #8b5cf6;
+    --sdm-radius: 16px;
+    --sdm-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+    --sdm-blur: blur(16px);
+}
+
+.SDM-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 0;
+}
+
+.SDM-backdrop {
+    position: absolute;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    animation: sdm-fade-in 0.3s ease;
+}
+
+.SDM-modal {
+    position: relative;
+    width: 100%;
+    max-width: 600px;
+    height: 100vh;
+    max-height: 100vh;
+    background-color: var(--sdm-bg);
+    backdrop-filter: var(--sdm-blur);
+    -webkit-backdrop-filter: var(--sdm-blur);
+    border-radius: 0;
+    /* Fullscreen on mobile */
+    box-shadow: var(--sdm-shadow);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: none;
+    animation: sdm-slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (min-width: 640px) {
+    .SDM-overlay {
+        padding: 24px;
+    }
+
+    .SDM-modal {
+        height: 90vh;
+        max-height: 850px;
+        border-radius: var(--sdm-radius);
+        border: 1px solid var(--sdm-border);
+    }
+}
+
+@keyframes sdm-slide-up {
+    0% {
+        transform: translateY(40px) scale(0.98);
+        opacity: 0;
+    }
+
+    100% {
+        transform: translateY(0) scale(1);
+        opacity: 1;
+    }
+}
+
+@keyframes sdm-fade-in {
+    0% {
+        opacity: 0;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+/* Header */
+.SDM-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--sdm-border);
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.9) 0%, rgba(15, 23, 42, 0.4) 100%);
+    z-index: 10;
+}
+
+.SDM-header h3 {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--sdm-text);
+    background: linear-gradient(to right, #f8fafc, #cbd5e1);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.01em;
+}
+
+.SDM-closeBtn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--sdm-text-muted);
+    font-size: 1.25rem;
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+}
+
+.SDM-closeBtn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    transform: scale(1.05);
+}
+
+/* Calendar Area */
+.SDM-calendarArea {
+    padding: 12px 8px 8px 8px;
+    background-color: var(--sdm-surface);
+    border-bottom: 1px solid var(--sdm-border);
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+.SDM-calendarArea .react-datepicker {
+    background-color: transparent;
+    border: none;
+    font-family: inherit;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.SDM-calendarArea .react-datepicker-wrapper {
+    width: 100%;
+    border: none;
+}
+
+.SDM-calendarArea .react-datepicker__header {
+    background-color: transparent;
+    border-bottom: none;
+    padding-top: 0;
+    width: 100%;
+}
+
+.SDM-calendarArea .react-datepicker__month-container {
+    width: 100%;
+}
+
+.SDM-calendarArea .react-datepicker__month {
+    margin: 0;
+    padding-bottom: 4px;
+}
+
+.SDM-calendarArea .react-datepicker__current-month {
+    color: var(--sdm-text);
+    font-weight: 700;
+    font-size: 1.125rem;
+    margin-bottom: 12px;
+}
+
+.SDM-calendarArea .react-datepicker__day-names {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+    margin-bottom: 4px;
+}
+
+.SDM-calendarArea .react-datepicker__week {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.SDM-calendarArea .react-datepicker__day-name,
+.SDM-calendarArea .react-datepicker__day {
+    flex: 1;
+    margin: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.SDM-calendarArea .react-datepicker__day-name {
+    color: var(--sdm-text-muted);
+    font-weight: 600;
+    font-size: clamp(0.7rem, 3vw, 0.8rem);
+}
+
+.SDM-calendarArea .react-datepicker__day {
+    color: var(--sdm-text);
+    position: relative;
+    border-radius: 12px;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    aspect-ratio: 1;
+    height: auto;
+    font-size: clamp(0.8rem, 3.5vw, 0.95rem);
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid transparent;
+}
+
+.SDM-calendarArea .react-datepicker__day:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.SDM-calendarArea .react-datepicker__day--selected {
+    background: linear-gradient(135deg, var(--sdm-primary), var(--sdm-secondary)) !important;
+    color: white !important;
+    font-weight: 700;
+    border-color: transparent !important;
+    box-shadow: 0 4px 12px var(--sdm-primary-glow);
+}
+
+.SDM-calendarArea .react-datepicker__day--keyboard-selected {
+    background-color: transparent;
+}
+
+.SDM-calendarDay {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    position: relative;
+    z-index: 2;
+}
+
+/* Glowing Dot Badge for events */
+.SDM-calendarDot {
+    position: absolute;
+    bottom: 12%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background-color: #38bdf8;
+    /* Cyan accent */
+    box-shadow: 0 0 6px #38bdf8;
+}
+
+.SDM-calendarArea .react-datepicker__day--selected .SDM-calendarDot {
+    background-color: white;
+    box-shadow: 0 0 6px rgba(255, 255, 255, 0.8);
+}
+
+/* Map Area */
+.SDM-mapArea {
+    flex: 1;
+    position: relative;
+    min-height: 250px;
+    background-color: #111827;
+    /* Darker underneath */
+    display: flex;
+    flex-direction: column;
+}
+
+.SDM-map {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    inset: 0;
+}
+
+.SDM-emptyState {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(15, 23, 42, 0.7);
+    backdrop-filter: blur(8px);
+    z-index: 10;
+    color: var(--sdm-text);
+}
+
+.SDM-emptyState p {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 500;
+    padding: 12px 24px;
+    background: rgba(30, 41, 59, 0.8);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+    color: var(--sdm-text-muted);
+}
+
+/* Floating Card List */
+.SDM-eventListArea {
+    background: linear-gradient(0deg, var(--sdm-bg) 0%, rgba(15, 23, 42, 0.6) 100%);
+    border-top: 1px solid var(--sdm-border);
+    padding: 16px 16px 20px 16px;
+    max-height: 300px;
+    overflow-y: auto;
+    position: relative;
+    z-index: 5;
+    /* hide scrollbar */
+    scrollbar-width: none;
+}
+
+.SDM-eventListArea::-webkit-scrollbar {
+    display: none;
+}
+
+.SDM-eventListScroll {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.SDM-eventListItem {
+    width: 100%;
+    height: 84px;
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    /* stagger animation prep */
+    animation: sdm-slide-left 0.4s ease forwards;
+    opacity: 0;
+}
+
+@keyframes sdm-slide-left {
+    from {
+        transform: translateX(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.SDM-eventListItem:nth-child(1) {
+    animation-delay: 0.05s;
+}
+
+.SDM-eventListItem:nth-child(2) {
+    animation-delay: 0.1s;
+}
+
+.SDM-eventListItem:nth-child(3) {
+    animation-delay: 0.15s;
+}
+
+.SDM-eventListItem:nth-child(4) {
+    animation-delay: 0.2s;
+}
+
+.SDM-eventListItem:nth-child(5) {
+    animation-delay: 0.25s;
+}
+
+.SDM-eventListItem:hover {
+    transform: translateY(-3px) scale(1.01);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(236, 72, 153, 0.5);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+}
+
+.SDM-eventListItem-image {
+    width: 84px;
+    height: 84px;
+    background-color: #0f172a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.SDM-eventListItem-image::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.1);
+}
+
+.SDM-eventListItem-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.SDM-eventListItem-placeholder {
+    color: var(--sdm-text-muted);
+    font-size: 24px;
+    opacity: 0.5;
+}
+
+.SDM-eventListItem-info {
+    padding: 0 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex: 1;
+    min-width: 0;
+}
+
+.SDM-eventListItem-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--sdm-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 6px;
+    letter-spacing: -0.01em;
+}
+
+.SDM-eventListItem-time {
+    font-size: 0.8rem;
+    color: #38bdf8;
+    /* Cyan for time */
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.SDM-eventListItem-time i {
+    font-size: 0.85rem;
+}
+
+/* Premium Marker Styles */
+.SDM-marker-container {
+    position: relative;
+    cursor: pointer;
+    filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.4));
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.SDM-marker-container:hover {
+    transform: scale(1.15) translateY(-5px);
+    z-index: 100 !important;
+}
+
+.SDM-marker-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.SDM-marker-icon {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.SDM-marker {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--sdm-primary), var(--sdm-secondary));
+    padding: 3px;
+    /* Gradient border effect */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.SDM-marker-inner {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background-color: #0f172a;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.SDM-marker-inner img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.SDM-marker-tail {
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 10px solid var(--sdm-secondary);
+    margin-top: -3px;
+    filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.3));
+}
+
+.SDM-marker-label {
+    margin-top: 6px;
+    background: rgba(15, 23, 42, 0.85);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: white;
+    padding: 6px 10px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    letter-spacing: -0.02em;
+}
+
+.SDM-marker-label i {
+    color: var(--sdm-primary);
+    font-size: 1rem;
+}

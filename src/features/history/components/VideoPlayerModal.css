@@ -1,0 +1,119 @@
+.video-player-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.95);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 20px;
+}
+
+.video-player-modal {
+    position: relative;
+    width: 100%;
+    max-width: 1200px;
+    background: #111;
+    border-radius: 16px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.video-player-close {
+    position: absolute;
+    top: -50px;
+    right: 0;
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: #fff;
+    font-size: 32px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.video-player-close:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
+
+.video-player-container {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #000;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.video-player-container iframe {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.video-player-footer {
+    padding: 16px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #1a1a1a;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.video-player-footer p {
+    margin: 0;
+    color: #9ca3af;
+    font-size: 14px;
+}
+
+.video-player-link-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #f59e0b;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.video-player-link-btn:hover {
+    background: #fbbf24;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.video-player-link-btn i {
+    font-size: 18px;
+}
+
+@media (max-width: 768px) {
+    .video-player-modal {
+        border-radius: 12px;
+    }
+
+    .video-player-footer {
+        flex-direction: column;
+        gap: 12px;
+        text-align: center;
+    }
+
+    .video-player-close {
+        top: -60px;
+        right: 10px;
+    }
+}

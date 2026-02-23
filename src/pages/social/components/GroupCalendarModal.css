@@ -1,0 +1,364 @@
+/* GroupCalendarModal.css */
+.group-calendar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(8px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 3100;
+    padding: 16px;
+}
+
+.group-calendar-container {
+    background: #1a1a1a;
+    width: 100%;
+    max-width: 450px;
+    border-radius: 32px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
+    animation: modal-pop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    display: flex;
+    flex-direction: column;
+}
+
+@keyframes modal-pop {
+    from {
+        transform: scale(0.9);
+        opacity: 0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.calendar-header {
+    padding: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.02);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.group-mini-info h3 {
+    margin: 4px 0 0 0;
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: white;
+}
+
+.group-badge {
+    font-size: 0.65rem;
+    font-weight: 800;
+    background: #334155;
+    color: white;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+}
+
+.close-btn-circle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #2d2d2d;
+    border: none;
+    color: var(--text-tertiary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    cursor: pointer;
+}
+
+.calendar-month-selector {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 30px;
+    padding: 20px 0;
+}
+
+.calendar-month-selector button {
+    background: none;
+    border: none;
+    color: var(--color-amber-400);
+    font-size: 1.5rem;
+    cursor: pointer;
+}
+
+.current-month-label {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: white;
+}
+
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    padding: 0 16px 16px 16px;
+}
+
+.weekday-label {
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #4b5563;
+    padding-bottom: 12px;
+}
+
+.calendar-cell {
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    position: relative;
+    cursor: default;
+    transition: all 0.2s;
+}
+
+.calendar-cell.has-events {
+    background: rgba(251, 191, 36, 0.05);
+    cursor: pointer;
+}
+
+.calendar-cell.has-events:hover {
+    background: rgba(251, 191, 36, 0.15);
+}
+
+.calendar-cell.selected {
+    background: var(--primary-color, var(--color-amber-400)) !important;
+}
+
+.calendar-cell.selected .date-num {
+    color: #1a1a1a;
+}
+
+.calendar-cell.selected .event-dot {
+    background-color: #1a1a1a;
+}
+
+.date-num {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.calendar-cell.empty .date-num {
+    display: none;
+}
+
+.event-indicators {
+    position: absolute;
+    bottom: 8px;
+    display: flex;
+    gap: 2px;
+}
+
+.event-dot {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background-color: var(--color-amber-400);
+}
+
+/* 일일 일정 리스트 */
+.daily-schedule-list {
+    background: rgba(0, 0, 0, 0.2);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 20px;
+    max-height: 250px;
+    display: flex;
+    flex-direction: column;
+}
+
+.selected-date-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+.info-label {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-tertiary);
+}
+
+.event-count-badge {
+    font-size: 0.75rem;
+    background: rgba(251, 191, 36, 0.2);
+    color: var(--color-amber-400);
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-weight: 800;
+}
+
+.daily-items-scroll {
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.daily-schedule-item {
+    display: flex;
+    align-items: center;
+    background: var(--bg-surface-1);
+    padding: 12px 16px;
+    border-radius: 16px;
+    gap: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid transparent;
+}
+
+.daily-schedule-item:hover {
+    background: #2d2d2d;
+    border-color: rgba(251, 191, 36, 0.3);
+    transform: translateX(4px);
+}
+
+.daily-item-image {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: var(--bg-surface-3);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.daily-item-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.daily-item-image i {
+    font-size: 1.2rem;
+    color: #6b7280;
+}
+
+.daily-item-time {
+    font-size: 0.8rem;
+    font-weight: 800;
+    color: var(--color-amber-400);
+    min-width: 45px;
+}
+
+.daily-item-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.daily-item-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* 뷰 모드 전환 스타일 */
+.calendar-month-selector.hidden,
+.calendar-grid.hidden {
+    display: none;
+}
+
+.back-to-month-btn {
+    background: none;
+    border: none;
+    color: var(--text-tertiary);
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px;
+    border-radius: 8px;
+    transition: all 0.2s;
+}
+
+.back-to-month-btn:hover {
+    color: white;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* Day Mode에서 리스트 확장 */
+.daily-schedule-list.expanded {
+    flex: 1;
+    max-height: 60vh;
+    border-top: none;
+    background: transparent;
+}
+
+.daily-schedule-list.expanded .daily-items-scroll {
+    max-height: none;
+    overflow-y: auto;
+}
+
+.calendar-footer-legend p i {
+    font-size: 1rem;
+    color: var(--color-amber-400);
+}
+
+.daily-item-place {
+    font-size: 0.75rem;
+    color: #6b7280;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.daily-schedule-item i {
+    color: #4b5563;
+    font-size: 1.2rem;
+}
+
+.daily-empty {
+    padding: 30px 0;
+    text-align: center;
+    color: #4b5563;
+    font-size: 0.85rem;
+}
+
+.calendar-footer-legend {
+    padding: 12px 24px;
+    background: rgba(0, 0, 0, 0.3);
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.calendar-footer-legend p {
+    font-size: 0.7rem;
+    color: #4b5563;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+@media (max-width: 480px) {
+    .group-calendar-container {
+        max-width: 100%;
+        border-radius: 24px 24px 0 0;
+        position: fixed;
+        bottom: 0;
+        max-height: 85vh;
+    }
+}

@@ -1,0 +1,57 @@
+/* QuickNoticeInput.css - 전광판 입력 폼 */
+
+.quick-notice-form {
+    display: flex;
+    align-items: center;
+    margin: 0 16px;
+    gap: 0;
+    padding: 4px 4px 4px 16px;
+    background: var(--bg-surface-2);
+    border: 1px solid var(--border-glass-subtle);
+    border-radius: 28px;
+}
+
+.quick-notice-input {
+    flex: 1;
+    height: 36px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    font-size: 13px;
+    color: var(--text-primary);
+    min-width: 0;
+}
+
+.quick-notice-input::placeholder {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.quick-notice-input:focus {
+    outline: none;
+}
+
+.quick-notice-btn {
+    height: 32px;
+    padding: 0 16px;
+    background: var(--text-tertiary);
+    color: var(--bg-base);
+    border: none;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.quick-notice-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+.quick-notice-btn:not(:disabled) {
+    background: #fbbf24;
+    color: #000;
+}

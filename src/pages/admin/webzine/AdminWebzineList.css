@@ -1,0 +1,334 @@
+/* AdminWebzineList.css */
+
+.aw-container {
+    min-height: 100vh;
+    background-color: #0f172a;
+    color: #f8fafc;
+    padding: 1.5rem;
+    padding-top: calc(1.5rem + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom, 0px));
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Header & Navigation */
+.aw-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.5rem;
+    background: rgba(30, 41, 59, 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1.25rem;
+    position: sticky;
+    top: env(safe-area-inset-top, 20px);
+    z-index: 100;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+}
+
+.aw-header-left {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+}
+
+.aw-nav-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(15, 23, 42, 0.5);
+    padding: 0.35rem 0.75rem;
+    border-radius: 9999px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.aw-date-selector {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.aw-select {
+    background: transparent;
+    border: none;
+    color: #e2e8f0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    outline: none;
+    padding: 4px 8px;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+    appearance: none;
+}
+
+.aw-select:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.aw-select option {
+    background-color: #1e293b;
+    color: #f8fafc;
+}
+
+.aw-nav-btn {
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    font-size: 1.5rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px;
+    border-radius: 50%;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.aw-nav-btn:hover {
+    color: #38bdf8;
+    background: rgba(255, 255, 255, 0.05);
+    transform: scale(1.1);
+}
+
+.aw-back-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(51, 65, 85, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #f8fafc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.aw-back-btn:hover {
+    background: #475569;
+    transform: translateX(-4px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Admin Actions */
+.aw-btn-admin {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    border-radius: 1rem;
+    font-weight: 700;
+    font-size: 0.95rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.aw-btn-create {
+    background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);
+}
+
+.aw-btn-create:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(37, 99, 235, 0.5);
+}
+
+.aw-btn-edit {
+    background: linear-gradient(135deg, #8b5cf6 0%, #6d28d9 100%);
+    color: white;
+    box-shadow: 0 4px 15px rgba(109, 40, 217, 0.4);
+}
+
+.aw-btn-edit:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 8px 25px rgba(109, 40, 217, 0.5);
+}
+
+/* Main Viewer Content */
+.aw-main-viewer {
+    max-width: 68rem;
+    margin: 0 auto;
+    animation: slideUpFade 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes slideUpFade {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.aw-content-body {
+    display: flex;
+    flex-direction: column;
+}
+
+.aw-post-header {
+    padding: 2rem 1rem 1.5rem;
+    margin-bottom: 2rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.aw-title-large {
+    font-size: 2.5rem;
+    font-weight: 900;
+    margin-bottom: 0.75rem;
+    color: #f8fafc;
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+}
+
+@media (min-width: 768px) {
+    .aw-title-large {
+        font-size: 3rem;
+    }
+}
+
+.aw-subtitle-large {
+    font-size: 1.125rem;
+    color: #94a3b8;
+    margin-bottom: 1.25rem;
+    line-height: 1.6;
+    font-weight: 400;
+}
+
+.aw-post-meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    font-weight: 600;
+    color: #94a3b8;
+    font-size: 1rem;
+}
+
+.aw-meta-divider {
+    color: rgba(255, 255, 255, 0.2);
+}
+
+.aw-draft-tag {
+    background: rgba(239, 68, 68, 0.15);
+    color: #f87171;
+    padding: 0.25rem 0.75rem;
+    border-radius: 0.5rem;
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    letter-spacing: 0.05em;
+}
+
+.aw-renderer-wrapper {
+    padding: 0 1rem;
+    color: #e2e8f0;
+    font-size: 1.15rem;
+    line-height: 1.8;
+}
+
+/* Empty State */
+.aw-empty-viewer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8rem 2rem;
+    text-align: center;
+    color: #64748b;
+    background: rgba(30, 41, 59, 0.4);
+    border-radius: 3rem;
+    border: 2px dashed rgba(255, 255, 255, 0.05);
+    margin: 2rem 0;
+}
+
+.aw-empty-icon {
+    font-size: 5rem;
+    margin-bottom: 2rem;
+    opacity: 0.3;
+    animation: floating 3s ease-in-out infinite;
+}
+
+@keyframes floating {
+
+    0%,
+    100% {
+        transform: translateY(0);
+    }
+
+    50% {
+        transform: translateY(-15px);
+    }
+}
+
+.aw-btn-create-large {
+    margin-top: 2.5rem;
+    background: linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%);
+    color: white;
+    border: none;
+    padding: 1.25rem 2.5rem;
+    border-radius: 1.5rem;
+    font-weight: 800;
+    font-size: 1.25rem;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    box-shadow: 0 15px 30px -5px rgba(37, 99, 235, 0.4);
+}
+
+.aw-btn-create-large:hover {
+    transform: translateY(-8px) scale(1.05);
+    box-shadow: 0 25px 40px -5px rgba(37, 99, 235, 0.5);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .aw-container {
+        padding: 1rem;
+    }
+
+    .aw-header {
+        padding: 0.75rem 1rem;
+        gap: 0.5rem;
+    }
+
+    .aw-header-left {
+        gap: 0.75rem;
+    }
+
+    .aw-hero {
+        height: 320px;
+        border-radius: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .aw-title-large {
+        font-size: 2.25rem;
+    }
+
+    .aw-hero-content {
+        padding: 1.5rem;
+    }
+
+    .aw-subtitle-large {
+        font-size: 1.1rem;
+        max-width: 100%;
+    }
+
+    .aw-btn-admin span {
+        display: none;
+    }
+
+    .aw-btn-admin {
+        padding: 0.75rem;
+        border-radius: 50%;
+    }
+}

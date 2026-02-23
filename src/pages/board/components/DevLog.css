@@ -1,0 +1,158 @@
+.dev-log-container {
+    width: 100%;
+    max-width: 100%;
+    padding: 0;
+}
+
+.dev-log-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+/* 게시판과 동일한 다크 테마 카드 */
+.dev-log-card {
+    background-color: #242424;
+    padding: 12px;
+    margin: 0.4rem;
+    border-radius: 12px;
+    transition: background-color 0.2s ease;
+    cursor: default;
+}
+
+.dev-log-card:hover {
+    background-color: #2a2a2a;
+}
+
+.dev-log-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #333;
+}
+
+.version-badge {
+    display: inline-flex;
+    align-items: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 3px 10px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+.version-date {
+    font-size: 11px;
+    color: #888;
+    font-weight: 500;
+}
+
+.changes-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.changes-list li {
+    padding: 6px 0;
+    padding-left: 20px;
+    position: relative;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #ccc;
+}
+
+.changes-list li::before {
+    content: "•";
+    position: absolute;
+    left: 6px;
+    top: 6px;
+    color: #667eea;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+/* 페이지네이션 - 게시판 스타일 */
+.dev-log-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+    padding: 20px 0;
+    margin-top: 10px;
+}
+
+.pagination-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid #333;
+    background: #242424;
+    color: #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 18px;
+}
+
+.pagination-btn:hover:not(:disabled) {
+    background: #2a2a2a;
+    border-color: #444;
+    color: #fff;
+}
+
+.pagination-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.pagination-info {
+    font-size: 14px;
+    font-weight: 500;
+    color: #888;
+    min-width: 60px;
+    text-align: center;
+}
+
+/* 모바일 반응형 */
+@media (max-width: 768px) {
+    .dev-log-card {
+        padding: 10px;
+        margin: 0.3rem;
+    }
+
+    .version-badge {
+        font-size: 11px;
+        padding: 2px 8px;
+    }
+
+    .version-date {
+        font-size: 10px;
+    }
+
+    .changes-list li {
+        font-size: 12px;
+        padding-left: 18px;
+    }
+
+    .changes-list li::before {
+        font-size: 14px;
+        left: 4px;
+    }
+
+    .pagination-btn {
+        width: 32px;
+        height: 32px;
+        font-size: 16px;
+    }
+
+    .pagination-info {
+        font-size: 13px;
+    }
+}

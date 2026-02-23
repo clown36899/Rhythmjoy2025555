@@ -1,0 +1,201 @@
+.HNBS-container {
+    padding: 20px 12px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    background: transparent;
+    margin-bottom: 0;
+}
+
+.HNBS-button {
+    position: relative;
+    height: 180px;
+    background: transparent;
+    border: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.HNBS-button:active {
+    transform: scale(0.95);
+}
+
+/* Label Bubble (Social/Event) */
+.HNBS-bubble {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #3b82f6;
+    /* Blue for Social */
+    color: white;
+    padding: 6px 14px;
+    border-radius: 12px;
+    font-size: 15px;
+    font-weight: 800;
+    z-index: 10;
+    white-space: nowrap;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.HNBS-bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 6px solid #3b82f6;
+}
+
+.HNBS-button--events .HNBS-bubble {
+    background: #3b82f6;
+    /* Same blue as in screenshot */
+}
+
+.HNBS-button--events .HNBS-bubble::after {
+    border-top-color: #3b82f6;
+}
+
+/* Background Card Stack */
+.HNBS-stack {
+    position: relative;
+    width: 100%;
+    height: 120px;
+    margin-top: 30px;
+}
+
+.HNBS-stack-item {
+    position: absolute;
+    width: 65px;
+    height: 85px;
+    background: #1e293b;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    top: 50%;
+    left: 50%;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.HNBS-stack-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.6;
+    /* Higher transparency for background items */
+    filter: brightness(0.6);
+    transition: opacity 0.3s ease, filter 0.3s ease;
+}
+
+/* Topmost item in the stack - Full visibility */
+.HNBS-stack-item:last-child img {
+    opacity: 1;
+    filter: brightness(1);
+}
+
+
+.HNBS-stack-item::after {
+    content: '';
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    right: 8px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+}
+
+/* Social Stack Randomization */
+.HNBS-button--social .HNBS-stack-item:nth-child(1) {
+    transform: translate(-70%, -40%) rotate(-15deg);
+    z-index: 1;
+}
+
+.HNBS-button--social .HNBS-stack-item:nth-child(2) {
+    transform: translate(-50%, -50%) rotate(-5deg);
+    z-index: 2;
+    width: 70px;
+    height: 90px;
+    opacity: 0.9;
+}
+
+.HNBS-button--social .HNBS-stack-item:nth-child(3) {
+    transform: translate(-30%, -45%) rotate(10deg);
+    z-index: 3;
+    width: 75px;
+    height: 95px;
+}
+
+/* Event Stack Randomization */
+.HNBS-button--events .HNBS-stack-item:nth-child(1) {
+    transform: translate(-75%, -35%) rotate(-10deg);
+    z-index: 1;
+}
+
+.HNBS-button--events .HNBS-stack-item:nth-child(2) {
+    transform: translate(-55%, -45%) rotate(0deg);
+    z-index: 2;
+    width: 70px;
+    height: 90px;
+    opacity: 0.9;
+}
+
+.HNBS-button--events .HNBS-stack-item:nth-child(3) {
+    transform: translate(-35%, -55%) rotate(15deg);
+    z-index: 3;
+    width: 75px;
+    height: 95px;
+}
+
+/* Class Stack Randomization */
+.HNBS-button--classes .HNBS-stack-item:nth-child(1) {
+    transform: translate(-65%, -45%) rotate(-12deg);
+    z-index: 1;
+}
+
+.HNBS-button--classes .HNBS-stack-item:nth-child(2) {
+    transform: translate(-45%, -55%) rotate(2deg);
+    z-index: 2;
+    width: 70px;
+    height: 90px;
+    opacity: 0.9;
+}
+
+.HNBS-button--classes .HNBS-stack-item:nth-child(3) {
+    transform: translate(-25%, -65%) rotate(8deg);
+    z-index: 3;
+    width: 75px;
+    height: 95px;
+}
+
+
+@media (max-width: 360px) {
+    .HNBS-container {
+        padding: 16px 8px;
+        gap: 8px;
+    }
+
+    .HNBS-stack {
+        height: 80px;
+    }
+
+    .HNBS-stack-item {
+        width: 55px;
+        height: 75px;
+    }
+
+    .HNBS-bubble {
+        font-size: 12px;
+        padding: 4px 8px;
+    }
+}

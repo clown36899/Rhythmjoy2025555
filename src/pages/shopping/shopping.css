@@ -1,0 +1,172 @@
+/* shopping.css - ShoppingPage 컴포넌트 전용 스타일 */
+
+/* ===== 페이지 컨테이너 ===== */
+.shop-page-container {
+  min-height: 100vh;
+  padding-bottom: 8rem;
+  margin-top: calc(60px + env(safe-area-inset-top));
+  padding-bottom: calc(142px + env(safe-area-inset-bottom));
+  /* background-color: rgb(39 39 39); */
+}
+
+
+/* ===== 헤더 등록 버튼 ===== */
+.shop-header-register-btn {
+  background-color: var(--color-blue-600);
+  color: white;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  font-size: 1.25rem;
+}
+
+.shop-header-register-btn:hover {
+  background-color: var(--color-blue-700);
+  transform: scale(1.05);
+}
+
+/* ===== 쇼핑몰 목록 영역 ===== */
+.shop-list-section {
+  padding-top: 5px;
+  padding-left: var(--spacing-4);
+  padding-right: var(--spacing-4);
+}
+
+/* ===== 로딩 및 빈 상태 ===== */
+.shop-loading-container {
+  text-align: center;
+  padding-top: 5rem;
+  padding-bottom: 5rem;
+  color: var(--color-gray-400);
+}
+
+.shop-empty-container {
+  text-align: center;
+  padding-top: 5rem;
+  padding-bottom: 5rem;
+  color: var(--color-gray-400);
+}
+
+/* ===== 그리드 레이아웃 ===== */
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: var(--spacing-6);
+}
+
+@media (min-width: 768px) {
+  .shop-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ===== 쇼핑 라우트 전용 카드 높이 조정 (연습실 스타일: 120px 최적화) ===== */
+.shop-page-container .shopcard-banner {
+  height: 120px !important;
+}
+
+/* 이미지 섹션: 높이에 맞춰 너비 축소 (8rem = 128px) */
+.shop-page-container .shopcard-image-section {
+  width: 8rem !important;
+}
+
+/* 콘텐츠 섹션: 연습실 카드 패딩 및 스타일 참조 */
+.shop-page-container .shopcard-content-section {
+  padding: 1rem 1.5rem !important;
+}
+
+/* 제목: 폰트 크기 조정 (약 1.0625rem) */
+.shop-page-container .shopcard-banner-title {
+  font-size: 1.1rem !important;
+  margin-bottom: 0.2rem !important;
+  line-height: 1.3 !important;
+}
+
+/* 설명: 폰트 크기 및 높이 제한 (1줄로 제한하여 깔끔하게) */
+/* 설명: 폰트 크기 및 높이 제한 (항상 표시 강제) */
+.shop-page-container .shopcard-banner-desc {
+  display: -webkit-box !important;
+  /* 강제 표시 */
+  -webkit-box-orient: vertical !important;
+  font-size: 0.8125rem !important;
+  line-height: 1.4 !important;
+  -webkit-line-clamp: 2 !important;
+  line-clamp: 2 !important;
+  color: #eeeeee !important;
+  /* 색상 밝게 변경 */
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* 버튼: 콤팩트하게 변경 */
+.shop-page-container .shopcard-banner-btn {
+  padding: 0.3rem 0.6rem !important;
+  font-size: 0.75rem !important;
+  margin-top: 0.3rem !important;
+  /* 연습실 카드에는 버튼이 없으므로 최소화 */
+}
+
+/* 즐겨찾기 버튼: 위치와 크기 미세 조정 */
+.shop-page-container .shopcard-favorite-btn {
+  width: 1.75rem !important;
+  height: 1.75rem !important;
+  font-size: 0.9rem !important;
+  top: 0.5rem !important;
+  left: 0.5rem !important;
+  /* 연습실 카드는 right이나 shopcard 기본이 left일 수 있음, 우선 shopcard 구조 따름 */
+}
+
+/* 반응형 (640px 이하 모바일 - 연습실 카드 87px 기준) */
+@media (max-width: 640px) {
+  .shop-page-container .shopcard-banner {
+    height: 87px !important;
+  }
+
+  /* 이미지 섹션: 6rem = 96px */
+  .shop-page-container .shopcard-image-section {
+    width: 6rem !important;
+  }
+
+  .shop-page-container .shopcard-content-section {
+    padding: 0.5rem 0.75rem !important;
+    gap: 0.25rem !important;
+  }
+
+  .shop-page-container .shopcard-banner-title {
+    font-size: 0.9375rem !important;
+    line-height: 1.2 !important;
+  }
+
+  /* 모바일 내부 간격 축소 */
+  .shop-page-container .shopcard-banner-content {
+    gap: 0.1rem !important;
+  }
+
+  /* 모바일에서도 설명 표시 (1줄 제한) 및 가독성 확보 */
+  /* 모바일에서도 설명 표시 (1줄 제한) 및 가독성 확보 */
+  .shop-page-container .shopcard-banner-desc {
+    display: -webkit-box !important;
+    -webkit-box-orient: vertical !important;
+    font-size: 0.75rem !important;
+    -webkit-line-clamp: 1 !important;
+    line-clamp: 1 !important;
+    margin-top: 0.1rem !important;
+    color: #ffffff !important;
+    /* 완전 흰색으로 변경 */
+    visibility: visible !important;
+    opacity: 1 !important;
+    height: auto !important;
+    /* 높이 제한 해제 */
+    max-height: none !important;
+  }
+
+  /* 모바일 버튼 숨김 또는 최소화 */
+  .shop-page-container .shopcard-banner-btn {
+    display: none !important;
+  }
+}

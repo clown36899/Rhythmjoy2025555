@@ -1,0 +1,212 @@
+/* SocialRegistrationModal.css */
+.srm-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--bg-overlay);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    /* High z-index to sit above other elements */
+    padding: 20px;
+    padding-bottom: 10vh;
+    /* Optical center adjustment */
+}
+
+.srm-content {
+    background: var(--bg-modal);
+    border: 1px solid var(--border-glass);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 420px;
+    max-height: 85vh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--shadow-elevated);
+    overflow: hidden;
+    animation: srm-fade-in 0.2s ease-out;
+}
+
+.srm-header {
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border-subtle);
+    background: var(--bg-card-highlight);
+}
+
+.srm-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.srm-close-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 24px;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s;
+}
+
+.srm-close-btn:hover {
+    background: var(--bg-card-highlight);
+    color: var(--text-primary);
+}
+
+.srm-body {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.srm-desc {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin: 0 0 16px 0;
+    line-height: 1.5;
+    background: var(--bg-surface-glass);
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--border-subtle);
+}
+
+.srm-desc i {
+    margin-right: 8px;
+    color: var(--color-primary, #3b82f6);
+    font-size: 1.1rem;
+    vertical-align: text-bottom;
+}
+
+.srm-desc-sub {
+    font-size: 0.85rem;
+    color: var(--text-tertiary);
+    display: block;
+    margin-top: 4px;
+    padding-left: 24px;
+    opacity: 0.8;
+}
+
+.srm-section-title {
+    font-size: 13px;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.srm-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.srm-group-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.srm-create-btn {
+    width: 100%;
+    padding: 16px;
+    background: transparent;
+    border: 1px dashed var(--border-glass);
+    border-radius: 12px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.srm-create-btn:hover {
+    background: var(--bg-card-highlight);
+    border-color: var(--border-primary);
+    color: var(--text-primary);
+}
+
+.srm-create-btn i {
+    font-size: 20px;
+    color: var(--color-amber-400);
+    /* Amber color for emphasis */
+}
+
+/* Card and Utility Classes for Modal */
+.group-wide-card.is-clickable {
+    cursor: pointer;
+    border: 1px solid var(--border-glass);
+    transition: all 0.2s;
+}
+
+.group-wide-card.is-clickable:hover {
+    background: var(--bg-card-highlight);
+    border-color: var(--border-primary);
+}
+
+.admin-add-item-btn.is-full-width {
+    width: 100%;
+    justify-content: center;
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    font-weight: 600;
+    padding: 12px;
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 4px 6px rgba(37, 99, 235, 0.2);
+    transition: all 0.2s;
+}
+
+.admin-add-item-btn.is-full-width:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 12px rgba(37, 99, 235, 0.3);
+}
+
+.srm-alert-text {
+    margin-top: 8px;
+    font-size: 0.7rem;
+    color: var(--color-danger);
+    text-align: center;
+    word-break: keep-all;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    opacity: 0.8;
+}
+
+.srm-alert-text i {
+    margin-right: 2px;
+    vertical-align: text-bottom;
+}
+
+/* Animations */
+@keyframes srm-fade-in {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}

@@ -1,0 +1,286 @@
+.pwa-install-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    padding: 0.8rem 1rem;
+
+    /* Vibrant Base Color (Indigo-Purple Gradient) - Premium Look */
+    background-color: #6366f1;
+
+    -webkit-appearance: none;
+    appearance: none;
+    -webkit-tap-highlight-color: transparent;
+
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #ffffff;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    white-space: nowrap;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+/* 설치됨 (Open App) 상태에서의 스타일 강조 (Vivid Blue) */
+.pwa-install-button.installed {
+    background-color: #3b82f6;
+    background-image: -webkit-linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    background-image: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    border-color: rgba(255, 255, 255, 0.3);
+    color: #ffffff;
+    box-shadow: 0 4px 15px rgba(37, 130, 246, 0.4);
+}
+
+.pwa-install-button.installing {
+    background-color: #4f46e5;
+    color: white;
+    border-color: rgba(102, 126, 234, 0.3);
+}
+
+.pwa-install-button:hover:not(.installing) {
+    background-image: -webkit-linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+    background-image: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(99, 102, 241, 0.4);
+}
+
+.pwa-install-button.installed:hover:not(.installing) {
+    background-image: -webkit-linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+    background-image: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.5);
+}
+
+.pwa-install-button:active:not(.installing) {
+    transform: translateY(0) scale(0.98);
+}
+
+.pwa-install-button i {
+    font-size: 0.9rem;
+    line-height: 1;
+    opacity: 0.9;
+}
+
+/* iOS 설치 안내 모달 */
+.ios-install-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999;
+    padding: 1.5rem;
+    padding-top: calc(1.5rem + env(safe-area-inset-top));
+    padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+.ios-install-modal {
+    background: #1a1a1a;
+    border-radius: 16px;
+    max-width: 400px;
+    width: 100%;
+    max-height: 80vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+    border: 1px solid #3f3f46;
+    position: relative;
+}
+
+.ios-install-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #3f3f46;
+}
+
+.ios-install-header h3 {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.ios-install-close {
+    background: transparent;
+    border: none;
+    color: #a1a1aa;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+}
+
+.ios-install-close:hover {
+    color: #ffffff;
+}
+
+.ios-install-content {
+    padding: 1.5rem;
+}
+
+.ios-install-step {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+}
+
+.ios-install-step:last-child {
+    margin-bottom: 0;
+}
+
+.ios-install-step-number {
+    flex-shrink: 0;
+    width: 2rem;
+    height: 2rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.ios-install-step-text {
+    flex: 1;
+    color: #e4e4e7;
+    font-size: 0.9375rem;
+    line-height: 2rem;
+}
+
+.ios-install-step-text strong {
+    color: #ffffff;
+}
+
+.ios-install-step-text i {
+    vertical-align: middle;
+}
+
+/* 성공 모달 전용 스타일 */
+.success-modal {
+    text-align: center;
+}
+
+.success-icon-wrapper {
+    margin-bottom: 20px;
+}
+
+.success-icon-wrapper i {
+    font-size: 64px;
+    color: #22c55e;
+    filter: drop-shadow(0 0 10px rgba(34, 197, 94, 0.3));
+}
+
+.success-message {
+    margin-bottom: 24px;
+}
+
+.success-message strong {
+    display: block;
+    font-size: 18px;
+    color: #fff;
+    margin-bottom: 8px;
+}
+
+.success-message p {
+    font-size: 14px;
+    color: #a1a1aa;
+    line-height: 1.6;
+}
+
+.success-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 0 10px;
+}
+
+.success-actions .pwa-install-button.primary {
+    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    color: white;
+    padding: 14px;
+    border-radius: 12px;
+    border: none;
+    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+}
+
+.success-hint {
+    font-size: 12px;
+    color: #71717a;
+    line-height: 1.5;
+}
+
+/* 다크 모드 오버라이드 제거 - 브랜드 색상 유지를 위해 삭제됨 */
+
+/* --- Refactored Semantic Styles (2026-02-07) --- */
+
+.pwa-button-wrapper {
+    position: relative;
+    overflow: hidden;
+}
+
+.pwa-progress-bar-absolute {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    transition: width 0.3s ease;
+    z-index: 0;
+}
+
+.pwa-content-layer {
+    position: relative;
+    z-index: 1;
+}
+
+.ios-notification-desc {
+    padding: 0 20px 20px;
+    text-align: center;
+    font-size: 15px;
+    color: #e4e4e7;
+    line-height: 1.5;
+}
+
+.notification-icon-highlight {
+    color: #FEE500;
+    margin-right: 6px;
+}
+
+.manual-install-btn-wrapper {
+    padding: 0 20px 20px;
+}
+
+.manual-install-btn {
+    width: 100%;
+    max-width: none;
+    margin: 0;
+    padding: 12px;
+    border-radius: 12px;
+}
+
+.manual-install-note {
+    margin-top: 12px;
+    font-size: 13px;
+    color: #fb7185;
+    text-align: center;
+}
+
+.ios-share-icon {
+    color: #3b82f6;
+}

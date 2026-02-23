@@ -1,0 +1,81 @@
+.container {
+    width: 100%;
+    background-color: rgba(31, 41, 55, 0.5);
+    border-radius: 12px;
+    padding: 12px 0;
+    border: 1px solid #374151;
+}
+
+.treeItem {
+    display: flex;
+    flex-direction: column;
+}
+
+.itemContent {
+    display: flex;
+    align-items: center;
+    padding: 8px 12px;
+    cursor: pointer;
+    color: #d1d5db;
+    transition: all 0.2s;
+    font-size: 14px;
+    border-left: 2px solid transparent;
+}
+
+.itemContent:hover {
+    background-color: rgba(55, 65, 81, 0.5);
+    color: white;
+}
+
+.itemContent.selected {
+    background-color: rgba(37, 99, 235, 0.1);
+    color: #60a5fa;
+    border-left-color: #60a5fa;
+    font-weight: 500;
+}
+
+.toggleIcon {
+    font-size: 10px;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #9ca3af;
+    margin-right: 4px;
+    transition: transform 0.2s;
+}
+
+.toggleIcon:hover {
+    color: white;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.invisible {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.folderIcon {
+    margin-right: 8px;
+    opacity: 0.8;
+}
+
+.name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.children {
+    display: flex;
+    flex-direction: column;
+}
+
+.divider {
+    height: 1px;
+    background-color: #374151;
+    margin: 8px 12px;
+}

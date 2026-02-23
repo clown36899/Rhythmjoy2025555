@@ -1,0 +1,141 @@
+/* ColorSettingsModal.css */
+
+.header-color-panel-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+.header-color-panel {
+    background-color: #1f2937;
+    padding: 1.5rem;
+    border-radius: 1rem;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    color: white;
+}
+
+.header-color-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+}
+
+.header-color-panel-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0;
+    color: white;
+}
+
+.header-color-panel-close {
+    background: transparent;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.375rem;
+    transition: color 0.2s, background-color 0.2s;
+}
+
+.header-color-panel-close:hover {
+    color: white;
+    background-color: #374151;
+}
+
+.header-icon-xl {
+    font-size: 1.5rem;
+    line-height: 1;
+}
+
+.header-btn-group-vertical {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.header-gap-3 {
+    gap: 0.75rem;
+}
+
+.header-mb-6 {
+    margin-bottom: 1.5rem;
+}
+
+.header-color-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.header-color-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #d1d5db;
+}
+
+.header-color-input-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.header-color-picker {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    width: 2.5rem;
+    height: 2.5rem;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    border-radius: 0.375rem;
+    overflow: hidden;
+}
+
+.header-color-picker::-webkit-color-swatch-wrapper {
+    padding: 0;
+}
+
+.header-color-picker::-webkit-color-swatch {
+    border: none;
+    border-radius: 0.375rem;
+    border: 1px solid #4b5563;
+}
+
+.header-color-text {
+    flex: 1;
+    background-color: #374151;
+    border: 1px solid #4b5563;
+    color: white;
+    padding: 0.5rem 0.75rem;
+    border-radius: 0.375rem;
+    font-size: 0.875rem;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.header-color-text:focus {
+    border-color: #3b82f6;
+}
+
+.header-color-note {
+    font-size: 0.75rem;
+    color: #9ca3af;
+    margin-top: 1rem;
+    text-align: center;
+}

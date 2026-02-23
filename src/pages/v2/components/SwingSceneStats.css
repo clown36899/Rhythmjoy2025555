@@ -1,0 +1,1109 @@
+/* Insertion UI for Editor */
+.card-insert-row {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: flex-end;
+    margin-top: -0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.mw-insert-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    background-color: var(--color-blue-600);
+    color: white;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    user-select: none;
+    z-index: 10;
+}
+
+.mw-insert-btn:hover {
+    background-color: var(--color-blue-700);
+}
+
+.stats-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.swing-scene-stats {
+    background: var(--bg-main);
+    color: var(--text-primary);
+    position: relative;
+    height: 100%;
+    width: 100%;
+}
+
+.swing-scene-stats.section-view {
+    background: transparent;
+    padding: 0;
+    height: auto;
+}
+
+.swing-scene-stats.section-view .stats-container {
+    display: block;
+    grid-template-columns: none;
+    padding: 0;
+}
+
+.swing-scene-stats.section-view .stats-col-1,
+.swing-scene-stats.section-view .stats-col-2,
+.swing-scene-stats.section-view .stats-col-3,
+.swing-scene-stats.section-view .stats-col-4 {
+    border-left: none;
+    padding-left: 0;
+}
+
+.stats-header-controls {
+    position: absolute;
+    top: 16px;
+    right: 24px;
+    display: flex;
+    gap: 8px;
+    z-index: 10;
+}
+
+.stats-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-3);
+    width: 100%;
+    height: 100%;
+    box-sizing: border-box;
+    padding: 0 var(--spacing-1);
+}
+
+@media (min-width: 1024px) {
+    .stats-container {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        /* [핵심] 4열 균등 너비 (1:1:1:1) */
+        /* [핵심] 4열 레이아웃 적용 */
+        grid-template-rows: 100%;
+        gap: var(--spacing-3);
+        /* 간격 축소: 4 -> 3 */
+        height: 100%;
+        overflow: hidden;
+        padding-top: var(--spacing-3);
+        /* Reduced from 50px as controls moved to portal */
+        padding-bottom: var(--spacing-3);
+        padding-left: var(--spacing-3);
+        padding-right: var(--spacing-3);
+        /* 패딩 축소 */
+        font-size: 1rem;
+        /* [핵심] 데스크탑 기본 폰트 상향 (0.9 -> 1.0) */
+    }
+
+    /* 텍스트 크기 전반적 축소 */
+    .stats-container h1,
+    .stats-container h2,
+    .stats-container h3,
+    .section-title {
+        font-size: 1.2rem !important;
+        /* 제목 크기 상향 (1.1 -> 1.2) */
+        margin-bottom: var(--spacing-2) !important;
+    }
+
+    .stats-header-controls {
+        position: static;
+        z-index: 1100;
+        /* Ensure it's above other elements if needed */
+    }
+
+    .stats-value,
+    .stat-value {
+        font-size: 1.5rem !important;
+        /* 숫자 크기 축소 */
+    }
+
+    .stat-label,
+    .sub-label,
+    .chart-desc,
+    .unit,
+    .stats-period {
+        font-size: 0.85rem !important;
+        /* 보조 텍스트 상향 (0.8 -> 0.85) */
+    }
+
+    .stats-col-1,
+    .stats-col-2,
+    .stats-col-3,
+    .stats-col-4 {
+        /* [New] Col 4 추가 */
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-2);
+        height: 100%;
+        overflow: hidden;
+    }
+
+    /* Col 1: Fixed width handled by grid */
+
+    /* Col 2, 3, 4: Dynamic width */
+    .stats-col-2,
+    .stats-col-3,
+    .stats-col-4 {
+        overflow: hidden;
+        /* 내부 스크롤 방지 */
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        height: 100%;
+        min-height: 0;
+        gap: var(--spacing-2);
+    }
+
+    .stats-col-2,
+    .stats-col-3,
+    .stats-col-4 {
+        border-left: 1px solid var(--border-glass);
+        padding-left: 16px;
+        /* 20px -> 16px 축소 */
+    }
+
+    /* Desktop Specific Overrides to fit screen */
+    .stats-section {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 0;
+        padding: var(--spacing-3);
+        /* 섹션 내부 패딩 축소 */
+        background: var(--bg-surface-translucent);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--border-color);
+        overflow: hidden;
+        /* 내부 스크롤 방지 */
+        flex-shrink: 0;
+        /* 기본적으로 줄어들지 않음 (차트 컨테이너가 줄어듦) */
+    }
+
+    /* Title size reduction for desktop */
+    .section-title {
+        font-size: 0.8rem;
+        margin-bottom: var(--spacing-2);
+    }
+
+    .stats-card-grid {
+        gap: var(--spacing-2);
+        margin-bottom: var(--spacing-3);
+    }
+
+    .stats-card {
+        padding: var(--spacing-3) var(--spacing-2);
+    }
+
+    .card-value {
+        font-size: 0.9rem;
+    }
+
+    .chart-container {
+        flex: 1;
+        min-height: 0;
+        /* 차트 높이 제한: 전체 높이의 40%를 넘지 않도록 설정 */
+        max-height: 40%;
+        overflow-y: hidden;
+        padding-bottom: 0;
+        border-bottom: none;
+        align-items: flex-end;
+        padding-right: 0;
+        /* 우측 패딩 제거 */
+    }
+
+    /* CRITICAL FIX: Make bars grow with screen height */
+    .stacked-bar {
+        height: 100% !important;
+        margin-bottom: 0;
+    }
+
+    /* Col 3 Compact Mode */
+    .stats-col-3 .stats-section {
+        justify-content: center;
+    }
+
+    .promo-analysis-section {
+        padding: var(--spacing-3);
+        margin-top: 0;
+        flex: 1;
+        /* 프로모션 섹션 높이 제한 강화 */
+        max-height: 35%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        overflow: hidden;
+    }
+
+    .promo-chart-container {
+        margin: var(--spacing-1) 0;
+        gap: var(--spacing-1);
+        /* 차트 높이 강제 축소 */
+        height: auto;
+        max-height: 80px;
+        min-height: 0;
+        flex-shrink: 1;
+    }
+
+    .promo-bar-group {
+        gap: var(--spacing-2);
+    }
+
+    .chart-info-footer {
+        margin-top: auto;
+        padding-top: var(--spacing-2);
+        flex-shrink: 0;
+        gap: var(--spacing-1);
+    }
+
+    .info-item {
+        gap: var(--spacing-1);
+    }
+
+    .info-label {
+        font-size: 0.65rem;
+        min-width: 40px;
+        padding: 2px 4px;
+    }
+
+    .spacer-52,
+    .spacer-30 {
+        display: none;
+    }
+
+    /* Bar wrapper compact */
+    .bar-wrapper {
+        padding: 4px 0;
+    }
+
+    .bar-info-group {
+        height: 24px;
+        margin-bottom: 4px;
+    }
+
+    .axis-group {
+        height: 36px;
+        margin-top: 4px;
+    }
+}
+
+/* Vertical Responsive Scaling for Desktop */
+@media (min-width: 1024px) {
+
+    /* Height < 900px (Laptop) - Relax Zoom for readability */
+    @media (max-height: 900px) {
+        .stats-container {
+            zoom: 0.9;
+        }
+    }
+
+    .chart-container {
+        flex: 1 1 auto;
+        /* Flex Shrink & Grow */
+        min-height: 0;
+        /* 최소 높이 제거하여 더 작아질 수 있게 함 */
+        max-height: 35vh;
+        /* 화면 높이의 35%까지만 차지하도록 제한 (4번째 섹션 공간 확보) */
+        overflow-y: hidden;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+
+    /* Hide Mobile Spacers on Desktop */
+    .spacer-52,
+    .spacer-30 {
+        display: none !important;
+    }
+
+    .stats-col-3 {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        overflow: hidden;
+        justify-content: space-between;
+    }
+
+    /* Col 3 내부 섹션 강제 분할 (장르 차트 vs 홍보 통계) */
+    .stats-col-3 .stats-section,
+    .stats-col-3 .promo-analysis-section {
+        flex: 1 1 0%;
+        /* 높이 균등 분할 및 축소 허용 */
+        min-height: 0;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        margin-bottom: var(--spacing-2);
+        padding-bottom: 0;
+    }
+
+    /* 마지막 섹션 마진 제거 */
+    .stats-col-3 .promo-analysis-section {
+        margin-bottom: 0;
+    }
+
+    .promo-analysis-section {
+        /* 기존 스타일 오버라이드 */
+        max-height: none;
+        padding-top: 0;
+        flex: 0 1 auto;
+        /* 내용물 크기만큼 차지하되 축소 가능 */
+        overflow: hidden;
+        min-height: 0;
+    }
+
+    .promo-chart-container {
+        flex: 1 1 0%;
+        min-height: 0;
+        max-height: none;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        margin: 0;
+        gap: 0;
+    }
+
+    /* 홍보 통계 내부 간격 초소형화 */
+    .promo-bar-group {
+        flex: 1 1 0%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-height: 0;
+    }
+
+    .promo-bar-item {
+        margin-bottom: 2px !important;
+    }
+
+    .section-title {
+        flex-shrink: 0;
+        /* 제목은 줄어들지 않음 */
+        margin-top: 0;
+        padding-top: 0;
+    }
+
+    .chart-desc,
+    .touch-hint {
+        flex-shrink: 0;
+        margin-bottom: 4px;
+    }
+
+    /* 막대 그래프가 찌그러지지 않도록 최소 높이만 제어 */
+    .stacked-bar {
+        flex: 1;
+        min-height: 0;
+    }
+}
+
+/* Component Styles */
+.stats-section {
+    background: var(--bg-surface-glass);
+    padding: var(--spacing-4) var(--spacing-5);
+    border-radius: var(--radius-2xl);
+    border: 1px solid var(--border-glass);
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 380px;
+    /* Ensure enough room for header + chart + footer */
+    justify-content: flex-start;
+
+    overflow: visible;
+    /* Prevent clipping labels */
+}
+
+.stats-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--spacing-3);
+    flex-shrink: 0;
+}
+
+.section-title {
+    margin: 0;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    font-weight: 600;
+}
+
+.stats-card-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--spacing-3);
+    margin-bottom: var(--spacing-5);
+    flex-shrink: 0;
+}
+
+.stats-card {
+    background: var(--bg-surface-2);
+    padding: var(--spacing-4) var(--spacing-3);
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--border-glass-subtle);
+    text-align: center;
+    transition: transform 0.2s;
+}
+
+.stats-card:hover {
+    transform: translateY(-2px);
+    background: var(--bg-hover);
+}
+
+.card-label {
+    font-size: 0.7rem;
+    color: var(--text-tertiary);
+    margin-bottom: var(--spacing-1-5);
+}
+
+.card-value {
+    font-size: 1rem;
+    color: var(--text-primary);
+    font-weight: 700;
+}
+
+.card-hint {
+    font-size: 0.6rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+    font-weight: 400;
+}
+
+.chart-container {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: flex-start;
+
+    min-height: 260px;
+    /* Use min-height for flexibility */
+    flex-shrink: 0;
+
+
+    /* Add space at top for labels */
+    padding-bottom: var(--spacing-4);
+    border-bottom: 1px solid var(--border-glass-subtle);
+    overflow-x: auto;
+    overflow-y: visible;
+    /* Allow labels to pop out if needed */
+    padding-right: var(--spacing-4);
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-glass-strong) transparent;
+}
+
+/* Weekly Chart specific: No horizontal scroll, flex layout */
+.chart-container.weekly-chart {
+    overflow-x: hidden;
+    padding-right: 0;
+    justify-content: space-around;
+    gap: 0;
+}
+
+/* Webkit Scrollbar */
+.chart-container::-webkit-scrollbar {
+    height: 6px;
+}
+
+.chart-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.chart-container::-webkit-scrollbar-thumb {
+    background-color: var(--border-glass-strong);
+    border-radius: 3px;
+}
+
+.bar-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100%;
+    justify-content: flex-end;
+    position: relative;
+    min-width: 37px;
+    flex-shrink: 0;
+    transition: all 0.3s ease;
+    border-radius: var(--radius-lg);
+    padding: 8px 0;
+}
+
+.weekly-chart .bar-wrapper {
+    min-width: 0;
+    flex: 1;
+}
+
+.bar-wrapper.current-month {
+    background: rgba(59, 130, 246, 0.05);
+    border: 1px solid rgba(59, 130, 246, 0.2);
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.08);
+}
+
+.bar-wrapper.current-month .axis-avg {
+    color: var(--color-blue-400);
+}
+
+.bar-info-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    margin-bottom: var(--spacing-2);
+    height: 36px;
+    /* Fixed height for top numbers */
+    justify-content: flex-end;
+}
+
+.stacked-bar {
+    width: 24px;
+    height: 140px;
+    /* Fixed height for ALL months */
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 1px;
+    border-radius: var(--radius-xs);
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.03);
+    margin-bottom: var(--spacing-2);
+    flex-shrink: 0;
+}
+
+.weekly-chart .stacked-bar {
+    width: 20px;
+    max-width: 60%;
+}
+
+@media (min-width: 375px) {
+    .stacked-bar {
+        width: 20px;
+    }
+}
+
+.bar-segment {
+    width: 100%;
+    transition: height 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.segment-val {
+    font-size: 0.55rem;
+    color: white;
+    font-weight: 700;
+    text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+    white-space: nowrap;
+    pointer-events: none;
+}
+
+.total-label {
+    font-size: 0.65rem;
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.reg-label {
+    font-size: 0.6rem;
+    color: var(--color-sky-400);
+    font-weight: 500;
+}
+
+.axis-group {
+    height: 48px;
+    /* Fixed space for label area */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 2px;
+    margin-top: var(--spacing-2);
+    flex-shrink: 0;
+}
+
+.axis-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.today-badge {
+    font-size: 0.5rem;
+    padding: 1px 4px;
+    background: rgba(59, 130, 246, 0.15);
+    color: var(--color-blue-400);
+    border-radius: 4px;
+    font-weight: 600;
+    border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.axis-avg {
+    font-size: 0.85rem;
+    color: var(--text-primary);
+    font-weight: 700;
+    font-family: var(--font-family-mono, monospace);
+}
+
+/* Legend */
+.legend-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-2);
+    margin-top: var(--spacing-4);
+    flex-shrink: 0;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+    font-size: 0.7rem;
+    color: var(--text-tertiary);
+}
+
+.legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    flex-shrink: 0;
+}
+
+.chart-info-footer {
+    margin-top: var(--spacing-4);
+    padding-top: var(--spacing-3);
+    border-top: 1px dashed var(--border-glass-subtle);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2);
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-2);
+}
+
+.info-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 3px 6px;
+    border-radius: 6px;
+    min-width: 52px;
+    text-align: center;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    white-space: nowrap;
+}
+
+.info-label.total {
+    background: var(--bg-surface-3);
+    color: var(--text-primary);
+    border: 1px solid var(--border-glass-strong);
+}
+
+.info-label.reg {
+    background: rgba(59, 130, 246, 0.25);
+    color: var(--color-sky-300);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+}
+
+.info-label.avg {
+    background: var(--bg-surface-glass-strong);
+    color: var(--text-primary);
+    border: 1px solid var(--color-blue-500);
+}
+
+.info-text {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    letter-spacing: -0.01em;
+}
+
+/* Tabs & Buttons */
+.tab-group {
+    display: flex;
+    background: var(--bg-overlay-deep);
+    padding: 3px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-glass-subtle);
+}
+
+.tab-btn {
+    padding: 6px 14px;
+    font-size: 0.7rem;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+    color: var(--text-muted);
+    background: transparent;
+}
+
+.tab-btn.active {
+    background: var(--bg-surface-glass-strong);
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.tab-btn.static {
+    cursor: default;
+    pointer-events: none;
+    user-select: none;
+}
+
+.share-btn {
+    background: var(--bg-surface-glass);
+    border: 1px solid var(--border-glass);
+    border-radius: var(--radius-md);
+    color: var(--text-secondary);
+    padding: 8px 16px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-1-5);
+    transition: all 0.2s;
+}
+
+.share-btn:hover {
+    background: var(--bg-hover);
+    border-color: var(--border-glass-strong);
+}
+
+.chart-desc {
+    margin-top: var(--spacing-4);
+    padding: var(--spacing-3);
+    background: rgba(59, 130, 246, 0.08);
+    border-radius: var(--radius-lg);
+    font-size: 0.75rem;
+    color: var(--color-sky-200);
+    line-height: 1.4;
+    border: 1px solid rgba(59, 130, 246, 0.1);
+    flex-shrink: 0;
+}
+
+/* Utility / Specific Overrides */
+.share-container {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: var(--spacing-4);
+}
+
+.weekly-header {
+    margin-bottom: var(--spacing-4);
+    padding: 0 var(--spacing-1);
+}
+
+.weekly-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.touch-hint {
+    margin-bottom: var(--spacing-3);
+    font-size: 0.7rem;
+    color: var(--text-tertiary);
+    text-align: right;
+    margin-top: var(--spacing-1);
+}
+
+.spacer-52 {
+    height: 52px;
+}
+
+.spacer-30 {
+    height: 30px;
+}
+
+.title-sub {
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--text-tertiary);
+    margin-left: 6px;
+}
+
+/* Promo Analysis Section */
+.promo-analysis-section {
+    background: var(--bg-surface-2);
+    padding: var(--spacing-4) var(--spacing-5);
+    border-radius: var(--radius-xl);
+    border: 1px solid var(--border-glass-subtle);
+    margin-top: var(--spacing-2);
+}
+
+@media (max-width: 1023px) {
+
+    /* 모바일에서는 원래대로 표시 (Relative Flow) */
+    .stats-header-controls {
+        position: static;
+        display: flex;
+        justify-content: flex-end;
+        padding: 16px 16px 16px 16px;
+        margin-bottom: -10px;
+    }
+
+    .stats-container {
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-6);
+        padding: var(--spacing-4);
+        padding-top: var(--spacing-2);
+        height: auto;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+}
+
+.promo-chart-container {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-5);
+    margin: var(--spacing-4) 0;
+}
+
+.promo-bar-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-3);
+}
+
+.promo-bar-item {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-1-5);
+}
+
+.promo-label-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.promo-value {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.promo-bar-bg {
+    height: 8px;
+    background: var(--bg-surface-3);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.promo-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.promo-bar-fill.early {
+    background: var(--color-blue-500);
+}
+
+.promo-bar-fill.mid {
+    background: var(--color-teal-500);
+}
+
+.promo-bar-fill.late {
+    background: var(--color-amber-500);
+}
+
+.legend-grid.three-cols {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+/* Data Inspector Modal Styles */
+.inspector-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    z-index: var(--z-modal-stack-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-overlay-heavy);
+    backdrop-filter: blur(var(--blur-glass));
+    animation: edm-fadeInOverlay 0.2s ease-out;
+}
+
+.inspector-modal {
+    background: var(--bg-surface-1);
+    width: 90%;
+    max-width: 500px;
+    max-height: 80vh;
+    border-radius: var(--radius-2xl);
+    border: 1px solid var(--border-glass);
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--shadow-premium);
+    overflow: hidden;
+}
+
+.inspector-header {
+    padding: var(--spacing-4) var(--spacing-5);
+    border-bottom: 1px solid var(--border-glass-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-surface-1);
+}
+
+.inspector-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.inspector-subtitle {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 400;
+}
+
+.inspector-close-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    transition: color 0.2s;
+}
+
+.inspector-close-btn:hover {
+    color: var(--text-primary);
+}
+
+.inspector-content {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.inspector-empty {
+    padding: 40px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+
+.inspector-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+}
+
+.inspector-thead {
+    position: sticky;
+    top: 0;
+    background: var(--bg-surface-1);
+    z-index: 10;
+}
+
+.inspector-th {
+    padding: var(--spacing-3) var(--spacing-4);
+    text-align: left;
+    font-weight: 500;
+    border-bottom: 1px solid var(--border-glass-subtle);
+    color: var(--text-muted);
+}
+
+.inspector-th.highlight-type {
+    color: var(--color-blue-400);
+}
+
+.inspector-th.highlight-genre {
+    color: var(--color-amber-300);
+}
+
+.inspector-th.align-right {
+    text-align: right;
+}
+
+.inspector-tr {
+    border-bottom: 1px solid var(--border-glass-subtle);
+    transition: background 0.1s;
+}
+
+.inspector-tr:nth-child(even) {
+    background: rgba(255, 255, 255, 0.01);
+}
+
+.inspector-tr:hover {
+    background: var(--bg-hover);
+}
+
+.inspector-td {
+    padding: var(--spacing-3) var(--spacing-4);
+    color: var(--text-secondary);
+}
+
+.inspector-td.date {
+    color: var(--text-muted);
+    text-align: right;
+    font-size: 0.75rem;
+    white-space: nowrap;
+}
+
+.inspector-td.genre-highlight {
+    color: var(--color-amber-300);
+    font-weight: 600;
+}
+
+.inspector-td.genre-dim {
+    color: var(--text-disabled);
+    font-weight: 400;
+}
+
+.type-badge {
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+
+.type-badge.class {
+    background: rgba(59, 130, 246, 0.2);
+    color: var(--color-blue-400);
+}
+
+.type-badge.event {
+    background: rgba(251, 191, 36, 0.2);
+    color: var(--color-amber-300);
+}
+
+.type-badge.social {
+    background: rgba(16, 185, 129, 0.2);
+    color: var(--color-emerald-400);
+}
+
+.type-badge.post {
+    background: rgba(168, 85, 247, 0.2);
+    color: var(--color-purple-400);
+}

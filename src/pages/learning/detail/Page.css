@@ -1,0 +1,1763 @@
+/* Main Container */
+.ld-container {
+    display: flex;
+    flex-direction: column;
+    /* Mobile: Allow natural growth */
+    height: auto;
+    min-height: 100%;
+    background-color: #000000;
+    /* gray-900 */
+    overflow: visible;
+    /* Enable Page Scroll on Mobile */
+    letter-spacing: -0.02em;
+}
+
+@media (min-width: 768px) {
+    .ld-container {
+        flex-direction: row;
+        /* Desktop: Fixed App Layout */
+        height: 100%;
+        overflow: hidden;
+    }
+}
+
+.ld-modal-container {
+    min-height: 0 !important;
+    height: 100% !important;
+    border-radius: 12px;
+    overflow-y: auto !important;
+    /* Fix: Enable scroll when used as modal */
+    -webkit-overflow-scrolling: touch;
+    /* Smooth scroll */
+}
+
+/* Left: Player Area */
+.ld-player-area {
+    display: flex;
+    flex-direction: column;
+    /* Mobile: Natural expansion */
+    height: auto;
+    position: relative;
+    background-color: #000000;
+    overflow: visible;
+    /* Mobile: Let page scroll */
+    padding-bottom: 200px;
+}
+
+@media (min-width: 768px) {
+    .ld-player-area {}
+}
+
+/* Header (Back Button in Modal) */
+.ld-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding: 16px;
+    z-index: 50;
+    /* Higher than video */
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.6), transparent);
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    pointer-events: none;
+}
+
+.ld-back-button {
+    pointer-events: auto;
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    padding: 6px 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    color: #e5e7eb;
+    /* gray-200 */
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.ld-back-button:hover {
+    background-color: rgba(0, 0, 0, 0.8);
+    transform: translateX(-2px);
+}
+
+/* Floating Actions (Page View) */
+.ld-floating-actions {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    z-index: 50;
+    display: flex;
+    gap: 8px;
+    pointer-events: none;
+}
+
+.ld-fab-btn {
+    pointer-events: auto;
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background-color: rgba(30, 41, 59, 0.7);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.ld-fab-btn:hover {
+    background-color: #3b82f6;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Player Wrapper */
+.ld-player-wrapper {
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    /* Enforce 16:9 */
+    background-color: black;
+    flex-shrink: 0;
+    /* Prevent shrinking */
+    position: relative;
+    container-type: inline-size;
+    /* 컨테이너 쿼리 활성화 */
+}
+
+.ld-youtube-player {
+    width: 100%;
+    height: 100%;
+}
+
+/* Video Overlay (appears during playback) */
+.ld-video-overlay {
+    position: absolute;
+    /* transform(translate, scale)은 Page.tsx 인라인 스타일에서 관리 */
+    background-color: rgba(37, 99, 235, 0.95);
+    color: white;
+    font-size: 4cqi;
+    /* 1.2rem 느낌의 기준 + 반응형 축소 */
+    padding: 1cqi 2.5cqi;
+    border-radius: 1.2cqi;
+    border: 0.3cqi solid rgba(96, 165, 250, 0.8);
+    box-shadow: 0 0.5cqi 1.5cqi rgba(0, 0, 0, 0.5);
+    z-index: 20;
+    animation: overlayFadeIn 0.15s ease-out;
+    white-space: pre;
+    /* 사용자 입력 줄바꿈만 적용 */
+    text-align: center;
+    max-width: none;
+    overflow: visible;
+}
+
+@keyframes overlayFadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* Bookmark Modal Styles */
+.ld-time-input-group {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.ld-bookmark-modal-input-time {
+    background-color: #1f2937;
+    border: 1px solid #4b5563;
+    border-radius: 4px;
+    padding: 8px 12px;
+    color: white;
+    font-size: 16px;
+    width: 100px;
+    text-align: center;
+    font-family: monospace;
+}
+
+.ld-capture-time-btn {
+    background-color: #374151;
+    color: #e5e7eb;
+    border: 1px solid #4b5563;
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.ld-capture-time-btn:hover {
+    background-color: #4b5563;
+    color: white;
+}
+
+
+/* Info Section (Title & Description) */
+.ld-info-section {
+    padding: clamp(16px, 3vw, 24px);
+    border-top: 1px solid #1f2937;
+}
+
+.ld-info-title {
+    font-size: clamp(18px, 4vw, 24px);
+    font-weight: bold;
+    color: white;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    line-height: 1.3;
+}
+
+.ld-info-description {
+    font-size: clamp(14px, 2.5vw, 16px);
+    color: #d1d5db;
+    /* gray-300 */
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+.ld-text-link {
+    color: #3b82f6;
+    /* blue-500 */
+    text-decoration: none;
+    transition: color 0.2s, text-decoration 0.2s;
+    word-break: break-all;
+}
+
+.ld-text-link:hover {
+    color: #60a5fa;
+    /* blue-400 */
+    text-decoration: underline;
+}
+
+/* Edit Mode Styles (Generalized) */
+.ld-edit-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 16px;
+    background-color: #111111;
+    border: 1px solid #2b2b2b;
+    padding: 16px;
+    border-radius: 8px;
+}
+
+.ld-edit-textarea {
+    background-color: #374151;
+    background-color: #1a1a1a;
+    border: 1px solid #333333;
+    border-radius: 8px;
+    /* 더 부드러운 라운드 */
+    padding: 12px 16px;
+    /* 더 여유로운 패딩 */
+    color: white;
+    font-size: 16px;
+    width: 100%;
+    line-height: 1.6;
+    /* 가독성 좋은 줄 간격 */
+    transition: all 0.2s ease-in-out;
+}
+
+.ld-edit-input:focus,
+.ld-edit-textarea:focus {
+    outline: none;
+    border-color: #3b82f6;
+    /* 파란색 강조 */
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+    /* 은은한 글로우 효과 */
+    background-color: #1f2937;
+    /* 포커스 시 배경 살짝 어둡게 */
+}
+
+/* Description Section (at bottom of main area) */
+.ld-description-section {
+    padding: clamp(16px, 4vw, 24px);
+    background-color: #000000;
+    border-top: 1px solid #2b2b2b;
+    padding-bottom: 40px;
+    /* Reduced from 160px as we now have padding on player-area */
+}
+
+.ld-time-settings-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    padding: 16px;
+}
+
+.ld-overlay-params-row {
+    display: flex;
+    gap: 16px;
+    margin-top: 8px;
+}
+
+.flex-1 {
+    flex: 1;
+}
+
+.ld-preview-cover {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    background: rgba(0, 0, 0, 0.1);
+    pointer-events: none;
+}
+
+/* New styles for bookmark modal title and field labels */
+.ld-bookmark-modal-title {
+    margin-bottom: 6px;
+    /* Reduced margin */
+    background-clip: text;
+    /* Added property */
+    -webkit-background-clip: text;
+    /* For Webkit browsers */
+    color: transparent;
+    /* Make text transparent to show background-clip */
+}
+
+.ld-field-label {
+    /* Assuming a generic class for field labels */
+    margin-bottom: 6px;
+    /* Reduced margin */
+}
+
+.ld-bookmark-modal-input.textarea {
+    min-height: 80px;
+    /* 높이 최적화 */
+    resize: none;
+    line-height: 1.5;
+}
+
+.ld-edit-textarea {
+    min-height: 120px;
+    resize: vertical;
+}
+
+.ld-info-description.no-content {
+    color: #4b5563;
+    font-style: italic;
+    font-size: 14px;
+}
+
+/* Mini Edit Mode (for Title) */
+.ld-edit-container-mini {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.ld-edit-input-mini {
+    background-color: #1f2937;
+    border: 1px solid #3b82f6;
+    border-radius: 4px;
+    padding: 6px 10px;
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    width: 100%;
+}
+
+.ld-edit-actions-mini {
+    display: flex;
+    gap: 6px;
+}
+
+.ld-save-button-mini,
+.ld-cancel-button-mini {
+    padding: 4px 10px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    border: none;
+}
+
+.ld-save-button-mini {
+    background-color: #2563eb;
+    color: white;
+}
+
+.ld-cancel-button-mini {
+    background-color: #374151;
+    color: #9ca3af;
+}
+
+.ld-edit-button-small {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #9ca3af;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ld-edit-button-small:hover {
+    color: white;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.ld-edit-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.ld-save-button,
+.ld-cancel-button {
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 14px;
+    cursor: pointer;
+    border: none;
+    font-weight: 500;
+}
+
+.ld-save-button {
+    background-color: #2563eb;
+    color: white;
+}
+
+.ld-cancel-button {
+    background-color: #4b5563;
+    color: white;
+}
+
+.ld-edit-button {
+    background: none;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    font-size: 20px;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+}
+
+.ld-edit-button:hover {
+    color: white;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+/* Year & Timeline Badges */
+.ld-year-badge {
+    background-color: #3b82f6;
+    color: white;
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+.ld-timeline-badge {
+    background-color: #10b981;
+    color: white;
+    font-size: 11px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+.ld-edit-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.ld-edit-row label {
+    min-width: 60px;
+}
+
+/* Video Metadata (Title & Memo) - Visible on all devices */
+.ld-video-metadata {
+    padding: 0px 20px 0 20px;
+    background-color: #000000;
+    border-bottom: 1px solid #2b2b2b;
+}
+
+.ld-video-title-display {
+    font-size: 20px;
+    font-weight: bold;
+    color: white;
+    margin-top: 0;
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+
+.ld-video-memo-display {
+    font-size: 14px;
+    color: #9ca3af;
+    white-space: pre-wrap;
+    line-height: 1.5;
+}
+
+/* Control Bar */
+.ld-control-bar {
+    display: flex;
+    gap: 12px;
+    padding: 12px 20px;
+    background-color: #000000;
+    border-bottom: 1px solid #2b2b2b;
+    align-items: center;
+}
+
+.ld-control-btn {
+    background: none;
+    border: 1px solid #374151;
+    color: #9ca3af;
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ld-control-btn:hover {
+    background-color: #1f2937;
+    color: white;
+    border-color: #4b5563;
+}
+
+/* Mobile Only Utility */
+.mobile-only {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .mobile-only {
+        display: block;
+    }
+}
+
+/* Collapsible Video Memo Wrapper */
+.ld-video-memo-wrapper {
+    padding: 12px 20px;
+    background-color: #000000;
+}
+
+/* Collapsible Video Memo */
+.ld-video-memo-display {
+    font-size: 14px;
+    color: #9ca3af;
+    line-height: 1.6;
+    white-space: pre-wrap;
+
+    /* Truncation without ellipsis (Default - 3 lines mobile) */
+    max-height: calc(1.6em * 3);
+    /* line-height * 3 lines */
+    overflow: hidden;
+}
+
+/* Desktop: 5 lines */
+@media (min-width: 768px) {
+    .ld-video-memo-display {
+        max-height: calc(1.6em * 5);
+        /* line-height * 5 lines */
+    }
+}
+
+.ld-video-memo-display.expanded {
+    max-height: none;
+    overflow: visible;
+}
+
+.ld-memo-more {
+    display: inline-block;
+    color: #60a5fa;
+    font-weight: 500;
+    font-size: 14px;
+    cursor: pointer;
+    margin-top: 4px;
+}
+
+.ld-memo-more:hover {
+    color: #3b82f6;
+    text-decoration: underline;
+}
+
+.ld-next-button {
+    background: none;
+    border: none;
+    color: #60a5fa;
+    /* blue-400 */
+    cursor: pointer;
+    font-weight: 500;
+}
+
+/* Mobile Playlist Toggle Button - Top Right Fixed */
+.ld-playlist-toggle-btn {
+    position: fixed;
+    top: calc(16px + env(safe-area-inset-top));
+    right: 16px;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: rgba(17, 24, 39, 0.9);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    transition: all 0.2s;
+}
+
+.ld-playlist-toggle-btn:hover {
+    background: rgba(17, 24, 39, 1);
+    transform: scale(1.05);
+}
+
+.ld-playlist-toggle-btn:active {
+    transform: scale(0.95);
+}
+
+@media (max-width: 768px) {
+    .ld-playlist-toggle-btn {
+        display: flex;
+    }
+
+    /* Mobile Sidebar Logic */
+    .ld-sidebar.mobile-hidden {
+        display: none;
+    }
+
+    /* Screen Overlay when Open */
+    .ld-sidebar.open {
+        display: flex;
+        position: fixed;
+        top: 0;
+        padding-top: env(safe-area-inset-top);
+        padding-bottom: env(safe-area-inset-bottom);
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 100;
+        animation: slideUp 0.3s ease-out;
+    }
+
+    @keyframes slideUp {
+        from {
+            transform: translateY(100%);
+        }
+
+        to {
+            transform: translateY(0);
+        }
+    }
+
+    .ld-sidebar {
+        height: auto;
+        /* max-height: 50vh; */
+        /* Limit height on mobile */
+    }
+}
+
+/* Close Button (Mobile Only) */
+.ld-mobile-close-btn {
+    display: none;
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 8px;
+    margin-left: auto;
+    /* Push to right */
+}
+
+@media (max-width: 768px) {
+    .ld-mobile-close-btn {
+        display: block;
+    }
+}
+
+/* Right: Sidebar */
+.ld-sidebar {
+    width: 100%;
+    background-color: #000000;
+    border-left: 1px solid #2b2b2b;
+    display: flex;
+    flex-direction: column;
+    /* Height handled by media queries */
+    overflow: hidden;
+}
+
+@media (min-width: 768px) {
+    .ld-sidebar {
+        width: 384px;
+        height: 100%;
+        flex-shrink: 0;
+        display: flex !important;
+        /* Always show on desktop */
+    }
+}
+
+.ld-sidebar-header {
+    padding: 7px 24px;
+    /* Increased padding */
+    border-bottom: 1px solid #2b2b2b;
+    background-color: #000000;
+    z-index: 10;
+}
+
+.ld-sidebar-playlist-title {
+    font-size: 20px;
+    font-weight: bold;
+    color: white;
+    margin-bottom: 8px;
+    margin-top: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    line-height: 1.3;
+}
+
+.ld-sidebar-description {
+    font-size: 13px;
+    color: #9ca3af;
+    line-height: 1.5;
+    margin-bottom: 12px;
+    white-space: pre-wrap;
+    max-height: 120px;
+    overflow-y: auto;
+}
+
+/* Scrollbar for description */
+.ld-sidebar-description::-webkit-scrollbar {
+    width: 4px;
+}
+
+.ld-sidebar-description::-webkit-scrollbar-thumb {
+    background-color: #4b5563;
+    border-radius: 2px;
+}
+
+/* Playlist Items */
+.ld-playlist-container {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px 16px;
+    /* Added horizontal padding */
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+/* Scrollbar Styling */
+.ld-playlist-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.ld-playlist-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.ld-playlist-container::-webkit-scrollbar-thumb {
+    background-color: #374151;
+    border-radius: 3px;
+}
+
+.ld-video-item {
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    gap: 12px;
+    transition: all 0.2s;
+    border: 1px solid #85858540;
+}
+
+.ld-video-item-active {
+    background-color: rgba(30, 58, 138, 0.2);
+    /* blue-900/20 */
+    border-color: rgba(59, 130, 246, 0.3);
+    /* blue-500/30 */
+}
+
+.ld-video-item-inactive:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+    /* gray-800 */
+}
+
+.ld-video-thumbnail-wrapper {
+    position: relative;
+    width: 96px;
+    /* w-24 */
+    aspect-ratio: 16 / 9;
+    border-radius: 6px;
+    overflow: hidden;
+    background-color: black;
+    flex-shrink: 0;
+}
+
+.ld-video-thumbnail {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: opacity 0.2s;
+}
+
+.ld-video-thumbnail-active {
+    opacity: 1;
+}
+
+.ld-video-thumbnail-inactive {
+    opacity: 0.7;
+}
+
+.ld-video-item-inactive:hover .ld-video-thumbnail-inactive {
+    opacity: 1;
+}
+
+.ld-playing-overlay {
+    position: absolute;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ld-playing-text {
+    color: white;
+    font-size: 12px;
+    /* xs */
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: .5;
+    }
+}
+
+.ld-video-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.ld-video-title {
+    font-size: 14px;
+    /* sm */
+    font-weight: 500;
+    line-height: 1.375;
+    /* line-clamp-2 */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.ld-video-title-active {
+    color: #60a5fa;
+    /* blue-400 */
+}
+
+.ld-video-title-inactive {
+    color: #d1d5db;
+    /* gray-300 */
+}
+
+.ld-video-item-inactive:hover .ld-video-title-inactive {
+    color: white;
+}
+
+.ld-video-memo {
+    font-size: 12px;
+    /* xs */
+    color: #6b7280;
+    /* gray-500 */
+    margin-top: 4px;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.ld-progress-label {
+    font-size: 12px;
+    color: #60a5fa;
+    font-family: monospace;
+    margin-bottom: 12px;
+}
+
+.ld-progress-bar-track {
+    width: 100%;
+    background-color: #2b2b2b;
+    height: 6px;
+    border-radius: 9999px;
+    overflow: hidden;
+}
+
+.ld-progress-bar-fill {
+    background-color: #3b82f6;
+    height: 100%;
+    transition: width 0.3s;
+}
+
+.ld-message-container {
+    width: 100%;
+    text-align: center;
+    padding: 80px 0;
+    color: white;
+}
+
+/* ===== Bookmark Add Modal ===== */
+.ld-bookmark-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+}
+
+.ld-bookmark-modal {
+    background: rgba(17, 24, 39, 0.85);
+    /* 약간 더 불투명하게 */
+    backdrop-filter: blur(24px) saturate(200%);
+    -webkit-backdrop-filter: blur(24px) saturate(200%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 28px;
+    padding: 24px 28px;
+    width: 95%;
+    max-width: 480px;
+    /* 폭 소폭 축소 */
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.6);
+    animation: modalSlideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalSlideUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.ld-bookmark-modal-title {
+    font-size: 20px;
+    /* 크기 약간 축소 */
+    font-weight: 800;
+    color: white;
+    margin: 0 0 16px 0;
+    /* 여백 축소 */
+    letter-spacing: -0.02em;
+    background: linear-gradient(to right, #ffffff, #9ca3af);
+    -webkit-background-clip: text;
+    background-clip: text;
+    /* 린트 수정 */
+    -webkit-text-fill-color: transparent;
+}
+
+.ld-bookmark-modal-field {
+    margin-bottom: 14px;
+    /* 간격 축소 */
+}
+
+.ld-bookmark-modal-field.compact {
+    margin-bottom: 8px;
+}
+
+.ld-bookmark-modal-field label {
+    display: block;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #9ca3af;
+    margin-bottom: 6px;
+    /* 여백 축소 */
+    font-weight: 700;
+}
+
+.ld-bookmark-modal-input,
+.ld-bookmark-modal-input-time {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: white;
+    font-size: 15px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.ld-bookmark-modal-input:focus,
+.ld-bookmark-modal-input-time:focus {
+    outline: none;
+    border-color: rgba(59, 130, 246, 0.5);
+    background: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+}
+
+.ld-bookmark-modal-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.ld-bookmark-modal-checkbox input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.ld-bookmark-modal-checkbox span {
+    font-size: 14px;
+    color: #e5e7eb;
+}
+
+/* Overlay Preview */
+.ld-overlay-preview {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #000;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    overflow: hidden;
+    cursor: crosshair;
+    touch-action: none;
+    container-type: inline-size;
+    box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+.ld-overlay-preview::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-color: rgba(0, 0, 0, 0.1);
+    /* 썸네일 살짝 어둡게 해서 마커 시인성 확보 */
+    pointer-events: none;
+    z-index: 5;
+}
+
+.ld-preview-player-wrapper {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    /* 영상 조작 방지 */
+    overflow: hidden;
+}
+
+.ld-preview-video-element {
+    width: 100%;
+    height: 100%;
+    transform: scale(1.05);
+    /* 경계선 제거를 위해 살짝 확대 */
+}
+
+.ld-preview-video-element iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+
+.ld-overlay-preview:active {
+    cursor: grabbing;
+}
+
+
+.ld-overlay-preview-bg {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6b7280;
+    font-size: 14px;
+    user-select: none;
+}
+
+.ld-overlay-marker {
+    position: absolute;
+    /* transform은 Page.tsx에서 동적으로 처리 (scale 포함) */
+    display: flex;
+    align-items: center;
+    gap: 0.5cqi;
+    background-color: rgba(37, 99, 235, 0.95);
+    /* 실제 오버레이와 동일 */
+    padding: 0.8cqi 2.2cqi;
+    /* 실제 오버레이와 동일 */
+    border-radius: 1cqi;
+    /* 실제 오버레이와 동일 */
+    border: 0.3cqi solid rgba(96, 165, 250, 0.8);
+    /* 실제 오버레이와 동일 */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    /* 실제 오버레이와 동일 */
+    user-select: none;
+    z-index: 10;
+}
+
+.ld-overlay-marker-icon {
+    font-size: 3.4cqi;
+    /* 실제 오버레이 폰트와 통일 */
+    margin-right: 0.5cqi;
+}
+
+.ld-overlay-marker-text {
+    font-size: 4cqi;
+    /* 실제 오버레이 폰트와 통일 */
+    color: white;
+    font-weight: 600;
+    white-space: pre;
+    /* 사용자 입력 줄바꿈만 적용 */
+    text-align: center;
+}
+
+.ld-time-slider-attached {
+    padding: 0;
+    /* 너비 일치를 위해 패딩 제거 */
+    background: #000;
+    position: relative;
+    height: 36px;
+    display: flex;
+    align-items: flex-end;
+}
+
+.ld-time-range-slider-mini {
+    width: 100%;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(255, 255, 255, 0.15);
+    outline: none;
+    cursor: pointer;
+    margin: 0;
+    z-index: 2;
+}
+
+.ld-time-range-slider-mini::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 2px;
+    height: 24px;
+    background: #3b82f6;
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.8);
+}
+
+/* Pentagon Time Bubble */
+.ld-time-bubble {
+    position: absolute;
+    bottom: 24px;
+    transform: translateX(-50%);
+    background: #3b82f6;
+    color: white;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 800;
+    font-family: 'JetBrains Mono', monospace;
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 10;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.ld-time-bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 6px solid #3b82f6;
+}
+
+.ld-time-controls-compact {
+    display: flex;
+    justify-content: center;
+    /* 중앙 정렬로 변경 */
+    align-items: center;
+    gap: 8px;
+    /* 버튼 사이 간격 최적화 */
+    margin-top: 12px;
+    margin-bottom: 20px;
+}
+
+.ld-capture-btn-compact {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: rgba(59, 130, 246, 0.1);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 12px;
+    color: #60a5fa;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ld-capture-btn-compact:hover {
+    background: #3b82f6;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.ld-capture-icon {
+    font-size: 14px;
+}
+
+.ld-bookmark-modal-slider {
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.1);
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 12px 0;
+}
+
+.ld-bookmark-modal-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: white;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+    border: 2px solid #3b82f6;
+    transition: transform 0.2s;
+}
+
+.ld-bookmark-modal-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
+
+.ld-bookmark-modal-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: white;
+    cursor: pointer;
+    box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+    border: 2px solid #3b82f6;
+    transition: transform 0.2s;
+}
+
+.ld-bookmark-modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    margin-top: 24px;
+}
+
+.ld-bookmark-modal-btn {
+    padding: 12px 24px;
+    border-radius: 14px;
+    font-size: 15px;
+    font-weight: 600;
+    filter: none;
+}
+
+.ld-time-adj-row {
+    display: flex;
+    gap: 4px;
+}
+
+.ld-adj-btn-compact {
+    padding: 8px 16px;
+    /* 크기 약간 상향하여 터치 편의성 증대 */
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #9ca3af;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ld-adj-btn-compact:hover {
+    background: rgba(59, 130, 246, 0.1);
+    color: #60a5fa;
+    border-color: rgba(94, 165, 250, 0.3);
+}
+
+/* Param Rows (Duration & Scale) */
+.ld-overlay-params-row-compact {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.ld-param-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.ld-param-header span {
+    font-size: 11px;
+    color: #6b7280;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.ld-param-val {
+    color: #60a5fa !important;
+}
+
+.ld-bookmark-modal-slider-mini {
+    width: 100%;
+    height: 3px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 1.5px;
+    outline: none;
+}
+
+.ld-bookmark-modal-slider-mini::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 12px;
+    height: 12px;
+    background: white;
+    border-radius: 50%;
+    border: 2px solid #3b82f6;
+    cursor: pointer;
+}
+
+.no-margin {
+    margin-bottom: 10px !important;
+}
+
+/* --- Mobile UI Improvements (2025-01-05) --- */
+
+/* Utility for showing/hiding based on device */
+.desktop-hidden {
+    display: none;
+}
+
+.desktop-only {
+    display: block;
+}
+
+@media (max-width: 768px) {
+    .desktop-hidden {
+        display: flex;
+        /* Or block depending on context */
+    }
+
+    .desktop-only {
+        display: none !important;
+    }
+
+    /* Control Bar Refinements for Mobile */
+    .ld-control-bar {
+        padding: 12px 16px;
+        gap: 8px;
+
+        /* Ensure horizontal scroll if too many items */
+    }
+
+    .ld-control-divider {
+        width: 1px;
+        height: 24px;
+        background-color: #374151;
+        margin: 0 4px;
+        flex-shrink: 0;
+    }
+}
+
+/* Specific override for desktop context within Page.tsx logic */
+@media (min-width: 769px) {
+    .ld-playlist-toggle-btn.desktop-only {
+        position: static;
+        width: auto;
+        height: auto;
+        border-radius: 6px;
+        background: transparent;
+        border: none;
+        color: #60a5fa;
+        font-size: 14px;
+        padding: 0;
+        box-shadow: none;
+        display: flex;
+        align-items: center;
+    }
+
+    .ld-playlist-toggle-btn.desktop-only:hover {
+        background: transparent;
+        transform: none;
+        text-decoration: underline;
+    }
+}
+
+@media (max-width: 768px) {
+
+    /* Hide FAB group on mobile since we moved actions to control bar */
+    .ld-fab-group.mobile-hidden {
+        display: none;
+    }
+}
+
+/* Bookmark Section Toolbar & Header */
+.ld-bookmark-section {
+    /* margin-top: 16px; */
+    margin-bottom: 24px;
+}
+
+.ld-bookmark-toolbar-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    /* margin-bottom: 12px; */
+    /* padding: 0 12px; */
+}
+
+.ld-section-title-small {
+    font-size: 15px;
+    font-weight: 600;
+    color: #e5e7eb;
+    margin: 0;
+}
+
+.ld-bookmark-toolbar {
+    display: flex;
+    gap: 8px;
+}
+
+.ld-bookmark-tool-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 13px;
+    color: #d1d5db;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.ld-bookmark-tool-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-1px);
+}
+
+.ld-bookmark-tool-btn:active {
+    transform: translateY(0);
+}
+
+.ld-bookmark-tool-btn.primary {
+    background: rgba(59, 130, 246, 0.2);
+    border-color: rgba(59, 130, 246, 0.4);
+    color: #60a5fa;
+}
+
+.ld-bookmark-tool-btn.primary:hover {
+    background: rgba(59, 130, 246, 0.3);
+}
+
+.ld-tool-icon {
+    font-size: 1.1em;
+    line-height: 1;
+}
+
+/* Specific Mobile Tweaks */
+@media (max-width: 480px) {
+    .ld-bookmark-toolbar-wrapper {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .ld-bookmark-toolbar {
+        width: 100%;
+        justify-content: flex-start;
+        gap: 8px;
+    }
+
+    .ld-bookmark-tool-btn {
+        flex: 1;
+        justify-content: center;
+        padding: 8px 0;
+    }
+}
+
+/* Tab Interface Styles */
+.ld-tab-navigation {
+    display: flex;
+    border-bottom: 1px solid #2b2b2b;
+    margin-bottom: 16px;
+    margin-top: 16px;
+}
+
+.ld-tab-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: #9ca3af;
+    padding: 12px 16px;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.ld-tab-btn:hover {
+    color: #d1d5db;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.ld-tab-btn.active {
+    color: #60a5fa;
+    border-bottom-color: #60a5fa;
+    background: rgba(59, 130, 246, 0.05);
+}
+
+
+
+/* Ensure children don't overflow unexpectedly */
+.ld-player-wrapper,
+.ld-header {
+    flex-shrink: 0;
+}
+
+/* 🔥 Mobile Tab Logic: Toggle panes based on active class */
+@media (max-width: 768px) {
+    .ld-tab-pane {
+        display: none;
+        margin-bottom: 25px;
+    }
+
+    .ld-tab-pane.active {
+        display: block;
+        animation: fadeIn 0.2s ease-in-out;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* Hide Tab Navigation on Desktop */
+@media (min-width: 768px) {
+
+    .ld-tab-navigation {
+        display: none !important;
+    }
+}
+
+/* Global Override for Detail Page Layout (Strict Height Control) */
+:global(.archive-layout-container.is-detail-page-mode) {
+    overflow: hidden !important;
+    height: 100% !important;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Ensure ld-container fills the parent */
+:global(.archive-layout-container.is-detail-page-mode) .ld-container {
+    height: 100%;
+    overflow: hidden;
+    /* Prevent body scroll */
+}
+
+/* Scrollable Content Container (Desktop Only, Default Visible/Auto) */
+.ld-content-scroll-container {
+    display: flex;
+    flex-direction: column;
+}
+
+@media (min-width: 769px) {
+    .ld-player-area {
+        /* Desktop: Max Height is container height */
+        height: 100% !important;
+        overflow: hidden !important;
+        /* No scroll on parent itself */
+        padding-bottom: 0;
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Video Player: Fixed Top */
+    .ld-player-wrapper {
+        flex-shrink: 0;
+        width: 100%;
+        background-color: black;
+        z-index: 20;
+    }
+
+    /* Scrollable Content Container: Fills remaining space */
+    .ld-content-scroll-container {
+        flex: 1;
+        overflow-y: auto !important;
+        /* THIS is the scroller */
+        min-height: 0;
+        padding-bottom: 40px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* Component Orders (Natural DOM order inside scroll container) */
+    /* Just ensure visibility */
+
+    /* Video Metadata */
+    .ld-video-metadata {
+        flex-shrink: 0;
+        border-bottom: 1px solid #1f2937;
+    }
+
+    /* History Widget needs to be visible */
+    .ld-history-section-wrapper {
+        margin-top: auto;
+        /* Push to bottom */
+        order: 99;
+        /* Force bottom visually if needed */
+        border-top: 1px solid #1f2937;
+    }
+
+    /* Bookmarks */
+    .ld-tab-content {
+        display: block !important;
+        margin-top: 0;
+        padding: 0;
+        flex-shrink: 0;
+    }
+
+    /* Description */
+    .ld-description-section {
+        flex-shrink: 0;
+        border-bottom: none;
+    }
+
+    /* Bookmarks Pane Style */
+    .ld-tab-pane-bookmarks {
+        display: block !important;
+        padding: 5px 24px 9px 24px;
+    }
+
+    .ld-bookmark-section {
+        margin-bottom: 0;
+    }
+
+    /* Hide others */
+    .ld-tab-pane-playlist {
+        display: none !important;
+    }
+
+    .ld-tab-navigation {
+        display: none !important;
+    }
+}
+
+.ld-video-thumbnail-wrapper-small {
+    position: relative;
+    width: 120px;
+    /* Slightly larger than sidebar thumbnail */
+    aspect-ratio: 16 / 9;
+    border-radius: 6px;
+    overflow: hidden;
+    background-color: black;
+    flex-shrink: 0;
+}
+
+.ld-video-title-small {
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.4;
+    color: #d1d5db;
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+/* Specific Mobile Tweaks */
+@media (max-width: 480px) {
+    .ld-bookmark-toolbar-wrapper {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .ld-bookmark-toolbar {
+        width: 100%;
+        justify-content: flex-start;
+        gap: 8px;
+    }
+
+    .ld-bookmark-tool-btn {
+        flex: 1;
+        justify-content: center;
+        padding: 8px 0;
+    }
+
+    /* Hide Sidebar on Mobile as we use Tabs now */
+    .ld-sidebar.mobile-hidden {
+        display: none !important;
+    }
+}

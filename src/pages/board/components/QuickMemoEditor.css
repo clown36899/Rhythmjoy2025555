@@ -1,0 +1,518 @@
+/* QuickMemoEditor.css - Refined Compact Design & Modal Support */
+
+.quick-memo-editor {
+    background: #1a1a1a;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    margin: 0 16px 16px;
+    /* Default margin for inline usage */
+    position: relative;
+    overflow: hidden;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Modal Mode Overrides */
+.quick-memo-editor.modal-mode {
+    margin: 0;
+    /* Remove default margin inside modal */
+    border: none;
+    /* Remove border as modal container has it or it's full width */
+    background: transparent;
+    /* Let modal content background show */
+    box-shadow: none;
+    border-radius: 0;
+}
+
+.quick-memo-editor.collapsed {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: rgba(255, 255, 255, 0.06);
+    cursor: pointer;
+    margin-bottom: 8px;
+    /* Less margin when collapsed */
+}
+
+.quick-memo-editor.collapsed:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Trigger Bar */
+.memo-trigger-bar {
+    padding: 12px;
+    text-align: center;
+    color: #9ca3af;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* Form Layout */
+.memo-form {
+    display: flex;
+    flex-direction: column;
+    padding: 12px 16px;
+    gap: 12px;
+}
+
+/* Top Bar: Author Info */
+.memo-top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.memo-author-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* Compact Inputs (Nickname, Password) */
+.memo-input-compact {
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-size: 0.85rem;
+    color: #e5e7eb;
+    width: 100px;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.memo-input-compact:focus {
+    border-color: #3b82f6;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.memo-notice-check {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.8rem;
+    color: #fbbf24;
+    cursor: pointer;
+    margin-right: 4px;
+}
+
+/* Main Input Area (Title + Content) */
+.memo-main-input-area {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 4px 12px;
+    display: flex;
+    flex-direction: column;
+}
+
+.memo-main-input-area:focus-within {
+    border-color: rgba(59, 130, 246, 0.3);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.memo-title-input {
+    display: none;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 10px 4px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #fff;
+    width: 100%;
+    outline: none;
+}
+
+.memo-title-input::placeholder {
+    color: #6b7280;
+    font-weight: 400;
+}
+
+.memo-textarea {
+    background: transparent;
+    border: none;
+    padding: 12px 4px;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: #e5e7eb;
+    min-height: 100px;
+    resize: none;
+    outline: none;
+    width: 100%;
+    font-family: inherit;
+}
+
+.modal-mode .memo-textarea {
+    min-height: 150px;
+    /* Taller in modal */
+}
+
+
+/* Action Bar (Bottom Tools) */
+.memo-action-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: -4px;
+    /* Pull closer to input area */
+}
+
+.memo-icon-btn {
+    background: transparent;
+    border: none;
+    color: #9ca3af;
+    font-size: 1.25rem;
+    padding: 8px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.memo-icon-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #3b82f6;
+}
+
+.memo-submit-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.memo-text-btn {
+    background: transparent;
+    border: none;
+    color: #9ca3af;
+    font-size: 0.85rem;
+    padding: 6px 12px;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.memo-text-btn:hover {
+    color: #e5e7eb;
+}
+
+.memo-text-btn.delete {
+    color: #ef4444;
+}
+
+.memo-submit-btn-compact {
+    background: linear-gradient(135deg, #3b82f6, #2563eb);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.memo-submit-btn-compact:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+}
+
+.memo-submit-btn-compact:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+/* Preview Area */
+.memo-preview-area {
+    margin: 8px 4px;
+    position: relative;
+    width: fit-content;
+}
+
+.memo-preview-area img {
+    max-height: 150px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.remove-preview {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    width: 24px;
+    height: 24px;
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.9rem;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Modal Mode Specific Button Optimizations (Mobile Friendly) */
+.modal-mode .memo-action-bar {
+    padding-top: 12px;
+    margin-top: auto;
+    /* Push to bottom if flex column */
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.modal-mode .memo-submit-btn-compact {
+    padding: 12px 24px;
+    /* Larger padding */
+    font-size: 1rem;
+    /* Larger font */
+    border-radius: 12px;
+    /* Softer corners */
+    min-width: 100px;
+    justify-content: center;
+}
+
+.modal-mode .memo-text-btn {
+    padding: 12px 16px;
+    font-size: 1rem;
+}
+
+.modal-mode .memo-icon-btn {
+    padding: 12px;
+    font-size: 1.5rem;
+    /* Larger icon */
+    background: rgba(255, 255, 255, 0.05);
+    /* Slight background to make it a clear tap target */
+}
+
+.modal-mode .memo-submit-group {
+    gap: 12px;
+}
+
+/* Animations */
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (max-width: 480px) {
+    .quick-memo-editor:not(.modal-mode) {
+        margin: 0 12px 86px;
+        border-radius: 12px;
+    }
+
+    .memo-input-compact {
+        width: 80px;
+        /* Smaller inputs on mobile */
+    }
+}
+
+/* =========================================
+   Trigger & Modal Styles
+   ========================================= */
+
+.anonymous-write-trigger {
+    margin: 16px 16px;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+}
+
+.anonymous-write-trigger:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.trigger-placeholder {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #9ca3af;
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.trigger-placeholder i {
+    color: #d6dae3;
+}
+
+/* Modal Overlay */
+.anonymous-write-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 100000 !important;
+    /* [UPDATED] Force modal on top of everything */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.2s ease-out;
+}
+
+/* Modal Content (Full Screen on Mobile) */
+.anonymous-write-modal-content {
+    background: #1e1e1e;
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    max-width: 600px;
+    max-height: 100vh;
+    max-height: 100dvh;
+    border-radius: 0;
+    padding: 0;
+    box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.5);
+    animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+
+}
+
+.modal-drag-handle {
+    display: none;
+}
+
+/* Modal Header */
+.anonymous-modal-header {
+    width: 100%;
+    height: 60px;
+    background: rgba(30, 30, 30, 0.95);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    z-index: 10;
+    flex-shrink: 0;
+    /* [UPDATED] Prevent header shrinking */
+    position: relative;
+    /* [UPDATED] Layout naturally in flex column */
+}
+
+.anonymous-modal-close {
+    background: none;
+    border: none;
+    color: #9ca3af;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color 0.2s;
+}
+
+.anonymous-modal-close:hover {
+    color: #ffffff;
+}
+
+.anonymous-modal-title {
+    flex: 1;
+    text-align: center;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #e5e7eb;
+    margin-right: 40px;
+}
+
+/* Container content now flows naturally below relative header */
+
+/* Spacer removed in favor of padding-top */
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* Ensure editor in modal takes width nicely */
+.anonymous-write-modal-content .quick-memo-editor {
+    width: 100%;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.anonymous-write-modal-content .memo-form {
+    padding: 20px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    gap: 16px;
+    overscroll-behavior: contain;
+    /* [UPDATED] Prevent scroll chaining to body */
+}
+
+/* Larger inputs in modal */
+.anonymous-write-modal-content .memo-input-compact {
+    width: 120px;
+    padding: 10px 14px;
+    font-size: 0.95rem;
+}
+
+.anonymous-write-modal-content .memo-textarea {
+    min-height: 200px;
+    font-size: 1rem;
+    padding: 16px 8px;
+}
+
+.anonymous-write-modal-content .memo-title-input {
+    display: none;
+}
+
+.anonymous-write-modal-content .memo-main-input-area {
+    flex: 1;
+    padding: 8px 16px;
+}
+
+/* Desktop adjustments */
+@media (min-width: 769px) {
+    .anonymous-write-modal-content {
+        border-radius: 16px;
+        max-height: 90vh;
+        height: auto;
+    }
+
+    .anonymous-write-modal-content {
+        border-radius: 16px;
+        max-height: 90vh;
+        height: auto;
+    }
+}

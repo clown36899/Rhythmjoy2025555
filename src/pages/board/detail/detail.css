@@ -1,0 +1,358 @@
+/* detail.css - Board Detail Page Styles */
+
+.board-detail-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bg-primary);
+    animation: fadeIn 0.2s ease-in;
+}
+
+/* 라이브러리 모드에서는 기존 다크 스타일 고수 */
+.is-history-mode .board-detail-container {
+    background-color: #0f172a;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+/* Sticky Header Improvements */
+.board-header.global-header {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background-color: var(--bg-base);
+    border-bottom: 1px solid var(--border-subtle);
+    height: 60px;
+    box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.05);
+    /* 헤더 하단 입체감 부여 */
+}
+
+.board-detail-content-wrapper {
+    max-width: 800px;
+    margin: 0 auto;
+    width: 100%;
+    padding: 1.5rem 1.25rem 120px;
+    flex: 1;
+}
+
+/* Header Section */
+.board-detail-header {
+    padding-bottom: 2rem;
+    margin-bottom: 3rem;
+    position: relative;
+}
+
+.board-detail-header::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 40px;
+    /* 정교한 포인트 라인 */
+    height: 2px;
+    background-color: var(--color-blue-500);
+}
+
+.board-detail-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    gap: 8px;
+}
+
+.board-detail-title-section {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    min-width: 0;
+}
+
+.board-detail-prefix {
+    display: inline-block;
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: white;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.board-detail-hidden-badge {
+    font-size: 0.7rem;
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    padding: 0.15rem 0.45rem;
+    border-radius: 4px;
+    white-space: nowrap;
+}
+
+.board-detail-top-actions {
+    display: flex;
+    gap: 0.4rem;
+    flex-shrink: 0;
+}
+
+.top-action-btn {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    border: 1px solid var(--border-subtle);
+    background-color: var(--bg-surface-2);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.top-action-btn:active {
+    transform: scale(0.92);
+}
+
+.top-action-btn:hover {
+    color: var(--color-blue-500);
+    border-color: var(--color-blue-300);
+    background-color: var(--bg-surface-3);
+    /* transform 및 box-shadow 제거 */
+}
+
+.top-action-btn.delete:hover {
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.board-detail-title {
+    font-size: clamp(1.6rem, 7vw, 2.25rem);
+    /* 더 대담하고 권위있는 크기 */
+    font-weight: 800;
+    line-height: 1.2;
+    color: var(--text-primary);
+    word-break: break-word;
+    margin: 1.5rem 0 2rem 0;
+    /* 여백 대폭 확장 */
+    letter-spacing: -0.04em;
+    /* 하이엔드 타이포그래피 스타일 */
+}
+
+/* Metadata */
+.board-detail-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem 0.75rem;
+    color: var(--text-tertiary);
+    font-size: 0.8125rem;
+}
+
+.board-detail-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.board-detail-meta-divider {
+    width: 1px;
+    height: 10px;
+    background-color: var(--border-subtle);
+}
+
+.board-detail-author-avatar {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid var(--border-subtle);
+}
+
+
+/* Content Section */
+.board-detail-body {
+    min-height: 120px;
+    margin-bottom: 4rem;
+    /* 여백 확보 */
+    font-size: 1.125rem;
+    /* 본문 크기 최적화 */
+    line-height: 1.85;
+    color: var(--text-primary);
+    white-space: pre-wrap;
+    word-break: break-word;
+    letter-spacing: -0.01em;
+}
+
+.board-detail-image-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 1.5rem 0;
+    width: 100%;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    padding: 10px;
+}
+
+.board-detail-image-container img {
+    max-width: 100%;
+    max-height: 70vh;
+    object-fit: contain;
+    border-radius: 8px;
+}
+
+/* Action Buttons - AGGRESSIVE SCALING, NO WRAP */
+.board-detail-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1.5rem 0;
+    border-top: 1px solid var(--border-subtle);
+    gap: 8px;
+    /* Reduced gap */
+    margin-bottom: 2rem;
+    flex-wrap: nowrap;
+    /* CRITICAL: No Wrap as requested */
+    width: 100%;
+}
+
+.board-detail-btn-group {
+    display: flex;
+    gap: 6px;
+    /* Narrower gap */
+    flex-wrap: nowrap;
+    flex-shrink: 1;
+    min-width: 0;
+}
+
+.board-detail-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0.875rem 1.75rem;
+    /* 더 정교한 비율 */
+    border-radius: 0;
+    /* 미니멀리즘의 정점: 각진 디자인 또는 매우 미세한 곡률 */
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid var(--border-subtle);
+    background-color: var(--bg-base);
+    color: var(--text-primary);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.board-detail-btn:hover {
+    background-color: var(--text-primary);
+    color: var(--bg-base);
+    border-color: var(--text-primary);
+}
+
+.board-detail-btn:hover {
+    background-color: var(--bg-surface-3);
+    border-color: var(--border-glass-strong);
+    filter: brightness(0.98);
+    /* transform 및 box-shadow 제거 */
+}
+
+.board-detail-btn i {
+    font-size: clamp(0.9rem, 3.5vw, 1.1rem);
+    flex-shrink: 0;
+}
+
+.board-detail-btn:active {
+    transform: scale(0.95);
+}
+
+.board-detail-btn-back {
+    background-color: var(--bg-surface-3);
+    color: var(--text-primary);
+    flex-shrink: 1;
+    min-width: 0;
+}
+
+.board-detail-btn-edit {
+    background-color: #3b82f6;
+    color: white;
+}
+
+.board-detail-btn-delete {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+/* Back Button in Sticky Header */
+.board-header-back-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    background: transparent;
+    color: var(--text-primary);
+    border: none;
+    cursor: pointer;
+    border-radius: 10px;
+}
+
+.board-header-back-btn:active {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Responsive Small Tweaks */
+@media (max-width: 480px) {
+    .board-detail-content-wrapper {
+        padding: 1rem 0.85rem 100px;
+        /* Tighter side margins */
+    }
+
+    .board-detail-btn {
+        padding-left: 6px;
+        padding-right: 6px;
+    }
+
+    .board-detail-actions {
+        gap: 6px;
+    }
+}
+
+/* Scroll Customization if needed */
+.board-detail-loading,
+.board-detail-error {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    color: #9ca3af;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.board-detail-loading i {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    animation: spin 1s linear infinite;
+}

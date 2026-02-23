@@ -1,0 +1,7 @@
+/* YouTubePlayer.css - YouTubePlayer 컴포넌트 전용 스타일 */
+
+/* ===== YouTube Player 컨테이너 ===== */
+.ytp-container {
+  width: 100%;
+  height: 100%;
+}

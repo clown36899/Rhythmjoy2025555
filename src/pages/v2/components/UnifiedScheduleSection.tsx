@@ -1,0 +1,230 @@
+import React, { useMemo, useRef, useState, useCallback } from 'react';
+import type { SocialSchedule } from '../../social/types';
+import { getLocalDateString, getKSTDay } from '../utils/eventListUtils';
+import { HorizontalScrollNav } from './HorizontalScrollNav';
+import { useAuth } from '../../../contexts/AuthContext';
+import { useModalActions } from '../../../contexts/ModalContext';
+import { useEventActions } from '../hooks/useEventActions';
+import { useNavigate } from 'react-router-dom';
+import "../../../styles/components/UnifiedScheduleSection.css";
+
+interface UnifiedScheduleSectionProps {
+    todaySchedules: SocialSchedule[];
+    futureSchedules: SocialSchedule[];
+    allSchedules?: SocialSchedule[]; // 👈 Added to pass all past/future to the map
+    onEventClick?: (event: SocialSchedule) => void;
+    onRefresh?: () => void;
+}
+
+export const UnifiedScheduleSection: React.FC<UnifiedScheduleSectionProps> = ({
+    todaySchedules,
+    futureSchedules,
+    allSchedules,
+    onEventClick,
+    onRefresh
+}) => {
+    const navigate = useNavigate();
+    const { openModal, closeModal } = useModalActions();
+    const { isAdmin, user, signInWithKakao } = useAuth();
+    const { handleDeleteClick, isDeleting, deleteProgress } = useEventActions({
+        adminType: null,
+        user,
+        signInWithKakao
+    });
+    const scrollerRef = useRef<HTMLDivElement>(null);
+    const [activeTab, setActiveTab] = useState<'thisWeek' | 'nextWeek'>('thisWeek');
+
+    // Stable Randomization: Store weights once per ID to keep order fixed during session
+    const shuffleWeights = useRef<Record<string | number, number>>({});
+    const getStableWeight = useCallback((id: string | number) => {
+        if (shuffleWeights.current[id] === undefined) {
+            shuffleWeights.current[id] = Math.random();
+        }
+        return shuffleWeights.current[id];
+    }, []);
+
+    const stableShuffle = useCallback(<T extends { id: string | number }>(array: T[]): T[] => {
+        return [...array].sort((a, b) => getStableWeight(a.id) - getStableWeight(b.id));
+    }, [getStableWeight]);
+
+    // 1. Calculate Date Ranges
+    const todayStr = getLocalDateString();
+    const kstDay = getKSTDay();
+    const daysFromMonday = kstDay === 0 ? 6 : kstDay - 1;
+
+    const todayDate = new Date(todayStr);
+    const thisWeekStart = new Date(todayDate);
+    thisWeekStart.setDate(todayDate.getDate() - daysFromMonday);
+    const thisWeekEnd = new Date(thisWeekStart);
+    thisWeekEnd.setDate(thisWeekStart.getDate() + 6);
+
+    const nextWeekStart = new Date(thisWeekStart);
+    nextWeekStart.setDate(thisWeekStart.getDate() + 7);
+    const nextWeekEnd = new Date(nextWeekStart);
+    nextWeekEnd.setDate(nextWeekStart.getDate() + 6);
+
+    const thisWeekEndStr = getLocalDateString(thisWeekEnd);
+    const nextWeekStartStr = getLocalDateString(nextWeekStart);
+    const nextWeekEndStr = getLocalDateString(nextWeekEnd);
+
+    // 2. Partition & Randomize (Stably)
+    const partitionedData = useMemo(() => {
+        // Use todaySchedules directly (range check already done by parent)
+        const todayIds = new Set(todaySchedules.map(s => s.id));
+
+        // Filter futureSchedules for the rest of this week and next week
+        const thisWeekRestList = futureSchedules.filter(s =>
+            !todayIds.has(s.id) &&
+            !!s.date && !s.day_of_week &&
+            s.date > todayStr && s.date <= thisWeekEndStr
+        );
+        const nextWeekList = futureSchedules.filter(s =>
+            !todayIds.has(s.id) &&
+            !!s.date && !s.day_of_week &&
+            s.date >= nextWeekStartStr && s.date <= nextWeekEndStr
+        );
+
+        // Stably randomize within each group, BUT keep today's prioritized in the final list
+        const shuffledToday = stableShuffle(todaySchedules);
+        const shuffledRestOfWeek = stableShuffle(thisWeekRestList);
+
+        return {
+            thisWeek: [...shuffledToday, ...shuffledRestOfWeek], // Today first, then rest
+            nextWeek: stableShuffle(nextWeekList),
+            todayIdSet: todayIds // For badge logic
+        };
+    }, [todaySchedules, futureSchedules, todayStr, thisWeekEndStr, nextWeekStartStr, nextWeekEndStr, stableShuffle]);
+
+    const combinedList = [
+        ...partitionedData.thisWeek.map(item => ({ ...item, group: 'thisWeek' })),
+        ...partitionedData.nextWeek.map(item => ({ ...item, group: 'nextWeek' }))
+    ];
+
+    // 3. Scroll Navigation
+    const scrollToGroup = useCallback((group: 'thisWeek' | 'nextWeek') => {
+        setActiveTab(group);
+        if (!scrollerRef.current) return;
+
+        const firstInGroup = scrollerRef.current.querySelector(`[data-group="${group}"]`);
+        if (firstInGroup) {
+            firstInGroup.scrollIntoView({
+                behavior: 'smooth',
+                block: 'nearest',
+                inline: 'start'
+            });
+        }
+    }, []);
+
+    const handleScheduleClick = (e: React.MouseEvent, item: SocialSchedule) => {
+        e.stopPropagation();
+        if (onEventClick) {
+            onEventClick(item);
+        }
+    };
+
+    if (combinedList.length === 0) return null;
+
+    return (
+        <section className="USS-container">
+            <div className="USS-header">
+                <div className="USS-tabGroup">
+                    <div
+                        className={`USS-tabItem ${activeTab === 'thisWeek' ? 'is-active' : ''}`}
+                        onClick={() => scrollToGroup('thisWeek')}
+                    >
+                        이번주 소셜
+                        <span className="countBadge">{partitionedData.thisWeek.length}</span>
+                        {todaySchedules.length > 0 && (
+                            <span className="USS-liveBadge manual-label-wrapper">
+                                <span className="translated-part">LIVE {todaySchedules.length}</span>
+                                <span className="fixed-part ko" translate="no">LIVE {todaySchedules.length}</span>
+                                <span className="fixed-part en" translate="no">LIVE {todaySchedules.length}</span>
+                            </span>
+                        )}
+                    </div>
+
+                    {partitionedData.nextWeek.length > 0 && (
+                        <>
+                            <div className="USS-separator">|</div>
+                            <div
+                                className={`USS-tabItem ${activeTab === 'nextWeek' ? 'is-active' : ''}`}
+                                onClick={() => scrollToGroup('nextWeek')}
+                            >
+                                다음주
+                                <span className="countBadge">{partitionedData.nextWeek.length}</span>
+                            </div>
+                        </>
+                    )}
+                </div>
+                <button
+                    className="USS-viewAllBtn manual-label-wrapper"
+                    onClick={() => {
+                        navigate('/calendar?category=social&scrollToToday=true');
+                    }}
+                >
+                    <span className="translated-part">View All</span>
+                    <span className="fixed-part ko" translate="no">전체보기</span>
+                    <span className="fixed-part en" translate="no">All</span>
+                    <i className="ri-arrow-right-s-line USS-navIcon"></i>
+                </button>
+            </div>
+
+            <HorizontalScrollNav ref={scrollerRef}>
+                <div className="USS-scroller">
+                    {combinedList.map((item, idx) => {
+                        // Find first index of each group for anchor identification
+                        const isFirstInGroup = combinedList.findIndex(x => x.group === item.group) === idx;
+                        const isTodayItem = partitionedData.todayIdSet.has(item.id);
+
+                        return (
+                            <div
+                                key={item.id}
+                                className={`USS-card ${isFirstInGroup ? 'USS-anchorItem' : ''}`}
+                                data-group={isFirstInGroup ? item.group : undefined}
+                                onClick={(e) => handleScheduleClick(e, item)}
+                            >
+                                {isTodayItem && (
+                                    <div className="USS-ddayBadge is-today">오늘</div>
+                                )}
+                                {item.group === 'thisWeek' && !isTodayItem && (
+                                    <div className="USS-ddayBadge">이번주</div>
+                                )}
+                                {item.group === 'nextWeek' && (
+                                    <div className="USS-ddayBadge is-next">다음주</div>
+                                )}
+
+                                {item.date && (
+                                    <div className="USS-dateLine">
+                                        {new Date(item.date + 'T00:00:00').toLocaleDateString('ko-KR', { weekday: 'short' })} {new Date(item.date + 'T00:00:00').getDate()}일
+                                        {item.start_time && <span className="USS-time"> {item.start_time.substring(0, 5)}</span>}
+                                    </div>
+                                )}
+
+                                <div className="USS-cardAvatar">
+                                    {(item.image_thumbnail || item.image_medium || item.image_url) ? (
+                                        <img
+                                            src={item.image_thumbnail || item.image_medium || item.image_url || ''}
+                                            alt={item.title}
+                                        />
+                                    ) : (
+                                        <div className="USS-placeholder">
+                                            <i className="ri-music-2-line"></i>
+                                        </div>
+                                    )}
+                                </div>
+
+                                <h3 className="USS-title">{item.title}</h3>
+
+                                <p className="USS-place">
+                                    <i className="ri-map-pin-line"></i>
+                                    <span>{item.place_name || '장소 미정'}</span>
+                                </p>
+                            </div>
+                        );
+                    })}
+                    <div className="USS-scrollerSpacer"></div>
+                </div>
+            </HorizontalScrollNav>
+        </section>
+    );
+};

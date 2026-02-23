@@ -1,0 +1,4 @@
+default-thumbnails
+event-posters
+practice-rooms
+social-event-images

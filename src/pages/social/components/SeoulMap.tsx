@@ -1,0 +1,226 @@
+import { useEffect, useRef, useState } from 'react';
+import type { SocialPlace } from '../types';
+
+declare global {
+  interface Window {
+    kakao: any;
+  }
+}
+
+interface SeoulMapProps {
+  places: SocialPlace[];
+  selectedPlace: SocialPlace | null;
+  onMarkerClick: (place: SocialPlace) => void;
+}
+
+export default function SeoulMap({ places, selectedPlace, onMarkerClick }: SeoulMapProps) {
+  const mapRef = useRef<HTMLDivElement>(null);
+  const [map, setMap] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const markersRef = useRef<any[]>([]);
+  const initialBoundsRef = useRef<any>(null);
+
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    const createMap = () => {
+      const kakao = window.kakao;
+      try {
+        const container = mapRef.current;
+        if (!container) return;
+
+        const center = new kakao.maps.LatLng(37.5665, 126.9780); // 서울 중심
+        const options = {
+          center,
+          level: 8,
+        };
+
+        const newMap = new kakao.maps.Map(container, options);
+        setMap(newMap);
+        console.log('카카오맵 초기화 성공');
+      } catch (error) {
+        console.error('카카오맵 초기화 실패:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // autoload=false이므로, kakao.maps.load()를 사용하여 수동으로 초기화
+    if (window.kakao && window.kakao.maps) {
+      setLoading(true);
+      window.kakao.maps.load(createMap);
+    } else {
+      console.error('카카오맵 스크립트가 로드되지 않았습니다. index.html을 확인해주세요.');
+      setLoading(false);
+    }
+  }, []);
+
+  // selectedPlace prop이 변경되면 해당 위치로 지도를 확대하고 이동합니다.
+  useEffect(() => {
+    if (map && selectedPlace) {
+      const position = new window.kakao.maps.LatLng(
+        selectedPlace.latitude,
+        selectedPlace.longitude
+      );
+      map.setLevel(3, { animate: true }); // 부드럽게 확대
+      map.panTo(position); // 부드럽게 중심으로 이동
+    }
+  }, [map, selectedPlace]);
+
+  useEffect(() => {
+    if (!map || !window.kakao) return;
+
+    markersRef.current.forEach(item => {
+      if (item.marker) item.marker.setMap(null);
+      if (item.overlay) item.overlay.setMap(null);
+    });
+    markersRef.current = [];
+
+    const kakao = window.kakao;
+    const bounds = new kakao.maps.LatLngBounds();
+
+    // 모든 장소에 대해 마커와 데이터 준비
+    const allMarkerData = places.map((place) => {
+      const position = new kakao.maps.LatLng(place.latitude, place.longitude);
+      
+      const marker = new kakao.maps.Marker({
+        position,
+        map,
+      });
+
+      bounds.extend(position);
+
+      return {
+        place,
+        position,
+        marker,
+        bottomOffset: 35, // 기본 오프셋
+      };
+    });
+
+    // 화면 픽셀 좌표로 변환하여 겹침 감지
+    const projection = map.getProjection();
+    const screenPositions = allMarkerData.map((data) => {
+      const point = projection.pointFromCoords(data.position);
+      return {
+        data,
+        x: point.x,
+        y: point.y,
+        labelWidth: data.place.name.length * 6 + 12, // 대략적인 라벨 너비
+        labelHeight: 15, // 라벨 높이
+      };
+    });
+
+    // 화면 좌표 기준으로 겹침 감지 및 오프셋 조정
+    for (let i = 0; i < screenPositions.length; i++) {
+      let overlaps = 0;
+      for (let j = 0; j < screenPositions.length; j++) {
+        if (i === j) continue;
+        
+        const xDiff = Math.abs(screenPositions[i].x - screenPositions[j].x);
+        const yDiff = Math.abs(screenPositions[i].y - screenPositions[j].y);
+        
+        // 화면상에서 라벨이 겹치는지 확인 (x축 60px, y축 20px 이내)
+        if (xDiff < 60 && yDiff < 20) {
+          if (j < i) {
+            overlaps++;
+          }
+        }
+      }
+      // 겹치는 개수만큼 위로 올림 (15px씩)
+      screenPositions[i].data.bottomOffset += (overlaps * 15);
+    }
+
+    // 각 마커에 오버레이와 이벤트 추가
+    allMarkerData.forEach(({ place, position, marker, bottomOffset }) => {
+      // DOM 요소 직접 생성
+      const labelDiv = document.createElement('div');
+      labelDiv.style.cssText = `
+        position: relative;
+        bottom: ${bottomOffset}px;
+        background: rgba(34, 34, 34, 0.9);
+        color: white;
+        padding: 2px 6px;
+        border-radius: 6px;
+        font-size: 9px;
+        font-weight: bold;
+        white-space: nowrap;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        cursor: pointer;
+        pointer-events: auto;
+      `;
+      labelDiv.textContent = place.name;
+
+      const customOverlay = new kakao.maps.CustomOverlay({
+        position,
+        content: labelDiv,
+        yAnchor: 0,
+      });
+      customOverlay.setMap(map);
+
+      // 확대 함수
+      const handleMarkerClick = () => {
+        // 클릭된 장소 정보를 부모 컴포넌트로 전달합니다.
+        onMarkerClick(place);
+      };
+
+      // 마커 클릭 이벤트
+      kakao.maps.event.addListener(marker, 'click', handleMarkerClick);
+
+      // 라벨 클릭 이벤트 (DOM 요소에 직접 할당)
+      labelDiv.onclick = (e) => {
+        e.stopPropagation();
+        handleMarkerClick();
+      };
+
+      // 호버 시 상세 정보
+      const infowindow = new kakao.maps.InfoWindow({
+        content: `<div style="padding:8px;font-size:11px;width:140px;">
+          <div style="font-weight:bold;margin-bottom:4px;">${place.name}</div>
+          <div style="color:#666;font-size:10px;">${place.address}</div>
+        </div>`,
+      });
+
+      kakao.maps.event.addListener(marker, 'mouseover', () => {
+        infowindow.open(map, marker);
+      });
+
+      kakao.maps.event.addListener(marker, 'mouseout', () => {
+        infowindow.close();
+      });
+
+      markersRef.current.push({ marker, overlay: customOverlay });
+    });
+
+    if (places.length > 0) {
+      map.setBounds(bounds);
+      initialBoundsRef.current = bounds;
+    }
+  }, [map, places]);
+
+  const resetMapView = () => {
+    if (!map || !initialBoundsRef.current) return;
+    
+    // 부드럽게 원상태로 복원
+    map.setBounds(initialBoundsRef.current);
+  };
+
+  return (
+    <div className="map-container">
+      <div ref={mapRef} className="map-element" />
+      
+      {loading && (
+        <div className="social-loader" style={{position: 'absolute', inset: 0, backgroundColor: '#1f2937'}}>
+          <div className="loader-text">지도 로딩 중...</div>
+        </div>
+      )}
+      
+      {map && initialBoundsRef.current && (
+        <button onClick={resetMapView} className="reset-view-button" title="전체 보기">
+          <i className="ri-fullscreen-line reset-icon"></i>
+        </button>
+      )}
+    </div>
+  );
+}

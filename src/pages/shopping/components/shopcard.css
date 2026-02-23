@@ -1,0 +1,339 @@
+/* shopcard.css - Horizontal Banner Card Design */
+
+/* ===== 배너 카드 컨테이너 ===== */
+.shopcard-banner {
+  position: relative;
+  display: flex;
+  height: 160px;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 20px 25px -5px rgb(0 0 0 / 33%), 0 0 0 1px rgb(87 110 148 / 58%);
+  /* border: 0.5px solid rgb(255 255 255 / 24%); */
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%);
+}
+
+/* .shopcard-banner:hover {
+  transform: translateY(-4px);
+  border-color: rgba(59, 130, 246, 0.4);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4),
+    0 0 0 1px rgba(59, 130, 246, 0.2);
+} */
+
+/* ===== 왼쪽: 이미지 섹션 ===== */
+.shopcard-image-section {
+  position: relative;
+  width: 200px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.shopcard-banner-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.shopcard-banner:hover .shopcard-banner-image {
+  transform: scale(1.1);
+}
+
+.shopcard-banner-placeholder {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+}
+
+.shopcard-banner:hover .shopcard-banner-placeholder {
+  background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+}
+
+.shopcard-banner-placeholder i {
+  font-size: 4rem;
+  color: rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+.shopcard-banner:hover .shopcard-banner-placeholder i {
+  color: rgba(255, 255, 255, 0.4);
+  transform: scale(1.15);
+}
+
+/* ===== 오른쪽: 콘텐츠 섹션 (그라데이션) ===== */
+.shopcard-content-section {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 1.5rem 2rem;
+  background: linear-gradient(135deg,
+      rgba(55, 55, 55, 0.95) 0%,
+      rgba(20, 20, 20, 0.98) 50%,
+      rgba(15, 15, 15, 1) 100%);
+  overflow: hidden;
+}
+
+/* 미묘한 노이즈 텍스처 오버레이 */
+.shopcard-content-section::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image:
+    radial-gradient(circle at 20% 50%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(168, 85, 247, 0.06) 0%, transparent 50%);
+  pointer-events: none;
+  opacity: 0.6;
+  transition: opacity 0.3s ease;
+}
+
+.shopcard-banner:hover .shopcard-content-section::after {
+  opacity: 1;
+}
+
+/* 그라데이션 애니메이션 효과 */
+.shopcard-content-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(255, 255, 255, 0.05),
+      transparent);
+  transition: left 0.6s ease;
+}
+
+.shopcard-banner:hover .shopcard-content-section::before {
+  left: 100%;
+}
+
+/* ===== 수정 버튼 ===== */
+.shopcard-banner-edit {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 2.25rem;
+  height: 2.25rem;
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  opacity: 0;
+  transform: translateY(-10px);
+}
+
+.shopcard-banner:hover .shopcard-banner-edit {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.shopcard-banner-edit:hover {
+  background: rgba(59, 130, 246, 0.8);
+  border-color: rgba(59, 130, 246, 0.5);
+  transform: scale(1.1) rotate(15deg);
+}
+
+.shopcard-banner-edit i {
+  font-size: 1rem;
+}
+
+/* ===== 즐겨찾기 버튼 ===== */
+.shopcard-favorite-btn {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 10;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #fff;
+  font-size: 1rem;
+}
+
+.shopcard-favorite-btn:hover {
+  background: rgba(0, 0, 0, 0.8);
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+}
+
+.shopcard-favorite-btn i {
+  transition: color 0.2s ease;
+}
+
+.shopcard-favorite-btn .ri-heart-3-fill {
+  color: #f87171;
+}
+
+.shopcard-favorite-btn .ri-heart-3-line {
+  color: #fff;
+}
+
+@media (max-width: 640px) {
+  .shopcard-favorite-btn {
+    width: 1.75rem;
+    height: 1.75rem;
+    font-size: 0.875rem;
+    top: 0.5rem;
+    left: 0.5rem;
+  }
+}
+
+/* ===== 콘텐츠 ===== */
+.shopcard-banner-content {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.shopcard-banner-title {
+  color: white;
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shopcard-banner-desc {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9375rem;
+  line-height: 1.5;
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+/* ===== 버튼 ===== */
+.shopcard-banner-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 1.25rem;
+  background: rgba(255, 255, 255, 0.95);
+  color: #1f2937;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  align-self: flex-start;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.shopcard-banner-btn:hover {
+  background: white;
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.shopcard-banner-btn i {
+  font-size: 1.125rem;
+  transition: transform 0.2s ease;
+}
+
+.shopcard-banner-btn:hover i {
+  transform: translateX(4px);
+}
+
+/* ===== 반응형 ===== */
+@media (max-width: 640px) {
+  .shopcard-banner {
+    height: 140px;
+  }
+
+  .shopcard-image-section {
+    width: 140px;
+  }
+
+  .shopcard-content-section {
+    padding: 1rem 1.25rem;
+  }
+
+  .shopcard-banner-title {
+    font-size: 1.125rem;
+  }
+
+  .shopcard-banner-desc {
+    font-size: 0.8125rem;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+    margin-top: 0.25rem;
+    color: rgba(255, 255, 255, 0.8);
+    white-space: normal;
+    /* text-overflow: ellipsis와 충돌 방지 */
+  }
+
+  .shopcard-banner-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.8125rem;
+  }
+
+  .shopcard-banner-placeholder i {
+    font-size: 3rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .shopcard-banner {
+    height: 160px;
+  }
+
+  .shopcard-image-section {
+    width: 240px;
+  }
+
+  .shopcard-content-section {
+    padding: 2rem 2.5rem;
+  }
+
+  .shopcard-banner-title {
+    font-size: 1.75rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .shopcard-banner {
+    height: 160px;
+  }
+
+  .shopcard-image-section {
+    width: 280px;
+  }
+}

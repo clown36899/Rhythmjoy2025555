@@ -1,0 +1,91 @@
+/* social.css (Stage 3 V5 개편) */
+.social-page-new-v5 {
+  max-width: 800px;
+  /* 모바일 중심 레이아웃 */
+  margin: 0 auto;
+  /* background-color: #0f0f0f; */
+  min-height: 100vh;
+  padding-top: calc(110px + env(safe-area-inset-top));
+  padding-bottom: calc(120px + env(safe-area-inset-bottom));
+}
+
+.social-main-header {
+  /* padding: 20px; */
+  display: flex;
+  height: 0;
+  justify-content: space-between;
+  align-items: flex-start;
+  /* margin-bottom: 20px; */
+}
+
+.main-title {
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: -1px;
+}
+
+.sub-title {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin: 4px 0 0 0;
+}
+
+/* 새로 추가된 사용 가이드 스타일 */
+.header-usage-guide {
+  font-size: 0.9rem;
+  color: var(--text-tertiary);
+  margin: 0;
+  background: var(--bg-surface-2);
+  padding: 10px 16px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--border-glass);
+}
+
+.header-usage-guide i {
+  color: var(--color-amber-400);
+  font-size: 1.1rem;
+}
+
+.admin-add-group-btn {
+  background: linear-gradient(135deg, var(--color-amber-400), var(--color-amber-500));
+  border: none;
+  padding: 8px 16px;
+  border-radius: 12px;
+  color: #1a1a1a;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(251, 191, 36, 0.2);
+  transition: all 0.2s;
+}
+
+.admin-add-group-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(251, 191, 36, 0.3);
+}
+
+/* Section Common Title (이미 컴포넌트 내부에서 사용하지만 보조용) */
+.section-title {
+  font-size: min(4.5vw, 1.45rem);
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: -0.5px;
+  white-space: nowrap;
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+@media (max-width: 480px) {
+  .main-title {
+    font-size: 1.5rem;
+  }
+}

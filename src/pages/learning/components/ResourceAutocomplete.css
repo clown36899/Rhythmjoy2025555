@@ -1,0 +1,66 @@
+/* Resource Autocomplete Styles */
+.rac-container {
+    position: absolute;
+    background-color: #1f2937;
+    border: 1px solid #374151;
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    z-index: 10003;
+    min-width: 250px;
+    max-width: 400px;
+    max-height: 300px;
+    overflow-y: auto;
+    animation: rac-slideDown 0.15s ease-out;
+}
+
+.rac-loading,
+.rac-empty {
+    padding: 12px 16px;
+    color: #9ca3af;
+    font-size: 0.875rem;
+    text-align: center;
+}
+
+.rac-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    cursor: pointer;
+    transition: background-color 0.15s;
+    border-bottom: 1px solid #374151;
+}
+
+.rac-item:last-child {
+    border-bottom: none;
+}
+
+.rac-item:hover,
+.rac-item.selected {
+    background-color: #374151;
+}
+
+.rac-icon {
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.rac-title {
+    color: #f3f4f6;
+    font-size: 0.9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@keyframes rac-slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

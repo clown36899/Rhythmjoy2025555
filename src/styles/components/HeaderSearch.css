@@ -1,0 +1,41 @@
+/* Header Search Bar */
+.header-search-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+    flex: 1;
+    max-width: 250px;
+    margin: 0 12px;
+    /* 검색창이 자연스럽게 확장되되 최대 넓이 제한 */
+}
+
+.header-search-input {
+    width: 100%;
+    padding: 6px 40px 6px 12px;
+    /* padding 줄여서 높이 감소 */
+    background: rgb(110 110 110 / 42%);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 8px;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.header-search-input::placeholder {
+    color: var(--text-secondary);
+}
+
+.header-search-input:focus {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.header-search-icon {
+    position: absolute;
+    right: 12px;
+    font-size: 18px;
+    color: var(--text-secondary);
+    pointer-events: none;
+}

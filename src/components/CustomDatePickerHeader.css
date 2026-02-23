@@ -1,0 +1,73 @@
+/* CustomDatePickerHeader.css - CustomDatePickerHeader 컴포넌트 전용 스타일 */
+
+/* ===== 헤더 컨테이너 ===== */
+.cdp-header-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+/* ===== 네비게이션 버튼 ===== */
+.cdp-nav-button {
+  color: white;
+  padding: 0.25rem;
+  border-radius: var(--radius);
+  transition: background-color 0.2s ease;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.cdp-nav-button:hover {
+  background-color: #4b5563;
+}
+
+.cdp-nav-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.cdp-nav-icon {
+  font-size: 1.25rem;
+}
+
+/* ===== 중앙 영역 ===== */
+.cdp-center-area {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.cdp-month-text {
+  color: white;
+  font-weight: 500;
+}
+
+.cdp-day-text {
+  color: #60a5fa;
+  margin-left: 0.25rem;
+}
+
+/* ===== 오늘 버튼 ===== */
+.cdp-today-button {
+  color: #60a5fa;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+  padding-top: 0.125rem;
+  padding-bottom: 0.125rem;
+  border-radius: var(--radius);
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.cdp-today-button:hover {
+  background-color: rgba(59, 130, 246, 0.2);
+}

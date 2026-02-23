@@ -1,0 +1,53 @@
+.container {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 16px 0;
+    margin-bottom: 16px;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+    /* Hide scrollbar */
+}
+
+.container::-webkit-scrollbar {
+    display: none;
+}
+
+.wrapper {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.separator {
+    color: #6b7280;
+    /* gray-500 */
+    font-size: 14px;
+}
+
+.item {
+    background: none;
+    border: none;
+    color: #9ca3af;
+    /* gray-400 */
+    font-size: 14px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.item:hover {
+    color: white;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.active {
+    color: #60a5fa;
+    /* blue-400 */
+    font-weight: 600;
+    pointer-events: none;
+    /* Disable click on current */
+    background-color: rgba(96, 165, 250, 0.1);
+}

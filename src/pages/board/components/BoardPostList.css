@@ -1,0 +1,583 @@
+/* Prefix Filter Tabs */
+.board-prefix-tabs {
+    display: flex;
+    overflow-x: auto;
+    gap: 0;
+    margin-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    scrollbar-width: none;
+}
+
+.board-prefix-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.board-prefix-tab {
+    background: transparent;
+    border: none;
+    padding: 10px 16px;
+    color: #9ca3af;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+}
+
+.board-prefix-tab:hover {
+    color: #d1d5db;
+}
+
+.board-prefix-tab.active {
+    color: #fff;
+    font-weight: 700;
+    border-bottom-color: #fff;
+}
+
+/* CSS Variables for Memo Theme (Scoped to Anonymous Mode) */
+.anonymous-mode {
+    --memo-card-bg: #111111;
+    /* 깊은 블랙 */
+    --memo-card-hover: #111111;
+    /* 호버 차단용 동일 색상 */
+    --memo-card-border: rgba(255, 255, 255, 0.03);
+    --memo-card-accent: #3b82f6;
+
+    --memo-text-title: #ffffff;
+    --memo-text-content: #e5e7eb;
+    --memo-text-meta: #6b7280;
+
+    --memo-shadow-idle: none;
+    /* 그림자 제거 (Zen Minimalist) */
+    --memo-shadow-hover: none;
+}
+
+/* Light Mode Overrides for Anonymous Board */
+[data-theme="light"] .anonymous-mode {
+    --memo-card-bg: #ffffff;
+    /* 순백색 */
+    --memo-card-hover: #ffffff;
+    --memo-card-border: rgba(0, 0, 0, 0.05);
+    --memo-card-accent: #2563eb;
+
+    --memo-text-title: #111111;
+    --memo-text-content: #374151;
+    --memo-text-meta: #9ca3af;
+
+    --memo-shadow-idle: none;
+    --memo-shadow-hover: none;
+}
+
+.standard-mode .standard-view {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
+    /* padding: 20px 16px; */
+    width: 100%;
+    gap: 7px;
+    box-sizing: border-box;
+    align-items: start;
+}
+
+/* Anonymous Board GRID */
+.anonymous-mode .anonymous-view {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 380px), 1fr));
+    padding: 20px 16px;
+    width: 100%;
+    gap: 7px;
+    box-sizing: border-box;
+    align-items: start;
+}
+
+/* Modern Anonymous Card (Zen Minimalist) */
+.anonymous-mode .board-post-card.is-memo {
+    background: var(--memo-card-bg);
+    border-bottom: 1px solid var(--memo-card-border);
+    /* 아래쪽 구분선만 남김 */
+    border-radius: 0;
+    /* 각진 미니멀리즘 */
+    padding: 2rem 1.5rem;
+    margin: 0;
+    /* 테두리 없이 리스트처럼 보임 */
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    box-shadow: none !important;
+    transition: none !important;
+    /* 호버 차단 */
+}
+
+/* Hover/Active 100% 원천 차단 */
+.anonymous-mode .board-post-card.is-memo:hover,
+.anonymous-mode .board-post-card.is-memo:active {
+    background: var(--memo-card-bg) !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+
+
+/* Hide legacy elements */
+.anonymous-mode .memo-tape,
+.anonymous-mode .memo-pin,
+.anonymous-mode .memo-texture-overlay {
+    display: none !important;
+}
+
+/* Profile / Avatar (Zen: Hidden) */
+.anonymous-mode .anonymous-avatar {
+    display: none !important;
+    /* 아바타 완전 제거 */
+}
+
+/* Flattened Row Styles */
+.anonymous-mode .board-post-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    /* padding: 9px 10px 0px 10px; */
+}
+
+/* Title & Content (Zen Minimalist) */
+.anonymous-mode .board-post-title {
+    display: none !important;
+    /* 제목도 본문에 포함되거나 불필요할 경우 숨김 */
+}
+
+.anonymous-mode .fold-toggle-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--memo-text-meta);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.anonymous-mode .fold-toggle-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--memo-text-title);
+    border-color: var(--memo-card-accent);
+}
+
+.anonymous-mode .fold-toggle-btn i {
+    font-size: 1rem;
+    color: var(--memo-card-accent);
+}
+
+.anonymous-mode .board-post-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: 100%;
+}
+
+.anonymous-mode .board-post-content {
+    color: var(--memo-text-content) !important;
+    font-size: 0.95rem;
+    /* 가독성 확보 */
+    line-height: 1.6;
+    /* 넉넉한 줄간격 */
+    letter-spacing: -0.01em;
+    margin: 0 !important;
+    white-space: pre-wrap;
+    padding: 0 !important;
+    /* 여백 초기화 (부모의 패딩 활용) */
+}
+
+/* Thumbnail */
+.anonymous-mode .memo-thumbnail-wrapper {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-top: 12px;
+    cursor: pointer;
+    border: 1px solid var(--memo-card-border);
+    transition: all 0.2s ease;
+}
+
+.anonymous-mode .memo-thumbnail-wrapper:hover {
+    transform: scale(1.04);
+    border-color: var(--memo-card-accent);
+}
+
+.anonymous-mode .memo-thumbnail-wrapper img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* Zoom Overlay */
+.anonymous-mode .thumbnail-zoom-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 24px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    backdrop-filter: blur(2px);
+}
+
+.anonymous-mode .memo-thumbnail-wrapper:hover .thumbnail-zoom-overlay {
+    opacity: 1;
+}
+
+/* Footer / Meta */
+.anonymous-mode .board-post-meta {
+    /* margin-top: 8px; */
+    padding: 12px 10px 0px 3px;
+    /* border-top: 1px solid var(--memo-card-border); */
+    color: var(--memo-text-meta);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.anonymous-mode .board-post-meta-nickname {
+    font-weight: 500;
+    font-size: 0.85rem;
+    color: var(--memo-text-meta) !important;
+    /* 닉네임 강조 낮춤 */
+    letter-spacing: -0.01em;
+}
+
+/* Interaction Bar */
+.anonymous-mode .memo-interaction-bar {
+    margin-top: 1.5rem;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.anonymous-mode .memo-btns {
+    display: flex;
+    gap: clamp(4px, 1.5vw, 8px);
+    flex-shrink: 1;
+    min-width: 0;
+}
+
+.anonymous-mode .memo-btn {
+    background: transparent !important;
+    border: none !important;
+    padding: 4px 8px;
+    color: var(--memo-text-meta);
+    font-size: 0.8rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    cursor: default !important;
+    /* 호버 차단용 */
+    transition: none !important;
+}
+
+.anonymous-mode .memo-btn i {
+    font-size: 1.1rem;
+    opacity: 0.7;
+}
+
+.anonymous-mode .memo-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--memo-text-title);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.anonymous-mode .memo-btn.like-btn.active {
+    color: #3b82f6;
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.anonymous-mode .memo-btn.dislike-btn.active {
+    /* background: rgba(239, 68, 68, 0.1); */
+    color: #a700b8;
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.anonymous-mode .memo-comment-toggle {
+    background: transparent !important;
+    border: none !important;
+    color: var(--memo-text-meta);
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    transition: none !important;
+}
+
+.anonymous-mode .memo-comment-toggle .comment-label {
+    font-size: 13px;
+    color: var(--memo-text-meta);
+    opacity: 0.8;
+}
+
+.anonymous-mode .memo-comment-toggle .comment-count {
+    font-size: 14px;
+    color: var(--memo-card-accent);
+}
+
+.anonymous-mode .memo-comment-toggle:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--memo-card-accent);
+    transform: translateY(-1px);
+}
+
+.anonymous-mode .memo-comment-toggle.active {
+    background: var(--memo-card-accent);
+    border-color: var(--memo-card-accent);
+    color: #000;
+}
+
+.anonymous-mode .memo-comment-toggle.active .comment-label,
+.anonymous-mode .memo-comment-toggle.active .comment-count {
+    color: #000;
+    opacity: 1;
+}
+
+/* Inline Comments */
+.anonymous-mode .inline-comment-section {
+    position: relative;
+    background: transparent;
+    margin-top: 16px;
+    padding-left: 58px;
+    padding-right: 22px;
+    border: none;
+}
+
+.anonymous-mode .inline-comment-section::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -8px;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.anonymous-mode .inline-comment-section::after {
+    content: '';
+    position: absolute;
+    left: 43px;
+    top: -8px;
+    bottom: 28px;
+    width: 1px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.anonymous-mode .inline-comment-section-dot {
+    position: absolute;
+    left: 42px;
+    top: -11px;
+    width: 3px;
+    height: 3px;
+    background: var(--memo-card-accent);
+    border-radius: 50%;
+    z-index: 2;
+}
+
+/* Lightbox */
+.anonymous-mode .memo-lightbox-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.95);
+    backdrop-filter: blur(8px);
+    z-index: 2000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.anonymous-mode .memo-lightbox-content img {
+    max-width: 100%;
+    max-height: 90vh;
+    border-radius: 12px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+
+/* Mobile Adjustments */
+@media (max-width: 600px) {
+    .anonymous-mode .anonymous-view {
+        grid-template-columns: 1fr;
+        padding: 0px;
+        gap: 4px;
+    }
+}
+
+/* Obscured Content */
+.anonymous-mode .content-obscured {
+    filter: blur(12px) !important;
+    opacity: 0.25 !important;
+    pointer-events: none !important;
+    user-select: none !important;
+    transition: all 0.3s ease;
+}
+
+/* Deactivated Header Style */
+.anonymous-mode .deactivated-header {
+    opacity: 0.4;
+    filter: grayscale(100%);
+    pointer-events: none;
+    text-decoration: line-through;
+    text-decoration-color: rgba(255, 255, 255, 0.2);
+}
+
+.anonymous-mode .deactivated-header .board-post-title {
+    color: #6b7280 !important;
+}
+
+/* Post Header Icons */
+.anonymous-mode .locked-icon {
+    font-size: 0.95rem;
+    margin-right: 8px;
+    vertical-align: middle;
+    color: #9ca3af;
+}
+
+.anonymous-mode .blind-warning {
+    color: var(--text-muted) !important;
+    font-size: 0.8rem !important;
+    opacity: 0.7;
+}
+
+.anonymous-mode .admin-status-badge {
+    background: var(--bg-surface-3);
+    color: var(--text-secondary);
+    font-size: 9px;
+    font-weight: 600;
+    padding: 1px 4px;
+    border-radius: 3px;
+    margin-right: 6px;
+    vertical-align: middle;
+    text-transform: uppercase;
+    display: inline-block;
+    border: 1px solid var(--border-subtle);
+}
+
+/* Ensure admin sees content clearly despite dimmed/locked state */
+.anonymous-mode .is-admin-view.is-locked-status .board-post-content {
+    opacity: 0.9 !important;
+    filter: none !important;
+}
+
+.anonymous-mode .is-admin-view.is-locked-status .post-lockable-content {
+    filter: none !important;
+    opacity: 1 !important;
+}
+
+/* Specific Compact Style for Blinded/Locked Posts */
+.anonymous-mode .board-post-card.is-memo.is-locked-status {
+    padding: 8px 12px !important;
+}
+
+.anonymous-mode .is-locked-status .board-post-top-row {
+    gap: 0 !important;
+}
+
+.anonymous-mode .is-locked-status .board-post-meta {
+    margin-top: 4px !important;
+    padding-top: 4px !important;
+}
+
+.anonymous-mode .is-locked-status .memo-interaction-bar {
+    margin-top: 4px !important;
+}
+
+/* Ensure interaction bar remains visible and active */
+.anonymous-mode .board-post-card.is-locked-status .memo-interaction-bar,
+.anonymous-mode .board-post-card.is-locked-status .inline-comment-section {
+    opacity: 1 !important;
+    pointer-events: auto !important;
+}
+
+/* Global Password Prompt Modal - Scoped to Board View Context */
+.board-view-context .memo-pwd-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+}
+
+.board-view-context .memo-pwd-prompt {
+    background: #1a1a1a;
+    padding: 24px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 85%;
+    max-width: 320px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.board-view-context .memo-pwd-prompt input {
+    background: #000;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 12px;
+    border-radius: 8px;
+    color: white;
+    font-size: 15px;
+    outline: none;
+    text-align: center;
+}
+
+.board-view-context .memo-pwd-prompt input:focus {
+    border-color: #3b82f6;
+    /* Hardcoded fallback to match memo-card-accent */
+}
+
+.board-view-context .memo-pwd-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.board-view-context .memo-pwd-actions button {
+    flex: 1;
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.board-view-context .memo-pwd-actions .confirm-btn {
+    background: #3b82f6;
+    color: white;
+}
+
+.board-view-context .memo-pwd-actions .cancel-btn {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ccc;
+}

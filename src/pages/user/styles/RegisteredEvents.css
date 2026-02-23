@@ -1,0 +1,165 @@
+/* RegisteredEvents.css - 내 활동 페이지 이벤트/강습 그리드 */
+
+.managed-events-container,
+.managed-classes-container {
+    padding: 0 8px;
+}
+
+/* Base grid - 2 columns */
+.my-activities-view-container .managed-events-grid,
+.my-activities-view-container .managed-classes-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+/* ============================================================
+   MOBILE: Horizontal list cards (image left, text right)
+   ============================================================ */
+@media (max-width: 639px) {
+
+    /* Single column for horizontal cards */
+    .my-activities-view-container .managed-events-grid,
+    .my-activities-view-container .managed-classes-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    /* Card container → horizontal flex row */
+    .my-activities-view-container .managed-events-grid .ECARD-container,
+    .my-activities-view-container .managed-classes-grid .ECARD-container {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: stretch !important;
+        background: var(--bg-card);
+        border-radius: 12px;
+        overflow: hidden;
+        width: 100% !important;
+        max-width: none !important;
+        border: 1px solid var(--border-subtle);
+        padding: 0 !important;
+        flex: none !important;
+    }
+
+    /* Image wrapper → fixed square thumbnail */
+    .my-activities-view-container .managed-events-grid .ECARD-imageWrapper,
+    .my-activities-view-container .managed-classes-grid .ECARD-imageWrapper {
+        width: 88px !important;
+        min-width: 88px !important;
+        height: auto !important;
+        aspect-ratio: 1 / 1 !important;
+        flex-shrink: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border-radius: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+
+    .my-activities-view-container .managed-events-grid .ECARD-image,
+    .my-activities-view-container .managed-classes-grid .ECARD-image {
+        border-radius: 0 !important;
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+    }
+
+    /* Text container → fills remaining space */
+    .my-activities-view-container .managed-events-grid .ECARD-textContainer,
+    .my-activities-view-container .managed-classes-grid .ECARD-textContainer {
+        padding: 10px 12px !important;
+        flex: 1 !important;
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: center !important;
+        text-align: left !important;
+        overflow: hidden !important;
+        gap: 3px !important;
+        min-width: 0;
+    }
+
+    /* Title - single line */
+    .my-activities-view-container .managed-events-grid .ECARD-title,
+    .my-activities-view-container .managed-classes-grid .ECARD-title {
+        font-size: 14px !important;
+        font-weight: 600 !important;
+        margin: 0 !important;
+        -webkit-line-clamp: 2 !important;
+        line-clamp: 2 !important;
+        color: var(--text-primary) !important;
+    }
+
+    /* Genre chip - smaller */
+    .my-activities-view-container .managed-events-grid .ECARD-genre,
+    .my-activities-view-container .managed-classes-grid .ECARD-genre {
+        font-size: 10px !important;
+        padding: 1px 5px !important;
+        order: -1;
+    }
+
+    /* Date */
+    .my-activities-view-container .managed-events-grid .ECARD-dateContainer,
+    .my-activities-view-container .managed-classes-grid .ECARD-dateContainer {
+        margin: 0 !important;
+        gap: 4px !important;
+    }
+
+    .my-activities-view-container .managed-events-grid .ECARD-date,
+    .my-activities-view-container .managed-classes-grid .ECARD-date {
+        font-size: 11px !important;
+        padding: 1px 6px !important;
+    }
+
+    /* Hide badges & d-day in horizontal mode */
+    .my-activities-view-container .managed-events-grid .ECARD-badge,
+    .my-activities-view-container .managed-classes-grid .ECARD-badge,
+    .my-activities-view-container .managed-events-grid .ECARD-ddayBadge,
+    .my-activities-view-container .managed-classes-grid .ECARD-ddayBadge {
+        display: none !important;
+    }
+
+    /* Hide date indicator dot */
+    .my-activities-view-container .managed-events-grid .ECARD-dateIndicator,
+    .my-activities-view-container .managed-classes-grid .ECARD-dateIndicator {
+        display: none !important;
+    }
+
+    /* Disable hover transforms */
+    .my-activities-view-container .managed-events-grid .ECARD-container:hover .ECARD-imageWrapper,
+    .my-activities-view-container .managed-classes-grid .ECARD-container:hover .ECARD-imageWrapper {
+        transform: none !important;
+        box-shadow: none !important;
+    }
+
+    /* Favorite button positioning */
+    .my-activities-view-container .managed-events-grid .ECARD-favoriteBtn,
+    .my-activities-view-container .managed-classes-grid .ECARD-favoriteBtn {
+        display: none !important;
+    }
+
+    /* Placeholder background for no-image */
+    .my-activities-view-container .managed-events-grid .ECARD-placeholderBg,
+    .my-activities-view-container .managed-classes-grid .ECARD-placeholderBg {
+        border-radius: 0 !important;
+    }
+}
+
+/* ============================================================
+   DESKTOP: 3 columns grid with standard vertical cards
+   ============================================================ */
+@media (min-width: 640px) {
+
+    .my-activities-view-container .managed-events-grid,
+    .my-activities-view-container .managed-classes-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+    }
+}
+
+@media (min-width: 900px) {
+
+    .my-activities-view-container .managed-events-grid,
+    .my-activities-view-container .managed-classes-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
+}

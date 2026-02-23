@@ -1,0 +1,81 @@
+/* WebzineRenderer.css — styles for WebzineRenderer output */
+/* Imported by WebzineRenderer.tsx so these apply everywhere it's used */
+
+/* ── StatsRow ─────────────────────────────────────── */
+.wv-stats-row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: stretch;
+    width: 100%;
+    margin: 2rem 0;
+    overflow: visible;
+    box-sizing: border-box;
+}
+
+.wv-col-gap {
+    width: 10px;
+    flex-shrink: 0;
+}
+
+.wv-stats-col {
+    min-width: 0;
+    overflow: visible;
+    box-sizing: border-box;
+}
+
+.wv-stats-col > * {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+/* Override MonthlyWebzine fixed heights inside columns */
+.wv-stats-col .mw-dashboard {
+    height: auto !important;
+}
+
+.wv-stats-col .mw-grid {
+    height: auto !important;
+}
+
+.wv-stats-col .mw-col {
+    height: auto !important;
+}
+
+/* ── Text column ──────────────────────────────────── */
+.wv-text-col {
+    padding: 1rem 1.25rem;
+    font-size: 1rem;
+    line-height: 1.8;
+    color: #e5e7eb;
+}
+
+.wv-text-col p {
+    margin: 0 0 0.75rem;
+}
+
+.wv-text-col p:last-child {
+    margin-bottom: 0;
+}
+
+.wv-text-col strong {
+    font-weight: 700;
+    color: #f9fafb;
+}
+
+.wv-text-col em {
+    font-style: italic;
+}
+
+.wv-text-col a {
+    color: #60a5fa;
+    text-decoration: underline;
+}
+
+/* Mobile: allow horizontal scroll instead of reflow */
+@media (max-width: 768px) {
+    .wv-stats-row {
+        overflow-x: auto;
+        overflow-y: visible;
+    }
+}

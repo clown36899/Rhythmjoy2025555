@@ -1,0 +1,526 @@
+/* EventCard.css - EventCard 컴포넌트 전용 스타일 */
+
+/* ===== 장르 색상 클래스 ===== */
+.card-genre-red {
+  color: var(--color-red-400);
+}
+
+.card-genre-orange {
+  color: var(--color-orange-400);
+}
+
+.card-genre-amber {
+  color: var(--color-amber-400);
+}
+
+.card-genre-yellow {
+  color: var(--color-yellow-400);
+}
+
+.card-genre-lime {
+  color: var(--color-lime-400);
+}
+
+.card-genre-green {
+  color: var(--color-green-400);
+}
+
+.card-genre-emerald {
+  color: var(--color-emerald-400);
+}
+
+.card-genre-teal {
+  color: var(--color-teal-400);
+}
+
+.card-genre-cyan {
+  color: var(--color-cyan-400);
+}
+
+.card-genre-sky {
+  color: var(--color-sky-400);
+}
+
+.card-genre-blue {
+  color: var(--color-blue-400);
+}
+
+.card-genre-indigo {
+  color: var(--color-indigo-400);
+}
+
+.card-genre-violet {
+  color: var(--color-violet-400);
+}
+
+.card-genre-purple {
+  color: var(--color-purple-400);
+}
+
+.card-genre-fuchsia {
+  color: var(--color-fuchsia-400);
+}
+
+.card-genre-pink {
+  color: var(--color-pink-400);
+}
+
+.card-genre-rose {
+  color: var(--color-rose-400);
+}
+
+.card-genre-gray {
+  color: var(--color-gray-400);
+}
+
+/* ===== 카드 컨테이너 ===== */
+.card-container {
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  max-width: 100%;
+  min-width: 0;
+  position: relative;
+}
+
+/* .card-container:hover {
+  transform: translateY(-2px);
+} */
+
+
+
+/* .card-container-past:hover {
+  transform: translateY(-1px);
+} */
+
+/* ===== Category별 독립 스타일 ===== */
+/* 이벤트 카드 전용 스타일 */
+/* 이벤트 카드 전용 스타일 */
+.card-category-event {
+  flex: 0 0 auto !important;
+  /* width, max-width removed to follow parent */
+}
+
+/* 강습 카드 전용 스타일 */
+.card-category-class {
+  flex: 0 0 auto !important;
+  /* width, max-width removed to follow parent */
+}
+
+
+
+
+
+/* ===== 이미지 래퍼 ===== */
+.card-image-wrapper {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  aspect-ratio: 13 / 16;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 12px;
+}
+
+/* .card-container:hover .card-image-wrapper {
+  transform: scale(1.02);
+} */
+
+/* 이벤트 카드 이미지 래퍼 - 완전 독립 */
+.card-image-wrapper-event {
+  aspect-ratio: 13 / 16;
+  /* border-radius: 12px; */
+  /* background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%); */
+  /* margin-bottom: 12px; */
+  /* box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3); */
+}
+
+/* .card-container:hover .card-image-wrapper-event {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+} */
+
+/* 강습 카드 이미지 래퍼 - 완전 독립 */
+
+
+/* .card-container:hover .card-image-wrapper-class {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+} */
+
+.card-image-wrapper-highlighted {
+  box-shadow: 0 0 0 3px var(--highlight-color, transparent);
+}
+
+/* ===== 이미지 스타일 ===== */
+.card-image {
+  height: 100%;
+  width: 100%;
+  /* border-radius: 6px; */
+  object-fit: cover;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* .card-container:hover .card-image {
+  transform: scale(1.08);
+} */
+
+/* ===== 오버레이 ===== */
+.card-overlay-center {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.card-overlay-text-semi {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 2.25rem;
+  font-weight: 700;
+}
+
+.card-overlay-text-faint {
+  color: rgba(255, 255, 255, 0.1);
+  font-size: 2.25rem;
+  font-weight: 700;
+  position: relative;
+}
+
+/* ===== 배경 스타일 ===== */
+.card-placeholder-bg {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-size: cover;
+  background-position: center;
+}
+
+.card-bg-overlay-purple {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-color: rgba(168, 85, 247, 0.3);
+}
+
+.card-bg-overlay-blue {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-color: rgba(59, 130, 246, 0.3);
+}
+
+/* ===== 배지 ===== */
+.card-badge {
+  position: absolute;
+  top: 4px;
+  right: 2px;
+  display: none;
+  padding: 2px 5px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  z-index: 2;
+  transition: all 0.3s ease;
+}
+
+.card-badge-event {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.9), rgba(37, 99, 235, 0.9));
+  color: white;
+}
+
+.card-badge-class {
+  background: linear-gradient(135deg, rgba(147, 51, 234, 0.9), rgba(126, 34, 206, 0.9));
+  color: white;
+}
+
+/* ===== D-Day 배지 ===== */
+.card-dday-badge {
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.95), rgba(37, 99, 235, 0.95));
+  color: white;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  z-index: 3;
+  transition: all 0.3s ease;
+}
+
+.card-dday-today {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.95), rgba(220, 38, 38, 0.95));
+  animation: dday-pulse 2s ease-in-out infinite;
+}
+
+@keyframes dday-pulse {
+
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  50% {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.5);
+  }
+}
+
+/* 이벤트 카드 배지 전용 스타일 */
+
+
+/* 강습 카드 배지 전용 스타일 */
+
+
+/* ===== 텍스트 컨테이너 ===== */
+
+
+/* 이벤트 카드 텍스트 컨테이너 */
+.card-text-container-event {
+  padding: 0.4rem 0;
+}
+
+/* 강습 카드 텍스트 컨테이너 */
+.card-text-container-class {
+  padding: 0.4rem 0;
+}
+
+/* ===== 장르 텍스트 ===== */
+.card-genre-text {
+  font-size: 0.75rem;
+  font-weight: 900;
+  margin: 0;
+  letter-spacing: 0.05em;
+}
+
+/* 이벤트 카드 장르 텍스트 */
+
+
+/* 강습 카드 장르 텍스트 */
+
+
+/* ===== 제목 텍스트 ===== */
+
+
+/* 이벤트 카드 제목 텍스트 */
+.card-title-text-event {
+  font-size: clamp(0.41rem, 3vw, 1rem);
+  font-weight: 500;
+  line-height: 1.3;
+  color: #e6e6e6;
+  margin: 0 0 0.3rem 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 강습 카드 제목 텍스트 */
+.card-title-text-class {
+  font-size: 0.8375rem;
+  font-weight: 800;
+
+  line-height: 1.3;
+  color: #ffffff;
+  margin: 0 0 0.3rem 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ===== 날짜 텍스트 ===== */
+.card-date-text {
+  font-size: 0.7125rem;
+  color: #c3c3c5;
+  font-weight: 400;
+  border-radius: 1rem;
+  padding: 2px 6px;
+  background-color: #2b2b2b9e;
+}
+
+/* 이벤트 카드 날짜 텍스트 */
+
+
+/* 강습 카드 날짜 텍스트 */
+
+
+/* ===== 날짜 컨테이너 ===== */
+.card-date-container {
+  margin-top: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-size: 0.75rem;
+  color: #9ca3af;
+  letter-spacing: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+}
+
+/* 이벤트 카드 날짜 컨테이너 */
+
+
+/* 강습 카드 날짜 컨테이너 */
+.card-date-container-class {
+  /* 강습 날짜 컨테이너 전용 스타일 */
+  display: flex;
+}
+
+/* ===== 날짜 인디케이터 ===== */
+.card-date-indicator {
+  width: var(--spacing-1-5);
+  height: var(--spacing-1-5);
+  border-radius: var(--radius-full);
+  background-color: var(--color-blue-500);
+  flex-shrink: 0;
+}
+
+.card-absolute-inset-0 {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+}
+
+/* QR Code Deep Link Highlight Animation */
+@keyframes qr-highlight {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0);
+  }
+
+  50% {
+    box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.6),
+      0 0 0 16px rgba(59, 130, 246, 0.3);
+  }
+}
+
+.qr-highlighted {
+  animation: qr-highlight 2s ease-in-out 3;
+  position: relative;
+  z-index: 10;
+}
+
+/* ===== 즐겨찾기 버튼 ===== */
+/* ===== 즐겨찾기 버튼 (Premium Glass Style) ===== */
+/* ===== 즐겨찾기 버튼 (Minimalist White Style) ===== */
+.card-favorite-btn {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  background: #00000070;
+  border: none;
+  width: 27px;
+  height: 27px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 7rem;
+  z-index: 10;
+  color: #ffffff;
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 활성화(찜함) 상태 스타일 */
+.card-favorite-btn.is-active {
+  color: #ffffff;
+}
+
+.card-favorite-btn:hover {
+  transform: scale(1.15);
+}
+
+.card-favorite-btn:active {
+  transform: scale(0.9);
+}
+
+.card-favorite-icon {
+  font-size: 24px;
+  transition: all 0.2s ease;
+  /* 밝은 이미지 위에서도 잘 보이도록 그림자 추가 */
+  /* filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.5)); */
+}
+
+.card-favorite-btn.is-active .card-favorite-icon {
+  animation: heart-pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  /* filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.8)); */
+}
+
+@keyframes heart-pop {
+  0% {
+    transform: scale(0.5);
+  }
+
+  50% {
+    transform: scale(1.3);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes heart-pop {
+  0% {
+    transform: scale(0.5);
+  }
+
+  50% {
+    transform: scale(1.3);
+  }
+
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* ==========================================================================
+   Favorites View Specific Overrides (즐겨찾기 모아보기 전용 스타일)
+   ========================================================================== */
+.evt-favorites-view-container .card-category-event {
+  /* 즐겨찾기 뷰: 이벤트 카드 사이즈 독립 설정 */
+  flex: 0 0 auto !important;
+  width: 100% !important;
+  max-width: none !important;
+}
+
+.evt-favorites-view-container .card-category-class {
+  /* 즐겨찾기 뷰: 강습 카드 사이즈 독립 설정 */
+  flex: 0 0 auto !important;
+  width: 100% !important;
+  max-width: none !important;
+}
+
+.evt-favorites-view-container .card-category-class .card-image-wrapper {
+  flex: 0 0 auto !important;
+  width: 100% !important;
+  max-width: none !important;
+  /* 예: height: 200px; 또는 aspect-ratio: 1/1; */
+}

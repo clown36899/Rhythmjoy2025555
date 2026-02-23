@@ -1,0 +1,27 @@
+/* src/styles/components/ThemeToggle.css */
+.header-theme-btn {
+    margin-left: 8px;
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: 1.2rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px;
+    border-radius: 50%;
+    transition: background-color var(--transition-normal);
+}
+
+.header-theme-btn:hover {
+    background-color: var(--bg-hover);
+}
+
+.header-theme-btn .ri-sun-line {
+    color: var(--color-yellow-400);
+}
+
+.header-theme-btn .ri-moon-line {
+    color: var(--text-primary);
+}

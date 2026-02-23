@@ -1,0 +1,100 @@
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(4px);
+    padding: 16px;
+}
+
+.modal {
+    background-color: #1f2937;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 400px;
+    border: 1px solid #374151;
+    overflow: hidden;
+}
+
+.header {
+    padding: 16px;
+    border-bottom: 1px solid #374151;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.title {
+    font-size: 18px;
+    font-weight: bold;
+    color: white;
+}
+
+.closeButton {
+    background: none;
+    border: none;
+    color: #9ca3af;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.content {
+    padding: 24px;
+}
+
+.formGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.label {
+    font-size: 14px;
+    color: #d1d5db;
+}
+
+.select {
+    width: 100%;
+    background-color: #111827;
+    border: 1px solid #374151;
+    border-radius: 8px;
+    padding: 10px;
+    color: white;
+    outline: none;
+    font-size: 14px;
+}
+
+.footer {
+    padding: 16px;
+    background-color: #111827;
+    border-top: 1px solid #374151;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.cancelButton {
+    padding: 8px 16px;
+    background-color: #1f2937;
+    color: #d1d5db;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.saveButton {
+    padding: 8px 16px;
+    background-color: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.saveButton:hover {
+    background-color: #1d4ed8;
+}

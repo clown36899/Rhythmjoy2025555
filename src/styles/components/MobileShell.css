@@ -1,0 +1,969 @@
+/* MobileShell.css - MobileShell 컴포넌트 전용 스타일 */
+
+/* ===== Shell Back Button ===== */
+.shell-back-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.375rem 0.75rem;
+  background-color: var(--bg-surface-2);
+  color: var(--text-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.shell-back-btn:hover {
+  background-color: var(--bg-hover);
+  border-color: var(--border-glass-strong);
+}
+
+.shell-back-btn i {
+  font-size: 1rem;
+}
+
+/* ===== 컨테이너 클래스 ===== */
+/* [Masked Scroll View] 관련 스타일 삭제 및 표준 복원 */
+/* .masked-scroll-view 스타일 완전 제거됨 */
+
+.shell-container {
+  min-height: 100svh;
+  /* 뷰포트 고정 */
+  overflow: hidden;
+  /* 전역 스크롤 차단 */
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.shell-container.layout-wide {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.shell-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--bg-bottom-nav-backdrop);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  backdrop-filter: blur(20px) saturate(160%);
+  border: none !important;
+  box-shadow: none !important;
+  /* 날카로운 그림자 제거 */
+  z-index: var(--z-header);
+  width: 100%;
+  margin: 0;
+  touch-action: none;
+  overscroll-behavior: contain;
+
+  /* [Foggy Boundary] 하단 바 자체의 상단을 마스크 처리 */
+  /* -webkit-mask-image: var(--bottom-nav-mask-image);
+  mask-image: var(--bottom-nav-mask-image); */
+}
+
+
+/* Layout-based responsive rules (Replaces old hacky selectors) */
+
+/* Bottom Nav */
+
+
+.layout-wide .shell-bottom-nav {
+  max-width: 100%;
+  left: 0;
+  transform: none;
+  width: 100%;
+}
+
+/* Fullscreen mode (전체영역) */
+.shell-container.fullscreen-mode {
+  padding-top: 0 !important;
+  height: 100svh !important;
+}
+
+.shell-container.fullscreen-mode .shell-header,
+.shell-container.fullscreen-mode .shell-bottom-nav,
+.shell-container.fullscreen-mode .shell-fab-btn {
+  display: none !important;
+}
+
+/* ===== 상단 바 클래스 ===== */
+
+
+/* ===== 텍스트 스타일 ===== */
+.shell-text-hint {
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--color-gray-400);
+}
+
+.shell-text-label {
+  color: var(--color-gray-400);
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+.shell-text-9px {
+  font-size: 9px;
+}
+
+/* ===== 버튼 스타일 ===== */
+.shell-btn-register {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border: 1px solid var(--color-blue-500);
+  transition: all 0.2s ease;
+  background-color: var(--color-blue-600);
+  color: white;
+  margin-left: auto;
+}
+
+.shell-btn-register:hover {
+  background-color: var(--color-blue-700);
+}
+
+.shell-btn-admin {
+  color: var(--color-red-400);
+  transition: color 0.2s ease;
+  font-size: 12px;
+  line-height: 1.2;
+  margin-left: auto;
+}
+
+.shell-btn-admin:hover {
+  color: #fca5a5;
+}
+
+/* ===== Unified Registration Button (Top Bar) ===== */
+
+
+/* Admin Button in Top Bar */
+.shell-admin-btn-topbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid var(--border-glass);
+  transition: all 0.2s ease;
+  background-color: var(--bg-surface-2);
+  color: var(--color-orange-400);
+  height: 24px;
+}
+
+.shell-admin-btn-topbar:hover {
+  background-color: var(--bg-hover);
+  border-color: var(--border-glass-strong);
+}
+
+.shell-admin-btn-topbar i {
+  font-size: 0.9rem;
+}
+
+/* ===== 네비게이션 바 ===== */
+.shell-nav-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 0.5rem 0.5rem;
+  border-top: 1px solid var(--shell-border-dark);
+}
+
+.shell-nav-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.5rem;
+  transition: color 0.2s ease;
+  flex: 1;
+  position: relative;
+}
+
+.shell-nav-btn-active-scale {
+  transition: all 0.2s ease;
+}
+
+.shell-nav-btn-active-scale:active {
+  transform: scale(0.95);
+}
+
+.shell-nav-btn-blue {
+  color: var(--color-blue-500);
+}
+
+.shell-nav-btn-green {
+  color: var(--color-green-500);
+}
+
+.shell-nav-btn-yellow {
+  color: #eab308;
+}
+
+.shell-nav-btn-purple {
+  color: var(--color-purple-500);
+}
+
+.shell-nav-btn-inactive {
+  color: var(--text-secondary);
+}
+
+.shell-nav-btn-inactive:hover {
+  color: var(--text-primary);
+}
+
+.shell-nav-icon {
+  font-size: 1.25rem;
+  margin-bottom: 0.125rem;
+}
+
+.shell-nav-label {
+  font-size: 0.75rem;
+}
+
+.shell-nav-badge {
+  position: absolute;
+  top: 0;
+  right: 0.25rem;
+  font-size: 9px;
+  color: var(--color-orange-500);
+  font-weight: 600;
+}
+
+/* ===== 관리자 패널 ===== */
+.shell-admin-panel {
+  border-top: 1px solid var(--shell-border-dark);
+  background-color: var(--shell-gray-800);
+  padding: 0.75rem;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.shell-admin-panel-title {
+  font-size: 0.75rem;
+  color: var(--color-gray-400);
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.shell-admin-panel-btn {
+  width: 100%;
+  text-align: left;
+  color: var(--text-primary);
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  border: 0;
+  background: var(--bg-base);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background-color 0.2s ease;
+  margin-bottom: 0.5rem;
+}
+
+.shell-admin-panel-btn:hover {
+  background-color: var(--shell-gray-700);
+}
+
+/* ===== 유틸리티 클래스 ===== */
+.shell-icon-sm {
+  font-size: 1.1rem;
+}
+
+.shell-mr-0-5 {
+  margin-right: 0.125rem;
+}
+
+.shell-gap-2 {
+  gap: 0.5rem;
+}
+
+.shell-flex-center {
+  display: flex;
+  align-items: center;
+}
+
+/* Global Header Styles */
+.shell-header.global-header-fixed {
+  position: fixed;
+  top: 0;
+  left: 0;
+  border: none !important;
+  width: 100%;
+  height: calc(60px + env(safe-area-inset-top));
+  padding-top: env(safe-area-inset-top);
+  /* background-color: var(--bg-header-backdrop); */
+  /* 마스크로 투명해지므로 기본 농도 상향 */
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  /* -webkit-mask-image: var(--header-mask-image);
+  mask-image: var(--header-mask-image); */
+  z-index: 49;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: none !important;
+}
+
+
+/* 날카로운 그림자 제거 */
+
+
+.header-content-inner {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 3vw;
+  padding-right: 3vw;
+  margin: 0 auto;
+}
+
+.layout-compact .header-content-inner {
+  max-width: 650px;
+}
+
+.layout-wide .header-content-inner {
+  max-width: 650px;
+
+}
+
+/* Old hack removed */
+
+/* 🖥️ Desktop Support: 650px fixed (Base rule applies) */
+/* @media (min-width: 769px) removed */
+
+
+/* Global Header Styles */
+.shell-header.global-header-fixed-bottom {
+  position: relative;
+  top: 0;
+  /* padding: 0px 12px !important; - safe area 적용을 위해 수정 */
+  padding-left: 12px;
+  padding-right: 12px;
+  padding-top: env(safe-area-inset-top);
+  left: 0;
+  right: 0;
+  /* height: 60px; - safe area 적용을 위해 제거 */
+  height: calc(60px + env(safe-area-inset-top));
+  background-color: var(--bg-base);
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  /* border-bottom: 1px solid #374151; */
+}
+
+.header-left-content {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  /* 박스 크기를 0까지 줄일 수 있게 허용 */
+  overflow: hidden;
+}
+
+/* Events Page Header */
+.header-events-content {
+  display: flex;
+  align-items: center;
+  gap: 1.5vw;
+  min-width: 0;
+  flex: 1;
+}
+
+.header-logo {
+  height: min(14vw, 53px);
+  /* 650px 이상에서 44px로 고정 */
+  width: auto;
+  object-fit: contain;
+  flex-shrink: 1;
+  /* 로고도 줄어들 수 있게 허용 */
+}
+
+.header-back-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: min(6vw, 24px);
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  margin-left: -8px;
+  transition: opacity 0.2s;
+}
+
+.header-back-btn:hover {
+  opacity: 0.7;
+}
+
+.header-title {
+  font-size: clamp(0.41rem, 4.5vw, 2rem) !important;
+  font-weight: bold;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.header-breadcrumb-link {
+  cursor: pointer;
+  transition: color 0.2s ease;
+  color: var(--text-secondary);
+}
+
+.header-breadcrumb-link:hover {
+  color: var(--text-primary);
+  text-decoration: underline;
+}
+
+.header-breadcrumb-separator {
+  color: var(--text-tertiary);
+  font-weight: 300;
+  font-size: 0.9em;
+  margin: 0 2px;
+}
+
+.header-breadcrumb-current {
+  color: var(--text-primary);
+}
+
+/* 작은 화면에서 헤더 크기 무제한 축소 (삭제 - 기본 vw 단위가 무제한 축소 담당) */
+
+.header-search-btn {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+
+.header-search-btn i {
+  font-size: 1.2rem;
+}
+
+.header-translate-btn {
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 40px;
+  /* 캡슐형 */
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: min(1vw, 6px) min(1.5vw, 10px);
+  display: flex;
+  align-items: center;
+  gap: min(0.8vw, 5px);
+  transition: all 0.2s;
+  flex-shrink: 1;
+  /* 축소 허용 */
+}
+
+.header-translate-btn:hover {
+  background: rgba(59, 130, 246, 0.25);
+  border-color: rgba(59, 130, 246, 0.5);
+}
+
+.header-translate-btn i {
+  font-size: min(3.5vw, 1.1rem);
+}
+
+.header-translate-btn span {
+  font-size: min(2.5vw, 0.75rem);
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* Custom Translation Icon (가/A) */
+.translate-icon-custom {
+  position: relative;
+  width: min(4vw, 18px);
+  height: min(3.5vw, 14px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary);
+  margin-top: -1px;
+}
+
+.ko-char {
+  position: absolute;
+  top: -1px;
+  left: -2px;
+  font-size: min(2.8vw, 0.85rem);
+  line-height: 1;
+  z-index: 2;
+}
+
+.divider {
+  font-size: min(3.2vw, 0.9rem);
+  opacity: 0.3;
+  font-weight: 300;
+  transform: rotate(15deg);
+  margin-top: 1px;
+}
+
+.en-char {
+  position: absolute;
+  bottom: -2px;
+  right: 1px;
+  font-size: min(2.5vw, 0.72rem);
+  line-height: 1;
+  z-index: 2;
+}
+
+/* Header Right Buttons */
+.header-right-buttons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  /* 고정 clamp 제거, 순수 vw 사용 */
+  flex-shrink: 0;
+  /* 버튼 영역이 눌리지 않도록 flex-shrink 변경 */
+  min-width: 0;
+  position: relative;
+  z-index: 10;
+}
+
+.header-hamburger-btn {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  /* 다크모드 대응: 명시적 흰색 */
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  transition: opacity 0.2s;
+  flex-shrink: 0;
+}
+
+.header-hamburger-btn:hover {
+  opacity: 0.7;
+}
+
+/* User Profile Button */
+.header-user-btn {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  /* 다크모드 대응: 명시적 흰색 */
+  font-size: min(4vw, 1.3rem);
+  cursor: pointer;
+  padding: min(1vw, 4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.2s;
+  border-radius: 50%;
+  position: relative;
+  flex-shrink: 1;
+}
+
+.header-user-btn:hover {
+  opacity: 0.7;
+}
+
+.header-user-avatar {
+  width: min(7vw, 35px);
+  /* 35px -> 7vw */
+  height: min(7vw, 35px);
+  border-radius: 50%;
+  object-fit: cover;
+  border: 1px solid var(--border-glass-strong);
+  /* 테두리 복구 */
+}
+
+/* Login Button (when not logged in) */
+.header-login-btn {
+  background: transparent;
+  border: 2px solid rgba(96, 165, 250, 0.8);
+  border-radius: min(1.8vw, 10px);
+  color: #60a5fa;
+  cursor: pointer;
+  padding: min(1.6vw, 8px) min(2.8vw, 15px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: min(0.8vw, 5px);
+  transition: all 0.25s ease;
+  flex-shrink: 0;
+  font-size: min(3vw, 14px);
+  font-weight: 600;
+  white-space: nowrap;
+  letter-spacing: 0.3px;
+}
+
+.header-login-btn:hover {
+  background: rgba(96, 165, 250, 0.15);
+  border-color: #60a5fa;
+  color: #93c5fd;
+}
+
+
+/* Board Page Header */
+.header-board-content {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.header-title-board {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: var(--text-primary);
+  margin-right: auto;
+}
+
+.board-btn-write-header {
+  background-color: var(--primary-color);
+  color: var(--text-primary);
+  border: none;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-right: 12px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.board-btn-write-header:hover {
+  opacity: 0.9;
+}
+
+/* Other Pages Header */
+.header-title-other {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: var(--text-primary);
+}
+
+/* Calendar Header Navigation Styles */
+.calendar-header-nav {
+  display: flex;
+  align-items: center;
+  gap: clamp(6px, 2vw, 12px);
+  /* 반응형 gap */
+  flex: 1;
+  /* 가능한 공간 모두 사용 */
+  min-width: 0;
+  /* 축소 가능 */
+  overflow: visible;
+  /* 버튼이 잘리지 않도록 */
+}
+
+.calendar-back-btn {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  transition: opacity 0.2s;
+  flex-shrink: 0;
+  /* 뒤로가기 버튼은 크기 유지 */
+}
+
+.calendar-back-btn:hover {
+  opacity: 0.7;
+}
+
+.calendar-back-btn i {
+  font-size: clamp(1.2rem, 5vw, 1.5rem);
+  /* 반응형 아이콘 */
+}
+
+.calendar-month-nav {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  background-color: var(--bg-surface-glass);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 4px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--border-glass-strong);
+  flex-shrink: 1;
+  /* 좁은 화면에서 크기 축소 허용 */
+  min-width: 0;
+  /* 박스 크기를 0까지 줄일 수 있게 허용 */
+  overflow: visible;
+  /* 버튼이 잘리지 않도록 */
+  border-radius: 40px;
+  /* 캡슐형 곡률 */
+}
+
+
+.calendar-month-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  padding: 4px min(1.5vw, 6px);
+  /* 반응형 패딩 */
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+  flex-shrink: 0;
+  /* 버튼 자체는 크기 유지 */
+}
+
+.calendar-month-btn:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.calendar-month-btn:active {
+  transform: scale(0.95);
+}
+
+.calendar-month-btn i {
+  font-size: clamp(1rem, 4vw, 1.3rem);
+  /* 아이콘 크기 반응형 */
+}
+
+.calendar-month-label {
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: clamp(0.75rem, 3.5vw, 0.95rem);
+  /* 라벨 기본 폰트 살짝 조정 */
+  min-width: clamp(50px, 15vw, 85px);
+  /* 너비 확보 */
+  text-align: center;
+  white-space: nowrap;
+  overflow: visible;
+  /* 말줄임표 제거 (숫자 중심이라 잘리면 안됨) */
+  flex-shrink: 1;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+}
+
+.calendar-month-digit {
+  font-size: 2rem;
+  /* 월 숫자 대폭 확대 */
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-family: 'Outfit', 'Inter', sans-serif;
+  position: relative;
+  top: 1px;
+}
+
+.calendar-month-label-clickable {
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.calendar-month-label-clickable:hover {
+  opacity: 0.8;
+}
+
+.calendar-today-header-btn {
+  background: var(--gradient-accent);
+  color: white;
+  border: none;
+  padding: clamp(3px, 1vw, 4px) clamp(8px, 2vw, 12px);
+  /* 더 작은 패딩 */
+  border-radius: 6px;
+  font-size: clamp(0.65rem, 2.8vw, 0.85rem);
+  /* 더 작은 폰트 */
+  font-weight: 700;
+  margin-left: clamp(2px, 1vw, 4px);
+  /* 반응형 마진 */
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  flex-shrink: 1;
+  /* 필요 시 축소 허용 */
+  min-width: 32px;
+  /* 최소 너비 보장 */
+  /* box-shadow:
+    0 8px 16px rgba(37, 99, 235, 0.3),
+    0 2px 4px rgba(37, 99, 235, 0.2); */
+  border-radius: 40px;
+  /* 캡슐형 곡률 */
+}
+
+.calendar-today-header-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(37, 99, 235, 0.3);
+}
+
+.calendar-today-header-btn:active {
+  transform: translateY(0);
+  filter: brightness(0.95);
+}
+
+/* 매우 좁은 화면용 추가 조정 */
+@media (max-width: 350px) {
+  .calendar-header-nav {
+    gap: 4px;
+  }
+
+  .calendar-month-nav {
+    gap: 2px;
+    padding: 3px 6px;
+  }
+
+  .calendar-month-btn {
+    padding: 3px 4px;
+  }
+
+  .calendar-month-label {
+    font-size: 0.7rem;
+    min-width: 45px;
+  }
+
+  .calendar-today-header-btn {
+    font-size: 0.6rem;
+    padding: 3px 5px;
+    margin-left: 2px;
+    margin-left: 2px;
+  }
+}
+
+/* FAB styles moved to BottomNavigation */
+
+/* ===== Logo Header Semantic Classes (Replacement for inline styles) ===== */
+.header-logo-container {
+  display: flex;
+  align-items: center;
+  gap: 1.5vw;
+  cursor: pointer;
+}
+
+.header-logo-text-wrapper {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1;
+  min-width: 0;
+  overflow: hidden;
+  width: fit-content;
+}
+
+.header-logo-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: min(0.8vw, 6px);
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
+.header-logo-title {
+  margin: 0;
+  font-size: min(4vw, 1.45rem);
+  min-width: 0;
+  flex-shrink: 1;
+  overflow: hidden;
+  color: var(--text-primary);
+}
+
+.header-logo-tag {
+  font-size: min(2.2vw, 0.8rem);
+  color: var(--text-tertiary);
+  font-weight: 400;
+  white-space: nowrap;
+}
+
+.header-logo-domain {
+  font-size: min(2.5vw, 11px);
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  color: var(--text-tertiary);
+  margin-top: min(0.3vw, 2px);
+  font-weight: 500;
+  opacity: 0.8;
+}
+
+.header-logo-domain span {
+  display: inline-block;
+}
+
+.header-title-simple {
+  margin: 0;
+  font-size: 18px;
+  font-weight: bold;
+  margin-left: 8px;
+  color: var(--text-primary);
+}
+
+/* ===== Admin Stats Semantic Classes ===== */
+.admin-stats-wrapper {
+  margin-left: 8px;
+}
+
+.admin-stats-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: min(0.5vw, 4px);
+  font-size: min(2.2vw, 0.8rem);
+  font-weight: 600;
+  background: var(--bg-surface-glass);
+  padding: 2px 6px;
+  border-radius: 6px;
+  border: 1px solid var(--border-glass);
+  color: var(--text-secondary);
+  flex-shrink: 1;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.admin-stats-badge:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-glass-strong);
+}
+
+.stat-logged-count {
+  color: var(--color-blue-400);
+}
+
+.stat-separator {
+  color: var(--text-tertiary);
+  opacity: 0.6;
+}
+
+.stat-anon-count {
+  color: var(--color-orange-400);
+}
+
+.stat-total-count {
+  font-size: min(0.85em, 10px);
+  color: var(--text-tertiary);
+  font-weight: normal;
+  margin-left: min(0.3vw, 2px);
+}
+
+/* ===== Calendar Header Refinements ===== */
+.calendar-month-label-clickable {
+  cursor: pointer;
+}

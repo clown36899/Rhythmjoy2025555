@@ -1,0 +1,172 @@
+/* 2026 Pure Semantic CSS Layers Definition */
+@layer base, components, utilities;
+
+/* CSS 기본 스타일 및 유틸리티 시스템 - @import는 맨 위에 와야 함 */
+@import './styles/base.css' layer(base);
+@import './styles/utilities.css' layer(utilities);
+@import './styles/shared/loading.css' layer(components);
+@import './styles/shared/error.css' layer(components);
+@import './styles/shared/links.css' layer(components);
+@import './styles/components/DatePickerTheme.css' layer(components);
+
+@layer components {
+
+  /* 모바일 전용: 650px 고정 - 가로 스크롤 방지 */
+  /* html, body styles moved to base.css */
+  #root {
+    max-width: 650px;
+    margin: 0 auto;
+    width: 100% !important;
+    min-height: 100svh;
+  }
+
+  /* 🖥️ Desktop Support: 650px fixed width (Base rule applies) */
+  /* @media (min-width: 769px) removed to enforce 650px */
+
+  /* 🎓 Learning/Archive Route: Full Width (Structural Isolation) */
+  html.layout-wide-mode,
+  html.layout-wide-mode body,
+  html.layout-wide-mode #root {
+    max-width: none !important;
+    margin: 0 !important;
+    width: 100% !important;
+    height: 100svh !important;
+    overflow: hidden !important;
+  }
+
+  /* 📱 Mobile PWA Portrait Lock (Fallback for iOS) */
+  @media screen and (orientation: landscape) {
+    body.mobile-pwa {
+      transform: rotate(-90deg);
+      transform-origin: left top;
+      width: 100vh;
+      height: 100vw;
+      overflow-x: hidden;
+      position: absolute;
+      top: 100%;
+      left: 0;
+    }
+  }
+
+  /* Redundant body style removed */
+
+  /* ===== Global Header Styles ===== */
+  .global-header {
+    /* position: sticky;
+    top: 0; */
+    /* left: 0; */
+    display: flex;
+    width: 100%;
+    margin: 0 auto;
+    backdrop-filter: blur(10px);
+    /* height: 61px; */
+    /* background-color: #000000; */
+    /* border-bottom: 1px solid #2b2b2b; */
+    z-index: 19;
+    /* box-shadow: -1px 4px 25px -5px rgb(0 0 0 / 33%); */
+    flex-direction: column;
+    justify-content: center;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fadeIn {
+    animation: fadeIn 0.4s ease-out forwards;
+    opacity: 0;
+  }
+
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.9);
+    }
+
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  /* 텍스트/이미지 선택 방지 - 달력, 이벤트, 바텀메뉴 */
+  .no-select {
+    -webkit-user-select: none !important;
+    -moz-user-select: none !important;
+    -ms-user-select: none !important;
+    user-select: none !important;
+    -webkit-touch-callout: none !important;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  /* 이미지 드래그 방지 및 선택 방지 강화 */
+  .no-select img,
+  img.no-drag {
+    pointer-events: none;
+    -webkit-user-drag: none !important;
+    -khtml-user-drag: none !important;
+    -moz-user-drag: none !important;
+    -o-user-drag: none !important;
+    user-drag: none !important;
+  }
+
+  /* 달력 날짜 칸 - 동적 높이 (grid-auto-rows로 제어) */
+  .calendar-day-cell {
+    /* height는 grid-auto-rows로 제어됨 */
+    min-height: 30px;
+    padding: 1px 2px;
+    border-right: 1px solid var(--calendar-vertical-border);
+    border-bottom: 1px solid var(--calendar-week-border);
+  }
+
+  /* 태블릿 이상에서는 패딩만 조정 */
+  @media (min-width: 650px) {
+    .calendar-day-cell {
+      /* height는 grid-auto-rows로 제어됨 */
+      min-height: 30px;
+      padding: 1px;
+      border-right: 1px solid var(--calendar-vertical-border);
+      border-bottom: 1px solid var(--calendar-week-border);
+    }
+  }
+
+  /* 요일 헤더 셀 - 날짜와 동일한 border 스타일 */
+  .calendar-day-header {
+    border-right: 1px solid var(--calendar-vertical-border);
+    border-bottom: 1px solid var(--calendar-week-border);
+    background-color: var(--bg-surface-2);
+  }
+
+  /* react-datepicker styles moved to DatePickerTheme.css */
+
+
+
+  /* [Standard Fix] 전역 모달 오픈 시 배경 제스처 간섭 원천 차단 */
+  html.modal-open,
+  html.modal-open body {
+    overflow: hidden !important;
+    /* height: 100svh !important; // Removed to prevent scroll reset */
+    touch-action: auto;
+  }
+
+  /* 모달 내부의 스크롤은 허용 */
+  .modal-open .modal-content-area,
+  .modal-open .content-area,
+  .modal-open .scroll-list,
+  .modal-open .custom-scrollbar,
+  .modal-open [class*="content"],
+  .modal-open [class*="scroll"] {
+    touch-action: auto !important;
+    overscroll-behavior: contain !important;
+    pointer-events: auto !important;
+  }
+}

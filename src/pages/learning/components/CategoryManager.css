@@ -1,0 +1,623 @@
+.container {
+    background-color: #1f2937;
+    padding: 20px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.title {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 16px;
+    color: white;
+}
+
+.createForm {
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    padding: 1rem;
+    border-bottom: 1px solid #374151;
+}
+
+.targetFolder {
+    font-size: 12px;
+    color: #9ca3af;
+    margin-bottom: 8px;
+}
+
+.targetName {
+    color: #60a5fa;
+    font-weight: bold;
+}
+
+.targetRoot {
+    color: #34d399;
+    font-weight: bold;
+}
+
+.inputGroup {
+    display: flex;
+    gap: 8px;
+}
+
+.createInput {
+    flex: 1;
+    background-color: #374151;
+    border: 1px solid #4b5563;
+    border-radius: 4px;
+    padding: 6px 12px;
+    color: white;
+    font-size: 14px;
+}
+
+.createBtn {
+    background-color: transparent;
+    color: #e5e7eb;
+    border: 1px solid #4b5563;
+    padding: 6px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+.createBtn:hover {
+    background-color: #374151;
+    color: white;
+    border-color: #6b7280;
+}
+
+.createBtn:active {
+    background-color: #1f2937;
+}
+
+.createBtn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: transparent;
+}
+
+/* Horizontal Tree Container - Kanban Style */
+.treeContainer {
+    display: flex;
+    flex-direction: row;
+    /* Horizontal columns */
+    align-items: stretch;
+    gap: 16px;
+    overflow-x: auto;
+    /* Horizontal scroll */
+    overflow-y: hidden;
+    /* Hide vertical scroll of container */
+    padding: 8px 8px 16px 8px;
+    /* Bottom padding for scrollbar */
+    flex: 1;
+    height: 100%;
+}
+
+/* Mobile: Keep column layout */
+@media (max-width: 768px) {
+    .treeContainer {
+        flex-direction: column;
+        overflow-x: hidden;
+        overflow-y: auto;
+        gap: 8px;
+        padding: 4px;
+        height: auto;
+    }
+}
+
+/* Collapse toggle button */
+.collapseToggle {
+    font-size: 14px;
+    padding: 4px 8px;
+    /* Larger hit area */
+    margin-right: 2px;
+    cursor: pointer;
+    user-select: none;
+    opacity: 0.7;
+    transition: all 0.2s;
+    border-radius: 4px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    min-height: 24px;
+}
+
+.collapseToggle:hover {
+    opacity: 1;
+    background-color: rgba(255, 255, 255, 0.1);
+    /* Visual cue */
+}
+
+/* Tree Branch Wrapper - Unified Recursive Node */
+.treeBranch {
+    display: flex;
+    max-width: 300px;
+    flex-direction: column;
+    transition: all 0.2s ease;
+}
+
+.rootBranch {
+    background-color: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 12px;
+    height: 100%;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    min-width: 320px;
+    max-width: 400px;
+    /* Precise upper bound for clean columns */
+    flex: 0 0 auto;
+}
+
+.treeBranch:not(.rootBranch).dragOver-reparent {
+    background-color: rgba(59, 130, 246, 0.1);
+    box-shadow: inset 0 0 0 2px #3b82f6;
+    border-radius: 4px;
+}
+
+.itemContent.dragging {
+    opacity: 0.5;
+    background-color: #3b82f6 !important;
+    border: 2px dashed #60a5fa !important;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+.treeBranch.dragging {
+    /* Prevent the entire branch from looking dragged unless it's the target anchor */
+    background-color: transparent;
+    opacity: 1;
+}
+
+.drop-target {
+    background-color: rgba(59, 130, 246, 0.2) !important;
+    box-shadow: 0 0 0 2px #3b82f6 !important;
+}
+
+/* Mobile: Full width columns */
+@media (max-width: 768px) {
+    .treeColumn {
+        width: 100%;
+        min-width: 0;
+        max-width: none;
+        flex: 1 1 auto;
+        max-height: none;
+        overflow-y: visible;
+    }
+}
+
+/* Tree Line Implementation */
+.treeChildren {
+    margin-left: 24px;
+    padding-left: 16px;
+    border-left: 2px solid #4b5563;
+    display: flex;
+    flex-direction: column;
+    margin-top: 4px;
+}
+
+.treeChildren:hover {
+    border-left-color: #60a5fa;
+}
+
+/* Root Header in Column */
+.columnHeader {
+    font-weight: 600;
+    font-size: 16px;
+    color: white;
+    padding: 4px;
+    /* border-bottom: 1px solid #374151; */
+    /* margin-bottom: 8px; */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.columnHeader:hover {
+    background-color: rgba(255, 255, 255, 0.08);
+}
+
+.columnHeader.selected {
+    background-color: rgba(37, 99, 235, 0.25);
+    color: #93c5fd;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.3);
+}
+
+/* Tree Items */
+.itemContent {
+    display: flex;
+    align-items: center;
+    padding: 0px 12px;
+    border-radius: 6px;
+    background-color: #1f2937;
+    /* border: 1px solid #374151; */
+    transition: all 0.2s ease;
+    position: relative;
+    cursor: pointer;
+    color: #d1d5db;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.itemContent:hover {
+    background-color: rgba(55, 65, 81, 0.7);
+    border-color: #4b5563;
+    transform: translateX(2px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.itemContent.selected {
+    background-color: rgba(37, 99, 235, 0.25);
+    color: #93c5fd;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.3);
+}
+
+.itemIcon {
+    margin-right: 10px;
+    font-size: 18px;
+}
+
+.categoryName {
+    flex: 1;
+    font-size: 15px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+/* .categoryName:hover removed to prevent inline expansion */
+.categoryName:hover {
+    color: white;
+}
+
+.actions {
+    display: flex;
+    gap: 6px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.itemContent:hover .actions,
+.columnHeader:hover .actions {
+    opacity: 1;
+}
+
+.actionBtn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 14px;
+    padding: 4px;
+    opacity: 0.7;
+    transition: all 0.2s ease;
+    border-radius: 4px;
+}
+
+.actionBtn:hover {
+    opacity: 1;
+    background-color: rgba(255, 255, 255, 0.1);
+    transform: scale(1.1);
+}
+
+.deleteBtn:hover {
+    filter: grayscale(0) hue-rotate(0);
+}
+
+.editForm {
+    display: flex;
+    flex: 1;
+    gap: 4px;
+}
+
+.editInput {
+    flex: 1;
+    background-color: #111827;
+    border: 1px solid #60a5fa;
+    border-radius: 2px;
+    color: white;
+    padding: 2px 4px;
+    font-size: 13px;
+}
+
+.saveBtn,
+.cancelBtn {
+    border: none;
+    border-radius: 2px;
+    padding: 2px 6px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.saveBtn {
+    background-color: #059669;
+    color: white;
+}
+
+.cancelBtn {
+    background-color: #dc2626;
+    color: white;
+}
+
+.loading,
+.empty {
+    text-align: center;
+    color: #6b7280;
+    font-size: 14px;
+    margin-top: 20px;
+    width: 100%;
+}
+
+.dragging {
+    opacity: 0.5 !important;
+    background-color: rgba(31, 41, 55, 0.1) !important;
+}
+
+/* Pro Standard DnD Visuals */
+
+/* Pro Standard DnD Visuals */
+.treeItem {
+    /* Grid layout readiness */
+    display: inline-flex;
+    flex-direction: column;
+    width: auto;
+    min-width: 120px;
+    max-width: 200px;
+    margin: 4px;
+    /* Space between items */
+    padding: 0;
+    position: relative;
+    vertical-align: top;
+}
+
+/* Reorder Indicators (Separated by pseudo-elements) */
+.itemContent.reorder-top::before,
+.itemContent.reorder-before::before {
+    content: '';
+    position: absolute;
+    top: -7px;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background-color: #3b82f6;
+    border-radius: 2px;
+    box-shadow: 0 0 4px rgba(59, 130, 246, 0.5);
+    z-index: 100;
+}
+
+.itemContent.reorder-bottom::after,
+.itemContent.reorder-after::after {
+    content: '';
+    position: absolute;
+    bottom: -7px;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background-color: #3b82f6;
+    border-radius: 2px;
+    box-shadow: 0 0 4px rgba(59, 130, 246, 0.5);
+    z-index: 100;
+}
+
+.itemContent.reorder-left::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -12px;
+    width: 4px;
+    background-color: #3b82f6;
+    border-radius: 2px;
+    box-shadow: 0 0 4px rgba(59, 130, 246, 0.5);
+    z-index: 100;
+}
+
+.itemContent.reorder-right::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: -12px;
+    width: 4px;
+    background-color: #3b82f6;
+    border-radius: 2px;
+    box-shadow: 0 0 4px rgba(59, 130, 246, 0.5);
+    z-index: 100;
+}
+
+.treeItem.dragOver-reparent::before {
+    display: none;
+}
+
+/* Horizontal Column Lines */
+.treeColumn.dragOver-reorder-top::before {
+    top: 0;
+    bottom: 0;
+    left: -8px;
+    width: 4px;
+    height: auto;
+    background-color: #3b82f6;
+    pointer-events: none;
+    z-index: 1000;
+    box-shadow: 0 0 4px rgba(59, 130, 246, 0.5);
+}
+
+.treeColumn.dragOver-reorder-bottom::after {
+    top: 0;
+    bottom: 0;
+    right: -8px;
+    width: 4px;
+    height: auto;
+    background-color: #3b82f6;
+    left: auto;
+    pointer-events: none;
+    box-shadow: 0 0 4px rgba(59, 130, 246, 0.5);
+}
+
+/* Source Indicator Dot */
+.source-dot {
+    display: inline-block;
+    color: #ef4444;
+    font-size: 14px;
+    margin-left: 6px;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        opacity: 0.6;
+        transform: scale(0.9);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+
+    100% {
+        opacity: 0.6;
+        transform: scale(0.9);
+    }
+}
+
+/* 2. Reparent: Refined High-Visibility Highlight (Inside Folder) */
+.itemContent.dragOver-active,
+.itemContent.reorder-inside {
+    background-color: rgba(30, 144, 255, 0.5) !important;
+    border: 2px solid #00bfff !important;
+    outline: 2px solid rgba(0, 191, 246, 0.6) !important;
+    outline-offset: 0;
+    box-shadow:
+        0 0 20px rgba(30, 144, 255, 0.4),
+        inset 0 0 15px rgba(30, 144, 255, 0.3) !important;
+    transform: scale(1.02);
+    z-index: 1000;
+    animation: drag-neat-pulse 1.2s infinite alternate ease-in-out;
+}
+
+@keyframes drag-neat-pulse {
+    0% {
+        background-color: rgba(30, 144, 255, 0.4);
+        box-shadow: 0 0 15px rgba(30, 144, 255, 0.3), inset 0 0 10px rgba(30, 144, 255, 0.2);
+    }
+
+    100% {
+        background-color: rgba(30, 144, 255, 0.6);
+        box-shadow: 0 0 30px rgba(30, 144, 255, 0.7), inset 0 0 20px rgba(30, 144, 255, 0.5);
+    }
+}
+
+/* Dummy Child - Keep it but ensure no pointer events */
+.dummy-child {
+    margin-left: 12px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 8px;
+    border: 1px dashed #3b82f6;
+    border-radius: 6px;
+    background-color: rgba(59, 130, 246, 0.05);
+    color: #3b82f6;
+    font-size: 0.9em;
+    pointer-events: none;
+}
+
+.dummy-child .arrow {
+    transform: rotate(90deg);
+    font-weight: bold;
+}
+
+/* Root Container Drop Zone */
+.treeContainer {
+    position: relative;
+    min-height: 400px;
+    /* padding: 16px; */
+    transition: background-color 0.2s;
+}
+
+.treeContainer.dragOver-root {
+    background-color: rgba(250, 204, 21, 0.05);
+    border: 2px dashed #facc15;
+}
+
+.root-drop-cue {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    background: #facc15;
+    color: black;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-weight: bold;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes popIn {
+    from {
+        transform: translate(-50%, -50%) scale(0.8);
+        opacity: 0;
+    }
+
+    to {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+}
+
+/* Playlist Items in Tree */
+.treeItem.playlistItem {
+    margin-left: 0;
+    padding-left: 12px;
+    border-left: 2px solid transparent;
+    border-radius: 0 4px 4px 0;
+    margin-top: 1px;
+    margin-bottom: 1px;
+    display: flex;
+    position: relative;
+    flex-direction: row;
+}
+
+.treeItem.playlistItem:hover {
+    background-color: rgba(59, 130, 246, 0.1);
+    border-left-color: #60a5fa;
+}
+
+.treeItem.playlistItem .folderIcon {
+    font-size: 14px;
+    margin-right: 10px;
+    opacity: 0.7;
+    filter: none;
+}
+
+.treeItem.playlistItem .categoryName {
+    font-size: 0.9rem;
+    color: #9ca3af;
+    transition: all 0.2s;
+    font-weight: 400;
+}
+
+.treeItem.playlistItem:hover .categoryName {
+    color: #e2e8f0;
+    transform: translateX(2px);
+}

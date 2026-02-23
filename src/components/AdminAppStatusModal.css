@@ -1,0 +1,419 @@
+/* AdminAppStatusModal.css */
+.aasm-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: var(--z-modal-stack-2, 12000);
+    padding: 20px;
+    animation: aasmFadeIn 0.3s ease;
+}
+
+.aasm-container {
+    width: 100%;
+    max-width: 900px;
+    height: 90vh;
+    background: #1a1a1a;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes aasmFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Header & Tabs */
+.aasm-header {
+    padding: 24px 24px 16px;
+    background: linear-gradient(to bottom, #242424, #1a1a1a);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.aasm-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.aasm-title {
+    margin: 0;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.aasm-close-btn {
+    background: rgba(255, 255, 255, 0.05);
+    border: none;
+    color: #999;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.aasm-close-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.aasm-tabs {
+    display: flex;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 4px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    gap: 4px;
+}
+
+.aasm-tab {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    background: transparent;
+    color: #888;
+    font-size: 0.9rem;
+    font-weight: 600;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.aasm-tab.is-active {
+    background: #333;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.aasm-tab-count {
+    font-size: 0.75rem;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 8px;
+    border-radius: 10px;
+}
+
+/* Stats Bar */
+.aasm-stats-bar {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.aasm-stat-card {
+    background: rgba(255, 255, 255, 0.03);
+    padding: 12px;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.aasm-stat-value {
+    font-size: 1.2rem;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 4px;
+}
+
+.aasm-stat-label {
+    font-size: 0.7rem;
+    color: #777;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Search */
+.aasm-search-area {
+    display: flex;
+    gap: 12px;
+}
+
+.aasm-search-wrapper {
+    flex: 1;
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.aasm-search-icon {
+    position: absolute;
+    left: 14px;
+    color: #666;
+}
+
+.aasm-search-input {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: #fff;
+    padding: 12px 14px 12px 42px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    outline: none;
+    transition: all 0.2s;
+}
+
+.aasm-search-input:focus {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.aasm-refresh-btn {
+    width: 44px;
+    height: 44px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    color: #999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.aasm-refresh-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+/* Content Grid */
+.aasm-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px;
+}
+
+.aasm-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+}
+
+.aasm-card {
+    background: #242424;
+    border-radius: 16px;
+    padding: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    transition: transform 0.2s;
+}
+
+.aasm-card:hover {
+    border-color: rgba(255, 255, 255, 0.15);
+}
+
+.aasm-user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.aasm-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #333;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #666;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.aasm-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.aasm-user-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.aasm-nickname {
+    color: #fff;
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.aasm-user-id {
+    font-size: 0.75rem;
+    color: #777;
+    font-family: monospace;
+}
+
+.aasm-name-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.aasm-admin-badge {
+    font-size: 0.65rem;
+    background: #f87171;
+    color: #000;
+    padding: 1px 4px;
+    border-radius: 4px;
+    font-weight: 800;
+}
+
+.aasm-info-box {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.aasm-info-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.8rem;
+}
+
+.aasm-info-label {
+    color: #666;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.aasm-info-value {
+    color: #bbb;
+    font-weight: 500;
+}
+
+.aasm-prefs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.aasm-pref-chip {
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.05);
+    color: #555;
+    font-weight: 600;
+    border: 1px solid transparent;
+}
+
+.aasm-pref-chip.active {
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.aasm-pref-chip.active.event {
+    background: rgba(52, 211, 153, 0.15);
+    color: #34d399;
+}
+
+.aasm-pref-chip.active.class {
+    background: rgba(251, 191, 36, 0.15);
+    color: #fbbf24;
+}
+
+.aasm-pref-chip.active.club {
+    background: rgba(248, 113, 113, 0.15);
+    color: #f87171;
+}
+
+.aasm-card-footer {
+    margin-top: auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.aasm-time {
+    font-size: 0.7rem;
+    color: #555;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.aasm-tag {
+    font-size: 0.65rem;
+    background: rgba(255, 255, 255, 0.05);
+    color: #888;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+}
+
+.aasm-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 200px;
+    color: #444;
+    gap: 12px;
+}
+
+.aasm-empty i {
+    font-size: 3rem;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .aasm-container {
+        height: 100vh;
+        border-radius: 0;
+    }
+
+    .aasm-overlay {
+        padding: 0;
+    }
+
+    .aasm-stats-bar {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .aasm-grid {
+        grid-template-columns: 1fr;
+    }
+}

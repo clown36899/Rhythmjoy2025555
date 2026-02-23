@@ -1,0 +1,241 @@
+/* Board Management Modal Dedicated Styles */
+
+.bmm-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 99999 !important;
+    /* Extremely high z-index to prevent hiding */
+    backdrop-filter: blur(4px);
+}
+
+.bmm-container {
+    background-color: #1e1e1e;
+    width: 90%;
+    max-width: 600px;
+    max-height: 80vh;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #333;
+    animation: bmm-fade-in 0.2s ease-out;
+}
+
+@keyframes bmm-fade-in {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.bmm-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #333;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.bmm-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: white;
+}
+
+.bmm-close-btn {
+    background: none;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.bmm-close-btn:hover {
+    color: white;
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.bmm-content {
+    padding: 20px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.bmm-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+}
+
+.bmm-table th {
+    text-align: left;
+    padding: 10px;
+    color: #888;
+    border-bottom: 1px solid #333;
+    font-weight: 500;
+    font-size: 0.85rem;
+}
+
+.bmm-table td {
+    padding: 12px 10px;
+    border-bottom: 1px solid #2a2a2a;
+    color: #eee;
+    vertical-align: middle;
+    transition: background-color 0.3s ease;
+}
+
+.bmm-table tr.highlight-row td {
+    background-color: rgba(251, 191, 36, 0.15);
+    /* Primary color low opacity */
+    animation: highlight-pulse 2s forwards;
+}
+
+@keyframes highlight-pulse {
+    0% {
+        background-color: rgba(251, 191, 36, 0.2);
+    }
+
+    100% {
+        background-color: transparent;
+    }
+}
+
+.bmm-input {
+    width: 100%;
+    background-color: #2a2a2a;
+    border: 1px solid #444;
+    border-radius: 6px;
+    padding: 8px 12px;
+    color: white;
+    font-size: 0.95rem;
+    box-sizing: border-box;
+}
+
+.bmm-input:focus {
+    outline: none;
+    border-color: var(--primary-color, #fbbf24);
+}
+
+.bmm-btn {
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: none;
+    font-size: 0.85rem;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.bmm-btn-active {
+    background-color: var(--primary-color, #fbbf24);
+    color: black;
+}
+
+.bmm-btn-inactive {
+    background-color: #333;
+    color: #888;
+}
+
+.bmm-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    color: #888;
+}
+
+/* Order Buttons */
+.bmm-order-btn {
+    background-color: #333;
+    border: 1px solid #444;
+    color: #ccc;
+    width: 28px;
+    height: 28px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.bmm-order-btn:hover:not(:disabled) {
+    background-color: #444;
+    color: white;
+    border-color: #555;
+}
+
+.bmm-order-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.3;
+}
+
+.bmm-order-btn i {
+    font-size: 16px;
+}
+
+/* Save Button */
+.bmm-save-btn {
+    background-color: #333;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.2s;
+}
+
+.bmm-save-btn:hover {
+    background-color: var(--primary-color, #fbbf24);
+    color: black;
+}
+
+/* Delete Button */
+.bmm-delete-btn {
+    background-color: transparent;
+    border: 1px solid #444;
+    color: #ef4444;
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-left: 8px;
+}
+
+.bmm-delete-btn:hover:not(:disabled) {
+    background-color: #ef4444;
+    color: white;
+    border-color: #ef4444;
+}
+
+.bmm-delete-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.3;
+    filter: grayscale(100%);
+}

@@ -1,0 +1,130 @@
+/* CatalogPage.css */
+
+.catalog-page-container {
+    padding: 20px;
+    background-color: #0a0a0a;
+    min-height: 100vh;
+    color: #fff;
+    font-family: Pretendard, sans-serif;
+    overflow-y: auto;
+}
+
+.catalog-wrapper {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.catalog-header {
+    margin-bottom: 30px;
+    border-bottom: 1px solid #222;
+    padding-bottom: 20px;
+}
+
+.catalog-header-title {
+    font-size: 1.8rem;
+    margin-bottom: 5px;
+    font-weight: 900;
+    color: #e54d4d;
+}
+
+.catalog-header-desc {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.catalog-list-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.catalog-item-bar {
+    background-color: #141414;
+    border: 1px solid #222;
+    border-radius: 8px;
+    padding: 12px 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.1s ease;
+    user-select: none;
+}
+
+/* Version 7 Highlight */
+.catalog-item-bar.highlighted {
+    border-color: #e54d4d;
+}
+
+.catalog-item-bar:hover {
+    border-color: #e54d4d !important;
+}
+
+.catalog-item-left {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex: 1;
+}
+
+.catalog-version-badge {
+    font-size: 0.8rem;
+    color: #e54d4d;
+    font-weight: 900;
+    width: 30px;
+    text-align: center;
+    background-color: #000;
+    padding: 2px 4px;
+    border-radius: 4px;
+}
+
+.catalog-item-text-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 10px;
+}
+
+.catalog-item-name {
+    font-size: 1rem;
+    margin: 0;
+    font-weight: 700;
+}
+
+.catalog-item-desc {
+    color: #555;
+    font-size: 0.85rem;
+    margin: 0;
+}
+
+.catalog-item-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.catalog-status-badge {
+    background-color: #e54d4d;
+    color: #fff;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+.catalog-select-indicator {
+    color: #333;
+    font-size: 0.8rem;
+}
+
+.catalog-footer {
+    margin-top: 40px;
+    padding: 20px 0;
+    border-top: 1px solid #222;
+    text-align: center;
+}
+
+.catalog-footer-text {
+    color: #444;
+    font-size: 0.8rem;
+}

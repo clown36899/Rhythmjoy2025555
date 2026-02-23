@@ -1,0 +1,152 @@
+/* Resource Link Modal Styles */
+.rlm-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.75);
+    z-index: 10001;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    animation: rlm-fadeIn 0.2s ease-out;
+}
+
+.rlm-modal {
+    background-color: #1f2937;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 70vh;
+    overflow: hidden;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    animation: rlm-slideUp 0.3s ease-out;
+    border: 1px solid #374151;
+    display: flex;
+    flex-direction: column;
+}
+
+.rlm-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid #374151;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #111827;
+}
+
+.rlm-header h3 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #f3f4f6;
+}
+
+.rlm-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #9ca3af;
+    padding: 4px 8px;
+    line-height: 1;
+    transition: color 0.2s;
+}
+
+.rlm-close:hover {
+    color: #f3f4f6;
+}
+
+.rlm-content {
+    padding: 16px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.rlm-loading,
+.rlm-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: #9ca3af;
+    font-size: 1rem;
+}
+
+.rlm-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.rlm-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background-color: #111827;
+    border: 1px solid #374151;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.rlm-item:hover {
+    background-color: #1f2937;
+    border-color: #4b5563;
+    transform: translateY(-1px);
+}
+
+.rlm-item-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.rlm-item-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.rlm-item-title {
+    font-weight: 500;
+    color: #f3f4f6;
+    margin-bottom: 4px;
+}
+
+.rlm-item-desc {
+    font-size: 0.875rem;
+    color: #9ca3af;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rlm-item-type {
+    font-size: 0.875rem;
+    color: #6b7280;
+    padding: 4px 8px;
+    background-color: #374151;
+    border-radius: 4px;
+    flex-shrink: 0;
+}
+
+@keyframes rlm-fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes rlm-slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}

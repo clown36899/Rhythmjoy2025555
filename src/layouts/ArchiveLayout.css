@@ -1,0 +1,185 @@
+.archive-layout-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background-color: #09090b;
+    color: #fafafa;
+    overflow: auto;
+    padding-top: calc(60px + env(safe-area-inset-top));
+    /* MobileShell Header offset */
+    padding-bottom: calc(70px + env(safe-area-inset-bottom));
+    /* Bottom Nav offset + safety margin */
+    box-sizing: border-box;
+}
+
+.archive-layout-container.has-sub-header {
+    padding-top: calc(110px + env(safe-area-inset-top));
+    /* Header(60px) + SubHeader(50px) offset + safety margin */
+    overflow: hidden;
+    /* Added: Prevent layout scroll when sub-header (canvas) is active */
+}
+
+.archive-sub-header {
+    position: fixed;
+    top: calc(60px + env(safe-area-inset-top));
+    left: 0;
+    /* Right below MobileShell header */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 16px;
+    height: 50px;
+    background: rgba(9, 9, 11, 0);
+    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(12px);
+    /* border-bottom: 1px solid rgba(255, 255, 255, 0.05); */
+    z-index: 48;
+    /* Just below main header (49) */
+    width: 100%;
+}
+
+.archive-content {
+    flex: 1;
+    display: flex;
+    /* Added: Allow children (canvas) to fill height */
+    flex-direction: column;
+    position: relative;
+    padding-top: 0;
+    /* Content fills the padded container */
+}
+
+.archive-content.is-learning {
+    overflow-y: auto;
+}
+
+.archive-content.is-history {
+    overflow: hidden;
+    height: 100%;
+    /* Added: Ensure full height inheritance */
+    display: flex;
+    /* Added: Flex container for children */
+    flex-direction: column;
+}
+
+/* Legacy title and back button removed */
+
+.archive-mode-tabs {
+    display: flex;
+    background: rgb(20 20 20);
+    padding: 4px;
+    border: 1px solid #dddddd21;
+    border-radius: 12px;
+    gap: 4px;
+}
+
+.mode-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: #71717a;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mode-tab i {
+    font-size: 1.1rem;
+}
+
+.mode-tab.active {
+    background: #ffffff;
+    color: #09090b;
+    box-shadow: 0 4px 15px rgba(255, 255, 255, 0.15), 0 2px 5px rgba(0, 0, 0, 0.2);
+    font-weight: 700;
+}
+
+.mode-tab:not(.active):hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fafafa;
+    transform: translateY(-1px);
+}
+
+.mode-tab.back-tab {
+    margin-right: auto;
+    padding-left: 0;
+}
+
+
+/* Page specific rules handled above */
+
+/* Mobile optimizations */
+@media (max-width: 480px) {
+    .archive-sub-header {
+        height: 46px;
+        padding: 6px 12px;
+    }
+
+    .mode-tab {
+        padding: 6px 14px;
+        font-size: 0.8rem;
+    }
+}
+
+/* Legacy Guard Styles */
+.legacy-guard {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #09090b;
+    padding: 0 24px;
+    z-index: 100;
+}
+
+.legacy-guard-content {
+    text-align: center;
+    max-width: 320px;
+    padding: 32px 24px;
+    background: #18181b;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+}
+
+.guard-icon {
+    font-size: 4rem;
+    color: #f87171;
+    margin-bottom: 20px;
+    display: inline-block;
+}
+
+.guard-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 12px;
+    color: #fafafa;
+}
+
+.guard-desc {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: #a1a1aa;
+    margin-bottom: 28px;
+}
+
+.guard-back-btn {
+    width: 100%;
+    padding: 14px;
+    background: #fafafa;
+    color: #09090b;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s, opacity 0.2s;
+}
+
+.guard-back-btn:active {
+    transform: scale(0.98);
+    opacity: 0.9;
+}

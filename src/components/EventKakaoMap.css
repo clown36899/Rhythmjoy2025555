@@ -1,0 +1,89 @@
+.EKM-container {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    overflow: hidden;
+}
+
+.EKM-map {
+    width: 100%;
+    height: 100%;
+}
+
+.EKM-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+    pointer-events: none;
+    /* Let map handle touches, but limit map dragging in Kakao options */
+}
+
+/* Marker Styling */
+.EKM-marker-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+}
+
+.EKM-marker-icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    filter: drop-shadow(0 0px 4px rgba(0, 0, 0, 0.5));
+}
+
+.EKM-marker {
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    border: 4px solid #fff;
+    overflow: hidden;
+    background-color: var(--card-bg-color, #222);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.EKM-marker img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.EKM-marker-tail {
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 14px 10px 0 10px;
+    border-color: #ffffff transparent transparent transparent;
+    transform: translateY(-2px);
+}
+
+.EKM-marker-label {
+    margin-top: 4px;
+    padding: 4px 6px 4px 10px;
+    background-color: var(--bg-surface-2, rgba(0, 0, 0, 0.7));
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 700;
+    border-radius: var(--radius-xl, 12px);
+    border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.2));
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.EKM-marker-label i {
+    font-size: 1.1rem;
+    color: var(--text-tertiary, #aaa);
+    margin-top: 1px;
+}

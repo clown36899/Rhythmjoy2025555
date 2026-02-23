@@ -1,0 +1,170 @@
+/* CalendarPage.css - 전체 달력 페이지 전용 스타일 */
+
+/* Apply scroll-padding to html for window-level scrolling */
+html {
+    scroll-padding-top: calc(60px + env(safe-area-inset-top));
+}
+
+.calendar-page-container {
+    min-height: auto;
+    display: flex;
+    flex-direction: column;
+    /* overflow: hidden; - Removed to allow pull-to-refresh */
+    user-select: none;
+    -webkit-user-select: none;
+    background-color: var(--bg-base);
+    padding-bottom: 60px;
+    /* 웹 기본값 */
+}
+
+/* Tab Menu */
+.calendar-tab-menu {
+    position: fixed;
+    top: auto;
+    bottom: calc(70px + env(safe-area-inset-bottom));
+    /* 안개 효과 위로 충분히 올림 */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 650px;
+    z-index: 9999;
+    /* 하단 네비게이션(50)보다 높게 설정 */
+    background-color: transparent;
+    /* 배경 투명화 */
+    display: flex;
+    gap: 8px;
+    padding: 0 16px;
+    box-shadow: none;
+    /* 컨테이너 그림자 제거 */
+    pointer-events: none;
+    /* 버튼 외 영역 클릭 통과 */
+}
+
+.calendar-tab-btn {
+    flex: 1;
+    padding: 8px 12px;
+    background-color: var(--bg-glass-heavy);
+    /* 시맨틱 반투명 배경 */
+    backdrop-filter: blur(10px);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-glass-strong);
+    border-radius: 40px;
+    /* 캡슐형 */
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+    /* 버튼 클릭 활성화 */
+    box-shadow: var(--shadow-md);
+    /* 버튼 자체 그림자 */
+}
+
+.calendar-tab-btn i {
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.calendar-tab-btn:hover {
+    background-color: var(--bg-hover);
+    border-color: var(--border-glass);
+}
+
+.calendar-tab-btn.active {
+    background-color: var(--color-blue-600);
+    color: var(--color-white);
+    border-color: var(--color-blue-600);
+    font-weight: 600;
+}
+
+/* Sticky Weekday Header */
+.calendar-page-weekday-header {
+    position: fixed;
+    top: calc(60px + env(safe-area-inset-top));
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 650px;
+    z-index: 40;
+    /* BoardTabBar와 동일한 레벨 */
+    background-color: var(--bg-base);
+    /* padding-top: 10px; */
+    /* padding-bottom: 10px; */
+    border-bottom: 1px solid var(--border-primary);
+}
+
+/* 요일 헤더가 fixed로 변경됨에 따라 본문이 가려지지 않도록 여백 추가 */
+.calendar-page-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    /* overflow: hidden; - Removed to allow pull-to-refresh */
+    position: relative;
+    width: 100%;
+    max-width: 650px;
+    margin: 0 auto;
+    padding-top: calc(60px + env(safe-area-inset-top));
+    /* 글로벌 헤더(60px)만 - 요일 헤더는 제거됨 */
+    padding-bottom: calc(56px + env(safe-area-inset-bottom));
+    /* 탭 메뉴 + 바텀 내비게이션 공간 확보 */
+}
+
+/* 요일 헤더 레이아웃 스타일 */
+.calendar-weekday-header {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 0;
+    text-align: center;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    flex-shrink: 0;
+    background-color: var(--bg-surface-1);
+}
+
+.calendar-weekday-item {
+    padding: 10px 0;
+    /* Padding restored */
+    height: 42px;
+    /* Fixed height to prevent any layout shifts */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
+    position: relative;
+    /* For absolute icon */
+}
+
+.calendar-weekday-item.selected {
+    color: var(--color-blue-400) !important;
+    font-weight: bold;
+}
+
+/* Close Icon: Positioned absolutely to never affect height */
+.absolute-icon {
+    position: absolute;
+    bottom: 2px;
+    font-size: 10px;
+    opacity: 0.8;
+}
+
+/* Stable Switch Logic (Multi-Language Fixed Labels) */
+.weekday-wrapper,
+.tab-label-wrapper {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+    /* Ensure full width for centering */
+}
+
+.fixed-part {
+    display: none !important;
+}
+
+/* All other multi-language logic is now centralized in base.css */

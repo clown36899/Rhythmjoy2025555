@@ -1,0 +1,432 @@
+/* comment.css - Comment Section Styles */
+
+/* Comment Section */
+.comment-section {
+    border-top: 1px solid var(--border-color);
+    /* margin-top: 1rem; */
+}
+
+.comment-section-header {
+    margin-bottom: 1.5rem;
+}
+
+.comment-section-title {
+    font-size: 1.125rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.comment-count {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+/* Comment Form */
+/* Comment Form - Integrated / Threaded */
+.comment-form {
+    margin-bottom: 20px;
+    padding: 44px 0;
+    background: transparent;
+    border: none;
+    backdrop-filter: none;
+    box-shadow: none;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+/* Horizontal line connector for the form */
+.comment-form::before {
+    content: '';
+    position: absolute;
+    left: -14px;
+    top: 49px;
+    /* Adjusted to align with author name */
+    width: 14px;
+    height: 12px;
+    border-left: 1px solid var(--border-glass-strong);
+    border-bottom: 1px solid var(--border-glass-strong);
+    border-bottom-left-radius: 8px;
+    /* Curved branch */
+}
+
+.comment-anonymous-author {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.comment-input-wrapper .input-icon {
+    position: absolute;
+    left: 10px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    opacity: 0.5;
+}
+
+.comment-author-input,
+.comment-password-input {
+    width: 100%;
+    padding: 8px 10px 8px 30px;
+    background: var(--bg-surface-2);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    font-size: 13px;
+    color: var(--text-primary);
+}
+
+.comment-form-textarea {
+    width: 100%;
+    min-height: 100px;
+    /* 고도화 */
+    padding: 16px;
+    background: var(--bg-surface-2);
+    border: 1.5px solid var(--border-subtle);
+    /* 더 뚜렷한 경계 */
+    border-radius: 16px;
+    /* 더 둥근 모서리 */
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--text-primary);
+    resize: none;
+    transition: all 0.2s ease;
+}
+
+.comment-form-textarea:focus {
+    border-color: var(--color-blue-500);
+    background: var(--bg-surface-1);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.comment-form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.comment-form-btn {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.comment-form-btn-submit {
+    background: var(--primary-color);
+    color: #000;
+    border: 0;
+}
+
+.comment-form-login-required {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 0.5rem;
+    margin-bottom: 2rem;
+    gap: 1rem;
+}
+
+.comment-login-content {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--text-secondary);
+    flex: 1;
+}
+
+.comment-login-content i {
+    font-size: 1.5rem;
+    opacity: 0.7;
+}
+
+.comment-login-content p {
+    margin: 0;
+    font-size: 0.9375rem;
+}
+
+.comment-login-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    background-color: #FEE500;
+    color: #000000;
+    border: none;
+    border-radius: 0.375rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.comment-login-btn:hover {
+    background-color: #FDD835;
+    transform: translateY(-1px);
+}
+
+.comment-login-btn i {
+    font-size: 1.125rem;
+}
+
+/* Comment List */
+.comment-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.comment-loading,
+.comment-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem 1rem;
+    color: var(--text-secondary);
+}
+
+.comment-loading i {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    animation: spin 1s linear infinite;
+}
+
+.comment-empty i {
+    font-size: 2.5rem;
+    margin-bottom: 0.5rem;
+    opacity: 0.5;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* Comment Item */
+/* Comment Item - Threaded style */
+.comment-item {
+    padding: 1.15rem;
+    margin: 0.75rem 0;
+    background-color: var(--bg-surface-1);
+    border-radius: 8px;
+    /* 곡률 정제 */
+    position: relative;
+    transition: background-color 0.2s ease;
+    border: 1px solid transparent;
+    /* 기본은 투명 */
+}
+
+.comment-item:hover {
+    background-color: var(--bg-surface-2);
+    border-color: var(--border-subtle);
+}
+
+/* Branch line connector for each comment */
+.comment-item::before {
+    content: '';
+    position: absolute;
+    left: -14px;
+    top: 14px;
+    width: 14px;
+    height: 12px;
+    border-left: 1px solid var(--border-glass-strong);
+    border-bottom: 1px solid var(--border-glass-strong);
+    border-bottom-left-radius: 8px;
+    /* Curved branch */
+}
+
+.comment-item-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.comment-item-author {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.comment-item-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.comment-item-avatar-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: var(--border-color);
+    border-radius: 50%;
+    color: var(--text-secondary);
+    font-size: 1.25rem;
+}
+
+.comment-item-author-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    font-size: 0.9375rem;
+}
+
+.comment-item-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+}
+
+.comment-item-edited {
+    font-style: italic;
+    opacity: 0.7;
+}
+
+.comment-item-content {
+    color: var(--text-primary);
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 0.9375rem;
+    margin: 1rem 0;
+    letter-spacing: -0.01em;
+}
+
+/* Comment Footer & Interactions */
+.comment-item-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+}
+
+.comment-item-interactions {
+    display: flex;
+    gap: 12px;
+}
+
+.comment-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 0;
+    background: transparent;
+    border: none;
+    font-size: 13px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    opacity: 0.6;
+}
+
+.comment-btn:hover:not(:disabled) {
+    opacity: 1;
+    color: var(--text-primary);
+}
+
+.comment-btn.active {
+    opacity: 1;
+    font-weight: 700;
+}
+
+.comment-btn.active.like-btn {
+    color: #4facfe;
+}
+
+.comment-btn.active.dislike-btn {
+    color: #ff4d4d;
+}
+
+.comment-btn i {
+    font-size: 16px;
+}
+
+.comment-item-actions {
+    display: flex;
+    gap: 0.8rem;
+}
+
+.comment-item-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.25rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+}
+
+.comment-item-btn-edit {
+    background-color: rgba(59, 130, 246, 0.1);
+    color: #3b82f6;
+}
+
+.comment-item-btn-edit:hover {
+    background-color: rgba(59, 130, 246, 0.2);
+}
+
+.comment-item-btn-delete {
+    background-color: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+}
+
+.comment-item-btn-delete:hover {
+    background-color: rgba(239, 68, 68, 0.2);
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .comment-section-title {
+        font-size: 1.125rem;
+    }
+
+    .comment-item {
+        padding: 0.875rem;
+    }
+
+    .comment-item-avatar,
+    .comment-item-avatar-icon {
+        width: 28px;
+        height: 28px;
+        font-size: 1.125rem;
+    }
+
+    .comment-form-login-required {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+
+    .comment-login-content {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .comment-login-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}

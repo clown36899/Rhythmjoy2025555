@@ -1,0 +1,25 @@
+/* SimpleHeader.css - SimpleHeader 컴포넌트 전용 스타일 */
+
+/* ===== 헤더 컨테이너 ===== */
+.sh-header-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  height: var(--header-height);
+  max-width: 650px;
+  margin: 0 auto;
+}
+
+/* ===== 타이틀 ===== */
+.sh-title {
+  font-size: var(--header-title-font-size);
+  font-weight: 700;
+  color: white;
+}
+
+/* ===== 우측 액션 ===== */
+.sh-right-action {
+  display: flex;
+  align-items: center;
+}

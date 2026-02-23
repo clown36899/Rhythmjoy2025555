@@ -1,0 +1,199 @@
+.forum-hub-container {
+    width: 100%;
+    height: 100svh;
+    padding-top: calc(70px + env(safe-area-inset-top));
+    padding-left: 20px;
+    padding-right: 20px;
+    padding-bottom: calc(100px + env(safe-area-inset-bottom));
+    background: var(--bg-base);
+    /* Respects global theme */
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    overflow: hidden;
+    position: relative;
+    transition: background-color 0.3s ease;
+}
+
+/* Background Atmosphere (Aurora Effect) */
+.forum-hub-container::before {
+    content: '';
+    position: absolute;
+    top: -10%;
+    right: -10%;
+    width: 70%;
+    height: 70%;
+    background: radial-gradient(circle, rgba(168, 85, 247, 0.12) 0%, rgba(168, 85, 247, 0) 70%);
+    filter: blur(80px);
+    z-index: 0;
+}
+
+.forum-hub-content {
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    z-index: 1;
+}
+
+.forum-hub-header {
+    text-align: left;
+    margin-bottom: 30px;
+    padding-left: 10px;
+    animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.forum-hub-title {
+    font-size: 1.8rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+    letter-spacing: -0.03em;
+    transition: color 0.3s ease;
+}
+
+.forum-hub-subtitle {
+    font-size: 0.95rem;
+    color: var(--text-tertiary);
+    /* Adjusted for theme */
+    font-weight: 500;
+}
+
+/* iPhone Style Icons Grid */
+.forum-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px 12px;
+    padding: 10px;
+    justify-items: center;
+    align-content: flex-start;
+}
+
+@media (max-width: 320px) {
+    .forum-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+.forum-icon-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    width: 100%;
+    max-width: 80px;
+    transition: transform 0.2s cubic-bezier(0.33, 1, 0.68, 1);
+    appearance: none;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.forum-icon-item:active {
+    transform: scale(0.92);
+}
+
+.forum-icon-box {
+    position: relative;
+    width: 62px;
+    height: 62px;
+    border-radius: 18px;
+    /* High-end rounded corner */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: var(--bg-surface-2);
+    border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.1));
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Premium Icon Color Variation (Using styles from Bento UI preference) */
+.forum-icon-item--board .forum-icon-box {
+    color: #a855f7;
+    background: rgba(168, 85, 247, 0.08);
+    border-color: rgba(168, 85, 247, 0.2);
+}
+
+.forum-icon-item--library .forum-icon-box {
+    color: #3b82f6;
+    background: rgba(59, 130, 246, 0.08);
+    border-color: rgba(59, 130, 246, 0.2);
+}
+
+.forum-icon-item--bpm-tapper .forum-icon-box {
+    color: #ec4899;
+    background: rgba(236, 72, 153, 0.08);
+    border-color: rgba(236, 72, 153, 0.2);
+}
+
+.forum-icon-item--metronome .forum-icon-box {
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.08);
+    border-color: rgba(245, 158, 11, 0.2);
+}
+
+/* Glass shine on icons */
+/* Subtle hover state for premium feel */
+.forum-icon-item:hover .forum-icon-box {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.2);
+    border-color: currentColor;
+    background: rgba(var(--brand-color-rgb, 255, 255, 255), 0.15);
+}
+
+.forum-icon-glyph {
+    font-size: 28px;
+    color: inherit;
+    /* Use the box's color */
+    transition: all 0.3s ease;
+}
+
+.forum-icon-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+    letter-spacing: -0.02em;
+    transition: color 0.3s ease;
+}
+
+/* Specific Theme Overrides for Premium Feel */
+[data-theme='dark'] .forum-hub-container {
+    background: #0f172a;
+    /* Keep the premium deep navy specifically for dark mode */
+}
+
+[data-theme='dark'] .forum-hub-container::before {
+    background: radial-gradient(circle, rgba(168, 85, 247, 0.15) 0%, rgba(168, 85, 247, 0) 70%);
+}
+
+[data-theme='light'] .forum-hub-container::before {
+    background: radial-gradient(circle, rgba(59, 130, 246, 0.08) 0%, rgba(59, 130, 246, 0) 70%);
+}
+
+.forum-icon-box {
+    border: 1px solid var(--border-glass);
+    background: var(--bg-surface-glass);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

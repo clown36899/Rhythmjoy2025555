@@ -1,0 +1,190 @@
+/* QRCodeModal.css - QRCodeModal 컴포넌트 전용 스타일 */
+
+/* ===== 모달 오버레이 ===== */
+.qrc-overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-4);
+}
+
+/* ===== 모달 컨텐츠 ===== */
+.qrc-modal {
+  background-color: #111827;
+  border-radius: 1rem;
+  padding: var(--spacing-6);
+  max-width: 28rem;
+  width: 100%;
+  position: relative;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  border: 1px solid #374151;
+}
+
+/* ===== 닫기 버튼 ===== */
+.qrc-close-button {
+  position: absolute;
+  top: var(--spacing-4);
+  right: var(--spacing-4);
+  color: #9ca3af;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition-property: color;
+}
+
+.qrc-close-button:hover {
+  color: white;
+}
+
+.qrc-close-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+/* ===== 제목 ===== */
+.qrc-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: white;
+  margin-bottom: var(--spacing-6);
+  text-align: center;
+}
+
+/* ===== 공통 컨테이너 ===== */
+.qrc-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+/* ===== QR 코드 박스 ===== */
+.qrc-qr-box {
+  background-color: white;
+  padding: 1.25rem;
+  border-radius: var(--radius-lg);
+  display: flex;
+  justify-content: center;
+}
+
+.qrc-qr-box-desktop {
+  background-color: white;
+  padding: var(--spacing-6);
+  border-radius: var(--radius-lg);
+  display: flex;
+  justify-content: center;
+}
+
+/* ===== URL 표시 박스 ===== */
+.qrc-url-box {
+  background-color: #1f2937;
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-4);
+}
+
+.qrc-url-text {
+  font-size: 0.875rem;
+  color: #d1d5db;
+  word-break: break-all;
+  text-align: center;
+}
+
+/* ===== 안내 문구 ===== */
+.qrc-description {
+  font-size: 0.875rem;
+  color: #9ca3af;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.qrc-description-small {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+/* ===== 버튼 그리드 ===== */
+.qrc-button-grid {
+  display: grid;
+  grid-template-columns: repeat(1, 1fr);
+  gap: var(--spacing-2);
+}
+
+@media (min-width: 640px) {
+  .qrc-button-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ===== 버튼 스타일 ===== */
+.qrc-button {
+  width: 100%;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  padding-left: var(--spacing-4);
+  padding-right: var(--spacing-4);
+  border-radius: var(--radius-lg);
+  font-weight: 600;
+  transition-property: all;
+  border: none;
+  cursor: pointer;
+}
+
+.qrc-button-copy {
+  background-color: #374151;
+  color: white;
+}
+
+.qrc-button-copy:hover {
+  background-color: #4b5563;
+}
+
+.qrc-button-copy.qrc-copied {
+  background-color: #16a34a;
+  color: white;
+}
+
+.qrc-button-home {
+  background-color: #2563eb;
+  color: white;
+}
+
+.qrc-button-home:hover {
+  background-color: #1d4ed8;
+}
+
+.qrc-button-single {
+  width: 100%;
+  padding-top: var(--spacing-2);
+  padding-bottom: var(--spacing-2);
+  padding-left: var(--spacing-4);
+  padding-right: var(--spacing-4);
+  border-radius: var(--radius-lg);
+  font-weight: 600;
+  transition-property: all;
+  border: none;
+  cursor: pointer;
+}
+
+.qrc-button-single-copy {
+  background-color: #374151;
+  color: white;
+}
+
+.qrc-button-single-copy:hover {
+  background-color: #4b5563;
+}
+
+.qrc-button-single-copy.qrc-copied {
+  background-color: #16a34a;
+  color: white;
+}
