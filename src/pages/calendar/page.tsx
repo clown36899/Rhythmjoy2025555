@@ -263,7 +263,7 @@ export default function CalendarPage() {
         console.log('dynamicTitleHeight', dynamicTitleHeight);
         const cardVerticalPadding = 10; // .calendar-fullscreen-event-card margin-bottom: 10px
 
-        // [정밀 오늘이동 수치] 날짜 숫자 헤더(30px) + 이벤트 카드
+        // [정밀 오늘이동 수치] 날짜 숫자 헤더(56px) + 이벤트 카드
         // 이미지: aspect-ratio 5/5(1:1), placeholder: aspect-ratio 5/6(1:1.2)
         // cellWidth - 1(border-right) - 4(card padding 2px*2) = 실제 이미지 너비
         const imageWidth = cellWidth - 5;
@@ -285,9 +285,9 @@ export default function CalendarPage() {
                 }
             }
 
-            const weekContentHeight = 30 + (maxInWeek * cardHeight);
-            // [One-Shot Fix] 이벤트가 없으면 최소 높이(30px)만 유지하고, 강제로 늘리지 않음
-            const actualWeekHeight = Math.max(30, weekContentHeight);
+            const weekContentHeight = 56 + (maxInWeek * cardHeight);
+            // [One-Shot Fix] 이벤트가 없으면 최소 높이(56px)만 유지하고, 강제로 늘리지 않음
+            const actualWeekHeight = Math.max(56, weekContentHeight);
 
             if (isSameMonth && w < todayWeekIndex) {
                 // 그리드 row-gap(6px) 합산 (중요: rowGap이 빠지면 위쪽 주차만큼 오차가 누적됨)
