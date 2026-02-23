@@ -96,7 +96,6 @@
     flex-wrap: nowrap;
     gap: clamp(4px, 1.5vw, 12px);
     width: 100%;
-    min-width: 0;
 }
 
 .weekly-social-container .section-title {
@@ -108,33 +107,31 @@
 /* View Control Container */
 .weekly-social-container .view-toggle-container {
     display: flex;
-    gap: clamp(4px, 1.5vw, 16px);
-    margin-left: auto;
-    width: auto;
-    max-width: 100%;
-    overflow-x: auto;
-    scrollbar-width: none;
-    justify-content: flex-end;
-    flex-direction: row;
+    width: 100%;
+    /* [Fix] 상단 전체 너비 사용 */
+    gap: clamp(8px, 2vw, 24px);
+    /* 그룹 간 간격 확보 */
+    overflow: visible;
+    justify-content: space-between;
+    /* 양 끝 정렬 */
     align-items: center;
-    flex-shrink: 1;
-    min-width: 0;
+    position: relative;
+    z-index: 10;
 }
 
-.weekly-social-container .view-toggle-container::-webkit-scrollbar {
-    display: none;
-}
-
-/* Week Navigation Group */
-/* Week Navigation Group */
+/* Week Navigation Group - Left Pillar */
 .weekly-social-container .week-nav-group {
     display: flex;
     align-items: center;
+    justify-content: flex-start;
+    /* 왼쪽 기둥이므로 왼쪽 정렬 */
     gap: clamp(2px, 0.8vw, 8px);
     background: var(--bg-surface-1);
     padding: clamp(1px, 0.5vw, 4px);
     border-radius: 20px;
-    flex-shrink: 1;
+    flex: 1;
+    /* [Fix] 50% 분할 */
+    flex-basis: 0;
     min-width: 0;
     position: relative;
 }
@@ -172,6 +169,7 @@
 
 /* View Type Toggle Group */
 /* View Type Toggle Group */
+/* View Type Toggle Group - Right Pillar */
 .weekly-social-container .view-type-toggles {
     display: flex;
     background: var(--bg-surface-2);
@@ -179,21 +177,32 @@
     padding: 2px;
     flex-shrink: 1;
     min-width: 0;
+    flex: 1;
+    /* [Fix] 50% 분할 */
+    flex-basis: 0;
+    justify-content: flex-end;
+    /* 오른쪽 기둥이므로 오른쪽 정렬 */
 }
 
 .weekly-social-container .toggle-btn {
     background: transparent;
     border: none;
     color: var(--text-muted);
-    padding: clamp(4px, 1vw, 6px) clamp(8px, 1.5vw, 12px);
+    padding: clamp(4px, 1vw, 6px) clamp(2px, 1vw, 12px);
+    /* 패딩 축소 */
     font-size: clamp(10px, 3vw, 12px);
     font-weight: 500;
     cursor: pointer;
     border-radius: 6px;
     transition: all 0.2s;
     white-space: nowrap;
-    flex-shrink: 1;
+    flex: 1;
+    /* [Fix] 개수 상관없이 균등 분할 */
+    flex-basis: 0;
+    /* [Fix] 컨텐츠 길이 무시하고 균등 분할 */
     min-width: 0;
+    text-align: center;
+    /* [Fix] 축소 시 중앙 정렬 사수 */
 }
 
 .weekly-social-container .toggle-btn.active {

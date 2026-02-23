@@ -129,7 +129,8 @@
 
 /* 원형 썸네일 */
 .NewEventsListModal .NEL-thumbnail {
-    width: 75%;
+    width: 55%;
+    /* [Fix] 62% -> 55% 추가 축소 */
     aspect-ratio: 1/1;
     margin: 0 auto;
     border-radius: 50%;
@@ -185,10 +186,11 @@
 }
 
 .NewEventsListModal .NEL-eventTitle {
-    font-size: 1.05rem;
+    font-size: 1.3rem;
+    /* [Fix] 1.15 -> 1.3 대폭 확대 */
     font-weight: 800;
     color: var(--text-primary, #ffffff);
-    line-height: 1.3;
+    line-height: 1.25;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     line-clamp: 2;
@@ -201,7 +203,8 @@
 }
 
 .NewEventsListModal .NEL-date {
-    font-size: 0.85rem;
+    font-size: 1.05rem;
+    /* [Fix] 0.95 -> 1.05 확대 */
     color: var(--color-blue-400, #60a5fa);
     font-weight: 700;
     text-align: center;
@@ -309,9 +312,7 @@
 
 /* 반응형 */
 @media (max-width: 480px) {
-    .NewEventsListModal .NEL-eventTitle {
-        font-size: 0.9rem;
-    }
+
 
     .NewEventsListModal .NEL-container {
         max-height: 90vh;
