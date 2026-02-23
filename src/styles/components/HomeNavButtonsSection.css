@@ -130,7 +130,7 @@
 }
 
 .HNBS-button--social .HNBS-stack-item:nth-child(3) {
-    transform: translate(-30%, -45%) rotate(10deg);
+    transform: translate(-30%, -60%) rotate(10deg);
     z-index: 3;
     width: 75px;
     height: 95px;
@@ -138,12 +138,12 @@
 
 /* Event Stack Randomization */
 .HNBS-button--events .HNBS-stack-item:nth-child(1) {
-    transform: translate(-75%, -35%) rotate(-10deg);
+    transform: translate(-75%, -40%) rotate(-10deg);
     z-index: 1;
 }
 
 .HNBS-button--events .HNBS-stack-item:nth-child(2) {
-    transform: translate(-55%, -45%) rotate(0deg);
+    transform: translate(-55%, -50%) rotate(0deg);
     z-index: 2;
     width: 70px;
     height: 90px;
@@ -151,7 +151,7 @@
 }
 
 .HNBS-button--events .HNBS-stack-item:nth-child(3) {
-    transform: translate(-35%, -55%) rotate(15deg);
+    transform: translate(-35%, -60%) rotate(15deg);
     z-index: 3;
     width: 75px;
     height: 95px;
@@ -159,12 +159,12 @@
 
 /* Class Stack Randomization */
 .HNBS-button--classes .HNBS-stack-item:nth-child(1) {
-    transform: translate(-65%, -45%) rotate(-12deg);
+    transform: translate(-65%, -40%) rotate(-12deg);
     z-index: 1;
 }
 
 .HNBS-button--classes .HNBS-stack-item:nth-child(2) {
-    transform: translate(-45%, -55%) rotate(2deg);
+    transform: translate(-45%, -50%) rotate(2deg);
     z-index: 2;
     width: 70px;
     height: 90px;
@@ -172,7 +172,7 @@
 }
 
 .HNBS-button--classes .HNBS-stack-item:nth-child(3) {
-    transform: translate(-25%, -65%) rotate(8deg);
+    transform: translate(-25%, -60%) rotate(8deg);
     z-index: 3;
     width: 75px;
     height: 95px;
