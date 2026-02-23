@@ -199,3 +199,10 @@
         padding: 4px 8px;
     }
 }
+
+/* 530px 이하에서 우측 탭 메뉴 공간 확보 (요청에 따라 네비게이션 버튼 영역에만 적용) */
+@media (max-width: 530px) {
+    .HNBS-container {
+        padding-right: 30px;
+    }
+}
