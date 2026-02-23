@@ -84,15 +84,17 @@ export function useEventModal(): UseEventModalReturn {
     // 4. 이벤트 삭제 핸들러
     const handleDeleteEvent = useCallback(async (eventId: number | string, password?: string) => {
         // Double confirm removal: The caller (UI) handles confirmation.
-
+        console.log('[useEventModal] handleDeleteEvent 시작', { eventId, hasPassword: !!password });
 
         try {
 
             setIsDeleting(true);
             const { data: { session } } = await supabase.auth.getSession();
             const token = session?.access_token;
+            console.log('[useEventModal] 세션 확인 완료', { hasToken: !!token });
 
 
+            console.log('[useEventModal] API 호출 시도: /.netlify/functions/delete-event');
             const response = await fetch('/.netlify/functions/delete-event', {
                 method: 'POST',
                 headers: {
@@ -102,11 +104,12 @@ export function useEventModal(): UseEventModalReturn {
                 body: JSON.stringify({ eventId, password })
             });
 
+            console.log('[useEventModal] API 응답 수신', { status: response.status, ok: response.ok });
 
 
             if (!response.ok) {
                 const errorData = await response.json();
-                console.error('[useEventModal] Delete failed with data:', errorData);
+                console.error('[useEventModal] 삭제 실패 상제 정보:', errorData);
 
                 // Foreign Key Constraint Check
                 if (errorData.error?.includes('foreign key constraint') || errorData.message?.includes('foreign key constraint')) {
@@ -118,6 +121,7 @@ export function useEventModal(): UseEventModalReturn {
             }
 
 
+            console.log('[useEventModal] 삭제 성공! 캐시 무효화 및 상태 초기화 진행');
             alert("삭제되었습니다.");
 
             // [Persistence] TanStack Query 캐시 무효화 (캘린더 페이지 등 연동)
@@ -131,13 +135,15 @@ export function useEventModal(): UseEventModalReturn {
 
             // 다른 컴포넌트에 삭제 이벤트 알림
 
+            console.log('[useEventModal] eventDeleted 커스텀 이벤트 디스패치');
             window.dispatchEvent(new CustomEvent("eventDeleted", { detail: { eventId } }));
         } catch (error: any) {
-            console.error("이벤트 삭제 중 오류 발생:", error);
+            console.error("[useEventModal] 이벤트 삭제 중 오류 발생:", error);
             alert("삭제 실패: " + (error.message || "알 수 없는 오류"));
         } finally {
 
             setIsDeleting(false);
+            console.log('[useEventModal] handleDeleteEvent 종료');
         }
     }, []);
 

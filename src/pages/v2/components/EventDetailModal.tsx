@@ -1678,16 +1678,23 @@ export default function EventDetailModal({
               {isSelectionMode && (isAdminMode || isActualAdmin || !isPastEvent) && (
                 <button
                   onClick={(e) => {
+                    console.log('[EventDetailModal] 삭제 버튼 클릭됨', { eventId: selectedEvent.id, isDeleting });
                     e.stopPropagation();
-                    if (isDeleting) return;
+                    if (isDeleting) {
+                      console.log('[EventDetailModal] 현재 삭제 진행 중이므로 무시합니다.');
+                      return;
+                    }
 
                     if (window.confirm('정말로 이 이벤트를 삭제하시겠습니까?')) {
+                      console.log('[EventDetailModal] 사용자가 삭제를 컨펌했습니다. _onDelete 호출 시도...');
                       if (typeof _onDelete === 'function') {
                         _onDelete(selectedEvent, e);
                       } else {
-                        console.error('[EventDetailModal] _onDelete가 함수가 아닙니다! (삭제 불가)');
+                        console.error('[EventDetailModal] _onDelete가 함수가 아닙니다! (삭제 불가)', { _onDelete });
                         alert('삭제 기능을 호출할 수 없습니다. (핸들러 누락)');
                       }
+                    } else {
+                      console.log('[EventDetailModal] 사용자가 삭제를 취소했습니다.');
                     }
                   }}
                   className={`EDM-actionBtn is-delete ${isDeleting ? 'is-loading' : ''}`}
@@ -1745,6 +1752,7 @@ export default function EventDetailModal({
 
               <button
                 onClick={(e) => {
+                  console.log('[EventDetailModal] Close(X) 버튼 클릭됨');
                   e.preventDefault();
                   e.stopPropagation();
                   onClose();
