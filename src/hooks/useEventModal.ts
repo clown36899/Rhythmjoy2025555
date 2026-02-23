@@ -84,24 +84,31 @@ export function useEventModal(): UseEventModalReturn {
     // 4. 이벤트 삭제 핸들러
     const handleDeleteEvent = useCallback(async (eventId: number | string, password?: string) => {
         // Double confirm removal: The caller (UI) handles confirmation.
-        console.log('[useEventModal] handleDeleteEvent 시작', { eventId, hasPassword: !!password });
+        console.log('[useEventModal] handleDeleteEvent 시작', { originalEventId: eventId, hasPassword: !!password });
 
         try {
-
             setIsDeleting(true);
+
+            // [FIX] ID 전처리: social- 접두어 제거 및 FullCalendar 오프셋 처리
+            let cleanId = String(eventId).replace('social-', '');
+            if (Number(cleanId) > 10000000) {
+                cleanId = String(Number(cleanId) - 10000000);
+            }
+            console.log('[useEventModal] ID 정제 결과:', { original: eventId, cleaned: cleanId });
+
             const { data: { session } } = await supabase.auth.getSession();
             const token = session?.access_token;
             console.log('[useEventModal] 세션 확인 완료', { hasToken: !!token });
 
 
-            console.log('[useEventModal] API 호출 시도: /.netlify/functions/delete-event');
+            console.log('[useEventModal] API 호출 시도: /.netlify/functions/delete-event', { targetId: cleanId });
             const response = await fetch('/.netlify/functions/delete-event', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     ...(token ? { 'Authorization': `Bearer ${token}` } : {})
                 },
-                body: JSON.stringify({ eventId, password })
+                body: JSON.stringify({ eventId: cleanId, password })
             });
 
             console.log('[useEventModal] API 응답 수신', { status: response.status, ok: response.ok });
