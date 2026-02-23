@@ -15,6 +15,7 @@ interface QuickMemoEditorProps {
     onCancelEdit?: () => void;
     className?: string;
     isAdmin?: boolean;
+    onDirtyChange?: (isDirty: boolean) => void;
 }
 
 export default function QuickMemoEditor({
@@ -24,7 +25,8 @@ export default function QuickMemoEditor({
     providedPassword,
     onCancelEdit,
     className = "",
-    isAdmin = false
+    isAdmin = false,
+    onDirtyChange
 }: QuickMemoEditorProps) {
     const [title, setTitle] = useState('');
     const [content, setContent] = useState('');
@@ -42,22 +44,18 @@ export default function QuickMemoEditor({
     const pendingUploads = useRef<Map<string, File>>(new Map());
 
     // Auth Check for Anonymous Board
-    const { user, signOut } = useAuth(); // Import useAuth hook at top if not present, or pass as prop
-    // Since useAuth is context, we should import it.
+    const { user, signOut } = useAuth();
 
     // Effect early return for logged in users on mount/expand
     useEffect(() => {
         if (user && category === 'anonymous' && !editData) {
-            // Prevent editing/writing if logged in (including admins)
-            // Using setTimeout to avoid render loop issues or to let modal open first
             const timer = setTimeout(() => {
                 const shouldLogout = window.confirm("로그인 상태에서는 글을 쓸 수 없습니다.\n익명 글을 작성하려면 로그아웃 해주세요.\n\n[확인]을 누르면 로그아웃 됩니다.");
                 if (shouldLogout) {
                     signOut();
                 } else {
-                    onCancelEdit?.(); // Close modal or collapse
+                    onCancelEdit?.();
                     if (className.includes('modal-mode')) {
-                        // If in modal, close it
                         const closeBtn = document.querySelector('.anonymous-modal-close') as HTMLElement;
                         if (closeBtn) closeBtn.click();
                     } else {
@@ -69,14 +67,11 @@ export default function QuickMemoEditor({
         }
     }, [user, category, isAdmin, editData, className, signOut, onCancelEdit]);
 
-
-
     const handleNoticeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const checked = e.target.checked;
         setIsNotice(checked);
         if (checked) {
             setNickname('관리자');
-            // Generate random password as admin doesn't need to remember it for this post
             setPassword(Math.random().toString(36).slice(-8) + Math.random().toString(36).slice(-8));
         } else {
             setNickname('');
@@ -86,7 +81,6 @@ export default function QuickMemoEditor({
 
     useEffect(() => {
         loadBannedWords();
-        // Cleanup pending object URLs on unmount
         return () => {
             pendingUploads.current.forEach((_, key) => URL.revokeObjectURL(key));
             pendingUploads.current.clear();
@@ -98,20 +92,31 @@ export default function QuickMemoEditor({
         if (editData) {
             setTitle(editData.title || '');
             setContent(editData.content || '');
-            // Support both app-state 'nickname' and DB field 'author_nickname' or 'author_name'
             setNickname(editData.nickname || editData.author_nickname || editData.author_name || '');
             setPassword(providedPassword || editData.password || '');
             setIsNotice(editData.is_notice || false);
-            setIsExpanded(true); // Auto-expand when editing
+            setIsExpanded(true);
         } else {
             setTitle('');
             setContent('');
             setNickname('');
             setPassword('');
             setIsNotice(false);
-            pendingUploads.current.clear(); // Clear pending on reset
+            pendingUploads.current.clear();
         }
     }, [editData, providedPassword]);
+
+    // Handle isDirty
+    useEffect(() => {
+        const isDirty = (
+            title.trim() !== '' ||
+            content.trim() !== '' ||
+            nickname.trim() !== '' ||
+            password.trim() !== '' ||
+            imageFile !== null
+        );
+        onDirtyChange?.(isDirty);
+    }, [title, content, nickname, password, imageFile, onDirtyChange]);
 
     const loadBannedWords = async () => {
         try {
@@ -138,7 +143,6 @@ export default function QuickMemoEditor({
         }
     };
 
-    // Cleanup object URL on unmount or change
     useEffect(() => {
         return () => {
             if (imagePreview && imagePreview.startsWith('blob:')) {
@@ -147,9 +151,7 @@ export default function QuickMemoEditor({
         };
     }, [imagePreview]);
 
-    // [UPDATED] Deferred Inline Image Upload Handler
     const handleInlineImageUpload = async (file: File): Promise<string> => {
-        console.log('[QuickMemo] Image added to queue (deferred upload). File:', file.name);
         const objectUrl = URL.createObjectURL(file);
         pendingUploads.current.set(objectUrl, file);
         return objectUrl;
@@ -157,21 +159,9 @@ export default function QuickMemoEditor({
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-
-        if (!content.trim()) {
-            alert('내용을 입력해주세요.');
-            return;
-        }
-
-        if (category === 'anonymous' && !nickname.trim()) {
-            alert('닉네임을 입력해주세요.');
-            return;
-        }
-
-        if (category === 'anonymous' && !password.trim() && !isAdmin) {
-            alert('비밀번호를 입력해주세요.');
-            return;
-        }
+        if (!content.trim()) { alert('내용을 입력해주세요.'); return; }
+        if (category === 'anonymous' && !nickname.trim()) { alert('닉네임을 입력해주세요.'); return; }
+        if (category === 'anonymous' && !password.trim() && !isAdmin) { alert('비밀번호를 입력해주세요.'); return; }
 
         const bannedContent = checkBannedWords(content);
         const bannedTitle = checkBannedWords(title);
@@ -183,9 +173,7 @@ export default function QuickMemoEditor({
         }
 
         setIsSubmitting(true);
-
         try {
-            // 0. Processing Pending Inline Images
             let finalContent = content;
             const pendingMap = pendingUploads.current;
 
@@ -196,15 +184,9 @@ export default function QuickMemoEditor({
                         const timestamp = Date.now();
                         const randomString = Math.random().toString(36).substring(2, 10);
                         const fileName = `${timestamp}_${randomString}.webp`;
-
                         const resizeResult = await resizeImage(blobUrl, 800, 0.8, fileName);
-
                         const { error } = await supabase.storage.from("images").upload(`board-images/content/${fileName}`, resizeResult);
-                        if (error) {
-                            console.error('Failed to upload inline image:', file.name, error);
-                            throw error;
-                        }
-
+                        if (error) throw error;
                         const publicUrl = supabase.storage.from("images").getPublicUrl(`board-images/content/${fileName}`).data.publicUrl;
                         finalContent = finalContent.replaceAll(blobUrl, publicUrl);
                     }
@@ -212,24 +194,20 @@ export default function QuickMemoEditor({
             }
 
             const imageUrls = { image: null as string | null, image_thumbnail: null as string | null };
-
             if (imageFile) {
                 const timestamp = Date.now();
                 const fileName = `${timestamp}_${Math.random().toString(36).substring(2)}.webp`;
-
                 const fileUrl = URL.createObjectURL(imageFile);
                 try {
                     const [thumbnail, medium] = await Promise.all([
                         resizeImage(fileUrl, 300, 0.7, fileName),
                         resizeImage(fileUrl, 650, 0.75, fileName)
                     ]);
-
                     const uploadImage = async (path: string, file: Blob) => {
                         const { error } = await supabase.storage.from("images").upload(path, file);
                         if (error) throw error;
                         return supabase.storage.from("images").getPublicUrl(path).data.publicUrl;
                     };
-
                     const [thumbUrl, mainUrl] = await Promise.all([
                         retryOperation(() => uploadImage(`board-images/thumbnails/${fileName}`, thumbnail)),
                         retryOperation(() => uploadImage(`board-images/medium/${fileName}`, medium))
@@ -242,13 +220,10 @@ export default function QuickMemoEditor({
             }
 
             if (editData?.id) {
-                // Update post
                 if (isAdmin) {
-                    // Admin update (Direct DB update, bypass RPC password check)
-                    console.log('Updating anonymous post as Admin (Direct)');
                     const updates: any = {
                         title: title.trim(),
-                        content: finalContent, // Use processed content
+                        content: finalContent,
                         author_name: nickname,
                         author_nickname: nickname,
                         is_notice: isNotice
@@ -257,47 +232,28 @@ export default function QuickMemoEditor({
                         updates.image = imageUrls.image;
                         updates.image_thumbnail = imageUrls.image_thumbnail;
                     }
-
-                    const { error } = await supabase
-                        .from('board_anonymous_posts')
-                        .update(updates)
-                        .eq('id', editData.id);
-
-                    if (error) {
-                        console.error('Admin Update Error:', error);
-                        throw error;
-                    }
+                    const { error } = await supabase.from('board_anonymous_posts').update(updates).eq('id', editData.id);
+                    if (error) throw error;
                     alert('관리자 권한으로 메모가 수정되었습니다!');
                 } else {
-                    // User update: Use RPC to bypass RLS with password
                     const finalPassword = (providedPassword || password).trim();
                     const { data: success, error } = await supabase.rpc('update_anonymous_post_with_password', {
                         p_post_id: editData.id,
                         p_password: finalPassword,
                         p_title: title.trim(),
-                        p_content: finalContent, // Use processed content
+                        p_content: finalContent,
                         p_nickname: nickname,
                         p_image: imageUrls.image,
                         p_image_thumbnail: imageUrls.image_thumbnail
                     });
-
-                    if (error) {
-                        console.error('Update Error:', error);
-                        throw error;
-                    }
-
-                    if (!success) {
-                        alert('비밀번호가 틀렸거나 수정에 실패했습니다.');
-                        setIsSubmitting(false);
-                        return;
-                    }
+                    if (error) throw error;
+                    if (!success) { alert('비밀번호가 틀렸거나 수정에 실패했습니다.'); return; }
                     alert('메모가 수정되었습니다!');
                 }
             } else {
-                // Create new post
                 const { error } = await supabase.from('board_anonymous_posts').insert({
                     title: title.trim(),
-                    content: finalContent, // Use processed content
+                    content: finalContent,
                     author_name: nickname,
                     author_nickname: nickname,
                     password: password.trim(),
@@ -309,15 +265,10 @@ export default function QuickMemoEditor({
                     is_notice: isNotice,
                     is_hidden: false
                 });
-
-                if (error) {
-                    console.error('Insert Error:', error);
-                    throw error;
-                }
+                if (error) throw error;
                 alert('메모가 등록되었습니다!');
             }
 
-            // Reset
             setTitle('');
             setContent('');
             setNickname('');
@@ -337,36 +288,20 @@ export default function QuickMemoEditor({
 
     const handleDelete = async () => {
         if (!editData?.id) return;
-
-        if (!window.confirm('정말로 이 메모를 삭제하시겠습니까?')) {
-            return;
-        }
-
+        if (!window.confirm('정말로 이 메모를 삭제하시겠습니까?')) return;
         setIsSubmitting(true);
         try {
             if (isAdmin) {
-                // Admin delete (Direct DB delete)
-                console.log('Deleting anonymous post as Admin');
-                const { error } = await supabase
-                    .from('board_anonymous_posts')
-                    .delete()
-                    .eq('id', editData.id);
-
+                const { error } = await supabase.from('board_anonymous_posts').delete().eq('id', editData.id);
                 if (error) throw error;
                 alert('관리자 권한으로 메모가 삭제되었습니다.');
             } else {
-                // User delete (RPC)
                 const { data: success, error } = await supabase.rpc('delete_anonymous_post_with_password', {
                     p_post_id: editData.id,
                     p_password: (providedPassword || password).trim()
                 });
-
                 if (error) throw error;
-
-                if (!success) {
-                    alert('비밀번호가 틀렸거나 삭제에 실패했습니다.');
-                    return;
-                }
+                if (!success) { alert('비밀번호가 틀렸거나 삭제에 실패했습니다.'); return; }
                 alert('메모가 삭제되었습니다.');
             }
             onPostCreated?.();
@@ -379,15 +314,8 @@ export default function QuickMemoEditor({
     };
 
     const handleCancel = () => {
-        if (onCancelEdit) {
-            onCancelEdit();
-            return;
-        }
-
-        if (editData) {
-            // Fallback if no handler provided (shouldn't happen in proper usage)
-            setIsExpanded(false);
-        } else {
+        if (onCancelEdit) { onCancelEdit(); return; }
+        if (editData) { setIsExpanded(false); } else {
             setIsExpanded(false);
             setTitle('');
             setContent('');
@@ -399,25 +327,16 @@ export default function QuickMemoEditor({
     return (
         <div className={`quick-memo-editor ${isExpanded ? 'expanded' : 'collapsed'} ${className}`}>
             {!isExpanded && !editData && (
-                <div
-                    className="memo-trigger-bar"
-                    onClick={() => setIsExpanded(true)}
-                >
+                <div className="memo-trigger-bar" onClick={() => setIsExpanded(true)}>
                     <span>글쓰기 +</span>
                 </div>
             )}
-
-
             <form onSubmit={handleSubmit} className="memo-form">
                 <div className="memo-top-bar">
                     <div className="memo-author-info">
                         {isAdmin && !editData && (
                             <label className="memo-notice-check">
-                                <input
-                                    type="checkbox"
-                                    checked={isNotice}
-                                    onChange={handleNoticeChange}
-                                />
+                                <input type="checkbox" checked={isNotice} onChange={handleNoticeChange} />
                                 <span className="manual-label-wrapper">
                                     <span className="translated-part">Notice</span>
                                     <span className="fixed-part ko" translate="no">공지</span>
@@ -425,99 +344,41 @@ export default function QuickMemoEditor({
                                 </span>
                             </label>
                         )}
-                        <input
-                            type="text"
-                            placeholder="닉네임"
-                            value={nickname}
-                            onChange={(e) => setNickname(e.target.value)}
-                            className="memo-input-compact"
-                            readOnly={isNotice}
-                        />
+                        <input type="text" placeholder="닉네임" value={nickname} onChange={(e) => setNickname(e.target.value)} className="memo-input-compact" readOnly={isNotice} />
                         {!providedPassword && !isNotice && (
-                            <input
-                                type="password"
-                                placeholder="비밀번호"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                className="memo-input-compact"
-                            />
+                            <input type="password" placeholder="비밀번호" value={password} onChange={(e) => setPassword(e.target.value)} className="memo-input-compact" />
                         )}
                     </div>
                 </div>
-
                 <div className="memo-main-input-area">
-                    <input
-                        type="text"
-                        placeholder="제목 (선택사항)"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        className="memo-title-input"
-                    />
-                    {/* Replace textarea with Universal Editor */}
+                    <input type="text" placeholder="제목 (선택사항)" value={title} onChange={(e) => setTitle(e.target.value)} className="memo-title-input" />
                     <div className="memo-editor-wrapper" style={{ minHeight: '200px', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '8px', overflow: 'hidden' }}>
-                        <UniversalEditor
-                            content={content}
-                            onChange={(html) => setContent(html)}
-                            placeholder={"익명으로 자유롭게 이야기해보세요...\n(신고 누적시 자동 숨김처리)"}
-                            onImageUpload={handleInlineImageUpload} // [NEW] Pass upload handler
-                        />
+                        <UniversalEditor content={content} onChange={(html) => setContent(html)} placeholder={"익명으로 자유롭게 이야기해보세요...\n(신고 누적시 자동 숨김처리)"} onImageUpload={handleInlineImageUpload} />
                     </div>
-
                     {imagePreview && (
                         <div className="memo-preview-area">
                             <img src={imagePreview} alt="Preview" />
-                            <button
-                                type="button"
-                                onClick={() => { setImageFile(null); setImagePreview(null); }}
-                                className="remove-preview"
-                            >
+                            <button type="button" onClick={() => { setImageFile(null); setImagePreview(null); }} className="remove-preview">
                                 <i className="ri-close-line"></i>
                             </button>
                         </div>
                     )}
                 </div>
-
                 <div className="memo-action-bar">
-
-
                     <div className="memo-submit-group">
                         {editData && (
-                            <button
-                                type="button"
-                                className="memo-text-btn delete"
-                                onClick={handleDelete}
-                                disabled={isSubmitting}
-                            >
-                                삭제
-                            </button>
+                            <button type="button" className="memo-text-btn delete" onClick={handleDelete} disabled={isSubmitting}>삭제</button>
                         )}
                         {(isExpanded || editData) && (
-                            <button
-                                type="button"
-                                className="memo-text-btn"
-                                onClick={handleCancel}
-                            >
-                                취소
-                            </button>
+                            <button type="button" className="memo-text-btn" onClick={handleCancel}>취소</button>
                         )}
-                        <button
-                            type="submit"
-                            className="memo-submit-btn-compact"
-                            disabled={isSubmitting}
-                        >
+                        <button type="submit" className="memo-submit-btn-compact" disabled={isSubmitting}>
                             {isSubmitting ? <LocalLoading inline size="sm" color="white" /> : <i className="ri-send-plane-fill"></i>}
                             <span>{editData ? '수정' : '등록'}</span>
                         </button>
                     </div>
                 </div>
-
-                <input
-                    type="file"
-                    hidden
-                    ref={fileInputRef}
-                    accept="image/*"
-                    onChange={handleImageSelect}
-                />
+                <input type="file" hidden ref={fileInputRef} accept="image/*" onChange={handleImageSelect} />
             </form>
         </div>
     );

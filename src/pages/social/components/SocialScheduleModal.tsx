@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -60,6 +60,72 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
     const [showVenueModal, setShowVenueModal] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [loadingMessage, setLoadingMessage] = useState('');
+    const [isDirty, setIsDirty] = useState(false);
+
+    // Track changes
+    useEffect(() => {
+        if (!isOpen) {
+            setIsDirty(false);
+            return;
+        }
+
+        const source = editSchedule || initialData;
+        const defaultDate = initialDate ? initialDate.toISOString().split('T')[0] : '';
+
+        const hasChanges = () => {
+            if (activeTab === 'social') {
+                if (source) {
+                    return (
+                        title !== (source.title || '') ||
+                        date !== (source.date || source.start_date || '') ||
+                        time !== (source.time || source.start_time || '') ||
+                        location !== (source.location || source.place_name || '') ||
+                        address !== (source.address || '') ||
+                        description !== (source.description || '') ||
+                        category !== (source.category || source.v2_category || 'social') ||
+                        imageFile !== null ||
+                        (source.link1 || source.link_url || '') !== link ||
+                        (source.link_name1 || source.link_name || '') !== linkName
+                    );
+                } else {
+                    return (
+                        title.trim() !== '' ||
+                        date !== defaultDate ||
+                        time !== '' ||
+                        location !== '' ||
+                        description !== '' ||
+                        imageFile !== null ||
+                        link !== '' ||
+                        linkName !== ''
+                    );
+                }
+            } else {
+                // Recruit tab
+                return (
+                    recruitContent.trim() !== '' ||
+                    recruitContact.trim() !== '' ||
+                    recruitLink.trim() !== '' ||
+                    recruitImageFile !== null
+                );
+            }
+        };
+
+        setIsDirty(hasChanges());
+    }, [
+        isOpen, activeTab, title, date, time, location, address, description,
+        category, imageFile, link, linkName, recruitContent, recruitContact,
+        recruitLink, recruitImageFile, editSchedule, initialData, initialDate
+    ]);
+
+    const handleProtectedClose = useCallback(() => {
+        if (isDirty) {
+            if (window.confirm('작성 중인 내용이 있습니다. 저장하지 않고 닫으시겠습니까?')) {
+                onClose();
+            }
+        } else {
+            onClose();
+        }
+    }, [isDirty, onClose]);
 
     // Initialize Form (Social Schedule)
     useEffect(() => {
@@ -477,13 +543,22 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
     if (!isOpen) return null;
 
     const modalContent = (
-        <div className="social-schedule-modal-overlay">
+        <div
+            className="social-schedule-modal-overlay"
+            onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }}
+        >
             <div className="social-schedule-modal-container" onClick={(e) => e.stopPropagation()}>
 
                 {/* Header */}
                 <div className="social-schedule-modal-header">
                     <h2>일정 및 모집 관리</h2>
-                    <button className="ssm-close-btn" onClick={onClose}>
+                    <button className="ssm-close-btn" onClick={(e) => {
+                        e.stopPropagation();
+                        handleProtectedClose();
+                    }}>
                         <i className="ri-close-line"></i>
                     </button>
                 </div>
@@ -776,7 +851,10 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                                 <i className="ri-delete-bin-line"></i> 삭제
                             </button>
                         )}
-                        <button type="button" className="ssm-cancel-btn" onClick={onClose}>취소</button>
+                        <button type="button" className="ssm-cancel-btn" onClick={(e) => {
+                            e.stopPropagation();
+                            handleProtectedClose();
+                        }}>취소</button>
                         <button type="submit" className="ssm-submit-btn">
                             {activeTab === 'social' ? '일정 저장하기' : '모집 공고 저장'}
                         </button>

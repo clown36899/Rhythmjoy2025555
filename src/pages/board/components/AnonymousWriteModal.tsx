@@ -1,3 +1,4 @@
+import { useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import QuickMemoEditor from './QuickMemoEditor';
 import { useModalHistory } from '../../../hooks/useModalHistory';
@@ -10,6 +11,7 @@ interface AnonymousWriteModalProps {
     isAdmin?: boolean;
     editData?: any;
     providedPassword?: string;
+    onDirtyChange?: (isDirty: boolean) => void;
 }
 
 export default function AnonymousWriteModal({
@@ -21,15 +23,40 @@ export default function AnonymousWriteModal({
     editData = null,
     providedPassword = ''
 }: AnonymousWriteModalProps) {
+    const [isDirty, setIsDirty] = useState(false);
+
     // Enable back gesture - called inside the component while it is mounted
-    useModalHistory(isOpen, onClose);
+    useModalHistory(isOpen, () => {
+        if (isDirty) {
+            if (window.confirm('작성 중인 내용이 있습니다. 정말로 닫으시겠습니까?')) {
+                onClose();
+            }
+        } else {
+            onClose();
+        }
+    });
 
     if (!isOpen) return null;
+
+    const handleBackdropClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        // Do nothing on backdrop click to prevent accidental close
+    };
+
+    const handleCloseClick = () => {
+        if (isDirty) {
+            if (window.confirm('작성 중인 내용이 있습니다. 저장하지 않고 닫으시겠습니까?')) {
+                onClose();
+            }
+        } else {
+            onClose();
+        }
+    };
 
     return createPortal(
         <div
             className="anonymous-write-modal-overlay"
-            onClick={onClose}
+            onClick={handleBackdropClick}
             style={{
                 display: 'flex',
                 position: 'fixed',
@@ -51,7 +78,7 @@ export default function AnonymousWriteModal({
                 <div className="anonymous-modal-header">
                     <button
                         className="anonymous-modal-close"
-                        onClick={onClose}
+                        onClick={handleCloseClick}
                     >
                         <i className="ri-arrow-left-line"></i>
                     </button>
@@ -64,7 +91,8 @@ export default function AnonymousWriteModal({
                     providedPassword={providedPassword}
                     isAdmin={isAdmin}
                     className="modal-mode"
-                    onCancelEdit={onClose}
+                    onCancelEdit={handleCloseClick}
+                    onDirtyChange={setIsDirty}
                 />
             </div>
         </div>,

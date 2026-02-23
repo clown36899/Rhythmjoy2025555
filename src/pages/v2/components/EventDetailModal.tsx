@@ -937,7 +937,15 @@ export default function EventDetailModal({
             e.preventDefault();
           }
         }}
-        onClick={onClose}
+        onClick={() => {
+          if (isSelectionMode) {
+            if (window.confirm('수정 중인 내용이 있습니다. 저장하지 않고 닫으시겠습니까?')) {
+              onClose();
+            }
+          } else {
+            onClose();
+          }
+        }}
       >
         <div
           className="EDM-container"
@@ -1780,7 +1788,13 @@ export default function EventDetailModal({
                   console.log('[EventDetailModal] Close(X) 버튼 클릭됨');
                   e.preventDefault();
                   e.stopPropagation();
-                  onClose();
+                  if (isSelectionMode) {
+                    if (window.confirm('수정 중인 내용이 있습니다. 저장하지 않고 닫으시겠습니까?')) {
+                      onClose();
+                    }
+                  } else {
+                    onClose();
+                  }
                 }}
                 className="EDM-closeBtn"
                 title="닫기"
