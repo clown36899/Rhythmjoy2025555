@@ -95,13 +95,17 @@
     overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: var(--border-glass, rgba(255, 255, 255, 0.1)) transparent;
+    display: flex;
+    flex-direction: column;
 }
 
 .NewEventsListModal .NEL-grid {
     display: grid;
-    gap: 8px;
-    grid-template-columns: repeat(var(--grid-cols, 2), 1fr);
+    gap: 12px 8px;
+    grid-template-columns: repeat(var(--grid-cols, 3), 1fr);
     align-content: start;
+    animation: nel-pageSwitch 0.3s ease-out;
+    /* Page change animation */
 }
 
 /* 카드 아이템 */
@@ -109,10 +113,10 @@
     position: relative;
     background: var(--bg-surface-2);
     border-radius: 16px;
-    padding: 8px;
+    padding: 10px 8px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
     cursor: pointer;
     border: 1px solid var(--border-glass-subtle);
     transition: transform 0.15s, background 0.15s;
@@ -125,7 +129,7 @@
 
 /* 원형 썸네일 */
 .NewEventsListModal .NEL-thumbnail {
-    width: 72%;
+    width: 75%;
     aspect-ratio: 1/1;
     margin: 0 auto;
     border-radius: 50%;
@@ -154,18 +158,17 @@
     font-size: 2rem;
 }
 
-/* 카테고리 배지 - 이미지 좌상단 (NEL-item 기준 absolute) */
+/* 카테고리 배지 */
 .NewEventsListModal .NEL-category {
     position: absolute;
     top: 10px;
     left: 10px;
-    font-size: 0.58rem;
+    font-size: 0.6rem;
     font-weight: 800;
     padding: 2px 6px;
     border-radius: 5px;
     color: #ffffff;
     z-index: 2;
-    letter-spacing: 0.02em;
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
     box-shadow: 0 1px 5px rgba(0, 0, 0, 0.5);
@@ -176,13 +179,13 @@
 .NewEventsListModal .NEL-info {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 3px;
     align-items: center;
     padding: 0 2px;
 }
 
 .NewEventsListModal .NEL-eventTitle {
-    font-size: 1rem;
+    font-size: 1.05rem;
     font-weight: 800;
     color: var(--text-primary, #ffffff);
     line-height: 1.3;
@@ -194,83 +197,79 @@
     word-break: keep-all;
     overflow-wrap: break-word;
     text-align: center;
-    letter-spacing: -0.01em;
+    letter-spacing: -0.015em;
 }
 
 .NewEventsListModal .NEL-date {
-    font-size: 0.82rem;
+    font-size: 0.85rem;
     color: var(--color-blue-400, #60a5fa);
     font-weight: 700;
     text-align: center;
 }
 
-/* 빈 상태 */
-.NewEventsListModal .NEL-empty {
-    text-align: center;
-    color: var(--text-tertiary);
-    padding: 40px 20px;
-    font-size: 0.9rem;
+/* 하단 네비게이션 */
+.NewEventsListModal .NEL-footer {
+    padding: 24px 0 12px 0;
+    display: flex;
+    justify-content: center;
+    flex-shrink: 0;
 }
 
-/* density 대응 */
-.NewEventsListModal.density-medium .NEL-item {
-    padding: 6px;
+.NewEventsListModal .NEL-pagination {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: var(--bg-surface-glass);
+    padding: 4px 8px;
+    border-radius: 30px;
+    border: 1px solid var(--border-glass-subtle);
+}
+
+.NewEventsListModal .NEL-navBtn {
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.NewEventsListModal .NEL-navBtn:not(:disabled):hover {
+    background: var(--border-glass);
+}
+
+.NewEventsListModal .NEL-navBtn:disabled {
+    opacity: 0.2;
+    cursor: not-allowed;
+}
+
+.NewEventsListModal .NEL-navBtn i {
+    font-size: 1.5rem;
+}
+
+.NewEventsListModal .NEL-pageIndicator {
+    display: flex;
+    align-items: center;
     gap: 4px;
+    font-size: 0.95rem;
+    font-weight: 700;
 }
 
-.NewEventsListModal.density-medium .NEL-thumbnail {
-    width: 65%;
+.NewEventsListModal .NEL-pageIndicator .current {
+    color: var(--color-blue-400);
 }
 
-.NewEventsListModal.density-medium .NEL-eventTitle {
-    font-size: 0.82rem;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
+.NewEventsListModal .NEL-pageIndicator .sep {
+    opacity: 0.3;
 }
 
-.NewEventsListModal.density-medium .NEL-date {
-    font-size: 0.75rem;
-}
-
-.NewEventsListModal.density-high .NEL-item {
-    padding: 5px;
-    gap: 3px;
-}
-
-.NewEventsListModal.density-high .NEL-thumbnail {
-    width: 60%;
-}
-
-.NewEventsListModal.density-high .NEL-eventTitle {
-    -webkit-line-clamp: 1;
-    line-clamp: 1;
-    font-size: 0.72rem;
-}
-
-.NewEventsListModal.density-high .NEL-date {
-    font-size: 0.65rem;
-    display: block;
-    /* High에서도 보어줌 */
-}
-
-.NewEventsListModal.density-ultra .NEL-item {
-    padding: 4px;
-    gap: 3px;
-}
-
-.NewEventsListModal.density-ultra .NEL-eventTitle {
-    -webkit-line-clamp: 1;
-    line-clamp: 1;
-    font-size: 0.6rem;
-}
-
-.NewEventsListModal.density-ultra .NEL-date {
-    display: none;
-}
-
-.NewEventsListModal.density-ultra .NEL-category {
-    font-size: 0.5rem;
-    padding: 1px 4px;
+.NewEventsListModal .NEL-pageIndicator .total {
+    color: var(--text-tertiary);
 }
 
 /* 애니메이션 */
@@ -293,5 +292,28 @@
     to {
         transform: translateY(0);
         opacity: 1;
+    }
+}
+
+@keyframes nel-pageSwitch {
+    from {
+        transform: translateX(10px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+/* 반응형 */
+@media (max-width: 480px) {
+    .NewEventsListModal .NEL-eventTitle {
+        font-size: 0.9rem;
+    }
+
+    .NewEventsListModal .NEL-container {
+        max-height: 90vh;
     }
 }
