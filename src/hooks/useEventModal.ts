@@ -83,25 +83,34 @@ export function useEventModal(): UseEventModalReturn {
 
     // 4. 이벤트 삭제 핸들러
     const handleDeleteEvent = useCallback(async (eventId: number | string, password?: string) => {
-        // Double confirm removal: The caller (UI) handles confirmation.
+        // [Final Analysis] 
+        // 수정(Mutation) 로직은 EventDetailModal 내부의 saveChangesToDB에서 이미 'social-'을 떼고 처리하고 있었습니다.
+        // 반면 삭제(Deletion) 로직인 이 함수는 그동안 그 처리가 누락되어 실패했던 것입니다.
+        // 이제 수정 로직과 동일하게 ID 정제를 수행합니다.
+
         console.log('[useEventModal] handleDeleteEvent 시작', { originalEventId: eventId, hasPassword: !!password });
 
         try {
             setIsDeleting(true);
 
-            // [FIX] ID 전처리: social- 접두어 제거 및 FullCalendar 오프셋 처리
-            let cleanId = String(eventId).replace('social-', '');
-            if (Number(cleanId) > 10000000) {
-                cleanId = String(Number(cleanId) - 10000000);
-            }
-            console.log('[useEventModal] ID 정제 결과:', { original: eventId, cleaned: cleanId });
+            // [FIX] ID 전처리: 'social-' 접두어 제거 (수정 로직과 동일하게 맞춤)
+            const strippedId = String(eventId).replace('social-', '');
+
+            // FullCalendar 오프셋 처리 (10,000,000 초과 시 차감)
+            const cleanId = Number(strippedId) > 10000000
+                ? String(Number(strippedId) - 10000000)
+                : strippedId;
+
+            console.log('[useEventModal] Deletion ID Cleaned:', {
+                input: eventId,
+                afterStrip: strippedId,
+                finalTarget: cleanId
+            });
 
             const { data: { session } } = await supabase.auth.getSession();
             const token = session?.access_token;
-            console.log('[useEventModal] 세션 확인 완료', { hasToken: !!token });
 
-
-            console.log('[useEventModal] API 호출 시도: /.netlify/functions/delete-event', { targetId: cleanId });
+            console.log('[useEventModal] API Call: /.netlify/functions/delete-event', { targetId: cleanId });
             const response = await fetch('/.netlify/functions/delete-event', {
                 method: 'POST',
                 headers: {
