@@ -27,7 +27,7 @@ html {
     transform: translateX(-50%);
     width: 100%;
     max-width: 650px;
-    z-index: 9999;
+    z-index: 999;
     /* 하단 네비게이션(50)보다 높게 설정 */
     background-color: transparent;
     /* 배경 투명화 */
