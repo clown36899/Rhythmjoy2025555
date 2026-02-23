@@ -410,24 +410,38 @@
       });
     }
 
-    // version.json 폴링: 배포 감지 (3분마다)
+    // version.json 폴링: 배포 감지 (정적 파일이므로 부하가 적으나, 5분 주기로 충분)
     (function () {
-      // 빌보드는 page.tsx의 Supabase Realtime 배포 감지 시스템을 사용하므로 여기서 폴링 중복 수행 안함
       if (window.location.pathname.includes('/billboard/')) return;
 
       var currentBuild = '__BUILD_TIME__';
       if (!currentBuild || currentBuild.indexOf('TIME') > -1) return;
-      setInterval(function () {
+
+      function checkVersion() {
         fetch('/version.json?t=' + Date.now())
           .then(function (r) { return r.json(); })
           .then(function (data) {
             if (data.buildTime && data.buildTime !== currentBuild) {
+              window.__BOOT_LOG && window.__BOOT_LOG('New build detected: ' + data.buildTime);
               window.navigator.serviceWorker.getRegistration().then(function (reg) {
-                if (reg) reg.update(); // updatefound → installed → autoApplyUpdate
+                if (reg) {
+                  // 새 SW 체크 강제 실행 -> updatefound -> installed -> autoApplyUpdate -> reload
+                  reg.update();
+                } else {
+                  // SW가 없는 환경(또는 비활성)이라도 빌드가 바뀌었으면 강제 리로드
+                  window.location.reload();
+                }
               });
             }
           }).catch(function () { });
-      }, 3 * 60 * 1000);
+      }
+
+      setInterval(checkVersion, 5 * 60 * 1000); // 5분으로 완화하여 과부하 방지
+
+      // 실제 유효한 업데이트 시점은 '사용자가 앱으로 돌아왔을 때'이므로 Focus 체크 유지
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') checkVersion();
+      });
     })();
   </script>
 </body>

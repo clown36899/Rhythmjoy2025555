@@ -8,6 +8,15 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '3.8.9',
+        date: '2026-02-24',
+        changes: [
+            '[✨ Feature] 업데이트 오토메이트: 5분 주기 폴링 및 탭 포커스 시 즉시 체크 로직 도입',
+            '[🔧 Fixed] "Failed to fetch" 에러 발생 시 에러창 없이 자동 리로드 (Silent Recovery) 보강',
+            '[🚀 Performance] 불필요한 네트워크 요청 최소화 및 배포 감지 효율 최적화'
+        ]
+    },
+    {
         version: '3.8.8',
         date: '2026-02-21',
         changes: [

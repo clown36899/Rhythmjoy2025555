@@ -284,9 +284,10 @@ function RootApp() {
         message.includes('Importing a module script failed') ||
         message.includes('Loading chunk') ||
         message.includes('dynamically imported module') ||
-        message.includes('fetch dynamically imported');
+        message.includes('fetch dynamically imported') ||
+        message.includes('Failed to fetch'); // [Critical] 에러창 없이 즉시 리로드하여 사용자 경험 개선
       if (isChunkError) {
-        console.warn('📦 Chunk load failed, reloading silently...');
+        console.warn('📦 Chunk/Fetch load failed (likely new deployment), reloading silently...');
         window.location.reload();
         return;
       }
