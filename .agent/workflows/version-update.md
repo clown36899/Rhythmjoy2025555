@@ -19,6 +19,10 @@ AI 어시스턴트에게 다음과 같이 요청하면 **모든 파일을 자동
 3. `src/data/changelog.ts`에 새 버전 데이터 추가
 4. 변경사항 요약 제공
 
+> [!IMPORTANT]
+> **Git 커밋 및 푸시(Push) 금지**
+> 모든 자동 업데이트 작업 후, Git 커밋 및 푸시는 **사용자의 명시적인 승인**이 있을 때만 수행해야 합니다. 지시 없이 독단적으로 원격 저장소에 푸시하는 것은 절대 금지입니다.
+
 ---
 
 ## 📝 수동 업데이트 방법
@@ -54,10 +58,15 @@ export const changelogData: ChangelogVersion[] = [
 ];
 ```
 
-### 4. Git 커밋
+### 4. Git 커밋 (승인 필수)
 ```bash
+# 1. 파일 추가
 git add package.json CHANGELOG.md src/data/changelog.ts
+
+# 2. 커밋 수행 (사용자 승인 후)
 git commit -m "버전 2.2.5 업데이트"
+
+# 3. 푸시 수행 (사용자 승인 후)
 git push
 ```
 

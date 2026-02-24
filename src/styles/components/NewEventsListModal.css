@@ -1,282 +1,282 @@
-/* NewEventsListModal.css - 신규 등록 이벤트 전체보기 모달 스타일 */
+/* NewEventsListModal.css - Shared Layout & Modal Base Styles */
 
 .NewEventsListModal {
     position: fixed;
     inset: 0;
-    background-color: rgba(0, 0, 0, 0.85);
+    background-color: #000;
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: var(--z-modal-base, 10003);
-    backdrop-filter: blur(var(--blur-glass, 12px));
-    -webkit-backdrop-filter: blur(var(--blur-glass, 12px));
-    padding: var(--spacing-4, 16px);
-    animation: nel-fadeIn 0.2s ease-out;
+    padding: 0;
+    animation: cinemaFadeIn 1s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .NewEventsListModal .NEL-container {
-    background: var(--bg-surface-1);
-    width: 100%;
-    max-width: 650px;
-    max-height: 85vh;
-    border-radius: var(--radius-3xl, 24px);
+    background: #000;
+    width: 100vw;
+    height: 100vh;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    box-shadow: var(--shadow-premium);
-    border: 1px solid var(--border-glass);
-    animation: nel-slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .NewEventsListModal .NEL-header {
-    padding: var(--spacing-4, 16px) var(--spacing-5, 20px);
+    height: 70px;
+    padding: 0 40px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid var(--border-glass-subtle);
-    background: var(--bg-surface-glass);
-    flex-shrink: 0;
-}
-
-.NewEventsListModal .NEL-titleInfo {
-    display: flex;
-    flex-direction: column;
+    background: rgba(0, 0, 0, 0.95);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    z-index: 1000;
 }
 
 .NewEventsListModal .NEL-title {
-    font-size: 1.4rem;
-    font-weight: 800;
-    margin: 10px;
-    color: var(--text-primary, #ffffff);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.NewEventsListModal .NEL-badge {
-    font-size: 0.7rem;
-    background: var(--color-blue-500);
-    color: var(--text-inverse);
-    padding: 2px 6px;
-    border-radius: 4px;
+    font-size: 1.1rem;
     font-weight: 900;
+    color: #fff;
+    letter-spacing: 0.1em;
 }
 
-.NewEventsListModal .NEL-subtitle {
-    font-size: 0.8rem;
-    color: var(--text-tertiary, #9ca3af);
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-top: 2px;
+.NewEventsListModal .NEL-modeBtn {
+    background: rgba(255, 255, 255, 0.1);
+    border: none;
+    color: #fff;
+    padding: 10px 24px;
+    border-radius: 40px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.NewEventsListModal .NEL-modeBtn.active {
+    background: #fff;
+    color: #000;
 }
 
 .NewEventsListModal .NEL-closeBtn {
-    background: var(--border-glass);
+    background: transparent;
     border: none;
-    color: var(--text-primary);
-    width: 32px;
-    height: 32px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    color: #fff;
+    font-size: 2rem;
     cursor: pointer;
-    transition: background 0.2s;
-    flex-shrink: 0;
+    opacity: 0.4;
+    transition: opacity 0.3s;
 }
 
 .NewEventsListModal .NEL-closeBtn:hover {
-    background: var(--border-glass-strong, rgba(255, 255, 255, 0.2));
+    opacity: 1;
 }
 
 .NewEventsListModal .NEL-body {
-    padding: 12px;
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+}
+
+/* --- List mode --- */
+.NewEventsListModal .NEL-listView {
+    height: 100%;
     overflow-y: auto;
-    scrollbar-width: thin;
-    scrollbar-color: var(--border-glass, rgba(255, 255, 255, 0.1)) transparent;
-    display: flex;
-    flex-direction: column;
+    padding: 60px 40px;
+    background: #050505;
 }
 
 .NewEventsListModal .NEL-grid {
     display: grid;
-    gap: 12px 8px;
-    grid-template-columns: repeat(var(--grid-cols, 3), 1fr);
-    align-content: start;
-    animation: nel-pageSwitch 0.3s ease-out;
-    /* Page change animation */
-}
-
-/* 카드 아이템 */
-.NewEventsListModal .NEL-item {
-    position: relative;
-    background: var(--bg-surface-2);
-    border-radius: 16px;
-    padding: 10px 8px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    cursor: pointer;
-    border: 1px solid var(--border-glass-subtle);
-    transition: transform 0.15s, background 0.15s;
-}
-
-.NewEventsListModal .NEL-item:active {
-    transform: scale(0.97);
-    background: var(--bg-surface-3);
-}
-
-/* 원형 썸네일 */
-.NewEventsListModal .NEL-thumbnail {
-    width: 55%;
-    /* [Fix] 62% -> 55% 추가 축소 */
-    aspect-ratio: 1/1;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 30px;
+    max-width: 1400px;
     margin: 0 auto;
-    border-radius: 50%;
+}
+
+.NewEventsListModal .NEL-item {
+    background: #111;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
     overflow: hidden;
-    background: var(--bg-surface-3);
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
-    flex-shrink: 0;
+    transition: transform 0.3s;
+    cursor: pointer;
+}
+
+.NewEventsListModal .NEL-item:hover {
+    transform: translateY(-8px);
 }
 
 .NewEventsListModal .NEL-thumbnail img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    display: block;
 }
 
-/* 이미지 없을 때 fallback */
-.NewEventsListModal .NEL-fallback {
-    width: 100%;
+.NewEventsListModal .NEL-itemTitle {
+    padding: 20px 20px 10px;
+    color: #fff;
+    font-weight: 800;
+    margin: 0;
+}
+
+.NewEventsListModal .NEL-itemMeta {
+    padding: 0 24px 24px;
+    color: #444;
+    font-size: 0.9rem;
+}
+
+/* --- Selector View: Cinematic Entry --- */
+.NewEventsListModal .NEL-selectorView {
     height: 100%;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-    color: rgba(255, 255, 255, 0.2);
-    font-size: 2rem;
+    padding: 60px 40px;
+    background: radial-gradient(circle at center, #111 0%, #000 100%);
+    animation: cinemaFadeIn 0.8s ease-out;
 }
 
-/* 카테고리 배지 */
-.NewEventsListModal .NEL-category {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    font-size: 0.6rem;
-    font-weight: 800;
-    padding: 2px 6px;
-    border-radius: 5px;
-    color: #ffffff;
-    z-index: 2;
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
-    box-shadow: 0 1px 5px rgba(0, 0, 0, 0.5);
-    white-space: nowrap;
+.NewEventsListModal .NEL-sTitleGroup {
+    text-align: center;
+    margin-bottom: 60px;
 }
 
-/* 텍스트 영역 */
-.NewEventsListModal .NEL-info {
+.NewEventsListModal .NEL-sTitle {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 950;
+    color: #fff;
+    letter-spacing: -0.02em;
+    margin-bottom: 15px;
+}
+
+.NewEventsListModal .NEL-sDesc {
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.4);
+    font-weight: 600;
+}
+
+.NewEventsListModal .NEL-sGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 20px;
+    width: 100%;
+    max-width: 1300px;
+}
+
+.NewEventsListModal .NEL-sCard {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 24px;
+    padding: 40px 30px;
     display: flex;
     flex-direction: column;
-    gap: 3px;
-    align-items: center;
-    padding: 0 2px;
-}
-
-.NewEventsListModal .NEL-eventTitle {
-    font-size: 1.3rem;
-    /* [Fix] 1.15 -> 1.3 대폭 확대 */
-    font-weight: 800;
-    color: var(--text-primary, #ffffff);
-    line-height: 1.25;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    word-break: keep-all;
-    overflow-wrap: break-word;
-    text-align: center;
-    letter-spacing: -0.015em;
-}
-
-.NewEventsListModal .NEL-date {
-    font-size: 1.05rem;
-    /* [Fix] 0.95 -> 1.05 확대 */
-    color: var(--color-blue-400, #60a5fa);
-    font-weight: 700;
-    text-align: center;
-}
-
-/* 하단 네비게이션 */
-.NewEventsListModal .NEL-footer {
-    padding: 24px 0 12px 0;
-    display: flex;
-    justify-content: center;
-    flex-shrink: 0;
-}
-
-.NewEventsListModal .NEL-pagination {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    background: var(--bg-surface-glass);
-    padding: 4px 8px;
-    border-radius: 30px;
-    border: 1px solid var(--border-glass-subtle);
-}
-
-.NewEventsListModal .NEL-navBtn {
-    background: transparent;
-    border: none;
-    color: var(--text-primary);
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    position: relative;
+    overflow: hidden;
 }
 
-.NewEventsListModal .NEL-navBtn:not(:disabled):hover {
-    background: var(--border-glass);
+.NewEventsListModal .NEL-sCard::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(45deg, transparent 0%, rgba(255, 255, 255, 0.05) 50%, transparent 100%);
+    transform: translateX(-100%);
+    transition: transform 0.6s;
 }
 
-.NewEventsListModal .NEL-navBtn:disabled {
-    opacity: 0.2;
-    cursor: not-allowed;
+.NewEventsListModal .NEL-sCard:hover::before {
+    transform: translateX(100%);
 }
 
-.NewEventsListModal .NEL-navBtn i {
-    font-size: 1.5rem;
+.NewEventsListModal .NEL-sCard:hover {
+    transform: translateY(-10px) scale(1.02);
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5), 0 0 20px rgba(255, 255, 255, 0.05);
 }
 
-.NewEventsListModal .NEL-pageIndicator {
+.NewEventsListModal .NEL-sIcon {
+    font-size: 2.5rem;
+    color: #fff;
+    margin-bottom: 25px;
+    opacity: 0.6;
+    transition: all 0.3s;
+}
+
+.NewEventsListModal .NEL-sCard:hover .NEL-sIcon {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+.NewEventsListModal .NEL-sMeta {
+    font-size: 0.75rem;
+    font-weight: 950;
+    color: rgba(255, 255, 255, 0.3);
+    letter-spacing: 0.2em;
+    margin-bottom: 10px;
+}
+
+.NewEventsListModal .NEL-sLabel {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #fff;
+    margin: 0;
+}
+
+.NewEventsListModal .NEL-sCard.list-card {
+    background: rgba(255, 255, 255, 0.01);
+}
+
+.NewEventsListModal .NEL-sCard.showcase-card {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+}
+
+/* --- Multi-Showcase Canvas --- */
+.NewEventsListModal .NEL-multiShowcase {
+    position: absolute;
+    inset: 0;
+    background: #000;
+    overflow: hidden;
+}
+
+.NewEventsListModal .NEL-modeBtn.back-to-selector {
+    background: rgba(255, 255, 255, 0.15);
     display: flex;
     align-items: center;
-    gap: 4px;
-    font-size: 0.95rem;
-    font-weight: 700;
+    gap: 8px;
 }
 
-.NewEventsListModal .NEL-pageIndicator .current {
-    color: var(--color-blue-400);
+.NewEventsListModal .NEL-modeBtn.back-to-selector:hover {
+    background: #fff;
+    color: #000;
 }
 
-.NewEventsListModal .NEL-pageIndicator .sep {
-    opacity: 0.3;
+
+/* Filters & Animations */
+.NewEventsListModal .NEL-cinematicFilters {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 500;
 }
 
-.NewEventsListModal .NEL-pageIndicator .total {
-    color: var(--text-tertiary);
+.NewEventsListModal .NEL-vignette {
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(circle at center, transparent 20%, rgba(0, 0, 0, 0.8) 100%);
 }
 
-/* 애니메이션 */
-@keyframes nel-fadeIn {
+.NewEventsListModal .NEL-grain {
+    position: absolute;
+    inset: 0;
+    background-image: url("https://www.transparenttextures.com/patterns/black-linen-2.png");
+    opacity: 0.1;
+    mix-blend-mode: overlay;
+}
+
+@keyframes cinemaFadeIn {
     from {
         opacity: 0;
     }
@@ -286,35 +286,9 @@
     }
 }
 
-@keyframes nel-slideUp {
-    from {
-        transform: translateY(20px);
-        opacity: 0;
-    }
-
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
-}
-
-@keyframes nel-pageSwitch {
-    from {
-        transform: translateX(10px);
-        opacity: 0;
-    }
-
-    to {
-        transform: translateX(0);
-        opacity: 1;
-    }
-}
-
-/* 반응형 */
-@media (max-width: 480px) {
-
-
-    .NewEventsListModal .NEL-container {
-        max-height: 90vh;
+/* Responsive */
+@media (max-width: 768px) {
+    .NewEventsListModal .NEL-header {
+        padding: 0 20px;
     }
 }

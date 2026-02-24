@@ -1,0 +1,74 @@
+/* NewEventsListModalV2.css - Endless Streaming Flow */
+
+.NewEventsListModal .NEL-cinematicV2 {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+}
+
+.NewEventsListModal .NEL-streamBelt {
+    display: flex;
+    gap: 40px;
+    padding: 0 60px;
+    animation: v2Stream 40s linear infinite;
+}
+
+.NewEventsListModal .NEL-streamItem {
+    flex: 0 0 320px;
+    height: 450px;
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    transform: skewX(-5deg);
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.8);
+}
+
+.NewEventsListModal .NEL-streamItem img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: brightness(0.6);
+}
+
+.NewEventsListModal .NEL-streamLabel {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 25px;
+    background: linear-gradient(to top, #000, transparent);
+    color: #fff;
+}
+
+.NewEventsListModal .NEL-streamLabel span {
+    font-size: 0.7rem;
+    font-weight: 900;
+    background: #fff;
+    color: #000;
+    padding: 2px 6px;
+    border-radius: 2px;
+}
+
+.NewEventsListModal .NEL-streamLabel h4 {
+    margin: 8px 0 0;
+    font-size: 1.2rem;
+    font-weight: 800;
+}
+
+@keyframes v2Stream {
+    from {
+        transform: translateX(0);
+    }
+
+    to {
+        transform: translateX(-50%);
+    }
+}
+
+@media (max-width: 768px) {
+    .NewEventsListModal .NEL-streamItem {
+        flex: 0 0 260px;
+        height: 380px;
+    }
+}

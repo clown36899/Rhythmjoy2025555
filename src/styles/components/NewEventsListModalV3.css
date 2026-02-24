@@ -1,0 +1,95 @@
+/* NewEventsListModalV3.css - Grand Cinema Rolling */
+
+.NewEventsListModal .NEL-cinematicV3 {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+}
+
+.NewEventsListModal .NEL-cinemaStage {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.NewEventsListModal .NEL-cinemaTrack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12vh;
+    animation: v3Roll 50s linear infinite;
+    padding: 60vh 0;
+}
+
+.NewEventsListModal .NEL-cinemaCard {
+    width: 85vw;
+    max-width: 1300px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 60px;
+    align-items: center;
+}
+
+.NewEventsListModal .NEL-cardPoster {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 50px 100px rgba(0, 0, 0, 0.9);
+}
+
+.NewEventsListModal .NEL-cardPoster img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.NewEventsListModal .NEL-cardInfo {
+    color: #fff;
+    text-align: left;
+}
+
+.NewEventsListModal .NEL-cardCat {
+    font-size: 0.8rem;
+    font-weight: 900;
+    color: #000;
+    background: #fff;
+    padding: 4px 14px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-bottom: 20px;
+}
+
+.NewEventsListModal .NEL-cardTitle {
+    font-size: clamp(2rem, 6vw, 5rem);
+    font-weight: 950;
+    margin: 0;
+    line-height: 0.95;
+    letter-spacing: -0.05em;
+    text-transform: uppercase;
+}
+
+@keyframes v3Roll {
+    from {
+        transform: translateY(0);
+    }
+
+    to {
+        transform: translateY(-5000px);
+    }
+}
+
+@media (max-width: 768px) {
+    .NewEventsListModal .NEL-cinemaCard {
+        grid-template-columns: 1fr;
+        gap: 30px;
+        text-align: center;
+    }
+
+    .NewEventsListModal .NEL-cardInfo {
+        text-align: center;
+    }
+}

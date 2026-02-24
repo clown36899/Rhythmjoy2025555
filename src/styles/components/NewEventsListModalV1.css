@@ -1,0 +1,304 @@
+/* NewEventsListModalV1.css - Kinetic Backdrop Montage */
+
+.NewEventsListModal .NEL-cinematicV1 {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.NewEventsListModal .NEL-kineticCanvas {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(15vw, 1fr));
+    gap: 15px;
+    width: 120%;
+    height: 120%;
+    transform: rotate(-10deg) scale(1.1);
+    animation: v1Backdrop 100s linear infinite;
+}
+
+.NewEventsListModal .NEL-kineticTile {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.NewEventsListModal .NEL-kineticTile img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.NewEventsListModal .NEL-v1Meta {
+    font-size: 1rem;
+    letter-spacing: 0.5em;
+    opacity: 0;
+    margin-bottom: 10px;
+    animation: v1FadeIn 1s ease-out forwards;
+    animation-delay: 1.5s;
+}
+
+.NewEventsListModal .NEL-v1Title {
+    font-size: clamp(3rem, 10vw, 8rem);
+    font-weight: 950;
+    line-height: 0.8;
+    letter-spacing: -0.05em;
+    margin: 0;
+    opacity: 0;
+    transform: scaleY(0.01);
+    transform-origin: center;
+    animation: v1NeonSnap 1.2s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+}
+
+@keyframes v1NeonSnap {
+    0% {
+        opacity: 0;
+        transform: scaleY(0.01);
+        filter: brightness(5);
+    }
+
+    10% {
+        opacity: 1;
+    }
+
+    15% {
+        opacity: 0;
+    }
+
+    20% {
+        opacity: 1;
+    }
+
+    25% {
+        opacity: 0.3;
+    }
+
+    30% {
+        opacity: 1;
+        transform: scaleY(0.01);
+        filter: brightness(10) blur(2px);
+    }
+
+    45% {
+        transform: scaleY(1.2);
+        filter: brightness(2);
+    }
+
+    60% {
+        transform: scaleY(0.95);
+    }
+
+    100% {
+        opacity: 1;
+        transform: scaleY(1);
+        filter: brightness(1);
+    }
+}
+
+@keyframes v1FadeIn {
+    to {
+        opacity: 0.6;
+    }
+}
+
+@keyframes v1Backdrop {
+    from {
+        transform: rotate(-10deg) translateY(0);
+    }
+
+    to {
+        transform: rotate(-10deg) translateY(-50%);
+    }
+}
+
+/* Physical Connection: Hide the actual background tile when it's being spotlighted */
+.NewEventsListModal .NEL-kineticTile.v1-active-tile {
+    opacity: 0 !important;
+    transform: scale(1.5);
+    transition: opacity 0.3s ease-out, transform 0.4s ease-out;
+}
+
+/* Interaction with background and title - Seamless Infinity Zoom */
+.NewEventsListModal .NEL-cinematicV1:has(.v1-spot-item.active) .NEL-kineticCanvas {
+    filter: brightness(0.6) contrast(1.1) blur(5px);
+    transition: all 0.25s cubic-bezier(0.19, 1, 0.22, 1);
+    opacity: 0.8;
+    transform: rotate(-10deg) scale(3.5) translateZ(400px);
+}
+
+.NewEventsListModal .NEL-cinematicV1:has(.v1-spot-item.active) .NEL-v1Overlay {
+    opacity: 0.15;
+    transform: scale(1.05) translateY(-50px);
+    transition: all 0.25s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+/* V1 Spotlight Stage - Sequential Zoom Sequence */
+.NewEventsListModal .v1-spotlight-stage {
+    position: absolute;
+    inset: 0;
+    z-index: 150;
+    pointer-events: none;
+}
+
+.NewEventsListModal .v1-spot-item {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.2s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.NewEventsListModal .v1-spot-item.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.NewEventsListModal .v1-spot-card {
+    width: 480px;
+    max-width: 90vw;
+    background: none;
+    border: none;
+    border-radius: 0;
+    overflow: visible;
+    transform: scale(0.7);
+    transition: transform 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.NewEventsListModal .v1-spot-item.active .v1-spot-card {
+    transform: scale(1);
+}
+
+.NewEventsListModal .v1-spot-media {
+    width: 100%;
+    aspect-ratio: 4/5;
+    overflow: hidden;
+    border-radius: 12px;
+    box-shadow: 0 40px 100px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+
+.NewEventsListModal .v1-spot-media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.NewEventsListModal .v1-spot-info {
+    padding: 24px 0;
+    text-align: left;
+    text-shadow: 0 2px 20px rgba(0, 0, 0, 1);
+}
+
+.NewEventsListModal .v1-spot-cat {
+    display: inline-block;
+    padding: 2px 8px;
+    background: #fff;
+    color: #000;
+    font-size: 0.7rem;
+    font-weight: 950;
+    text-transform: uppercase;
+    border-radius: 2px;
+    margin-bottom: 8px;
+}
+
+.NewEventsListModal .v1-spot-title {
+    font-size: 2.8rem;
+    font-weight: 950;
+    color: #fff;
+    margin: 0 0 5px;
+    line-height: 1;
+    letter-spacing: -0.04em;
+}
+
+.NewEventsListModal .v1-spot-date {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #fff;
+    opacity: 0.9;
+}
+
+@keyframes v1SpotZoom {
+    from {
+        transform: scale(1);
+    }
+
+    to {
+        transform: scale(1.1);
+    }
+}
+
+/* Outro Stage Styling */
+.NewEventsListModal .v1-outro-stage {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.8s cubic-bezier(0.19, 1, 0.22, 1);
+    background: radial-gradient(circle at center, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.9) 100%);
+}
+
+.NewEventsListModal .v1-outro-stage.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.NewEventsListModal .v1-outro-content {
+    text-align: center;
+    transform: scale(0.8);
+    transition: transform 1.5s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.NewEventsListModal .v1-outro-stage.active .v1-outro-content {
+    transform: scale(1.1);
+}
+
+.NewEventsListModal .v1-outro-site {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.5);
+    letter-spacing: 0.4em;
+    margin-bottom: 2px;
+    text-transform: uppercase;
+}
+
+.NewEventsListModal .v1-outro-brand {
+    font-size: clamp(3rem, 10vw, 7rem);
+    font-weight: 950;
+    color: #fff;
+    letter-spacing: -0.05em;
+    line-height: 0.8;
+}
+
+/* Interaction during Outro - Extreme Infinity Zoom */
+.NewEventsListModal .NEL-cinematicV1:has(.v1-outro-stage.active) .NEL-kineticCanvas {
+    transform: rotate(-10deg) scale(6) translateZ(1000px);
+    filter: brightness(0.3) blur(15px);
+    opacity: 0.4;
+    transition: all 3s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.NewEventsListModal .NEL-cinematicV1:has(.v1-outro-stage.active) .NEL-v1Overlay {
+    opacity: 0;
+    transform: scale(1.5) translateZ(200px);
+    transition: all 2s ease-in;
+}
+
+@media (max-width: 768px) {
+    .NewEventsListModal .v1-spot-card {
+        width: 340px;
+    }
+
+    .NewEventsListModal .v1-spot-title {
+        font-size: 1.8rem;
+    }
+
+    .NewEventsListModal .v1-outro-brand {
+        font-size: 3rem;
+    }
+}
