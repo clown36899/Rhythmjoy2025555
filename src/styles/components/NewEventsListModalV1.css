@@ -45,52 +45,43 @@
     letter-spacing: -0.05em;
     margin: 0;
     opacity: 0;
-    transform: scaleY(0.01);
-    transform-origin: center;
-    animation: v1NeonSnap 1.2s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+    transform: translateY(120vh);
+    animation: v1NeonSnap 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes v1NeonSnap {
     0% {
         opacity: 0;
-        transform: scaleY(0.01);
-        filter: brightness(5);
-    }
-
-    10% {
-        opacity: 1;
-    }
-
-    15% {
-        opacity: 0;
-    }
-
-    20% {
-        opacity: 1;
-    }
-
-    25% {
-        opacity: 0.3;
+        transform: translateY(120vh);
+        filter: brightness(1);
     }
 
     30% {
         opacity: 1;
-        transform: scaleY(0.01);
-        filter: brightness(10) blur(2px);
+        filter: brightness(3) blur(2px);
     }
 
-    45% {
-        transform: scaleY(1.2);
-        filter: brightness(2);
+    35% {
+        opacity: 0.3;
+    }
+
+    40% {
+        opacity: 1;
+        filter: brightness(5);
     }
 
     60% {
-        transform: scaleY(0.95);
+        transform: translateY(-5%);
+        filter: brightness(2);
+    }
+
+    80% {
+        transform: translateY(2%);
     }
 
     100% {
         opacity: 1;
-        transform: scaleY(1);
+        transform: translateY(0);
         filter: brightness(1);
     }
 }
@@ -157,8 +148,8 @@
 }
 
 .NewEventsListModal .v1-spot-card {
-    width: 480px;
-    max-width: 90vw;
+    width: 240px;
+    max-width: 60vw;
     background: none;
     border: none;
     border-radius: 0;
@@ -173,10 +164,10 @@
 
 .NewEventsListModal .v1-spot-media {
     width: 100%;
-    aspect-ratio: 4/5;
+    aspect-ratio: 3/4;
     overflow: hidden;
-    border-radius: 12px;
-    box-shadow: 0 40px 100px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    box-shadow: 0 30px 80px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255, 255, 255, 0.2);
 }
 
 .NewEventsListModal .v1-spot-media img {
@@ -186,7 +177,7 @@
 }
 
 .NewEventsListModal .v1-spot-info {
-    padding: 24px 0;
+    padding: 10px 0;
     text-align: left;
     text-shadow: 0 2px 20px rgba(0, 0, 0, 1);
 }
@@ -204,16 +195,16 @@
 }
 
 .NewEventsListModal .v1-spot-title {
-    font-size: 2.8rem;
+    font-size: 1.3rem;
     font-weight: 950;
     color: #fff;
-    margin: 0 0 5px;
+    margin: 0 0 4px;
     line-height: 1;
     letter-spacing: -0.04em;
 }
 
 .NewEventsListModal .v1-spot-date {
-    font-size: 1.2rem;
+    font-size: 0.75rem;
     font-weight: 700;
     color: #fff;
     opacity: 0.9;

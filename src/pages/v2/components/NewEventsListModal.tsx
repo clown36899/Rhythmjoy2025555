@@ -158,6 +158,8 @@ export default function NewEventsListModal({
                                             className="NEL-sCard showcase-card"
                                             onClick={() => {
                                                 setShowcaseVersion(v);
+                                                setV1ActiveIndex(-1);
+                                                setV1Stage('opening');
                                                 setViewMode('showcase');
                                             }}
                                         >
