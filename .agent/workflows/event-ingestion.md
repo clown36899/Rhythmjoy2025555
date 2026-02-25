@@ -22,7 +22,6 @@ description: 인스타그램 및 네이버를 통한 이벤트 포스터 정밀 
 >    - ❌ 후기/리뷰/회고 게시물
 >    - ✅ 수집 대상: DJ가 참여하는 소셜 댄스 파티, 정기 소셜, 라이브 파티
 >    - **판별 기준**: 포스터/캡션에 "소셜", "Social", "파티", "Party", "DJ" 키워드 중 하나 이상 포함
-> 1. **지시문(Task) 원문 주입**: 하위 에이전트(`browser_subagent`)에게 업무를 지시할 때, 반드시 가이드의 핵심 원칙을 **토씨 하나 틀리지 않고 복사하여 명령문에 포함**해야 합니다. (예: "스크린샷은 반드시 포스터 영역만 정밀 크롭할 것")
 > 2. **`task.md` 체크리스트 구체화 의무**: task.md의 각 소스 항목에는 가이드의 구체적인 URL, 검색어 텍스트를 그대로 포함해야 한다. 단순화하지 않는다.
 >    - ❌ **금지 표현**: `구글 검색 및 대상 URL 확보`, `키워드 검색`, `수집 준비 및 키워드 확인`, `네이버 검색 및 대상 URL 확보`
 >    - ✅ **필수 표현**: `구글 검색: 사보이볼룸 소셜 dj 인스타그램 (도구>지난 이번주)`, `네이버 접속: https://cafe.naver.com/f-e/cafes/14933600/menus/501?viewType=I`, `인스타그램 접속: https://www.instagram.com/happyhall2004/`
@@ -115,6 +114,18 @@ description: 인스타그램 및 네이버를 통한 이벤트 포스터 정밀 
     - 포스터 이미지가 찌그러짐 없이(`object-fit: contain`) 표시되는지.
     - 'CLOSED' 상태인 항목이 빨간색으로 시각화되는지.
     - 중복 항목에 'DUPLICATE' 배지가 정상 노출되는지.
+
+## 5. 운영 배포 (Production Deploy) [필수]
+
+> [!CAUTION]
+> **절대 금지**: 수집된 이벤트를 직접 `events` 테이블에 INSERT하지 마라. 반드시 아래 배포 프로세스를 통해 운영 사이트의 ingestor 페이지(`https://swingenjoy.com/admin/ingestor`)에서 사용자가 직접 검토/등록하도록 해야 한다.
+
+- 로컬 검증이 완료되면 아래 명령으로 운영 사이트에 배포합니다:
+    1. `git add -f src/data/scraped_events.json public/scraped/*` (`.gitignore`에 제외되어 있으므로 `-f` 필수)
+    2. `git commit -m "chore: 이벤트 수집 N건 (간략 설명)"`
+    3. `git push`
+- Netlify 자동 배포가 완료되면 `https://swingenjoy.com/admin/ingestor`에서 수집된 이벤트가 표시됩니다.
+- **사용자가 직접 ingestor UI를 통해 이벤트를 DB에 등록합니다.** 에이전트가 직접 등록하는 것은 금지됩니다.
 
 ---
 
