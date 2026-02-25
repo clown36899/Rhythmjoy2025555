@@ -1008,7 +1008,7 @@ export default function EventDetailModal({
                           {isSocialMap ? (
                             <EventKakaoMap
                               key="social-map"
-                              address={selectedEvent.location || "서울"}
+                              address={selectedEvent.address || selectedEvent.location || "서울"}
                               placeName={selectedEvent.place_name || selectedEvent.venue_name || selectedEvent.location}
                               imageUrl={thumbnailSrc || highResSrc}
                               onMarkerClick={() => {
