@@ -252,23 +252,23 @@ export default function CalendarPage() {
         const debugTable: any[] = [];
         const containerPaddingTop = 5;
 
-        // [Dynamic Title Math] CSS clamp(0rem, 2.4vw, 0.9rem) & line-height: 1.2 구현
-        // 2.4vw가 14.4px(0.9rem)을 넘지 않도록 제한 (약 600px 이상에서 고정됨)
-        const titleFontSize = Math.min(14.4, vw * 0.024);
-        const titleLineHeight = titleFontSize * 1.2;
+        // [Dynamic Title Math] CSS clamp(0rem, 2.5vw, 0.85rem) & line-height: 1.25 구현
+        // 2.5vw가 13.6px(0.85rem)을 넘지 않도록 제한
+        const titleFontSize = Math.min(13.6, vw * 0.025);
+        const titleLineHeight = titleFontSize * 1.25;
 
         // CSS -webkit-line-clamp: 2 → 최대 2줄까지 표시됨
-        // min-height: 24px (.calendar-fullscreen-title-container)
-        const dynamicTitleHeight = Math.max(24, titleLineHeight * 2);
+        // min-height: 24px (.calendar-fullscreen-title-container) + padding-top: 3px
+        const dynamicTitleHeight = Math.max(24, titleLineHeight * 2) + 3;
         console.log('dynamicTitleHeight', dynamicTitleHeight);
-        const cardVerticalPadding = 10; // .calendar-fullscreen-event-card margin-bottom: 10px
+        const cardVerticalPadding = 8; // .calendar-fullscreen-event-card margin-bottom: 8px
 
         // [정밀 오늘이동 수치] 날짜 숫자 헤더(56px) + 이벤트 카드
-        // 이미지: aspect-ratio 5/5(1:1), placeholder: aspect-ratio 5/6(1:1.2)
+        // 이미지: aspect-ratio 4/5, placeholder: aspect-ratio 5/6
         // cellWidth - 1(border-right) - 4(card padding 2px*2) = 실제 이미지 너비
         const imageWidth = cellWidth - 5;
         console.log('imageWidth', imageWidth);
-        const imageHeight = imageWidth * (5 / 5);
+        const imageHeight = imageWidth * (5 / 4);
         console.log('imageHeight', imageHeight);
         const cardHeight = imageHeight + dynamicTitleHeight + cardVerticalPadding;
         console.log('cardHeight', cardHeight);
