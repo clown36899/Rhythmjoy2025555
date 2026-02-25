@@ -1,10 +1,17 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useEvents } from '../v2/components/EventList/hooks/useEvents';
 import { supabase } from '../../lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 import { createResizedImages } from '../../utils/imageResize';
 import { useAuth } from '../../contexts/AuthContext';
 import { parseDateSafe } from '../v2/utils/eventListUtils';
 import './EventIngestor.css';
+
+// [인제스터 전용] 운영 DB 클라이언트 — 등록 버튼에서만 사용
+const prodSupabase = createClient(
+    import.meta.env.VITE_PROD_SUPABASE_URL || import.meta.env.VITE_PUBLIC_SUPABASE_URL,
+    import.meta.env.VITE_PROD_SUPABASE_ANON_KEY || import.meta.env.VITE_PUBLIC_SUPABASE_ANON_KEY
+);
 
 interface ScrapedEvent {
     id: string;
@@ -165,12 +172,12 @@ const EventIngestor: React.FC = () => {
 
                     const uploadImage = async (size: string, blob: Blob) => {
                         const path = `${basePath}/${size}.webp`;
-                        const { error } = await supabase.storage.from('images').upload(path, blob, {
+                        const { error } = await prodSupabase.storage.from('images').upload(path, blob, {
                             contentType: 'image/webp',
                             upsert: true
                         });
                         if (error) throw error;
-                        return supabase.storage.from('images').getPublicUrl(path).data.publicUrl;
+                        return prodSupabase.storage.from('images').getPublicUrl(path).data.publicUrl;
                     };
 
                     const [microUrl, thumbUrl, medUrl, fullUrl] = await Promise.all([
@@ -210,7 +217,7 @@ const EventIngestor: React.FC = () => {
                 link1: scraped.source_url || '',
                 link_name1: scraped.keyword || '',
                 description: scraped.extracted_text || '',
-                user_id: user.id,
+                user_id: '508e4c9e-b180-4c0f-aa98-3e99562a147a', // 운영 DB 관리자 user_id (인제스터 전용)
                 group_id: currentTab === 'lessons' ? null : 2, // 강습은 일반, 소셜은 댄스빌보드 그룹
                 day_of_week: parseDateSafe(data.date).getDay(),
                 image: imageUrl,
@@ -224,7 +231,7 @@ const EventIngestor: React.FC = () => {
             };
 
             // 3. DB insert
-            const { data: result, error } = await supabase
+            const { data: result, error } = await prodSupabase
                 .from('events')
                 .insert([eventData])
                 .select()

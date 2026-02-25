@@ -115,18 +115,6 @@ description: 인스타그램 및 네이버를 통한 이벤트 포스터 정밀 
     - 'CLOSED' 상태인 항목이 빨간색으로 시각화되는지.
     - 중복 항목에 'DUPLICATE' 배지가 정상 노출되는지.
 
-## 5. 운영 배포 (Production Deploy) [필수]
-
-> [!CAUTION]
-> **절대 금지**: 수집된 이벤트를 직접 `events` 테이블에 INSERT하지 마라. 반드시 아래 배포 프로세스를 통해 운영 사이트의 ingestor 페이지(`https://swingenjoy.com/admin/ingestor`)에서 사용자가 직접 검토/등록하도록 해야 한다.
-
-- 로컬 검증이 완료되면 아래 명령으로 운영 사이트에 배포합니다:
-    1. `git add -f src/data/scraped_events.json public/scraped/*` (`.gitignore`에 제외되어 있으므로 `-f` 필수)
-    2. `git commit -m "chore: 이벤트 수집 N건 (간략 설명)"`
-    3. `git push`
-- Netlify 자동 배포가 완료되면 `https://swingenjoy.com/admin/ingestor`에서 수집된 이벤트가 표시됩니다.
-- **사용자가 직접 ingestor UI를 통해 이벤트를 DB에 등록합니다.** 에이전트가 직접 등록하는 것은 금지됩니다.
-
 ---
 
 ## browser_subagent 탈선 방지 지시문 (필수 삽입)
