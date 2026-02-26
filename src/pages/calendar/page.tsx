@@ -91,12 +91,22 @@ export default function CalendarPage() {
     const shouldScrollToTodayRef = useRef(false);
     const initialJumpDoneRef = useRef(false);
     const mountTimeRef = useRef(Date.now());
+    // [Fix] useEffect([currentMonth])가 마운트/재진입 직후 shouldScrollToToday를 덮어쓰는 것을 방지
+    const skipCurrentMonthEffectRef = useRef(true);
 
     useLayoutEffect(() => {
         if ('scrollRestoration' in window.history) {
             window.history.scrollRestoration = 'manual';
         }
     }, []);
+
+    // 바텀 내비게이션 재클릭 등 라우트 재진입 감지 → scroll useLayoutEffect보다 먼저 선언해야 순서 보장
+    useLayoutEffect(() => {
+        initialJumpDoneRef.current = false;
+        userInteractedRef.current = false;
+        shouldScrollToTodayRef.current = true;
+        skipCurrentMonthEffectRef.current = true; // 다음 useEffect([currentMonth]) 한 번 skip
+    }, [location.key]);
 
     useEffect(() => {
         const handleInteraction = (e: Event) => {
@@ -202,7 +212,18 @@ export default function CalendarPage() {
             }
         }
 
-        const eventsByLocalDate: Record<string, number> = {};
+        // [Social Fix] 소셜(1:1)과 일반(4:5) 이벤트를 분리 집계하여 정확한 높이 계산
+        const socialByDate: Record<string, number> = {};
+        const regularByDate: Record<string, number> = {};
+
+        // FullEventCalendar.tsx의 isSocialEvent 로직과 1:1 동일
+        const isSocialEvt = (event: any) =>
+            event.is_social_integrated || event.category === 'social' || String(event.id).startsWith('social-');
+
+        const addToDate = (map: Record<string, number>, dateStr: string) => {
+            map[dateStr] = (map[dateStr] || 0) + 1;
+        };
+
         const getLocalStr = (d: any) => {
             if (!d) return null;
             const dateObj = new Date(d);
@@ -211,6 +232,7 @@ export default function CalendarPage() {
         };
 
         localEventsToCount.forEach((event: any) => {
+            const targetMap = isSocialEvt(event) ? socialByDate : regularByDate;
             if (event.event_dates && event.event_dates.length > 0) {
                 const isClass = event.category && ['class', 'regular', 'club'].includes(event.category.toLowerCase());
                 const sortedDates = [...event.event_dates].sort();
@@ -218,7 +240,7 @@ export default function CalendarPage() {
                     const dateStr = getLocalStr(d);
                     if (!dateStr) return;
                     if (isClass && dateStr !== getLocalStr(sortedDates[0])) return;
-                    eventsByLocalDate[dateStr] = (eventsByLocalDate[dateStr] || 0) + 1;
+                    addToDate(targetMap, dateStr);
                 });
             } else {
                 // [Fix] FullEventCalendar.tsx eventsByDate와 동일하게 start_date~end_date 전체 범위 카운트
@@ -232,13 +254,13 @@ export default function CalendarPage() {
                     let limit = 0;
                     while (curr <= endDate && limit < 365) {
                         const dateStr = `${curr.getFullYear()}-${String(curr.getMonth() + 1).padStart(2, '0')}-${String(curr.getDate()).padStart(2, '0')}`;
-                        eventsByLocalDate[dateStr] = (eventsByLocalDate[dateStr] || 0) + 1;
+                        addToDate(targetMap, dateStr);
                         curr.setDate(curr.getDate() + 1);
                         limit++;
                     }
                 } else {
                     const dateStr = getLocalStr(startStr);
-                    if (dateStr) eventsByLocalDate[dateStr] = (eventsByLocalDate[dateStr] || 0) + 1;
+                    if (dateStr) addToDate(targetMap, dateStr);
                 }
             }
         });
@@ -264,38 +286,43 @@ export default function CalendarPage() {
         const cardVerticalPadding = 8; // .calendar-fullscreen-event-card margin-bottom: 8px
 
         // [정밀 오늘이동 수치] 날짜 숫자 헤더(56px) + 이벤트 카드
-        // 이미지: aspect-ratio 4/5, placeholder: aspect-ratio 5/6
-        // cellWidth - 1(border-right) - 4(card padding 2px*2) = 실제 이미지 너비
+        // 일반 이벤트: aspect-ratio 4/5, 소셜 이벤트: aspect-ratio 1/1
+        // cellWidth - 5 = 실제 이미지 너비 (card padding 2px*2 + border 1px)
         const imageWidth = cellWidth - 5;
-        console.log('imageWidth', imageWidth);
-        const imageHeight = imageWidth * (5 / 4);
-        console.log('imageHeight', imageHeight);
-        const cardHeight = imageHeight + dynamicTitleHeight + cardVerticalPadding;
-        console.log('cardHeight', cardHeight);
+        const regularCardHeight = imageWidth * (5 / 4) + dynamicTitleHeight + cardVerticalPadding;
+        const socialCardHeight = imageWidth * 1 + dynamicTitleHeight + cardVerticalPadding;
+        console.log('imageWidth', imageWidth, 'regularCardH', regularCardHeight.toFixed(1), 'socialCardH', socialCardHeight.toFixed(1));
 
-        // [Pixel Perfect Fix] 주차별 높이 계산 루프
+        // [Pixel Perfect Fix] 주차별 높이 계산 루프 (소셜/일반 분리)
         for (let w = 0; w < totalWeeks; w++) {
-            let maxInWeek = 0;
+            let maxDayHeight = 56;
+            let debugSoc = 0, debugReg = 0;
             for (let d = 0; d < 7; d++) {
                 const dayOffset = (w * 7) + d - firstDay;
                 if (dayOffset >= 0 && dayOffset < daysInMonth) {
                     const date = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), dayOffset + 1);
                     const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-                    maxInWeek = Math.max(maxInWeek, eventsByLocalDate[dateStr] || 0);
+                    const sCount = socialByDate[dateStr] || 0;
+                    const rCount = regularByDate[dateStr] || 0;
+                    const dayHeight = 56 + sCount * socialCardHeight + rCount * regularCardHeight;
+                    if (dayHeight > maxDayHeight) {
+                        maxDayHeight = dayHeight;
+                        debugSoc = sCount;
+                        debugReg = rCount;
+                    }
                 }
             }
 
-            const weekContentHeight = 56 + (maxInWeek * cardHeight);
             // [One-Shot Fix] 이벤트가 없으면 최소 높이(56px)만 유지하고, 강제로 늘리지 않음
-            const actualWeekHeight = Math.max(56, weekContentHeight);
+            const actualWeekHeight = maxDayHeight;
 
             if (isSameMonth && w < todayWeekIndex) {
-                // 그리드 row-gap(6px) 합산 (중요: rowGap이 빠지면 위쪽 주차만큼 오차가 누적됨)
-                sumPrecedingHeight += (actualWeekHeight + 6);
+                // 그리드 row-gap(16px) 합산 (중요: rowGap이 빠지면 위쪽 주차만큼 오차가 누적됨)
+                sumPrecedingHeight += (actualWeekHeight + 16);
             }
-            cumulativePageHeight += (actualWeekHeight + 6);
+            cumulativePageHeight += (actualWeekHeight + 16);
 
-            debugTable.push({ week: w, maxE: maxInWeek, height: actualWeekHeight.toFixed(1) });
+            debugTable.push({ week: w, soc: debugSoc, reg: debugReg, height: actualWeekHeight.toFixed(1) });
         }
 
         let finalScrollTargetY = 0;
@@ -323,31 +350,25 @@ export default function CalendarPage() {
 
     const handleScrollToToday = useCallback((behavior: 'smooth' | 'auto' | 'instant' = 'smooth', forced = false) => {
         if (!forced && userInteractedRef.current) return;
+        if (!calendarMetrics.isSameMonth && !forced) return;
 
-        // [One-Shot Math System] 사용자 요청에 따라 사후 보정 및 DOM 실측을 완전히 제거
-        const { targetY, totalHeight } = calendarMetrics;
-        if (targetY <= 0 && !forced) return;
+        const { targetY } = calendarMetrics;
 
-        // [DOM 실측] 그리드의 실제 절대 위치를 기준으로 스크롤 타겟 계산
-        // safe-area-inset, 헤더, padding-top 등 모든 오프셋이 자동 반영됨
-        let scrollTarget = targetY;
+        // [그리드 기준 수학 계산 방식]
+        // 오늘 셀 DOM 위치에 의존하지 않으므로 초기 진입, 달 이동 후, 렌더링 전 모두 정확
+        // - 그리드 컨테이너 top: CSS 고정 높이 기반, 카드 높이/이미지 로드와 무관
+        // - targetY: 이벤트 데이터로 미리 계산된 상대 위치
+        // - headerBottom: 고정 헤더 CSS 기반
         const gridEl = document.querySelector('[data-active-month="true"] .calendar-grid-container');
-        if (gridEl) {
-            const gridAbsoluteTop = gridEl.getBoundingClientRect().top + window.scrollY;
-            // [Fix] 메인 헤더(약 55px) 아래로 안착되도록 오프셋 감산
-            scrollTarget = gridAbsoluteTop + targetY - 55;
-        }
+        const weekdayHeaderEl = document.querySelector('.calendar-page-weekday-header');
+        if (!gridEl) return;
 
-        // [Safety Check] 스크롤 가능한 최대 높이보다 더 이동하려는 경우 방지
-        // 내용이 화면보다 짧거나 바닥에 가까운 경우, 억지로 헤더 아래로 맞추려다 오작동하는 것을 막음
-        // DOM 측정 대신 수학적으로 계산된 totalHeight를 신뢰하여 미리 판단
-        const predictedMaxScroll = Math.max(0, totalHeight - window.innerHeight);
+        const gridAbsoluteTop = gridEl.getBoundingClientRect().top + window.scrollY;
+        const headerBottom = weekdayHeaderEl
+            ? weekdayHeaderEl.getBoundingClientRect().bottom
+            : 102;
 
-        if (scrollTarget > predictedMaxScroll) {
-            scrollTarget = predictedMaxScroll;
-        }
-
-        console.log(`🚀 [One-Shot Scroll] Target: ${scrollTarget.toFixed(1)}, Rel: ${targetY.toFixed(1)}, Max: ${predictedMaxScroll}, Behavior: ${behavior}`);
+        const scrollTarget = Math.max(0, gridAbsoluteTop + targetY - headerBottom);
         window.scrollTo({ top: scrollTarget, behavior: behavior as ScrollBehavior });
 
     }, [calendarMetrics]);
@@ -360,9 +381,14 @@ export default function CalendarPage() {
             initialJumpDoneRef.current = true;
             shouldScrollToTodayRef.current = false; // 플래그 소모
         }
-    }, [calendarMetrics.isSameMonth, !!calendarData, handleScrollToToday, tabFilter, calendarMetrics.targetY]);
+    }, [calendarMetrics.isSameMonth, !!calendarData, handleScrollToToday, tabFilter, calendarMetrics.targetY, location.key]);
 
     useEffect(() => {
+        // [Fix] 마운트/재진입 직후 첫 발동은 skip - location.key useLayoutEffect에서 이미 처리됨
+        if (skipCurrentMonthEffectRef.current) {
+            skipCurrentMonthEffectRef.current = false;
+            return;
+        }
         userInteractedRef.current = false;
         const today = new Date();
         const isSameMonth = currentMonth.getFullYear() === today.getFullYear() &&

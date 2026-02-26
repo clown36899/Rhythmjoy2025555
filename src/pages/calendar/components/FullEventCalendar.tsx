@@ -172,20 +172,24 @@ const CalendarCell = memo(({
           })
         ) : (
           /* [Skeleton One-shot Fix] 렌더링 전 높이 확보용 스켈레톤 */
-          events.map((event) => (
-            <div
-              key={`skeleton-${event.id}`}
-              className="calendar-fullscreen-event-card skeleton"
-              style={{ opacity: 0 }} /* 공간만 차지하도록 */
-            >
-              <div className="calendar-fullscreen-card-inner">
-                <div className="calendar-fullscreen-image-container" />
+          /* [Social Fix] 소셜 이벤트는 is-social 클래스 적용 → 실제 카드와 동일한 1:1 비율 유지 */
+          events.map((event) => {
+            const isSocialSkeleton = event.is_social_integrated || event.category === 'social' || String(event.id).startsWith('social-');
+            return (
+              <div
+                key={`skeleton-${event.id}`}
+                className="calendar-fullscreen-event-card skeleton"
+                style={{ opacity: 0 }} /* 공간만 차지하도록 */
+              >
+                <div className="calendar-fullscreen-card-inner">
+                  <div className={`calendar-fullscreen-image-container${isSocialSkeleton ? ' is-social' : ''}`} />
+                </div>
+                <div className="calendar-fullscreen-title-container">
+                  <div className="calendar-fullscreen-title">&nbsp;</div>
+                </div>
               </div>
-              <div className="calendar-fullscreen-title-container">
-                <div className="calendar-fullscreen-title">&nbsp;</div>
-              </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>
