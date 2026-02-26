@@ -127,6 +127,7 @@ export function useDeepLinkLogic({ setCurrentMonth }: UseDeepLinkLogicProps) {
         highlightEvent,
         setHighlightEvent,
         sharedEventId,
-        setSharedEventId
+        setSharedEventId,
+        scrollToEventInPreview
     };
 }

@@ -20,7 +20,7 @@ export default function NotificationHistoryModal({
     onRefresh
 }: NotificationHistoryModalProps) {
     const navigate = useNavigate();
-    const { openModal } = useModalActions();
+    const { openModal, closeModal } = useModalActions();
     const [isProcessing, setIsProcessing] = React.useState(false);
 
     if (!isOpen) return null;
@@ -78,17 +78,26 @@ export default function NotificationHistoryModal({
                         is_social_integrated: isSocial
                     };
 
-                    // 모달 열기
+                    const eventDate = data.start_date || data.date;
+
+                    // 알림 히스토리 먼저 닫기 (상세 닫을 때 달력이 바로 보이도록)
+                    onClose();
+
+                    // 상세 모달 열기 - 닫을 때 해당 이벤트 위치로 달력 이동
                     openModal('eventDetail', {
                         event: mappedEvent,
                         onEdit: () => { },
-                        onDelete: () => { }
+                        onDelete: () => { },
+                        onClose: () => {
+                            closeModal('eventDetail');
+                            if (eventDate) {
+                                window.dispatchEvent(new CustomEvent('navigateToNotificationEvent', {
+                                    detail: { eventId: Number(realId), eventDate }
+                                }));
+                            }
+                        }
                     });
 
-                    // 남은 알림이 하나뿐이었다면 히스토리 모달 닫기
-                    if (notifications.length === 1) {
-                        onClose();
-                    }
                     onRefresh();
                     return;
                 } else {
