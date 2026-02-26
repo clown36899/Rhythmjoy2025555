@@ -87,39 +87,38 @@ const EventList: React.FC<EventListProps> = ({
     genreWeights
   });
 
-  // 3.65 Newly Registered Events (72 hours)
+  // 3.65 Newly Registered Events (72 hours, fallback to latest 6)
   const newlyRegisteredEvents = useMemo(() => {
     const now = new Date();
     const seventyTwoHoursAgo = new Date(now.getTime() - 72 * 60 * 60 * 1000);
+    const todayStr = getLocalDateString();
 
-    return events.filter(event => {
-      // 소셜 스케줄(통합 이벤트)은 신규 등록 섹션에서 제외
+    const isEligible = (event: Event) => {
       if (event.is_social_integrated) return false;
       if (typeof event.id === 'string' && event.id.startsWith('social-')) return false;
-
       if (!event.created_at) return false;
-      const created = new Date(event.created_at);
-      const isWithin72Hours = created > seventyTwoHoursAgo;
-
-      // 🎯 [NEW FILTER] 제외 조건: 이미 지난 이벤트는 표시하지 않음
-      const todayStr = getLocalDateString();
-      const eventDate = event.end_date || event.date || "";
-      const isFutureEvent = eventDate >= todayStr;
-
-      // 🎯 [UPDATE] 라이브밴드 장르는 72시간 제한 없이 계속 노출 (단, 미래 이벤트여야 함)
       const isLiveBand = event.genre?.includes('라이브밴드');
       const isSocial = event.category === 'social';
-
-      // [Request] 소셜 카테고리는 '라이브밴드'인 경우에만 노출 (DJ 등 제외)
       if (isSocial && !isLiveBand) return false;
+      const eventDate = event.end_date || event.date || "";
+      return eventDate >= todayStr;
+    };
 
-      return (isWithin72Hours || isLiveBand) && isFutureEvent;
-    }).sort((a, b) => {
-      // 최신 등록순으로 정렬
-      const timeA = new Date(a.created_at!).getTime();
-      const timeB = new Date(b.created_at!).getTime();
-      return timeB - timeA;
-    });
+    const within72h = events.filter(event => {
+      if (!isEligible(event)) return false;
+      const isWithin72Hours = new Date(event.created_at!) > seventyTwoHoursAgo;
+      const isLiveBand = event.genre?.includes('라이브밴드');
+      return isWithin72Hours || isLiveBand;
+    }).sort((a, b) => new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime());
+
+    // 72시간 내 등록된 이벤트가 없으면 최근 6개 폴백
+    if (within72h.length === 0) {
+      return events.filter(isEligible)
+        .sort((a, b) => new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime())
+        .slice(0, 6);
+    }
+
+    return within72h;
   }, [events]);
 
   // 3.7 Realtime Subscription to sync data immediately

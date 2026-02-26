@@ -8,6 +8,13 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '3.9.0',
+        date: '2026-02-26',
+        changes: [
+            '[✨ Feature] 신규 이벤트 배너 폴백 로직 추가: 72시간 내 신규 이벤트가 없을 경우 최근 등록 이벤트 6개 자동 표시'
+        ]
+    },
+    {
         version: '3.8.9',
         date: '2026-02-24',
         changes: [
