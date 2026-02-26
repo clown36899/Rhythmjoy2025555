@@ -88,6 +88,18 @@ export function useOnlinePresence() {
         let mounted = true;
 
         const setupChannel = async () => {
+            // [개발 환경 차단] localhost에서는 Presence 채널 연결 생략 — 배지 카운트 오염 방지
+            if (typeof window !== 'undefined') {
+                const hostname = window.location.hostname;
+                if (
+                    hostname === 'localhost' || hostname === '127.0.0.1' ||
+                    hostname.endsWith('.local') || hostname.includes('localhost') ||
+                    /^(192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|10\.)/.test(hostname)
+                ) {
+                    return;
+                }
+            }
+
             if (!globalPresenceChannel) {
                 // console.log('[Presence] 🛰️ 채널 생성');
                 globalPresenceChannel = supabase.channel('online-users');

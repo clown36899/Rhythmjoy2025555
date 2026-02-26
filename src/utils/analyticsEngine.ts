@@ -187,6 +187,20 @@ export const trackPWAInstall = async (user?: { id: string }) => {
  * 세션 초기화 및 사이트 접속 기록 (순수 로그인 집계용)
  */
 export const initializeAnalyticsSession = async (user?: { id: string }, isAdmin?: boolean) => {
+    if (!SITE_ANALYTICS_CONFIG.ENABLED) return;
+
+    // [개발 환경 차단] trackEvent와 동일한 로컬 환경 필터 — session_logs 오염 방지
+    if (typeof window !== 'undefined') {
+        const hostname = window.location.hostname;
+        if (
+            hostname === 'localhost' || hostname === '127.0.0.1' ||
+            hostname.endsWith('.local') || hostname.includes('localhost') ||
+            /^(192\.168\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|10\.)/.test(hostname)
+        ) {
+            return;
+        }
+    }
+
     const currentSessionId = getOrCreateSessionId();
     const utm = parseUTMParams();
     const referrer = document.referrer;
@@ -299,12 +313,6 @@ export const trackEvent = (log: AnalyticsLog) => {
             return;
         }
 
-        // [관리자 IP 차단] 특정 IP 차단
-        const blockedIPs = ['172.30.1.86'];
-        if (blockedIPs.includes(hostname)) {
-
-            return;
-        }
     }
 
     // [PHASE 6] DB 용량 절약을 위해 관리자 로그 원천 차단
