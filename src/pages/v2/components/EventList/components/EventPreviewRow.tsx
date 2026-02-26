@@ -89,31 +89,33 @@ export const EventPreviewRow: React.FC<EventPreviewRowProps> = ({
                 </div>
             )}
 
-            <HorizontalScrollNav>
-                <div className="ELS-scroller">
-                    {events.length > 0 ? (
-                        events.map((e, index) => (
-                            <EventCard
-                                key={e.id}
-                                event={e}
-                                onClick={() => onEventClick(e)}
-                                defaultThumbnailClass={defaultThumbnailClass}
-                                defaultThumbnailEvent={defaultThumbnailEvent}
-                                onMouseEnter={(id) => onEventHover?.(id)}
-                                onMouseLeave={() => onEventHover?.(null)}
-                                isFavorite={effectiveFavoriteIds.has(e.id)}
-                                onToggleFavorite={(ev: React.MouseEvent) => handleToggleFavorite(e.id, ev)}
-                                isHighlighted={highlightEventId === e.id}
-                                loading={index < 4 ? "eager" : "lazy"}
-                            />
-                        ))
-                    ) : (
-                        <div className="ELS-empty">
-                            표시할 항목이 없습니다.
-                        </div>
-                    )}
-                </div>
-            </HorizontalScrollNav>
+            <div className={`ELS-folderBody${genres && genres.length > 0 ? ' has-tabs' : ''}`}>
+                <HorizontalScrollNav>
+                    <div className="ELS-scroller">
+                        {events.length > 0 ? (
+                            events.map((e, index) => (
+                                <EventCard
+                                    key={e.id}
+                                    event={e}
+                                    onClick={() => onEventClick(e)}
+                                    defaultThumbnailClass={defaultThumbnailClass}
+                                    defaultThumbnailEvent={defaultThumbnailEvent}
+                                    onMouseEnter={(id) => onEventHover?.(id)}
+                                    onMouseLeave={() => onEventHover?.(null)}
+                                    isFavorite={effectiveFavoriteIds.has(e.id)}
+                                    onToggleFavorite={(ev: React.MouseEvent) => handleToggleFavorite(e.id, ev)}
+                                    isHighlighted={highlightEventId === e.id}
+                                    loading={index < 4 ? "eager" : "lazy"}
+                                />
+                            ))
+                        ) : (
+                            <div className="ELS-empty">
+                                표시할 항목이 없습니다.
+                            </div>
+                        )}
+                    </div>
+                </HorizontalScrollNav>
+            </div>
         </div>
     );
 };

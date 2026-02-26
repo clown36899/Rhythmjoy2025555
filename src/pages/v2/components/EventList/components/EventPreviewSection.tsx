@@ -141,6 +141,7 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
     const recentSocialImages = useMemo(() => {
         const list = socialSchedules || [];
         return list
+            .filter(s => s.category === 'social')
             .filter(s => s.image_url || s.image_thumbnail || s.image_medium || s.image)
             .slice(0, 10) // 좀 더 넉넉히 가져와서 유효한 썸네일 추출
             .map(s => getCardThumbnail(s as any))

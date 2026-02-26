@@ -195,7 +195,10 @@
 
 /* Genre Scroller */
 .ELS-genreContainer {
-    padding: 0 16px 12px 16px;
+    padding: 0 16px 0 16px;
+    position: relative;
+    z-index: 1;
+    display: flex;
 }
 
 .ELS-genreScroller {
@@ -209,35 +212,96 @@
 .ELS-genreGrid {
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 0;
 }
 
 .ELS-genreBtn {
-    padding: 6px 12px;
-    border-radius: 31px;
+    padding: 8px 14px;
+    border-radius: 10px 10px 0 0;
     background: var(--bg-surface-2);
-    color: var(--text-secondary);
-    border: 1px solid var(--border-secondary);
+    color: var(--text-tertiary);
+    border: 1px solid var(--border-glass);
+    border-bottom: none;
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
-    transition: all var(--transition-normal);
+    transition: background 0.2s ease, color 0.2s ease;
     white-space: nowrap;
+    position: relative;
+    margin-right: -6px;
+}
+
+/* 왼쪽 탭이 가장 위에 오도록 z-index 점차 감소 */
+.ELS-genreBtn:nth-child(1) {
+    z-index: 10;
+}
+
+.ELS-genreBtn:nth-child(2) {
+    z-index: 9;
+}
+
+.ELS-genreBtn:nth-child(3) {
+    z-index: 8;
+}
+
+.ELS-genreBtn:nth-child(4) {
+    z-index: 7;
+}
+
+.ELS-genreBtn:nth-child(5) {
+    z-index: 6;
+}
+
+.ELS-genreBtn:nth-child(6) {
+    z-index: 5;
+}
+
+.ELS-genreBtn:nth-child(7) {
+    z-index: 4;
+}
+
+.ELS-genreBtn:nth-child(8) {
+    z-index: 3;
 }
 
 .ELS-genreBtn:hover {
-    background: var(--bg-hover);
-    color: var(--text-primary);
-    border-color: var(--border-primary);
-    transform: translateY(-1px);
+    background: var(--bg-surface-3);
+    color: var(--text-secondary);
 }
 
 .ELS-genreBtn.is-active {
-    background: var(--color-blue-500);
-    color: var(--text-inverse);
-    border-color: var(--color-blue-500);
+    background: var(--bg-surface-1);
+    color: var(--text-primary);
+    border: 1px solid var(--border-glass);
+    border-bottom: 1px solid var(--bg-surface-1);
     font-weight: 600;
-    box-shadow: var(--shadow-sm);
+    z-index: 12;
+    margin-bottom: -1px;
+}
+
+/* Folder Body — wraps card scroller when tabs exist */
+.ELS-folderBody {
+    background: var(--bg-surface-1);
+    border: 1px solid var(--border-glass);
+    border-radius: 0 12px 12px 12px;
+    margin: 0 16px 0 16px;
+    padding: 8px 0;
+    position: relative;
+}
+
+/* 탭이 없는 섹션은 폴더 본체 스타일 미적용 */
+.ELS-folderBody:not(.has-tabs) {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    margin: 0;
+    padding: 0;
+}
+
+/* 폴더 본체 내 스크롤러 패딩 조정 (이미 margin으로 여백이 있으므로) */
+.ELS-folderBody.has-tabs .ELS-scroller {
+    padding-left: 8px;
+    padding-right: 8px;
 }
 
 /* Global Scope Switcher */
