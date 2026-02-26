@@ -396,10 +396,10 @@ export default function EventDetailModal({
 
           console.log('[EventDetailModal] Fetching detail for:', { originalId, isSocialIntegrated });
 
-          // 통합된 events 테이블 데이터 조회
+          // 통합된 events 테이블 데이터 조회 (장소 정보 조인 포함)
           const { data, error } = await supabase
             .from('events')
-            .select('*, board_users(nickname)')
+            .select('*, board_users(nickname), venues(*)')
             .eq('id', originalId)
             .maybeSingle();
 
@@ -1008,8 +1008,8 @@ export default function EventDetailModal({
                           {isSocialMap ? (
                             <EventKakaoMap
                               key="social-map"
-                              address={selectedEvent.address || selectedEvent.location || "서울"}
-                              placeName={selectedEvent.place_name || selectedEvent.venue_name || selectedEvent.location}
+                              address={(selectedEvent as any).venues?.address || selectedEvent.address || selectedEvent.location || "서울"}
+                              placeName={(selectedEvent as any).venues?.name || selectedEvent.place_name || selectedEvent.venue_name || selectedEvent.location}
                               imageUrl={thumbnailSrc || highResSrc}
                               onMarkerClick={() => {
                                 const venueId = (selectedEvent as any).venue_id;

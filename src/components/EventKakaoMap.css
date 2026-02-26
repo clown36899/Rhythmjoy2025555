@@ -24,6 +24,12 @@
 }
 
 /* Marker Styling */
+.EKM-marker-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
 .EKM-marker-wrapper {
     display: flex;
     flex-direction: column;
@@ -62,11 +68,10 @@
     border-style: solid;
     border-width: 14px 10px 0 10px;
     border-color: #ffffff transparent transparent transparent;
-    transform: translateY(-2px);
 }
 
 .EKM-marker-label {
-    margin-top: 4px;
+    margin-bottom: 4px;
     padding: 4px 6px 4px 10px;
     background-color: var(--bg-surface-2, rgba(0, 0, 0, 0.7));
     backdrop-filter: blur(8px);

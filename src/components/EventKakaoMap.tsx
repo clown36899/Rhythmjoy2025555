@@ -63,13 +63,13 @@ export default function EventKakaoMap({ address, imageUrl, placeName, onMarkerCl
 
                 markerContainer.innerHTML = `
                   <div class="EKM-marker-wrapper">
+                    ${placeName ? `<div class="EKM-marker-label"><span>${placeName}</span><i class="ri-arrow-right-s-line"></i></div>` : ''}
                     <div class="EKM-marker-icon">
                       <div class="EKM-marker">
                         ${imageUrl ? `<img src="${imageUrl}" alt="Marker" />` : `<i class="ri-map-pin-fill" style="font-size: 24px; color: #fff;"></i>`}
                       </div>
                       <div class="EKM-marker-tail"></div>
                     </div>
-                    ${placeName ? `<div class="EKM-marker-label"><span>${placeName}</span><i class="ri-arrow-right-s-line"></i></div>` : ''}
                   </div>
                 `;
 
@@ -83,25 +83,25 @@ export default function EventKakaoMap({ address, imageUrl, placeName, onMarkerCl
                 customOverlay.setMap(map);
             };
 
-            // 1. 키워드로 먼저 장소 검색 시도 (장소명이 섞여 있을 수 있음)
-            ps.keywordSearch(address, (data: any, status: any) => {
+            const initMapSearch = () => {
                 if (!isMounted) return;
-                if (status === window.kakao.maps.services.Status.OK && data.length > 0) {
-                    initMap(parseFloat(data[0].y), parseFloat(data[0].x));
-                } else {
-                    // 2. 키워드로 안되면 Geocoder를 통해 정확한 주소 검색
-                    const geocoder = new window.kakao.maps.services.Geocoder();
-                    geocoder.addressSearch(address, (geoData: any, geoStatus: any) => {
-                        if (!isMounted) return;
-                        if (geoStatus === window.kakao.maps.services.Status.OK && geoData.length > 0) {
-                            initMap(parseFloat(geoData[0].y), parseFloat(geoData[0].x));
-                        } else {
-                            // 검색 실패 시 기본 위치 (시청)
-                            initMap(37.566826, 126.9786567);
-                        }
-                    });
-                }
-            });
+
+                const geocoder = new window.kakao.maps.services.Geocoder();
+
+                // 오직 정밀한 주소 검색(addressSearch)만 사용하여 '등록된 주소'와 지도를 일치시킵니다.
+                geocoder.addressSearch(address, (geoData: any, geoStatus: any) => {
+                    if (!isMounted) return;
+                    if (geoStatus === window.kakao.maps.services.Status.OK && geoData.length > 0) {
+                        initMap(parseFloat(geoData[0].y), parseFloat(geoData[0].x));
+                    } else {
+                        // 주소 검색 실패 시 기본 위치 (시청)
+                        initMap(37.566826, 126.9786567);
+                        console.warn(`[EventKakaoMap] 주소 검색 실패: ${address}`);
+                    }
+                });
+            };
+
+            initMapSearch();
         });
 
         return () => {
