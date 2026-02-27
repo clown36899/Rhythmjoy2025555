@@ -119,7 +119,7 @@ const CalendarCell = memo(({
           events.map((event) => {
             const categoryColor = getEventColor(event.id);
             const thumbnailUrl = event.image_thumbnail || event.image_micro || event.image_medium;
-            const isSocialEvent = event.is_social_integrated || event.category === 'social' || String(event.id).startsWith('social-');
+            const isSocialEvent = !!(event as any).group_id || event.category === 'social' || String(event.id).startsWith('social-');
             const locationText = isSocialEvent ? (event.place_name || event.location || '') : '';
 
             const eStart = (event.start_date || event.date || '').substring(0, 10);
@@ -174,7 +174,7 @@ const CalendarCell = memo(({
           /* [Skeleton One-shot Fix] 렌더링 전 높이 확보용 스켈레톤 */
           /* [Social Fix] 소셜 이벤트는 is-social 클래스 적용 → 실제 카드와 동일한 1:1 비율 유지 */
           events.map((event) => {
-            const isSocialSkeleton = event.is_social_integrated || event.category === 'social' || String(event.id).startsWith('social-');
+            const isSocialSkeleton = !!(event as any).group_id || event.category === 'social' || String(event.id).startsWith('social-');
             return (
               <div
                 key={`skeleton-${event.id}`}

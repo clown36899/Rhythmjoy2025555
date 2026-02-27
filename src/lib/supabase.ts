@@ -85,7 +85,6 @@ export interface Event {
   views?: number; // Added for analytics
   group_id?: number | null; // [New] For integrated social schedules
   day_of_week?: number | null; // [New] For integrated social schedules
-  is_social_integrated?: boolean; // [New] 통합 소셜 여부
   place_name?: string | null; // [New] 장소명 (소셜용)
 }
 

@@ -407,9 +407,8 @@ export default function EventDetailModal({
           console.log('[EventDetailModal] Unified Fetch Result:', data);
           if (data) {
             const fullEvent = { ...event, ...(data as any) } as Event;
-            // 만약 group_id가 있다면 기존 UI 호환성을 위해 소셜 플래그 유지
+            // 만약 group_id가 있다면 기존 UI 호환성을 위해 social- 접두어 유지
             if (data.group_id) {
-              (fullEvent as any).is_social_integrated = true;
               (fullEvent as any).id = `social-${data.id}`;
             }
             setDraftEvent(fullEvent);

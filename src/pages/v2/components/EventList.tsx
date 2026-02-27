@@ -94,7 +94,7 @@ const EventList: React.FC<EventListProps> = ({
     const todayStr = getLocalDateString();
 
     const isEligible = (event: Event) => {
-      if (event.is_social_integrated) return false;
+      if (event.category === 'social') return false;
       if (typeof event.id === 'string' && event.id.startsWith('social-')) return false;
       if (!event.created_at) return false;
       const isLiveBand = event.genre?.includes('라이브밴드');

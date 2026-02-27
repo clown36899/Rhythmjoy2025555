@@ -187,10 +187,7 @@ export default function CalendarPage() {
                 const domesticEvents = allEvents.filter(e => e.scope !== 'overseas');
                 const domesticSocialSchedules = socialSchedules.filter(s => s.day_of_week === null || s.day_of_week === undefined);
 
-                const socialAsEvents = domesticSocialSchedules.map(s => ({
-                    ...s,
-                    is_social_integrated: true
-                }));
+                const socialAsEvents = domesticSocialSchedules;
 
                 if (tabFilter === 'all') {
                     localEventsToCount = [...domesticEvents, ...socialAsEvents];
@@ -218,7 +215,7 @@ export default function CalendarPage() {
 
         // FullEventCalendar.tsx의 isSocialEvent 로직과 1:1 동일
         const isSocialEvt = (event: any) =>
-            event.is_social_integrated || event.category === 'social' || String(event.id).startsWith('social-');
+            !!(event as any).group_id || event.category === 'social' || String(event.id).startsWith('social-');
 
         const addToDate = (map: Record<string, number>, dateStr: string) => {
             map[dateStr] = (map[dateStr] || 0) + 1;
@@ -460,7 +457,7 @@ export default function CalendarPage() {
                         handleMonthChange(targetMonth);
 
                         setTimeout(() => {
-                            const eventToSet = isSocial ? { ...data, is_social_integrated: true } : data;
+                            const eventToSet = data;
                             const highlightOnly = urlParams.get('highlightOnly') === 'true';
                             if (!highlightOnly) {
                                 eventModal.setSelectedEvent(eventToSet);
@@ -697,7 +694,7 @@ export default function CalendarPage() {
                     currentUserId={user?.id}
                     onDelete={(event: any) => eventModal.handleDeleteEvent(event.id)}
                     onEdit={(event: any) => {
-                        const isSocial = String(event.id).startsWith('social-') || event.is_social_integrated || (event.category === 'social');
+                        const isSocial = String(event.id).startsWith('social-') || !!(event as any).group_id || (event.category === 'social');
                         if (isSocial) {
                             handleSocialEdit(event);
                         } else {

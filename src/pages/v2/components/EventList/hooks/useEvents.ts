@@ -84,7 +84,6 @@ export function useEvents({ isAdminMode }: UseEventsProps) {
                         start_date: item.start_date || item.date || null,
                         end_date: item.end_date || item.date || null,
                         time: item.time ? item.time.substring(0, 5) : null,
-                        is_social_integrated: true
                     } as any;
                 }
                 return item as any;

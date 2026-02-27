@@ -83,7 +83,7 @@ export function useDeepLinkLogic({ setCurrentMonth }: UseDeepLinkLogicProps) {
                 try {
                     const { data: event } = await supabase
                         .from("events")
-                        .select("id,title,date,start_date,end_date,event_dates,time,location,location_link,category,genre,price,image,image_micro,image_thumbnail,image_medium,image_full,video_url,description,organizer,organizer_name,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,created_at,updated_at,user_id,venue_id,venue_name,venue_custom_link,scope,group_id,day_of_week,is_social_integrated,place_name")
+                        .select("id,title,date,start_date,end_date,event_dates,time,location,location_link,category,genre,price,image,image_micro,image_thumbnail,image_medium,image_full,video_url,description,organizer,organizer_name,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,created_at,updated_at,user_id,venue_id,venue_name,venue_custom_link,scope,group_id,day_of_week")
                         .eq("id", id)
                         .maybeSingle();
 

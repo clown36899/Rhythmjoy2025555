@@ -71,11 +71,9 @@ export default function NotificationHistoryModal({
 
                 if (!error && data) {
                     console.log('[NotificationHistory] Event Data Loaded:', data.id);
-                    const isSocial = !!data.group_id || data.category === 'social';
                     const mappedEvent: any = {
                         ...data,
                         board_users: Array.isArray(data.board_users) ? data.board_users[0] : data.board_users,
-                        is_social_integrated: isSocial
                     };
 
                     // 상세 모달 열기 (히스토리 리스트는 뒤에서 유지)

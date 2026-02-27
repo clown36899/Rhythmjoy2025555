@@ -50,7 +50,7 @@ export function useEventActions({ adminType, user, signInWithKakao }: UseEventAc
         }
 
         // 3. 소셜 이벤트 여부 확인
-        const isSocial = String(event.id).startsWith('social-') || (event as AppEvent & { is_social_integrated?: boolean }).is_social_integrated;
+        const isSocial = String(event.id).startsWith('social-') || !!(event as any).group_id || event.category === 'social';
 
         if (isSocial) {
             // 소셜 스케줄 수정을 위해 SocialScheduleModal 호출
