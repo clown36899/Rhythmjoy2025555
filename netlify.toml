@@ -28,3 +28,7 @@
 [[edge_functions]]
   path = "/api/kakao-login"
   function = "kakao-login"
+
+[[edge_functions]]
+  path = "/"
+  function = "event-og"

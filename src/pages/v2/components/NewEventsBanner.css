@@ -101,7 +101,7 @@
     min-width: 100%;
     position: relative;
     cursor: pointer;
-    aspect-ratio: 16 / 6;
+    aspect-ratio: 16 / 7;
     overflow: hidden;
 }
 
@@ -206,7 +206,7 @@
 
 /* 미니 썸네일 (전체 포스터 미리보기) */
 .NEB-mini-thumbnail {
-    height: 80%;
+    height: 100%;
     aspect-ratio: 0.7;
     border-radius: 12px;
     overflow: hidden;

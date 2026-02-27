@@ -1662,49 +1662,8 @@ export default function EventDetailModal({
                     const shareUrl = url.toString();
 
                     const shareTitle = selectedEvent.title;
-                    const shareDescription = `📍 ${selectedEvent.location}  📅 ${selectedEvent.date || selectedEvent.start_date}`;
-                    const eventImageUrl =
-                      selectedEvent.image_medium ||
-                      selectedEvent.image ||
-                      selectedEvent.image_thumbnail ||
-                      'https://swingenjoy.com/kakao-share-card.png';
-
-                    // 카카오 SDK로 이미지 직접 전달 (OG 크롤링 우회)
-                    if (window.Kakao) {
-                      if (!window.Kakao.isInitialized()) {
-                        window.Kakao.init('4f36c4e35ab80c9bff7850e63341daa6');
-                      }
-                    }
-                    if (window.Kakao?.isInitialized?.()) {
-                      try {
-                        window.Kakao.Share.sendDefault({
-                          objectType: 'feed',
-                          content: {
-                            title: shareTitle,
-                            description: shareDescription,
-                            imageUrl: eventImageUrl,
-                            link: {
-                              mobileWebUrl: shareUrl,
-                              webUrl: shareUrl,
-                            },
-                          },
-                          buttons: [
-                            {
-                              title: '이벤트 보기',
-                              link: {
-                                mobileWebUrl: shareUrl,
-                                webUrl: shareUrl,
-                              },
-                            },
-                          ],
-                        });
-                        return;
-                      } catch (kakaoErr) {
-                        console.warn('[Share] 카카오 SDK 공유 실패, Web Share API로 폴백:', kakaoErr);
-                      }
-                    }
-
                     const shareText = `${selectedEvent.title}\n📍 ${selectedEvent.location}\n📅 ${selectedEvent.date || selectedEvent.start_date}`;
+
                     try {
                       if (navigator.share) {
                         await navigator.share({
