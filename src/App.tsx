@@ -170,25 +170,22 @@ function AppContent() {
               setShowPwaModal(true);
             }
           } else {
-            // [Bugfix] 구독이 없더라도, 기기 권한이 이미 'granted'라면 조용히 재구독 (Silent Resubscribe)
-            // 단, 사용자가 명시적으로 알림을 끈 경우(설정에서 OFF)에는 재구독하지 않음
+            // 브라우저 구독 없음 (최초 설치 or 재설치)
+            // 사용자가 명시적으로 끈 경우에는 모달 띄우지 않음
             const isExplicitlyDisabled = localStorage.getItem('push_explicitly_disabled') === 'true';
-            if (Notification.permission === 'granted' && !isExplicitlyDisabled) {
-              console.log('[App] Permission granted but no subscription. Silent resubscribing...');
-              const newSub = await subscribeToPush();
-              if (newSub) {
-                // DB에 저장 (기본 설정으로)
-                // 만약 이전 설정을 복구하고 싶다면 user_push_subscriptions 테이블에서 user_id로 조회해서 가져와야 하나,
-                // endpoint가 달라졌을 수 있으므로 여기서는 기본값(모두 true)으로 새로 등록함.
-                await saveSubscriptionToSupabase(newSub).catch(err => console.error('[App] Silent resubscribe failed to save DB:', err));
-                console.log('[App] Silent resubscribe completed via Notification.permission=granted');
-                return;
-              }
+            if (isExplicitlyDisabled) {
+              console.log('[App] Push explicitly disabled by user. Skipping modal.');
+              return;
             }
 
-            // 구독이 없고 권한도 없으면 안내 모달 띄우기 (첫 설치 → 기본값 null = 전체 OFF)
-            console.log('[App] PWA detected & No Subscription & Permission not granted. Showing Modal...');
-            setPwaModalInitialPrefs(null);
+            // 이전에 권한이 있었다면(재설치 등) → all-ON으로 프리필하여 모달 표시
+            // 최초 설치라면 → null(전체 OFF)로 모달 표시
+            const hadPermission = Notification.permission === 'granted';
+            console.log('[App] No subscription. Showing modal. hadPermission:', hadPermission);
+            setPwaModalInitialPrefs(hadPermission ? {
+              pref_events: true, pref_class: true, pref_clubs: true,
+              pref_filter_tags: null, pref_filter_class_genres: null
+            } : null);
             setShowPwaModal(true);
           }
         } catch (err: any) {
