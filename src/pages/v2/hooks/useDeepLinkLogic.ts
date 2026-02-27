@@ -72,43 +72,34 @@ export function useDeepLinkLogic({ setCurrentMonth, setSelectedEvent }: UseDeepL
 
         if (eventId) {
             const id = parseInt(eventId);
-            setQrLoading(true);
+            const isQrOrEdit = source === "qr" || source === "edit";
 
-            // Set shared event ID for non-QR sources
-            if (!source || (source !== "qr" && source !== "edit")) {
-                setSharedEventId(id);
+            if (isQrOrEdit) {
+                // QR/Edit: 로딩 표시 후 스크롤
+                setQrLoading(true);
             }
 
             const loadEventAndScroll = async () => {
                 try {
                     const { data: event } = await supabase
                         .from("events")
-                        .select("*")
+                        .select("id,title,date,start_date,end_date,event_dates,time,location,location_link,category,genre,price,image,image_micro,image_thumbnail,image_medium,image_full,video_url,description,organizer,organizer_name,capacity,registered,link1,link2,link3,link_name1,link_name2,link_name3,created_at,updated_at,user_id,venue_id,venue_name,venue_custom_link,scope,group_id,day_of_week,is_social_integrated,place_name")
                         .eq("id", id)
                         .maybeSingle();
 
                     if (event) {
-                        // Navigate to event's month
-                        const eventDate = event.start_date || event.date;
-                        if (eventDate) {
-                            setCurrentMonth(new Date(eventDate));
-                        }
-
-                        // Wait for DOM to render, then scroll
-                        setTimeout(() => {
-                            setQrLoading(false);
-
-                            if (source === "qr" || source === "edit") {
-                                // QR/Edit: Scroll to event in preview mode with horizontal scroll
+                        if (isQrOrEdit) {
+                            // QR/Edit: 달 이동 후 DOM 렌더 대기 → 스크롤
+                            const eventDate = event.start_date || event.date;
+                            if (eventDate) setCurrentMonth(new Date(eventDate));
+                            setTimeout(() => {
+                                setQrLoading(false);
                                 scrollToEventInPreview(id);
-                            } else {
-                                // Regular shared link: open detail modal
-                                setSelectedEvent(event as AppEvent);
-                                setTimeout(() => {
-                                    setHighlightEvent({ id: event.id, nonce: Date.now() });
-                                }, 100);
-                            }
-                        }, 400);
+                            }, 400);
+                        } else {
+                            // 공유 링크: 즉시 모달 오픈
+                            setSelectedEvent(event as AppEvent);
+                        }
                     } else {
                         setQrLoading(false);
                     }

@@ -292,24 +292,23 @@ export default function HomePageV2() {
                 {/* Library Section Hidden as per request */}
 
 
-                {qrLoading ? (
+                {qrLoading && (
                     <div className="home-loading-container"><div className="home-loading-text">이벤트 로딩 중...</div></div>
-                ) : (
-                    <div>
-                        <EventList
-                            key={eventJustCreated || undefined}
-                            selectedDate={showRegistrationModal ? null : selectedDate}
-                            currentMonth={currentMonth}
-                            isAdminMode={effectiveIsAdmin}
-                            adminType={adminType}
-                            highlightEvent={highlightEvent}
-                            onEventClick={handleEventClick}
-                            onMonthChange={setCurrentMonth}
-                            calendarMode={calendarMode}
-                            onSectionViewModeChange={handleSectionViewModeChange}
-                        />
-                    </div>
                 )}
+                <div style={qrLoading ? { visibility: 'hidden', pointerEvents: 'none', position: 'absolute' } : undefined}>
+                    <EventList
+                        key={eventJustCreated || undefined}
+                        selectedDate={showRegistrationModal ? null : selectedDate}
+                        currentMonth={currentMonth}
+                        isAdminMode={effectiveIsAdmin}
+                        adminType={adminType}
+                        highlightEvent={highlightEvent}
+                        onEventClick={handleEventClick}
+                        onMonthChange={setCurrentMonth}
+                        calendarMode={calendarMode}
+                        onSectionViewModeChange={handleSectionViewModeChange}
+                    />
+                </div>
 
                 {showRegistrationModal && selectedDate && (
                     <Suspense fallback={<div />}>
