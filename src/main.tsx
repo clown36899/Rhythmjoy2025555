@@ -1,6 +1,28 @@
 console.log('%c[Main] 🏁 JavaScript Bundle Execution Started', 'background: #4f46e5; color: white; font-weight: bold;');
 (window as any).__APP_STARTED = true;
 
+// [vite-plugin-pwa] SW 등록 — 빌보드 키오스크 페이지에서는 SW 격리
+// 빌보드는 데이터/배포 실시간 동기화를 위해 SW 캐시를 사용하지 않음
+if (!window.location.pathname.includes('/billboard/')) {
+  import('virtual:pwa-register').then(({ registerSW }) => {
+    registerSW({
+      immediate: true,
+      onRegisteredSW(swUrl: string, r: ServiceWorkerRegistration | undefined) {
+        // 앱 포커스 복귀 시 SW 업데이트 체크 (visibilitychange)
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible' && r) {
+            r.update().catch(() => {});
+          }
+        });
+        console.log('[SW] Registered:', swUrl);
+      },
+      onOfflineReady() {
+        console.log('[SW] App ready to work offline');
+      },
+    });
+  });
+}
+
 // [Vite 표준] 배포 후 old chunk hash가 서버에서 삭제되어 404가 날 때 자동 reload
 // lazyWithRetry의 재시도보다 신뢰성 높은 Vite 공식 권장 방식 (Vite 4.4+)
 window.addEventListener('vite:preloadError', (event) => {

@@ -1,4 +1,10 @@
-// PWA 서비스 워커 (Version: 20260219 - V50/Update Lifecycle Fix)
+// PWA 서비스 워커 (vite-plugin-pwa injectManifest 방식)
+// 매 빌드마다 self.__WB_MANIFEST가 Workbox에 의해 자동 주입됨 → SW 내용이 바뀌어 자동 업데이트 감지 가능
+import { precacheAndRoute, cleanupOutdatedCaches } from 'workbox-precaching';
+
+cleanupOutdatedCaches();
+precacheAndRoute(self.__WB_MANIFEST || []);
+
 const CACHE_NAME = 'rhythmjoy-cache-v1.0.4';
 // Last updated: 2026-02-19 (v50)
 self.addEventListener('install', (event) => {

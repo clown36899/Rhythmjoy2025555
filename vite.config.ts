@@ -6,6 +6,7 @@ import { resolve } from "node:path";
 import { writeFileSync, mkdirSync, existsSync, readFileSync } from "node:fs";
 import AutoImport from "unplugin-auto-import/vite";
 import { visualizer } from 'rollup-plugin-visualizer';
+import { VitePWA } from 'vite-plugin-pwa';
 
 //const base = process.env.BASE_PATH || "/";//
 
@@ -110,6 +111,24 @@ export default defineConfig({
         },
       ],
       dts: true,
+    }),
+    // PWA - vite-plugin-pwa (injectManifest: 기존 커스텀 SW 유지하면서 매 빌드마다 precache manifest 주입)
+    VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'public',
+      filename: 'service-worker.js',
+      outDir: 'dist',
+      registerType: 'autoUpdate',
+      manifest: false,          // 기존 public/manifest.json 그대로 사용
+      injectRegister: null,     // main.tsx에서 직접 registerSW 호출 (빌보드 격리 위해)
+      devOptions: {
+        enabled: false,
+      },
+      injectManifest: {
+        // 빌드 결과물(dist/assets/)의 hashed 파일들만 precache 대상으로 지정
+        globPatterns: ['assets/**/*.{js,css}', 'index.html'],
+        injectionPoint: 'self.__WB_MANIFEST',
+      },
     }),
     // Bundle Analyzer - 프로덕션 빌드 시에만
     process.env.ANALYZE === 'true' && visualizer({
