@@ -20,7 +20,7 @@ export default function NotificationHistoryModal({
     onRefresh
 }: NotificationHistoryModalProps) {
     const navigate = useNavigate();
-    const { openModal, closeModal } = useModalActions();
+    const { openModal } = useModalActions();
     const [isProcessing, setIsProcessing] = React.useState(false);
 
     if (!isOpen) return null;
@@ -78,31 +78,22 @@ export default function NotificationHistoryModal({
                         is_social_integrated: isSocial
                     };
 
-                    const eventDate = data.start_date || data.date;
-
-                    // 알림 히스토리 먼저 닫기 (상세 닫을 때 달력이 바로 보이도록)
-                    onClose();
-
-                    // 상세 모달 열기 - 닫을 때 해당 이벤트 위치로 달력 이동
+                    // 상세 모달 열기 (히스토리 리스트는 뒤에서 유지)
                     openModal('eventDetail', {
                         event: mappedEvent,
                         onEdit: () => { },
-                        onDelete: () => { },
-                        onClose: () => {
-                            closeModal('eventDetail');
-                            if (eventDate) {
-                                window.dispatchEvent(new CustomEvent('navigateToNotificationEvent', {
-                                    detail: { eventId: Number(realId), eventDate }
-                                }));
-                            }
-                        }
+                        onDelete: () => { }
                     });
 
-                    onRefresh();
-                    return;
+                    // 알림 1개만 남았으면 히스토리도 닫기 (goToToday 포함)
+                    if (notifications.length === 1) {
+                        handleClose();
+                    }
+                    return; // onRefresh는 finally에서 처리
                 } else {
+                    // alert() 제거 — focus 이벤트로 인한 무한 루프 방지
+                    // 삭제된 게시물이면 markAsRead로 읽음 처리되었으므로 finally의 onRefresh가 목록에서 제거함
                     console.error('[NotificationHistory] Failed to fetch event:', { error, realId });
-                    alert('이벤트 정보를 불러올 수 없거나 삭제된 게시물입니다.');
                 }
             }
 
@@ -124,10 +115,9 @@ export default function NotificationHistoryModal({
                         onUpdate: () => { }
                     });
                     if (notifications.length === 1) {
-                        onClose();
+                        handleClose();
                     }
-                    onRefresh();
-                    return;
+                    return; // onRefresh는 finally에서 처리
                 }
             }
 
@@ -147,10 +137,18 @@ export default function NotificationHistoryModal({
         }
     };
 
+    // 리스트를 직접 닫을 때는 오늘 위치로 이동
+    const handleClose = () => {
+        onClose();
+        window.dispatchEvent(new CustomEvent('goToToday'));
+    };
+
     const handleMarkAllRead = async () => {
         await notificationStore.markAllAsRead();
-        onRefresh();
-        onClose();
+        // onRefresh() 생략 — handleClose()로 바로 닫으므로 불필요
+        // onRefresh()→handleClose() 동시 실행 시 loadUnreadNotifications가
+        // isModalAlreadyOpen=true로 빈 목록을 재오픈하는 race condition 방지
+        handleClose();
     };
 
     const formatTime = (dateStr: string) => {
@@ -165,7 +163,7 @@ export default function NotificationHistoryModal({
                     <h3 className="nhm-title">
                         새로운 알림 {notifications.length > 0 && `(${notifications.length})`}
                     </h3>
-                    <button onClick={onClose} className="nhm-close-btn">
+                    <button onClick={handleClose} className="nhm-close-btn">
                         <i className="ri-close-line"></i>
                     </button>
                 </div>

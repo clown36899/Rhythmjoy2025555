@@ -167,11 +167,12 @@ export const saveSubscriptionToSupabase = async (subscription: PushSubscription,
 
     // 새 구독 저장 전, 같은 유저 + 같은 기기의 이전(죽은) 구독만 정리
     // 다른 기기(iOS vs Android vs Mac 등)의 구독은 유지
+    let savedDevicePrefs: PushPreferences | null = null;
     try {
         const currentUA = navigator.userAgent;
         const { data: oldSubs } = await supabase
             .from('user_push_subscriptions')
-            .select('id, endpoint, user_agent')
+            .select('id, endpoint, user_agent, updated_at, pref_events, pref_class, pref_clubs, pref_filter_tags, pref_filter_class_genres')
             .eq('user_id', user.id)
             .neq('endpoint', endpoint);
 
@@ -188,6 +189,21 @@ export const saveSubscriptionToSupabase = async (subscription: PushSubscription,
             const sameDeviceSubs = oldSubs.filter(s => getDeviceKey(s.user_agent) === currentDevice);
 
             if (sameDeviceSubs.length > 0) {
+                // 재설치 시 이전 기기 설정 복원: prefs가 명시적으로 전달되지 않은 경우에만 적용
+                if (!prefs) {
+                    const mostRecent = sameDeviceSubs.sort((a, b) =>
+                        new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+                    )[0];
+                    savedDevicePrefs = {
+                        pref_events: mostRecent.pref_events ?? true,
+                        pref_class: mostRecent.pref_class ?? true,
+                        pref_clubs: mostRecent.pref_clubs ?? true,
+                        pref_filter_tags: mostRecent.pref_filter_tags ?? null,
+                        pref_filter_class_genres: mostRecent.pref_filter_class_genres ?? null,
+                    };
+                    console.log(`[Push] Restoring previous preferences for device (${currentDevice})`);
+                }
+
                 const oldIds = sameDeviceSubs.map(s => s.id);
                 console.log(`[Push] Cleaning ${oldIds.length} old subscription(s) for same device (${currentDevice})`);
                 await supabase
@@ -209,7 +225,8 @@ export const saveSubscriptionToSupabase = async (subscription: PushSubscription,
         pref_filter_class_genres: null
     };
 
-    const finalPrefs = prefs || defaultPrefs;
+    // 우선순위: 명시적 prefs > 이전 기기 설정(재설치 복원) > 기본값
+    const finalPrefs = prefs || savedDevicePrefs || defaultPrefs;
 
     // Check if user is admin
     const adminEmail = import.meta.env.VITE_ADMIN_EMAIL;
@@ -345,6 +362,12 @@ export async function unsubscribeFromPush(): Promise<boolean> {
         const endpoint = subscription.endpoint;
         const successful = await subscription.unsubscribe();
         console.log('[Push] Push subscription removed from browser:', successful);
+
+        if (successful) {
+            // 사용자가 명시적으로 구독을 해제했음을 기록
+            // → 앱 재실행 시 'granted' 권한이 있더라도 조용히 재구독하지 않도록 방지
+            localStorage.setItem('push_explicitly_disabled', 'true');
+        }
 
         // 서버에서도 구독 정보 삭제
         const { data: { user } } = await supabase.auth.getUser();

@@ -19,6 +19,7 @@ interface ModalDispatchContextType {
     openModal: (modalId: string, props?: any) => void;
     closeModal: (modalId: string) => void;
     closeAllModals: () => void;
+    updateModalProps: (modalId: string, props?: any) => void;
 }
 
 const ModalStateContext = createContext<ModalStateContextType | undefined>(undefined);
@@ -79,6 +80,15 @@ export function ModalProvider({ children }: { children: ReactNode }) {
         setModalStack([]);
     }, []);
 
+    // props만 업데이트 (스택 순서 변경 없음) — 다른 모달이 앞에 있을 때 백그라운드 갱신용
+    const updateModalProps = useCallback((modalId: string, props?: any) => {
+        setModals(prev => {
+            if (!prev[modalId]?.isOpen) return prev;
+            return { ...prev, [modalId]: { ...prev[modalId], props } };
+        });
+        // setModalStack 호출 없음 → 스택 순서 유지
+    }, []);
+
     const isModalOpen = useCallback((modalId: string) => {
         return modals[modalId]?.isOpen ?? false;
     }, [modals]);
@@ -91,8 +101,9 @@ export function ModalProvider({ children }: { children: ReactNode }) {
     const dispatchValue = useMemo(() => ({
         openModal,
         closeModal,
-        closeAllModals
-    }), [openModal, closeModal, closeAllModals]);
+        closeAllModals,
+        updateModalProps
+    }), [openModal, closeModal, closeAllModals, updateModalProps]);
 
     const stateValue = useMemo(() => ({
         modals,

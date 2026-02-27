@@ -294,6 +294,30 @@
     box-shadow: 0 4px 12px rgba(37, 99, 235, 0.1);
 }
 
+.NotificationSettingsModal .NSM-statusBanner {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 28px 8px;
+    padding: 12px 16px;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    animation: nsm-fadeIn 0.2s ease;
+}
+
+.NotificationSettingsModal .NSM-statusBanner--error {
+    background-color: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
+}
+
+.NotificationSettingsModal .NSM-statusBanner--success {
+    background-color: #f0fdf4;
+    color: #16a34a;
+    border: 1px solid #bbf7d0;
+}
+
 .NotificationSettingsModal .NSM-footer {
     padding: 28px;
     border-top: 1px solid var(--nsm-border);

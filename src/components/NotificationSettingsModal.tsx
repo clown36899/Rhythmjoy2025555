@@ -46,9 +46,12 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
 
     const [originalPrefs, setOriginalPrefs] = useState<any>(null);
     const [originalPushEnabled, setOriginalPushEnabled] = useState<boolean>(false);
+    const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
     useEffect(() => {
         if (!isOpen) return;
+
+        setStatusMessage(null);
 
         const checkPWA = () => {
             const pwa = isPWAMode();
@@ -110,15 +113,18 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
 
     const handleSaveChanges = async () => {
         setIsSaving(true);
+        setStatusMessage(null);
         try {
             if (isPushEnabled !== originalPushEnabled) {
                 if (isPushEnabled) {
                     const sub = await subscribeToPush();
                     if (!sub) {
-                        alert('알림 권한이 차단되었거나 오류가 발생했습니다.');
+                        setStatusMessage({ type: 'error', text: '알림 권한이 차단되었거나 오류가 발생했습니다.' });
                         setIsPushEnabled(false);
                         return;
                     }
+                    // 명시적 비활성화 플래그 해제 (사용자가 다시 켰으므로 자동 재구독 허용)
+                    localStorage.removeItem('push_explicitly_disabled');
                     await saveSubscriptionToSupabase(sub, pushPrefs);
                 } else {
                     await unsubscribeFromPush();
@@ -128,11 +134,11 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
             if (isPushEnabled) {
                 await updatePushPreferences(pushPrefs);
             }
-            alert('알림 설정이 저장되었습니다.');
+            // 성공 시 바로 닫기 (alert 없이 — focus 이벤트로 인한 무한 루프 방지)
             onClose();
         } catch (error) {
             console.error('Save failed:', error);
-            alert('오류가 발생했습니다.');
+            setStatusMessage({ type: 'error', text: '저장 중 오류가 발생했습니다. 다시 시도해주세요.' });
         } finally {
             setIsSaving(false);
         }
@@ -287,6 +293,13 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                         </>
                     )}
                 </div>
+
+                {statusMessage && (
+                    <div className={`NSM-statusBanner NSM-statusBanner--${statusMessage.type}`}>
+                        <i className={statusMessage.type === 'error' ? 'ri-error-warning-fill' : 'ri-checkbox-circle-fill'}></i>
+                        {statusMessage.text}
+                    </div>
+                )}
 
                 <div className="NSM-footer">
                     <button

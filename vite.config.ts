@@ -148,7 +148,7 @@ export default defineConfig({
     chunkSizeWarningLimit: 500, // 청크 크기 경고 임계값 감소 (더 작은 청크)
   },
   esbuild: {
-    drop: ['console', 'debugger'], // 프로덕션 빌드: console.log와 debugger 모두 제거
+    drop: ['debugger'], // 프로덕션 빌드: debugger 제거 (console은 유지 — 배포 후 디버깅용)
     legalComments: 'none', // 라이선스 주석 제거 (크기 감소)
   },
   resolve: {

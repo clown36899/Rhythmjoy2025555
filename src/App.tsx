@@ -55,7 +55,11 @@ function AppContent() {
 
   const { user, isAdmin } = useAuth();
   const [showPwaModal, setShowPwaModal] = useState(false);
-  const { openModal } = useModalActions();
+  const [pwaModalInitialPrefs, setPwaModalInitialPrefs] = useState<{
+    pref_events: boolean; pref_class: boolean; pref_clubs: boolean;
+    pref_filter_tags: string[] | null; pref_filter_class_genres: string[] | null;
+  } | null>(null);
+  const { openModal, updateModalProps } = useModalActions();
   const { modalStack } = useModalState();
   const modalStackRef = useRef<string[]>([]);
 
@@ -89,13 +93,24 @@ function AppContent() {
       const isNewArrival = currentCount > previousCount;
       const currentStack = modalStackRef.current;
       const isOtherModalOpen = currentStack.filter(id => id !== 'notificationHistory').length > 0;
+      // 모달이 이미 열려있으면 알림을 읽어도 목록 갱신 (읽은 항목 즉시 제거)
+      const isModalAlreadyOpen = currentStack.includes('notificationHistory');
 
-      if (forceOpen || (isNewArrival && !isOtherModalOpen)) {
-        if (currentCount > 0 || forceOpen) {
-          openModal('notificationHistory', {
+      if (forceOpen || (isNewArrival && !isOtherModalOpen) || isModalAlreadyOpen) {
+        if (currentCount > 0 || forceOpen || isModalAlreadyOpen) {
+          const notifProps = {
             notifications: unread,
             onRefresh: () => loadUnreadNotifications(false)
-          });
+          };
+          // [Bug Fix] notificationHistory 위에 다른 모달(eventDetail 등)이 올라와 있을 때
+          // openModal을 호출하면 notificationHistory가 스택 최상위로 이동해 eventDetail을 가림.
+          // 이 경우 props만 업데이트하고 스택 순서는 유지 (백그라운드 갱신).
+          const isHistoryOnTop = currentStack[currentStack.length - 1] === 'notificationHistory';
+          if (isModalAlreadyOpen && !isHistoryOnTop) {
+            updateModalProps('notificationHistory', notifProps);
+          } else {
+            openModal('notificationHistory', notifProps);
+          }
         }
       }
     } catch (err) {
@@ -104,7 +119,7 @@ function AppContent() {
       // 처리가 완전히 끝난 후 배포 잠금 해제
       isRefreshingRef.current = false;
     }
-  }, [openModal]);
+  }, [openModal, updateModalProps]);
 
   // [PWA Auto-Subscribe] 로그인 후 & 앱 최초 실행 시(PWA) 알림 권한 처리
   useEffect(() => {
@@ -146,12 +161,19 @@ function AppContent() {
               }).catch(err => console.warn('[App] Silent sync failed:', err));
             } else {
               // [Zombie Sub] 브라우저엔 있는데 DB엔 없음 -> 모달 띄워서 재등록 유도
+              // 이전에 알림을 사용한 사용자이므로 기본값을 전체 ON으로 설정
               console.log('[App] Zombie subscription detected (Browser=Yes, DB=No). Showing Modal...');
+              setPwaModalInitialPrefs({
+                pref_events: true, pref_class: true, pref_clubs: true,
+                pref_filter_tags: null, pref_filter_class_genres: null
+              });
               setShowPwaModal(true);
             }
           } else {
             // [Bugfix] 구독이 없더라도, 기기 권한이 이미 'granted'라면 조용히 재구독 (Silent Resubscribe)
-            if (Notification.permission === 'granted') {
+            // 단, 사용자가 명시적으로 알림을 끈 경우(설정에서 OFF)에는 재구독하지 않음
+            const isExplicitlyDisabled = localStorage.getItem('push_explicitly_disabled') === 'true';
+            if (Notification.permission === 'granted' && !isExplicitlyDisabled) {
               console.log('[App] Permission granted but no subscription. Silent resubscribing...');
               const newSub = await subscribeToPush();
               if (newSub) {
@@ -164,8 +186,9 @@ function AppContent() {
               }
             }
 
-            // 구독이 없고 권한도 없으면 안내 모달 띄우기
+            // 구독이 없고 권한도 없으면 안내 모달 띄우기 (첫 설치 → 기본값 null = 전체 OFF)
             console.log('[App] PWA detected & No Subscription & Permission not granted. Showing Modal...');
+            setPwaModalInitialPrefs(null);
             setShowPwaModal(true);
           }
         } catch (err: any) {
@@ -187,6 +210,7 @@ function AppContent() {
 
   const handlePwaConfirm = async (prefs: { pref_events: boolean, pref_class: boolean, pref_clubs: boolean, pref_filter_tags: string[] | null, pref_filter_class_genres: string[] | null }, dontShowAgain: boolean) => {
     setShowPwaModal(false);
+    setPwaModalInitialPrefs(null);
 
     if (dontShowAgain) {
       localStorage.setItem('pwa_prompt_dismissed', 'true');
@@ -203,6 +227,7 @@ function AppContent() {
 
   const handlePwaCancel = (dontShowAgain: boolean) => {
     setShowPwaModal(false);
+    setPwaModalInitialPrefs(null);
     if (dontShowAgain) {
       localStorage.setItem('pwa_prompt_dismissed', 'true');
       console.log('[App] User dismissed PWA prompt (Dont show again).');
@@ -315,6 +340,7 @@ function AppContent() {
         isOpen={showPwaModal}
         onConfirm={handlePwaConfirm}
         onCancel={handlePwaCancel}
+        initialPrefs={pwaModalInitialPrefs}
       />
     </>
   );
