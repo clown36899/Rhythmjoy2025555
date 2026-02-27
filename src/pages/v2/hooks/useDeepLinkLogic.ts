@@ -97,8 +97,10 @@ export function useDeepLinkLogic({ setCurrentMonth, setSelectedEvent }: UseDeepL
                                 scrollToEventInPreview(id);
                             }, 400);
                         } else {
-                            // 공유 링크: 즉시 모달 오픈
-                            setSelectedEvent(event as AppEvent);
+                            // 공유 링크: 초기 렌더 완료 후 모달 오픈
+                            setTimeout(() => {
+                                setSelectedEvent(event as AppEvent);
+                            }, 0);
                         }
                     } else {
                         setQrLoading(false);
