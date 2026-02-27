@@ -2,7 +2,7 @@
 
 .NEB-container {
     margin: 20px 0;
-    padding: 0 16px;
+    /* padding: 0 16px; */
 }
 
 /* === Header === */
@@ -11,6 +11,7 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 12px;
+    padding: 0 9px;
 }
 
 .NEB-headerLeft {
@@ -86,9 +87,9 @@
     position: relative;
     width: 100%;
     overflow: hidden;
-    border-radius: 16px;
+    /* border-radius: 16px; */
     background: var(--bg-surface-3);
-    border: 1px solid var(--border-glass);
+    /* border: 1px solid var(--border-glass); */
 }
 
 .NEB-track {
@@ -100,7 +101,7 @@
     min-width: 100%;
     position: relative;
     cursor: pointer;
-    aspect-ratio: 16 / 9;
+    aspect-ratio: 16 / 6;
     overflow: hidden;
 }
 
