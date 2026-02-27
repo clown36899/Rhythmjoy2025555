@@ -71,7 +71,7 @@ export default function HomePageV2() {
     } = useEventActions({ adminType, user, signInWithKakao });
 
     const {
-        qrLoading, highlightEvent, setHighlightEvent, scrollToEventInPreview
+        qrLoading, highlightEvent, setHighlightEvent
     } = useDeepLinkLogic({ setCurrentMonth });
 
     // Favorites Logic
@@ -232,17 +232,6 @@ export default function HomePageV2() {
             window.removeEventListener('nextMonth', handleNextMonth);
         };
     }, [moveToToday, setShowInputModal, handleHorizontalSwipe, searchParams, setSearchParams, setCalendarMode, setSelectedDate, navigateWithCategory]);
-
-    // 알림 상세 닫은 후 해당 이벤트 위치로 캘린더 이동
-    useEffect(() => {
-        const handleNavigateToNotification = (e: Event) => {
-            const { eventId, eventDate } = (e as CustomEvent).detail;
-            if (eventDate) setCurrentMonth(new Date(eventDate));
-            setTimeout(() => scrollToEventInPreview(eventId), 400);
-        };
-        window.addEventListener('navigateToNotificationEvent', handleNavigateToNotification);
-        return () => window.removeEventListener('navigateToNotificationEvent', handleNavigateToNotification);
-    }, [setCurrentMonth, scrollToEventInPreview]);
 
     useEffect(() => {
         const handleCreateEvent = (e: Event) => {

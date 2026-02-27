@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useRef } from "react";
 // Styles
 // Styles
 // import "../../../styles/EventListSections.css"; // Migrated to events.css
@@ -137,19 +137,34 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
         return !(today > startDate);
     };
 
-    // Extract real images for HomeNavButtonsSection
+    // Extract real images for HomeNavButtonsSection (안정화: 데이터가 실제로 바뀔 때만 재셔플)
+    const socialImagesRef = useRef<string[]>([]);
+    const socialImagesCountRef = useRef<number>(-1);
     const recentSocialImages = useMemo(() => {
         const list = socialSchedules || [];
-        return list
+        const images = list
             .filter(s => s.category === 'social')
             .filter(s => s.image_url || s.image_thumbnail || s.image_medium || s.image)
-            .slice(0, 10) // 좀 더 넉넉히 가져와서 유효한 썸네일 추출
             .map(s => getCardThumbnail(s as any))
             .filter(Boolean) as string[];
+        // 이미지 개수가 동일하면 이전 셔플 결과 재사용 (깜빡임 방지)
+        if (images.length === socialImagesCountRef.current && socialImagesRef.current.length > 0) {
+            return socialImagesRef.current;
+        }
+        // Fisher-Yates 셔플로 랜덤 정렬
+        for (let i = images.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [images[i], images[j]] = [images[j], images[i]];
+        }
+        const result = images.slice(0, 10);
+        socialImagesRef.current = result;
+        socialImagesCountRef.current = images.length;
+        return result;
     }, [socialSchedules]);
 
     const recentEventImages = useMemo(() => {
         return futureEvents
+            .filter(e => !e.scope || e.scope === 'domestic')
             .filter(e => e.image || e.image_thumbnail || e.image_medium)
             .slice(0, 10)
             .map(e => getCardThumbnail(e))
