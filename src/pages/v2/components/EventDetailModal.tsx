@@ -1669,7 +1669,12 @@ export default function EventDetailModal({
                       selectedEvent.image_thumbnail ||
                       'https://swingenjoy.com/kakao-share-card.png';
 
-                    // 카카오 SDK가 초기화된 경우 → 이미지 직접 전달 (OG 크롤링 우회)
+                    // 카카오 SDK로 이미지 직접 전달 (OG 크롤링 우회)
+                    if (window.Kakao) {
+                      if (!window.Kakao.isInitialized()) {
+                        window.Kakao.init('4f36c4e35ab80c9bff7850e63341daa6');
+                      }
+                    }
                     if (window.Kakao?.isInitialized?.()) {
                       try {
                         window.Kakao.Share.sendDefault({
