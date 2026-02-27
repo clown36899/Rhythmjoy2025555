@@ -1,12 +1,14 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../../../lib/supabase";
+import type { Event as AppEvent } from "../../../lib/supabase";
 
 interface UseDeepLinkLogicProps {
     setCurrentMonth: (date: Date) => void;
+    setSelectedEvent: (event: AppEvent | null) => void;
 }
 
-export function useDeepLinkLogic({ setCurrentMonth }: UseDeepLinkLogicProps) {
+export function useDeepLinkLogic({ setCurrentMonth, setSelectedEvent }: UseDeepLinkLogicProps) {
     const [qrLoading, setQrLoading] = useState(false);
     const [highlightEvent, setHighlightEvent] = useState<{ id: number | string; nonce: number } | null>(null);
     const [sharedEventId, setSharedEventId] = useState<number | string | null>(null);
@@ -81,7 +83,7 @@ export function useDeepLinkLogic({ setCurrentMonth }: UseDeepLinkLogicProps) {
                 try {
                     const { data: event } = await supabase
                         .from("events")
-                        .select("id, start_date, date, category, venue_id")
+                        .select("*")
                         .eq("id", id)
                         .maybeSingle();
 
@@ -100,12 +102,13 @@ export function useDeepLinkLogic({ setCurrentMonth }: UseDeepLinkLogicProps) {
                                 // QR/Edit: Scroll to event in preview mode with horizontal scroll
                                 scrollToEventInPreview(id);
                             } else {
-                                // Regular deep link: Just highlight
+                                // Regular shared link: open detail modal
+                                setSelectedEvent(event as AppEvent);
                                 setTimeout(() => {
                                     setHighlightEvent({ id: event.id, nonce: Date.now() });
-                                }, 100); // [Optimization] Reduced from 500ms
+                                }, 100);
                             }
-                        }, 400); // [Optimization] Reduced from 1200ms - DOM should be ready faster
+                        }, 400);
                     } else {
                         setQrLoading(false);
                     }
@@ -120,7 +123,7 @@ export function useDeepLinkLogic({ setCurrentMonth }: UseDeepLinkLogicProps) {
             // Clean up URL parameters
             window.history.replaceState({}, "", window.location.pathname);
         }
-    }, [setCurrentMonth, scrollToEventInPreview]);
+    }, [setCurrentMonth, setSelectedEvent, scrollToEventInPreview]);
 
     return {
         qrLoading,

@@ -72,7 +72,7 @@ export default function HomePageV2() {
 
     const {
         qrLoading, highlightEvent, setHighlightEvent
-    } = useDeepLinkLogic({ setCurrentMonth });
+    } = useDeepLinkLogic({ setCurrentMonth, setSelectedEvent });
 
     // Favorites Logic
     const { interactions, toggleEventFavorite: baseToggleEventFavorite } = useUserInteractions(user?.id || null);
