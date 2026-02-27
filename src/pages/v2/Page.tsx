@@ -71,8 +71,16 @@ export default function HomePageV2() {
     } = useEventActions({ adminType, user, signInWithKakao });
 
     const {
-        qrLoading, highlightEvent, setHighlightEvent
-    } = useDeepLinkLogic({ setCurrentMonth, setSelectedEvent });
+        qrLoading, highlightEvent, setHighlightEvent,
+        pendingSharedEvent, setPendingSharedEvent
+    } = useDeepLinkLogic({ setCurrentMonth });
+
+    useEffect(() => {
+        if (pendingSharedEvent) {
+            setSelectedEvent(pendingSharedEvent);
+            setPendingSharedEvent(null);
+        }
+    }, [pendingSharedEvent, setSelectedEvent, setPendingSharedEvent]);
 
     // Favorites Logic
     const { interactions, toggleEventFavorite: baseToggleEventFavorite } = useUserInteractions(user?.id || null);

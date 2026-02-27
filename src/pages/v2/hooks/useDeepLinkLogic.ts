@@ -5,13 +5,13 @@ import type { Event as AppEvent } from "../../../lib/supabase";
 
 interface UseDeepLinkLogicProps {
     setCurrentMonth: (date: Date) => void;
-    setSelectedEvent: (event: AppEvent | null) => void;
 }
 
-export function useDeepLinkLogic({ setCurrentMonth, setSelectedEvent }: UseDeepLinkLogicProps) {
+export function useDeepLinkLogic({ setCurrentMonth }: UseDeepLinkLogicProps) {
     const [qrLoading, setQrLoading] = useState(false);
     const [highlightEvent, setHighlightEvent] = useState<{ id: number | string; nonce: number } | null>(null);
     const [sharedEventId, setSharedEventId] = useState<number | string | null>(null);
+    const [pendingSharedEvent, setPendingSharedEvent] = useState<AppEvent | null>(null);
 
     // Scroll to event in preview mode with horizontal scroll support
     const scrollToEventInPreview = useCallback((eventId: number | string) => {
@@ -97,10 +97,8 @@ export function useDeepLinkLogic({ setCurrentMonth, setSelectedEvent }: UseDeepL
                                 scrollToEventInPreview(id);
                             }, 400);
                         } else {
-                            // 공유 링크: 초기 렌더 완료 후 모달 오픈
-                            setTimeout(() => {
-                                setSelectedEvent(event as AppEvent);
-                            }, 0);
+                            // 공유 링크: pendingSharedEvent로 전달 → Page.tsx에서 setSelectedEvent 호출
+                            setPendingSharedEvent(event as AppEvent);
                         }
                     } else {
                         setQrLoading(false);
@@ -116,7 +114,7 @@ export function useDeepLinkLogic({ setCurrentMonth, setSelectedEvent }: UseDeepL
             // Clean up URL parameters
             window.history.replaceState({}, "", window.location.pathname);
         }
-    }, [setCurrentMonth, setSelectedEvent, scrollToEventInPreview]);
+    }, [setCurrentMonth, scrollToEventInPreview]);
 
     return {
         qrLoading,
@@ -124,6 +122,8 @@ export function useDeepLinkLogic({ setCurrentMonth, setSelectedEvent }: UseDeepL
         setHighlightEvent,
         sharedEventId,
         setSharedEventId,
-        scrollToEventInPreview
+        scrollToEventInPreview,
+        pendingSharedEvent,
+        setPendingSharedEvent
     };
 }
