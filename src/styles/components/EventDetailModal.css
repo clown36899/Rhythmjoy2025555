@@ -222,6 +222,29 @@
     max-width: 100%;
 }
 
+.EDM-mapLoading {
+    width: 100%;
+    height: 300px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 2.5rem;
+    animation: edm-mapPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes edm-mapPulse {
+
+    0%,
+    100% {
+        opacity: 0.3;
+    }
+
+    50% {
+        opacity: 0.7;
+    }
+}
+
 .EDM-imageContent {
     grid-area: 1 / 1;
     width: 100%;

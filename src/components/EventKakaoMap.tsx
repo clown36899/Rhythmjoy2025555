@@ -12,10 +12,11 @@ interface EventKakaoMapProps {
     imageUrl?: string | null;
     placeName?: string | null;
     onMarkerClick?: () => void;
+    onSearchFail?: () => void;
     className?: string;
 }
 
-export default function EventKakaoMap({ address, imageUrl, placeName, onMarkerClick, className = '' }: EventKakaoMapProps) {
+export default function EventKakaoMap({ address, imageUrl, placeName, onMarkerClick, onSearchFail, className = '' }: EventKakaoMapProps) {
     const mapContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -94,9 +95,13 @@ export default function EventKakaoMap({ address, imageUrl, placeName, onMarkerCl
                     if (geoStatus === window.kakao.maps.services.Status.OK && geoData.length > 0) {
                         initMap(parseFloat(geoData[0].y), parseFloat(geoData[0].x));
                     } else {
-                        // 주소 검색 실패 시 기본 위치 (시청)
-                        initMap(37.566826, 126.9786567);
                         console.warn(`[EventKakaoMap] 주소 검색 실패: ${address}`);
+                        if (onSearchFail) {
+                            onSearchFail();
+                        } else {
+                            // fallback: 기본 위치 (시청)
+                            initMap(37.566826, 126.9786567);
+                        }
                     }
                 });
             };

@@ -115,6 +115,7 @@ export default function EventDetailModal({
   // Source of truth for change detection (tracks full details fetched from DB)
   const [originalEvent, setOriginalEvent] = useState<Event | null>(event);
   const [isFetchingDetail, setIsFetchingDetail] = useState(false);
+  const [mapSearchFailed, setMapSearchFailed] = useState(false);
 
   useEffect(() => {
     setDraftEvent(event);
@@ -366,6 +367,7 @@ export default function EventDetailModal({
     // 다른 이벤트로 바뀌면 ref 초기화
     if (hasFetchedDetailRef.current !== null && hasFetchedDetailRef.current !== event?.id) {
       hasFetchedDetailRef.current = null;
+      setMapSearchFailed(false); // 이벤트 변경 시 지도 실패 상태 초기화
     }
 
     // On-Demand Fetching: 필수 필드 누락 시 또는 권한이 있는데 작성자 닉네임이 없을 때 조회
@@ -1004,25 +1006,34 @@ export default function EventDetailModal({
                     {showImageArea ? (
                       <>
                         <div className="EDM-imageWrapper" style={isSocialMap ? { backgroundColor: '#111' } : undefined}>
-                          {isSocialMap ? (
-                            <EventKakaoMap
-                              key="social-map"
-                              address={(selectedEvent as any).venues?.address || selectedEvent.address || selectedEvent.location || "서울"}
-                              placeName={(selectedEvent as any).venues?.name || selectedEvent.place_name || selectedEvent.venue_name || selectedEvent.location}
-                              imageUrl={thumbnailSrc || highResSrc}
-                              onMarkerClick={() => {
-                                const venueId = (selectedEvent as any).venue_id;
-                                if (venueId) {
-                                  if (onOpenVenueDetail) {
-                                    onOpenVenueDetail(String(venueId));
-                                  } else {
-                                    openModal('venueDetail', { venueId: String(venueId) });
+                          {isSocialMap && !mapSearchFailed ? (
+                            // venues 데이터가 아직 로드되지 않았으면 로딩 placeholder 표시
+                            // venues.address 없이 location(장소명)으로 addressSearch 호출하면 실패하므로 방지
+                            !(selectedEvent as any).venues?.address && isFetchingDetail ? (
+                              <div className="EDM-mapLoading">
+                                <i className="ri-map-2-line"></i>
+                              </div>
+                            ) : (
+                              <EventKakaoMap
+                                key={`social-map-${(selectedEvent as any).venues?.address || selectedEvent.address || 'default'}`}
+                                address={(selectedEvent as any).venues?.address || selectedEvent.address || selectedEvent.location || "서울"}
+                                placeName={(selectedEvent as any).venues?.name || selectedEvent.place_name || selectedEvent.venue_name || selectedEvent.location}
+                                imageUrl={thumbnailSrc || highResSrc}
+                                onMarkerClick={() => {
+                                  const venueId = (selectedEvent as any).venue_id;
+                                  if (venueId) {
+                                    if (onOpenVenueDetail) {
+                                      onOpenVenueDetail(String(venueId));
+                                    } else {
+                                      openModal('venueDetail', { venueId: String(venueId) });
+                                    }
+                                  } else if (selectedEvent.location_link || (selectedEvent as any).venue_custom_link) {
+                                    window.open((selectedEvent as any).venue_custom_link || selectedEvent.location_link, '_blank');
                                   }
-                                } else if (selectedEvent.location_link || (selectedEvent as any).venue_custom_link) {
-                                  window.open((selectedEvent as any).venue_custom_link || selectedEvent.location_link, '_blank');
-                                }
-                              }}
-                            />
+                                }}
+                                onSearchFail={() => setMapSearchFailed(true)}
+                              />
+                            )
                           ) : (
                             <React.Fragment key="event-images">
                               {/* 1. Base Layer: Thumbnail */}
