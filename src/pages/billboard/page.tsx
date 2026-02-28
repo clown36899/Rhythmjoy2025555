@@ -921,6 +921,7 @@ export default function BillboardPage() {
 
     return allEvents.filter((event) => {
       if (!event.id) return false; // id가 없으면 제외 (필수)
+      if (event.category === 'social') return false; // 소셜 카테고리 제외
       if (!event?.image_full && !event?.image && !event?.video_url) return false;
 
       const eventId = typeof event.id === 'string' ? parseInt(event.id, 10) : event.id;
