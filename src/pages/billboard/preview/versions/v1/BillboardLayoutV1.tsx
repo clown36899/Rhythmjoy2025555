@@ -22,7 +22,7 @@ const BillboardLayoutV1: React.FC = () => {
 
     // 2. Identify "Events" (행사) for Random Highlighting
     const eventOnlyData = useMemo(() => {
-        return allData.filter(item => item.category === 'event' || !item.category || item.category === 'social');
+        return allData.filter(item => item.category === 'event' || !item.category);
     }, [allData]);
 
     // 3. Select a random highlight event every 10 seconds (optional rotation) or just once

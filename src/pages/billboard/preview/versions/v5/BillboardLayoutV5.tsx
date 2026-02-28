@@ -20,6 +20,11 @@ const BillboardLayoutV5: React.FC = () => {
             .slice(0, 25);
     }, [events]);
 
+    // Hero: exclude social category
+    const heroEvents = useMemo(() => {
+        return displayEvents.filter((e: any) => e.category !== 'social');
+    }, [displayEvents]);
+
 
 
     useEffect(() => {
@@ -71,7 +76,7 @@ const BillboardLayoutV5: React.FC = () => {
                     className="v5-hero-slider"
                     ref={heroRef}
                 >
-                    {displayEvents.map((event, idx) => (
+                    {heroEvents.map((event, idx) => (
                         <div className="v5-hero-slide" key={event.id || idx}>
                             <div className="v5-hero-image-container">
                                 {getImageUrl(event) ? (

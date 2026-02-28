@@ -26,12 +26,17 @@ export default function BillboardLayoutV8() {
         });
     }, [events]);
 
+    // Hero cards: exclude social category
+    const heroEvents = useMemo(() => {
+        return futureEvents.filter((event: any) => event.category !== 'social');
+    }, [futureEvents]);
+
     // Random rotation timer for triple heroes
     useEffect(() => {
-        if (futureEvents.length <= 3) {
-            if (futureEvents.length >= 1) setHeroIndex1(0);
-            if (futureEvents.length >= 2) setHeroIndex2(1);
-            if (futureEvents.length >= 3) setHeroIndex3(2);
+        if (heroEvents.length <= 3) {
+            if (heroEvents.length >= 1) setHeroIndex1(0);
+            if (heroEvents.length >= 2) setHeroIndex2(1);
+            if (heroEvents.length >= 3) setHeroIndex3(2);
             return;
         }
 
@@ -39,7 +44,7 @@ export default function BillboardLayoutV8() {
             // Generate three different random indices
             const indices: number[] = [];
             while (indices.length < 3) {
-                const r = Math.floor(Math.random() * futureEvents.length);
+                const r = Math.floor(Math.random() * heroEvents.length);
                 if (!indices.includes(r)) indices.push(r);
             }
 
@@ -49,13 +54,13 @@ export default function BillboardLayoutV8() {
         }, 8000);
 
         return () => clearInterval(interval);
-    }, [futureEvents.length]);
+    }, [heroEvents.length]);
 
     // Safety check: ensure heroIndices stay within bounds if data changes
     useEffect(() => {
-        if (futureEvents.length === 0) return;
+        if (heroEvents.length === 0) return;
 
-        const count = futureEvents.length;
+        const count = heroEvents.length;
         if (heroIndex1 >= count) setHeroIndex1(0);
         if (heroIndex2 >= count) setHeroIndex2(Math.min(1, count - 1));
         if (heroIndex3 >= count) setHeroIndex3(Math.min(2, count - 1));
@@ -71,7 +76,7 @@ export default function BillboardLayoutV8() {
             }
             setHeroIndex3(next3);
         }
-    }, [futureEvents.length, heroIndex1, heroIndex2, heroIndex3]);
+    }, [heroEvents.length, heroIndex1, heroIndex2, heroIndex3]);
 
     // Helper to get image URL
     const getImageUrl = (item: any) => {
@@ -89,18 +94,18 @@ export default function BillboardLayoutV8() {
     };
     // Prepare main items and photos for album
     const { hero1, hero2, hero3, photos } = useMemo(() => {
-        if (futureEvents.length === 0) return { hero1: null, hero2: null, hero3: null, photos: [] };
+        if (heroEvents.length === 0 && futureEvents.length === 0) return { hero1: null, hero2: null, hero3: null, photos: [] };
 
-        const h1 = futureEvents[Math.min(heroIndex1, futureEvents.length - 1)];
-        const h2 = futureEvents[Math.min(heroIndex2, futureEvents.length - 1)];
-        const h3 = futureEvents[Math.min(heroIndex3, futureEvents.length - 1)];
+        const h1 = heroEvents.length > 0 ? heroEvents[Math.min(heroIndex1, heroEvents.length - 1)] : null;
+        const h2 = heroEvents.length > 1 ? heroEvents[Math.min(heroIndex2, heroEvents.length - 1)] : null;
+        const h3 = heroEvents.length > 2 ? heroEvents[Math.min(heroIndex3, heroEvents.length - 1)] : null;
 
         // Photos = all OTHER events, excluding the three currently in hero
-        const others = futureEvents.filter((_, idx) =>
-            idx !== heroIndex1 &&
-            idx !== heroIndex2 &&
-            idx !== heroIndex3 &&
-            hasValidImage(futureEvents[idx])
+        // Photos: all future events with valid images (excluding current heroes)
+        const heroIds = new Set([h1?.id, h2?.id, h3?.id].filter(Boolean));
+        const others = futureEvents.filter((item: any) =>
+            !heroIds.has(item.id) &&
+            hasValidImage(item)
         ).slice(0, 99);
 
         // Convert to photo album format
@@ -133,7 +138,7 @@ export default function BillboardLayoutV8() {
             hero3: formatHero(h3),
             photos: photoData
         };
-    }, [futureEvents, heroIndex1, heroIndex2, heroIndex3]);
+    }, [heroEvents, futureEvents, heroIndex1, heroIndex2, heroIndex3]);
 
     // Robust dynamic column calculation using aspect ratio
     useEffect(() => {
