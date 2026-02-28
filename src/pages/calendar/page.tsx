@@ -134,27 +134,11 @@ export default function CalendarPage() {
         const isAnyModalOpen = showRegisterModal || eventModal.showEditModal || eventModal.showPasswordModal || !!eventModal.selectedEvent;
 
         if (isAnyModalOpen) {
-            const scrollY = window.scrollY;
-            document.body.style.position = 'fixed';
-            document.body.style.top = `-${scrollY}px`;
-            document.body.style.width = '100%';
+            // [Fix] overflow:hidden 방식으로 스크롤 잠금
+            // position:fixed 방식은 body 레이아웃을 변경하여 좌표계와 워프 로직이 깨지므로 사용하지 않음
             document.body.style.overflow = 'hidden';
-            document.body.setAttribute('data-allow-restore', 'true');
         } else {
-            const savedTop = document.body.style.top;
-            const canRestore = document.body.getAttribute('data-allow-restore') === 'true';
-
-            document.body.style.position = '';
-            document.body.style.top = '';
-            document.body.style.width = '';
             document.body.style.overflow = '';
-            document.body.removeAttribute('data-allow-restore');
-
-            if (canRestore && savedTop && savedTop !== '0px' && savedTop !== '') {
-                const scrollY = Math.abs(parseInt(savedTop));
-                console.log(`[캘린더] 모달 닫힘 - 스크롤 위치 복구: ${scrollY}`);
-                window.scrollTo(0, scrollY);
-            }
         }
     }, [showRegisterModal, eventModal.showEditModal, eventModal.showPasswordModal, eventModal.selectedEvent]);
 
@@ -371,6 +355,10 @@ export default function CalendarPage() {
     }, [calendarMetrics]);
 
     useLayoutEffect(() => {
+        // [Modal Guard] 모달 열림 상태에서는 body가 position:fixed이므로 워프 스킵
+        const isAnyModalOpen = showRegisterModal || eventModal.showEditModal || eventModal.showPasswordModal || !!eventModal.selectedEvent;
+        if (isAnyModalOpen) return;
+
         // [One-Shot Warp Trigger] 초기 진입 시 혹은 탭 전환 시 상단 안착 실행
         if (calendarMetrics.isSameMonth && calendarData && (!initialJumpDoneRef.current || shouldScrollToTodayRef.current)) {
             console.log('⚡ [useLayoutEffect] 데이터/탭 전환 워프 실행');
