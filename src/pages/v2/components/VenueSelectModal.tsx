@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useModalActions } from '../../../contexts/ModalContext';
 import VenueSelectList from './VenueSelectList';
+import VenueRegistrationModal from '../../practice/components/VenueRegistrationModal';
 import './VenueSelectModal.css';
 
 declare global {
@@ -35,6 +36,7 @@ export default function VenueSelectModal({ isOpen, onClose, onSelect, onManualIn
     const navigate = useNavigate();
     const { closeAllModals } = useModalActions();
     const [activeCategory, setActiveCategory] = useState<string>("연습실");
+    const [isRegModalOpen, setIsRegModalOpen] = useState(false);
 
     // Form States
     const [venueName, setVenueName] = useState('');
@@ -200,11 +202,7 @@ export default function VenueSelectModal({ isOpen, onClose, onSelect, onManualIn
                     <h2 className="venue-select-title">장소 선택</h2>
                     <div className="venue-select-header-actions">
                         <button
-                            onClick={() => {
-                                closeAllModals();
-                                onClose();
-                                navigate('/practice?action=register');
-                            }}
+                            onClick={() => setIsRegModalOpen(true)}
                             className="venue-register-btn"
                         >
                             <i className="ri-add-line"></i> 장소 등록
@@ -351,6 +349,17 @@ export default function VenueSelectModal({ isOpen, onClose, onSelect, onManualIn
                     )}
                 </div>
             </div>
+
+            {/* Venue Registration Modal */}
+            <VenueRegistrationModal
+                isOpen={isRegModalOpen}
+                onClose={() => setIsRegModalOpen(false)}
+                onVenueCreated={() => {
+                    setIsRegModalOpen(false);
+                    // Optional: Refresh venue list if needed, 
+                    // but VenueSelectList might handle it via database subscription or prop sync
+                }}
+            />
         </div>,
         document.body
     );
