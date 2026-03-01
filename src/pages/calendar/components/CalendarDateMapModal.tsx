@@ -220,8 +220,12 @@ export default function CalendarDateMapModal({
 
             const grouped: Record<string, { lat: number, lng: number, events: AppEvent[] }> = {};
             validResults.forEach(r => {
-                const key = `${r.lat.toFixed(5)},${r.lng.toFixed(5)}`;
+                // 1. 장소명(텍스트)이 있다면 우선적으로 묶음키로 사용. 없으면 2. 좌표 소수점 4자리 사용
+                const locationName = (r.event.venue_name || r.event.location || '').trim();
+                const key = locationName ? `loc_${locationName}` : `coord_${r.lat.toFixed(4)},${r.lng.toFixed(4)}`;
+
                 if (!grouped[key]) {
+                    // 그룹 대표 좌표는 첫 번째 이벤트의 좌표 사용
                     grouped[key] = { lat: r.lat, lng: r.lng, events: [] };
                 }
                 grouped[key].events.push(r.event);
