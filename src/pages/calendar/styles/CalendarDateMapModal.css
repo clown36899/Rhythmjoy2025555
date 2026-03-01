@@ -288,28 +288,54 @@
 .CDMM-marker-label {
     position: absolute;
     bottom: calc(100% + 10px);
-    background: rgba(0, 0, 0, 0.8);
+    background: rgba(0, 0, 0, 0.85);
     color: #fff;
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-size: 0.8rem;
+    padding: 8px 12px;
+    border-radius: 12px;
     display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    max-width: 180px;
-    /* 긴 텍스트 제한 */
+    max-width: 220px;
+    /* 제목 + 장소의 공간 확보 */
 }
 
-.CDMM-marker-label span {
+.CDMM-marker-label-text {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    overflow: hidden;
+}
+
+.CDMM-marker-title {
+    font-size: 0.85rem;
+    font-weight: 600;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
     display: block;
 }
 
-.CDMM-marker-label i {
-    font-size: 0.9rem;
+.CDMM-marker-location {
+    font-size: 0.75rem;
+    color: #cbd5e1;
+    /* 연한 텍스트 색상 */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.CDMM-marker-location i {
+    font-size: 0.75rem !important;
+}
+
+.CDMM-arrow {
+    font-size: 1.2rem !important;
+    color: #9ca3af;
+    flex-shrink: 0;
 }
 
 .CDMM-footer {

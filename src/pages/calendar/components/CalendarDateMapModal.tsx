@@ -222,6 +222,7 @@ export default function CalendarDateMapModal({
                 };
 
                 const imageUrl = event.image_thumbnail || event.image_micro || '';
+                const locationText = event.venue_name || event.location || '장소 정보 없음';
                 markerContainer.innerHTML = `
                     <div class="CDMM-marker-wrapper">
                         <div class="CDMM-marker-icon">
@@ -230,9 +231,12 @@ export default function CalendarDateMapModal({
                             </div>
                             <div class="CDMM-marker-tail"></div>
                         </div>
-                        <div class="CDMM-marker-label">
-                            <span>${event.title}</span>
-                            <i class="ri-arrow-right-s-line"></i>
+                        <div class="CDMM-marker-label CDMM-marker-label-multi">
+                            <div class="CDMM-marker-label-text">
+                                <span class="CDMM-marker-title">${event.title}</span>
+                                <span class="CDMM-marker-location"><i class="ri-map-pin-line"></i> ${locationText}</span>
+                            </div>
+                            <i class="ri-arrow-right-s-line CDMM-arrow"></i>
                         </div>
                     </div>
                 `;
