@@ -60,7 +60,7 @@ export default function VenueSelectModal({ isOpen, onClose, onSelect, onManualIn
         onClose();
     };
 
-    const performSearch = (keyword: string) => {
+    const performSearch = async (keyword: string) => {
         if (!keyword.trim()) {
             setSearchResults([]);
             return;
@@ -73,17 +73,48 @@ export default function VenueSelectModal({ isOpen, onClose, onSelect, onManualIn
         setIsSearching(true);
         const ps = new window.kakao.maps.services.Places();
 
-        ps.keywordSearch(keyword, (data: any, status: any) => {
-            setIsSearching(false);
-            if (status === window.kakao.maps.services.Status.OK) {
-                setSearchResults(data);
-            } else if (status === window.kakao.maps.services.Status.ZERO_RESULT) {
-                setSearchResults([]);
-                // No results? Try Postcode fall-back or just show empty
-            } else {
-                console.error('Search failed', status);
-            }
+        // 원본 키워드 및 자주 쓰이는 접미사 추가 쿼리들
+        const searchQueries = [
+            keyword,
+            `${keyword} 연습실`,
+            `${keyword} 스튜디오`,
+            `${keyword} 바`,
+            `${keyword.replace(/\s+/g, '')}연습실` // 공백 제거 버전
+        ];
+
+        const searchPromises = searchQueries.map(q => {
+            return new Promise<any[]>((resolve) => {
+                ps.keywordSearch(q, (data: any, status: any) => {
+                    if (status === window.kakao.maps.services.Status.OK) {
+                        resolve(data);
+                    } else {
+                        resolve([]); // 실패하거나 결과가 없으면 빈 배열
+                    }
+                });
+            });
         });
+
+        try {
+            const resultsArrays = await Promise.all(searchPromises);
+
+            // 모든 결과 합치기
+            let mergedResults: any[] = [];
+            resultsArrays.forEach(arr => {
+                mergedResults = [...mergedResults, ...arr];
+            });
+
+            // ID 기준으로 중복 제거
+            const uniqueResults = Array.from(
+                new Map(mergedResults.map(item => [item.id, item])).values()
+            );
+
+            setSearchResults(uniqueResults);
+        } catch (error) {
+            console.error('Search failed', error);
+            setSearchResults([]);
+        } finally {
+            setIsSearching(false);
+        }
     };
 
     const handleSearchSubmit = (e: React.FormEvent) => {
