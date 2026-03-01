@@ -22,6 +22,7 @@ import { useModalActions } from "../../contexts/ModalContext";
 const EventPasswordModal = lazy(() => import("../v2/components/EventPasswordModal"));
 const EventRegistrationModal = lazy(() => import("../../components/EventRegistrationModal"));
 const SocialScheduleModal = lazy(() => import("../social/components/SocialScheduleModal"));
+const CalendarDateMapModal = lazy(() => import("./components/CalendarDateMapModal"));
 
 
 export default function CalendarPage() {
@@ -57,6 +58,9 @@ export default function CalendarPage() {
     const [highlightedEventId, setHighlightedEventId] = useState<number | string | null>(null);
     const [showRegisterModal, setShowRegisterModal] = useState(false);
     const [showCalendarSearch, setShowCalendarSearch] = useState(false);
+    const [isMapView, setIsMapView] = useState(true); // [New] 지도 뷰 모드 상태 (기본값 true로 변경)
+    const [mapDateEvents, setMapDateEvents] = useState<AppEvent[]>([]); // [New] 지도에 표시할 이벤트들
+    const [showMapModal, setShowMapModal] = useState(false); // [New] 지도 모달 표시 상태
 
 
     // Auth
@@ -669,130 +673,170 @@ export default function CalendarPage() {
                     highlightedEventId={highlightedEventId}
                     tabFilter={tabFilter}
                     seed={randomSeed}
+                    isMapView={isMapView}
+                    onDateClickWithEvents={(date, events) => {
+                        if (isMapView) {
+                            setSelectedDate(date);
+                            setMapDateEvents(events);
+                            setShowMapModal(true);
+                        }
+                    }}
                 />
             </div>
 
             {/* Event Detail Modal */}
-            {eventModal.selectedEvent && (
-                <EventDetailModal
-                    event={eventModal.selectedEvent as any}
-                    isOpen={!!eventModal.selectedEvent}
-                    onClose={eventModal.closeAllModals}
-                    isAdminMode={isAdmin}
-                    currentUserId={user?.id}
-                    onDelete={(event: any) => eventModal.handleDeleteEvent(event.id)}
-                    onEdit={(event: any) => {
-                        const isSocial = String(event.id).startsWith('social-') || !!(event as any).group_id || (event.category === 'social');
-                        if (isSocial) {
-                            handleSocialEdit(event);
-                        } else {
-                            eventModal.handleEditClick(event);
-                        }
-                    }}
-                    isDeleting={eventModal.isDeleting}
-                    isFavorite={favoriteEventIds.has(Number(String(eventModal.selectedEvent.id).replace('social-', '')))}
-                    onToggleFavorite={(e: any) => {
-                        e?.stopPropagation();
-                        if (!user) {
-                            if (confirm('즐겨찾기는 로그인 후 이용 가능합니다.\n확인을 눌러서 로그인을 진행해주세요')) {
-                                signInWithKakao();
+            {
+                eventModal.selectedEvent && (
+                    <EventDetailModal
+                        event={eventModal.selectedEvent as any}
+                        isOpen={!!eventModal.selectedEvent}
+                        onClose={eventModal.closeAllModals}
+                        isAdminMode={isAdmin}
+                        currentUserId={user?.id}
+                        onDelete={(event: any) => eventModal.handleDeleteEvent(event.id)}
+                        onEdit={(event: any) => {
+                            const isSocial = String(event.id).startsWith('social-') || !!(event as any).group_id || (event.category === 'social');
+                            if (isSocial) {
+                                handleSocialEdit(event);
+                            } else {
+                                eventModal.handleEditClick(event);
                             }
-                            return;
-                        }
-                        if (eventModal.selectedEvent) toggleEventFavorite(eventModal.selectedEvent.id);
-                    }}
-                    onOpenVenueDetail={handleVenueClick}
-                />
-            )}
+                        }}
+                        isDeleting={eventModal.isDeleting}
+                        isFavorite={favoriteEventIds.has(Number(String(eventModal.selectedEvent.id).replace('social-', '')))}
+                        onToggleFavorite={(e: any) => {
+                            e?.stopPropagation();
+                            if (!user) {
+                                if (confirm('즐겨찾기는 로그인 후 이용 가능합니다.\n확인을 눌러서 로그인을 진행해주세요')) {
+                                    signInWithKakao();
+                                }
+                                return;
+                            }
+                            if (eventModal.selectedEvent) toggleEventFavorite(eventModal.selectedEvent.id);
+                        }}
+                        onOpenVenueDetail={handleVenueClick}
+                    />
+                )
+            }
 
             {/* Password Modal */}
-            {eventModal.showPasswordModal && (
-                <Suspense fallback={<div />}>
-                    <EventPasswordModal
-                        event={eventModal.eventToEdit!}
-                        onClose={() => eventModal.setShowPasswordModal(false)}
-                        onSubmit={eventModal.handlePasswordSubmit}
-                        password={eventModal.eventPassword}
-                        onPasswordChange={eventModal.setEventPassword}
-                    />
-                </Suspense>
-            )}
+            {
+                eventModal.showPasswordModal && (
+                    <Suspense fallback={<div />}>
+                        <EventPasswordModal
+                            event={eventModal.eventToEdit!}
+                            onClose={() => eventModal.setShowPasswordModal(false)}
+                            onSubmit={eventModal.handlePasswordSubmit}
+                            password={eventModal.eventPassword}
+                            onPasswordChange={eventModal.setEventPassword}
+                        />
+                    </Suspense>
+                )
+            }
 
             {/* Venue Detail Modal */}
-            {selectedVenueId && (
-                <Suspense fallback={<div />}>
-                    <VenueDetailModal
-                        venueId={selectedVenueId}
-                        onClose={closeVenueModal}
-                    />
-                </Suspense>
-            )}
+            {
+                selectedVenueId && (
+                    <Suspense fallback={<div />}>
+                        <VenueDetailModal
+                            venueId={selectedVenueId}
+                            onClose={closeVenueModal}
+                        />
+                    </Suspense>
+                )
+            }
 
 
             {/* Register Modal (New Event) */}
-            {showRegisterModal && (
-                <Suspense fallback={<div />}>
-                    <EventRegistrationModal
-                        isOpen={showRegisterModal}
-                        onClose={() => setShowRegisterModal(false)}
-                        selectedDate={selectedDate || new Date()}
-                        onEventCreated={handleEventCreated}
-                    />
-                </Suspense>
-            )}
+            {
+                showRegisterModal && (
+                    <Suspense fallback={<div />}>
+                        <EventRegistrationModal
+                            isOpen={showRegisterModal}
+                            onClose={() => setShowRegisterModal(false)}
+                            selectedDate={selectedDate || new Date()}
+                            onEventCreated={handleEventCreated}
+                        />
+                    </Suspense>
+                )
+            }
 
             {/* Edit Modal */}
-            {eventModal.showEditModal && eventModal.eventToEdit && (
-                <Suspense fallback={<div />}>
-                    <EventRegistrationModal
-                        isOpen={eventModal.showEditModal}
-                        onClose={() => eventModal.setShowEditModal(false)}
-                        selectedDate={new Date(eventModal.eventToEdit.date || eventModal.eventToEdit.start_date || new Date())}
-                        editEventData={eventModal.eventToEdit}
-                        onEventCreated={() => { }}
-                        isDeleting={eventModal.isDeleting}
-                        onEventUpdated={(updatedEvent: any) => {
-                            eventModal.setShowEditModal(false);
-                            window.dispatchEvent(new CustomEvent("eventUpdated", { detail: updatedEvent }));
-                        }}
-                        onDelete={(id: any) => {
-                            eventModal.handleDeleteEvent(id);
-                        }}
-                    />
-                </Suspense>
-            )}
+            {
+                eventModal.showEditModal && eventModal.eventToEdit && (
+                    <Suspense fallback={<div />}>
+                        <EventRegistrationModal
+                            isOpen={eventModal.showEditModal}
+                            onClose={() => eventModal.setShowEditModal(false)}
+                            selectedDate={new Date(eventModal.eventToEdit.date || eventModal.eventToEdit.start_date || new Date())}
+                            editEventData={eventModal.eventToEdit}
+                            onEventCreated={() => { }}
+                            isDeleting={eventModal.isDeleting}
+                            onEventUpdated={(updatedEvent: any) => {
+                                eventModal.setShowEditModal(false);
+                                window.dispatchEvent(new CustomEvent("eventUpdated", { detail: updatedEvent }));
+                            }}
+                            onDelete={(id: any) => {
+                                eventModal.handleDeleteEvent(id);
+                            }}
+                        />
+                    </Suspense>
+                )
+            }
 
             {/* Calendar Search Modal */}
-            {showCalendarSearch && (
-                <Suspense fallback={<div />}>
-                    <CalendarSearchModal
-                        isOpen={showCalendarSearch}
-                        onClose={() => setShowCalendarSearch(false)}
-                        onSelectEvent={(event: any) => {
-                            setShowCalendarSearch(false);
-                            const eventDate = new Date(event.start_date || event.date || new Date());
-                            handleMonthChange(new Date(eventDate.getFullYear(), eventDate.getMonth(), 1));
-                            setHighlightedEventId(event.id);
-                            setTimeout(() => setHighlightedEventId(null), 3000);
-                        }}
-                    />
-                </Suspense>
-            )}
+            {
+                showCalendarSearch && (
+                    <Suspense fallback={<div />}>
+                        <CalendarSearchModal
+                            isOpen={showCalendarSearch}
+                            onClose={() => setShowCalendarSearch(false)}
+                            onSelectEvent={(event: any) => {
+                                setShowCalendarSearch(false);
+                                const eventDate = new Date(event.start_date || event.date || new Date());
+                                handleMonthChange(new Date(eventDate.getFullYear(), eventDate.getMonth(), 1));
+                                setHighlightedEventId(event.id);
+                                setTimeout(() => setHighlightedEventId(null), 3000);
+                            }}
+                        />
+                    </Suspense>
+                )
+            }
 
             {/* Social Schedule Edit Modal */}
-            {socialEditEvent && (
-                <Suspense fallback={<div />}>
-                    <SocialScheduleModal
-                        isOpen={!!socialEditEvent}
-                        onClose={() => setSocialEditEvent(null)}
-                        groupId={socialEditEvent.group_id}
-                        editSchedule={socialEditEvent}
-                        onSuccess={() => {
-                            window.dispatchEvent(new CustomEvent("eventUpdated", { detail: socialEditEvent }));
-                        }}
-                    />
-                </Suspense>
-            )}
-        </div>
+            {
+                socialEditEvent && (
+                    <Suspense fallback={<div />}>
+                        <SocialScheduleModal
+                            isOpen={!!socialEditEvent}
+                            onClose={() => setSocialEditEvent(null)}
+                            groupId={socialEditEvent.group_id}
+                            editSchedule={socialEditEvent}
+                            onSuccess={() => {
+                                window.dispatchEvent(new CustomEvent("eventUpdated", { detail: socialEditEvent }));
+                            }}
+                        />
+                    </Suspense>
+                )
+            }
+
+            {/* Calendar Date Map Modal */}
+            {
+                showMapModal && (
+                    <Suspense fallback={<div />}>
+                        <CalendarDateMapModal
+                            isOpen={showMapModal}
+                            onClose={() => setShowMapModal(false)}
+                            date={selectedDate}
+                            events={mapDateEvents}
+                            onEventClick={(event: any) => {
+                                setShowMapModal(false);
+                                eventModal.setSelectedEvent(event);
+                            }}
+                        />
+                    </Suspense>
+                )
+            }
+        </div >
     );
 }

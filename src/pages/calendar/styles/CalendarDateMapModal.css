@@ -1,0 +1,343 @@
+.CalendarDateMapModal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    z-index: 5000;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+}
+
+.CDMM-container {
+    width: 100%;
+    max-width: 650px;
+    height: 90%;
+    background: var(--bg-primary, #ffffff);
+    border-top-left-radius: 24px;
+    border-top-right-radius: 24px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    position: relative;
+    animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(100%);
+    }
+
+    to {
+        transform: translateY(0);
+    }
+}
+
+.CDMM-header {
+    padding: 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--border-color, #f0f0f0);
+}
+
+.CDMM-dateInfo {
+    display: flex;
+    flex-direction: column;
+}
+
+.CDMM-weekday {
+    font-size: 1.1rem;
+    font-weight: 700;
+}
+
+.CDMM-dayNum {
+    color: var(--primary-color, #4f46e5);
+}
+
+.CDMM-subtitle {
+    font-size: 0.85rem;
+    color: var(--text-secondary, #666);
+    margin-top: 4px;
+}
+
+.CDMM-closeBtn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    background: var(--bg-secondary, #f5f5f5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+}
+
+.CDMM-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+.CDMM-mapArea {
+    width: 100%;
+    height: 35%;
+    min-height: 250px;
+    position: relative;
+    background: #f0f0f0;
+}
+
+.CDMM-map {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.CDMM-filterArea {
+    padding: 12px 20px;
+    background: var(--bg-primary, #fff);
+    border-bottom: 1px solid var(--border-color, #f0f0f0);
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+}
+
+.CDMM-filterArea::-webkit-scrollbar {
+    display: none;
+}
+
+.CDMM-filterChip {
+    padding: 6px 16px;
+    border-radius: 20px;
+    background: var(--bg-secondary, #f5f5f5);
+    color: var(--text-secondary, #666);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.CDMM-filterChip.active {
+    background: var(--primary-color, #4f46e5);
+    color: #fff;
+}
+
+.CDMM-filterChip:not(.active):hover {
+    background: #eeeeee;
+}
+
+.CDMM-eventListArea {
+    flex: 1;
+    padding: 16px 20px;
+    background: var(--bg-secondary, #fafafa);
+    overflow-y: auto;
+}
+
+.CDMM-eventListTitle {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: var(--text-secondary, #444);
+}
+
+.CDMM-eventList {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.CDMM-eventItem {
+    display: flex;
+    gap: 15px;
+    padding: 12px;
+    background: var(--bg-primary, #fff);
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.CDMM-eventItem:active {
+    transform: scale(0.98);
+}
+
+.CDMM-eventImage {
+    width: 80px;
+    height: 80px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.CDMM-eventImage img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.CDMM-fallbackImage {
+    width: 100%;
+    height: 100%;
+    background: #e5e7eb;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #9ca3af;
+    font-size: 1.5rem;
+}
+
+.CDMM-eventInfo {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.CDMM-eventCategory {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    width: fit-content;
+    margin-bottom: 6px;
+}
+
+.CDMM-eventTitle {
+    font-size: 1rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+    line-height: 1.4;
+    word-break: keep-all;
+}
+
+.CDMM-eventMeta {
+    font-size: 0.8rem;
+    color: var(--text-secondary, #666);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.CDMM-emptyState {
+    padding: 40px;
+    text-align: center;
+    color: var(--text-secondary, #999);
+}
+
+/* Marker Styles (matched with EventKakaoMap.tsx patterns) */
+.CDMM-marker-container {
+    cursor: pointer;
+}
+
+.CDMM-marker-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+    transform: translateY(-50%);
+}
+
+.CDMM-marker-icon {
+    width: 40px;
+    height: 40px;
+    position: relative;
+    z-index: 2;
+}
+
+.CDMM-marker {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    background: #fff;
+    padding: 2px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    border: 2px solid var(--primary-color, #4f46e5);
+}
+
+.CDMM-marker img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+
+.CDMM-marker-tail {
+    width: 12px;
+    height: 12px;
+    background: var(--primary-color, #4f46e5);
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%) rotate(45deg);
+    z-index: 1;
+}
+
+.CDMM-marker-label {
+    position: absolute;
+    bottom: calc(100% + 10px);
+    background: rgba(0, 0, 0, 0.8);
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.CDMM-marker-label i {
+    font-size: 0.9rem;
+}
+
+.CDMM-footer {
+    padding: 15px 20px;
+    border-top: 1px solid var(--border-color, #f0f0f0);
+    background: var(--bg-primary, #fff);
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+/* Dark Mode support */
+[data-theme='dark'] .CDMM-container {
+    background: #1a1a1a;
+}
+
+[data-theme='dark'] .CDMM-header {
+    border-bottom-color: #333;
+}
+
+[data-theme='dark'] .CDMM-closeBtn {
+    background: #2a2a2a;
+}
+
+[data-theme='dark'] .CDMM-eventListArea {
+    background: #141414;
+}
+
+[data-theme='dark'] .CDMM-eventItem {
+    background: #2a2a2a;
+}
+
+[data-theme='dark'] .CDMM-eventMeta {
+    color: #aaa;
+}
+
+[data-theme='dark'] .CDMM-footer {
+    border-top-color: #333;
+    background: #1a1a1a;
+}

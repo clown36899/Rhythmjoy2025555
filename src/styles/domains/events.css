@@ -1044,9 +1044,7 @@
 /* ==========================================================================
    AdminBillboardModal Scope (ABM-)
    ========================================================================== */
-.AdminBillboardModal {
-    /* AdminBillboardModal.css - AdminBillboardModal 컴포넌트 전용 스타일 */
-}
+/* AdminBillboardModal.css - AdminBillboardModal 컴포넌트 전용 스타일 */
 
 /* ===== CSS 변수 정의 ===== */
 /* ===== 로딩 오버레이 ===== */
@@ -2311,7 +2309,7 @@
 /* ==========================================================================
    EditablePreviewCard Scope (EPC-)
    ========================================================================== */
-.EditablePreviewCard {}
+/* EditablePreviewCard - EditablePreviewCard 컴포넌트 전용 스타일 */
 
 /* Preview Toggle Container */
 .EPC-toggleContainer {

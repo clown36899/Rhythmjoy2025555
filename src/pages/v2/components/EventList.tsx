@@ -501,8 +501,8 @@ const EventList: React.FC<EventListProps> = ({
           onSelect={(venue: { name: string; link?: string }) => {
             window.dispatchEvent(new CustomEvent('venue_selected', { detail: venue }));
           }}
-          onManualInput={(name: string, link: string) => {
-            window.dispatchEvent(new CustomEvent('venue_manual_input', { detail: { name, link } }));
+          onManualInput={(name: string, link: string, address?: string) => {
+            window.dispatchEvent(new CustomEvent('venue_manual_input', { detail: { name, link, address } }));
           }}
         />
       </React.Suspense>

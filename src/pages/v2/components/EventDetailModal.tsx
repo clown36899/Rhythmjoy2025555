@@ -452,13 +452,14 @@ export default function EventDetailModal({
     saveChangesToDB(updates);
   };
 
-  const handleManualVenueInput = (venueName: string, address: string) => {
+  const handleManualVenueInput = (venueName: string, venueLink: string, address?: string) => {
     if (!draftEvent) return;
 
     const updates: Partial<Event> = {
       venue_name: venueName,
       location: venueName, // [FIX] location 필드 동기화
-      address: address,
+      address: address || '',
+      location_link: venueLink, // [FIX] location_link 필드 동기화
       venue_id: null
     };
 

@@ -81,7 +81,9 @@ export interface Event {
   venue_name?: string | null;
   venue_custom_link?: string | null;
   storage_path?: string | null;
+  address?: string | null;
   scope?: string;
+  venues?: { address: string | null } | null;
   views?: number; // Added for analytics
   group_id?: number | null; // [New] For integrated social schedules
   day_of_week?: number | null; // [New] For integrated social schedules

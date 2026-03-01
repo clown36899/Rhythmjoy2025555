@@ -32,6 +32,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
     const [time, setTime] = useState('');
     const [location, setLocation] = useState('');
     const [address, setAddress] = useState('');
+    const [locationLink, setLocationLink] = useState('');
     const [venueId, setVenueId] = useState<string | number | null>(null);
     const [linkName, setLinkName] = useState('');
     const [link, setLink] = useState('');
@@ -81,6 +82,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                         time !== (source.time || source.start_time || '') ||
                         location !== (source.location || source.place_name || '') ||
                         address !== (source.address || '') ||
+                        locationLink !== (source.location_link || '') ||
                         description !== (source.description || '') ||
                         category !== (source.category || source.v2_category || 'social') ||
                         imageFile !== null ||
@@ -150,6 +152,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                 setLocation(source.location || source.place_name || '');
                 setAddress(source.address || '');
                 setVenueId(source.venue_id || null);
+                setLocationLink(source.location_link || '');
 
                 setLink(source.link1 || source.link_url || '');
                 setLinkName(source.link_name1 || source.link_name || '');
@@ -178,6 +181,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                 setLocation('');
                 setAddress('');
                 setVenueId(null);
+                setLocationLink('');
                 setLink('');
                 setLinkName('');
                 setDescription('');
@@ -262,6 +266,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
         setLocation(venue.name);
         setAddress(venue.address);
         setVenueId(venue.id);
+        setLocationLink(''); // 등록된 장소는 장소 상세 페이지에서 지도를 볼 수 있으므로 비움
         setShowVenueModal(false);
     };
 
@@ -384,14 +389,14 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                     else if (socialGenre === '라이브밴드') genre = '라이브밴드,소셜';
                     else genre = '소셜'; // Fallback
                 }
-
                 const eventData: any = {
                     title,
                     date,
                     time,
                     location,
                     address,
-                    venue_id: venueId,
+                    location_link: locationLink,
+                    venue_id: (venueId && String(venueId).trim() !== '') ? venueId : null,
                     link1: link,
                     link_name1: linkName,
                     description,
@@ -406,6 +411,8 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                     genre: genre,
                     day_of_week: new Date(date).getDay()
                 };
+
+                console.log('[SocialScheduleModal] Final Data to save (Fixed):', eventData);
 
                 // 3. Save
                 if (editSchedule) {
@@ -470,8 +477,14 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                 onClose();
 
             } catch (error: any) {
-                console.error('Error saving schedule:', error);
-                alert(`저장 실패: ${error.message}`);
+                console.error('[SocialScheduleModal] Save Error Details:', {
+                    message: error.message,
+                    code: error.code,
+                    details: error.details,
+                    hint: error.hint,
+                    error
+                });
+                alert(`저장 실패: ${error.message} (코드: ${error.code || 'N/A'})`);
             } finally {
                 setIsSubmitting(false);
             }
@@ -874,8 +887,10 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                     isOpen={showVenueModal}
                     onClose={() => setShowVenueModal(false)}
                     onSelect={handleVenueSelect}
-                    onManualInput={(name, _link) => {
+                    onManualInput={(name, link, address) => {
                         setLocation(name);
+                        if (address) setAddress(address);
+                        if (link) setLocationLink(link);
                         setShowVenueModal(false);
                     }}
                 />

@@ -424,117 +424,298 @@
     font-size: 0.9375rem;
 }
 
-/* Manual Input Form Styles */
-.venue-manual-input-form {
-    padding: 2rem;
-    max-width: 600px;
+/* Unified Search & Manual Entry Styles */
+.venue-unified-search-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    max-width: 650px;
     margin: 0 auto;
+    padding: 0.5rem 0 2rem;
 }
 
-.venue-manual-field {
-    margin-bottom: 1.5rem;
+.venue-search-control {
+    position: relative;
+    background: var(--bg-surface-glass);
+    border: 1px solid var(--border-glass-strong);
+    border-radius: 1.25rem;
+    padding: 1.5rem;
+    box-shadow: var(--shadow-premium);
 }
 
-.venue-manual-field:last-of-type {
-    margin-bottom: 2rem;
-}
-
-.venue-manual-label {
-    display: block;
-    font-size: 0.9375rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 0.625rem;
-    letter-spacing: -0.01em;
-}
-
-.venue-manual-required {
-    color: #ef4444;
-    font-weight: 700;
-}
-
-.venue-manual-optional {
-    color: var(--text-muted);
-    font-weight: 400;
-    font-size: 0.875rem;
-}
-
-.venue-manual-input {
-    width: 100%;
-    padding: 0.875rem 1rem;
-    background: var(--bg-input);
-    border: 1px solid var(--border-glass);
-    border-radius: 0.75rem;
-    font-size: 1rem;
-    color: var(--text-primary);
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    backdrop-filter: blur(4px);
-}
-
-.venue-manual-input::placeholder {
-    color: var(--text-muted);
-}
-
-.venue-manual-input:focus {
-    outline: none;
-    background: var(--bg-input);
-    border-color: var(--color-blue-500);
-    box-shadow:
-        0 0 0 3px rgba(59, 130, 246, 0.1),
-        0 0 20px rgba(59, 130, 246, 0.2);
-}
-
-.venue-manual-buttons {
+.venue-search-input-group {
     display: flex;
     gap: 0.75rem;
-    justify-content: flex-end;
-    padding-top: 0.5rem;
+    position: relative;
 }
 
-.venue-manual-btn {
-    padding: 0.875rem 1.75rem;
+.venue-search-submit-btn {
+    position: absolute;
+    right: 0.5rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 2.75rem;
+    height: 2.75rem;
+    background: var(--color-blue-600);
+    color: white;
+    border: none;
     border-radius: 0.75rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.venue-search-submit-btn:hover:not(:disabled) {
+    background: var(--color-blue-500);
+    transform: translateY(-50%) scale(1.05);
+}
+
+.venue-search-submit-btn:disabled {
+    opacity: 0.7;
+}
+
+/* Search Results Dropdown */
+.venue-search-dropdown {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 0;
+    right: 0;
+    background: var(--bg-surface-1);
+    border: 1px solid var(--border-glass-strong);
+    border-radius: 1rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+    z-index: 100;
+    overflow: hidden;
+    animation: dropdownSlideDown 0.2s ease-out;
+}
+
+@keyframes dropdownSlideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dropdown-header {
+    padding: 0.75rem 1.25rem;
+    background: var(--bg-surface-2);
+    border-bottom: 1px solid var(--border-glass);
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.venue-search-results-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 280px;
+    overflow-y: auto;
+}
+
+.venue-search-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border-glass);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.venue-search-item:last-child {
+    border-bottom: none;
+}
+
+.venue-search-item:hover {
+    background: var(--bg-hover);
+}
+
+.venue-item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.venue-item-name {
     font-size: 1rem;
     font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.venue-item-addr {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.venue-item-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-left: 1rem;
+}
+
+.venue-item-map-btn {
+    padding: 0.4rem 0.75rem;
+    background: var(--bg-surface-3);
+    border: 1px solid var(--border-glass);
+    color: var(--text-secondary);
+    border-radius: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    transition: all 0.2s;
+}
+
+.venue-item-map-btn:hover {
+    background: var(--bg-hover);
+    color: var(--color-blue-500);
+    border-color: var(--color-blue-500-40);
+}
+
+.venue-item-select-btn {
+    padding: 0.4rem 1rem;
+    background: var(--color-blue-600);
+    color: white;
+    border: none;
+    border-radius: 0.5rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.venue-item-select-btn:hover {
+    background: var(--color-blue-500);
+    transform: scale(1.05);
+}
+
+.venue-search-item i {
+    font-size: 1.125rem;
+}
+
+/* Manual Form Fields */
+.venue-manual-entry-form {
+    padding: 0 0.5rem;
+}
+
+.venue-fields-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.venue-manual-footer-btns {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-top: 2rem;
+}
+
+.venue-btn-cancel {
+    padding: 0.875rem 1.5rem;
+    background: transparent;
+    border: 1px solid var(--border-glass);
+    color: var(--text-secondary);
+    border-radius: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.venue-btn-cancel:hover {
+    background: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+.venue-btn-confirm {
+    padding: 0.875rem 2rem;
+    background: var(--color-blue-600);
+    color: white;
+    border: none;
+    border-radius: 0.75rem;
+    font-weight: 700;
     cursor: pointer;
     transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    border: none;
-    letter-spacing: -0.01em;
-}
-
-.venue-manual-btn-cancel {
-    background: var(--bg-hover);
-    color: var(--text-secondary);
-    border: 1px solid var(--border-glass);
-}
-
-.venue-manual-btn-cancel:hover {
-    background: var(--bg-surface-3);
-    color: var(--text-primary);
-    border-color: var(--border-glass-strong);
-    transform: translateY(-1px);
-}
-
-.venue-manual-btn-cancel:active {
-    transform: translateY(0);
-}
-
-.venue-manual-btn-submit {
-    background: var(--color-blue-600);
-    color: var(--text-on-accent);
-    border: none;
     box-shadow: var(--shadow-glow-blue);
 }
 
-.venue-manual-btn-submit:hover {
-    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+.venue-btn-confirm:hover {
+    background: var(--color-blue-500);
     transform: translateY(-2px);
-    box-shadow:
-        0 0 0 1px rgba(59, 130, 246, 0.4),
-        0 8px 20px rgba(37, 99, 235, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.15);
+    box-shadow: 0 8px 25px rgba(37, 99, 235, 0.4);
 }
 
-.venue-manual-btn-submit:active {
-    transform: translateY(0);
+.spin {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (max-width: 640px) {
+    .venue-unified-search-wrapper {
+        gap: 1.5rem;
+    }
+
+    .venue-search-control {
+        padding: 1rem;
+    }
+
+    .venue-manual-footer-btns {
+        flex-direction: column-reverse;
+    }
+
+    .venue-btn-confirm,
+    .venue-btn-cancel {
+        width: 100%;
+        padding: 1rem;
+    }
+}
+
+/* Divider */
+.venue-manual-divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+}
+
+.venue-manual-divider::before,
+.venue-manual-divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid var(--border-glass);
+}
+
+.venue-manual-divider span {
+    padding: 0 1rem;
 }

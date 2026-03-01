@@ -686,15 +686,17 @@ export default memo(function EventRegistrationModal({
             created_at: new Date().toISOString(),
             user_id: user?.id || null, // 작성자 ID 저장
             show_title_on_billboard: true, // 기본값 true로 설정
-            venue_id: venueId,
-            venue_name: venueId ? venueName : location,
-            venue_custom_link: venueId ? null : venueCustomLink,
+            venue_id: (venueId && String(venueId).trim() !== '') ? venueId : null,
+            venue_name: (venueId && String(venueId).trim() !== '') ? venueName : location,
+            venue_custom_link: (venueId && String(venueId).trim() !== '') ? null : venueCustomLink,
             group_id: groupId,
             day_of_week: dayOfWeek,
           };
 
           console.log("📝 [EventRegistrationModal] Final eventData to save:", eventData);
           console.log("   - image_micro present?", !!eventData.image_micro);
+          console.log("   - User ID:", user?.id);
+          console.log("   - Is Edit?", !!editEventData);
 
           let resultData: any[] | null = null;
 
@@ -884,7 +886,14 @@ export default memo(function EventRegistrationModal({
         errorMessage = "인터넷 연결 상태가 불안정합니다.";
       }
 
-      alert(errorMessage);
+      console.error("❌ [EventRegistrationModal] Final Catch Error:", {
+        message: error.message,
+        code: error.code,
+        details: error.details,
+        hint: error.hint,
+        error
+      });
+      alert(errorMessage + ` (코드: ${error.code || 'N/A'})`);
     } finally {
       setIsSubmitting(false);
       // setUploadProgress removed
@@ -1162,12 +1171,13 @@ export default memo(function EventRegistrationModal({
           isOpen={showVenueSelectModal}
           onClose={() => setShowVenueSelectModal(false)}
           onSelect={handleVenueSelect}
-          onManualInput={(name: string, link: string) => {
-            console.log('🔘 Manual input submitted:', name, link);
+          onManualInput={(name: string, link: string, address?: string) => {
+            console.log('🔘 Manual input submitted:', name, link, address);
             setShowVenueSelectModal(false);
             // Update state directly instead of opening another modal
             setLocation(name);
             setLocationLink(link);
+            if (address) setAddress(address);
             setVenueId(null);
             setVenueName("");
             setVenueCustomLink("");

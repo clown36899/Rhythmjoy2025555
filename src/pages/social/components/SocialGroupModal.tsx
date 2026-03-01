@@ -508,8 +508,13 @@ const SocialGroupModal: React.FC<SocialGroupModalProps> = ({
                     isOpen={showVenueModal}
                     onClose={() => setShowVenueModal(false)}
                     onSelect={handleVenueSelect}
-                    onManualInput={(name, _link) => {
-                        setAddress(name);
+                    onManualInput={(name, mapLink, address) => {
+                        if (address) setAddress(address);
+                        // 수동 입력 시 전달되는 mapLink는 지도 URL입니다.
+                        // 소셜 그룹 테이블에는 현재 장소 전용 링크 필드가 없으므로, 
+                        // 기존 관련 링크(link) 필드가 비어있을 때만 채워주도록 안전하게 처리합니다.
+                        // (덮어쓰기 방지)
+                        if (mapLink && !link) setLink(mapLink);
                         setShowVenueModal(false);
                     }}
                 />

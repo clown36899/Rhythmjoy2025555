@@ -31,6 +31,8 @@ interface FullEventCalendarProps {
   calendarData?: any;
   isLoading?: boolean;
   refetchCalendarData?: () => void;
+  isMapView?: boolean;
+  onDateClickWithEvents?: (date: Date, events: AppEvent[]) => void;
 }
 
 // [Performance Fix] 개별 날짜 셀을 위한 메모이제이션된 컴포넌트
@@ -217,6 +219,8 @@ export default memo(function FullEventCalendar({
   calendarData,
   isLoading,
   refetchCalendarData,
+  isMapView = false,
+  onDateClickWithEvents,
 }: FullEventCalendarProps) {
   const { t } = useTranslation();
   const [events, setEvents] = useState<AppEvent[]>([]);
@@ -609,6 +613,13 @@ export default memo(function FullEventCalendar({
   };
 
   const handleFullscreenDateClick = (date: Date, clickEvent?: React.MouseEvent) => {
+    const dayEvents = getEventsForDate(date);
+
+    if (isMapView && onDateClickWithEvents) {
+      onDateClickWithEvents(date, dayEvents);
+      return;
+    }
+
     const clickPosition = clickEvent
       ? { x: clickEvent.clientX, y: clickEvent.clientY }
       : undefined;
@@ -646,6 +657,16 @@ export default memo(function FullEventCalendar({
     e.stopPropagation(); // 부모 셀의 클릭 이벤트(전체화면 모드 등) 방지
 
     const dayEvents = getEventsForDate(date);
+    console.log(`🖱️ [Calendar] Clicked Date: ${date.toISOString().split('T')[0]}, Events Count: ${dayEvents.length}, Map Mode: ${isMapView}`);
+
+    // [New] 지도 뷰 모드일 경우 지도 모달 호출 (소셜 카테고리만 필터링)
+    if (isMapView && onDateClickWithEvents) {
+      console.log('🚀 [Calendar] Calling map modal with social events only...');
+      const socialEvents = dayEvents.filter(e => e.category === 'social');
+      onDateClickWithEvents(date, socialEvents);
+      return;
+    }
+
     if (dayEvents && dayEvents.length > 0) {
       // 선택된 날짜 업데이트 (필요한 경우)
       onDateSelect(date);
@@ -730,22 +751,6 @@ export default memo(function FullEventCalendar({
             >
               {[prevMonth, currentMonth, nextMonth].map((month, idx) => {
                 const isCurrentMonth = idx === 1;
-
-                // [Optimization] 지연 렌더링 구현 (초기 부하 분산)
-                // 현재 달이 아닌 슬라이드는 마운트 직후 약간의 지연 시간을 두고 렌더링을 허용함
-                const [shouldRender, setShouldRender] = useState(isCurrentMonth);
-
-                useEffect(() => {
-                  if (!isCurrentMonth) {
-                    const timer = setTimeout(() => setShouldRender(true), 300);
-                    return () => clearTimeout(timer);
-                  }
-                }, [isCurrentMonth]);
-
-                if (!shouldRender) {
-                  return <div key={`${month.getFullYear()}-${month.getMonth()}`} className="calendar-month-slide" />;
-                }
-
                 const days = idx === 0 ? prevDays : idx === 1 ? currentDays : nextDays;
                 return (
                   <div

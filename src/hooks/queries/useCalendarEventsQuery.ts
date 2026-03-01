@@ -24,7 +24,7 @@ export const getCalendarRange = (date: Date) => {
  */
 export const fetchCalendarEvents = async (startDateStr: string, endDateStr: string) => {
     // group_id, day_of_week, place_name(mapped to location) 등을 포함하여 events 단일 테이블 쿼리
-    const columns = "id,title,date,start_date,end_date,event_dates,category,image_micro,image_thumbnail,image_medium,scope,group_id,day_of_week,location,venue_id";
+    const columns = "id,title,date,start_date,end_date,event_dates,category,image_micro,image_thumbnail,image_medium,scope,group_id,day_of_week,location,venue_name,address,venue_id,venues(address)";
 
     const { data, error } = await supabase
         .from("events")
@@ -34,7 +34,7 @@ export const fetchCalendarEvents = async (startDateStr: string, endDateStr: stri
 
     if (error) throw error;
 
-    const allItems = (data || []) as AppEvent[];
+    const allItems = (data || []) as unknown as AppEvent[];
 
     // 분류: group_id 유무와 상관없이 모두 events로 통합 반환
     // FullEventCalendar 등에서 통합된 events 배열을 사용하여 렌더링함
