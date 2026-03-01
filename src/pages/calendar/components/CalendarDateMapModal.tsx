@@ -206,8 +206,8 @@ export default function CalendarDateMapModal({
                 const bounds = new window.kakao.maps.LatLngBounds();
                 valid.forEach(v => bounds.extend(new window.kakao.maps.LatLng(v.lat, v.lng)));
 
-                // 마커 UI가 잘리지 않도록 상하좌우 패딩(상단 여백 크게)을 주고 바운드 설정
-                map.setBounds(bounds, 150, 100, 100, 100);
+                // 마커 UI가 잘리지 않도록 최소한의 상하좌우 패딩만 설정 (컨테이너 높이 대비 크면 전국으로 축소됨)
+                map.setBounds(bounds, 60, 40, 40, 40);
 
                 setTimeout(() => {
                     // 이벤트가 하나거나 너무 가까워 줌이 과도하게 당겨지면 4 레벨로 제한
