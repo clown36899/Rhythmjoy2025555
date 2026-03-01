@@ -21,7 +21,6 @@
     border-top-right-radius: 24px;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
     position: relative;
     animation: slideUp 0.3s ease-out;
 }
@@ -296,6 +295,7 @@
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     max-width: 200px;
     box-sizing: border-box;
+    z-index: 10;
 }
 
 .CDMM-marker-label span {
