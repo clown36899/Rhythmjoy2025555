@@ -218,19 +218,26 @@ export default function CalendarDateMapModal({
             const validResults = results.filter(r => r !== null) as { lat: number, lng: number, event: AppEvent }[];
             if (validResults.length === 0) return;
 
-            const grouped: Record<string, { lat: number, lng: number, events: AppEvent[] }> = {};
-            validResults.forEach(r => {
-                // 주소 텍스트 누락 등 변수를 차단하기 위해 오직 '카카오 좌표 변환 결과값(소수점 4자리)'을 기준으로 강제 병합합니다.
-                const key = `coord_${r.lat.toFixed(4)},${r.lng.toFixed(4)}`;
+            // 5. 소수점 로직 한계로 인한 좌표 경계 분리 현상을 막기 위해, 
+            // 거리 기반(약 반경 100~150m) 클러스터링 알고리즘 적용
+            const clusters: { lat: number, lng: number, events: AppEvent[] }[] = [];
+            const THRESHOLD = 0.0015; // 약 150m 거리 반경 내면 같은 그룹
 
-                if (!grouped[key]) {
-                    // 그룹 대표 좌표는 첫 번째 이벤트의 좌표 사용
-                    grouped[key] = { lat: r.lat, lng: r.lng, events: [] };
+            validResults.forEach(r => {
+                let foundCluster = clusters.find(c => {
+                    const dLat = c.lat - r.lat;
+                    const dLng = c.lng - r.lng;
+                    return Math.sqrt(dLat * dLat + dLng * dLng) < THRESHOLD;
+                });
+
+                if (foundCluster) {
+                    foundCluster.events.push(r.event);
+                } else {
+                    clusters.push({ lat: r.lat, lng: r.lng, events: [r.event] });
                 }
-                grouped[key].events.push(r.event);
             });
 
-            Object.values(grouped).forEach(group => {
+            clusters.forEach(group => {
                 const { lat, lng, events } = group;
                 const position = new window.kakao.maps.LatLng(lat, lng);
                 const defaultZIndex = 100 + events.length;
