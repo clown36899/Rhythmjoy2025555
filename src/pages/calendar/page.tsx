@@ -830,7 +830,6 @@ export default function CalendarPage() {
                             date={selectedDate}
                             events={mapDateEvents}
                             onEventClick={(event: any) => {
-                                setShowMapModal(false);
                                 eventModal.setSelectedEvent(event);
                             }}
                         />

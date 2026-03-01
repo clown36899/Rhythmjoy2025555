@@ -205,134 +205,72 @@ export default function CalendarDateMapModal({
             if (valid.length > 0) {
                 const bounds = new window.kakao.maps.LatLngBounds();
                 valid.forEach(v => bounds.extend(new window.kakao.maps.LatLng(v.lat, v.lng)));
-                map.setBounds(bounds);
+
+                // 마커 UI가 잘리지 않도록 상하좌우 패딩(상단 여백 크게)을 주고 바운드 설정
+                map.setBounds(bounds, 150, 100, 100, 100);
+
                 setTimeout(() => {
-                    if (map.getLevel() < 3) map.setLevel(3);
-                    else map.setLevel(map.getLevel() + 1);
+                    // 이벤트가 하나거나 너무 가까워 줌이 과도하게 당겨지면 4 레벨로 제한
+                    if (map.getLevel() < 4) {
+                        map.setLevel(4);
+                    }
                 }, 100);
             }
         });
     }, [filteredEvents, map]);
 
-    // 2. 화면(픽셀) 기반 동적 클러스터링 렌더링
+    // 2. 단일 개별 렌더링 (클러스터링 없이 오버랩 허용)
     useEffect(() => {
-        if (!map || !window.kakao || !window.kakao.maps) return;
+        if (!map || !window.kakao || !window.kakao.maps || geocodedData.length === 0) return;
 
-        const renderClusters = () => {
-            const proj = map.getProjection();
-            if (!proj) return;
+        // 기존 마커 등 정리
+        overlaysRef.current.forEach(o => o.setMap(null));
+        overlaysRef.current = [];
 
-            // 기존 마커 등 정리
-            overlaysRef.current.forEach(o => o.setMap(null));
-            overlaysRef.current = [];
+        geocodedData.forEach((item, idx) => {
+            const { lat, lng, event } = item;
+            const position = new window.kakao.maps.LatLng(lat, lng);
+            const defaultZIndex = 100 + idx;
 
-            if (geocodedData.length === 0) return;
+            const markerContainer = document.createElement('div');
+            markerContainer.className = 'CDMM-marker-container';
+            markerContainer.style.zIndex = defaultZIndex.toString();
 
-            const clusters: { x: number, y: number, coords: { lat: number, lng: number }, events: AppEvent[] }[] = [];
-            const PIXEL_THRESHOLD = 130; // 130px 이내면 겹치므로 하나로 병합 (거리 무관)
+            markerContainer.onclick = (e) => {
+                e.stopPropagation();
+                onEventClick(event);
+            };
 
-            geocodedData.forEach(item => {
-                const latlng = new window.kakao.maps.LatLng(item.lat, item.lng);
-                const point = proj.containerPointFromCoords(latlng);
+            markerContainer.onmouseenter = () => { markerContainer.style.zIndex = '9999'; };
+            markerContainer.onmouseleave = () => { markerContainer.style.zIndex = defaultZIndex.toString(); };
 
-                let found = clusters.find(c => {
-                    const dx = c.x - point.x;
-                    const dy = c.y - point.y;
-                    return Math.sqrt(dx * dx + dy * dy) < PIXEL_THRESHOLD;
-                });
+            const imageUrl = event.image_thumbnail || event.image_micro || '';
+            const locationText = event.venue_name || event.location || '장소 정보 없음';
 
-                if (found) {
-                    found.events.push(item.event);
-                } else {
-                    clusters.push({ x: point.x, y: point.y, coords: { lat: item.lat, lng: item.lng }, events: [item.event] });
-                }
-            });
-
-            clusters.forEach(group => {
-                const { lat, lng } = group.coords;
-                const events = group.events;
-                const position = new window.kakao.maps.LatLng(lat, lng);
-                const defaultZIndex = 100 + events.length;
-
-                const markerContainer = document.createElement('div');
-                markerContainer.className = 'CDMM-marker-container';
-                markerContainer.style.zIndex = defaultZIndex.toString();
-
-                markerContainer.onmouseenter = () => { markerContainer.style.zIndex = '9999'; };
-                markerContainer.onmouseleave = () => { markerContainer.style.zIndex = defaultZIndex.toString(); };
-
-                const firstEvent = events[0];
-                const imageUrl = firstEvent.image_thumbnail || firstEvent.image_micro || '';
-
-                const wrapper = document.createElement('div');
-                wrapper.className = 'CDMM-marker-wrapper';
-
-                const badgeHtml = events.length > 1 ? `<div class="CDMM-marker-badge">${events.length}</div>` : '';
-
-                const iconDiv = document.createElement('div');
-                iconDiv.className = 'CDMM-marker-icon';
-                iconDiv.innerHTML = `
-                    <div class="CDMM-marker">
-                        ${imageUrl ? `<img src="${imageUrl}" alt="Event" />` : `<i class="ri-map-pin-2-fill" style="color: #4f46e5; font-size: 20px;"></i>`}
-                    </div>
-                    ${badgeHtml}
-                    <div class="CDMM-marker-tail"></div>
-                `;
-
-                const labelDiv = document.createElement('div');
-                labelDiv.className = 'CDMM-marker-label CDMM-marker-label-multi';
-
-                events.forEach((ev, idx) => {
-                    const itemDiv = document.createElement('div');
-                    itemDiv.className = 'CDMM-group-item';
-                    itemDiv.onclick = (e) => {
-                        e.stopPropagation();
-                        onEventClick(ev);
-                    };
-
-                    const locationText = ev.venue_name || ev.location || '장소 정보 없음';
-                    itemDiv.innerHTML = `
-                        <div class="CDMM-marker-label-text">
-                            <span class="CDMM-marker-title">${ev.title}</span>
-                            <span class="CDMM-marker-location"><i class="ri-map-pin-line"></i> ${locationText}</span>
+            markerContainer.innerHTML = `
+                <div class="CDMM-marker-wrapper">
+                    <div class="CDMM-marker-icon">
+                        <div class="CDMM-marker">
+                            ${imageUrl ? `<img src="${imageUrl}" alt="Event" />` : `<i class="ri-map-pin-2-fill" style="color: #4f46e5; font-size: 20px;"></i>`}
                         </div>
-                        <i class="ri-arrow-right-s-line CDMM-arrow"></i>
-                    `;
-                    labelDiv.appendChild(itemDiv);
+                        <div class="CDMM-marker-tail"></div>
+                    </div>
+                    <div class="CDMM-marker-label">
+                        <span><i class="ri-map-pin-line"></i> ${locationText}</span>
+                    </div>
+                </div>
+            `;
 
-                    if (idx < events.length - 1) {
-                        const dividerDiv = document.createElement('div');
-                        dividerDiv.className = 'CDMM-group-divider';
-                        labelDiv.appendChild(dividerDiv);
-                    }
-                });
-
-                wrapper.appendChild(iconDiv);
-                wrapper.appendChild(labelDiv);
-                markerContainer.appendChild(wrapper);
-
-                const customOverlay = new window.kakao.maps.CustomOverlay({
-                    position,
-                    content: markerContainer,
-                    yAnchor: 1,
-                    zIndex: defaultZIndex
-                });
-
-                customOverlay.setMap(map);
-                overlaysRef.current.push(customOverlay);
+            const customOverlay = new window.kakao.maps.CustomOverlay({
+                position,
+                content: markerContainer,
+                yAnchor: 1,
+                zIndex: defaultZIndex
             });
-        };
 
-        const timeoutId = setTimeout(() => {
-            if (map.getProjection()) renderClusters();
-        }, 300);
-
-        window.kakao.maps.event.addListener(map, 'idle', renderClusters);
-
-        return () => {
-            clearTimeout(timeoutId);
-            window.kakao.maps.event.removeListener(map, 'idle', renderClusters);
-        };
+            customOverlay.setMap(map);
+            overlaysRef.current.push(customOverlay);
+        });
     }, [geocodedData, map, onEventClick]);
 
     if (!isOpen || !date) return null;
