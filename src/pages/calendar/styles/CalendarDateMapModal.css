@@ -15,7 +15,7 @@
 .CDMM-container {
     width: 100%;
     max-width: 650px;
-    height: 90%;
+    height: 95%;
     background: var(--bg-primary, #ffffff);
     border-top-left-radius: 24px;
     border-top-right-radius: 24px;
@@ -36,7 +36,7 @@
 }
 
 .CDMM-header {
-    padding: 20px;
+    padding: 4px 20px 4px 20px;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -45,7 +45,8 @@
 
 .CDMM-dateInfo {
     display: flex;
-    flex-direction: column;
+    gap: 10px;
+    flex-direction: row;
 }
 
 .CDMM-weekday {
@@ -144,6 +145,7 @@
 .CDMM-eventListTitle {
     font-size: 0.9rem;
     font-weight: 600;
+    margin: 0;
     margin-bottom: 12px;
     color: var(--text-secondary, #444);
 }

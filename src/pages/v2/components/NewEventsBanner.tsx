@@ -188,6 +188,13 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                     </div>
 
                                     <div className="NEB-content">
+                                        <div className="NEB-mini-thumbnail">
+                                            <img
+                                                src={eventThumbnail}
+                                                alt="Full Preview"
+                                                className="NEB-mini-image"
+                                            />
+                                        </div>
                                         <div className="NEB-textContent">
                                             {event.genre && (
                                                 <div className="NEB-genre">{event.genre}</div>
@@ -204,13 +211,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                             )}
                                             <h4 className="NEB-eventTitle">{event.title}</h4>
                                         </div>
-                                        <div className="NEB-mini-thumbnail">
-                                            <img
-                                                src={eventThumbnail}
-                                                alt="Full Preview"
-                                                className="NEB-mini-image"
-                                            />
-                                        </div>
+
                                     </div>
                                 </div>
                             );
@@ -239,7 +240,7 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                         <div className="neb-modal" onClick={e => e.stopPropagation()}>
                             <h3 className="neb-modal-title">📢 신규 등록 노출 기준</h3>
                             <div className="neb-modal-content">
-                                <p className="neb-highlight">등록 후 72시간 동안 이 섹션에 노출됩니다.<br/>72시간 내 신규 이벤트가 없을 경우 최근 등록 6개가 표시됩니다.</p>
+                                <p className="neb-highlight">등록 후 72시간 동안 이 섹션에 노출됩니다.<br />72시간 내 신규 이벤트가 없을 경우 최근 등록 6개가 표시됩니다.</p>
                                 <p className="neb-highlight" style={{ color: '#4ade80', marginTop: '4px' }}>※ 라이브밴드 파티는 기간 제한 없이 계속 노출됩니다.</p>
                                 <ul className="neb-modal-list">
                                     <li>자동 슬라이드: 5초마다 전환</li>
