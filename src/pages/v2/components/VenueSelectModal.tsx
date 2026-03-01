@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
+import { useModalActions } from '../../../contexts/ModalContext';
 import VenueSelectList from './VenueSelectList';
 import './VenueSelectModal.css';
 
@@ -32,6 +33,7 @@ interface VenueSelectModalProps {
 
 export default function VenueSelectModal({ isOpen, onClose, onSelect, onManualInput }: VenueSelectModalProps) {
     const navigate = useNavigate();
+    const { closeAllModals } = useModalActions();
     const [activeCategory, setActiveCategory] = useState<string>("연습실");
 
     // Form States
@@ -199,6 +201,7 @@ export default function VenueSelectModal({ isOpen, onClose, onSelect, onManualIn
                     <div className="venue-select-header-actions">
                         <button
                             onClick={() => {
+                                closeAllModals();
                                 onClose();
                                 navigate('/practice?action=register');
                             }}
@@ -340,12 +343,6 @@ export default function VenueSelectModal({ isOpen, onClose, onSelect, onManualIn
                         </div>
                     ) : (
                         <>
-                            <div className="venue-select-description">
-                                <p>
-                                    <i className="ri-information-line"></i>
-                                    이미 등록된 장소 중에서 선택하세요
-                                </p>
-                            </div>
                             <VenueSelectList
                                 activeCategory={activeCategory}
                                 onVenueClick={handleVenueClick}

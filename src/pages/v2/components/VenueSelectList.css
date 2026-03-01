@@ -1,9 +1,58 @@
 /* VenueSelectList - Modal specific card design */
 
+.venue-select-list-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.venue-select-search-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    background: var(--bg-surface-2);
+    border: 1px solid var(--border-glass);
+    border-radius: 2rem;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.venue-select-search-bar:focus-within {
+    border-color: var(--color-blue-500);
+    box-shadow: 0 0 0 2px var(--color-blue-500-20);
+    background: var(--bg-surface-3);
+}
+
+.venue-select-search-bar i {
+    color: var(--text-tertiary);
+    font-size: 1.25rem;
+}
+
+.venue-select-search-bar:focus-within i {
+    color: var(--color-blue-500);
+}
+
+.venue-select-search-bar input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--text-primary);
+    font-size: 0.9375rem;
+    outline: none;
+    width: 100%;
+}
+
+.venue-select-search-bar input::placeholder {
+    color: var(--text-tertiary);
+}
+
 .venue-select-list {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
+    padding-bottom: 2rem;
+    /* Add some padding at the bottom */
 }
 
 .venue-select-card {
