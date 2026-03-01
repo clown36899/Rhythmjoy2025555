@@ -61,7 +61,10 @@ export default function VenueSelectModal({ isOpen, onClose, onSelect, onManualIn
     };
 
     const performSearch = (keyword: string) => {
-        if (!keyword.trim()) return;
+        if (!keyword.trim()) {
+            setSearchResults([]);
+            return;
+        }
         if (!isSdkLoaded) {
             alert('지도 서비스를 준비 중입니다. 잠시만 기다려주세요.');
             return;
@@ -87,6 +90,17 @@ export default function VenueSelectModal({ isOpen, onClose, onSelect, onManualIn
         e.preventDefault();
         performSearch(searchKeyword);
     };
+
+    // 실시간 검색 (Debounce 적용)
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            if (activeCategory === '직접입력') {
+                performSearch(searchKeyword);
+            }
+        }, 400); // 400ms 지연 후 검색 실행
+
+        return () => clearTimeout(timeoutId);
+    }, [searchKeyword, activeCategory, isSdkLoaded]);
 
     const handleResultSelect = (place: any) => {
         setVenueName(place.place_name);
