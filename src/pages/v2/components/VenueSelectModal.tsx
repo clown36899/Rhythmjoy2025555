@@ -73,14 +73,32 @@ export default function VenueSelectModal({ isOpen, onClose, onSelect, onManualIn
         setIsSearching(true);
         const ps = new window.kakao.maps.services.Places();
 
-        // 원본 키워드 및 자주 쓰이는 접미사 추가 쿼리들
+        // 휴리스틱: 사용자가 자주 틀리는 '홉', '신촌홉' 등에 대한 강력한 변환 쿼리 추가
+        const cleanKeyword = keyword.trim();
+        const noSpaceKeyword = cleanKeyword.replace(/\s+/g, '');
+
         const searchQueries = [
-            keyword,
-            `${keyword} 연습실`,
-            `${keyword} 스튜디오`,
-            `${keyword} 바`,
-            `${keyword.replace(/\s+/g, '')}연습실` // 공백 제거 버전
+            cleanKeyword,
+            `${cleanKeyword} 연습실`,
+            `${cleanKeyword} 스튜디오`,
+            `${cleanKeyword} 바`
         ];
+
+        // 띄어쓰기가 없는 경우 추가 보정
+        if (noSpaceKeyword !== cleanKeyword) {
+            searchQueries.push(`${noSpaceKeyword}연습실`);
+            searchQueries.push(noSpaceKeyword);
+        }
+
+        // '홉' 키워드가 들어간 경우 특별 휴리스틱 처리 (신촌 홉댄스 연습실)
+        if (cleanKeyword.includes('홉')) {
+            const hopReplaced = cleanKeyword.replace(/홉/g, '홉댄스');
+            searchQueries.push(hopReplaced);
+            searchQueries.push(`${hopReplaced} 연습실`);
+            searchQueries.push('신촌 홉댄스');
+            searchQueries.push('신촌 홉댄스 연습실');
+            searchQueries.push('신촌 HOP');
+        }
 
         const searchPromises = searchQueries.map(q => {
             return new Promise<any[]>((resolve) => {
