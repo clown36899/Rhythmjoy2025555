@@ -139,7 +139,8 @@ export function useSocialSchedulesNew(groupId?: number, minDate?: string) {
         };
 
         const handleDelete = (e: any) => {
-            const deletedId = e.detail?.id;
+            console.log('[useSocialSchedulesNew] handleDelete called:', e.detail);
+            const deletedId = e.detail?.id || e.detail?.eventId;
             if (deletedId) {
                 setSchedules(prev => prev.filter(item => {
                     const itemIdStr = String(item.id);

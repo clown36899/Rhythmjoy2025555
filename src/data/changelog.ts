@@ -8,6 +8,16 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '3.9.1',
+        date: '2026-03-01',
+        changes: [
+            '[🐛 Fixed] 이벤트 장소 직접 입력 시 UUID 타입 불일치(409 Conflict)로 등록되지 않던 버그 수정',
+            '[🐛 Fixed] 장소 지도 링크가 엉뚱한 추가 링크(link1) 필드로 매핑되던 오류 교정',
+            '[🐛 Fixed] 위클리 소셜 리스트에서 삭제 버튼 클릭 시 이벤트가 목록에서 즉각 제거되지 않던 현상 해결',
+            '[🔧 Refined] API 전송 전 삭제 ID의 `social-` 접두어 제거 전처리 로직 강화'
+        ]
+    },
+    {
         version: '3.9.0',
         date: '2026-02-26',
         changes: [

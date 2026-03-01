@@ -87,32 +87,47 @@ export function useEventActions({ adminType, user, signInWithKakao }: UseEventAc
     const [deleteProgress, setDeleteProgress] = useState(0);
 
     const deleteEvent = async (eventId: number | string, password: string | null = null): Promise<boolean> => {
+        console.log('[useEventActions > deleteEvent] START', { eventId, hasPassword: !!password, isDeleting });
 
-        if (isDeleting) return false; // Prevent double click
-
-        // Double Confirmation Removed
-        // UI handles the confirmation. Just proceed.
+        if (isDeleting) {
+            console.warn('[useEventActions > deleteEvent] ABORTED: Already deleting.');
+            return false; // Prevent double click
+        }
 
         setIsDeleting(true);
         setDeleteProgress(10); // Start progress
 
         try {
-            const { data: { session } } = await supabase.auth.getSession();
+            // [CRITICAL FIX] ID 전처리: 'social-' 접두어 제거 및 FullCalendar 오프셋 처리
+            const strippedId = String(eventId).replace('social-', '');
+            const cleanId = Number(strippedId) > 10000000
+                ? String(Number(strippedId) - 10000000)
+                : strippedId;
+
+            console.log('[useEventActions > deleteEvent] Cleaned ID for API:', { original: eventId, cleanId });
+
+            console.log('[useEventActions > deleteEvent] Fetching session...');
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+            if (sessionError) console.error('[useEventActions > deleteEvent] Session Error:', sessionError);
             const token = session?.access_token;
             setDeleteProgress(30);
 
+            console.log('[useEventActions > deleteEvent] Calling /.netlify/functions/delete-event', { token: !!token, cleanId });
             const response = await fetch('/.netlify/functions/delete-event', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     ...(token ? { 'Authorization': `Bearer ${token}` } : {})
                 },
-                body: JSON.stringify({ eventId, password })
+                body: JSON.stringify({ eventId: cleanId, password })
             });
             setDeleteProgress(60);
 
+            console.log('[useEventActions > deleteEvent] Response received', { status: response.status, ok: response.ok });
+
             if (!response.ok) {
                 const errorData = await response.json();
+                console.error('[useEventActions > deleteEvent] API Error Response:', errorData);
                 if (errorData.error?.includes('foreign key constraint') || errorData.message?.includes('foreign key constraint')) {
                     alert("다른 사용자가 '즐겨찾기' 및 '관심설정'한 이벤트는 삭제할 수 없습니다.");
                     return false;
@@ -123,6 +138,7 @@ export function useEventActions({ adminType, user, signInWithKakao }: UseEventAc
             setDeleteProgress(90);
 
             // Success
+            console.log('[useEventActions > deleteEvent] SUCCESS! Invaliding queries and closing modal.');
             alert("삭제되었습니다."); // Keep consistent with V1
 
             // [Persistence] TanStack Query 캐시 무효화 (캘린더 페이지 등 연동)
@@ -134,58 +150,58 @@ export function useEventActions({ adminType, user, signInWithKakao }: UseEventAc
 
             return true;
         } catch (error: unknown) {
-            console.error('Delete error:', error);
+            console.error('[useEventActions > deleteEvent] CATCH Error:', error);
             const message = error instanceof Error ? error.message : "알 수 없는 오류";
             alert("삭제 실패: " + message);
             return false;
         } finally {
+            console.log('[useEventActions > deleteEvent] FINALLY Block reached. Releasing lock.');
             setIsDeleting(false);
             setDeleteProgress(0);
         }
     };
 
     const handleDeleteClick = useCallback(async (event: AppEvent, e?: React.MouseEvent | any): Promise<boolean> => {
+        console.log('[useEventActions > handleDeleteClick] START', { eventId: event.id, adminType, userId: user?.id, eventUserId: event.user_id });
+
         if (e && typeof e.stopPropagation === 'function') {
             e.stopPropagation();
         }
 
-
         // 1. Super Admin Request
         if (adminType === "super") {
-            // Confirm removed - UI already confirmed
+            console.log('[useEventActions > handleDeleteClick] Pathway: Super Admin');
             return await deleteEvent(event.id);
         }
 
         // 2. Owner Request
         const isOwner = user?.id && event.user_id && user.id === event.user_id;
         if (isOwner) {
-            // Confirm removed - UI already confirmed
+            console.log('[useEventActions > handleDeleteClick] Pathway: Logic Owner');
             return await deleteEvent(event.id);
         }
 
         // 3. Guest/User with Password
-        // UI Prompt for password if not provided?
-        // Wait, V2 uses `prompt` usually? No, `useEventActions` relied on existing password logic?
-        // Actually V2 Logic (lines 151+) asks for password via `prompt`!
-
+        console.log('[useEventActions > handleDeleteClick] Pathway: Guest/Password Check');
         let password = null;
         if (event.password) {
             password = prompt("비밀번호를 입력하세요:");
-            if (!password) return false; // Cancelled
+            if (!password) {
+                console.log('[useEventActions > handleDeleteClick] Password prompt cancelled.');
+                return false; // Cancelled
+            }
         } else {
-            // If no password set on event but user is not owner/admin?
-            // Usually blocked by UI, but if triggered:
-            // Just try delete? Or prompt?
-            // Existing logic matches password.   
+            console.log('[useEventActions > handleDeleteClick] No event password & Not owner. Attempting delete anyway (?)');
         }
 
         // Local password validation (if event has password)
         if (event.password && password !== event.password) {
+            console.warn('[useEventActions > handleDeleteClick] Incorrect password entered.');
             alert("비밀번호가 올바르지 않습니다.");
             return false;
         }
 
-        // Confirm removed - UI already confirmed
+        console.log('[useEventActions > handleDeleteClick] Proceeding to deleteEvent with password.');
         return await deleteEvent(event.id, password);
     }, [adminType, closeModal, user]);
 
