@@ -58,7 +58,7 @@ const CalendarCell = memo(({
   getEventColor: (id: number | string) => string;
   onDateClick: (date: Date, e?: React.MouseEvent) => void;
   onDateNumberClick: (e: React.MouseEvent, date: Date) => void;
-  onEventClick: (event: AppEvent) => void;
+  onEventClick: (event: AppEvent, date: Date, dayEvents: AppEvent[]) => void;
   t: any;
 }) => {
   const [shouldRenderEvents, setShouldRenderEvents] = useState(false);
@@ -138,7 +138,7 @@ const CalendarCell = memo(({
                 role="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  onEventClick(event);
+                  onEventClick(event, day, events);
                 }}
               >
                 <div className="calendar-fullscreen-card-inner">

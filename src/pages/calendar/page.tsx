@@ -669,7 +669,15 @@ export default function CalendarPage() {
                     calendarHeightPx={window.innerHeight - 100}
                     dragOffset={dragOffset}
                     isAnimating={isAnimating}
-                    onEventClick={(event: any) => eventModal.setSelectedEvent(event)}
+                    onEventClick={(event: any, date: Date, dayEvents: AppEvent[]) => {
+                        if (isMapView) {
+                            setSelectedDate(date);
+                            setMapDateEvents(dayEvents);
+                            setShowMapModal(true);
+                        } else {
+                            eventModal.setSelectedEvent(event);
+                        }
+                    }}
                     highlightedEventId={highlightedEventId}
                     tabFilter={tabFilter}
                     seed={randomSeed}
