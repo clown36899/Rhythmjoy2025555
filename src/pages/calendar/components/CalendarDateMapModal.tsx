@@ -31,6 +31,7 @@ export default function CalendarDateMapModal({
     const markersRef = useRef<any[]>([]);
     const overlaysRef = useRef<any[]>([]);
     const [selectedRegion, setSelectedRegion] = useState<string>('서울');
+    const [geocodedData, setGeocodedData] = useState<{ lat: number, lng: number, event: AppEvent }[]>([]);
 
     // 주소에서 지역명 추출 (도우미 함수)
     const getRegionFromAddress = (addr: string): string => {
@@ -170,42 +171,27 @@ export default function CalendarDateMapModal({
         }
     }, [isOpen, map]);
 
-    // 마커 표시 및 바운드 설정
+    // 1. 단 1회 지오코딩 및 초기 바운드 설정
     useEffect(() => {
         if (!map || !window.kakao || !window.kakao.maps) return;
 
-        // 기존 마커 및 오버레이 제거
-        overlaysRef.current.forEach(o => o.setMap(null));
-        overlaysRef.current = [];
+        const eventsWithLoc = filteredEvents.filter(e => (Array.isArray(e.venues) ? e.venues[0]?.address : e.venues?.address) || e.address || e.location || e.location_link || e.venue_name);
 
-        if (filteredEvents.length === 0) {
+        if (eventsWithLoc.length === 0) {
+            setGeocodedData([]);
             map.setCenter(new window.kakao.maps.LatLng(37.5665, 126.9780));
             return;
         }
 
         const geocoder = new window.kakao.maps.services.Geocoder();
-        const bounds = new window.kakao.maps.LatLngBounds();
-
-        const eventsWithLoc = filteredEvents.filter(e => (Array.isArray(e.venues) ? e.venues[0]?.address : e.venues?.address) || e.address || e.location || e.location_link || e.venue_name);
-
-        if (eventsWithLoc.length === 0) {
-            map.setCenter(new window.kakao.maps.LatLng(37.5665, 126.9780));
-            return;
-        }
-
         const geocodePromises = eventsWithLoc.map(event => {
             const address = (Array.isArray(event.venues) ? event.venues[0]?.address : event.venues?.address) || event.address || event.location || event.venue_name || '';
-            console.log(`📍 [CDMM] Geocoding request for: "${event.title}"`);
             return new Promise<{ lat: number, lng: number, event: AppEvent } | null>((resolve) => {
-                if (!address) {
-                    resolve(null);
-                    return;
-                }
+                if (!address) { resolve(null); return; }
                 geocoder.addressSearch(address, (result: any, status: any) => {
                     if (status === window.kakao.maps.services.Status.OK) {
                         resolve({ lat: parseFloat(result[0].y), lng: parseFloat(result[0].x), event });
                     } else {
-                        console.error(`❌ [CDMM] Geocode FAILED (Status: ${status}) for: "${address}"`);
                         resolve(null);
                     }
                 });
@@ -213,32 +199,58 @@ export default function CalendarDateMapModal({
         });
 
         Promise.all(geocodePromises).then(results => {
-            if (!map || overlaysRef.current === undefined) return;
+            const valid = results.filter(r => r !== null) as { lat: number, lng: number, event: AppEvent }[];
+            setGeocodedData(valid);
 
-            const validResults = results.filter(r => r !== null) as { lat: number, lng: number, event: AppEvent }[];
-            if (validResults.length === 0) return;
+            if (valid.length > 0) {
+                const bounds = new window.kakao.maps.LatLngBounds();
+                valid.forEach(v => bounds.extend(new window.kakao.maps.LatLng(v.lat, v.lng)));
+                map.setBounds(bounds);
+                setTimeout(() => {
+                    if (map.getLevel() < 3) map.setLevel(3);
+                    else map.setLevel(map.getLevel() + 1);
+                }, 100);
+            }
+        });
+    }, [filteredEvents, map]);
 
-            // 5. 소수점 로직 한계로 인한 좌표 경계 분리 현상을 막기 위해, 
-            // 거리 기반(약 반경 100~150m) 클러스터링 알고리즘 적용
-            const clusters: { lat: number, lng: number, events: AppEvent[] }[] = [];
-            const THRESHOLD = 0.0015; // 약 150m 거리 반경 내면 같은 그룹
+    // 2. 화면(픽셀) 기반 동적 클러스터링 렌더링
+    useEffect(() => {
+        if (!map || !window.kakao || !window.kakao.maps) return;
 
-            validResults.forEach(r => {
-                let foundCluster = clusters.find(c => {
-                    const dLat = c.lat - r.lat;
-                    const dLng = c.lng - r.lng;
-                    return Math.sqrt(dLat * dLat + dLng * dLng) < THRESHOLD;
+        const renderClusters = () => {
+            const proj = map.getProjection();
+            if (!proj) return;
+
+            // 기존 마커 등 정리
+            overlaysRef.current.forEach(o => o.setMap(null));
+            overlaysRef.current = [];
+
+            if (geocodedData.length === 0) return;
+
+            const clusters: { x: number, y: number, coords: { lat: number, lng: number }, events: AppEvent[] }[] = [];
+            const PIXEL_THRESHOLD = 130; // 130px 이내면 겹치므로 하나로 병합 (거리 무관)
+
+            geocodedData.forEach(item => {
+                const latlng = new window.kakao.maps.LatLng(item.lat, item.lng);
+                const point = proj.containerPointFromCoords(latlng);
+
+                let found = clusters.find(c => {
+                    const dx = c.x - point.x;
+                    const dy = c.y - point.y;
+                    return Math.sqrt(dx * dx + dy * dy) < PIXEL_THRESHOLD;
                 });
 
-                if (foundCluster) {
-                    foundCluster.events.push(r.event);
+                if (found) {
+                    found.events.push(item.event);
                 } else {
-                    clusters.push({ lat: r.lat, lng: r.lng, events: [r.event] });
+                    clusters.push({ x: point.x, y: point.y, coords: { lat: item.lat, lng: item.lng }, events: [item.event] });
                 }
             });
 
             clusters.forEach(group => {
-                const { lat, lng, events } = group;
+                const { lat, lng } = group.coords;
+                const events = group.events;
                 const position = new window.kakao.maps.LatLng(lat, lng);
                 const defaultZIndex = 100 + events.length;
 
@@ -246,7 +258,6 @@ export default function CalendarDateMapModal({
                 markerContainer.className = 'CDMM-marker-container';
                 markerContainer.style.zIndex = defaultZIndex.toString();
 
-                // 마우스 호버 시 최상단으로 올리기 위함
                 markerContainer.onmouseenter = () => { markerContainer.style.zIndex = '9999'; };
                 markerContainer.onmouseleave = () => { markerContainer.style.zIndex = defaultZIndex.toString(); };
 
@@ -304,23 +315,25 @@ export default function CalendarDateMapModal({
                     position,
                     content: markerContainer,
                     yAnchor: 1,
-                    zIndex: 100 + events.length
+                    zIndex: defaultZIndex
                 });
 
                 customOverlay.setMap(map);
                 overlaysRef.current.push(customOverlay);
-                bounds.extend(position);
             });
+        };
 
-            if (overlaysRef.current.length > 0) {
-                map.setBounds(bounds);
-                setTimeout(() => {
-                    if (map.getLevel() < 3) map.setLevel(3);
-                    else map.setLevel(map.getLevel() + 1);
-                }, 100);
-            }
-        });
-    }, [filteredEvents, map, onEventClick]);
+        const timeoutId = setTimeout(() => {
+            if (map.getProjection()) renderClusters();
+        }, 300);
+
+        window.kakao.maps.event.addListener(map, 'idle', renderClusters);
+
+        return () => {
+            clearTimeout(timeoutId);
+            window.kakao.maps.event.removeListener(map, 'idle', renderClusters);
+        };
+    }, [geocodedData, map, onEventClick]);
 
     if (!isOpen || !date) return null;
 
