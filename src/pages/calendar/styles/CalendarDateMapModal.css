@@ -290,7 +290,7 @@
     background: rgba(0, 0, 0, 0.85);
     color: #fff;
     border-radius: 12px;
-    padding: 8px 14px;
+    padding: 4px 8px;
     display: flex;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     max-width: 200px;
@@ -304,7 +304,7 @@
     text-overflow: ellipsis;
     display: block;
     width: 100%;
-    font-size: 0.85rem;
+    font-size: 0.55rem;
 }
 
 .CDMM-group-item {
