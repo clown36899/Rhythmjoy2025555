@@ -286,7 +286,7 @@
 
 .CDMM-marker-label {
     position: absolute;
-    bottom: calc(100% + 10px);
+    bottom: calc(100% + -69px);
     background: rgba(0, 0, 0, 0.85);
     color: #fff;
     border-radius: 12px;
