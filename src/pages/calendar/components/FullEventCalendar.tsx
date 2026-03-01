@@ -659,11 +659,10 @@ export default memo(function FullEventCalendar({
     const dayEvents = getEventsForDate(date);
     console.log(`🖱️ [Calendar] Clicked Date: ${date.toISOString().split('T')[0]}, Events Count: ${dayEvents.length}, Map Mode: ${isMapView}`);
 
-    // [New] 지도 뷰 모드일 경우 지도 모달 호출 (소셜 카테고리만 필터링)
+    // [New] 지도 뷰 모드일 경우 지도 모달 호출 (모든 이벤트 표시)
     if (isMapView && onDateClickWithEvents) {
-      console.log('🚀 [Calendar] Calling map modal with social events only...');
-      const socialEvents = dayEvents.filter(e => e.category === 'social');
-      onDateClickWithEvents(date, socialEvents);
+      console.log('🚀 [Calendar] Calling map modal with all events...');
+      onDateClickWithEvents(date, dayEvents);
       return;
     }
 

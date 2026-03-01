@@ -315,7 +315,7 @@ export default function CalendarDateMapModal({
 
                     <div className="CDMM-eventListArea">
                         <h4 className="CDMM-eventListTitle">
-                            {selectedRegion} 소셜 이벤트 ({filteredEvents.length})
+                            {selectedRegion} 이벤트 ({filteredEvents.length})
                         </h4>
                         <div className="CDMM-eventList">
                             {filteredEvents.length > 0 ? (
@@ -352,7 +352,7 @@ export default function CalendarDateMapModal({
                                 ))
                             ) : (
                                 <div className="CDMM-emptyState">
-                                    <p>해당 지역에 등록된 소셜 이벤트가 없습니다.</p>
+                                    <p>해당 지역에 등록된 이벤트가 없습니다.</p>
                                 </div>
                             )}
                         </div>

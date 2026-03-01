@@ -14,7 +14,8 @@ export const changelogData: ChangelogVersion[] = [
             '[🐛 Fixed] 이벤트 장소 직접 입력 시 UUID 타입 불일치(409 Conflict)로 등록되지 않던 버그 수정',
             '[🐛 Fixed] 장소 지도 링크가 엉뚱한 추가 링크(link1) 필드로 매핑되던 오류 교정',
             '[🐛 Fixed] 위클리 소셜 리스트에서 삭제 버튼 클릭 시 이벤트가 목록에서 즉각 제거되지 않던 현상 해결',
-            '[🔧 Refined] API 전송 전 삭제 ID의 `social-` 접두어 제거 전처리 로직 강화'
+            '[🔧 Refined] API 전송 전 삭제 ID의 `social-` 접두어 제거 전처리 로직 강화',
+            '[🐛 Fixed] 날짜 클릭 후 뜨는 특정 일자 지도 모달에서 다른 카테고리(강습/행사 등) 일정이 누락되던 버그 수정'
         ]
     },
     {
