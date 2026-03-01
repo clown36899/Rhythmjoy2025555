@@ -220,9 +220,8 @@ export default function CalendarDateMapModal({
 
             const grouped: Record<string, { lat: number, lng: number, events: AppEvent[] }> = {};
             validResults.forEach(r => {
-                // 1. 장소명(텍스트)이 있다면 우선적으로 묶음키로 사용. 없으면 2. 좌표 소수점 4자리 사용
-                const locationName = (r.event.venue_name || r.event.location || '').trim();
-                const key = locationName ? `loc_${locationName}` : `coord_${r.lat.toFixed(4)},${r.lng.toFixed(4)}`;
+                // 주소 텍스트 누락 등 변수를 차단하기 위해 오직 '카카오 좌표 변환 결과값(소수점 4자리)'을 기준으로 강제 병합합니다.
+                const key = `coord_${r.lat.toFixed(4)},${r.lng.toFixed(4)}`;
 
                 if (!grouped[key]) {
                     // 그룹 대표 좌표는 첫 번째 이벤트의 좌표 사용
@@ -234,9 +233,15 @@ export default function CalendarDateMapModal({
             Object.values(grouped).forEach(group => {
                 const { lat, lng, events } = group;
                 const position = new window.kakao.maps.LatLng(lat, lng);
+                const defaultZIndex = 100 + events.length;
 
                 const markerContainer = document.createElement('div');
                 markerContainer.className = 'CDMM-marker-container';
+                markerContainer.style.zIndex = defaultZIndex.toString();
+
+                // 마우스 호버 시 최상단으로 올리기 위함
+                markerContainer.onmouseenter = () => { markerContainer.style.zIndex = '9999'; };
+                markerContainer.onmouseleave = () => { markerContainer.style.zIndex = defaultZIndex.toString(); };
 
                 const firstEvent = events[0];
                 const imageUrl = firstEvent.image_thumbnail || firstEvent.image_micro || '';
