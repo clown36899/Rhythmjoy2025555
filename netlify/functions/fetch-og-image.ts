@@ -93,11 +93,18 @@ export const handler: Handler = async (event) => {
         };
 
     } catch (error) {
-        console.error('Error fetching site info:', error);
+        console.error(`[fetch-og-image] Error fetching ${targetUrl}:`, error);
+
+        // Return 200 even on error to allow frontend to handle it gracefully
         return {
-            statusCode: 500,
+            statusCode: 200,
             headers,
-            body: JSON.stringify({ error: 'Failed to extract info from URL', details: error instanceof Error ? error.message : String(error) })
+            body: JSON.stringify({
+                url: targetUrl,
+                success: false,
+                error: 'Failed to extract info from URL',
+                details: error instanceof Error ? error.message : String(error)
+            })
         };
     }
 };
