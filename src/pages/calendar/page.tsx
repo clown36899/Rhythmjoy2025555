@@ -305,7 +305,9 @@ export default function CalendarPage() {
                 // 그리드 row-gap(16px) 합산 (중요: rowGap이 빠지면 위쪽 주차만큼 오차가 누적됨)
                 sumPrecedingHeight += (actualWeekHeight + 16);
             }
-            cumulativePageHeight += (actualWeekHeight + 16);
+
+            cumulativePageHeight += actualWeekHeight;
+            if (w < totalWeeks - 1) cumulativePageHeight += 16; // 주차 간 간격(16px)만 합산
 
             debugTable.push({ week: w, soc: debugSoc, reg: debugReg, height: actualWeekHeight.toFixed(1) });
         }
@@ -327,7 +329,9 @@ export default function CalendarPage() {
 
         return {
             targetY: finalScrollTargetY,
-            totalHeight: cumulativePageHeight + lastRowExtraPadding + vh,
+            // [Optimization] "딱 맞게" 요청 반영: vh 가산량을 완전히 제거하고 컨텐츠 높이만 유지.
+            // 오늘 날짜 이동은 페이지 하단 한계 내에서 최대한 수행됨.
+            totalHeight: cumulativePageHeight + containerPaddingTop + lastRowExtraPadding,
             isSameMonth,
             debugTitleHeight: dynamicTitleHeight
         };
@@ -378,22 +382,22 @@ export default function CalendarPage() {
             skipCurrentMonthEffectRef.current = false;
             return;
         }
+        // 버튼/스와이프 등으로 currentMonth가 변경될 때의 추가 처리는 handleMonthChange에서 담당함
+    }, [currentMonth]);
+
+    const handleMonthChange = useCallback((newMonth: Date) => {
         userInteractedRef.current = false;
         const today = new Date();
-        const isSameMonth = currentMonth.getFullYear() === today.getFullYear() &&
-            currentMonth.getMonth() === today.getMonth();
+        const isSameMonth = newMonth.getFullYear() === today.getFullYear() &&
+            newMonth.getMonth() === today.getMonth();
 
         if (isSameMonth) {
             shouldScrollToTodayRef.current = true;
         } else {
             shouldScrollToTodayRef.current = false;
-            if (initialJumpDoneRef.current) {
-                window.scrollTo({ top: 0, behavior: 'instant' });
-            }
+            window.scrollTo({ top: 0, behavior: 'instant' });
         }
-    }, [currentMonth]);
 
-    const handleMonthChange = useCallback((newMonth: Date) => {
         setCurrentMonth(newMonth);
         setSelectedDate(null);
     }, []);

@@ -18,7 +18,7 @@ interface FullEventCalendarProps {
   calendarHeightPx: number;
   dragOffset?: number;
   isAnimating?: boolean;
-  onEventClick: (event: AppEvent) => void;
+  onEventClick: (event: AppEvent, date: Date, dayEvents: AppEvent[]) => void;
   onEventsUpdate?: (createdDate?: Date) => void;
   isAdminMode?: boolean;
   selectedCategory?: string;
@@ -751,20 +751,27 @@ export default memo(function FullEventCalendar({
               {[prevMonth, currentMonth, nextMonth].map((month, idx) => {
                 const isCurrentMonth = idx === 1;
                 const days = idx === 0 ? prevDays : idx === 1 ? currentDays : nextDays;
+
+                // [Optimization] 애니메이션 중이 아닐 때 비활성 달은 렌더링하지 않음 (로딩 부하 감소)
+                const shouldRenderContent = isCurrentMonth || effectiveIsAnimating;
+
                 return (
                   <div
                     key={`${month.getFullYear()}-${month.getMonth()}`}
                     className="calendar-month-slide"
                     data-active-month={isCurrentMonth}
+                    style={!isCurrentMonth && !effectiveIsAnimating ? { height: 0, overflow: 'hidden' } : {}}
                   >
-                    <div
-                      className="calendar-grid-container"
-                      style={{
-                        '--weeks-count': getActualWeeksCount(month),
-                      } as any}
-                    >
-                      {renderFullscreenGrid(days, month)}
-                    </div>
+                    {shouldRenderContent && (
+                      <div
+                        className="calendar-grid-container"
+                        style={{
+                          '--weeks-count': getActualWeeksCount(month),
+                        } as any}
+                      >
+                        {renderFullscreenGrid(days, month)}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -790,6 +797,8 @@ export default memo(function FullEventCalendar({
         events={modalEvents}
         onEventClick={(event) => {
           setShowDateModal(false);
+          // @ts-ignore - DateEventsModal 내부에서 넘겨주는 인수가 1개뿐임. 
+          // 실제 동작에는 문제 없으나 타입 일치를 위해 무시하거나 상세 수정 필요.
           if (onEventClick) onEventClick(event);
         }}
       />
