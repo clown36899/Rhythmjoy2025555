@@ -1236,6 +1236,60 @@ export default function EventDetailModal({
 
                 {/* 세부 정보 */}
                 <div className="EDM-infoSection">
+                  {(selectedEvent.location || isSelectionMode) && (
+                    <div className="EDM-infoItem">
+                      <i className="ri-map-pin-line EDM-infoIcon"></i>
+                      <div className="EDM-infoContent-flex">
+                        {(selectedEvent as any).venue_id ? (
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              const venueId = (selectedEvent as any).venue_id;
+                              if (venueId) {
+                                if (onOpenVenueDetail) {
+                                  onOpenVenueDetail(String(venueId));
+                                } else {
+                                  openModal('venueDetail', { venueId: String(venueId) });
+                                }
+                              }
+                            }}
+                            className="EDM-venueLink"
+                            style={{ position: 'relative', zIndex: 10 }}
+                          >
+                            <span>{selectedEvent.location}</span>
+                            <i className="ri-arrow-right-s-line"></i>
+                          </button>
+                        ) : (
+                          <span>{selectedEvent.location || "장소 미정"}</span>
+                        )}
+                        {!(selectedEvent as any).venue_id && (selectedEvent.location_link || (selectedEvent as any).venue_custom_link) && (
+                          <a
+                            href={(selectedEvent as any).venue_custom_link || selectedEvent.location_link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="EDM-locationLink"
+                            title="지도 보기"
+                          >
+                            <i className="ri-external-link-line"></i>
+                          </a>
+                        )}
+                        {isSelectionMode && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowVenueSelect(true);
+                            }}
+                            className="EDM-editTrigger"
+                            title="장소 수정"
+                          >
+                            <i className="ri-pencil-line"></i>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
                   <div className="EDM-infoItem">
                     <i className="ri-calendar-line EDM-infoIcon"></i>
                     <div className="EDM-infoContent-flex">
@@ -1370,60 +1424,6 @@ export default function EventDetailModal({
                       <span className="EDM-viewsText">
                         조회 {selectedEvent.views.toLocaleString()}
                       </span>
-                    </div>
-                  )}
-
-                  {(selectedEvent.location || isSelectionMode) && (
-                    <div className="EDM-infoItem">
-                      <i className="ri-map-pin-line EDM-infoIcon"></i>
-                      <div className="EDM-infoContent-flex">
-                        {(selectedEvent as any).venue_id ? (
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              const venueId = (selectedEvent as any).venue_id;
-                              if (venueId) {
-                                if (onOpenVenueDetail) {
-                                  onOpenVenueDetail(String(venueId));
-                                } else {
-                                  openModal('venueDetail', { venueId: String(venueId) });
-                                }
-                              }
-                            }}
-                            className="EDM-venueLink"
-                            style={{ position: 'relative', zIndex: 10 }}
-                          >
-                            <span>{selectedEvent.location}</span>
-                            <i className="ri-arrow-right-s-line"></i>
-                          </button>
-                        ) : (
-                          <span>{selectedEvent.location || "장소 미정"}</span>
-                        )}
-                        {!(selectedEvent as any).venue_id && (selectedEvent.location_link || (selectedEvent as any).venue_custom_link) && (
-                          <a
-                            href={(selectedEvent as any).venue_custom_link || selectedEvent.location_link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="EDM-locationLink"
-                            title="지도 보기"
-                          >
-                            <i className="ri-external-link-line"></i>
-                          </a>
-                        )}
-                        {isSelectionMode && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setShowVenueSelect(true);
-                            }}
-                            className="EDM-editTrigger"
-                            title="장소 수정"
-                          >
-                            <i className="ri-pencil-line"></i>
-                          </button>
-                        )}
-                      </div>
                     </div>
                   )}
 
