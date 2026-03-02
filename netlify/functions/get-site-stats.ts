@@ -101,11 +101,18 @@ export const handler: Handler = async (event) => {
                 if (row.metric_type === 'act_count') {
                     totalItems += val;
                     if (!monthlyMap[month]) {
-                        monthlyMap[month] = { month, classes: 0, socials: 0, clubs: 0, events: 0, registrations: 0, total: 0, totalUntilToday: 0 };
+                        monthlyMap[month] = { month, classes: 0, socials: 0, clubs: 0, events: 0, registrations: 0, total: 0, totalUntilToday: 0, dailyTotals: {} };
                     }
                     monthlyMap[month].total += val;
-                    if (row.ref_date <= kstTodayStr) {
-                        monthlyMap[month].totalUntilToday += val;
+                    const isPastOrToday = row.ref_date <= kstTodayStr;
+
+                    if (isPastOrToday) {
+                        // Track daily totals for maxDaily calculation - only for past or today
+                        monthlyMap[month].dailyTotals[row.ref_date] = (monthlyMap[month].dailyTotals[row.ref_date] || 0) + val;
+
+                        if (row.ref_date === kstTodayStr || row.ref_date < kstTodayStr) {
+                            monthlyMap[month].totalUntilToday += val;
+                        }
                     }
 
                     if (row.dim_cat === 'class') monthlyMap[month].classes += val;
@@ -143,7 +150,7 @@ export const handler: Handler = async (event) => {
                         else monthlyWeeklyMap[dow].events += val;
                     }
                 } else if (row.metric_type === 'reg_count') {
-                    if (!monthlyMap[month]) monthlyMap[month] = { month, classes: 0, socials: 0, clubs: 0, events: 0, registrations: 0, total: 0, totalUntilToday: 0 };
+                    if (!monthlyMap[month]) monthlyMap[month] = { month, classes: 0, socials: 0, clubs: 0, events: 0, registrations: 0, total: 0, totalUntilToday: 0, dailyTotals: {} };
                     monthlyMap[month].registrations += val;
                 }
             });
@@ -153,7 +160,18 @@ export const handler: Handler = async (event) => {
                 const isCurrentMonth = year === (kstNow.getUTCFullYear()) && monthNum === (kstNow.getUTCMonth() + 1);
                 const daysInMonth = isCurrentMonth ? kstDayOfMonth : new Date(year, monthNum, 0).getDate();
                 const totalForAvg = isCurrentMonth ? m.totalUntilToday : m.total;
-                return { ...m, dailyAvg: Number((totalForAvg / (daysInMonth || 1)).toFixed(1)) };
+
+                // Calculate maxDaily from dailyTotals
+                const dailyValues = Object.values(m.dailyTotals) as number[];
+                const maxDaily = dailyValues.length > 0 ? Math.max(...dailyValues) : 0;
+
+                // Ensure that if there's at least one event, the average doesn't show as 0.0 due to rounding.
+                const rawAvg = totalForAvg / (daysInMonth || 1);
+                const dailyAvg = rawAvg > 0 && rawAvg < 0.1
+                    ? 0.1
+                    : Number(rawAvg.toFixed(1));
+
+                return { ...m, dailyAvg, maxDaily };
             }).sort((a: any, b: any) => a.month.localeCompare(b.month));
 
             const topGenresList = Object.entries(genreMap).sort((a: any, b: any) => (b[1] as number) - (a[1] as number)).slice(0, 20).map(e => e[0]);

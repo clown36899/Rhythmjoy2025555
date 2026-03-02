@@ -233,7 +233,34 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
                                 <div className="stats-card">
                                     <div className="card-label">일평균 이벤트</div>
                                     <div className="card-value">{stats.summary.dailyAverage}건</div>
-                                    <div className="card-hint">{new Date().getMonth() + 1}월 기준</div>
+                                    <div className="card-hint">
+                                        {(() => {
+                                            // 1. Get current time in KST (consistent with server)
+                                            const now = new Date();
+                                            const kstNow = new Date(now.getTime() + (9 * 60 * 60 * 1000));
+                                            const curMonth = kstNow.getUTCMonth() + 1;
+                                            const curYear = kstNow.getUTCFullYear();
+                                            const curStr = `${curYear}-${String(curMonth).padStart(2, '0')}`;
+
+                                            // 2. Get last month in KST
+                                            const lastDate = new Date(Date.UTC(curYear, curMonth - 2, 1));
+                                            const lastMonth = lastDate.getUTCMonth() + 1;
+                                            const lastYear = lastDate.getUTCFullYear();
+                                            const lastStr = `${lastYear}-${String(lastMonth).padStart(2, '0')}`;
+
+                                            const curStat = stats.monthly.find(m => m.month === curStr);
+                                            const lastStat = stats.monthly.find(m => m.month === lastStr);
+
+                                            return (
+                                                <>
+                                                    {curMonth}월 기준
+                                                    <div className="card-sub-info" style={{ marginTop: '4px', fontSize: '0.85em', color: '#fff' }}>
+                                                        일 최대등록수: {curStat?.maxDaily || 0}건 ({lastMonth}월 {lastStat?.maxDaily || 0}건)
+                                                    </div>
+                                                </>
+                                            );
+                                        })()}
+                                    </div>
                                 </div>
                                 <div className="stats-card">
                                     <div className="card-label">최고 활성</div>
@@ -317,12 +344,19 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
                                                         {((m.socials || 0) + (m.clubs || 0)) > 5 && <span className="segment-val">{(m.socials || 0) + (m.clubs || 0)}</span>}
                                                     </div>
                                                 </div>
-                                                <div className="axis-group">
-                                                    <span className="axis-label">
+                                                <div className="axis-group" style={{ height: '60px', justifyContent: 'flex-start' }}>
+                                                    <span className="axis-label" style={{ marginBottom: '2px' }}>
                                                         {m.month.split('-')[1]}월
                                                         {isThisMonth && <span className="today-badge">오늘까지</span>}
                                                     </span>
-                                                    <span className="axis-avg">{m.dailyAvg}</span>
+                                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1px' }}>
+                                                        <span className="axis-avg" style={{ fontSize: '0.65rem', opacity: 0.7, color: 'var(--text-tertiary)' }}>
+                                                            <span style={{ fontSize: '0.6rem', marginRight: '2px' }}>평</span>{m.dailyAvg}
+                                                        </span>
+                                                        <span className="axis-max" style={{ fontSize: '0.8rem', color: '#fff', fontWeight: 800 }}>
+                                                            <span style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.6)', fontWeight: 400, marginRight: '2px' }}>최</span>{m.maxDaily}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
                                         );
@@ -345,7 +379,11 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
                                     </div>
                                     <div className="info-item">
                                         <span className="info-label avg">일평균</span>
-                                        <span className="info-text">5.4 : 해당 월의 일평균 이벤트수 (이번 달은 오늘까지 기준)</span>
+                                        <span className="info-text">평 1.5 : 해당 월의 총 발생 건수를 날짜로 나눈 평균 (소수점 첫째자리)</span>
+                                    </div>
+                                    <div className="info-item">
+                                        <span className="info-label max" style={{ background: '#fff', color: '#000', border: '1px solid #fff' }}>일 최대</span>
+                                        <span className="info-text">최 10 : 해당 월 중 가장 많이 등록된 날의 단일 기록</span>
                                     </div>
 
                                 </div>
