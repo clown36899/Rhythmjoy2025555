@@ -181,7 +181,7 @@ export const LinkRegistrationModal: React.FC<LinkRegistrationModalProps> = ({ is
     };
 
     return (
-        <div className="links-modal-overlay glass-overlay" onClick={onClose}>
+        <div className="links-modal-overlay glass-overlay">
             <div className="links-modal-panel glass-panel" onClick={e => e.stopPropagation()}>
                 <div className="links-modal-header">
                     <h2 className="links-modal-title">{editLink ? '사이트 정보 수정' : '새 사이트 등록'}</h2>
