@@ -216,12 +216,13 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
                         </div>
 
                         <div className={`tab-content tab-content-full ${activeTab === 'scene' ? 'active' : ''}`}>
-                            <SwingSceneStats />
+                            {activeTab === 'scene' && <SwingSceneStats />}
                         </div>
 
                         <div className={`tab-content tab-content-full ${activeTab === 'monthly' ? 'active' : ''}`}>
-                            <MonthlyWebzine />
+                            {activeTab === 'monthly' && <MonthlyWebzine />}
                         </div>
+
                     </div>
                 )}
             </div>

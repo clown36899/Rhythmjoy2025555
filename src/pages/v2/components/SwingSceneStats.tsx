@@ -178,8 +178,19 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
 
     const fetchSceneStats = async (isManualRefresh = false) => {
         try {
-            const url = isManualRefresh ? '/.netlify/functions/get-site-stats?refresh=true' : '/.netlify/functions/get-site-stats';
-            const response = await fetch(url);
+            const timestamp = new Date().getTime();
+            const baseUrl = '/.netlify/functions/get-site-stats';
+            const url = isManualRefresh
+                ? `${baseUrl}?refresh=true&t=${timestamp}`
+                : `${baseUrl}?t=${timestamp}`;
+
+            const response = await fetch(url, {
+                cache: 'no-store', // [FIX] Never use browser cache
+                headers: {
+                    'Pragma': 'no-cache',
+                    'Cache-Control': 'no-cache'
+                }
+            });
             if (!response.ok) throw new Error('API Error');
             const data = await response.json();
             console.log('[SwingSceneStats] Raw Data:', data); // DEBUG
