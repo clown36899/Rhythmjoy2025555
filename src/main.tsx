@@ -11,7 +11,7 @@ if (!window.location.pathname.includes('/billboard/')) {
         // 앱 포커스 복귀 시 SW 업데이트 체크 (visibilitychange)
         document.addEventListener('visibilitychange', () => {
           if (document.visibilityState === 'visible' && r) {
-            r.update().catch(() => {});
+            r.update().catch(() => { });
           }
         });
         console.log('[SW] Registered:', swUrl);
@@ -110,6 +110,7 @@ const EventIngestorPage = lazy(() => import('./pages/admin/EventIngestor'));
 const WebzineViewer = lazy(() => import('./pages/webzine/WebzineViewer'));
 const AdminWebzineList = lazy(() => import('./pages/admin/webzine/AdminWebzineList'));
 const WebzineEditor = lazy(() => import('./pages/admin/webzine/WebzineEditor'));
+const LinksPage = lazy(() => import('./pages/links/Page'));
 
 const BillboardFallback = () => (
   <div className="full-screen-fallback">
@@ -213,6 +214,7 @@ const router = createBrowserRouter([
       { path: "/map", element: <SiteMapPage /> },
       { path: "/admin/push-test", element: <Suspense fallback={null}><AdminPushTestPage /></Suspense> },
       { path: "/admin/ingestor", element: <Suspense fallback={null}><EventIngestorPage /></Suspense> },
+      { path: "/links", element: <LinksPage /> },
 
       // Webzine Routes
       { path: "/webzine/:id", element: <WebzineViewer /> },

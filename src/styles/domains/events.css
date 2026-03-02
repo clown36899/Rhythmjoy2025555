@@ -217,7 +217,7 @@
 
 .ELS-genreBtn {
     padding: 8px 14px;
-    border-radius: 10px 10px 0 0;
+    /* border-radius: 10px 10px 0 0; */
     background: var(--bg-surface-2);
     color: var(--text-tertiary);
     border: 1px solid var(--border-glass);

@@ -295,6 +295,10 @@
     background: linear-gradient(135deg, var(--color-blue-500), var(--color-blue-700));
 }
 
+.EDM-categoryArea.is-social {
+    background: linear-gradient(135deg, var(--color-blue-500), var(--color-blue-700));
+}
+
 .EDM-categoryAreaText {
     position: absolute;
     z-index: 5;
@@ -326,6 +330,10 @@
 }
 
 .EDM-categoryBadge.is-event {
+    background: var(--color-blue-500);
+}
+
+.EDM-categoryBadge.is-social {
     background: var(--color-blue-500);
 }
 

@@ -13,7 +13,7 @@ export default memo(function Footer() {
             <div className="footer-content-inner">
               <div className="mb-6">
                 <p className="footer-text-yellow">
-                  누구나 일정 무료 등록가능 (로그인 x),
+                  누구나 일정 무료 등록가능,
                 </p>
 
                 <p className="footer-text-gray">

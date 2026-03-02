@@ -132,7 +132,7 @@
 .NEB-category {
     position: absolute;
     top: 12px;
-    left: 12px;
+    right: 12px;
     display: inline-block;
     background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(8px);
@@ -224,7 +224,7 @@
 .NEB-mini-image {
     width: 100%;
     height: 100%;
-    object-fit: contain;
+    object-fit: cover;
 }
 
 /* === Indicators === */

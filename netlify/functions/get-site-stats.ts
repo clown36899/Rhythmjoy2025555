@@ -111,9 +111,15 @@ export const handler: Handler = async (event) => {
                     totalItems += val;
 
                     if (!monthlyMap[month]) {
-                        monthlyMap[month] = { month, classes: 0, socials: 0, clubs: 0, events: 0, registrations: 0, total: 0 };
+                        monthlyMap[month] = { month, classes: 0, socials: 0, clubs: 0, events: 0, registrations: 0, total: 0, totalUntilToday: 0 };
                     }
                     monthlyMap[month].total += val;
+
+                    // [ADD] Sum only events starting on or before today for Daily Average calculation
+                    if (row.ref_date <= kstTodayStr) {
+                        monthlyMap[month].totalUntilToday += val;
+                    }
+
                     if (row.dim_cat === 'class') monthlyMap[month].classes += val;
                     else if (row.dim_cat === 'social') monthlyMap[month].socials += val;
                     else monthlyMap[month].events += val;
@@ -164,7 +170,7 @@ export const handler: Handler = async (event) => {
                     }
                 } else if (row.metric_type === 'reg_count') {
                     if (!monthlyMap[month]) {
-                        monthlyMap[month] = { month, classes: 0, socials: 0, clubs: 0, events: 0, registrations: 0, total: 0 };
+                        monthlyMap[month] = { month, classes: 0, socials: 0, clubs: 0, events: 0, registrations: 0, total: 0, totalUntilToday: 0 };
                     }
                     monthlyMap[month].registrations += val;
                 }
@@ -174,8 +180,13 @@ export const handler: Handler = async (event) => {
                 const [year, monthNum] = m.month.split('-').map(Number);
                 const isCurrentMonth = year === (kstNow.getUTCFullYear()) && monthNum === (kstNow.getUTCMonth() + 1);
                 const daysInMonth = isCurrentMonth ? kstDayOfMonth : new Date(year, monthNum, 0).getDate();
-                return { ...m, dailyAvg: Number((m.total / (daysInMonth || 1)).toFixed(1)) };
+
+                // For past/future months, use whole month total. 
+                // For current month, use only items until today to get correct Daily Average.
+                const totalForAvg = isCurrentMonth ? m.totalUntilToday : m.total;
+                return { ...m, dailyAvg: Number((totalForAvg / (daysInMonth || 1)).toFixed(1)) };
             }).sort((a: any, b: any) => a.month.localeCompare(b.month));
+
 
             const topGenresList = Object.entries(genreMap)
                 .sort((a: any, b: any) => (b[1] as number) - (a[1] as number))

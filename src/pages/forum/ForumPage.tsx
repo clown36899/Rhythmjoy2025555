@@ -23,6 +23,14 @@ const ForumPage: React.FC = () => {
             color: '#3b82f6'
         },
         {
+            id: 'links',
+            title: '사이트 모음',
+            description: '유용한 관련 링크',
+            icon: 'ri-links-line',
+            path: '/links',
+            color: '#10b981'
+        },
+        {
             id: 'bpm-tapper',
             title: 'BPM 측정기',
             description: '실시간 비트 측정',

@@ -138,27 +138,35 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
     };
 
     // Extract real images for HomeNavButtonsSection (안정화: 데이터가 실제로 바뀔 때만 재셔플)
-    const socialImagesRef = useRef<string[]>([]);
-    const socialImagesCountRef = useRef<number>(-1);
-    const recentSocialImages = useMemo(() => {
+    const socialDataRef = useRef<{ imageUrl: string; title: string; location: string }[]>([]);
+    const socialDataCountRef = useRef<number>(-1);
+    const recentSocialData = useMemo(() => {
         const list = socialSchedules || [];
-        const images = list
+        const items = list
             .filter(s => s.category === 'social')
             .filter(s => s.image_url || s.image_thumbnail || s.image_medium || s.image)
-            .map(s => getCardThumbnail(s as any))
-            .filter(Boolean) as string[];
-        // 이미지 개수가 동일하면 이전 셔플 결과 재사용 (깜빡임 방지)
-        if (images.length === socialImagesCountRef.current && socialImagesRef.current.length > 0) {
-            return socialImagesRef.current;
+            .map(s => ({
+                imageUrl: getCardThumbnail(s as any) || '',
+                title: s.title || '',
+                location: s.location || s.place_name || ''
+            }))
+            .filter(item => item.imageUrl) as { imageUrl: string; title: string; location: string }[];
+
+        // 아이템 개수가 동일하면 이전 셔플 결과 재사용 (깜빡임 방지)
+        if (items.length === socialDataCountRef.current && socialDataRef.current.length > 0) {
+            return socialDataRef.current;
         }
-        // Fisher-Yates 셔플로 랜덤 정렬
-        for (let i = images.length - 1; i > 0; i--) {
+
+        // Fisher-Yates 셔플로 랜덤 정렬 (안정적인 셔플을 위해 복사본 사용)
+        const shuffled = [...items];
+        for (let i = shuffled.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
-            [images[i], images[j]] = [images[j], images[i]];
+            [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
         }
-        const result = images.slice(0, 10);
-        socialImagesRef.current = result;
-        socialImagesCountRef.current = images.length;
+
+        const result = shuffled.slice(0, 10);
+        socialDataRef.current = result;
+        socialDataCountRef.current = items.length;
         return result;
     }, [socialSchedules]);
 
@@ -194,7 +202,7 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
 
             {/* 0. Home Navigation Buttons (New) */}
             <HomeNavButtonsSection
-                socialImages={recentSocialImages}
+                socialData={recentSocialData}
                 eventImages={recentEventImages}
                 classImages={recentClassImages}
             />

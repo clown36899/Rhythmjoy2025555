@@ -3,13 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import "../../../styles/components/HomeNavButtonsSection.css";
 
 interface HomeNavButtonsSectionProps {
-    socialImages?: string[];
+    socialData?: { imageUrl: string; title: string; location: string }[];
     eventImages?: string[];
     classImages?: string[];
 }
 
 export const HomeNavButtonsSection: React.FC<HomeNavButtonsSectionProps> = ({
-    socialImages = [],
+    socialData = [],
     eventImages = [],
     classImages = []
 }) => {
@@ -66,7 +66,13 @@ export const HomeNavButtonsSection: React.FC<HomeNavButtonsSectionProps> = ({
         "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=200&h=250&fit=crop"
     ];
 
-    const displaySocialImages = socialImages.length >= 3 ? socialImages.slice(0, 3) : defaultSocialImages;
+    const displaySocialData = socialData.length >= 3 ? socialData.slice(0, 3).reverse() : [
+        { imageUrl: "https://images.unsplash.com/photo-1514525253361-bee873830dbb?w=200&h=250&fit=crop", title: "소셜 모임", location: "장소 미정" },
+        { imageUrl: "https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=200&h=250&fit=crop", title: "댄스 파티", location: "장소 미정" },
+        { imageUrl: "https://images.unsplash.com/photo-1493225255756-d9584f8606e9?w=200&h=250&fit=crop", title: "주말 소셜", location: "강남/홍대" }
+    ];
+    // Note: slice(0,3).reverse() because map renders them in order, and we want the 3rd one to be the front-most top-layered card.
+
     const displayEventImages = eventImages.length >= 3 ? eventImages.slice(0, 3) : defaultEventImages;
     const displayClassImages = classImages.length >= 3 ? classImages.slice(0, 3) : defaultClassImages;
 
@@ -80,11 +86,30 @@ export const HomeNavButtonsSection: React.FC<HomeNavButtonsSectionProps> = ({
             >
                 <div className="HNBS-bubble">소셜정보</div>
                 <div className="HNBS-stack">
-                    {displaySocialImages.map((img, i) => (
-                        <div key={i} className="HNBS-stack-item">
-                            <img src={img} alt="" />
-                        </div>
-                    ))}
+                    {displaySocialData.map((item, i) => {
+                        const isFront = i === 2; // Last item in array becomes the top-most z-index item
+                        return (
+                            <div
+                                key={i}
+                                className={`HNBS-stack-item ${isFront ? 'HNBS-stack-item--front' : ''}`}
+                                style={isFront ? { backgroundImage: `url(${item.imageUrl})` } : undefined}
+                            >
+                                {isFront ? (
+                                    <div className="HNBS-card-content">
+                                        <div className="HNBS-circle-image">
+                                            <img src={item.imageUrl} alt="" />
+                                        </div>
+                                        <div className="HNBS-card-info">
+                                            <div className="HNBS-card-location">{item.location}</div>
+                                            <div className="HNBS-card-title">{item.title}</div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <img src={item.imageUrl} alt="" />
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
             </button>
 
