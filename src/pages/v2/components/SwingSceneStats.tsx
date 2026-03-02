@@ -344,17 +344,34 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
                                                         {((m.socials || 0) + (m.clubs || 0)) > 5 && <span className="segment-val">{(m.socials || 0) + (m.clubs || 0)}</span>}
                                                     </div>
                                                 </div>
-                                                <div className="axis-group" style={{ height: '60px', justifyContent: 'flex-start' }}>
-                                                    <span className="axis-label" style={{ marginBottom: '2px' }}>
-                                                        {m.month.split('-')[1]}월
-                                                        {isThisMonth && <span className="today-badge">오늘까지</span>}
+                                                <div className="axis-group" style={{ height: '70px', justifyContent: 'flex-start', paddingTop: '8px' }}>
+                                                    <span className="axis-label" style={{
+                                                        fontSize: '0.75rem',
+                                                        fontWeight: 800,
+                                                        color: '#fff',
+                                                        marginBottom: '6px'
+                                                    }}>
+                                                        {m.month.split('-')[1]}
+                                                        <span style={{ fontSize: '0.6rem', fontWeight: 400, marginLeft: '1px', opacity: 0.6 }}>월</span>
+                                                        {isThisMonth && <span className="today-badge" style={{ marginTop: '2px' }}>TODAY</span>}
                                                     </span>
-                                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1px' }}>
-                                                        <span className="axis-avg" style={{ fontSize: '0.65rem', opacity: 0.7, color: 'var(--text-tertiary)' }}>
-                                                            <span style={{ fontSize: '0.6rem', marginRight: '2px' }}>평</span>{m.dailyAvg}
+                                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                                        <span className="axis-max" style={{
+                                                            fontSize: '0.9rem',
+                                                            color: '#fff',
+                                                            fontWeight: 900,
+                                                            lineHeight: 1
+                                                        }}>
+                                                            {m.maxDaily}
                                                         </span>
-                                                        <span className="axis-max" style={{ fontSize: '0.8rem', color: '#fff', fontWeight: 800 }}>
-                                                            <span style={{ fontSize: '0.6rem', color: 'rgba(255,255,255,0.6)', fontWeight: 400, marginRight: '2px' }}>최</span>{m.maxDaily}
+                                                        <span className="axis-avg" style={{
+                                                            fontSize: '0.65rem',
+                                                            marginTop: '2px',
+                                                            opacity: 0.5,
+                                                            color: 'var(--text-tertiary)',
+                                                            fontWeight: 400
+                                                        }}>
+                                                            {m.dailyAvg}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -377,13 +394,15 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
                                         <span className="info-label reg">등록기준</span>
                                         <span className="info-text"> +N : 신규 정보 등록 건수</span>
                                     </div>
-                                    <div className="info-item">
-                                        <span className="info-label avg">일평균</span>
-                                        <span className="info-text">평 1.5 : 해당 월의 총 발생 건수를 날짜로 나눈 평균 (소수점 첫째자리)</span>
-                                    </div>
-                                    <div className="info-item">
-                                        <span className="info-label max" style={{ background: '#fff', color: '#000', border: '1px solid #fff' }}>일 최대</span>
-                                        <span className="info-text">최 10 : 해당 월 중 가장 많이 등록된 날의 단일 기록</span>
+                                    <div className="info-item" style={{ alignItems: 'flex-start', marginTop: '4px' }}>
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: '40px', marginRight: '8px' }}>
+                                            <span style={{ fontSize: '0.9rem', color: '#fff', fontWeight: 900, lineHeight: 1 }}>10</span>
+                                            <span style={{ fontSize: '0.65rem', color: 'var(--text-tertiary)', opacity: 0.5, fontWeight: 400, marginTop: '2px' }}>1.5</span>
+                                        </div>
+                                        <span className="info-text" style={{ fontSize: '0.7rem', lineHeight: '1.2', color: 'var(--text-tertiary)' }}>
+                                            위(큰 숫자)는 해당 월의 <strong style={{ color: '#fff' }}>일일 최대 등록수</strong>,<br />
+                                            아래(작은 숫자)는 해당 월의 <strong style={{ color: 'var(--text-secondary)' }}>일평균 발생수</strong>를 의미합니다.
+                                        </span>
                                     </div>
 
                                 </div>
