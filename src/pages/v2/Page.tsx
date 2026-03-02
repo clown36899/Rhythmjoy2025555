@@ -20,6 +20,7 @@ import { useCalendarGesture } from "./hooks/useCalendarGesture";
 import { useEventActions } from "./hooks/useEventActions";
 import { useCalendarState } from "./hooks/useCalendarState";
 import { useDeepLinkLogic } from "./hooks/useDeepLinkLogic";
+import { useSwingSceneStats } from "./hooks/useSwingSceneStats";
 
 import "./styles/Page.css";
 
@@ -31,7 +32,12 @@ export default function HomePageV2() {
     const navigate = useNavigate();
     const { isAdmin, user, signInWithKakao } = useAuth();
     const { openModal, closeModal } = useModalActions();
-    // const { modalStack } = useModalState(); // [Loop Fix] 불필요한 구독 제거 (모달 오픈 시 리렌더링 방지)
+
+    // [Optimization] Pre-fetch stats in background when home page loads
+    const { prefetch } = useSwingSceneStats();
+    useEffect(() => {
+        prefetch();
+    }, [prefetch]);
 
     registerLocale("ko", ko);
 

@@ -5,63 +5,8 @@ import LocalLoading from '../../../components/LocalLoading';
 import { useMonthlyBillboard } from '../hooks/useMonthlyBillboard';
 import './SwingSceneStats.css';
 
-interface StatItem {
-    type: '강습' | '행사' | '동호회 이벤트+소셜';
-    title: string;
-    date: string; // Activity Date
-    createdAt: string; // Registration Date
-    genre: string;
-    day: string;
-}
-
-interface DayStats {
-    day: string;
-    count: number;
-    typeBreakdown: { name: string; count: number }[];
-    genreBreakdown: { name: string; count: number }[];
-    topGenre: string;
-    items: StatItem[]; // Added for inspection
-}
-
-interface SceneStats {
-    monthly: MonthlyStat[];
-    totalWeekly: DayStats[];    // 12 months
-    monthlyWeekly: DayStats[];  // Latest 1 month
-    topGenresList: string[];
-    summary: {
-        totalItems: number;
-        dailyAverage: number;
-        topDay: string;
-        memberCount?: number;
-        pwaCount?: number;
-        pushCount?: number;
-    };
-    leadTimeAnalysis?: {
-        classEarly: number;
-        classMid: number;
-        classLate: number;
-        eventEarly: number;
-        eventMid: number;
-        eventLate: number;
-    };
-}
-
-interface StatAccumulator {
-    types: { [key: string]: number };
-    genres: { [key: string]: number };
-    items: StatItem[];
-}
-
-interface MonthlyStat {
-    month: string;
-    classes: number;
-    events: number;
-    socials: number;
-    clubs: number;
-    total: number;
-    registrations: number;
-    dailyAvg: number;
-}
+import { useSwingSceneStats } from '../hooks/useSwingSceneStats';
+import type { StatItem, DayStats, SceneStats, MonthlyStat } from '../hooks/useSwingSceneStats';
 
 interface SwingSceneStatsProps {
     onInsertItem?: (type: string, name: string, config: any) => void;
@@ -88,18 +33,17 @@ const GENRE_COLORS: { [key: string]: string } = {
 const COLORS = { classes: 'var(--color-blue-500)', events: 'var(--color-amber-400)', socials: 'var(--color-emerald-500)' };
 
 export default function SwingSceneStats({ onInsertItem, section }: SwingSceneStatsProps) {
-    const [stats, setStats] = useState<SceneStats | null>(null);
-    const [loading, setLoading] = useState(true);
-    // Removed useMonthlyBillboard hook
+    const { stats, loading, refreshing, manualRefresh } = useSwingSceneStats();
+    // Removed local stats/loading/refreshing states
     const [weeklyTab, setWeeklyTab] = useState<'total' | 'monthly'>('monthly');
     const [isAdmin, setIsAdmin] = useState(false);
-    const [refreshing, setRefreshing] = useState(false);
     const isMounted = useRef(false);
 
     useEffect(() => {
         isMounted.current = true;
         return () => { isMounted.current = false; };
     }, []);
+
     const [inspectTypeDay, setInspectTypeDay] = useState<string | null>(null);
     const [inspectGenreDay, setInspectGenreDay] = useState<string | null>(null);
     const chartScrollRef = useRef<HTMLDivElement>(null);
@@ -118,143 +62,11 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
             if (active && user?.email === import.meta.env.VITE_ADMIN_EMAIL) setIsAdmin(true);
         };
         checkAdmin();
-        loadServerCache(); // loadServerCache/fetchSceneStats already use setStats(...) internally, need internal active check or passing it
-        fetchSceneStats();
         return () => { active = false; };
     }, []);
 
     const handleRefreshMetrics = async () => {
-        if (!confirm('DB 통계 인덱스를 재생성하고 캐시를 갱신하시겠습니까?')) return;
-        setRefreshing(true);
-        console.log('[SwingSceneStats] 🚀 Manual Refresh Start...');
-        try {
-            console.log('[SwingSceneStats] 1. Calling DB Indexing Function (refresh_site_stats_index)...');
-            const { error } = await supabase.rpc('refresh_site_stats_index');
-            if (error) throw error;
-            console.log('[SwingSceneStats] 2. DB Indexing Success. Fetching updated stats from API...');
-            await fetchSceneStats(true);
-            console.log('[SwingSceneStats] ✅ Manual Refresh Complete.');
-            alert('통계 인덱스가 성공적으로 최신화되었습니다.');
-        } catch (err) {
-            console.error('[SwingSceneStats] ❌ Refresh Error:', err);
-            alert('갱신 실패: ' + (err as any).message);
-        } finally {
-            if (isMounted.current) {
-                setRefreshing(false);
-            }
-        }
-    };
-
-    const loadServerCache = async () => {
-        try {
-            const { data, error } = await supabase
-                .from('metrics_cache')
-                .select('value, updated_at')
-                .eq('key', 'scene_analytics')
-                .maybeSingle();
-
-            if (isMounted.current && data && data.value) {
-                const cached = data.value as any;
-                // Merge into state (Summary & Monthly only)
-                setStats(prev => {
-                    // If we already have full data (more keys), don't overwrite with partial cache
-                    if (prev && prev.totalWeekly && prev.totalWeekly.length > 0) return prev;
-
-                    return {
-                        monthly: cached.monthly || [],
-                        summary: cached.summary || { totalItems: 0, dailyAverage: 0, topDay: '-' },
-                        totalWeekly: [], // Placeholder until raw fetch
-                        monthlyWeekly: [], // Placeholder
-                        topGenresList: [],  // Placeholder
-                        leadTimeAnalysis: cached.leadTimeAnalysis // Use cached lead time
-                    };
-                });
-                setLoading(false); // Show content immediately
-            }
-        } catch (e) {
-            console.error('[SwingSceneStats] Server cache load failed', e);
-        }
-    };
-
-    const fetchSceneStats = async (isManualRefresh = false) => {
-        try {
-            const timestamp = new Date().getTime();
-            const baseUrl = '/.netlify/functions/get-site-stats';
-            const url = isManualRefresh
-                ? `${baseUrl}?refresh=true&t=${timestamp}`
-                : `${baseUrl}?t=${timestamp}`;
-
-            const response = await fetch(url, {
-                cache: 'no-store', // [FIX] Never use browser cache
-                headers: {
-                    'Pragma': 'no-cache',
-                    'Cache-Control': 'no-cache'
-                }
-            });
-            if (!response.ok) throw new Error('API Error');
-            const data = await response.json();
-            console.log('[SwingSceneStats] Raw Data:', data); // DEBUG
-
-            if (!data || !data.summary) {
-                console.error('[SwingSceneStats] Invalid Data Structure:', data);
-                throw new Error('Invalid Data Structure');
-            }
-
-            const newStats: SceneStats = {
-                monthly: data.monthly || [],
-                totalWeekly: (data.totalWeekly || []).map((d: any) => ({
-                    ...d,
-                    items: Array.isArray(d.items) ? d.items.flat() : []
-                })),
-                monthlyWeekly: (data.monthlyWeekly || []).map((d: any) => ({
-                    ...d,
-                    items: Array.isArray(d.items) ? d.items.flat() : []
-                })),
-                topGenresList: data.topGenresList || [],
-                summary: {
-                    totalItems: data.summary?.totalItems || 0,
-                    dailyAverage: data.summary?.dailyAverage || 0,
-                    topDay: data.summary?.topDay || '-',
-                    memberCount: data.summary?.memberCount || 0,
-                    pwaCount: data.summary?.pwaCount || 0,
-                    pushCount: data.summary?.pushCount || 0
-                },
-                leadTimeAnalysis: data.leadTimeAnalysis
-            };
-            console.log('[SwingSceneStats] Parsed Stats:', newStats); // DEBUG
-            console.log('[SwingSceneStats] Monthly Details:', newStats.monthly);
-            console.log('[SwingSceneStats] Weekly Details:', newStats.totalWeekly);
-            console.log('[SwingSceneStats] Top Genres:', newStats.topGenresList);
-            console.log('[SwingSceneStats] Lead Time:', newStats.leadTimeAnalysis);
-
-            if (isMounted.current) {
-                setStats(newStats);
-            }
-
-            // Dispatch event for other components (like SideDrawer)
-            // Wrap in setTimeout to avoid flushSync warning in React 18/19 
-            // by moving it to the next macrotask
-            setTimeout(() => {
-                if (isMounted.current) {
-                    window.dispatchEvent(new CustomEvent('statsUpdated', {
-                        detail: {
-                            total: newStats.summary.totalItems,
-                            avg: newStats.summary.dailyAverage,
-                            memberCount: newStats.summary.memberCount,
-                            pwaCount: newStats.summary.pwaCount,
-                            pushCount: newStats.summary.pushCount
-                        }
-                    }));
-                }
-            }, 0);
-
-        } catch (error) {
-            console.error('[SwingSceneStats] API Error:', error);
-        } finally {
-            if (isMounted.current) {
-                setLoading(false);
-            }
-        }
+        await manualRefresh();
     };
 
     // Save Cache when stats update
