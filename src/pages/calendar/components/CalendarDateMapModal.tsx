@@ -32,6 +32,7 @@ export default function CalendarDateMapModal({
     const overlaysRef = useRef<any[]>([]);
     const [selectedRegion, setSelectedRegion] = useState<string>('서울');
     const [geocodedData, setGeocodedData] = useState<{ lat: number, lng: number, event: AppEvent }[]>([]);
+    const [isGeocoding, setIsGeocoding] = useState(false);
 
     // 주소에서 지역명 추출 (도우미 함수)
     const getRegionFromAddress = (addr: string): string => {
@@ -126,32 +127,92 @@ export default function CalendarDateMapModal({
         return result;
     }, [events, selectedRegion]);
 
-    // 맵 초기화
+    // 1. 주소 검색(Geocoding) 먼저 수행
     useEffect(() => {
-        console.log('🗺️ [CDMM] Modal Open state:', isOpen, 'Map container exists:', !!mapContainerRef.current);
-        if (!isOpen || !mapContainerRef.current || map) return;
+        if (!isOpen || !window.kakao) return;
 
-        const initMap = () => {
-            if (!window.kakao || !window.kakao.maps) {
-                console.error('Kakao maps not loaded');
+        const performGeocoding = () => {
+            if (!window.kakao.maps || !window.kakao.maps.services) {
+                console.warn('⚠️ [CDMM] Kakao maps services not yet available');
                 return;
             }
+
+            const eventsWithLoc = filteredEvents.filter(e => (Array.isArray(e.venues) ? e.venues[0]?.address : e.venues?.address) || e.address || e.location || e.location_link || e.venue_name);
+
+            if (eventsWithLoc.length === 0) {
+                setGeocodedData([]);
+                setIsGeocoding(false);
+                return;
+            }
+
+            setIsGeocoding(true);
+            const geocoder = new window.kakao.maps.services.Geocoder();
+            const geocodePromises = eventsWithLoc.map(event => {
+                const address = (Array.isArray(event.venues) ? event.venues[0]?.address : event.venues?.address) || event.address || event.location || event.venue_name || '';
+                return new Promise<{ lat: number, lng: number, event: AppEvent } | null>((resolve) => {
+                    if (!address) { resolve(null); return; }
+                    geocoder.addressSearch(address, (result: any, status: any) => {
+                        if (status === window.kakao.maps.services.Status.OK) {
+                            resolve({ lat: parseFloat(result[0].y), lng: parseFloat(result[0].x), event });
+                        } else {
+                            resolve(null);
+                        }
+                    });
+                });
+            });
+
+            Promise.all(geocodePromises).then(results => {
+                const valid = results.filter(r => r !== null) as { lat: number, lng: number, event: AppEvent }[];
+                setGeocodedData(valid);
+                setIsGeocoding(false);
+                console.log('✅ [CDMM] Geocoding completed. Valid count:', valid.length);
+            });
+        };
+
+        // 서비스 라이브러리는 core 로딩 후에 사용 가능하므로 load 콜백 권장
+        if (window.kakao.maps && window.kakao.maps.load) {
+            window.kakao.maps.load(performGeocoding);
+        } else {
+            // 혹시라도 load가 없는 경우를 대비한 fallback
+            const timer = setTimeout(performGeocoding, 100);
+            return () => clearTimeout(timer);
+        }
+    }, [isOpen, filteredEvents]);
+
+    // 2. 주소 검색 완료 후 맵 초기화
+    useEffect(() => {
+        if (!isOpen || !mapContainerRef.current || map || isGeocoding) return;
+
+        const initMap = () => {
+            if (!window.kakao || !window.kakao.maps) return;
 
             window.kakao.maps.load(() => {
                 const container = mapContainerRef.current;
                 if (!container) return;
 
+                // 초기 중심점은 기본값(서울)으로 설정하고, 직후에 setBounds로 실제 위치에 맞춤
                 const options = {
-                    center: new window.kakao.maps.LatLng(37.5665, 126.9780), // 서울 중심 기본값
+                    center: new window.kakao.maps.LatLng(37.5665, 126.9780),
                     level: 5,
                 };
 
                 const newMap = new window.kakao.maps.Map(container, options);
 
+                // 검색된 데이터가 있으면 즉시 바운드 설정
+                if (geocodedData.length > 0) {
+                    const bounds = new window.kakao.maps.LatLngBounds();
+                    geocodedData.forEach(v => bounds.extend(new window.kakao.maps.LatLng(v.lat, v.lng)));
+                    newMap.setBounds(bounds, 60, 30, 10, 30);
+                }
+
                 // 모달 애니메이션(0.3s) 후 레이아웃 갱신
                 setTimeout(() => {
                     newMap.relayout();
-                    console.log('🔄 [CDMM] Map relayout called after animation');
+                    if (geocodedData.length > 0) {
+                        const bounds = new window.kakao.maps.LatLngBounds();
+                        geocodedData.forEach(v => bounds.extend(new window.kakao.maps.LatLng(v.lat, v.lng)));
+                        newMap.setBounds(bounds, 60, 30, 10, 30);
+                    }
                 }, 400);
 
                 setMap(newMap);
@@ -160,64 +221,20 @@ export default function CalendarDateMapModal({
 
         const timer = setTimeout(initMap, 100);
         return () => clearTimeout(timer);
-    }, [isOpen, map]);
+    }, [isOpen, map, isGeocoding, geocodedData]);
 
-    // 맵 가시성 확보 (모달이 열릴 때마다 relayout)
+    // 맵 가시성 확보 및 바운드 재조정 (지역 필터링 시)
     useEffect(() => {
-        if (isOpen && map) {
+        if (isOpen && map && geocodedData.length > 0) {
+            const bounds = new window.kakao.maps.LatLngBounds();
+            geocodedData.forEach(v => bounds.extend(new window.kakao.maps.LatLng(v.lat, v.lng)));
+            map.setBounds(bounds, 60, 30, 10, 30);
+
             setTimeout(() => {
                 map.relayout();
             }, 500);
         }
-    }, [isOpen, map]);
-
-    // 1. 단 1회 지오코딩 및 초기 바운드 설정
-    useEffect(() => {
-        if (!map || !window.kakao || !window.kakao.maps) return;
-
-        const eventsWithLoc = filteredEvents.filter(e => (Array.isArray(e.venues) ? e.venues[0]?.address : e.venues?.address) || e.address || e.location || e.location_link || e.venue_name);
-
-        if (eventsWithLoc.length === 0) {
-            setGeocodedData([]);
-            map.setCenter(new window.kakao.maps.LatLng(37.5665, 126.9780));
-            return;
-        }
-
-        const geocoder = new window.kakao.maps.services.Geocoder();
-        const geocodePromises = eventsWithLoc.map(event => {
-            const address = (Array.isArray(event.venues) ? event.venues[0]?.address : event.venues?.address) || event.address || event.location || event.venue_name || '';
-            return new Promise<{ lat: number, lng: number, event: AppEvent } | null>((resolve) => {
-                if (!address) { resolve(null); return; }
-                geocoder.addressSearch(address, (result: any, status: any) => {
-                    if (status === window.kakao.maps.services.Status.OK) {
-                        resolve({ lat: parseFloat(result[0].y), lng: parseFloat(result[0].x), event });
-                    } else {
-                        resolve(null);
-                    }
-                });
-            });
-        });
-
-        Promise.all(geocodePromises).then(results => {
-            const valid = results.filter(r => r !== null) as { lat: number, lng: number, event: AppEvent }[];
-            setGeocodedData(valid);
-
-            if (valid.length > 0) {
-                const bounds = new window.kakao.maps.LatLngBounds();
-                valid.forEach(v => bounds.extend(new window.kakao.maps.LatLng(v.lat, v.lng)));
-
-                // 사용자가 라벨 여백/크기를 크게 줄였으므로 바운드 패딩도 축소하여 타이트하게 줌인
-                map.setBounds(bounds, 60, 30, 10, 30);
-
-                setTimeout(() => {
-                    // 이벤트가 하나거나 너무 가까워 줌이 과도하게 당겨지면 4 레벨로 제한
-                    if (map.getLevel() < 4) {
-                        map.setLevel(4);
-                    }
-                }, 100);
-            }
-        });
-    }, [filteredEvents, map]);
+    }, [isOpen, map, geocodedData]);
 
     // 2. 단일 개별 렌더링 (클러스터링 없이 오버랩 허용)
     useEffect(() => {
@@ -301,6 +318,12 @@ export default function CalendarDateMapModal({
                 <div className="CDMM-body">
                     <div className="CDMM-mapArea">
                         <div ref={mapContainerRef} className="CDMM-map"></div>
+                        {(isGeocoding || !map) && (
+                            <div className="CDMM-mapLoading">
+                                <div className="CDMM-spinner"></div>
+                                <span>장소 위치를 찾는 중...</span>
+                            </div>
+                        )}
                     </div>
 
                     <div className="CDMM-filterArea">
