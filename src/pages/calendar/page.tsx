@@ -674,7 +674,10 @@ export default function CalendarPage() {
                     dragOffset={dragOffset}
                     isAnimating={isAnimating}
                     onEventClick={(event: any, date: Date, dayEvents: AppEvent[]) => {
-                        if (isMapView) {
+                        // [Optimization] 해외 이벤트(overseas)는 지도를 띄우지 않고 즉시 상세 모달 오픈
+                        const isOverseas = event.scope === 'overseas' || tabFilter === 'overseas';
+
+                        if (isMapView && !isOverseas) {
                             setSelectedDate(date);
                             setMapDateEvents(dayEvents);
                             setShowMapModal(true);
@@ -687,7 +690,8 @@ export default function CalendarPage() {
                     seed={randomSeed}
                     isMapView={isMapView}
                     onDateClickWithEvents={(date, events) => {
-                        if (isMapView) {
+                        // [Optimization] 국외 탭(overseas)인 경우 날짜 클릭 시 지도를 띄우지 않음
+                        if (isMapView && tabFilter !== 'overseas') {
                             setSelectedDate(date);
                             setMapDateEvents(events);
                             setShowMapModal(true);
