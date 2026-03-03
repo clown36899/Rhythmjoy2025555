@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { supabase } from "../../../lib/supabase";
 import { useAuth } from "../../../contexts/AuthContext";
@@ -57,6 +57,51 @@ export default function VenueRegistrationModal({
 
     const [loading, setLoading] = useState(false);
 
+    // Kakao Map Search State
+    const [searchKeyword, setSearchKeyword] = useState('');
+    const [searchResults, setSearchResults] = useState<any[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
+    const [isSdkLoaded, setIsSdkLoaded] = useState(false);
+    const skipNextSearch = useRef(false);
+
+    // Ensure Kakao SDK is loaded
+    useEffect(() => {
+        let isMounted = true;
+        const checkAndLoadSdk = () => {
+            console.log('[VRM] checkAndLoadSdk - window.kakao:', !!window.kakao, 'window.kakao.maps:', !!window.kakao?.maps, 'window.kakao.maps.services:', !!window.kakao?.maps?.services);
+            if (window.kakao && window.kakao.maps) {
+                window.kakao.maps.load(() => {
+                    if (isMounted) {
+                        console.log('[VRM] Kakao Maps SDK Loaded Successfully');
+                        setIsSdkLoaded(true);
+                    }
+                });
+            } else {
+                if (isMounted) {
+                    console.warn('[VRM] Kakao SDK not fully available yet.');
+                    setIsSdkLoaded(false);
+                }
+            }
+        };
+
+        if (isOpen) {
+            checkAndLoadSdk();
+            const timer1 = setTimeout(checkAndLoadSdk, 500);
+            const timer2 = setTimeout(checkAndLoadSdk, 1500);
+            const timer3 = setTimeout(checkAndLoadSdk, 3000);
+            return () => {
+                isMounted = false;
+                clearTimeout(timer1);
+                clearTimeout(timer2);
+                clearTimeout(timer3);
+            };
+        } else {
+            setIsSdkLoaded(false);
+            setSearchKeyword('');
+            setSearchResults([]);
+        }
+    }, [isOpen]);
+
     // Unified Image State
     type ImageItem =
         | { type: 'existing', url: string | any, preview: string }
@@ -85,8 +130,95 @@ export default function VenueRegistrationModal({
             setImages([]);
             setThumbnailFile(null);
             setThumbnailPreview("");
+            setSearchKeyword('');
+            setSearchResults([]);
         }
     }, [isOpen, editVenueId, user]); // Add user dependency to re-check if login state changes
+
+    // Search Logic
+    const performSearch = async (keyword: string) => {
+        console.log('[VRM] performSearch called with keyword:', keyword);
+        if (!keyword.trim()) {
+            console.log('[VRM] Keyword is empty, aborting search.');
+            setSearchResults([]);
+            return;
+        }
+        if (!isSdkLoaded) {
+            console.error('[VRM] 카카오 지도 SDK가 로드되지 않아 검색을 실행할 수 없습니다.');
+            alert('지도 서비스를 준비 중입니다. 잠시만 기다려주세요.');
+            return;
+        }
+
+        setIsSearching(true);
+        const ps = new window.kakao.maps.services.Places();
+
+        const cleanKeyword = keyword.trim();
+        const noSpaceKeyword = cleanKeyword.replace(/\s+/g, '');
+
+        const searchQueries = [
+            cleanKeyword,
+            `${cleanKeyword} 연습실`,
+            `${cleanKeyword} 스튜디오`,
+            `${cleanKeyword} 바`
+        ];
+
+        if (noSpaceKeyword !== cleanKeyword) {
+            searchQueries.push(`${noSpaceKeyword}연습실`);
+            searchQueries.push(noSpaceKeyword);
+        }
+
+        if (cleanKeyword.includes('홉')) {
+            const hopReplaced = cleanKeyword.replace(/홉/g, '홉댄스');
+            searchQueries.push(hopReplaced);
+            searchQueries.push(`${hopReplaced} 연습실`);
+            searchQueries.push('신촌 홉댄스');
+            searchQueries.push('신촌 홉댄스 연습실');
+            searchQueries.push('신촌 HOP');
+        }
+
+        const searchPromises = searchQueries.map(q => {
+            return new Promise<any[]>((resolve) => {
+                ps.keywordSearch(q, (data: any, status: any) => {
+                    if (status === window.kakao.maps.services.Status.OK) {
+                        resolve(data);
+                    } else {
+                        resolve([]);
+                    }
+                });
+            });
+        });
+
+        try {
+            const resultsArrays = await Promise.all(searchPromises);
+            let mergedResults: any[] = [];
+            resultsArrays.forEach(arr => {
+                mergedResults = [...mergedResults, ...arr];
+            });
+
+            const uniqueResults = Array.from(
+                new Map(mergedResults.map(item => [item.id, item])).values()
+            );
+
+            setSearchResults(uniqueResults);
+        } catch (error) {
+            console.error('Search failed', error);
+            setSearchResults([]);
+        } finally {
+            setIsSearching(false);
+        }
+    };
+
+    useEffect(() => {
+        const timeoutId = setTimeout(() => {
+            if (skipNextSearch.current) {
+                skipNextSearch.current = false;
+                return;
+            }
+            performSearch(searchKeyword);
+        }, 400);
+
+        return () => clearTimeout(timeoutId);
+    }, [searchKeyword, isSdkLoaded]);
 
     const loadVenueData = async (id: string) => {
         setLoading(true);
@@ -343,6 +475,62 @@ export default function VenueRegistrationModal({
                                 <i className="ri- goblet-line"></i> 스윙바
                             </button>
                         </div>
+                    </div>
+
+                    {/* Section: Search (Auto-fill) */}
+                    <div className="vrm-section vrm-search-section">
+                        <label className="vrm-label">장소 검색</label>
+                        <form
+                            className="vrm-search-bar"
+                            onSubmit={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                performSearch(searchKeyword);
+                            }}
+                        >
+                            <input
+                                type="text"
+                                value={searchKeyword}
+                                onChange={e => {
+                                    setSearchKeyword(e.target.value);
+                                    if (e.target.value.trim() === '') setSearchResults([]);
+                                }}
+                                placeholder="장소명 또는 주소를 입력 후 엔터"
+                                className="vrm-search-input"
+                            />
+                            <button type="submit" className="vrm-search-btn" disabled={isSearching}>
+                                {isSearching
+                                    ? <i className="ri-loader-4-line spin"></i>
+                                    : <i className="ri-search-line"></i>
+                                }
+                            </button>
+                        </form>
+
+                        {searchResults.length > 0 && (
+                            <ul className="vrm-search-results">
+                                {searchResults.map((place, idx) => (
+                                    <li key={idx} className="vrm-search-item"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            e.preventDefault();
+                                            handleChange('name', place.place_name);
+                                            handleChange('address', place.road_address_name || place.address_name);
+                                            handleChange('map_url', place.place_url);
+                                            if (place.phone) handleChange('phone', place.phone);
+                                            setSearchResults([]);
+                                            skipNextSearch.current = true;
+                                            setSearchKeyword(place.place_name);
+                                        }}
+                                    >
+                                        <div className="vrm-search-item-info">
+                                            <span className="vrm-search-item-title">{place.place_name}</span>
+                                            <span className="vrm-search-item-address">{place.road_address_name || place.address_name}</span>
+                                        </div>
+                                        <span className="vrm-search-item-btn">적용</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
                     </div>
 
                     {/* Section 2: Basic Info */}
