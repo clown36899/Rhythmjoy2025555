@@ -33,6 +33,30 @@ export default function CalendarDateMapModal({
     const [selectedRegion, setSelectedRegion] = useState<string>('서울');
     const [geocodedData, setGeocodedData] = useState<{ lat: number, lng: number, event: AppEvent }[]>([]);
     const [isGeocoding, setIsGeocoding] = useState(false);
+    const [localEvents, setLocalEvents] = useState<AppEvent[]>(events);
+
+    // events prop 변경 시 동기화
+    useEffect(() => {
+        setLocalEvents(events);
+    }, [events]);
+
+    // eventUpdated 커스텀 이벤트 수신하여 로컬 데이터 즉시 갱신
+    useEffect(() => {
+        const handleEventUpdated = (e: CustomEvent) => {
+            const { id, event: updatedEvent } = e.detail;
+            if (!id || !updatedEvent) return;
+            setLocalEvents(prev => prev.map(ev => {
+                const evId = String(ev.id);
+                const updatedId = String(id);
+                if (evId === updatedId || evId === `social-${updatedId}` || evId.replace('social-', '') === updatedId) {
+                    return { ...ev, ...updatedEvent };
+                }
+                return ev;
+            }));
+        };
+        window.addEventListener('eventUpdated', handleEventUpdated as EventListener);
+        return () => window.removeEventListener('eventUpdated', handleEventUpdated as EventListener);
+    }, []);
 
     // 주소에서 지역명 추출 (도우미 함수)
     const getRegionFromAddress = (addr: string): string => {
@@ -78,7 +102,7 @@ export default function CalendarDateMapModal({
     // 주소에서 지역(시/도 단위 대분류) 추출 로직
     const regions = useMemo(() => {
         const set = new Set<string>(['전체']);
-        events.forEach(e => {
+        localEvents.forEach(e => {
             const addr = (Array.isArray(e.venues) ? e.venues[0]?.address : e.venues?.address) || e.address || e.location || e.venue_name || '';
             const reg = getRegionFromAddress(addr);
             if (reg) set.add(reg);
@@ -96,12 +120,12 @@ export default function CalendarDateMapModal({
         });
 
         return sorted;
-    }, [events]);
+    }, [localEvents]);
 
     // 초기 지역 설정 (서울이 있으면 서울, 없으면 첫 번째 지역)
     useEffect(() => {
         if (isOpen && regions.length > 1) {
-            // events가 있고 regions가 추출되었을 때 '서울'이 있으면 서울 우선, 없으면 첫 번째 실제 지역 선택
+            // localEvents가 있고 regions가 추출되었을 때 '서울'이 있으면 서울 우선, 없으면 첫 번째 실제 지역 선택
             if (regions.includes('서울')) {
                 setSelectedRegion('서울');
             } else if (regions.length > 1) {
@@ -113,9 +137,9 @@ export default function CalendarDateMapModal({
 
     // 필터링된 이벤트
     const filteredEvents = useMemo(() => {
-        console.log('🔍 [CDMM] Filtering events for region:', selectedRegion, 'Total events:', events.length);
-        if (selectedRegion === '전체') return events;
-        const result = events.filter(e => {
+        console.log('🔍 [CDMM] Filtering localEvents for region:', selectedRegion, 'Total localEvents:', localEvents.length);
+        if (selectedRegion === '전체') return localEvents;
+        const result = localEvents.filter(e => {
             const addr = (Array.isArray(e.venues) ? e.venues[0]?.address : e.venues?.address) || e.address || e.location || e.venue_name || '';
             const reg = getRegionFromAddress(addr);
             if (selectedRegion === '기타') {
@@ -125,7 +149,7 @@ export default function CalendarDateMapModal({
         });
         console.log('✅ [CDMM] Filtered result count:', result.length);
         return result;
-    }, [events, selectedRegion]);
+    }, [localEvents, selectedRegion]);
 
     // 1. 주소 검색(Geocoding) 먼저 수행
     useEffect(() => {

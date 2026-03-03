@@ -295,11 +295,65 @@ export default function EventDetailModal({
     }
   };
 
+  // 이미지 즉시 업로드+DB 저장 함수
+  const uploadImageAndSave = async (file: File) => {
+    if (!draftEvent) return;
+    try {
+      setIsSaving(true);
+      const timestamp = Date.now();
+      const randomString = Math.random().toString(36).substring(2, 7);
+      const eventFolder = `${timestamp}_${randomString}`;
+      const basePath = `event-posters/${eventFolder}`;
+
+      const resizedImages = await createResizedImages(file);
+
+      const uploadTasks = [
+        retryOperation(() => supabase.storage.from('images').upload(`${basePath}/full.webp`, resizedImages.full, { contentType: 'image/webp', upsert: true })).then(({ error }) => { if (error) throw error; }),
+        resizedImages.medium ? retryOperation(() => supabase.storage.from('images').upload(`${basePath}/medium.webp`, resizedImages.medium!, { contentType: 'image/webp', upsert: true })).then(({ error }) => { if (error) throw error; }) : Promise.resolve(),
+        resizedImages.thumbnail ? retryOperation(() => supabase.storage.from('images').upload(`${basePath}/thumbnail.webp`, resizedImages.thumbnail!, { contentType: 'image/webp', upsert: true })).then(({ error }) => { if (error) throw error; }) : Promise.resolve(),
+        resizedImages.micro ? retryOperation(() => supabase.storage.from('images').upload(`${basePath}/micro.webp`, resizedImages.micro!, { contentType: 'image/webp', upsert: true })).then(({ error }) => { if (error) throw error; }) : Promise.resolve()
+      ];
+
+      await Promise.all(uploadTasks);
+      console.log('[uploadImageAndSave] All versions uploaded');
+
+      const publicUrl = supabase.storage.from('images').getPublicUrl(`${basePath}/full.webp`).data.publicUrl;
+      const mediumUrl = supabase.storage.from('images').getPublicUrl(`${basePath}/medium.webp`).data.publicUrl;
+      const thumbnailUrl = supabase.storage.from('images').getPublicUrl(`${basePath}/thumbnail.webp`).data.publicUrl;
+      const microUrl = supabase.storage.from('images').getPublicUrl(`${basePath}/micro.webp`).data.publicUrl;
+
+      const updates: any = {
+        image: publicUrl,
+        image_full: publicUrl,
+        image_medium: mediumUrl,
+        image_thumbnail: thumbnailUrl,
+        image_micro: microUrl,
+        storage_path: basePath,
+        updated_at: new Date().toISOString()
+      };
+
+      // DB 즉시 저장
+      await saveChangesToDB(updates);
+
+      // 로컬 상태도 업데이트 (저장된 실제 URL로)
+      setDraftEvent(prev => prev ? ({ ...prev, ...updates }) : null);
+      setImageFile(null);
+      setTempImageSrc(null);
+      setOriginalImageUrl(null);
+      console.log('[uploadImageAndSave] Image saved to DB immediately');
+    } catch (err) {
+      console.error('[uploadImageAndSave] Failed:', err);
+      alert('이미지 저장 중 오류가 발생했습니다.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleCropComplete = (croppedFile: File, previewUrl: string) => {
     if (!draftEvent) return;
 
     setImageFile(croppedFile);
-    // Update draft event with preview URL to show immediately
+    // 미리보기 즉시 반영
     setDraftEvent({
       ...draftEvent,
       image: previewUrl,
@@ -307,12 +361,14 @@ export default function EventDetailModal({
       image_full: undefined,
       image_thumbnail: undefined
     } as any);
+
+    // 즉시 업로드+DB 저장
+    uploadImageAndSave(croppedFile);
   };
 
   const handleImageUpdate = async (file: File) => {
     if (!draftEvent) return;
 
-    // 파일을 Data URL로 변환하여 미리보기
     const dataUrl = await fileToDataURL(file);
     setImageFile(file);
     setDraftEvent({
@@ -940,13 +996,7 @@ export default function EventDetailModal({
           }
         }}
         onClick={() => {
-          if (isSelectionMode) {
-            if (window.confirm('수정 중인 내용이 있습니다. 저장하지 않고 닫으시겠습니까?')) {
-              onClose();
-            }
-          } else {
-            onClose();
-          }
+          onClose();
         }}
       >
         <div
@@ -1774,15 +1824,10 @@ export default function EventDetailModal({
                     }
                     */
 
-                    // [UPDATE] Toggle edit mode / Save image if changed
+                    // [UPDATE] Toggle edit mode
                     if (isSelectionMode) {
-                      if (imageFile) {
-                        // 이미지가 변경된 경우에만 전체 저장(업로드) 로직 실행
-                        handleFinalSave();
-                      } else {
-                        // 그 외에는 이미 즉시 저장되었으므로 모드 종료
-                        setIsSelectionMode(false);
-                      }
+                      // 모든 변경은 이미 즉시 저장되었으므로 모드 종료만
+                      setIsSelectionMode(false);
                     } else {
                       setIsSelectionMode(true);
                     }
@@ -1799,13 +1844,7 @@ export default function EventDetailModal({
                   console.log('[EventDetailModal] Close(X) 버튼 클릭됨');
                   e.preventDefault();
                   e.stopPropagation();
-                  if (isSelectionMode) {
-                    if (window.confirm('수정 중인 내용이 있습니다. 저장하지 않고 닫으시겠습니까?')) {
-                      onClose();
-                    }
-                  } else {
-                    onClose();
-                  }
+                  onClose();
                 }}
                 className="EDM-closeBtn"
                 title="닫기"
