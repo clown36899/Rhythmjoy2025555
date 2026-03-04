@@ -18,6 +18,8 @@
     margin: 0 auto;
     overflow: hidden;
     display: flex;
+    -webkit-mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+    mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
 }
 
 /* 트랙: 실제로 움직이는 부분 */
