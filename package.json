@@ -44,6 +44,7 @@
     "idb": "^8.0.3",
     "mobile-drag-drop": "^3.0.0-rc.0",
     "node-fetch": "^3.3.2",
+    "playwright": "^1.58.2",
     "qrcode": "^1.5.4",
     "qrcode.react": "^4.2.0",
     "react": "^19.1.0",
