@@ -53,6 +53,7 @@ export interface MonthlyStat {
     registrations: number;
     dailyAvg: number;
     maxDaily: number;
+    maxDailyDate?: string;
 }
 
 // Global session cache to share data across components and persist after closing/opening modal

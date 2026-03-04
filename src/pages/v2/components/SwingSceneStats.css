@@ -1010,6 +1010,8 @@
 .inspector-content {
     flex: 1;
     overflow-y: auto;
+    padding: 0 20px 20px 20px;
+    /* 기본 패딩 추가 */
 }
 
 .inspector-empty {
@@ -1112,4 +1114,291 @@
 .type-badge.post {
     background: rgba(168, 85, 247, 0.2);
     color: var(--color-purple-400);
+}
+
+/* Clickable Stats Card */
+.stats-card-clickable {
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.stats-card-clickable:hover {
+    border-color: var(--color-blue-500);
+    background: var(--bg-hover-glass);
+}
+
+.card-click-hint {
+    color: var(--color-blue-400);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    color: var(--color-blue-400);
+    margin-top: 10px;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.stats-card-clickable:hover .card-click-hint {
+    opacity: 1;
+}
+
+/* Max Daily Event List & Stats Summary */
+.max-daily-stats-summary {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 16px;
+    margin: 12px 0 24px 0;
+    /* 상단 여백 추가 및 하단 여백 확대 */
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stats-summary-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 12px;
+}
+
+.stats-summary-header .main-label {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #fff;
+}
+
+.stats-summary-header .sub-label {
+    font-size: 0.75rem;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.stats-summary-groups {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.stats-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.group-title {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.stats-visual-ratio {
+    height: 12px;
+    display: flex;
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 16px;
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.ratio-segment {
+    height: 100%;
+    position: relative;
+    transition: width 0.3s ease;
+}
+
+.ratio-label {
+    position: absolute;
+    top: -20px;
+    left: 4px;
+    font-size: 0.65rem;
+    white-space: nowrap;
+    opacity: 0;
+    transition: opacity 0.2s;
+    color: #fff;
+    pointer-events: none;
+}
+
+.ratio-segment:hover .ratio-label {
+    opacity: 1;
+}
+
+.stats-chips-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.stats-summary-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    font-size: 0.8rem;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Category Theme Color Mapping (Unified for Bar, Chips, Badges) */
+.stats-summary-chip.class {
+    border-color: var(--color-blue-500);
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--color-blue-400);
+}
+
+.stats-summary-chip.social {
+    border-color: var(--color-amber-500);
+    background: rgba(245, 158, 11, 0.1);
+    color: var(--color-amber-400);
+}
+
+.stats-summary-chip.club {
+    border-color: var(--color-emerald-500);
+    background: rgba(16, 185, 129, 0.1);
+    color: var(--color-emerald-400);
+}
+
+.stats-summary-chip.event {
+    border-color: var(--color-rose-500);
+    background: rgba(244, 63, 94, 0.1);
+    color: var(--color-rose-400);
+}
+
+.stats-summary-chip.etc {
+    border-color: var(--color-slate-500);
+    background: rgba(100, 116, 139, 0.1);
+    color: var(--color-slate-400);
+}
+
+.stats-summary-chip.genre {
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.chip-count {
+    font-weight: 800;
+    opacity: 0.8;
+}
+
+/* Segment Colors for Ratio Bar (Matching category themes) */
+.ratio-segment.theme-class {
+    background: var(--color-blue-500);
+}
+
+.ratio-segment.theme-social {
+    background: var(--color-amber-500);
+}
+
+.ratio-segment.theme-club {
+    background: var(--color-emerald-500);
+}
+
+.ratio-segment.theme-event {
+    background: var(--color-rose-500);
+}
+
+.ratio-segment.theme-etc {
+    background: var(--color-slate-500);
+}
+
+.max-daily-event-list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    /* 간격 축소 (패딩으로 조절) */
+}
+
+.max-daily-event-item {
+    display: flex;
+    gap: 16px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border-glass-subtle);
+}
+
+.max-daily-event-item:last-child {
+    border-bottom: none;
+    padding-bottom: 8px;
+}
+
+.max-daily-event-thumb {
+    width: 60px;
+    height: 80px;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    flex-shrink: 0;
+    background: var(--bg-surface-3);
+    border: 1px solid var(--border-glass-subtle);
+}
+
+.max-daily-event-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.max-daily-event-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    justify-content: center;
+}
+
+.max-daily-event-badge-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 1px;
+}
+
+.type-badge.class {
+    background: var(--color-blue-500);
+    color: #fff;
+}
+
+.type-badge.social {
+    background: var(--color-amber-500);
+    color: #fff;
+}
+
+.type-badge.club {
+    background: var(--color-emerald-500);
+    color: #fff;
+}
+
+.type-badge.event {
+    background: var(--color-rose-500);
+    color: #fff;
+}
+
+.type-badge.etc {
+    background: var(--color-slate-500);
+    color: #fff;
+}
+
+.max-daily-event-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.3;
+}
+
+.max-daily-event-genre {
+    font-size: 0.75rem;
+    color: var(--color-amber-300);
+    font-weight: 500;
+}
+
+.max-daily-event-location {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.max-daily-event-location i {
+    color: var(--text-tertiary);
 }

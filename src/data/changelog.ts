@@ -8,6 +8,29 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '3.9.4',
+        date: '2026-03-04',
+        changes: [
+            '[🐛 Fixed] 등록 리드타임 데이터 누락 해결 (RPC 키 매핑 및 기준일수 동기화)',
+            '[🔧 Refined] 리드타임 기준일수(4주, 6주) UI 및 로직 일원화 (21/35 -> 28/42일)'
+        ]
+    },
+    {
+        version: '3.9.3',
+        date: '2026-03-02',
+        changes: [
+            '[🚀 Performance] 통계 데이터 로드 성능 최적화 (Pre-fetch & Session Cache 도입)',
+            '[🔧 Refined] 통계 로직 useSwingSceneStats 커스텀 훅 일원화'
+        ]
+    },
+    {
+        version: '3.9.2',
+        date: '2026-03-02',
+        changes: [
+            '[🐛 Fixed] 스윙씬 통계 "일평균" 계산 로직 정상화 (미래 일정 제외)'
+        ]
+    },
+    {
         version: '3.9.1',
         date: '2026-03-01',
         changes: [

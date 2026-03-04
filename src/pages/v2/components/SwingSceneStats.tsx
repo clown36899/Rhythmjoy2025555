@@ -47,6 +47,51 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
     const [inspectTypeDay, setInspectTypeDay] = useState<string | null>(null);
     const [inspectGenreDay, setInspectGenreDay] = useState<string | null>(null);
     const chartScrollRef = useRef<HTMLDivElement>(null);
+
+    // 일 최대 이벤트 상세 모달
+    const [maxDailyModalData, setMaxDailyModalData] = useState<{ date: string; events: any[] } | null>(null);
+    const [maxDailyLoading, setMaxDailyLoading] = useState(false);
+
+    const handleMaxDailyClick = async (targetDate: string | undefined) => {
+        console.log('[MaxDailyClick] Clicked. targetDate:', targetDate);
+        if (!targetDate) {
+            console.warn('[MaxDailyClick] No targetDate provided. Check if server stats have maxDailyDate field.');
+            return;
+        }
+        setMaxDailyLoading(true);
+        try {
+            // Fetch only non-recurring events as they are what contributes to act_count in stats index.
+            // Conditions from DB refresh_site_stats_index function:
+            // 1. day_of_week IS NULL
+            // 2. category != 'board' (and not 'notice', 'notice_popup' in some versions)
+            // 3. Match by: (start_date OR date) OR (any date inside event_dates)
+
+            const { data, error } = await supabase
+                .from('events')
+                .select('id, title, category, genre, start_date, date, location, image_thumbnail, event_dates, day_of_week')
+                .is('day_of_week', null)
+                .not('category', 'in', '("board", "notice", "notice_popup")')
+                .or(`start_date.eq.${targetDate},date.eq.${targetDate},event_dates.cs.["${targetDate}"],event_dates.cs.[{"date":"${targetDate}"}]`)
+                .order('category', { ascending: true });
+
+            if (error) throw error;
+
+            console.log(`[MaxDailyClick] Target: ${targetDate}, Found: ${data?.length} events`);
+            if (data && data.length > 0) {
+                data.forEach((ev, idx) => {
+                    console.log(`  ${idx + 1}. [${ev.category}] ${ev.title} (ID: ${ev.id})`);
+                });
+            } else {
+                console.warn(`[MaxDailyClick] No events found for ${targetDate}`);
+            }
+
+            setMaxDailyModalData({ date: targetDate, events: data || [] });
+        } catch (err) {
+            console.error('[MaxDailyClick] Error:', err);
+        } finally {
+            setMaxDailyLoading(false);
+        }
+    };
     const [isDesktop, setIsDesktop] = useState(window.innerWidth >= 1024);
 
     useEffect(() => {
@@ -84,28 +129,62 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
         }
     }, [stats]);
 
-    // Scroll to current month on load
+    // Scroll to current month when chart becomes visible
+    const hasScrolledRef = useRef(false);
     useEffect(() => {
-        if (chartScrollRef.current && stats?.monthly) {
+        // stats 변경 시 스크롤 플래그 리셋
+        hasScrolledRef.current = false;
+    }, [stats]);
+
+    useEffect(() => {
+        const container = chartScrollRef.current;
+        if (!container || !stats?.monthly) return;
+
+        const scrollToCurrentMonth = () => {
+            if (hasScrolledRef.current) return;
+            const containerWidth = container.clientWidth;
+            if (containerWidth === 0) return; // 아직 visible 아님
+
             const now = new Date();
             const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
             const currentIndex = stats.monthly.findIndex(m => m.month === currentMonthStr);
 
             if (currentIndex !== -1) {
-                const container = chartScrollRef.current;
                 const bars = container.querySelectorAll('.bar-wrapper');
                 if (bars[currentIndex]) {
                     const bar = bars[currentIndex] as HTMLElement;
-                    const containerWidth = container.clientWidth;
-                    // 이번달 바의 중심이 컨테이너 너비의 75% 지점에 오도록 스크롤
                     const barCenter = bar.offsetLeft + bar.offsetWidth / 2;
                     const targetPosition = containerWidth * 0.75;
-                    container.scrollLeft = Math.max(0, barCenter - targetPosition);
+                    const scrollTo = Math.max(0, barCenter - targetPosition);
+                    console.log('[ChartScroll]', { containerWidth, barCenter, targetPosition, scrollTo });
+                    container.scrollLeft = scrollTo;
+                    hasScrolledRef.current = true;
                 }
             } else {
-                chartScrollRef.current.scrollLeft = chartScrollRef.current.scrollWidth;
+                container.scrollLeft = container.scrollWidth;
+                hasScrolledRef.current = true;
             }
-        }
+        };
+
+        // IntersectionObserver: 차트가 화면에 보일 때 스크롤 실행
+        const observer = new IntersectionObserver((entries) => {
+            if (entries[0].isIntersecting && !hasScrolledRef.current) {
+                requestAnimationFrame(() => {
+                    scrollToCurrentMonth();
+                });
+            }
+        }, { threshold: 0.1 });
+
+        observer.observe(container);
+
+        // 이미 visible인 경우 즉시 실행 시도
+        requestAnimationFrame(() => {
+            scrollToCurrentMonth();
+        });
+
+        return () => {
+            observer.disconnect();
+        };
     }, [stats]);
 
     if (loading || !stats) {
@@ -250,10 +329,11 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
                                         <div className="card-value">{stats.summary.dailyAverage}건</div>
                                         <div className="card-hint">하루 평균 발생 수</div>
                                     </div>
-                                    <div className="stats-card">
+                                    <div className="stats-card stats-card-clickable" onClick={() => handleMaxDailyClick(lastStat?.maxDailyDate)}>
                                         <div className="card-label">{lastMonth}월 일 최대 이벤트수</div>
                                         <div className="card-value">{lastStat?.maxDaily || 0}건</div>
                                         <div className="card-hint">하루에 가장 많이 등록된 수 (이번달 {curStat?.maxDaily || 0}건)</div>
+                                        <div className="card-hint card-click-hint"><i className="ri-eye-line"></i> 터치하여 상세 보기</div>
                                     </div>
                                     <div className="stats-card">
                                         <div className="card-label">최고 활성</div>
@@ -567,7 +647,7 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
                                     <div className="promo-bar-group">
                                         <div className="card-label" style={{ textAlign: 'left' }}>정규 강습</div>
                                         <div className="promo-bar-item">
-                                            <div className="promo-label-row"><span>얼리버드 (21일 전)</span> <span className="promo-value">{stats.leadTimeAnalysis.classEarly} pv</span></div>
+                                            <div className="promo-label-row"><span>얼리버드 (28일 전)</span> <span className="promo-value">{stats.leadTimeAnalysis.classEarly} pv</span></div>
                                             <div className="promo-bar-bg"><div className="promo-bar-fill early" style={{ width: `${Math.min(100, (stats.leadTimeAnalysis.classEarly / Math.max(1, stats.leadTimeAnalysis.classEarly, stats.leadTimeAnalysis.classMid, stats.leadTimeAnalysis.classLate)) * 100)}%` }}></div></div>
                                         </div>
                                         <div className="promo-bar-item">
@@ -584,7 +664,7 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
                                     <div className="promo-bar-group">
                                         <div className="card-label" style={{ textAlign: 'left' }}>파티 및 이벤트</div>
                                         <div className="promo-bar-item">
-                                            <div className="promo-label-row"><span>얼리버드 (35일 전)</span> <span className="promo-value">{stats.leadTimeAnalysis.eventEarly} pv</span></div>
+                                            <div className="promo-label-row"><span>얼리버드 (42일 전)</span> <span className="promo-value">{stats.leadTimeAnalysis.eventEarly} pv</span></div>
                                             <div className="promo-bar-bg"><div className="promo-bar-fill early" style={{ width: `${Math.min(100, (stats.leadTimeAnalysis.eventEarly / Math.max(1, stats.leadTimeAnalysis.eventEarly, stats.leadTimeAnalysis.eventMid, stats.leadTimeAnalysis.eventLate)) * 100)}%` }}></div></div>
                                         </div>
                                         <div className="promo-bar-item">
@@ -607,9 +687,20 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
                     </div>
                 )}
             </div>
+            {maxDailyModalData && (
+                <MaxDailyModal data={maxDailyModalData} onClose={() => setMaxDailyModalData(null)} />
+            )}
+            {maxDailyLoading && (
+                <div className="inspector-overlay">
+                    <div className="inspector-modal" style={{ textAlign: 'center', padding: '40px' }}>
+                        <LocalLoading message="이벤트 조회 중..." size="sm" />
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
+
 
 
 
@@ -696,4 +787,165 @@ const DataInspectorModal = ({ day, items, sortBy, onClose }: { day: string, item
     );
 };
 
+const MaxDailyModal = ({ data, onClose }: { data: { date: string; events: any[] }; onClose: () => void }) => {
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onClose();
+        };
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [onClose]);
 
+    const formattedDate = (() => {
+        const [y, m, d] = data.date.split('-');
+        const dateObj = new Date(Number(y), Number(m) - 1, Number(d));
+        const days = ['일', '월', '화', '수', '목', '금', '토'];
+        return `${Number(m)}월 ${Number(d)}일 (${days[dateObj.getDay()]})`;
+    })();
+
+    const getEventCategoryInfo = (category: string) => {
+        const cat = category || '';
+
+        // 실제 분류(DB의 category 필드)를 기반으로 고유 테마 매핑
+        if (cat === 'class' || cat === 'club_lesson' || cat === '강습') {
+            return { label: '강습', theme: 'class' };
+        }
+        if (cat === 'social' || cat === '소셜') {
+            return { label: '소셜', theme: 'social' };
+        }
+        if (cat === 'club' || cat === '동호회') {
+            return { label: '동호회', theme: 'club' };
+        }
+        if (cat === 'event' || cat === '행사') {
+            return { label: '행사', theme: 'event' };
+        }
+
+        return { label: cat || '이벤트', theme: 'etc' };
+    };
+
+    // --- 통계 집계 로직 ---
+    const statsBreakdown = (() => {
+        const catMap: { [key: string]: number } = {};
+        const genreMap: { [key: string]: number } = {};
+        const totalEvents = data.events.length;
+
+        data.events.forEach(ev => {
+            // 1. 대분류 집계 (이벤트당 1개, 총합이 totalEvents와 일치)
+            const { label } = getEventCategoryInfo(ev.category);
+            catMap[label] = (catMap[label] || 0) + 1;
+
+            // 2. 소분류(장르) 집계 (한 이벤트가 여러 장르를 가질 수 있음)
+            if (ev.genre) {
+                const genres = ev.genre.split(',').map((g: string) => g.trim()).filter(Boolean);
+                genres.forEach((g: string) => {
+                    genreMap[g] = (genreMap[g] || 0) + 1;
+                });
+            } else {
+                genreMap['기타'] = (genreMap['기타'] || 0) + 1;
+            }
+        });
+
+        // 3. 정렬
+        const sortedCats = Object.entries(catMap).sort((a, b) => b[1] - a[1]);
+        const sortedGenres = Object.entries(genreMap).sort((a, b) => b[1] - a[1]);
+
+        return { sortedCats, sortedGenres, totalEvents };
+    })();
+
+    return (
+        <div className="inspector-overlay" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+            <div className="inspector-modal">
+                <div className="inspector-header">
+                    <h4 className="inspector-title">
+                        {formattedDate} 이벤트 <span className="inspector-subtitle">({data.events.length}건)</span>
+                    </h4>
+                    <button onClick={onClose} className="inspector-close-btn">
+                        <i className="ri-close-line"></i>
+                    </button>
+                </div>
+                <div
+                    className="inspector-content custom-scrollbar"
+                    onTouchStart={(e) => e.stopPropagation()}
+                    onTouchMove={(e) => e.stopPropagation()}
+                    onTouchEnd={(e) => e.stopPropagation()}
+                >
+                    {data.events.length === 0 ? (
+                        <div className="inspector-empty">이벤트가 없습니다.</div>
+                    ) : (
+                        <>
+                            {/* 통계 요약 섹션 */}
+                            <div className="max-daily-stats-summary">
+                                <div className="stats-summary-header">
+                                    <span className="main-label">분류별 비중</span>
+                                    <span className="sub-label">(전체 {statsBreakdown.totalEvents}건)</span>
+                                </div>
+
+                                {/* 대분류 기준 비율 바 (총합 100%) */}
+                                <div className="stats-visual-ratio">
+                                    {statsBreakdown.sortedCats.map(([cat, count]) => (
+                                        <div
+                                            key={cat}
+                                            className={`ratio-segment theme-${getEventCategoryInfo(cat).theme}`}
+                                            style={{ width: `${(count / statsBreakdown.totalEvents) * 100}%` }}
+                                            title={`${cat}: ${count}건`}
+                                        >
+                                            <span className="ratio-label">{cat}</span>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="stats-summary-groups">
+                                    {/* 대분류 칩 */}
+                                    <div className="stats-group">
+                                        <div className="group-title">대분류</div>
+                                        <div className="stats-chips-row">
+                                            {statsBreakdown.sortedCats.map(([cat, count]) => (
+                                                <div key={cat} className={`stats-summary-chip ${getEventCategoryInfo(cat).theme}`}>
+                                                    <span className="chip-cat">{cat}</span>
+                                                    <span className="chip-count">{count}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* 소분류(장르) 칩 */}
+                                    <div className="stats-group">
+                                        <div className="group-title">소분류(장르)</div>
+                                        <div className="stats-chips-row">
+                                            {statsBreakdown.sortedGenres.map(([genre, count]) => (
+                                                <div key={genre} className="stats-summary-chip genre">
+                                                    <span className="chip-cat">{genre}</span>
+                                                    <span className="chip-count">{count}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="max-daily-event-list">
+                                {data.events.map((ev, idx) => (
+                                    <div key={ev.id || idx} className="max-daily-event-item">
+                                        {ev.image_thumbnail && (
+                                            <div className="max-daily-event-thumb">
+                                                <img src={ev.image_thumbnail} alt={ev.title} />
+                                            </div>
+                                        )}
+                                        <div className="max-daily-event-info">
+                                            <div className="max-daily-event-badge-row">
+                                                <span className={`type-badge ${getEventCategoryInfo(ev.category).theme}`}>{getEventCategoryInfo(ev.category).label}</span>
+                                                {ev.genre && <span className="max-daily-event-genre">{ev.genre}</span>}
+                                            </div>
+                                            <div className="max-daily-event-title">{ev.title}</div>
+                                            {ev.location && <div className="max-daily-event-location"><i className="ri-map-pin-line"></i> {ev.location}</div>}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};

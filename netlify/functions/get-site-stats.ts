@@ -161,9 +161,16 @@ export const handler: Handler = async (event) => {
                 const daysInMonth = isCurrentMonth ? kstDayOfMonth : new Date(year, monthNum, 0).getDate();
                 const totalForAvg = isCurrentMonth ? m.totalUntilToday : m.total;
 
-                // Calculate maxDaily from dailyTotals
-                const dailyValues = Object.values(m.dailyTotals) as number[];
-                const maxDaily = dailyValues.length > 0 ? Math.max(...dailyValues) : 0;
+                // Calculate maxDaily and maxDailyDate from dailyTotals
+                const dailyEntries = Object.entries(m.dailyTotals) as [string, number][];
+                let maxDaily = 0;
+                let maxDailyDate = '';
+                dailyEntries.forEach(([date, count]) => {
+                    if (count > maxDaily) {
+                        maxDaily = count;
+                        maxDailyDate = date;
+                    }
+                });
 
                 // Ensure that if there's at least one event, the average doesn't show as 0.0 due to rounding.
                 const rawAvg = totalForAvg / (daysInMonth || 1);
@@ -171,7 +178,7 @@ export const handler: Handler = async (event) => {
                     ? 0.1
                     : Number(rawAvg.toFixed(1));
 
-                return { ...m, dailyAvg, maxDaily };
+                return { ...m, dailyAvg, maxDaily, maxDailyDate };
             }).sort((a: any, b: any) => a.month.localeCompare(b.month));
 
             const topGenresList = Object.entries(genreMap).sort((a: any, b: any) => (b[1] as number) - (a[1] as number)).slice(0, 20).map(e => e[0]);
@@ -227,11 +234,11 @@ export const handler: Handler = async (event) => {
                 const val = Number(row.val);
                 const type = row.dim_cat === 'class' ? 'class' : 'event';
                 if (type === 'class') {
-                    if (leadDays >= 21) { leadTimeStats.class.early += val; leadTimeStats.class.earlyCount++; }
+                    if (leadDays >= 28) { leadTimeStats.class.early += val; leadTimeStats.class.earlyCount++; }
                     else if (leadDays >= 7) { leadTimeStats.class.mid += val; leadTimeStats.class.midCount++; }
                     else { leadTimeStats.class.late += val; leadTimeStats.class.lateCount++; }
                 } else {
-                    if (leadDays >= 35) { leadTimeStats.event.early += val; leadTimeStats.event.earlyCount++; }
+                    if (leadDays >= 42) { leadTimeStats.event.early += val; leadTimeStats.event.earlyCount++; }
                     else if (leadDays >= 14) { leadTimeStats.event.mid += val; leadTimeStats.event.midCount++; }
                     else { leadTimeStats.event.late += val; leadTimeStats.event.lateCount++; }
                 }

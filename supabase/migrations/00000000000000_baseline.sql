@@ -710,14 +710,12 @@ BEGIN
               AND ref_date <= p_end_date::date
         )
         SELECT 
-            -- Class
-            COALESCE(AVG(views) FILTER (WHERE dim_cat = 'class' AND lead_days >= 21), 0) as c_early,
-            COALESCE(AVG(views) FILTER (WHERE dim_cat = 'class' AND lead_days >= 7 AND lead_days < 21), 0) as c_mid,
-            COALESCE(AVG(views) FILTER (WHERE dim_cat = 'class' AND lead_days < 7), 0) as c_late,
-            -- Event
-            COALESCE(AVG(views) FILTER (WHERE dim_cat = 'event' AND lead_days >= 35), 0) as e_early,
-            COALESCE(AVG(views) FILTER (WHERE dim_cat = 'event' AND lead_days >= 14 AND lead_days < 35), 0) as e_mid,
-            COALESCE(AVG(views) FILTER (WHERE dim_cat = 'event' AND lead_days < 14), 0) as e_late
+            -- Class (Matching MonthlyBillboard Interface)
+            COALESCE(AVG(views) FILTER (WHERE dim_cat = 'class' AND lead_days >= 28), 0) as c_d28,
+            COALESCE(AVG(views) FILTER (WHERE dim_cat = 'class' AND lead_days >= 7 AND lead_days < 28), 0) as c_d7,
+            -- Event (Matching MonthlyBillboard Interface)
+            COALESCE(AVG(views) FILTER (WHERE dim_cat = 'event' AND lead_days >= 42), 0) as e_d42,
+            COALESCE(AVG(views) FILTER (WHERE dim_cat = 'event' AND lead_days >= 14 AND lead_days < 42), 0) as e_d14
         FROM promo_data
     )
     SELECT json_build_object(
@@ -726,8 +724,8 @@ BEGIN
         'dailyTraffic', (SELECT json_agg(json_build_object('day', d.dw_num, 'count', COALESCE(dt.ct, 0))) FROM (SELECT generate_series(0,6) as dw_num) d LEFT JOIN daily_traffic dt ON d.dw_num = dt.agg_dow),
         'topContents', (SELECT json_agg(json_build_object('type', t, 'id', tid, 'title', title, 'count', cnt)) FROM top_ranking),
         'leadTime', (SELECT json_build_object(
-                'classEarly', ROUND(c_early::numeric, 1), 'classMid', ROUND(c_mid::numeric, 1), 'classLate', ROUND(c_late::numeric, 1),
-                'eventEarly', ROUND(e_early::numeric, 1), 'eventMid', ROUND(e_mid::numeric, 1), 'eventLate', ROUND(e_late::numeric, 1)
+                'classD28', ROUND(c_d28::numeric, 1), 'classD7', ROUND(c_d7::numeric, 1),
+                'eventD42', ROUND(e_d42::numeric, 1), 'eventD14', ROUND(e_d14::numeric, 1)
             ) FROM lead_time_calc)
     ) INTO result;
 
