@@ -6,12 +6,14 @@ interface MyImpactCardProps {
     user: any;
     posts: StandardBoardPost[];
     events: SupabaseEvent[];
+    favoriteEvents?: SupabaseEvent[];
+    favoritePosts?: StandardBoardPost[];
     initialExpanded?: boolean;
     onInsertItem?: (type: string, name: string, config: any) => void;
     section?: 'summary' | 'top-posts' | 'top-events';
 }
 
-export default function MyImpactCard({ posts, events, initialExpanded = false, onInsertItem, section }: MyImpactCardProps) {
+export default function MyImpactCard({ posts, events, favoriteEvents, favoritePosts, initialExpanded = false, onInsertItem, section }: MyImpactCardProps) {
     const [showDetail, setShowDetail] = useState(initialExpanded);
 
     // 1. Calculate Aggregates (Client-Side)
@@ -267,6 +269,40 @@ export default function MyImpactCard({ posts, events, initialExpanded = false, o
                     padding-top: 0;
                     border-top: none;
                 }
+
+                .mic-group {
+                    border-radius: 12px;
+                    overflow: hidden;
+                    margin-bottom: 14px;
+                    border: 1px solid rgba(255,255,255,0.08);
+                }
+
+                .mic-group-header {
+                    padding: 9px 14px;
+                    font-size: 12px;
+                    font-weight: 700;
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                    letter-spacing: 0.02em;
+                }
+
+                .mic-group-mine .mic-group-header {
+                    background: rgba(96, 165, 250, 0.10);
+                    color: var(--color-blue-300, #93c5fd);
+                    border-bottom: 1px solid rgba(96, 165, 250, 0.15);
+                }
+
+                .mic-group-fav .mic-group-header {
+                    background: rgba(250, 204, 21, 0.08);
+                    color: var(--color-yellow-400, #facc15);
+                    border-bottom: 1px solid rgba(250, 204, 21, 0.15);
+                }
+
+                .mic-group-body {
+                    padding: 12px 14px 8px;
+                    background: rgba(255,255,255,0.015);
+                }
             `}</style>
 
                 {/* Background Decoration */}
@@ -321,6 +357,7 @@ export default function MyImpactCard({ posts, events, initialExpanded = false, o
                                 {stats.totalLikes.toLocaleString()}
                             </span>
                         </div>
+
                     </div>
                 )}
 
@@ -339,94 +376,149 @@ export default function MyImpactCard({ posts, events, initialExpanded = false, o
                 {(showDetail || section === 'top-posts' || section === 'top-events') && (
                     <div className="mic-expanded">
 
-                        {/* Top Posts */}
-                        {(!section || section === 'top-posts') && (
-                            <div className="mic-section-margin">
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                    <h4 className="mic-section-title" style={{ marginBottom: 0 }}>
-                                        <i className="ri-fire-fill" style={{ color: 'var(--color-red-500)' }}></i> 인기 게시글 TOP 5
-                                    </h4>
-                                    {onInsertItem && (
-                                        <button
-                                            className="mic-insert-btn-sm"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                onInsertItem('my-top-posts', '인기 게시글 TOP 5', { posts: topPosts });
-                                            }}
-                                        >
-                                            삽입
-                                        </button>
-                                    )}
-                                </div>
-                                {/* ... list ... */}
-                                {topPosts.length > 0 ? (
-                                    <ul className="mic-list">
-                                        {topPosts.map(post => (
-                                            <li key={post.id} className="mic-list-item">
-                                                <div className="mic-item-info">
-                                                    <div className="mic-badge" style={{
-                                                        background: `${getExposureStatus(post, 'post').color}15`,
-                                                        color: getExposureStatus(post, 'post').color,
-                                                        border: `1px solid ${getExposureStatus(post, 'post').color}30`
-                                                    }}>
-                                                        {getExposureStatus(post, 'post').label}
-                                                    </div>
-                                                    <span className="mic-item-title max-w-140">{post.title}</span>
-                                                </div>
-                                                <div className="mic-item-stats">
-                                                    <span className="mic-stat-view"><i className="ri-eye-line"></i> {post.views?.toLocaleString()}</span>
-                                                    <span className="mic-stat-like"><i className="ri-heart-3-fill"></i> {post.likes}</span>
-                                                </div>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                ) : (
-                                    <p className="mic-empty">작성한 게시글이 없습니다.</p>
+                        {/* ── 내가 등록한 것 ── */}
+                        {(!section || section === 'top-posts' || section === 'top-events') && (
+                            <div className="mic-group mic-group-mine">
+                                {!section && (
+                                    <div className="mic-group-header">
+                                        <i className="ri-pencil-fill"></i> 내가 등록한 것
+                                    </div>
                                 )}
+                                <div className="mic-group-body">
+
+                                {/* Top Posts */}
+                                {(!section || section === 'top-posts') && (
+                                    <div className="mic-section-margin">
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                            <h4 className="mic-section-title" style={{ marginBottom: 0 }}>
+                                                <i className="ri-fire-fill" style={{ color: 'var(--color-red-500)' }}></i> 인기 게시글 TOP 5
+                                            </h4>
+                                            {onInsertItem && (
+                                                <button className="mic-insert-btn-sm" onClick={(e) => { e.stopPropagation(); onInsertItem('my-top-posts', '인기 게시글 TOP 5', { posts: topPosts }); }}>삽입</button>
+                                            )}
+                                        </div>
+                                        {topPosts.length > 0 ? (
+                                            <ul className="mic-list">
+                                                {topPosts.map(post => (
+                                                    <li key={post.id} className="mic-list-item">
+                                                        <div className="mic-item-info">
+                                                            <div className="mic-badge" style={{ background: `${getExposureStatus(post, 'post').color}15`, color: getExposureStatus(post, 'post').color, border: `1px solid ${getExposureStatus(post, 'post').color}30` }}>
+                                                                {getExposureStatus(post, 'post').label}
+                                                            </div>
+                                                            <span className="mic-item-title max-w-140">{post.title}</span>
+                                                        </div>
+                                                        <div className="mic-item-stats">
+                                                            <span className="mic-stat-view"><i className="ri-eye-line"></i> {post.views?.toLocaleString()}</span>
+                                                            <span className="mic-stat-like"><i className="ri-heart-3-fill"></i> {post.likes}</span>
+                                                        </div>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        ) : (
+                                            <p className="mic-empty">작성한 게시글이 없습니다.</p>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Top Events */}
+                                {(!section || section === 'top-events') && (
+                                    <div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                            <h4 className="mic-section-title" style={{ marginBottom: 0 }}>
+                                                <i className="ri-calendar-event-fill" style={{ color: 'var(--color-blue-500)' }}></i> 인기 행사 TOP 5
+                                            </h4>
+                                            {onInsertItem && (
+                                                <button className="mic-insert-btn-sm" onClick={(e) => { e.stopPropagation(); onInsertItem('my-top-events', '인기 행사 TOP 5', { events: topEvents }); }}>삽입</button>
+                                            )}
+                                        </div>
+                                        {topEvents.length > 0 ? (
+                                            <ul className="mic-list">
+                                                {topEvents.map(event => (
+                                                    <li key={event.id} className="mic-list-item">
+                                                        <div className="mic-item-info">
+                                                            <div className="mic-badge" style={{ background: `${getExposureStatus(event, 'event').color}15`, color: getExposureStatus(event, 'event').color, border: `1px solid ${getExposureStatus(event, 'event').color}30` }}>
+                                                                {getExposureStatus(event, 'event').label}
+                                                            </div>
+                                                            <span className="mic-item-title max-w-160">{event.title}</span>
+                                                        </div>
+                                                        <span className="mic-stat-view" style={{ fontSize: '12px' }}><i className="ri-eye-line"></i> {event.views?.toLocaleString()}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        ) : (
+                                            <p className="mic-empty">등록한 행사가 없습니다.</p>
+                                        )}
+                                    </div>
+                                )}
+
+                                </div>{/* /mic-group-body */}
                             </div>
                         )}
 
-                        {/* Top Events */}
-                        {(!section || section === 'top-events') && (
-                            <div>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                                    <h4 className="mic-section-title" style={{ marginBottom: 0 }}>
-                                        <i className="ri-calendar-event-fill" style={{ color: 'var(--color-blue-500)' }}></i> 인기 행사 TOP 5
-                                    </h4>
-                                    {onInsertItem && (
-                                        <button
-                                            className="mic-insert-btn-sm"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                onInsertItem('my-top-events', '인기 행사 TOP 5', { events: topEvents });
-                                            }}
-                                        >
-                                            삽입
-                                        </button>
-                                    )}
+                        {/* ── 즐겨찾기 ── */}
+                        {!section && (favoriteEvents !== undefined || favoritePosts !== undefined) && (
+                            <div className="mic-group mic-group-fav">
+                                <div className="mic-group-header">
+                                    <i className="ri-star-fill"></i> 즐겨찾기
                                 </div>
-                                {/* ... list ... */}
-                                {topEvents.length > 0 ? (
-                                    <ul className="mic-list">
-                                        {topEvents.map(event => (
-                                            <li key={event.id} className="mic-list-item">
-                                                <div className="mic-item-info">
-                                                    <div className="mic-badge" style={{
-                                                        background: `${getExposureStatus(event, 'event').color}15`,
-                                                        color: getExposureStatus(event, 'event').color,
-                                                        border: `1px solid ${getExposureStatus(event, 'event').color}30`
-                                                    }}>
-                                                        {getExposureStatus(event, 'event').label}
-                                                    </div>
-                                                    <span className="mic-item-title max-w-160">{event.title}</span>
-                                                </div>
-                                                <span className="mic-stat-view" style={{ fontSize: '12px' }}><i className="ri-eye-line"></i> {event.views?.toLocaleString()}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                ) : (
-                                    <p className="mic-empty">등록한 행사가 없습니다.</p>
+                                <div className="mic-group-body">
+
+                                {/* Favorited Events */}
+                                {favoriteEvents !== undefined && (
+                                    <div className="mic-section-margin">
+                                        <h4 className="mic-section-title">
+                                            <i className="ri-calendar-event-line" style={{ color: 'var(--color-blue-400)' }}></i> 행사
+                                        </h4>
+                                        {favoriteEvents.length > 0 ? (
+                                            <ul className="mic-list">
+                                                {favoriteEvents.map(event => (
+                                                    <li key={event.id} className="mic-list-item">
+                                                        <div className="mic-item-info">
+                                                            <div className="mic-badge" style={{ background: `${getExposureStatus(event, 'event').color}15`, color: getExposureStatus(event, 'event').color, border: `1px solid ${getExposureStatus(event, 'event').color}30` }}>
+                                                                {getExposureStatus(event, 'event').label}
+                                                            </div>
+                                                            <span className="mic-item-title max-w-160">{event.title}</span>
+                                                        </div>
+                                                        <span className="mic-stat-view" style={{ fontSize: '12px' }}><i className="ri-eye-line"></i> {(event.views || 0).toLocaleString()}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        ) : (
+                                            <p className="mic-empty">즐겨찾기한 행사가 없습니다.</p>
+                                        )}
+                                    </div>
                                 )}
+
+                                {/* Favorited Posts */}
+                                {favoritePosts !== undefined && (
+                                    <div>
+                                        <h4 className="mic-section-title">
+                                            <i className="ri-article-line" style={{ color: 'var(--color-purple-400)' }}></i> 게시글
+                                        </h4>
+                                        {favoritePosts.length > 0 ? (
+                                            <ul className="mic-list">
+                                                {favoritePosts.map(post => (
+                                                    <li key={post.id} className="mic-list-item">
+                                                        <div className="mic-item-info">
+                                                            <div className="mic-badge" style={{ background: `${getExposureStatus(post, 'post').color}15`, color: getExposureStatus(post, 'post').color, border: `1px solid ${getExposureStatus(post, 'post').color}30` }}>
+                                                                {getExposureStatus(post, 'post').label}
+                                                            </div>
+                                                            <span className="mic-item-title max-w-140">{post.title}</span>
+                                                        </div>
+                                                        <div className="mic-item-stats">
+                                                            <span className="mic-stat-view"><i className="ri-eye-line"></i> {(post.views || 0).toLocaleString()}</span>
+                                                            <span className="mic-stat-like"><i className="ri-heart-3-fill"></i> {post.likes || 0}</span>
+                                                        </div>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        ) : (
+                                            <p className="mic-empty">즐겨찾기한 게시글이 없습니다.</p>
+                                        )}
+                                    </div>
+                                )}
+
+                                </div>{/* /mic-group-body */}
                             </div>
                         )}
                     </div>

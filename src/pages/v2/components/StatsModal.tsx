@@ -26,6 +26,8 @@ interface UserProfile {
 export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' }: StatsModalProps) {
     const [events, setEvents] = useState<SupabaseEvent[]>([]);
     const [posts, setPosts] = useState<StandardBoardPost[]>([]);
+    const [favoriteEvents, setFavoriteEvents] = useState<SupabaseEvent[]>([]);
+    const [favoritePosts, setFavoritePosts] = useState<StandardBoardPost[]>([]);
     const [loading, setLoading] = useState(true);
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
     const [activeTab, setActiveTab] = useState<'my' | 'scene' | 'monthly'>('my');
@@ -120,10 +122,12 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
         }
         setLoading(true);
         try {
-            const [eventsRes, postsRes, userRes] = await Promise.all([
+            const [eventsRes, postsRes, userRes, favEventsRes, favPostsRes] = await Promise.all([
                 supabase.from('events').select('*').eq('user_id', userId).order('created_at', { ascending: false }),
                 supabase.from('board_posts').select('*, prefix:board_prefixes(*)').eq('user_id', userId).order('created_at', { ascending: false }),
-                supabase.from('board_users').select('profile_image, nickname').eq('user_id', userId).maybeSingle()
+                supabase.from('board_users').select('profile_image, nickname').eq('user_id', userId).maybeSingle(),
+                supabase.from('event_favorites').select('events(*)').eq('user_id', userId).order('created_at', { ascending: false }).limit(50),
+                supabase.from('board_post_favorites').select('board_posts(*, prefix:board_prefixes(*))').eq('user_id', userId).order('created_at', { ascending: false }).limit(50)
             ]);
 
             if (eventsRes.data) setEvents(eventsRes.data);
@@ -137,6 +141,25 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
                 setPosts(normalizedPosts as StandardBoardPost[]);
             }
             if (userRes.data) setUserProfile(userRes.data);
+
+            if (favEventsRes.data) {
+                const extracted = favEventsRes.data.map((f: any) => f.events).filter(Boolean) as unknown as SupabaseEvent[];
+                setFavoriteEvents(extracted);
+            }
+            if (favPostsRes.data) {
+                const profileImage = userRes.data?.profile_image || null;
+                const extracted = favPostsRes.data
+                    .map((f: any) => f.board_posts)
+                    .filter(Boolean)
+                    .map((post: any) => ({
+                        ...post,
+                        prefix: Array.isArray(post.prefix) ? post.prefix[0] : post.prefix,
+                        author_profile_image: profileImage,
+                        comment_count: post.comment_count || 0,
+                        likes: post.likes || 0
+                    })) as StandardBoardPost[];
+                setFavoritePosts(extracted);
+            }
         } catch (error) {
             console.error('[StatsModal] Error fetching data:', error);
         } finally {
@@ -204,6 +227,8 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
                                 user={{ id: userId, ...userProfile }}
                                 posts={posts}
                                 events={events}
+                                favoriteEvents={favoriteEvents}
+                                favoritePosts={favoritePosts}
                                 initialExpanded={true}
                             />
 

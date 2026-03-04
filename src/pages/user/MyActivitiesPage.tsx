@@ -42,6 +42,8 @@ export default function MyActivitiesPage() {
     const [posts, setPosts] = useState<StandardBoardPost[]>([]);
     const [socialGroups, setSocialGroups] = useState<any[]>([]);
     const [socialSchedules, setSocialSchedules] = useState<any[]>([]);
+    const [favoriteEvents, setFavoriteEvents] = useState<SupabaseEvent[]>([]);
+    const [favoritePosts, setFavoritePosts] = useState<StandardBoardPost[]>([]);
     const [loading, setLoading] = useState(true);
 
     // Default thumbnails for events
@@ -73,11 +75,13 @@ export default function MyActivitiesPage() {
         setLoading(true);
         try {
             // Parallel Fetch - each handled individually to prevent total failure
-            const [eventsRes, postsRes, groupsRes, userRes] = await Promise.all([
+            const [eventsRes, postsRes, groupsRes, userRes, favRes, favPostsRes] = await Promise.all([
                 supabase.from('events').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
                 supabase.from('board_posts').select('*, prefix:board_prefixes(*)').eq('user_id', user.id).order('created_at', { ascending: false }),
                 supabase.from('social_groups').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
-                supabase.from('board_users').select('profile_image').eq('user_id', user.id).maybeSingle()
+                supabase.from('board_users').select('profile_image').eq('user_id', user.id).maybeSingle(),
+                supabase.from('event_favorites').select('events(*)').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50),
+                supabase.from('board_post_favorites').select('board_posts(*, prefix:board_prefixes(*))').eq('user_id', user.id).order('created_at', { ascending: false }).limit(50)
             ]);
 
             // 1. Events & Classes & Social Schedules
@@ -87,11 +91,22 @@ export default function MyActivitiesPage() {
                 const allEvents = (eventsRes.data || []) as unknown as SupabaseEvent[];
                 setEvents(allEvents);
 
-                // [NEW] Separate social events (those with group_id)
-                // legacy support: also consider if they match original social formatting if needed, 
-                // but group_id is the primary indicator now.
                 const socialItems = allEvents.filter(e => e.group_id !== null && e.group_id !== undefined);
                 setSocialSchedules(socialItems);
+            }
+
+            if (favRes.data) {
+                setFavoriteEvents(favRes.data.map((f: any) => f.events).filter(Boolean) as unknown as SupabaseEvent[]);
+            }
+            if (favPostsRes.data) {
+                const profileImage = userRes.data?.profile_image || null;
+                setFavoritePosts(favPostsRes.data.map((f: any) => f.board_posts).filter(Boolean).map((post: any) => ({
+                    ...post,
+                    prefix: Array.isArray(post.prefix) ? post.prefix[0] : post.prefix,
+                    author_profile_image: profileImage,
+                    comment_count: post.comment_count || 0,
+                    likes: post.likes || 0
+                })) as StandardBoardPost[]);
             }
 
             // 3. Social Groups
@@ -234,7 +249,9 @@ export default function MyActivitiesPage() {
                                 <MyImpactCard
                                     user={user}
                                     posts={posts}
-                                    events={events} // Pass all events for aggregation
+                                    events={events}
+                                    favoriteEvents={favoriteEvents}
+                                    favoritePosts={favoritePosts}
                                     initialExpanded={true}
                                 />
 
