@@ -67,6 +67,13 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
     const tabs: ('my' | 'scene' | 'monthly')[] = ['my', 'scene', 'monthly'];
 
     const onTouchStart = (e: React.TouchEvent) => {
+        // 가로 스크롤 가능한 차트 영역 내부에서 시작된 터치는 탭 스와이프 무시
+        const target = e.target as HTMLElement;
+        const scrollableChart = target.closest('.chart-container:not(.weekly-chart)');
+        if (scrollableChart) {
+            setTouchStart(null);
+            return;
+        }
         setTouchEnd(null);
         setTouchStart(e.targetTouches[0].clientX);
     };

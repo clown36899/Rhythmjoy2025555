@@ -70,6 +70,8 @@
     border-radius: 50%;
     border: none;
     background: var(--bg-secondary, #f5f5f5);
+    color: #333;
+    font-size: 1.25rem;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -443,6 +445,7 @@
 
 [data-theme='dark'] .CDMM-closeBtn {
     background: #2a2a2a;
+    color: #ddd;
 }
 
 [data-theme='dark'] .CDMM-eventListArea {

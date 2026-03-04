@@ -97,9 +97,10 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
                 if (bars[currentIndex]) {
                     const bar = bars[currentIndex] as HTMLElement;
                     const containerWidth = container.clientWidth;
-                    // Align the right edge of the bar with the right edge of the container
-                    const barRight = bar.offsetLeft + bar.offsetWidth + 16; // Add some gap padding
-                    container.scrollLeft = barRight - containerWidth;
+                    // 이번달 바의 중심이 컨테이너 너비의 75% 지점에 오도록 스크롤
+                    const barCenter = bar.offsetLeft + bar.offsetWidth / 2;
+                    const targetPosition = containerWidth * 0.75;
+                    container.scrollLeft = Math.max(0, barCenter - targetPosition);
                 }
             } else {
                 chartScrollRef.current.scrollLeft = chartScrollRef.current.scrollWidth;
@@ -223,62 +224,55 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
                 {(!section || section === 'summary' || section === 'monthly') && (
                     <div className="stats-col-1">
                         {/* Summary Section */}
-                        {(!section || section === 'summary') && (
-                            <div className="stats-card-grid">
-                                <div className="stats-card">
-                                    <div className="card-label">최근 1년 이벤트 등록수</div>
-                                    <div className="card-value">{stats.summary.totalItems}건</div>
-                                    <div className="card-hint">시작일 기준</div>
-                                </div>
-                                <div className="stats-card">
-                                    <div className="card-label">일평균 이벤트</div>
-                                    <div className="card-value">{stats.summary.dailyAverage}건</div>
-                                    <div className="card-hint">
-                                        {(() => {
-                                            // 1. Get current time in KST (consistent with server)
-                                            const now = new Date();
-                                            const kstNow = new Date(now.getTime() + (9 * 60 * 60 * 1000));
-                                            const curMonth = kstNow.getUTCMonth() + 1;
-                                            const curYear = kstNow.getUTCFullYear();
-                                            const curStr = `${curYear}-${String(curMonth).padStart(2, '0')}`;
+                        {(!section || section === 'summary') && (() => {
+                            // KST 시간 계산 (카드 공유용)
+                            const now = new Date();
+                            const kstNow = new Date(now.getTime() + (9 * 60 * 60 * 1000));
+                            const curMonth = kstNow.getUTCMonth() + 1;
+                            const curYear = kstNow.getUTCFullYear();
+                            const curStr = `${curYear}-${String(curMonth).padStart(2, '0')}`;
+                            const lastDate = new Date(Date.UTC(curYear, curMonth - 2, 1));
+                            const lastMonth = lastDate.getUTCMonth() + 1;
+                            const lastYear = lastDate.getUTCFullYear();
+                            const lastStr = `${lastYear}-${String(lastMonth).padStart(2, '0')}`;
+                            const curStat = stats.monthly.find(m => m.month === curStr);
+                            const lastStat = stats.monthly.find(m => m.month === lastStr);
 
-                                            // 2. Get last month in KST
-                                            const lastDate = new Date(Date.UTC(curYear, curMonth - 2, 1));
-                                            const lastMonth = lastDate.getUTCMonth() + 1;
-                                            const lastYear = lastDate.getUTCFullYear();
-                                            const lastStr = `${lastYear}-${String(lastMonth).padStart(2, '0')}`;
-
-                                            const curStat = stats.monthly.find(m => m.month === curStr);
-                                            const lastStat = stats.monthly.find(m => m.month === lastStr);
-
-                                            return (
-                                                <>
-                                                    {curMonth}월 기준
-                                                    <div className="card-sub-info" style={{ marginTop: '4px', fontSize: '0.85em', color: '#fff' }}>
-                                                        일 최대등록수: {curStat?.maxDaily || 0}건 ({lastMonth}월 {lastStat?.maxDaily || 0}건)
-                                                    </div>
-                                                </>
-                                            );
-                                        })()}
+                            return (
+                                <div className="stats-card-grid">
+                                    <div className="stats-card">
+                                        <div className="card-label">최근 1년 이벤트 등록수</div>
+                                        <div className="card-value">{stats.summary.totalItems}건</div>
+                                        <div className="card-hint">시작일 기준</div>
                                     </div>
-                                </div>
-                                <div className="stats-card">
-                                    <div className="card-label">최고 활성</div>
-                                    <div className="card-value">{stats.summary.topDay}요일</div>
-                                    <div className="card-hint">누적 통계</div>
-                                </div>
-                                {onInsertItem && (
-                                    <div className="card-insert-row">
-                                        <button
-                                            className="mw-insert-btn"
-                                            onClick={() => onInsertItem('scene-summary', '스윙씬 활동 요약', { summary: stats.summary })}
-                                        >
-                                            <i className="ri-add-line"></i> 요약 정보 본문에 삽입
-                                        </button>
+                                    <div className="stats-card">
+                                        <div className="card-label">{curMonth}월 일평균 이벤트</div>
+                                        <div className="card-value">{stats.summary.dailyAverage}건</div>
+                                        <div className="card-hint">하루 평균 발생 수</div>
                                     </div>
-                                )}
-                            </div>
-                        )}
+                                    <div className="stats-card">
+                                        <div className="card-label">{lastMonth}월 일 최대 이벤트수</div>
+                                        <div className="card-value">{lastStat?.maxDaily || 0}건</div>
+                                        <div className="card-hint">하루에 가장 많이 등록된 수 (이번달 {curStat?.maxDaily || 0}건)</div>
+                                    </div>
+                                    <div className="stats-card">
+                                        <div className="card-label">최고 활성</div>
+                                        <div className="card-value">{stats.summary.topDay}요일</div>
+                                        <div className="card-hint">누적 통계</div>
+                                    </div>
+                                    {onInsertItem && (
+                                        <div className="card-insert-row">
+                                            <button
+                                                className="mw-insert-btn"
+                                                onClick={() => onInsertItem('scene-summary', '스윙씬 활동 요약', { summary: stats.summary })}
+                                            >
+                                                <i className="ri-add-line"></i> 요약 정보 본문에 삽입
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })()}
 
                         {/* Monthly Chart Section */}
                         {(!section || section === 'monthly') && (

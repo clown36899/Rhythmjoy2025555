@@ -441,10 +441,16 @@
 
 .stats-card-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: var(--spacing-3);
     margin-bottom: var(--spacing-5);
     flex-shrink: 0;
+}
+
+@media (min-width: 480px) {
+    .stats-card-grid {
+        grid-template-columns: repeat(4, 1fr);
+    }
 }
 
 .stats-card {
