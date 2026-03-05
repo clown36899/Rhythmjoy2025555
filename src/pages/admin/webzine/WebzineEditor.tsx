@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
@@ -140,6 +140,7 @@ const WebzineEditor = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [saveMessage, setSaveMessage] = useState<string | null>(null);
     const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const autoSaveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const initRef = useRef(false);
     const initTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [post, setPost] = useState<WebzinePost | null>(null);
@@ -204,8 +205,9 @@ const WebzineEditor = () => {
     useEffect(() => {
         let active = true;
         const initEditor = async () => {
-            if (!user) return;
-            if (!id && initRef.current) return; // Prevent duplicate draft creation
+            console.log('[WebzineEditor] [initEditor] called. user:', !!user, 'id:', id, 'initRef:', initRef.current);
+            if (!user) { console.log('[WebzineEditor] [initEditor] BAIL - no user'); return; }
+            if (!id && initRef.current) { console.log('[WebzineEditor] [initEditor] BAIL - duplicate draft prevention'); return; }
             initRef.current = true;
 
             try {
@@ -288,14 +290,20 @@ const WebzineEditor = () => {
             }
         };
 
+        console.log('[WebzineEditor] [Init] useEffect triggered. editor:', !!editor, 'user:', !!user, 'id:', id);
         if (editor) {
             initEditor();
+        } else {
+            console.log('[WebzineEditor] [Init] Skipped - editor not ready yet');
         }
-        return () => { active = false; };
+        return () => {
+            active = false;
+            initRef.current = false; // StrictMode 이중 마운트 대응: 2차 마운트가 재시도 가능하도록 리셋
+        };
     }, [id, user, navigate, editor]);
 
     // 3. Save Handler
-    const handleSave = async (publishOverride?: boolean) => {
+    const handleSave = useCallback(async (publishOverride?: boolean) => {
         if (!id || !editor) return;
         try {
             setIsSaving(true);
@@ -327,7 +335,39 @@ const WebzineEditor = () => {
         } finally {
             setIsSaving(false);
         }
-    };
+    }, [id, editor, title, subtitle, isPublished]);
+
+    // 자동저장: 에디터 내용 변경 시 3초 debounce
+    useEffect(() => {
+        if (!editor || !id || isLoading) return;
+        const handleUpdate = () => {
+            if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+            setSaveMessage('자동저장 대기 중...');
+            autoSaveTimerRef.current = setTimeout(() => handleSave(), 3000);
+        };
+        editor.on('update', handleUpdate);
+        return () => { editor.off('update', handleUpdate); };
+    }, [editor, id, isLoading, handleSave]);
+
+    // 자동저장: 제목/부제 변경 시 2초 debounce
+    useEffect(() => {
+        if (!id || isLoading) return;
+        if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+        autoSaveTimerRef.current = setTimeout(() => handleSave(), 2000);
+        return () => { if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current); };
+    }, [title, subtitle]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    // 자동저장: 탭 전환 시 즉시 저장
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'hidden' && id && !isLoading) {
+                if (autoSaveTimerRef.current) clearTimeout(autoSaveTimerRef.current);
+                handleSave();
+            }
+        };
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }, [id, isLoading, handleSave]);
 
     // 4. Insert Stat Handler — inserts as a StatsRow (self-contained flex container)
     //    StatsNode is kept for backward-compat with existing documents.
