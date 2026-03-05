@@ -68,8 +68,7 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
 
             const { data, error } = await supabase
                 .from('events')
-                .select('id, title, category, genre, start_date, date, location, image_thumbnail, event_dates, day_of_week')
-                .is('day_of_week', null)
+                .select('id, title, category, genre, start_date, date, location, image_thumbnail, event_dates')
                 .not('category', 'in', '("board", "notice", "notice_popup")')
                 .or(`start_date.eq.${targetDate},date.eq.${targetDate},event_dates.cs.["${targetDate}"],event_dates.cs.[{"date":"${targetDate}"}]`)
                 .order('category', { ascending: true });

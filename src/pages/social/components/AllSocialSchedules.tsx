@@ -48,13 +48,11 @@ const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules,
 
     // 오늘 일정 개수 확인 (TodaySocial이 1개일 때 숨겨지므로 여기에 포함)
     const todaySchedulesCount = schedules.filter(schedule =>
-        schedule.date === todayStr &&
-        (schedule.day_of_week === null || schedule.day_of_week === undefined)
+        schedule.date === todayStr
     ).length;
 
     // Filter schedules based on weekMode
     const filteredSchedules = schedules.filter(schedule => {
-        if (schedule.day_of_week !== null && schedule.day_of_week !== undefined) return false;
         if (!schedule.date) return false;
 
         if (weekMode === 'this') {
@@ -83,7 +81,6 @@ const AllSocialSchedules: React.FC<AllSocialSchedulesProps> = memo(({ schedules,
     React.useEffect(() => {
         if (weekMode === 'this') {
             const thisWeekSchedules = schedules.filter(schedule => {
-                if (schedule.day_of_week !== null && schedule.day_of_week !== undefined) return false;
                 if (!schedule.date) return false;
 
                 const shouldIncludeToday = todaySchedulesCount <= 1;

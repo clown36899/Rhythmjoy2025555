@@ -32,7 +32,7 @@ const BillboardLayout: React.FC = () => {
 
         // Today Socials
         const socials = socialSchedules
-            .filter(s => s.date === todayStr || (s.day_of_week === kstDay && !s.date))
+            .filter(s => s.date === todayStr)
             .slice(0, 8)
             .map(s => ({ ...s, wall_type: 'social', category: 'social' }));
 

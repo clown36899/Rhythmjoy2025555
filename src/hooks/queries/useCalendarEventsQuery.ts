@@ -23,8 +23,7 @@ export const getCalendarRange = (date: Date) => {
  * 실제 데이터를 가져오는 핵심 비동기 함수입니다.
  */
 export const fetchCalendarEvents = async (startDateStr: string, endDateStr: string) => {
-    // group_id, day_of_week, place_name(mapped to location) 등을 포함하여 events 단일 테이블 쿼리
-    const columns = "id,title,date,start_date,end_date,event_dates,category,image_micro,image_thumbnail,image_medium,scope,group_id,day_of_week,location,venue_name,address,venue_id,venues(address)";
+    const columns = "id,title,date,start_date,end_date,event_dates,category,image_micro,image_thumbnail,image_medium,scope,group_id,location,venue_name,address,venue_id,venues(address)";
 
     const { data, error } = await supabase
         .from("events")

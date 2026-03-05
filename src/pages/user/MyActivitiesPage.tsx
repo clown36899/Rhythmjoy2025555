@@ -372,7 +372,7 @@ export default function MyActivitiesPage() {
                                                                 {schedule.place_name || '장소 정보 없음'}
                                                             </div>
                                                             <div className="evt-card-date">
-                                                                {schedule.date || (schedule.day_of_week !== undefined ? ['일', '월', '화', '수', '목', '금', '토'][schedule.day_of_week] + '요일 정규' : '시간 정보 없음')}
+                                                                {schedule.date || '날짜 정보 없음'}
                                                             </div>
                                                         </div>
                                                     </div>

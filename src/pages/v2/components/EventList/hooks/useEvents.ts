@@ -62,13 +62,13 @@ export function useEvents({ isAdminMode }: UseEventsProps) {
             const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
             const cutoffDate = getLocalDateString(threeMonthsAgo);
 
-            const columns = "id, title, date, start_date, end_date, time, location, organizer, category, genre, image, created_at, user_id, venue_id, event_dates, description, video_url, organizer_phone, capacity, registered, link1, link2, link3, link_name1, link_name2, link_name3, password, show_title_on_billboard, storage_path, board_users(nickname), price, group_id, day_of_week, image_micro, image_thumbnail, image_medium, image_full";
+            const columns = "id, title, date, start_date, end_date, time, location, organizer, category, genre, image, created_at, user_id, venue_id, event_dates, description, video_url, organizer_phone, capacity, registered, link1, link2, link3, link_name1, link_name2, link_name3, password, show_title_on_billboard, storage_path, board_users(nickname), price, group_id, image_micro, image_thumbnail, image_medium, image_full";
 
             // Querying only 'events' table
             const { data, error } = await supabase
                 .from("events")
                 .select(columns)
-                .or(`date.gte.${cutoffDate},end_date.gte.${cutoffDate},day_of_week.not.is.null`);
+                .or(`date.gte.${cutoffDate},end_date.gte.${cutoffDate}`);
 
             if (error) throw error;
 

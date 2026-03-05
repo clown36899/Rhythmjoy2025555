@@ -5,13 +5,9 @@ import { useAuth } from '../../../contexts/AuthContext';
 
 // Helper: DB Row -> UnifiedSocialEvent 변환
 const mapScheduleToEvent = (schedule: any): UnifiedSocialEvent | null => {
-    let dow = schedule.day_of_week;
-    if ((dow === null || dow === undefined) && schedule.date) {
-        dow = new Date(schedule.date).getDay();
-    }
+    if (!schedule.date) return null;
 
-    if (dow === null || dow === undefined) return null;
-
+    const dow = new Date(schedule.date).getDay();
     const imageUrl = schedule.image_url;
     const imageUrlThumbnail = schedule.image_thumbnail || imageUrl;
 
@@ -50,12 +46,11 @@ export function useSocialSchedules() {
             const fetchPromise = supabase
                 .from('events')
                 .select(`
-          id, title, date, time, day_of_week, 
+          id, title, date, time,
           link_url:link1, link_name:link_name1, description, place_name:location, address, location_link, category, 
           image_url:image_medium, image_micro, image_thumbnail, image_medium, image_full, venue_id, group_id
         `)
                 .not('group_id', 'is', null)
-                .order('day_of_week', { ascending: true })
                 .order('time', { ascending: true });
 
             // Type assertion for Promise.race result

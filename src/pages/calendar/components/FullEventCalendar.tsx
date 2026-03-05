@@ -291,9 +291,7 @@ export default memo(function FullEventCalendar({
 
   // 탭 필터에 따라 이벤트와 소셜 스케줄 결합 및 필터링
   const filteredEvents = useMemo(() => {
-    // 소셜 스케줄을 이벤트 형식으로 변환 (정규 스케줄 제외)
     const socialEvents = socialSchedules
-      .filter(schedule => schedule.day_of_week === null || schedule.day_of_week === undefined)
       .map(schedule => ({
         ...schedule, // events 테이블의 모든 필드 유지
         source: 'events' as const, // 원본 소스는 이제 events 테이블임

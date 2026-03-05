@@ -409,7 +409,7 @@ const SocialScheduleModal: React.FC<SocialScheduleModalProps> = ({
                     user_id: user.id,
                     category: dbCategory,
                     genre: genre,
-                    day_of_week: new Date(date).getDay()
+                    day_of_week: null
                 };
 
                 console.log('[SocialScheduleModal] Final Data to save (Fixed):', eventData);

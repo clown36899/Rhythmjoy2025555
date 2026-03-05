@@ -52,7 +52,6 @@ export interface SocialSchedule {
   start_date?: string;
   end_date?: string; // 종료일 (기간 행사용)
   event_dates?: string[]; // 다중 날짜 (개별 선택용)
-  day_of_week?: number; // 0 (일) ~ 6 (토)
   start_time?: string; // 'HH:mm:ss'
   time?: string;
   location?: string;

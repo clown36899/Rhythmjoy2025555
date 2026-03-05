@@ -86,7 +86,6 @@ export interface Event {
   venues?: { address: string | null } | null;
   views?: number; // Added for analytics
   group_id?: number | null; // [New] For integrated social schedules
-  day_of_week?: number | null; // [New] For integrated social schedules
   place_name?: string | null; // [New] 장소명 (소셜용)
 }
 

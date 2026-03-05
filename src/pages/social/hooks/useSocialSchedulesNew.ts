@@ -60,8 +60,7 @@ export function useSocialSchedulesNew(groupId?: number, minDate?: string) {
                 const baseDate = minDate ? new Date(minDate) : new Date();
                 const baseDateStr = `${baseDate.getFullYear()}-${String(baseDate.getMonth() + 1).padStart(2, '0')}-${String(baseDate.getDate()).padStart(2, '0')}`;
 
-                // Fetch if: (date >= baseDate) OR (day_of_week is not null/recurring) OR (category matches social criteria)
-                query = query.or(`date.gte.${baseDateStr},day_of_week.not.is.null,start_date.gte.${baseDateStr}`);
+                query = query.or(`date.gte.${baseDateStr},start_date.gte.${baseDateStr}`);
 
                 // [Refined Filter] 
                 // 1. group_id가 있는 모든 일정 (통합 소셜/강습 등)

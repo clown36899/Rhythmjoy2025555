@@ -690,7 +690,7 @@ export default memo(function EventRegistrationModal({
             venue_name: (venueId && String(venueId).trim() !== '') ? venueName : location,
             venue_custom_link: (venueId && String(venueId).trim() !== '') ? null : venueCustomLink,
             group_id: groupId,
-            day_of_week: dayOfWeek,
+            day_of_week: null,
           };
 
           console.log("📝 [EventRegistrationModal] Final eventData to save:", eventData);

@@ -75,12 +75,12 @@ export const UnifiedScheduleSection: React.FC<UnifiedScheduleSectionProps> = ({
         // Filter futureSchedules for the rest of this week and next week
         const thisWeekRestList = futureSchedules.filter(s =>
             !todayIds.has(s.id) &&
-            !!s.date && !s.day_of_week &&
+            !!s.date &&
             s.date > todayStr && s.date <= thisWeekEndStr
         );
         const nextWeekList = futureSchedules.filter(s =>
             !todayIds.has(s.id) &&
-            !!s.date && !s.day_of_week &&
+            !!s.date &&
             s.date >= nextWeekStartStr && s.date <= nextWeekEndStr
         );
 

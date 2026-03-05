@@ -173,7 +173,7 @@ export default function CalendarPage() {
             } else {
                 // 국내/그 외: scope !== 'overseas' 제외
                 const domesticEvents = allEvents.filter(e => e.scope !== 'overseas');
-                const domesticSocialSchedules = socialSchedules.filter(s => s.day_of_week === null || s.day_of_week === undefined);
+                const domesticSocialSchedules = socialSchedules;
 
                 const socialAsEvents = domesticSocialSchedules;
 

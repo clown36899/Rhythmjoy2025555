@@ -25,7 +25,7 @@ export const useSocialSchedulesQuery = (groupId?: number) => {
         queryKey: groupId ? ['social-schedules', groupId] : ['social-schedules'],
         queryFn: async () => {
             const selectFields = `
-        id, group_id, title, date, start_date, day_of_week, time, 
+        id, group_id, title, date, start_date, time,
         place_name:location, address, location_link, venue_id, description, 
         image_url:image_medium, image_micro, image_thumbnail, image_medium, image_full,
         link_url:link1, link_name:link_name1,
@@ -41,7 +41,7 @@ export const useSocialSchedulesQuery = (groupId?: number) => {
                 // Global fetch: Optimize by fetching only future/today events or recurring schedules
                 const today = new Date();
                 const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-                query = query.or(`date.gte.${todayStr},day_of_week.not.is.null`);
+                query = query.gte('date', todayStr);
             }
 
             const { data, error } = await query

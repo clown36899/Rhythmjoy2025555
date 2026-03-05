@@ -210,7 +210,6 @@ const MainV2TestPage: React.FC = () => {
 
         // 1. Prepare ALL Raw Items First
         const mappedSocials = rawSocials
-            .filter(schedule => schedule.day_of_week === null || schedule.day_of_week === undefined) // Only one-time socials
             .map(schedule => ({
                 id: String(schedule.id),
                 title: schedule.title,

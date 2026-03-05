@@ -23,7 +23,6 @@ export interface Event extends Omit<BaseEvent, 'description' | 'video_url' | 'or
     event_dates?: string[];
     is_class?: boolean | null;
     scope?: 'domestic' | 'overseas' | null;
-    day_of_week?: number | null;
     board_users?: any[];
 }
 
