@@ -237,7 +237,7 @@ export const EventCard = memo(({
                   <span className="fixed-part ko" translate="no">강습</span>
                   <span className="fixed-part en" translate="no">Class</span>
                 </>
-              ) : "행사"}
+              ) : event.category === "club" ? "동호회" : "행사"}
             </span>
           </div>
         )}
@@ -247,7 +247,9 @@ export const EventCard = memo(({
             ? "is-past"
             : event.category === "class"
               ? "is-class"
-              : "is-event"
+              : event.category === "club"
+                ? "is-club"
+                : "is-event"
             }`}
         >
           {isPast ? "종료" : event.category === "class" ? (
@@ -256,7 +258,7 @@ export const EventCard = memo(({
               <span className="fixed-part ko" translate="no">강습</span>
               <span className="fixed-part en" translate="no">Class</span>
             </>
-          ) : "행사"}
+          ) : event.category === "club" ? "동호회" : "행사"}
         </div>
 
         {onToggleFavorite && (

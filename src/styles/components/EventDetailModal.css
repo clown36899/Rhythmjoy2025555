@@ -299,6 +299,10 @@
     background: linear-gradient(135deg, var(--color-blue-500), var(--color-blue-700));
 }
 
+.EDM-categoryArea.is-club {
+    background: linear-gradient(135deg, #10b981, #059669);
+}
+
 .EDM-categoryAreaText {
     position: absolute;
     z-index: 5;
@@ -335,6 +339,10 @@
 
 .EDM-categoryBadge.is-social {
     background: var(--color-blue-500);
+}
+
+.EDM-categoryBadge.is-club {
+    background: linear-gradient(135deg, #10b981, #059669);
 }
 
 .EDM-defaultThumb {

@@ -105,7 +105,7 @@ export const EditablePreviewCard: React.FC<EditablePreviewCardProps> = ({
 
                 {/* Category Badge - Clickable */}
                 <div
-                    className={`ECARD-badge ${!readOnly ? 'EPC-editableSection' : ''} ${event.category === "class" ? "is-class" : "is-event"
+                    className={`ECARD-badge ${!readOnly ? 'EPC-editableSection' : ''} ${event.category === "class" || event.category === "regular" ? "is-class" : event.category === "club" ? "is-club" : "is-event"
                         }`}
                     onClick={(e) => {
                         e.stopPropagation();
@@ -113,7 +113,7 @@ export const EditablePreviewCard: React.FC<EditablePreviewCardProps> = ({
                     }}
                     title={!readOnly ? "카테고리 변경" : undefined}
                 >
-                    {event.category === "class" ? "강습" : "행사"}
+                    {event.category === "class" || event.category === "regular" ? "강습" : event.category === "club" ? "동호회" : "행사"}
                 </div>
 
                 {/* EEPC-overlayIcon */}

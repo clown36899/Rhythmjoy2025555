@@ -101,6 +101,30 @@
     left: 0;
 }
 
+.CDMM-resetBtn {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    z-index: 10;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    border: none;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    color: #333;
+    transition: background 0.15s;
+}
+
+.CDMM-resetBtn:hover {
+    background: #f0f0f0;
+}
+
 .CDMM-filterArea {
     padding: 12px 20px;
     background: var(--bg-primary, #fff);

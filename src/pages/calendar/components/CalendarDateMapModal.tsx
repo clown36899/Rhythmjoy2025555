@@ -316,6 +316,13 @@ export default function CalendarDateMapModal({
 
     if (!isOpen || !date) return null;
 
+    const resetMapBounds = () => {
+        if (!map || geocodedData.length === 0) return;
+        const bounds = new window.kakao.maps.LatLngBounds();
+        geocodedData.forEach(v => bounds.extend(new window.kakao.maps.LatLng(v.lat, v.lng)));
+        map.setBounds(bounds, 60, 30, 10, 30);
+    };
+
     const getCategoryColor = (category?: string) => {
         const cat = category?.toLowerCase();
         if (cat === 'social' || cat === 'party') return '#ef4444';
@@ -342,6 +349,11 @@ export default function CalendarDateMapModal({
                 <div className="CDMM-body">
                     <div className="CDMM-mapArea">
                         <div ref={mapContainerRef} className="CDMM-map"></div>
+                        {map && geocodedData.length > 0 && (
+                            <button className="CDMM-resetBtn" onClick={resetMapBounds} title="초기 위치로 이동">
+                                <i className="ri-focus-3-line"></i>
+                            </button>
+                        )}
                         {(isGeocoding || !map) && (
                             <div className="CDMM-mapLoading">
                                 <div className="CDMM-spinner"></div>
@@ -388,7 +400,7 @@ export default function CalendarDateMapModal({
                                                 className="CDMM-eventCategory"
                                                 style={{ backgroundColor: `${getCategoryColor(event.category)}20`, color: getCategoryColor(event.category) }}
                                             >
-                                                {event.category === 'social' ? '소셜' : event.category === 'class' ? '강습' : '이벤트'}
+                                                {event.category === 'social' ? '소셜' : event.category === 'class' || event.category === 'regular' ? '강습' : event.category === 'club' ? '동호회' : '이벤트'}
                                             </span>
                                             <div className="CDMM-eventTitle">{event.title}</div>
                                             <div className="CDMM-eventMeta">

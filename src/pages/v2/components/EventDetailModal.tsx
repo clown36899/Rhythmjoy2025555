@@ -1146,7 +1146,7 @@ export default function EventDetailModal({
                                   <span className="fixed-part ko" translate="no">강습</span>
                                   <span className="fixed-part en" translate="no">Class</span>
                                 </>
-                              ) : selectedEvent.category?.includes("social") ? "소셜" : "행사"}
+                              ) : selectedEvent.category === "club" || selectedEvent.category === "regular" ? "동호회" : selectedEvent.category?.includes("social") ? "소셜" : "행사"}
                             </span>
                           </div>
                         )}
@@ -1188,31 +1188,31 @@ export default function EventDetailModal({
                     ) : (
                       <>
                         <div
-                          className={`EDM-categoryArea ${selectedEvent.category === "class" ? "is-class" : selectedEvent.category?.includes("social") ? "is-social" : "is-event"}`}
+                          className={`EDM-categoryArea ${selectedEvent.category === "class" || selectedEvent.category === "regular" ? "is-class" : selectedEvent.category === "club" ? "is-club" : selectedEvent.category?.includes("social") ? "is-social" : "is-event"}`}
                         ></div>
                         <span className="EDM-categoryAreaText manual-label-wrapper">
-                          {selectedEvent.category === "class" ? (
+                          {selectedEvent.category === "class" || selectedEvent.category === "regular" ? (
                             <>
                               <span className="translated-part">Class</span>
                               <span className="fixed-part ko" translate="no">강습</span>
                               <span className="fixed-part en" translate="no">Class</span>
                             </>
-                          ) : selectedEvent.category?.includes("social") ? "소셜" : "행사"}
+                          ) : selectedEvent.category === "club" ? "동호회" : selectedEvent.category?.includes("social") ? "소셜" : "행사"}
                         </span>
                       </>
                     )}
 
                     {/* 카테고리 배지 - 좌측 하단 (Mobile only behavior handles in CSS) */}
                     <div
-                      className={`EDM-categoryBadge manual-label-wrapper ${selectedEvent.category === "class" ? "is-class" : selectedEvent.category?.includes("social") ? "is-social" : "is-event"}`}
+                      className={`EDM-categoryBadge manual-label-wrapper ${selectedEvent.category === "class" || selectedEvent.category === "regular" ? "is-class" : selectedEvent.category === "club" ? "is-club" : selectedEvent.category?.includes("social") ? "is-social" : "is-event"}`}
                     >
-                      {selectedEvent.category === "class" ? (
+                      {selectedEvent.category === "class" || selectedEvent.category === "regular" ? (
                         <>
                           <span className="translated-part">Class</span>
                           <span className="fixed-part ko" translate="no">강습</span>
                           <span className="fixed-part en" translate="no">Class</span>
                         </>
-                      ) : selectedEvent.category?.includes("social") ? "소셜" : "행사"}
+                      ) : selectedEvent.category === "club" ? "동호회" : selectedEvent.category?.includes("social") ? "소셜" : "행사"}
                     </div>
                   </div>
                 );

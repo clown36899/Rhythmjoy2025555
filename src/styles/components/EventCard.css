@@ -150,6 +150,11 @@
     color: white;
 }
 
+.ECARD-container .ECARD-badge.is-club {
+    background: rgba(16, 185, 129, 0.9);
+    color: white;
+}
+
 .ECARD-container .ECARD-badge.is-past {
     background: rgba(100, 100, 100, 0.9);
     color: var(--text-secondary);
