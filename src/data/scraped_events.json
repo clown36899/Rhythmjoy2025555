@@ -484,5 +484,32 @@
     },
     "created_at": "2026-03-08T03:30:00+09:00",
     "updated_at": "2026-03-08T03:30:00+09:00"
+  },
+  {
+    "id": "ns_260308_sun",
+    "keyword": "네오스윙",
+    "source_url": "https://www.instagram.com/neo_swing/",
+    "poster_url": "/scraped/poster_neoswing_20260308.png",
+    "extracted_text": "네오스윙 일요 소셜 (일햅)\n날짜: 2026-03-08 (일)\nDJ: 달로 (Dallo)\n시간: 18:00 - 21:00\n장소: 신촌 해피홀\n가격: 13,000원",
+    "structured_data": {
+      "date": "2026-03-08",
+      "day": "일",
+      "title": "네오스윙 일요 소셜 (DJ 달로)",
+      "status": "정상운영",
+      "djs": [
+        "달로"
+      ],
+      "times": [
+        "18:00 ~ 21:00"
+      ],
+      "location": "신촌 해피홀",
+      "fee": "13,000원",
+      "note": "신규 수집"
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/verify_neoswing_20260308.png"
+    },
+    "created_at": "2026-03-08T08:15:00+09:00",
+    "updated_at": "2026-03-08T08:15:00+09:00"
   }
 ]
