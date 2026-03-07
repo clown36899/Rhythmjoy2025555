@@ -258,7 +258,7 @@ export default memo(function EventRegistrationModal({
         setGenre((editEventData as unknown as ExtendedEvent).genre || "");
         setScope(((editEventData as any).scope as "domestic" | "overseas") || "domestic");
         setGroupId((editEventData as any).group_id || null);
-        setDayOfWeek((editEventData as any).day_of_week ?? null);
+
 
         // Password removed - using RLS
 
@@ -303,7 +303,6 @@ export default memo(function EventRegistrationModal({
         setImagePreview("");
         setImagePosition({ x: 0, y: 0 });
         setGroupId(null);
-        setDayOfWeek(null);
       }
       // Common Reset
       setPreviewMode('detail');
@@ -690,7 +689,6 @@ export default memo(function EventRegistrationModal({
             venue_name: (venueId && String(venueId).trim() !== '') ? venueName : location,
             venue_custom_link: (venueId && String(venueId).trim() !== '') ? null : venueCustomLink,
             group_id: groupId,
-            day_of_week: null,
           };
 
           console.log("📝 [EventRegistrationModal] Final eventData to save:", eventData);

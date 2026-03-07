@@ -218,7 +218,6 @@ const EventIngestor: React.FC = () => {
                 description: scraped.extracted_text || '',
                 user_id: '508e4c9e-b180-4c0f-aa98-3e99562a147a', // 운영 DB 관리자 user_id (인제스터 전용)
                 group_id: currentTab === 'lessons' ? null : 2, // 강습은 일반, 소셜은 댄스빌보드 그룹
-                day_of_week: null,
                 image: imageUrl,
                 image_micro: imageMicro,
                 image_thumbnail: imageThumbnail,

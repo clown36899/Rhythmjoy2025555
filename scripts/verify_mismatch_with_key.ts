@@ -44,7 +44,7 @@ async function verify() {
         .from('events')
         .select('*', { count: 'exact', head: true })
         .not('category', 'in', '("notice","notice_popup","board")')
-        .or(`created_at.gte.${dateStr},start_date.gte.${dateStr},date.gte.${dateStr},day_of_week.not.is.null`);
+        .or(`created_at.gte.${dateStr},start_date.gte.${dateStr},date.gte.${dateStr}`);
 
     console.log(`[SwingSceneStats Logic] Total Events (1 Year): ${recentEventsCount}`);
 

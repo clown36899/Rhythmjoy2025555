@@ -296,5 +296,193 @@
     },
     "created_at": "2026-03-05T03:10:00+09:00",
     "updated_at": "2026-03-05T03:10:00+09:00"
+  },
+  {
+    "id": "st_260308_sun",
+    "keyword": "스윙타임",
+    "source_url": "https://www.instagram.com/p/DVkfqsDk_qa/",
+    "poster_url": "/scraped/swingtime_260308_poster.png",
+    "extracted_text": "3/8(일) 일요 소셜\nDJ: 1부 유광, 2부 다카포\n시간: 19:30 ~\n가격: 사전 10,000 / 현장 12,000",
+    "structured_data": {
+      "date": "2026-03-08",
+      "day": "일",
+      "title": "일요 소셜 (DJ 유광, 다카포)",
+      "status": "정상운영",
+      "djs": [
+        "유광",
+        "다카포"
+      ],
+      "times": [
+        "19:30 ~ 23:00"
+      ],
+      "location": "스윙타임바",
+      "fee": "10,000원(사전) / 12,000원(현장)",
+      "note": "1부 20:00-21:30, 2부 21:30-23:00"
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/swingtime_260308_poster.png"
+    },
+    "created_at": "2026-03-08T03:30:00+09:00",
+    "updated_at": "2026-03-08T03:30:00+09:00"
+  },
+  {
+    "id": "ksh_260308_sun",
+    "keyword": "경성홀",
+    "source_url": "https://www.instagram.com/p/DVgb1uCEhYP/",
+    "poster_url": "/scraped/kyungsung_260308_poster.png",
+    "extracted_text": "3/8(일) 일요 소셜\nDJ: 북실\n시간: 19:30 - 23:00\n가격: 11,000원",
+    "structured_data": {
+      "date": "2026-03-08",
+      "day": "일",
+      "title": "일요 소셜 (DJ 북실)",
+      "status": "정상운영",
+      "djs": [
+        "북실"
+      ],
+      "times": [
+        "19:30 ~ 23:00"
+      ],
+      "location": "경성홀",
+      "fee": "11,000원",
+      "note": ""
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/kyungsung_260308_poster.png"
+    },
+    "created_at": "2026-03-08T03:30:00+09:00",
+    "updated_at": "2026-03-08T03:30:00+09:00"
+  },
+  {
+    "id": "ss_260309_mon",
+    "keyword": "스윙스캔들",
+    "source_url": "https://www.instagram.com/p/DVc1pDIEfmN/",
+    "poster_url": "/scraped/savoy_260309_blues.png",
+    "extracted_text": "3/9(월) 블바지 블루스 소셜\n대전 오나다\n사보이볼룸 계정 공지",
+    "structured_data": {
+      "date": "2026-03-09",
+      "day": "월",
+      "title": "블바지 블루스 소셜",
+      "status": "정상운영",
+      "djs": [],
+      "times": [
+        "미기재"
+      ],
+      "location": "대전 오나다",
+      "fee": "미기재",
+      "note": "사보이볼룸(스윙스캔들) 인스타그램 공지"
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/savoy_260309_blues.png"
+    },
+    "created_at": "2026-03-08T03:30:00+09:00",
+    "updated_at": "2026-03-08T03:30:00+09:00"
+  },
+  {
+    "id": "ksh_260310_tue",
+    "keyword": "경성홀",
+    "source_url": "https://www.instagram.com/p/DVgb1uCEhYP/",
+    "poster_url": "/scraped/kyungsung_260308_poster.png",
+    "extracted_text": "3/10(화) 화요 소셜\nDJ: 데니즈\n시간: 20:00 - 23:00\n가격: 9,000원",
+    "structured_data": {
+      "date": "2026-03-10",
+      "day": "화",
+      "title": "화요 소셜 (DJ 데니즈)",
+      "status": "정상운영",
+      "djs": [
+        "데니즈"
+      ],
+      "times": [
+        "20:00 ~ 23:00"
+      ],
+      "location": "경성홀",
+      "fee": "9,000원",
+      "note": "Deniz & Meti 워크숍 동시 진행"
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/kyungsung_260308_poster.png"
+    },
+    "created_at": "2026-03-08T03:30:00+09:00",
+    "updated_at": "2026-03-08T03:30:00+09:00"
+  },
+  {
+    "id": "bat_260314_sat",
+    "keyword": "박쥐스윙",
+    "source_url": "https://www.instagram.com/batswing2003/",
+    "poster_url": "/scraped/batswing_2603_schedule.png",
+    "extracted_text": "3/14(토) 박쥐스윙 정모 소셜\nDJ: 윤가\n시간: 19:30 ~\n장소: 인더무드 신림",
+    "structured_data": {
+      "date": "2026-03-14",
+      "day": "토",
+      "title": "토요 정모 소셜 (DJ 윤가)",
+      "status": "정상운영",
+      "djs": [
+        "윤가"
+      ],
+      "times": [
+        "19:30 ~"
+      ],
+      "location": "인더무드 신림 (신림역)",
+      "fee": "미기재",
+      "note": "박쥐스윙 3월 DJ 리스트"
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/batswing_2603_schedule.png"
+    },
+    "created_at": "2026-03-08T03:30:00+09:00",
+    "updated_at": "2026-03-08T03:30:00+09:00"
+  },
+  {
+    "id": "bat_260321_sat",
+    "keyword": "박쥐스윙",
+    "source_url": "https://www.instagram.com/batswing2003/",
+    "poster_url": "/scraped/batswing_2603_schedule.png",
+    "extracted_text": "3/21(토) 박쥐스윙 정모 소셜\nDJ: 훔머\n시간: 19:30 ~\n장소: 인더무드 신림",
+    "structured_data": {
+      "date": "2026-03-21",
+      "day": "토",
+      "title": "토요 정모 소셜 (DJ 훔머)",
+      "status": "정상운영",
+      "djs": [
+        "훔머"
+      ],
+      "times": [
+        "19:30 ~"
+      ],
+      "location": "인더무드 신림 (신림역)",
+      "fee": "미기재",
+      "note": "박쥐스윙 3월 DJ 리스트"
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/batswing_2603_schedule.png"
+    },
+    "created_at": "2026-03-08T03:30:00+09:00",
+    "updated_at": "2026-03-08T03:30:00+09:00"
+  },
+  {
+    "id": "bat_260328_sat",
+    "keyword": "박쥐스윙",
+    "source_url": "https://www.instagram.com/batswing2003/",
+    "poster_url": "/scraped/batswing_2603_schedule.png",
+    "extracted_text": "3/28(토) 박쥐스윙 정모 소셜\nDJ: TC\n시간: 19:30 ~\n장소: 인더무드 신림",
+    "structured_data": {
+      "date": "2026-03-28",
+      "day": "토",
+      "title": "토요 정모 소셜 (DJ TC)",
+      "status": "정상운영",
+      "djs": [
+        "TC"
+      ],
+      "times": [
+        "19:30 ~"
+      ],
+      "location": "인더무드 신림 (신림역)",
+      "fee": "미기재",
+      "note": "박쥐스윙 3월 DJ 리스트"
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/batswing_2603_schedule.png"
+    },
+    "created_at": "2026-03-08T03:30:00+09:00",
+    "updated_at": "2026-03-08T03:30:00+09:00"
   }
 ]

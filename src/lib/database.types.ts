@@ -998,7 +998,6 @@ export type Database = {
           time: string | null
           address: string | null
           group_id: number | null
-          day_of_week: number | null
           scope: string | null
           views: number | null
           title: string
@@ -1048,7 +1047,6 @@ export type Database = {
           time?: string | null
           address?: string | null
           group_id?: number | null
-          day_of_week?: number | null
           scope?: string | null
           views?: number | null
           title: string
@@ -1098,7 +1096,6 @@ export type Database = {
           time?: string | null
           address?: string | null
           group_id?: number | null
-          day_of_week?: number | null
           scope?: string | null
           views?: number | null
           title?: string

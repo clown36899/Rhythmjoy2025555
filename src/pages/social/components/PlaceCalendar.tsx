@@ -7,7 +7,7 @@ import './PlaceCalendar.css';
 interface WeeklySchedule {
   id: number;
   group_id: number;
-  day_of_week: number;
+  date?: string;
   title: string;
   time?: string;
   start_time?: string; // legacy support
@@ -51,8 +51,8 @@ export default function PlaceCalendar({ place, onBack }: PlaceCalendarProps) {
         .from('events')
         .select('*')
         .eq('group_id', place.id)
-        .not('day_of_week', 'is', null)
-        .order('day_of_week')
+        .eq('group_id', place.id)
+        .order('date')
         .order('time');
 
       if (error) throw error;
@@ -63,7 +63,14 @@ export default function PlaceCalendar({ place, onBack }: PlaceCalendarProps) {
   };
 
   const getScheduleForDay = (dayOfWeek: number) => {
-    return weeklySchedules.find(s => s.day_of_week === dayOfWeek);
+    // Note: Since day_of_week is removed from events table, 
+    // we might need a different way to handle 'weekly' recurring schedules if they don't have a fixed date.
+    // For now, this component seems to rely on day_of_week which no longer exists in the DB.
+    return weeklySchedules.find(s => {
+      if (!s.date) return false;
+      const d = new Date(s.date);
+      return d.getDay() === dayOfWeek;
+    });
   };
 
   const handleAddSchedule = (dayOfWeek: number) => {

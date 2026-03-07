@@ -220,8 +220,10 @@ const WeeklySocial: React.FC<WeeklySocialProps> = ({
         for (let i = 0; i < 7; i++) grouped[i] = [];
 
         schedules.forEach(s => {
-            if (!s.date && s.day_of_week !== null && s.day_of_week !== undefined) {
-                grouped[s.day_of_week].push(s);
+            const dateStr = s.date || s.start_date;
+            if (dateStr) {
+                const day = new Date(dateStr).getDay();
+                grouped[day].push(s);
             }
         });
 

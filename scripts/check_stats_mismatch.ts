@@ -48,7 +48,7 @@ async function checkStats() {
         .from('events')
         .select('*', { count: 'exact', head: true })
         .not('category', 'in', '("notice","notice_popup","board")')
-        .or(`created_at.gte.${oneYearAgo.toISOString()},start_date.gte.${oneYearAgo.toISOString()},date.gte.${oneYearAgo.toISOString()},day_of_week.not.is.null`);
+        .or(`created_at.gte.${oneYearAgo.toISOString()},start_date.gte.${oneYearAgo.toISOString()},date.gte.${oneYearAgo.toISOString()}`);
 
     console.log(`3. Raw DB Count (Last 1 Year + Recurring): ${count1y} (Error: ${err1y?.message || 'None'})`);
 
