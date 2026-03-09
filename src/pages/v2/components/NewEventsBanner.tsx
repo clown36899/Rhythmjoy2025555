@@ -131,7 +131,8 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
                                 e.stopPropagation();
                                 openModal('newEventsList', {
                                     events,
-                                    onEventClick
+                                    onEventClick,
+                                    initialVersion: 5
                                 });
                             }}
                         >

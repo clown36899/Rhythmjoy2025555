@@ -36,6 +36,7 @@ interface ScrapedEvent {
     };
     created_at?: string;
     updated_at?: string;
+    is_collected?: boolean;
 }
 
 function readEvents(jsonPath: string): ScrapedEvent[] {

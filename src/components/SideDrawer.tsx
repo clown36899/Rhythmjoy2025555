@@ -109,6 +109,7 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
     const notificationSettingsModal = useModal('notificationSettings');
     const profileEditModal = useModal('profileEdit');
     const statsModal = useModal('stats');
+    const newEventsListModal = useModal('newEventsList');
 
     const nickname = userProfile?.nickname || billboardUserName || user?.user_metadata?.name || user?.email?.split('@')[0] || 'Guest';
     const profileImage = userProfile?.profile_image || user?.user_metadata?.avatar_url || null;
@@ -446,6 +447,16 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
                                         <div className="SD-submenuItem" onClick={() => handleNavigation(`/billboard/${user?.id}/preview/catalog`)}>
                                             <i className="ri-tv-2-line"></i>
                                             <span>Billboard (Catalog)</span>
+                                        </div>
+                                        <div className="SD-submenuItem" onClick={() => {
+                                            newEventsListModal.open({
+                                                events: [],
+                                                onEventClick: (event: any) => navigate(`/calendar?id=${event.id}&highlightOnly=true`)
+                                            });
+                                            onClose();
+                                        }}>
+                                            <i className="ri-layout-grid-line"></i>
+                                            <span>쇼케이스 뷰어</span>
                                         </div>
                                         <div className="SD-submenuItem" onClick={() => {
                                             const newValue = !showDevTools;

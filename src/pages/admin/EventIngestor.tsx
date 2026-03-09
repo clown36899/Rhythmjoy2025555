@@ -34,6 +34,7 @@ interface ScrapedEvent {
         date: string;
         title: string;
     };
+    is_collected?: boolean;
     created_at: string;
 }
 
@@ -307,6 +308,34 @@ const EventIngestor: React.FC = () => {
         }
     }, [selectedIds, currentTab]);
 
+    const handleBatchMarkAsCollected = useCallback(async () => {
+        if (selectedIds.size === 0) return alert('선택된 항목이 없습니다.');
+        const targets = scrapedEvents.filter(e => selectedIds.has(e.id) && !e.is_collected);
+        if (targets.length === 0) return alert('이미 수집됨으로 표시할 새로운 항목이 없습니다.');
+
+        if (!confirm(`선택한 ${targets.length}개의 항목을 '이미 수집됨'으로 표시하시겠습니까? (목록에서 숨겨집니다)`)) return;
+
+        try {
+            const updatedEvents = targets.map(e => ({ ...e, is_collected: true }));
+            const res = await fetch(`/.netlify/functions/scraped-events?type=${currentTab}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updatedEvents),
+            });
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+            // 로컬 상태 업데이트
+            setScrapedEvents(prev => prev.map(e =>
+                selectedIds.has(e.id) ? { ...e, is_collected: true } : e
+            ));
+            setSelectedIds(new Set());
+            alert(`${targets.length}개의 항목이 '이미 수집됨'으로 표시되었습니다.`);
+        } catch (err: any) {
+            console.error('마킹 실패:', err);
+            alert(`처리 중 오류가 발생했습니다: ${err.message}`);
+        }
+    }, [selectedIds, scrapedEvents, currentTab]);
+
     const toggleSelect = (id: string) => {
         setSelectedIds(prev => {
             const next = new Set(prev);
@@ -420,7 +449,7 @@ const EventIngestor: React.FC = () => {
                 return sameDate && sameTitle;
             });
 
-            if (isDuplicate) {
+            if (isDuplicate || scraped.is_collected) {
                 duplicateItemList.push(scraped);
             } else {
                 newItemList.push(scraped);
@@ -616,6 +645,13 @@ const EventIngestor: React.FC = () => {
                             onClick={handleBatchDismiss}
                         >
                             ✕ 일괄 제외
+                        </button>
+                        <button
+                            className={`btn-batch-mark ${selectedIds.size > 0 ? 'active' : ''}`}
+                            onClick={handleBatchMarkAsCollected}
+                            title="선택한 항목을 이미 수집된 것으로 분류하여 목록에서 숨깁니다."
+                        >
+                            📌 이미 수집됨
                         </button>
                         <button
                             className={`btn-batch-register ${selectedIds.size > 0 ? 'active' : ''}`}

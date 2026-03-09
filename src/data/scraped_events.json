@@ -295,7 +295,8 @@
       "screenshot_path": "/scraped/swingholic_260307_poster.png"
     },
     "created_at": "2026-03-05T03:10:00+09:00",
-    "updated_at": "2026-03-05T03:10:00+09:00"
+    "updated_at": "2026-03-09T08:41:47.191Z",
+    "is_collected": true
   },
   {
     "id": "st_260308_sun",
@@ -323,7 +324,8 @@
       "screenshot_path": "/scraped/swingtime_260308_poster.png"
     },
     "created_at": "2026-03-08T03:30:00+09:00",
-    "updated_at": "2026-03-08T03:30:00+09:00"
+    "updated_at": "2026-03-09T08:41:47.191Z",
+    "is_collected": true
   },
   {
     "id": "ksh_260308_sun",
@@ -350,7 +352,8 @@
       "screenshot_path": "/scraped/kyungsung_260308_poster.png"
     },
     "created_at": "2026-03-08T03:30:00+09:00",
-    "updated_at": "2026-03-08T03:30:00+09:00"
+    "updated_at": "2026-03-09T08:41:35.803Z",
+    "is_collected": true
   },
   {
     "id": "ss_260309_mon",
@@ -402,7 +405,8 @@
       "screenshot_path": "/scraped/kyungsung_260308_poster.png"
     },
     "created_at": "2026-03-08T03:30:00+09:00",
-    "updated_at": "2026-03-08T03:30:00+09:00"
+    "updated_at": "2026-03-09T08:41:35.803Z",
+    "is_collected": true
   },
   {
     "id": "bat_260314_sat",
@@ -429,7 +433,8 @@
       "screenshot_path": "/scraped/batswing_2603_schedule.png"
     },
     "created_at": "2026-03-08T03:30:00+09:00",
-    "updated_at": "2026-03-08T03:30:00+09:00"
+    "updated_at": "2026-03-09T08:41:35.803Z",
+    "is_collected": true
   },
   {
     "id": "bat_260321_sat",
@@ -456,7 +461,8 @@
       "screenshot_path": "/scraped/batswing_2603_schedule.png"
     },
     "created_at": "2026-03-08T03:30:00+09:00",
-    "updated_at": "2026-03-08T03:30:00+09:00"
+    "updated_at": "2026-03-09T08:41:35.803Z",
+    "is_collected": true
   },
   {
     "id": "bat_260328_sat",
@@ -483,7 +489,8 @@
       "screenshot_path": "/scraped/batswing_2603_schedule.png"
     },
     "created_at": "2026-03-08T03:30:00+09:00",
-    "updated_at": "2026-03-08T03:30:00+09:00"
+    "updated_at": "2026-03-09T08:41:35.803Z",
+    "is_collected": true
   },
   {
     "id": "ns_260308_sun",
@@ -510,6 +517,91 @@
       "screenshot_path": "/scraped/verify_neoswing_20260308.png"
     },
     "created_at": "2026-03-08T08:15:00+09:00",
-    "updated_at": "2026-03-08T08:15:00+09:00"
+    "updated_at": "2026-03-09T08:41:47.191Z",
+    "is_collected": true
+  },
+  {
+    "id": "sh_260314_sat",
+    "keyword": "스윙홀릭",
+    "source_url": "https://www.instagram.com/swingholic/p/DVcP9cNkroR/",
+    "poster_url": "/scraped/swingholic_260314_28_poster.webp",
+    "extracted_text": "3월 DJ 일정!\n날짜: 2026-03-14 (토)\nDJ: 별장군\n장소: MAYAN F3\n시간: 20:00 - 22:30\n가격: 9,000원",
+    "structured_data": {
+      "date": "2026-03-14",
+      "day": "토",
+      "title": "광주 정기 소셜 (DJ 별장군)",
+      "status": "정상운영",
+      "djs": [
+        "별장군"
+      ],
+      "times": [
+        "20:00 ~ 22:30"
+      ],
+      "location": "광주 마얀 F3",
+      "fee": "9,000원",
+      "note": "3월 DJ 일정"
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/swingholic_260314_28_poster.webp"
+    },
+    "created_at": "2026-03-09T15:20:00+09:00",
+    "updated_at": "2026-03-09T08:41:35.803Z",
+    "is_collected": true
+  },
+  {
+    "id": "sh_260321_sat",
+    "keyword": "스윙홀릭",
+    "source_url": "https://www.instagram.com/swingholic/p/DVcP9cNkroR/",
+    "poster_url": "/scraped/swingholic_260314_28_poster.webp",
+    "extracted_text": "3월 DJ 일정!\n날짜: 2026-03-21 (토)\nDJ: TC\n장소: MAYAN F3\n시간: 20:00 - 22:30\n가격: 9,000원",
+    "structured_data": {
+      "date": "2026-03-21",
+      "day": "토",
+      "title": "광주 정기 소셜 (DJ TC)",
+      "status": "정상운영",
+      "djs": [
+        "TC"
+      ],
+      "times": [
+        "20:00 ~ 22:30"
+      ],
+      "location": "광주 마얀 F3",
+      "fee": "9,000원",
+      "note": "3월 DJ 일정"
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/swingholic_260314_28_poster.webp"
+    },
+    "created_at": "2026-03-09T15:20:00+09:00",
+    "updated_at": "2026-03-09T08:41:35.803Z",
+    "is_collected": true
+  },
+  {
+    "id": "sh_260328_sat",
+    "keyword": "스윙홀릭",
+    "source_url": "https://www.instagram.com/swingholic/p/DVcP9cNkroR/",
+    "poster_url": "/scraped/swingholic_260314_28_poster.webp",
+    "extracted_text": "3월 DJ 일정!\n날짜: 2026-03-28 (토)\nDJ: 자연인\n장소: MAYAN F3\n시간: 20:00 - 22:30\n가격: 9,000원",
+    "structured_data": {
+      "date": "2026-03-28",
+      "day": "토",
+      "title": "광주 정기 소셜 (DJ 자연인)",
+      "status": "정상운영",
+      "djs": [
+        "자연인"
+      ],
+      "times": [
+        "20:00 ~ 22:30"
+      ],
+      "location": "광주 마얀 F3",
+      "fee": "9,000원",
+      "note": "3월 DJ 일정"
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/swingholic_260314_28_poster.webp"
+    },
+    "created_at": "2026-03-09T15:20:00+09:00",
+    "updated_at": "2026-03-09T08:41:22.293Z",
+    "is_collected": true
   }
 ]

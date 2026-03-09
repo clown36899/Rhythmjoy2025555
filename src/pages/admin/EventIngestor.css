@@ -533,6 +533,27 @@ html.ingestor-fullscreen #root {
     color: #fff;
 }
 
+.btn-batch-mark {
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    border-radius: 6px;
+    border: 1px solid #10b981;
+    background: rgba(16, 185, 129, 0.15);
+    color: #a7f3d0;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 600;
+}
+
+.btn-batch-mark:hover {
+    background: rgba(16, 185, 129, 0.3);
+}
+
+.btn-batch-mark.active {
+    background: #10b981;
+    color: #fff;
+}
+
 /* === 유사(likely) 상태 === */
 .comparison-row.status-likely {
     background: rgba(139, 92, 246, 0.08);

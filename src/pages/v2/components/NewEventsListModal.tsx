@@ -16,13 +16,15 @@ interface NewEventsListModalProps {
     onClose: () => void;
     events: AppEvent[];
     onEventClick: (event: AppEvent) => void;
+    initialVersion?: number; // 1-5: 쇼케이스 버전, 6: 목록, undefined: 셀렉터
 }
 
 export default function NewEventsListModal({
     isOpen,
     onClose,
     events,
-    onEventClick
+    onEventClick,
+    initialVersion
 }: NewEventsListModalProps) {
     const [viewMode, setViewMode] = useState<'list' | 'showcase' | 'selector'>('selector');
     const [showcaseVersion, setShowcaseVersion] = useState(3);
@@ -30,8 +32,7 @@ export default function NewEventsListModal({
     const [v1ActiveIndex, setV1ActiveIndex] = useState(-1);
     const [v1Stage, setV1Stage] = useState<'opening' | 'spotlight' | 'outro'>('opening');
     const [v1Interval, setV1Interval] = useState(1500); // Initial 1.5s for spotlight
-    const [v5ActiveIndex, setV5ActiveIndex] = useState(-1);
-    const [v5Stage, setV5Stage] = useState<'opening' | 'spotlight' | 'outro'>('opening');
+    const [v5GridPage, setV5GridPage] = useState(0);
     const [dbEvents, setDbEvents] = useState<AppEvent[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -105,47 +106,19 @@ export default function NewEventsListModal({
         }
     }, [showcaseVersion, viewMode, isOpen, v1Events.length, v1Stage, v1ActiveIndex, v1Interval]);
 
-    // V5 Cinema Sequence Controller
-    useEffect(() => {
-        if (showcaseVersion === 5 && viewMode === 'showcase' && isOpen && activeEvents.length > 0) {
-            if (v5Stage === 'opening') {
-                setV5ActiveIndex(-1);
-                const stageTimer = setTimeout(() => {
-                    setV5Stage('spotlight');
-                    setV5ActiveIndex(0);
-                }, 2500);
-                return () => clearTimeout(stageTimer);
-            }
-            if (v5Stage === 'outro') {
-                setV5ActiveIndex(activeEvents.length);
-                const loopTimer = setTimeout(() => {
-                    setV5Stage('opening');
-                }, 3000);
-                return () => clearTimeout(loopTimer);
-            }
-        }
-    }, [showcaseVersion, viewMode, isOpen, activeEvents.length, v5Stage]);
-
-    useEffect(() => {
-        if (showcaseVersion === 5 && viewMode === 'showcase' && isOpen && events.length > 0 && v5Stage === 'spotlight') {
-            const spotlightTimer = setInterval(() => {
-                setV5ActiveIndex(prev => {
-                    if (prev >= events.length - 1) {
-                        setV5Stage('outro');
-                        return prev;
-                    }
-                    return prev + 1;
-                });
-            }, 1500); // 1.5s for cyber feel
-            return () => clearInterval(spotlightTimer);
-        }
-    }, [showcaseVersion, viewMode, isOpen, activeEvents.length, v5Stage]);
-
     useEffect(() => {
         if (isOpen) {
             document.body.style.overflow = 'hidden';
             setPage(0);
-            setViewMode('selector');
+            if (initialVersion && initialVersion >= 1 && initialVersion <= 5) {
+                setShowcaseVersion(initialVersion);
+                if (initialVersion === 5) setV5GridPage(0);
+                setViewMode('showcase');
+            } else if (initialVersion === 6) {
+                setViewMode('list');
+            } else {
+                setViewMode('selector');
+            }
         } else {
             document.body.style.overflow = '';
         }
@@ -158,6 +131,14 @@ export default function NewEventsListModal({
         const result = [];
         for (let i = 0; i < activeEvents.length; i += 12) {
             result.push(activeEvents.slice(i, i + 12));
+        }
+        return result.length > 0 ? result : [[]];
+    }, [activeEvents]);
+
+    const v5GridPages = useMemo(() => {
+        const result = [];
+        for (let i = 0; i < activeEvents.length; i += 6) {
+            result.push(activeEvents.slice(i, i + 6));
         }
         return result.length > 0 ? result : [[]];
     }, [activeEvents]);
@@ -201,10 +182,10 @@ export default function NewEventsListModal({
                         <h3 className="NEL-title">신규 이벤트 <span className="NEL-badge">NEW</span></h3>
                     </div>
                     <div className="NEL-headerActions">
-                        {events.length > 0 && viewMode !== 'selector' ? (
+                        {activeEvents.length > 0 && viewMode !== 'selector' ? (
                             <button
                                 className="NEL-modeBtn back-to-selector"
-                                onClick={() => setViewMode('selector')}
+                                onClick={() => initialVersion ? onClose() : setViewMode('selector')}
                             >
                                 <i className="ri-arrow-left-line"></i>
                             </button>
@@ -215,7 +196,7 @@ export default function NewEventsListModal({
                 </div>
 
                 <div className="NEL-body">
-                    {events.length > 0 ? (
+                    {activeEvents.length > 0 || viewMode === 'selector' ? (
                         viewMode === 'selector' ? (
                             <div className="NEL-selectorView">
                                 <div className="NEL-sTitleGroup">
@@ -231,8 +212,6 @@ export default function NewEventsListModal({
                                                 setShowcaseVersion(v);
                                                 setV1ActiveIndex(-1);
                                                 setV1Stage('opening');
-                                                setV5ActiveIndex(-1);
-                                                setV5Stage('opening');
                                                 setViewMode('showcase');
                                             }}
                                         >
@@ -247,8 +226,7 @@ export default function NewEventsListModal({
                                         className="NEL-sCard showcase-card v5-card"
                                         onClick={() => {
                                             setShowcaseVersion(5);
-                                            setV5ActiveIndex(-1);
-                                            setV5Stage('opening');
+                                            setV5GridPage(0);
                                             setViewMode('showcase');
                                         }}
                                     >
@@ -380,53 +358,35 @@ export default function NewEventsListModal({
                                         </div>
                                     </div>
                                 ) : showcaseVersion === 5 ? (
-                                    /* Version 5: Cyber Kinetic & Glitch (Redone) */
+                                    /* Version 5: Card Grid */
                                     <div className="NEL-cinematicV5">
-                                        {/* Background Glitch Canvas */}
-                                        <div className="NEL-v5Backdrop">
-                                            {activeEvents.map((event, idx) => (
-                                                <div key={`v5-bg-${event.id}-${idx}`} className="NEL-v5Tile">
-                                                    <img src={event.image_thumbnail} alt="" />
-                                                </div>
-                                            ))}
-                                        </div>
-
-                                        {/* Digital Scan Opening */}
-                                        <div className={`NEL-v5Opening ${v5Stage === 'opening' ? 'active' : ''}`}>
-                                            <div className="v5-title-scanner">Billboard</div>
-                                            <div className="v5-scan-progress">ACCESS_GRANTED</div>
-                                        </div>
-
-                                        {/* 3D Perspective Carousel Stage */}
-                                        <div className="v5-spotlight-stage">
-                                            {activeEvents.map((event, idx) => {
-                                                const isActive = v5ActiveIndex === idx;
-                                                const isNext = v5ActiveIndex + 1 === idx || (v5ActiveIndex === activeEvents.length - 1 && idx === 0);
-
-                                                return (
-                                                    <div
-                                                        key={`v5-spot-${event.id}`}
-                                                        className={`v5-spot-item ${isActive ? 'active' : ''} ${isNext ? 'next' : ''}`}
-                                                    >
-                                                        <div className="v5-spot-card">
-                                                            <div className="v5-spot-media">
-                                                                <img src={event.image_medium || event.image_thumbnail} alt="" />
-                                                            </div>
-                                                            <div className="v5-spot-info">
-                                                                <h2 className="v5-spot-title">{event.title}</h2>
-                                                                <div className="v5-spot-date">{getDateText(event)}</div>
-                                                            </div>
+                                        <div className="v5-grid-body">
+                                            <div className="v5-grid">
+                                                {v5GridPages[v5GridPage]?.map(event => (
+                                                    <div key={event.id} className="v5-grid-card" onClick={() => onEventClick(event)}>
+                                                        <div className="v5-grid-thumb">
+                                                            <img src={event.image_medium || event.image_thumbnail} alt="" />
+                                                            <span className={`v5-grid-cat ${getCategoryColor(event.category)}`}>{getCategoryName(event.category)}</span>
+                                                        </div>
+                                                        <div className="v5-grid-info">
+                                                            <h4 className="v5-grid-title">{event.title}</h4>
+                                                            <span className="v5-grid-date">{getDateText(event)}</span>
                                                         </div>
                                                     </div>
-                                                );
-                                            })}
+                                                ))}
+                                            </div>
                                         </div>
-
-                                        {/* Digital Dissolve Outro Stage */}
-                                        <div className={`v5-outro-stage ${v5Stage === 'outro' ? 'active' : ''}`}>
-                                            <div className="v5-outro-brand">DISCONNECTED</div>
-                                            <div className="v5-outro-tagline">ENJOY THE RHYTHM_</div>
-                                        </div>
+                                        {v5GridPages.length > 1 && (
+                                            <div className="v5-grid-pagination">
+                                                <button disabled={v5GridPage === 0} onClick={() => setV5GridPage(p => p - 1)}>
+                                                    <i className="ri-arrow-left-s-line"></i>
+                                                </button>
+                                                <span>{v5GridPage + 1} / {v5GridPages.length}</span>
+                                                <button disabled={v5GridPage === v5GridPages.length - 1} onClick={() => setV5GridPage(p => p + 1)}>
+                                                    <i className="ri-arrow-right-s-line"></i>
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 ) : (
                                     <div className="NEL-cinematicV4">
