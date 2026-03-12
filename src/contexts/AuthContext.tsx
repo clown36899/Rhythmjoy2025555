@@ -150,7 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       const { data: existingUser } = await supabase
         .from('board_users')
-        .select('user_id, status, nickname, provider, profile_image, kakao_id, gender')
+        .select('user_id, email, status, nickname, provider, profile_image, kakao_id, gender')
         .eq('user_id', userObj.id)
         .maybeSingle();
 
@@ -159,8 +159,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const isWithdrawn = existingUser.status === 'deleted' || existingUser.nickname === '탈퇴한 사용자';
 
         const updateData: any = {
-          email: userObj.email,
-          updated_at: new Date().toISOString()
+          email: userObj.email
         };
 
         // 🛡️ Data Preservation & Correction Logic
@@ -199,11 +198,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         // Check if there are actual changes before updating
         const hasChanges = Object.keys(updateData).some(key =>
-          key !== 'updated_at' && updateData[key] !== (existingUser as any)[key]
+          updateData[key] !== (existingUser as any)[key]
         );
 
         if (hasChanges || isWithdrawn) {
-
+          updateData.updated_at = new Date().toISOString();
           const { error: updateError } = await supabase
             .from('board_users')
             .update(updateData)

@@ -55,10 +55,7 @@ export const PWAInstallGuideModal = ({ isOpen, onClose }: PWAInstallGuideModalPr
                                         안드로이드는 <strong>브라우저 상태</strong>에서도<br />
                                         알림 서비스를 바로 이용하실 수 있습니다!
                                     </p>
-                                    <p className="PIGM-subDesc">
-                                        더 빠르고 편리한 이용(전용 아이콘, 오프라인 지원)을<br />
-                                        원하신다면 앱 설치를 권장합니다.
-                                    </p>
+
                                 </>
                             ) : (
                                 <>
@@ -76,7 +73,7 @@ export const PWAInstallGuideModal = ({ isOpen, onClose }: PWAInstallGuideModalPr
                     {/* 설치 단계 안내 */}
                     <div className="PIGM-infoSection">
                         <h3 className="PIGM-sectionTitle">수동 설치 방법 (3초 완료)</h3>
-                        
+
                         {isIOS ? (
                             <div className="PIGM-steps">
                                 <div className="PIGM-stepItem">
@@ -122,10 +119,12 @@ export const PWAInstallGuideModal = ({ isOpen, onClose }: PWAInstallGuideModalPr
                         )}
                     </div>
 
-                    <div className="PIGM-tipBox">
-                        <i className="ri-information-line"></i>
-                        <span>홈 화면에 추가된 아이콘으로 접속해야 모든 기능을 100% 활용할 수 있습니다.</span>
-                    </div>
+                    {isIOS && (
+                        <div className="PIGM-tipBox">
+                            <i className="ri-information-line"></i>
+                            <span>아이폰에서는 홈 화면에 추가된 아이콘으로 접속해야 알림 기능을 사용할 수 있습니다.</span>
+                        </div>
+                    )}
                 </div>
 
                 <div className="PIGM-footer">

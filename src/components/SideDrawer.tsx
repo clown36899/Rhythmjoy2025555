@@ -333,7 +333,6 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
                                         } else {
                                             onLoginClick();
                                         }
-                                        onClose();
                                     }}
                                 >
                                     <i className="ri-notification-3-fill"></i>
