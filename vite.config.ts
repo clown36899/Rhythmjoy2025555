@@ -122,10 +122,12 @@ export default defineConfig({
       manifest: false,          // 기존 public/manifest.json 그대로 사용
       injectRegister: null,     // main.tsx에서 직접 registerSW 호출 (빌보드 격리 위해)
       devOptions: {
-        enabled: false,
+        enabled: true,
+        type: 'module',
+        suppressWarnings: true, // [Optimization] 개발 모드에서 시끄러운 Workbox 경고 억제
       },
       injectManifest: {
-        // 빌드 결과물(dist/assets/)의 hashed 파일들만 precache 대상으로 지정
+        swSrc: resolve(__dirname, 'public/service-worker.js'),
         globPatterns: ['assets/**/*.{js,css}', 'index.html'],
         injectionPoint: 'self.__WB_MANIFEST',
       },

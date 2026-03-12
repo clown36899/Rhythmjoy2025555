@@ -276,6 +276,23 @@
     opacity: 0.5;
 }
 
+.SD-smallArrow {
+    font-size: 1rem;
+    color: #666;
+    transition: transform 0.2s;
+}
+
+.SD-pwaGuideEntry:active .SD-smallArrow {
+    transform: translateX(4px);
+}
+
+.SD-menuLabelWithStatus {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
 .SideDrawer .SD-submenuItem:hover {
     color: var(--text-primary);
 }

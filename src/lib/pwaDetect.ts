@@ -15,6 +15,17 @@ export function isPWAMode(): boolean {
 }
 
 /**
+ * 현재 기기의 모바일 플랫폼을 반환합니다.
+ */
+export function getMobilePlatform(): 'android' | 'ios' | 'other' {
+  if (typeof window === 'undefined') return 'other';
+  const ua = navigator.userAgent.toLowerCase();
+  if (/android/i.test(ua)) return 'android';
+  if (/iphone|ipad|ipod/i.test(ua)) return 'ios';
+  return 'other';
+}
+
+/**
  * iOS 전용: BroadcastChannel 미지원(15.4 미만) 기기 여부 확인
  */
 export function isLegacyIOS(): boolean {

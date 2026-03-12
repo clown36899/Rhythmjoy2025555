@@ -9,8 +9,8 @@ import {
     verifySubscriptionOwnership
 } from '../lib/pushNotifications';
 import { useAuth } from '../contexts/AuthContext';
-import { isPWAMode } from '../lib/pwaDetect';
-import { PWAInstallButton } from './PWAInstallButton';
+import { isPWAMode, getMobilePlatform } from '../lib/pwaDetect';
+import { PWAInstallGuideModal } from './PWAInstallGuideModal';
 import { useInstallPrompt } from '../contexts/InstallPromptContext';
 import GlobalLoadingOverlay from './GlobalLoadingOverlay';
 import '../styles/domains/settings.css';
@@ -26,9 +26,11 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
     const [isPushLoading, setIsPushLoading] = useState<boolean>(false);
     const [isRunningInPWA, setIsRunningInPWA] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
+    const [isPWAInstallModalOpen, setIsPWAInstallModalOpen] = useState(false);
     const { promptEvent } = useInstallPrompt();
 
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+    const platform = getMobilePlatform();
+    const isIOS = platform === 'ios';
 
     const [pushPrefs, setPushPrefs] = useState<{
         pref_events: boolean,
@@ -59,8 +61,13 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
             return pwa;
         };
 
-        checkPWA();
+        const pwa = checkPWA();
         loadSettings();
+
+        // [New Policy] iOS이고 PWA가 아니면 알림 설정을 켤 때 설치 안내를 먼저 띄움
+        if (platform === 'ios' && !pwa) {
+            setIsPWAInstallModalOpen(true);
+        }
     }, [isOpen]);
 
     const loadSettings = async () => {
@@ -134,6 +141,12 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
             if (isPushEnabled) {
                 await updatePushPreferences(pushPrefs);
             }
+
+            // [Sync] 사이드바 등 다른 컴포넌트에 알림 상태 변경 알림
+            window.dispatchEvent(new CustomEvent('pushStatusChanged', { 
+                detail: { enabled: isPushEnabled } 
+            }));
+
             // 성공 시 바로 닫기 (alert 없이 — focus 이벤트로 인한 무한 루프 방지)
             onClose();
         } catch (error) {
@@ -162,48 +175,17 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                 </div>
 
                 <div className="NSM-body">
-                    {!isRunningInPWA ? (
-                        <div className="NSM-pwaTip">
+                    {(!isRunningInPWA && platform !== 'android') ? (
+                        <div className="NSM-pwaTip" onClick={() => setIsPWAInstallModalOpen(true)}>
                             <div className="NSM-pwaHeader">
                                 <i className="ri-error-warning-fill"></i>
                                 <p className="NSM-pwaText">알람설정은 앱에서만 작동합니다.</p>
                             </div>
 
-                            <PWAInstallButton />
-
-                            {/* [수동 설치 안내] iOS이거나, Android인데 프롬프트가 없을 때 */}
-                            {(isIOS || !promptEvent) && (
-                                <div className="NSM-installSteps">
-                                    <span className="NSM-sectionLabel">수동 설치 방법</span>
-                                    {isIOS ? (
-                                        <>
-                                            <div className="NSM-stepItem">
-                                                <div className="NSM-stepNumber">1</div>
-                                                <div className="NSM-stepText">하단의 <strong>공유 아이콘</strong>을 누르세요.</div>
-                                            </div>
-                                            <div className="NSM-stepItem">
-                                                <div className="NSM-stepNumber">2</div>
-                                                <div className="NSM-stepText"><strong>'홈 화면에 추가'</strong>를 선택하세요.</div>
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <div className="NSM-stepItem">
-                                                <div className="NSM-stepNumber">1</div>
-                                                <div className="NSM-stepText">우측 상단 <strong>메뉴(⋮)</strong>를 누르세요.</div>
-                                            </div>
-                                            <div className="NSM-stepItem">
-                                                <div className="NSM-stepNumber">2</div>
-                                                <div className="NSM-stepText"><strong>'앱 설치'</strong> 또는 <strong>'홈 화면에 추가'</strong>를 누르세요.</div>
-                                            </div>
-                                        </>
-                                    )}
-                                    <div className="NSM-stepItem">
-                                        <div className="NSM-stepNumber">3</div>
-                                        <div className="NSM-stepText">홈 화면에 생성된 <strong>'앱 아이콘'</strong>으로 다시 접속하세요!</div>
-                                    </div>
-                                </div>
-                            )}
+                            <div className="NSM-guideTriggerBtn">
+                                <i className="ri-download-cloud-2-line"></i>
+                                <span>앱 설치 안내 보기</span>
+                            </div>
                         </div>
                     ) : (
                         <>
@@ -310,6 +292,10 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                         {isSaving ? '보안 연결 중...' : '변경사항 저장'}
                     </button>
                 </div>
+                <PWAInstallGuideModal 
+                    isOpen={isPWAInstallModalOpen} 
+                    onClose={() => setIsPWAInstallModalOpen(false)} 
+                />
             </div>
         </div>
     );

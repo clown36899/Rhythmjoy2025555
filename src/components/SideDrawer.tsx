@@ -4,7 +4,7 @@ import { useModal } from '../hooks/useModal';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { useEffect, useState } from 'react';
-import { PWAInstallButton } from './PWAInstallButton';
+import { PWAInstallGuideModal } from './PWAInstallGuideModal';
 import {
     getPushSubscription,
     verifySubscriptionOwnership
@@ -61,11 +61,22 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
         };
         window.addEventListener('statsUpdated', handleStatsUpdate);
 
+        const handlePushStatus = (e: any) => {
+            if (e.detail && typeof e.detail.enabled === 'boolean') {
+                setIsPushEnabled(e.detail.enabled);
+            }
+        };
+        window.addEventListener('pushStatusChanged', handlePushStatus);
+        
+        // 초기 로드 시 체크
+        checkStatus();
+
         return () => {
             window.removeEventListener('toggleDrawer', handleToggle);
             window.removeEventListener('openDrawer', handleOpen);
             window.removeEventListener('closeDrawer', handleClose);
             window.removeEventListener('statsUpdated', handleStatsUpdate);
+            window.removeEventListener('pushStatusChanged', handlePushStatus);
         };
     }, []);
 
@@ -76,23 +87,24 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
     });
     const [isPushEnabled, setIsPushEnabled] = useState<boolean>(false);
 
-    useEffect(() => {
-        if (!isOpen) return;
-
-        const checkStatus = async () => {
-            if (!user) return;
-            try {
-                const sub = await getPushSubscription();
-                if (sub) {
-                    const verified = await verifySubscriptionOwnership();
-                    setIsPushEnabled(verified);
-                }
-            } catch (e) {
-                console.error('[SideDrawer] Push status check failed:', e);
+    const checkStatus = async () => {
+        if (!user) return;
+        try {
+            const sub = await getPushSubscription();
+            if (sub) {
+                const verified = await verifySubscriptionOwnership();
+                setIsPushEnabled(verified);
+            } else {
+                setIsPushEnabled(false);
             }
-        };
+        } catch (e) {
+            console.error('[SideDrawer] Push status check failed:', e);
+        }
+    };
+
+    useEffect(() => {
         checkStatus();
-    }, [isOpen, user]);
+    }, [user]);
 
     // Modals
     const boardManagementModal = useModal('boardManagement');
@@ -110,6 +122,7 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
     const profileEditModal = useModal('profileEdit');
     const statsModal = useModal('stats');
     const newEventsListModal = useModal('newEventsList');
+    const [isPWAInstallModalOpen, setIsPWAInstallModalOpen] = useState(false);
 
     const nickname = userProfile?.nickname || billboardUserName || user?.user_metadata?.name || user?.email?.split('@')[0] || 'Guest';
     const profileImage = userProfile?.profile_image || user?.user_metadata?.avatar_url || null;
@@ -302,7 +315,16 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
                         <div className="SD-pwaSection">
                             <div className="SD-sectionTitle">APP DASHBOARD</div>
                             <div className="SD-pwaContainer">
-                                <PWAInstallButton />
+                                <div
+                                    className="SD-menuItem SD-pwaGuideEntry"
+                                    onClick={() => setIsPWAInstallModalOpen(true)}
+                                >
+                                    <i className="ri-download-cloud-2-line"></i>
+                                    <div className="SD-menuLabelWithStatus">
+                                        <span>앱 설치 안내</span>
+                                        <i className="ri-arrow-right-s-line SD-smallArrow"></i>
+                                    </div>
+                                </div>
                                 <div
                                     className="SD-menuItem SD-notificationEntry"
                                     onClick={() => {
@@ -562,6 +584,10 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
                     <div className="SD-version">v{__APP_VERSION__}</div>
                 </div>
             </div>
+            <PWAInstallGuideModal 
+                isOpen={isPWAInstallModalOpen} 
+                onClose={() => setIsPWAInstallModalOpen(false)} 
+            />
         </div>,
         document.body
     );

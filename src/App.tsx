@@ -13,7 +13,7 @@ import { SiteAnalyticsProvider } from './components/SiteAnalyticsProvider';
 import { InAppBrowserGuard } from './components/InAppBrowserGuard';
 import { GlobalPlayerProvider } from './contexts/GlobalPlayerContext';
 import { getPushSubscription, saveSubscriptionToSupabase, subscribeToPush, getPushPreferences } from './lib/pushNotifications';
-import { isPWAMode } from './lib/pwaDetect';
+import { isPWAMode, getMobilePlatform } from './lib/pwaDetect';
 import { PwaNotificationModal } from './components/PwaNotificationModal';
 
 import { notificationStore } from './lib/notificationStore';
@@ -135,12 +135,18 @@ function AppContent() {
       // 이미 '안 보기'를 선택했는지 확인
       const isDismissed = localStorage.getItem('pwa_prompt_dismissed') === 'true';
       const isStandalone = isPWAMode();
+      const platform = getMobilePlatform();
 
-      console.log('[App] PWA Check:', { isAdmin, isDismissed, isStandalone });
+      // [Strategy] 
+      // Android: 브라우저에서도 알림 가능 -> PWA 아니어도 진행
+      // iOS: PWA(Standalone)일 때만 알림 가능 -> Standalone 체크 필수
+      const canPushOnThisPlatform = platform === 'android' || isStandalone;
+
+      console.log('[App] PWA Check:', { isDismissed, isStandalone, platform, canPushOnThisPlatform });
 
       if (isDismissed) return;
 
-      if (isStandalone) {
+      if (canPushOnThisPlatform) {
         try {
           const existingSub = await getPushSubscription();
           console.log('[App] Existing Sub:', existingSub);

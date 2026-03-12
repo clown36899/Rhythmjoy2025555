@@ -160,7 +160,8 @@ export const AdminPushTest: React.FC = () => {
         return 'Unknown';
     };
 
-    const CLOWN_USER_ID = '91b04b25-7449-4d64-8fc2-4e328b2659ab'; // clown313joy@gmail.com
+    const CLOWN_GMAIL_ID = '1273334d-56de-4e31-936f-359baca5b48e'; // clown313joy@gmail.com
+    const CLOWN_NAVER_ID = 'bb898dbb-1738-4339-bcd3-fa1eb70bfe11'; // clown313@naver.com (Main Admin)
 
     const handleSendTest = async (targetType: 'me' | 'clown') => {
         setLoading(true);
@@ -169,41 +170,58 @@ export const AdminPushTest: React.FC = () => {
         const finalTitle = `${title} (${category === 'class' ? '강습' : category === 'club' ? '동호회' : '행사'})`;
 
         try {
-            console.log('[AdminPushTest] Sending push via Edge Function...', { targetType, userId: targetType === 'me' ? user?.id : CLOWN_USER_ID });
+            const targetIds = targetType === 'me' ? [user?.id] : [CLOWN_GMAIL_ID, CLOWN_NAVER_ID];
+            
+            console.log('[AdminPushTest] 🎯 Final Target IDs (Strict):', targetIds);
+            console.log('[AdminPushTest] Sending push via Edge Function...', { targetType, targetIds });
 
-            const { data, error } = await supabase.functions.invoke('send-push-notification', {
-                body: {
-                    title: finalTitle,
-                    body: body,
-                    image: imageUrl,
-                    category: category,
-                    genre: genre,
-                    content: content,
-                    userId: targetType === 'me' ? user?.id : CLOWN_USER_ID,
-                    url: targetUrl
+            const results = await Promise.all(targetIds.map(async (tid) => {
+                if (!tid) return null;
+                const { data, error } = await supabase.functions.invoke('send-push-notification', {
+                    body: {
+                        title: finalTitle,
+                        body: body,
+                        image: imageUrl,
+                        category: category,
+                        genre: genre,
+                        content: content,
+                        userId: tid,
+                        url: targetUrl
+                    }
+                });
+                return { tid, data, error };
+            }));
+
+            const flatResults = results.filter(Boolean);
+            const errors = flatResults.filter(r => r?.error);
+            
+            if (errors.length > 0) {
+                console.error('[AdminPushTest] Some invocations failed:', errors);
+            }
+
+            // 통합 결과 리포트
+            let totalSuccess = 0;
+            let totalFailure = 0;
+            let lastError = null;
+
+            flatResults.forEach(r => {
+                console.log(`[AdminPushTest] Result for ${r.tid}:`, r.data, r.error);
+                if (r?.data?.summary) {
+                    totalSuccess += r.data.summary.success || 0;
+                    totalFailure += r.data.summary.failure || 0;
+                }
+                if (r?.data?.status === 'error' || r?.data?.status === 'warning') {
+                    lastError = `${r.tid}: ${r.data.message}`;
+                }
+                if (r?.error) {
+                    lastError = `${r.tid}: ${r.error.message}`;
                 }
             });
 
-            if (error) {
-                console.error('[AdminPushTest] Edge Function Error:', error);
-                throw error;
-            }
-
-            console.log('[AdminPushTest] Response:', data);
-
-            if (data?.status === 'error') {
-                setResult(`❌ 서버 오류: ${data.message}${data.stack ? '\n\n' + data.stack : ''}`);
-                return;
-            }
-
-            const success = data?.summary?.success || 0;
-            const failure = data?.summary?.failure || 0;
-            const firstError = data?.results?.find((r: any) => r.status === 'rejected')?.error;
-
-            if (success === 0 && failure > 0) {
-                setResult(`⚠️ 발송 시도했으나 모두 실패: ${JSON.stringify(data.summary)}\n사유: ${firstError || 'VAPID 키 불일치 의심 (재구독 권장)'}`);
+            if (totalSuccess === 0) {
+                setResult(`❌ 발송 결과: ${lastError || '등록된 기기 없음 (구독 정보 확인 필요)'}`);
             } else {
-                setResult(`🚀 발송 완료! (성공: ${success}, 실패: ${failure})`);
+                setResult(`🚀 발송 완료! (총 성공: ${totalSuccess}, 총 실패: ${totalFailure})`);
             }
         } catch (err: any) {
             console.error('[AdminPushTest] Unified Error:', err);
@@ -222,24 +240,28 @@ export const AdminPushTest: React.FC = () => {
         const scheduledAt = new Date(Date.now() + 10 * 1000).toISOString(); // 10 seconds later
 
         try {
-            const { error } = await supabase.from('notification_queue').insert({
-                title: finalTitle,
-                body: body,
-                category: category,
-                payload: {
-                    url: targetUrl,
-                    userId: targetType === 'me' ? user?.id : CLOWN_USER_ID,
-                    genre: genre,
-                    image: imageUrl,
-                    content: content,
-                    error_test: forceError // payload 안으로 이동
-                },
-                scheduled_at: scheduledAt,
-                status: 'pending'
-            });
+            const targetIds = targetType === 'me' ? [user?.id] : [CLOWN_GMAIL_ID, CLOWN_NAVER_ID];
 
-            if (error) throw error;
-            setResult(`✅ 큐 등록 성공! 10초 뒤에 [process-notification-queue]가 실행될 때 발송됩니다. (예약시간: ${new Date(scheduledAt).toLocaleTimeString()})`);
+            for (const tid of targetIds) {
+                if (!tid) continue;
+                await supabase.from('notification_queue').insert({
+                    title: finalTitle,
+                    body: body,
+                    category: category,
+                    payload: {
+                        url: targetUrl,
+                        userId: tid,
+                        genre: genre,
+                        image: imageUrl,
+                        content: content,
+                        error_test: forceError
+                    },
+                    scheduled_at: scheduledAt,
+                    status: 'pending'
+                });
+            }
+
+            setResult(`✅ 큐 등록 성공! (대상: ${targetIds.length}명) 10초 뒤 발송됩니다.`);
         } catch (err: any) {
             setResult(`❌ 큐 등록 실패: ${err.message}`);
         } finally {

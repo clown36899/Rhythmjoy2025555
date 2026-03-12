@@ -286,6 +286,21 @@
     color: var(--nsm-text);
 }
 
+.NotificationSettingsModal .NSM-guideTriggerBtn {
+    margin-top: 16px;
+    background: #4f46e5;
+    color: white;
+    padding: 12px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.3);
+}
+
 .NotificationSettingsModal .NSM-chip.is-active {
     background: rgba(37, 99, 235, 0.15);
     border-color: rgba(37, 99, 235, 0.4);
