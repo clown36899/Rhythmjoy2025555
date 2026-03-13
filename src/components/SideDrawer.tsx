@@ -67,7 +67,7 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
             }
         };
         window.addEventListener('pushStatusChanged', handlePushStatus);
-        
+
         // 초기 로드 시 체크
         checkStatus();
 
@@ -315,7 +315,7 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
                         <div className="SD-pwaSection">
                             <div className="SD-sectionTitle">APP DASHBOARD</div>
                             <div className="SD-pwaContainer">
-                                <div
+                                {/* <div
                                     className="SD-menuItem SD-pwaGuideEntry"
                                     onClick={() => setIsPWAInstallModalOpen(true)}
                                 >
@@ -324,7 +324,7 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
                                         <span>앱 설치 안내</span>
                                         <i className="ri-arrow-right-s-line SD-smallArrow"></i>
                                     </div>
-                                </div>
+                                </div> */}
                                 <div
                                     className="SD-menuItem SD-notificationEntry"
                                     onClick={() => {
@@ -583,9 +583,9 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
                     <div className="SD-version">v{__APP_VERSION__}</div>
                 </div>
             </div>
-            <PWAInstallGuideModal 
-                isOpen={isPWAInstallModalOpen} 
-                onClose={() => setIsPWAInstallModalOpen(false)} 
+            <PWAInstallGuideModal
+                isOpen={isPWAInstallModalOpen}
+                onClose={() => setIsPWAInstallModalOpen(false)}
             />
         </div>,
         document.body

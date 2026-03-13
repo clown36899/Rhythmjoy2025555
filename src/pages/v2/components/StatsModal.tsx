@@ -32,9 +32,7 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
     const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
     const [activeTab, setActiveTab] = useState<'my' | 'scene' | 'monthly'>('my');
 
-    // Swipe gesture state
-    const [touchStart, setTouchStart] = useState<number | null>(null);
-    const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
 
     // Tab refs for measuring actual dimensions
     const tabRefs = useRef<{ [key: string]: HTMLElement | null }>({});
@@ -63,44 +61,7 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
         setActiveTab(tab);
     };
 
-    // Swipe gesture handlers
-    const minSwipeDistance = 50;
 
-    const tabs: ('my' | 'scene' | 'monthly')[] = ['my', 'scene', 'monthly'];
-
-    const onTouchStart = (e: React.TouchEvent) => {
-        // 가로 스크롤 가능한 차트 영역 내부에서 시작된 터치는 탭 스와이프 무시
-        const target = e.target as HTMLElement;
-        const scrollableChart = target.closest('.chart-container:not(.weekly-chart)');
-        if (scrollableChart) {
-            setTouchStart(null);
-            return;
-        }
-        setTouchEnd(null);
-        setTouchStart(e.targetTouches[0].clientX);
-    };
-
-    const onTouchMove = (e: React.TouchEvent) => {
-        setTouchEnd(e.targetTouches[0].clientX);
-    };
-
-    const onTouchEnd = () => {
-        if (!touchStart || !touchEnd) return;
-
-        const distance = touchStart - touchEnd;
-        const isLeftSwipe = distance > minSwipeDistance;
-        const isRightSwipe = distance < -minSwipeDistance;
-
-        const currentIndex = tabs.indexOf(activeTab);
-
-        if (isLeftSwipe && currentIndex < tabs.length - 1) {
-            // Swipe left -> next tab
-            handleTabChange(tabs[currentIndex + 1]);
-        } else if (isRightSwipe && currentIndex > 0) {
-            // Swipe right -> previous tab
-            handleTabChange(tabs[currentIndex - 1]);
-        }
-    };
 
     useEffect(() => {
         if (isOpen) {
@@ -218,9 +179,6 @@ export default function StatsModal({ isOpen, onClose, userId, initialTab = 'my' 
                 ) : (
                     <div
                         className={`content-area ${activeTab === 'monthly' || activeTab === 'scene' ? 'wide-content' : ''}`}
-                        onTouchStart={onTouchStart}
-                        onTouchMove={onTouchMove}
-                        onTouchEnd={onTouchEnd}
                     >
                         <div className={`tab-content ${activeTab === 'my' ? 'active' : ''}`}>
                             <MyImpactCard

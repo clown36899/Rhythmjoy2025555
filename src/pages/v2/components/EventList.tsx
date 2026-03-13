@@ -87,38 +87,55 @@ const EventList: React.FC<EventListProps> = ({
     genreWeights
   });
 
-  // 3.65 Newly Registered Events (72 hours, fallback to latest 6)
+  // 3.65 Newly Registered Events (72 hours, fallback to latest 24)
   const newlyRegisteredEvents = useMemo(() => {
     const now = new Date();
     const seventyTwoHoursAgo = new Date(now.getTime() - 72 * 60 * 60 * 1000);
     const todayStr = getLocalDateString();
 
     const isEligible = (event: Event) => {
-      if (event.category === 'social') return false;
-      if (typeof event.id === 'string' && event.id.startsWith('social-')) return false;
-      if (!event.created_at) return false;
+      // 1. 카테고리 필터 (강습, 파티, 일반 이벤트만 포함)
+      const validCategories = ['class', 'party', 'event'];
+      if (!validCategories.includes(event.category || '')) return false;
+
+      // 2. 소셜 중 라이브밴드가 아닌 것은 제외
       const isLiveBand = event.genre?.includes('라이브밴드');
       const isSocial = event.category === 'social';
       if (isSocial && !isLiveBand) return false;
-      const eventDate = event.end_date || event.date || "";
-      return eventDate >= todayStr;
+
+      // 3. 미래/오늘 일정만 포함 (지난 일정 제거)
+      const eventEndDate = event.end_date || event.date || "";
+      if (eventEndDate < todayStr) return false;
+
+      return true;
     };
 
     const within72h = events.filter(event => {
-      if (!isEligible(event)) return false;
-      const isWithin72Hours = new Date(event.created_at!) > seventyTwoHoursAgo;
+      if (!isEligible(event) || !event.created_at) return false;
+      const isWithin72Hours = new Date(event.created_at) > seventyTwoHoursAgo;
       const isLiveBand = event.genre?.includes('라이브밴드');
       return isWithin72Hours || isLiveBand;
     }).sort((a, b) => new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime());
 
-    // 72시간 내 등록된 이벤트가 없으면 최근 6개 폴백
-    if (within72h.length === 0) {
-      return events.filter(isEligible)
+    // 72시간 내 등록된 이벤트가 없거나 부족하면 전체에서 최근 6개 폴백
+    if (within72h.length < 6) {
+      const fallback = events.filter(isEligible)
         .sort((a, b) => new Date(b.created_at!).getTime() - new Date(a.created_at!).getTime())
         .slice(0, 6);
+      
+      // 중복 제거 및 병합 (72시간 이내 것 우선)
+      const seenIds = new Set(within72h.map(e => e.id));
+      const combined = [...within72h];
+      for (const e of fallback) {
+        if (!seenIds.has(e.id)) {
+          combined.push(e);
+          if (combined.length >= 6) break;
+        }
+      }
+      return combined;
     }
 
-    return within72h;
+    return within72h.slice(0, 6);
   }, [events]);
 
   // 3.7 Realtime Subscription to sync data immediately

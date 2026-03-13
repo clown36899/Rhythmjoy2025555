@@ -37,8 +37,9 @@
     overflow: hidden;
     aspect-ratio: 13 / 16;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
-    /* border-radius: var(--radius-2xl); */
-    border: 1px solid var(--border-glass-subtle);
+    border-radius: var(--radius-lg);
+    /* border: 1px solid var(--border-glass-subtle); */
+    border: 1px solid rgba(255, 255, 255, 0.3);
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     /* Hardware accel removed for mobile stability */
     background-color: var(--bg-surface-2);

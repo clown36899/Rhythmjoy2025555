@@ -63,11 +63,6 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
 
         const pwa = checkPWA();
         loadSettings();
-
-        // [New Policy] iOS이고 PWA가 아니면 알림 설정을 켤 때 설치 안내를 먼저 띄움
-        if (platform === 'ios' && !pwa) {
-            setIsPWAInstallModalOpen(true);
-        }
     }, [isOpen]);
 
     const loadSettings = async () => {
@@ -143,8 +138,8 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
             }
 
             // [Sync] 사이드바 등 다른 컴포넌트에 알림 상태 변경 알림
-            window.dispatchEvent(new CustomEvent('pushStatusChanged', { 
-                detail: { enabled: isPushEnabled } 
+            window.dispatchEvent(new CustomEvent('pushStatusChanged', {
+                detail: { enabled: isPushEnabled }
             }));
 
             // 성공 시 바로 닫기 (alert 없이 — focus 이벤트로 인한 무한 루프 방지)
@@ -176,16 +171,38 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
 
                 <div className="NSM-body">
                     {(!isRunningInPWA && platform !== 'android') ? (
-                        <div className="NSM-pwaTip" onClick={() => setIsPWAInstallModalOpen(true)}>
+                        <div className="NSM-pwaTip">
                             <div className="NSM-pwaHeader">
-                                <i className="ri-error-warning-fill"></i>
-                                <p className="NSM-pwaText">알람설정은 앱에서만 작동합니다.</p>
+                                <div className="NSM-appIconPreview">
+                                    <img src="/icon-192.png" alt="App Icon" className="NSM-logoImg" />
+                                    <div className="NSM-iconBadge">
+                                        <i className="ri-notification-3-fill"></i>
+                                    </div>
+                                </div>
+                                <p className="NSM-pwaText">
+                                    아이폰은 <strong>바로가기 추가</strong> 후,<br />
+                                    <span className="NSM-highlightText">바탕화면의 아이콘으로 접속</span>해야 알림이 작동합니다.
+                                </p>
                             </div>
 
-                            <div className="NSM-guideTriggerBtn">
-                                <i className="ri-download-cloud-2-line"></i>
-                                <span>앱 설치 안내 보기</span>
+                            <div className="NSM-installSteps">
+                                <div className="NSM-stepItem">
+                                    <span className="NSM-stepNumber">1</span>
+                                    <span className="NSM-stepText">하단 <i className="ri-upload-2-line"></i> <strong>공유</strong> 버튼 클릭</span>
+                                </div>
+                                <div className="NSM-stepItem">
+                                    <span className="NSM-stepNumber">2</span>
+                                    <span className="NSM-stepText"><strong>'홈 화면에 추가'</strong> 선택</span>
+                                </div>
+                                <div className="NSM-stepItem">
+                                    <span className="NSM-stepNumber">3</span>
+                                    <span className="NSM-stepText">우측 상단 <strong>'추가'</strong> 클릭</span>
+                                </div>
                             </div>
+                            
+                            <p className="NSM-pwaFooterTip">
+                                <i className="ri-smartphone-line"></i> 생성된 아이콘을 눌러 앱을 실행해 주세요.
+                            </p>
                         </div>
                     ) : (
                         <>
@@ -292,9 +309,9 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                         {isSaving ? '보안 연결 중...' : '변경사항 저장'}
                     </button>
                 </div>
-                <PWAInstallGuideModal 
-                    isOpen={isPWAInstallModalOpen} 
-                    onClose={() => setIsPWAInstallModalOpen(false)} 
+                <PWAInstallGuideModal
+                    isOpen={isPWAInstallModalOpen}
+                    onClose={() => setIsPWAInstallModalOpen(false)}
                 />
             </div>
         </div>
