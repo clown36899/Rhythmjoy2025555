@@ -138,26 +138,38 @@ export default async (request: Request, context: any) => {
         }
 
         if (!userId) {
-            // Create new user
-            console.log('[kakao-login-edge] Creating new user');
-            const randomPassword = crypto.randomUUID();
-            const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-                email,
-                password: randomPassword,
-                email_confirm: true,
-                user_metadata: {
-                    name: nickname,
-                    full_name: realName || nickname,
-                    real_name: realName,
-                    phone_number: phoneNumber,
-                    kakao_id: kakaoId,
-                    provider: 'kakao'
+            // 3.1 Fallback: 이메일 기반 계정 통합 (Account Linking)
+            const { data: existingUserByEmail } = await supabaseAdmin
+                .from('board_users')
+                .select('user_id')
+                .eq('email', email)
+                .maybeSingle();
+
+            if (existingUserByEmail?.user_id) {
+                userId = existingUserByEmail.user_id;
+                console.log(`[kakao-login-edge] 🔗 Account Linked by Email: ${email} -> ${userId}`);
+            } else {
+                // Create new user
+                console.log('[kakao-login-edge] Creating new user');
+                const randomPassword = crypto.randomUUID();
+                const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+                    email,
+                    password: randomPassword,
+                    email_confirm: true,
+                    user_metadata: {
+                        name: nickname,
+                        full_name: realName || nickname,
+                        real_name: realName,
+                        phone_number: phoneNumber,
+                        kakao_id: kakaoId,
+                        provider: 'kakao'
+                    }
+                });
+                if (createError && !createError.message?.includes('registered')) {
+                    throw createError;
                 }
-            });
-            if (createError && !createError.message?.includes('registered')) {
-                throw createError;
+                if (newUser?.user) userId = newUser.user.id;
             }
-            if (newUser?.user) userId = newUser.user.id;
         }
 
         if (!userId) {
