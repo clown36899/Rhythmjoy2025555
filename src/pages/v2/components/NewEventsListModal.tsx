@@ -33,8 +33,32 @@ export default function NewEventsListModal({
     const [v1Stage, setV1Stage] = useState<'opening' | 'spotlight' | 'outro'>('opening');
     const [v1Interval, setV1Interval] = useState(1500); // Initial 1.5s for spotlight
     const [v5GridPage, setV5GridPage] = useState(0);
-    const activeEvents = useMemo(() => events, [events]);
-    const v1Events = useMemo(() => activeEvents.slice(0, 6), [activeEvents]);
+    const [dbEvents, setDbEvents] = useState<AppEvent[]>([]);
+
+    // Fetch latest events (Class & Party only)
+    useEffect(() => {
+        if (isOpen) {
+            const fetchLatestEvents = async () => {
+                try {
+                    const { data, error } = await supabase
+                        .from('events')
+                        .select('*')
+                        .in('category', ['class', 'party'])
+                        .order('created_at', { ascending: false })
+                        .limit(20);
+
+                    if (error) throw error;
+                    if (data) setDbEvents(data as AppEvent[]);
+                } catch (err) {
+                    console.error('Failed to fetch latest events for showcase:', err);
+                }
+            };
+            fetchLatestEvents();
+        }
+    }, [isOpen]);
+
+    const activeEvents = useMemo(() => dbEvents.length > 0 ? dbEvents : events, [dbEvents, events]);
+    const v1Events = useMemo(() => activeEvents.slice(0, 15), [activeEvents]);
 
     // V1 Cinema Sequence Controller 
     useEffect(() => {

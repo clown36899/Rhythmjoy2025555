@@ -142,51 +142,37 @@ export const handler: Handler = async (event) => {
     }
 
     if (!userId) {
-      // 3.1 Fallback: 이메일 기반 계정 통합 (Account Linking)
-      // kakao_id로는 못 찾았지만 동일한 이메일을 가진 계정이 있는지 먼저 board_users에서 찾음
-      const { data: existingUserByEmail } = await supabaseAdmin
-        .from('board_users')
-        .select('user_id')
-        .eq('email', email)
-        .maybeSingle();
-
-      if (existingUserByEmail?.user_id) {
-        userId = existingUserByEmail.user_id;
-        console.log(`[kakao-login] 🔗 Account Linked by Email: ${email} -> ${userId}`);
-      } else {
-        // 기존 이메일로도 가입된 내역이 없으면 완전히 새로운 Auth User 생성
-        const randomPassword = crypto.randomBytes(16).toString('hex');
-        const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
-          email,
-          password: randomPassword,
-          email_confirm: true,
-          user_metadata: {
-            name: nickname,
-            full_name: realName || nickname, 
-            real_name: realName,
-            phone_number: phoneNumber,
-            kakao_id: kakaoId,
-            provider: 'kakao'
-          }
-        });
-
-        if (createError) {
-          if (!createError.message?.toLowerCase().includes("registered") && (createError as any).status !== 422) {
-            throw createError;
-          }
-        } else if (newUser?.user) {
-          userId = newUser.user.id;
+      // 기존 이메일로도 가입된 내역이 없으면 완전히 새로운 Auth User 생성
+      const randomPassword = crypto.randomBytes(16).toString('hex');
+      const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password: randomPassword,
+        email_confirm: true,
+        user_metadata: {
+          name: nickname,
+          full_name: realName || nickname,
+          real_name: realName,
+          phone_number: phoneNumber,
+          kakao_id: kakaoId,
+          provider: 'kakao'
         }
+      });
+
+      if (createError) {
+        if (!createError.message?.toLowerCase().includes("registered") && (createError as any).status !== 422) {
+          throw createError;
+        }
+      } else if (newUser?.user) {
+        userId = newUser.user.id;
       }
     }
 
     if (!userId) {
-      // 최후의 보루: listUsers로 찾기 (위에서 registered 에러가 났을 때 등)
-      const { data: listData } = await supabaseAdmin.auth.admin.listUsers();
-      const userByEmail = listData?.users.find((u: any) => u.email === email);
-      if (userByEmail) {
-        userId = userByEmail.id;
-        console.log(`[kakao-login] 🔗 Account Linked via listUsers fallback: ${userId}`);
+      // 최후의 보루: 이메일로 직접 조회
+      const { data: userData } = await supabaseAdmin.auth.admin.getUserByEmail(email);
+      if (userData?.user) {
+        userId = userData.user.id;
+        console.log(`[kakao-login] 🔗 Found via email fallback: ${userId}`);
       }
     }
 

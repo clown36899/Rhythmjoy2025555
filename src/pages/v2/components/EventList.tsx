@@ -94,16 +94,14 @@ const EventList: React.FC<EventListProps> = ({
     const todayStr = getLocalDateString();
 
     const isEligible = (event: Event) => {
-      // 1. 카테고리 필터 (강습, 파티, 일반 이벤트만 포함)
-      const validCategories = ['class', 'party', 'event'];
-      if (!validCategories.includes(event.category || '')) return false;
-
-      // 2. 소셜 중 라이브밴드가 아닌 것은 제외
       const isLiveBand = event.genre?.includes('라이브밴드');
       const isSocial = event.category === 'social';
-      if (isSocial && !isLiveBand) return false;
 
-      // 3. 미래/오늘 일정만 포함 (지난 일정 제거)
+      // 1. 카테고리 필터 (강습, 파티, 일반 이벤트 + 라이브밴드 소셜만 포함)
+      const validCategories = ['class', 'party', 'event'];
+      if (!validCategories.includes(event.category || '') && !(isSocial && isLiveBand)) return false;
+
+      // 2. 미래/오늘 일정만 포함 (지난 일정 제거)
       const eventEndDate = event.end_date || event.date || "";
       if (eventEndDate < todayStr) return false;
 
