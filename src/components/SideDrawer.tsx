@@ -287,13 +287,23 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
                                         });
                                         onClose();
                                     }}
+                                    data-analytics-id="edit_profile"
+                                    data-analytics-type="action"
+                                    data-analytics-title="내 정보 수정"
+                                    data-analytics-section="side_drawer"
                                 >
                                     내 정보 수정
                                 </button>
                             </div>
                         </div>
                     ) : (
-                        <div className="SD-loginPrompt" onClick={() => { onLoginClick(); onClose(); }}>
+                        <div className="SD-loginPrompt" 
+                            onClick={() => { onLoginClick(); onClose(); }}
+                            data-analytics-id="login_prompt"
+                            data-analytics-type="action"
+                            data-analytics-title="로그인이 필요합니다"
+                            data-analytics-section="side_drawer"
+                        >
                             <div className="SD-avatar is-placeholder">
                                 <i className="ri-user-add-line"></i>
                             </div>
@@ -334,6 +344,10 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
                                             onLoginClick();
                                         }
                                     }}
+                                    data-analytics-id="notification_settings"
+                                    data-analytics-type="action"
+                                    data-analytics-title="알림 설정"
+                                    data-analytics-section="side_drawer"
                                 >
                                     <i className="ri-notification-3-fill"></i>
                                     <div className="SD-menuLabelWithStatus">
@@ -352,12 +366,22 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
                                 <div
                                     className={`SD-adminGridItem ${!isAdmin ? 'is-readonly' : ''}`}
                                     onClick={() => isAdmin && adminSecureMembersModal.open()}
+                                    data-analytics-id="stats_members"
+                                    data-analytics-type="action"
+                                    data-analytics-title="회원 통계 보기"
+                                    data-analytics-section="side_drawer"
                                 >
                                     <span className="SD-gridVal">{typeof memberCount === 'object' ? '-' : (memberCount ?? '-')}</span>
                                     <span className="SD-gridLabel">회원</span>
                                 </div>
                                 {isAdmin && (
-                                    <div className="SD-adminGridItem" onClick={() => onlineUsersModal.open()}>
+                                    <div className="SD-adminGridItem" 
+                                        onClick={() => onlineUsersModal.open()}
+                                        data-analytics-id="stats_online"
+                                        data-analytics-type="action"
+                                        data-analytics-title="온라인 유저 보기"
+                                        data-analytics-section="side_drawer"
+                                    >
                                         <span className="SD-gridVal" style={{ color: '#34d399' }}>{typeof onlineCount === 'object' ? '0' : onlineCount}</span>
                                         <span className="SD-gridLabel">온라인</span>
                                     </div>
@@ -365,6 +389,10 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
                                 <div
                                     className={`SD-adminGridItem ${!isAdmin ? 'is-readonly' : ''}`}
                                     onClick={() => isAdmin && adminAppStatusModal.open({ initialTab: 'pwa' })}
+                                    data-analytics-id="stats_pwa"
+                                    data-analytics-type="action"
+                                    data-analytics-title="앱 설치 현황 보기"
+                                    data-analytics-section="side_drawer"
                                 >
                                     <span className="SD-gridVal" style={{ color: '#fbbf24' }}>{typeof pwaCount === 'object' ? '-' : (pwaCount ?? '-')}</span>
                                     <span className="SD-gridLabel">앱 설치</span>
@@ -372,6 +400,10 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
                                 <div
                                     className={`SD-adminGridItem ${!isAdmin ? 'is-readonly' : ''}`}
                                     onClick={() => isAdmin && adminAppStatusModal.open({ initialTab: 'push' })}
+                                    data-analytics-id="stats_push"
+                                    data-analytics-type="action"
+                                    data-analytics-title="알림 구독 현황 보기"
+                                    data-analytics-section="side_drawer"
                                 >
                                     <span className="SD-gridVal" style={{ color: '#f87171' }}>{typeof pushCount === 'object' ? '-' : (pushCount ?? '-')}</span>
                                     <span className="SD-gridLabel">알림 구독</span>
@@ -418,11 +450,23 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
                                     {/* Category: Monitoring & Status */}
                                     <div className="SD-adminSubGroup">
                                         <div className="SD-subGroupTitle">모니터링 & 현황</div>
-                                        <div className="SD-submenuItem" onClick={() => siteAnalyticsModal.open()}>
+                                        <div className="SD-submenuItem" 
+                                            onClick={() => siteAnalyticsModal.open()}
+                                            data-analytics-id="admin_analytics"
+                                            data-analytics-type="action"
+                                            data-analytics-title="운영 통합 통계"
+                                            data-analytics-section="side_drawer_admin"
+                                        >
                                             <i className="ri-bar-chart-box-line"></i>
                                             <span>운영 통합 통계</span>
                                         </div>
-                                        <div className="SD-submenuItem" onClick={() => adminFavoritesModal.open()}>
+                                        <div className="SD-submenuItem" 
+                                            onClick={() => adminFavoritesModal.open()}
+                                            data-analytics-id="admin_favorites"
+                                            data-analytics-type="action"
+                                            data-analytics-title="즐겨찾기 현황"
+                                            data-analytics-section="side_drawer_admin"
+                                        >
                                             <i className="ri-heart-pulse-line"></i>
                                             <span>즐겨찾기 현황</span>
                                         </div>
@@ -431,19 +475,43 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
                                     {/* Category: Content & Display */}
                                     <div className="SD-adminSubGroup">
                                         <div className="SD-subGroupTitle">콘텐츠 & 게시판</div>
-                                        <div className="SD-submenuItem" onClick={() => boardManagementModal.open()}>
+                                        <div className="SD-submenuItem" 
+                                            onClick={() => boardManagementModal.open()}
+                                            data-analytics-id="admin_board"
+                                            data-analytics-type="action"
+                                            data-analytics-title="게시판 관리"
+                                            data-analytics-section="side_drawer_admin"
+                                        >
                                             <i className="ri-layout-masonry-line"></i>
                                             <span>게시판 관리</span>
                                         </div>
-                                        <div className="SD-submenuItem" onClick={() => boardPrefixModal.open()}>
+                                        <div className="SD-submenuItem" 
+                                            onClick={() => boardPrefixModal.open()}
+                                            data-analytics-id="admin_prefix"
+                                            data-analytics-type="action"
+                                            data-analytics-title="머릿말 관리"
+                                            data-analytics-section="side_drawer_admin"
+                                        >
                                             <i className="ri-text-spacing"></i>
                                             <span>머릿말 관리</span>
                                         </div>
-                                        <div className="SD-submenuItem" onClick={() => noticeModal.open()}>
+                                        <div className="SD-submenuItem" 
+                                            onClick={() => noticeModal.open()}
+                                            data-analytics-id="admin_notice"
+                                            data-analytics-type="action"
+                                            data-analytics-title="공지사항 관리"
+                                            data-analytics-section="side_drawer_admin"
+                                        >
                                             <i className="ri-megaphone-line"></i>
                                             <span>공지사항 관리</span>
                                         </div>
-                                        <div className="SD-submenuItem" onClick={() => genreWeightSettingsModal.open()}>
+                                        <div className="SD-submenuItem" 
+                                            onClick={() => genreWeightSettingsModal.open()}
+                                            data-analytics-id="admin_weights"
+                                            data-analytics-type="action"
+                                            data-analytics-title="강습 노출 확률 설정"
+                                            data-analytics-section="side_drawer_admin"
+                                        >
                                             <i className="ri-equalizer-line"></i>
                                             <span>강습 노출 확률 설정</span>
                                         </div>
@@ -452,11 +520,23 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
                                     {/* Category: User & Security */}
                                     <div className="SD-adminSubGroup">
                                         <div className="SD-subGroupTitle">회원 & 보안</div>
-                                        <div className="SD-submenuItem" onClick={() => billboardUserModal.open()}>
+                                        <div className="SD-submenuItem" 
+                                            onClick={() => billboardUserModal.open()}
+                                            data-analytics-id="admin_users"
+                                            data-analytics-type="action"
+                                            data-analytics-title="빌보드 회원 관리"
+                                            data-analytics-section="side_drawer_admin"
+                                        >
                                             <i className="ri-user-settings-line"></i>
                                             <span>빌보드 회원 관리</span>
                                         </div>
-                                        <div className="SD-submenuItem" onClick={() => invitationModal.open()}>
+                                        <div className="SD-submenuItem" 
+                                            onClick={() => invitationModal.open()}
+                                            data-analytics-id="admin_invitation"
+                                            data-analytics-type="action"
+                                            data-analytics-title="초대 관리"
+                                            data-analytics-section="side_drawer_admin"
+                                        >
                                             <i className="ri-mail-send-line"></i>
                                             <span>초대 관리</span>
                                         </div>
@@ -465,17 +545,29 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
                                     {/* Category: System & Misc */}
                                     <div className="SD-adminSubGroup">
                                         <div className="SD-subGroupTitle">시스템 & 기타</div>
-                                        <div className="SD-submenuItem" onClick={() => handleNavigation(`/billboard/${user?.id}/preview/catalog`)}>
+                                        <div className="SD-submenuItem" 
+                                            onClick={() => handleNavigation(`/billboard/${user?.id}/preview/catalog`)}
+                                            data-analytics-id="admin_billboard_catalog"
+                                            data-analytics-type="nav_item"
+                                            data-analytics-title="Billboard (Catalog)"
+                                            data-analytics-section="side_drawer_admin"
+                                        >
                                             <i className="ri-tv-2-line"></i>
                                             <span>Billboard (Catalog)</span>
                                         </div>
-                                        <div className="SD-submenuItem" onClick={() => {
-                                            newEventsListModal.open({
-                                                events: [],
-                                                onEventClick: (event: any) => navigate(`/calendar?id=${event.id}&highlightOnly=true`)
-                                            });
-                                            onClose();
-                                        }}>
+                                        <div className="SD-submenuItem" 
+                                            onClick={() => {
+                                                newEventsListModal.open({
+                                                    events: [],
+                                                    onEventClick: (event: any) => navigate(`/calendar?id=${event.id}&highlightOnly=true`)
+                                                });
+                                                onClose();
+                                            }}
+                                            data-analytics-id="admin_showcase"
+                                            data-analytics-type="action"
+                                            data-analytics-title="쇼케이스 뷰어"
+                                            data-analytics-section="side_drawer_admin"
+                                        >
                                             <i className="ri-layout-grid-line"></i>
                                             <span>쇼케이스 뷰어</span>
                                         </div>
@@ -494,100 +586,132 @@ export default function SideDrawer({ onLoginClick }: SideDrawerProps) {
                             <div className="SD-divider"></div>
                         </div>
                     )}
-
-                    {/* 완전 동적 메뉴 렌더링 */}
-                    {SITE_MENU_SECTIONS.map((section, sectionIdx) => (
-                        <div key={`section-${sectionIdx}`}>
-                            <div className="SD-sectionTitle">{section.title}</div>
-                            {section.items.map((item, itemIdx) => {
-                                // 포럼은 하위 메뉴가 있으므로 특별 처리
-                                if (item.path === '/board' && item.type === 'board') {
-                                    return (
-                                        <div key={`${sectionIdx}-${itemIdx}`}>
-                                            <div className="SD-menuItem SD-isExpandable" onClick={() => setIsBoardExpanded(!isBoardExpanded)}>
-                                                <i className={item.icon}></i>
-                                                <span className="manual-label-wrapper">
-                                                    <span className="translated-part">{MENU_LABELS_EN[item.title] || item.title}</span>
-                                                    <span className="fixed-part ko" translate="no">{item.title}</span>
-                                                    <span className="fixed-part en" translate="no">{MENU_LABELS_EN[item.title] || item.title}</span>
-                                                </span>
-                                                <i className={`ri-arrow-${isBoardExpanded ? 'down' : 'right'}-s-line SD-expandIcon`}></i>
-                                            </div>
-                                            {isBoardExpanded && (
-                                                <div className="SD-submenu">
-                                                    {boardCategories.map((category) => (
-                                                        <div key={category.code} className="SD-submenuItem" onClick={() => handleNavigation(`/board?category=${category.code}`)}>
-                                                            <i className={getIconForCategory(category.code)}></i>
-                                                            <span className="manual-label-wrapper">
-                                                                <span className="translated-part">{getCategoryEn(category.code, category.name)}</span>
-                                                                <span className="fixed-part ko" translate="no">{category.name}</span>
-                                                                <span className="fixed-part en" translate="no">{getCategoryEn(category.code, category.name)}</span>
-                                                            </span>
-                                                        </div>
-                                                    ))}
-                                                    <div className="SD-submenuItem" onClick={() => {
-                                                        if (isLegacyIOS()) {
-                                                            alert('알림: 구형 기기에서는 라이브러리 기능이 작동하지 않습니다.');
-                                                            return;
-                                                        }
-                                                        handleNavigation('/board?category=history');
-                                                    }}>
-                                                        <i className="ri-book-mark-line"></i>
-                                                        <span className="manual-label-wrapper">
-                                                            <span className="translated-part">Library</span>
-                                                            <span className="fixed-part ko" translate="no">라이브러리</span>
-                                                            <span className="fixed-part en" translate="no">Library</span>
-                                                        </span>
-                                                    </div>
-                                                    <div className="SD-submenuItem" onClick={() => handleNavigation('/board?category=dev-log')}>
-                                                        <i className="ri-code-box-line"></i>
-                                                        <span className="manual-label-wrapper">
-                                                            <span className="translated-part">Dev Log</span>
-                                                            <span className="fixed-part ko" translate="no">개발일지</span>
-                                                            <span className="fixed-part en" translate="no">Dev Log</span>
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                }
-
-                                // 일반 메뉴 항목
-                                return (
-                                    <div key={`${sectionIdx}-${itemIdx}`} className="SD-menuItem" onClick={() => handleNavigation(item.path)}>
-                                        <i className={item.icon}></i>
-                                        <span className="manual-label-wrapper">
-                                            <span className="translated-part">{MENU_LABELS_EN[item.title] || item.title}</span>
-                                            <span className="fixed-part ko" translate="no">{item.title}</span>
-                                            <span className="fixed-part en" translate="no">{MENU_LABELS_EN[item.title] || item.title}</span>
-                                        </span>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    ))}
-                </nav>
-
-                <div className="SD-footer">
-                    {user && (
-                        <button className="SD-logoutBtn" onClick={handleLogout}>
-                            <i className="ri-logout-box-r-line"></i>
-                            <span className="manual-label-wrapper">
-                                <span className="translated-part">Logout</span>
-                                <span className="fixed-part ko" translate="no">로그아웃</span>
-                                <span className="fixed-part en" translate="no">Logout</span>
-                            </span>
-                        </button>
-                    )}
-                    <div className="SD-version">v{__APP_VERSION__}</div>
-                </div>
-            </div>
-            <PWAInstallGuideModal
-                isOpen={isPWAInstallModalOpen}
-                onClose={() => setIsPWAInstallModalOpen(false)}
-            />
-        </div>,
-        document.body
-    );
-}
+ 
+                     {/* 완전 동적 메뉴 렌더링 */}
+                     {SITE_MENU_SECTIONS.map((section, sectionIdx) => (
+                         <div key={`section-${sectionIdx}`}>
+                             <div className="SD-sectionTitle">{section.title}</div>
+                             {section.items.map((item, itemIdx) => {
+                                 // 포럼은 하위 메뉴가 있으므로 특별 처리
+                                 if (item.path === '/board' && item.type === 'board') {
+                                     return (
+                                         <div key={`${sectionIdx}-${itemIdx}`}>
+                                             <div className="SD-menuItem SD-isExpandable" onClick={() => setIsBoardExpanded(!isBoardExpanded)}>
+                                                 <i className={item.icon}></i>
+                                                 <span className="manual-label-wrapper">
+                                                     <span className="translated-part">{MENU_LABELS_EN[item.title] || item.title}</span>
+                                                     <span className="fixed-part ko" translate="no">{item.title}</span>
+                                                     <span className="fixed-part en" translate="no">{MENU_LABELS_EN[item.title] || item.title}</span>
+                                                 </span>
+                                                 <i className={`ri-arrow-${isBoardExpanded ? 'down' : 'right'}-s-line SD-expandIcon`}></i>
+                                             </div>
+                                             {isBoardExpanded && (
+                                                 <div className="SD-submenu">
+                                                     {boardCategories.map((category) => (
+                                                         <div key={category.code} 
+                                                            className="SD-submenuItem" 
+                                                            onClick={() => handleNavigation(`/board?category=${category.code}`)}
+                                                            data-analytics-id={`nav_board_${category.code}`}
+                                                            data-analytics-type="nav_item"
+                                                            data-analytics-title={`게시판: ${category.name}`}
+                                                            data-analytics-section="side_drawer_dynamic"
+                                                         >
+                                                             <i className={getIconForCategory(category.code)}></i>
+                                                             <span className="manual-label-wrapper">
+                                                                 <span className="translated-part">{getCategoryEn(category.code, category.name)}</span>
+                                                                 <span className="fixed-part ko" translate="no">{category.name}</span>
+                                                                 <span className="fixed-part en" translate="no">{getCategoryEn(category.code, category.name)}</span>
+                                                             </span>
+                                                         </div>
+                                                     ))}
+                                                     <div className="SD-submenuItem" 
+                                                        onClick={() => {
+                                                            if (isLegacyIOS()) {
+                                                                alert('알림: 구형 기기에서는 라이브러리 기능이 작동하지 않습니다.');
+                                                                return;
+                                                            }
+                                                            handleNavigation('/board?category=history');
+                                                        }}
+                                                        data-analytics-id="nav_board_history"
+                                                        data-analytics-type="nav_item"
+                                                        data-analytics-title="게시판: 라이브러리"
+                                                        data-analytics-section="side_drawer_dynamic"
+                                                     >
+                                                         <i className="ri-book-mark-line"></i>
+                                                         <span className="manual-label-wrapper">
+                                                             <span className="translated-part">Library</span>
+                                                             <span className="fixed-part ko" translate="no">라이브러리</span>
+                                                             <span className="fixed-part en" translate="no">Library</span>
+                                                         </span>
+                                                     </div>
+                                                     <div className="SD-submenuItem" 
+                                                        onClick={() => handleNavigation('/board?category=dev-log')}
+                                                        data-analytics-id="nav_board_devlog"
+                                                        data-analytics-type="nav_item"
+                                                        data-analytics-title="게시판: 개발일지"
+                                                        data-analytics-section="side_drawer_dynamic"
+                                                     >
+                                                         <i className="ri-code-box-line"></i>
+                                                         <span className="manual-label-wrapper">
+                                                             <span className="translated-part">Dev Log</span>
+                                                             <span className="fixed-part ko" translate="no">개발일지</span>
+                                                             <span className="fixed-part en" translate="no">Dev Log</span>
+                                                         </span>
+                                                     </div>
+                                                 </div>
+                                             )}
+                                         </div>
+                                     );
+                                 }
+ 
+                                 // 일반 메뉴 항목
+                                 return (
+                                     <div key={`${sectionIdx}-${itemIdx}`} 
+                                        className="SD-menuItem" 
+                                        onClick={() => handleNavigation(item.path)}
+                                        data-analytics-id={`nav_${item.path.replace(/\//g, '_')}`}
+                                        data-analytics-type="nav_item"
+                                        data-analytics-title={`메뉴: ${item.title}`}
+                                        data-analytics-section="side_drawer_dynamic"
+                                     >
+                                         <i className={item.icon}></i>
+                                         <span className="manual-label-wrapper">
+                                             <span className="translated-part">{MENU_LABELS_EN[item.title] || item.title}</span>
+                                             <span className="fixed-part ko" translate="no">{item.title}</span>
+                                             <span className="fixed-part en" translate="no">{MENU_LABELS_EN[item.title] || item.title}</span>
+                                         </span>
+                                     </div>
+                                 );
+                             })}
+                         </div>
+                     ))}
+                 </nav>
+ 
+                 <div className="SD-footer">
+                     {user && (
+                         <button className="SD-logoutBtn" 
+                             onClick={handleLogout}
+                             data-analytics-id="logout"
+                             data-analytics-type="action"
+                             data-analytics-title="로그아웃"
+                             data-analytics-section="side_drawer_footer"
+                         >
+                             <i className="ri-logout-box-r-line"></i>
+                             <span className="manual-label-wrapper">
+                                 <span className="translated-part">Logout</span>
+                                 <span className="fixed-part ko" translate="no">로그아웃</span>
+                                 <span className="fixed-part en" translate="no">Logout</span>
+                             </span>
+                         </button>
+                     )}
+                     <div className="SD-version">v{__APP_VERSION__}</div>
+                 </div>
+             </div>
+             <PWAInstallGuideModal
+                 isOpen={isPWAInstallModalOpen}
+                 onClose={() => setIsPWAInstallModalOpen(false)}
+             />
+         </div>,
+         document.body
+     );
+ }

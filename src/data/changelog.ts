@@ -8,6 +8,15 @@ export interface ChangelogVersion {
 // 버전 업데이트 시 이 파일도 함께 업데이트하세요
 export const changelogData: ChangelogVersion[] = [
     {
+        version: '3.9.5',
+        date: '2026-03-16',
+        changes: [
+            '[✨ Feature] 전역 및 포럼(게시판) 상호작용 통계 추적 상세 적용',
+            '[✨ Feature] 연습실 목록 카드 및 즐겨찾기 버튼 통계 보완',
+            '[🔧 Policy] 유틸리티(메트로놈, BPM 태퍼) 세부 동작 통계 제외 및 실행 시점 추적 최적화'
+        ]
+    },
+    {
         version: '3.9.4',
         date: '2026-03-04',
         changes: [

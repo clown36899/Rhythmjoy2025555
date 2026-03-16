@@ -98,6 +98,10 @@ export const HorizontalScrollNav = forwardRef<HTMLDivElement, HorizontalScrollNa
                 onClick={() => scroll('right')}
                 disabled={!canScrollRight}
                 aria-label="다음으로 스크롤"
+                data-analytics-id="scroll_right"
+                data-analytics-type="action"
+                data-analytics-title="가로 스크롤 오른쪽"
+                data-analytics-section="horizontal_scroll_nav"
             >
                 <i className="ri-arrow-right-s-line"></i>
             </button>

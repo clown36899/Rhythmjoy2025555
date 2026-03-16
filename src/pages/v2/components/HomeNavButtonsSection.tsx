@@ -83,6 +83,10 @@ export const HomeNavButtonsSection: React.FC<HomeNavButtonsSectionProps> = ({
                 className="HNBS-button HNBS-button--social"
                 onClick={handleSocialClick}
                 aria-label="소셜 정보 바로가기"
+                data-analytics-id="home_quick_social"
+                data-analytics-type="nav_item"
+                data-analytics-title="소셜정보 퀵링크"
+                data-analytics-section="home_v2_nav"
             >
                 <div className="HNBS-bubble">소셜정보</div>
                 <div className="HNBS-stack">
@@ -117,6 +121,10 @@ export const HomeNavButtonsSection: React.FC<HomeNavButtonsSectionProps> = ({
                 className="HNBS-button HNBS-button--events"
                 onClick={handleEventsClick}
                 aria-label="행사 정보 보기"
+                data-analytics-id="home_quick_events"
+                data-analytics-type="action"
+                data-analytics-title="행사정보 스크롤"
+                data-analytics-section="home_v2_nav"
             >
                 <div className="HNBS-bubble">행사정보</div>
                 <div className="HNBS-stack">
@@ -132,6 +140,10 @@ export const HomeNavButtonsSection: React.FC<HomeNavButtonsSectionProps> = ({
                 className="HNBS-button HNBS-button--classes"
                 onClick={handleClassesClick}
                 aria-label="강습 정보 보기"
+                data-analytics-id="home_quick_classes"
+                data-analytics-type="action"
+                data-analytics-title="강습정보 스크롤"
+                data-analytics-section="home_v2_nav"
             >
                 <div className="HNBS-bubble">강습정보</div>
                 <div className="HNBS-stack">

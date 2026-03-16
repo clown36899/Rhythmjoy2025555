@@ -399,6 +399,10 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                           className="header-metronome-info-btn-inline"
                           onClick={() => window.dispatchEvent(new CustomEvent('openMetronomeInfo'))}
                           title="메트로놈 활용 가이드"
+                          data-analytics-id="metronome_guide"
+                          data-analytics-type="action"
+                          data-analytics-title="메트로놈 가이드"
+                          data-analytics-section="header"
                         >
                           <i className="ri-question-line"></i>
                         </button>
@@ -421,18 +425,30 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                     <button
                       onClick={() => window.dispatchEvent(new CustomEvent('prevMonth'))}
                       className="calendar-month-btn"
+                      data-analytics-id="cal_prev_month"
+                      data-analytics-type="action"
+                      data-analytics-title="이전 달 이동"
+                      data-analytics-section="header_calendar"
                     >
                       <i className="ri-arrow-left-s-line"></i>
                     </button>
                     <span
                       className="calendar-month-label calendar-month-label-clickable"
                       onClick={() => window.dispatchEvent(new CustomEvent('goToToday'))}
+                      data-analytics-id="cal_goto_today_label"
+                      data-analytics-type="action"
+                      data-analytics-title="오늘로 이동(라벨)"
+                      data-analytics-section="header_calendar"
                     >
                       {String(calendarView.year).slice(-2)}년 <span className="calendar-month-digit">{String(calendarView.month + 1).padStart(2, '0')}</span>
                     </span>
                     <button
                       onClick={() => window.dispatchEvent(new CustomEvent('nextMonth'))}
                       className="calendar-month-btn"
+                      data-analytics-id="cal_next_month"
+                      data-analytics-type="action"
+                      data-analytics-title="다음 달 이동"
+                      data-analytics-section="header_calendar"
                     >
                       <i className="ri-arrow-right-s-line"></i>
                     </button>
@@ -442,6 +458,10 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
                         console.log('[MobileShell] Today button clicked, dispatching goToToday');
                         window.dispatchEvent(new CustomEvent('goToToday'));
                       }}
+                      data-analytics-id="cal_goto_today_btn"
+                      data-analytics-type="action"
+                      data-analytics-title="오늘로 이동"
+                      data-analytics-section="header_calendar"
                     >
                       오늘
                     </button>

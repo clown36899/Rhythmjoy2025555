@@ -81,6 +81,10 @@ export const EventPreviewRow: React.FC<EventPreviewRowProps> = ({
                                 key={g}
                                 className={`ELS-genreBtn ${((selectedGenre || '전체') === g) ? 'is-active' : ''}`}
                                 onClick={() => onGenreChange?.(g === '전체' ? null : g)}
+                                data-analytics-id={`genre_${g}`}
+                                data-analytics-type="tab"
+                                data-analytics-title={`${g} 장르 필터`}
+                                data-analytics-section={`event_preview_genre_${className}`}
                             >
                                 {renderGenreLabel ? renderGenreLabel(g) : g}
                             </button>

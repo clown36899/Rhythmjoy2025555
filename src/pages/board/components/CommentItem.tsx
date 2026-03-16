@@ -231,6 +231,10 @@ export default function CommentItem({ comment: initialComment, isAnonymous, onEd
                         className={`comment-btn like-btn ${userInteraction === 'like' ? 'active' : ''}`}
                         onClick={() => handleInteraction('like')}
                         disabled={isLoading}
+                        data-analytics-id="board_comment_like"
+                        data-analytics-type="action"
+                        data-analytics-title="댓글 좋아요"
+                        data-analytics-section="board_comment"
                     >
                         <i className={userInteraction === 'like' ? "ri-thumb-up-fill" : "ri-thumb-up-line"}></i>
                         <span>{comment.likes || 0}</span>
@@ -239,6 +243,10 @@ export default function CommentItem({ comment: initialComment, isAnonymous, onEd
                         className={`comment-btn dislike-btn ${userInteraction === 'dislike' ? 'active' : ''}`}
                         onClick={() => handleInteraction('dislike')}
                         disabled={isLoading}
+                        data-analytics-id="board_comment_dislike"
+                        data-analytics-type="action"
+                        data-analytics-title="댓글 싫어요"
+                        data-analytics-section="board_comment"
                     >
                         <i className={userInteraction === 'dislike' ? "ri-thumb-down-fill" : "ri-thumb-down-line"}></i>
                         <span>{comment.dislikes || 0}</span>
@@ -249,6 +257,10 @@ export default function CommentItem({ comment: initialComment, isAnonymous, onEd
                         <button
                             onClick={handleEdit}
                             className="comment-item-btn comment-item-btn-edit"
+                            data-analytics-id="board_comment_edit"
+                            data-analytics-type="action"
+                            data-analytics-title="댓글 수정"
+                            data-analytics-section="board_comment"
                         >
                             <i className="ri-edit-line"></i>
                             수정
@@ -256,6 +268,10 @@ export default function CommentItem({ comment: initialComment, isAnonymous, onEd
                         <button
                             onClick={handleDelete}
                             className="comment-item-btn comment-item-btn-delete"
+                            data-analytics-id="board_comment_delete"
+                            data-analytics-type="action"
+                            data-analytics-title="댓글 삭제"
+                            data-analytics-section="board_comment"
                         >
                             <i className="ri-delete-bin-line"></i>
                             삭제

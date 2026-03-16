@@ -290,15 +290,21 @@ export default function HomePageV2() {
                 )}
 
                 {/* Floating Side Stats Tab */}
-                <div className="stats-side-tab" onClick={async () => {
-                    if (!user) {
-                        if (confirm('통계를 확인하려면 로그인이 필요합니다.\n로그인하시겠습니까?')) {
-                            try { await signInWithKakao(); } catch (err) { console.error(err); }
+                <div className="stats-side-tab" 
+                    onClick={async () => {
+                        if (!user) {
+                            if (confirm('통계를 확인하려면 로그인이 필요합니다.\n로그인하시겠습니까?')) {
+                                try { await signInWithKakao(); } catch (err) { console.error(err); }
+                            }
+                            return;
                         }
-                        return;
-                    }
-                    openModal('stats', { userId: user.id, initialTab: 'my' });
-                }}>
+                        openModal('stats', { userId: user.id, initialTab: 'my' });
+                    }}
+                    data-analytics-id="stats_side_tab"
+                    data-analytics-type="action"
+                    data-analytics-title="게시물 통계"
+                    data-analytics-section="home_v2"
+                >
                     <i className="ri-bar-chart-groupped-fill stats-side-tab-icon"></i>
                     <span className="stats-side-tab-text">게시물 통계</span>
                 </div>

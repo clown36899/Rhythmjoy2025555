@@ -96,7 +96,14 @@ export default function BoardDetailModal({ postId, isOpen, onClose }: BoardDetai
 
                 {/* Modal Header */}
                 <div className="board-detail-modal-header">
-                    <button onClick={onClose} className="board-detail-modal-close">
+                    <button 
+                        onClick={onClose} 
+                        className="board-detail-modal-close"
+                        data-analytics-id="board_detail_close"
+                        data-analytics-type="action"
+                        data-analytics-title="게시물 상세 닫기"
+                        data-analytics-section="board_detail"
+                    >
                         <i className="ri-arrow-left-line"></i>
                     </button>
                 </div>
@@ -143,10 +150,26 @@ export default function BoardDetailModal({ postId, isOpen, onClose }: BoardDetai
 
                                 {(isAdmin || (post as any).user_id === user?.id) && (
                                     <div className="board-detail-top-actions">
-                                        <button onClick={handleEdit} className="top-action-btn edit" title="수정">
+                                        <button 
+                                            onClick={handleEdit} 
+                                            className="top-action-btn edit" 
+                                            title="수정"
+                                            data-analytics-id="board_detail_edit"
+                                            data-analytics-type="action"
+                                            data-analytics-title="게시물 수정"
+                                            data-analytics-section="board_detail"
+                                        >
                                             <i className="ri-edit-line"></i>
                                         </button>
-                                        <button onClick={handleDelete} className="top-action-btn delete" title="삭제">
+                                        <button 
+                                            onClick={handleDelete} 
+                                            className="top-action-btn delete" 
+                                            title="삭제"
+                                            data-analytics-id="board_detail_delete"
+                                            data-analytics-type="action"
+                                            data-analytics-title="게시물 삭제"
+                                            data-analytics-section="board_detail"
+                                        >
                                             <i className="ri-delete-bin-line"></i>
                                         </button>
                                         {isAdmin && (
@@ -154,6 +177,10 @@ export default function BoardDetailModal({ postId, isOpen, onClose }: BoardDetai
                                                 onClick={handleToggleHidden}
                                                 className={`top-action-btn ${post.is_hidden ? 'unhide' : 'hide'}`}
                                                 title={post.is_hidden ? '숨김 해제' : '숨기기'}
+                                                data-analytics-id="board_detail_toggle_hidden"
+                                                data-analytics-type="action"
+                                                data-analytics-title={post.is_hidden ? "게시물 숨김 해제" : "게시물 숨기기"}
+                                                data-analytics-section="board_detail"
                                             >
                                                 <i className={`ri-${post.is_hidden ? 'eye-line' : 'eye-off-line'}`}></i>
                                             </button>

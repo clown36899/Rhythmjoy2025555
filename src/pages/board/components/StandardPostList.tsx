@@ -161,6 +161,10 @@ export default function StandardPostList({
                             className={`board-post-meta-item board-post-like-btn ${favoritedPostIds?.has(post.id) ? 'liked' : ''}`}
                             onClick={(e) => { e.stopPropagation(); onToggleFavorite(post.id); }}
                             title="즐겨찾기"
+                            data-analytics-id="board_list_favorite"
+                            data-analytics-type="action"
+                            data-analytics-title="게시물 즐겨찾기"
+                            data-analytics-section="board_list_standard"
                         >
                             <i className={favoritedPostIds?.has(post.id) ? "ri-star-fill board-post-meta-icon" : "ri-star-line board-post-meta-icon"}></i>
                             {post.favorites || 0}
@@ -171,6 +175,10 @@ export default function StandardPostList({
                             className={`board-post-meta-item board-post-heart-btn ${likedPostIds?.has(post.id) ? 'active' : ''}`}
                             onClick={(e) => { e.stopPropagation(); onToggleLike(post.id); }}
                             title="좋아요"
+                            data-analytics-id="board_list_like"
+                            data-analytics-type="action"
+                            data-analytics-title="게시물 좋아요"
+                            data-analytics-section="board_list_standard"
                         >
                             <i className={likedPostIds?.has(post.id) ? "ri-heart-fill board-post-meta-icon" : "ri-heart-line board-post-meta-icon"}></i>
                             {post.likes || 0}

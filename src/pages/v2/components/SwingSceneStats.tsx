@@ -271,12 +271,27 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
         const controls = (
             <div className="stats-header-controls">
                 {isAdmin && (
-                    <button onClick={handleRefreshMetrics} className="share-btn admin-refresh-btn" disabled={refreshing}>
+                    <button 
+                        onClick={handleRefreshMetrics} 
+                        className="share-btn admin-refresh-btn" 
+                        disabled={refreshing}
+                        data-analytics-id="stats_admin_refresh"
+                        data-analytics-type="action"
+                        data-analytics-title="DB 통계 갱신"
+                        data-analytics-section="stats_modal"
+                    >
                         <i className={refreshing ? "ri-loader-4-line spinner" : "ri-refresh-line"}></i>
                         {refreshing ? '갱신 중...' : 'DB 통계 갱신'}
                     </button>
                 )}
-                <button onClick={handleShare} className="share-btn">
+                <button 
+                    onClick={handleShare} 
+                    className="share-btn"
+                    data-analytics-id="stats_share"
+                    data-analytics-type="action"
+                    data-analytics-title="통계 공유"
+                    data-analytics-section="stats_modal"
+                >
                     <i className="ri-share-forward-line"></i> 통계 공유
                 </button>
             </div>
@@ -328,7 +343,14 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
                                         <div className="card-value">{stats.summary.dailyAverage}건</div>
                                         <div className="card-hint">하루 평균 발생 수</div>
                                     </div>
-                                    <div className="stats-card stats-card-clickable" onClick={() => handleMaxDailyClick(lastStat?.maxDailyDate)}>
+                                    <div 
+                                        className="stats-card stats-card-clickable" 
+                                        onClick={() => handleMaxDailyClick(lastStat?.maxDailyDate)}
+                                        data-analytics-id="stats_max_daily_click"
+                                        data-analytics-type="action"
+                                        data-analytics-title={`일 최대 이벤트 상세보기 (${lastMonth}월)`}
+                                        data-analytics-section="stats_modal_summary"
+                                    >
                                         <div className="card-label">{lastMonth}월 일 최대 이벤트수</div>
                                         <div className="card-value">{lastStat?.maxDaily || 0}건</div>
                                         <div className="card-hint">하루에 가장 많이 등록된 수 (이번달 {curStat?.maxDaily || 0}건)</div>
@@ -491,8 +513,26 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
                             <div className="stats-header weekly-header">
                                 <h3 className="weekly-title">주간 집중 분석</h3>
                                 <div className="tab-group">
-                                    <button onClick={() => { setWeeklyTab('total'); setInspectTypeDay(null); setInspectGenreDay(null); }} className={`tab-btn ${weeklyTab === 'total' ? 'active' : ''}`}>전체</button>
-                                    <button onClick={() => { setWeeklyTab('monthly'); setInspectTypeDay(null); setInspectGenreDay(null); }} className={`tab-btn ${weeklyTab === 'monthly' ? 'active' : ''}`}>이번 달</button>
+                                    <button 
+                                        onClick={() => { setWeeklyTab('total'); setInspectTypeDay(null); setInspectGenreDay(null); }} 
+                                        className={`tab-btn ${weeklyTab === 'total' ? 'active' : ''}`}
+                                        data-analytics-id="stats_weekly_tab_total"
+                                        data-analytics-type="action"
+                                        data-analytics-title="주간분석: 전체"
+                                        data-analytics-section="stats_modal_weekly"
+                                    >
+                                        전체
+                                    </button>
+                                    <button 
+                                        onClick={() => { setWeeklyTab('monthly'); setInspectTypeDay(null); setInspectGenreDay(null); }} 
+                                        className={`tab-btn ${weeklyTab === 'monthly' ? 'active' : ''}`}
+                                        data-analytics-id="stats_weekly_tab_monthly"
+                                        data-analytics-type="action"
+                                        data-analytics-title="주간분석: 이번달"
+                                        data-analytics-section="stats_modal_weekly"
+                                    >
+                                        이번 달
+                                    </button>
                                 </div>
                             </div>
                         )}
@@ -518,7 +558,16 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
                                 onTouchEnd={(e) => e.stopPropagation()}
                             >
                                 {currentWeekly.map((d, i) => (
-                                    <div key={i} className="bar-wrapper" style={{ cursor: 'pointer', opacity: inspectTypeDay && inspectTypeDay !== d.day ? 0.3 : 1 }} onClick={() => setInspectTypeDay(inspectTypeDay === d.day ? null : d.day)}>
+                                    <div 
+                                        key={i} 
+                                        className="bar-wrapper" 
+                                        style={{ cursor: 'pointer', opacity: inspectTypeDay && inspectTypeDay !== d.day ? 0.3 : 1 }} 
+                                        onClick={() => setInspectTypeDay(inspectTypeDay === d.day ? null : d.day)}
+                                        data-analytics-id={`stats_weekly_type_inspect_${d.day}`}
+                                        data-analytics-type="action"
+                                        data-analytics-title={`요일별 유형 상세: ${d.day}`}
+                                        data-analytics-section="stats_modal_weekly"
+                                    >
                                         {d.count > 0 && <span className="total-label" style={{ color: inspectTypeDay === d.day ? 'var(--color-blue-400)' : 'var(--text-primary)' }}>{d.count}</span>}
                                         <div className="stacked-bar">
                                             {/* Correct order (Bottom to Top): 0:Classes, 1:Events, 2:Socials */}
@@ -584,7 +633,16 @@ export default function SwingSceneStats({ onInsertItem, section }: SwingSceneSta
                                 onTouchEnd={(e) => e.stopPropagation()}
                             >
                                 {currentWeekly.map((d, i) => (
-                                    <div key={i} className="bar-wrapper" style={{ cursor: 'pointer', opacity: inspectGenreDay && inspectGenreDay !== d.day ? 0.3 : 1 }} onClick={() => setInspectGenreDay(inspectGenreDay === d.day ? null : d.day)}>
+                                    <div 
+                                        key={i} 
+                                        className="bar-wrapper" 
+                                        style={{ cursor: 'pointer', opacity: inspectGenreDay && inspectGenreDay !== d.day ? 0.3 : 1 }} 
+                                        onClick={() => setInspectGenreDay(inspectGenreDay === d.day ? null : d.day)}
+                                        data-analytics-id={`stats_weekly_genre_inspect_${d.day}`}
+                                        data-analytics-type="action"
+                                        data-analytics-title={`요일별 장르 상세: ${d.day}`}
+                                        data-analytics-section="stats_modal_weekly"
+                                    >
                                         {d.count > 0 && <span className="total-label" style={{ color: inspectGenreDay === d.day ? 'var(--color-blue-400)' : 'var(--text-primary)' }}>{d.count}</span>}
                                         <div className="stacked-bar">
                                             {d.genreBreakdown.map((gb, idx) => (

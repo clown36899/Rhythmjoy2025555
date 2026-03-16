@@ -43,6 +43,10 @@ function EventSortModal({
                                 }
                                 className={`ESOM-optionBtn ${sortBy === option.id ? "is-active" : ""
                                     }`}
+                                data-analytics-id={`sort_${option.id}`}
+                                data-analytics-type="action"
+                                data-analytics-title={`정렬 방식: ${option.name}`}
+                                data-analytics-section="event_sort_modal"
                             >
                                 <i className={`${option.icon} ESOM-optionIcon`}></i>
                                 <span className="ESOM-optionText">{option.name}</span>

@@ -146,7 +146,14 @@ export default function AnonymousPostList({
                                     <div className="board-post-title-row" onClick={(e) => post.is_notice && toggleFold(post.id, e)} style={{ cursor: post.is_notice ? 'pointer' : 'default' }}>
                                         <h3 className="board-post-title">{post.title}</h3>
                                         {post.is_notice && (
-                                            <button className="fold-toggle-btn" onClick={(e) => toggleFold(post.id, e)}>
+                                            <button 
+                                                className="fold-toggle-btn" 
+                                                onClick={(e) => toggleFold(post.id, e)}
+                                                data-analytics-id="board_anonymous_fold_toggle"
+                                                data-analytics-type="action"
+                                                data-analytics-title={isUnfolded(post.id) ? "공지 접기" : "공지 펼치기"}
+                                                data-analytics-section="board_list_anonymous"
+                                            >
                                                 <i className={isUnfolded(post.id) ? "ri-arrow-up-s-line" : "ri-arrow-down-s-line"}></i>
                                                 <span>{isUnfolded(post.id) ? '접기' : '펼치기'}</span>
                                             </button>
@@ -200,6 +207,10 @@ export default function AnonymousPostList({
                                 <button
                                     className={`memo-comment-toggle ${isCommentsOpen ? 'active' : ''}`}
                                     onClick={(e) => toggleComments(post.id, e)}
+                                    data-analytics-id="board_anonymous_comment_toggle"
+                                    data-analytics-type="action"
+                                    data-analytics-title="익명 댓글 토글"
+                                    data-analytics-section="board_list_anonymous"
                                 >
                                     <i className="ri-chat-3-line"></i>
                                     <span className="comment-label">댓글</span>
@@ -214,6 +225,10 @@ export default function AnonymousPostList({
                                                 e.stopPropagation();
                                                 onToggleLike(post.id);
                                             }}
+                                            data-analytics-id="board_anonymous_like"
+                                            data-analytics-type="action"
+                                            data-analytics-title="익명 게시물 좋아요"
+                                            data-analytics-section="board_list_anonymous"
                                         >
                                             <i className={likedPostIds?.has(post.id) ? "ri-thumb-up-fill" : "ri-thumb-up-line"}></i>
                                             <span>{post.likes || 0}</span>
@@ -226,6 +241,10 @@ export default function AnonymousPostList({
                                                 e.stopPropagation();
                                                 onToggleDislike(post.id);
                                             }}
+                                            data-analytics-id="board_anonymous_dislike"
+                                            data-analytics-type="action"
+                                            data-analytics-title="익명 게시물 싫어요"
+                                            data-analytics-section="board_list_anonymous"
                                         >
                                             <i className={dislikedPostIds?.has(post.id) ? "ri-thumb-down-fill" : "ri-thumb-down-line"}></i>
                                             <span>{post.dislikes || 0}</span>
@@ -240,6 +259,10 @@ export default function AnonymousPostList({
                                             handleEditClick(post);
                                         }}
                                         style={{ color: 'var(--text-muted)' }}
+                                        data-analytics-id="board_anonymous_edit"
+                                        data-analytics-type="action"
+                                        data-analytics-title="익명 게시물 수정"
+                                        data-analytics-section="board_list_anonymous"
                                     >
                                         <i className="ri-pencil-line"></i>
                                         <span>수정</span>

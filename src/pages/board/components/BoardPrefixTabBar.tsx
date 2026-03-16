@@ -33,6 +33,10 @@ export default function BoardPrefixTabBar({ prefixes, selectedPrefixId, onPrefix
                         className={`board-prefix-item ${selectedPrefixId === null ? 'active' : ''}`}
                         onClick={() => onPrefixChange(null)}
                         ref={selectedPrefixId === null ? activeRef : null}
+                        data-analytics-id="board_prefix_all"
+                        data-analytics-type="tab"
+                        data-analytics-title="머릿말: 전체"
+                        data-analytics-section="board_prefix_tab_bar"
                     >
                         <span className="manual-label-wrapper">
                             <span className="translated-part">All</span>
@@ -50,6 +54,10 @@ export default function BoardPrefixTabBar({ prefixes, selectedPrefixId, onPrefix
                                 color: selectedPrefixId === prefix.id ? prefix.color : undefined,
                                 borderColor: selectedPrefixId === prefix.id ? prefix.color : undefined
                             }}
+                            data-analytics-id={`board_prefix_${prefix.id}`}
+                            data-analytics-type="tab"
+                            data-analytics-title={`머릿말: ${prefix.name}`}
+                            data-analytics-section="board_prefix_tab_bar"
                         >
                             <span className="manual-label-wrapper">
                                 <span className="translated-part">{

@@ -369,6 +369,10 @@ export default function BoardMainContainer() {
                             onClick={() => goToPage(currentPage - 1)}
                             disabled={currentPage === 1}
                             className="board-page-btn"
+                            data-analytics-id="board_page_prev"
+                            data-analytics-type="action"
+                            data-analytics-title="게시판 이전 페이지"
+                            data-analytics-section="board_pagination"
                         >
                             이전
                         </button>
@@ -396,6 +400,10 @@ export default function BoardMainContainer() {
                                     key={pageNum}
                                     className={`board-page-btn ${currentPage === pageNum ? 'active' : ''}`}
                                     onClick={() => goToPage(pageNum)}
+                                    data-analytics-id={`board_page_${pageNum}`}
+                                    data-analytics-type="action"
+                                    data-analytics-title={`게시판 ${pageNum} 페이지`}
+                                    data-analytics-section="board_pagination"
                                 >
                                     {pageNum}
                                 </button>
@@ -406,6 +414,10 @@ export default function BoardMainContainer() {
                             onClick={() => goToPage(currentPage + 1)}
                             disabled={currentPage === totalPages}
                             className="board-page-btn"
+                            data-analytics-id="board_page_next"
+                            data-analytics-type="action"
+                            data-analytics-title="게시판 다음 페이지"
+                            data-analytics-section="board_pagination"
                         >
                             다음
                         </button>

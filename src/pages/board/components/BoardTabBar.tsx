@@ -140,6 +140,10 @@ export default function BoardTabBar({ activeCategory, onCategoryChange }: BoardT
                                 onClick={() => onCategoryChange(cat.id as BoardCategory)}
                                 role="tab"
                                 aria-selected={activeCategory === cat.id}
+                                data-analytics-id={`board_tab_${cat.id}`}
+                                data-analytics-type="tab"
+                                data-analytics-title={`${cat.label} 탭`}
+                                data-analytics-section="board_tab_bar"
                             >
                                 <span className="board-tab-label">{cat.label}</span>
                                 {cat.isWip && <span className="tab-wip-badge">준비중</span>}

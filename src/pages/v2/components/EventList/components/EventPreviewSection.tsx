@@ -228,6 +228,10 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                     <button
                         className={`ELS-scopeBtn manual-label-wrapper ${!showGlobal ? 'is-active' : ''}`}
                         onClick={() => setShowGlobal(false)}
+                        data-analytics-id="scope_domestic"
+                        data-analytics-type="tab"
+                        data-analytics-title="국내 행사 검색"
+                        data-analytics-section="event_preview_scope"
                     >
                         <i className="ri-map-pin-2-line"></i>
                         <span className="translated-part">Domestic</span>
@@ -237,6 +241,10 @@ export const EventPreviewSection: React.FC<EventPreviewSectionProps> = ({
                     <button
                         className={`ELS-scopeBtn manual-label-wrapper ${showGlobal ? 'is-active' : ''}`}
                         onClick={() => setShowGlobal(true)}
+                        data-analytics-id="scope_overseas"
+                        data-analytics-type="tab"
+                        data-analytics-title="국외 행사 검색"
+                        data-analytics-section="event_preview_scope"
                     >
                         <i className="ri-earth-line"></i>
                         <span className="translated-part">Global</span>

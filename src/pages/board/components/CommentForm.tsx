@@ -270,6 +270,10 @@ export default function CommentForm({ postId, category, onCommentAdded, editingC
                         onClick={onCancelEdit}
                         className="comment-form-btn comment-form-btn-cancel"
                         disabled={isSubmitting || disabled}
+                        data-analytics-id="board_comment_cancel"
+                        data-analytics-type="action"
+                        data-analytics-title="댓글 작성 취소"
+                        data-analytics-section="board_comment"
                     >
                         취소
                     </button>
@@ -278,6 +282,10 @@ export default function CommentForm({ postId, category, onCommentAdded, editingC
                     type="submit"
                     className="comment-form-btn comment-form-btn-submit"
                     disabled={isSubmitting || !content.trim() || disabled}
+                    data-analytics-id={editingComment ? "board_comment_update" : "board_comment_submit"}
+                    data-analytics-type="action"
+                    data-analytics-title={editingComment ? '댓글 수정 완료' : '댓글 작성 완료'}
+                    data-analytics-section="board_comment"
                 >
                     {isSubmitting ? '작성 중...' : editingComment ? '수정' : '댓글 작성'}
                 </button>

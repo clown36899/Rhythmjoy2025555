@@ -63,6 +63,10 @@ const ForumPage: React.FC = () => {
                             className={`forum-icon-item forum-icon-item--${item.id}`}
                             onClick={() => navigate(item.path)}
                             style={{ '--brand-color': item.color } as React.CSSProperties}
+                            data-analytics-id={item.id}
+                            data-analytics-type="nav_item"
+                            data-analytics-title={item.title}
+                            data-analytics-section="forum_hub"
                         >
                             <div className="forum-icon-box">
                                 <i className={`${item.icon} forum-icon-glyph`}></i>
