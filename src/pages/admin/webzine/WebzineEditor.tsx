@@ -32,7 +32,7 @@ interface WebzinePost {
     updated_at: string;
 }
 
-const MenuBar = ({ editor }: { editor: any }) => {
+const MenuBar = ({ editor, onImageSelect }: { editor: any, onImageSelect: () => void }) => {
     if (!editor) return null;
 
     return (
@@ -100,16 +100,10 @@ const MenuBar = ({ editor }: { editor: any }) => {
                 <i className="ri-link"></i>
             </button>
             <button
-                onClick={() => {
-                    const url = window.prompt('이미지 URL을 입력하세요');
-                    if (url) editor.chain().focus().insertContent({
-                        type: 'resizableImage',
-                        attrs: { src: url }
-                    }).run();
-                }}
-                title="이미지 삽입"
+                onClick={onImageSelect}
+                title="이미지 업로드"
             >
-                <i className="ri-image-line"></i>
+                <i className="ri-image-add-line"></i>
             </button>
         </div>
     );
@@ -155,6 +149,7 @@ const WebzineEditor = () => {
     const [statsData, setStatsData] = useState<any>(null); // To hold data for MyImpactCard
 
     const [isEditorInitialized, setIsEditorInitialized] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const isMounted = useRef(false);
     useEffect(() => {
@@ -391,6 +386,65 @@ const WebzineEditor = () => {
         }).run();
     };
 
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (!id || !editor || !e.target.files || e.target.files.length === 0) return;
+        const file = e.target.files[0];
+        
+        try {
+            setIsSaving(true);
+            setSaveMessage('이미지 업로드 중...');
+            
+            // 기존 유틸리티 활용 (src/utils/webzineImageUpload.ts)
+            const { uploadWebzineImage } = await import('../../../utils/webzineImageUpload');
+            const result = await uploadWebzineImage(file, id, (step) => setSaveMessage(step));
+            
+            // 이미지 트래킹 정보 게시글 레코드에 업데이트 (attached_images 컬럼 활용)
+            // 현재 attached_images를 가져와서 추가하는 방식 대신, DB 상에서 결합하도록 처리 가능하나
+            // 리액트 상태 동기화를 위해 업데이트 수행
+            const currentAttachedImages = post && Array.isArray((post as any).attached_images) 
+                ? (post as any).attached_images 
+                : [];
+            
+            const newImageInfo = {
+                folder_path: result.folderPath,
+                full_url: result.fullUrl,
+                created_at: new Date().toISOString()
+            };
+
+            const updatedAttachedImages = [...currentAttachedImages, newImageInfo];
+
+            const { error: updateError } = await supabase
+                .from('webzine_posts')
+                .update({ attached_images: updatedAttachedImages })
+                .eq('id', id);
+
+            if (updateError) {
+                console.warn('[WebzineEditor] Attached images update failed:', updateError.message);
+            } else if (post) {
+                setPost({ ...post, attached_images: updatedAttachedImages } as any);
+            }
+
+            editor.chain().focus().insertContent({
+                type: 'resizableImage',
+                attrs: { 
+                    src: result.fullUrl,
+                    width: '100%',
+                    alignment: 'center'
+                }
+            }).run();
+            
+            setSaveMessage('이미지 업로드 완료');
+            setTimeout(() => setSaveMessage(null), 2000);
+        } catch (err) {
+            console.error('[WebzineEditor] Image upload failed:', err);
+            alert('이미지 업로드 실패');
+            setSaveMessage(null);
+        } finally {
+            setIsSaving(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+
     // Render Stats Content
     const renderStatsContent = () => {
         switch (activeStatsTab) {
@@ -484,7 +538,17 @@ const WebzineEditor = () => {
                     <section className="we-section we-editor-section">
                         <label className="we-label">본문 작성</label>
                         <div className="we-editor-wrapper">
-                            <MenuBar editor={editor} />
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                style={{ display: 'none' }}
+                                accept="image/*"
+                                onChange={handleImageUpload}
+                            />
+                            <MenuBar 
+                                editor={editor} 
+                                onImageSelect={() => fileInputRef.current?.click()} 
+                            />
                             {isEditorInitialized && editor && (
                                 <EditorContent editor={editor} className="we-tiptap-content" />
                             )}
