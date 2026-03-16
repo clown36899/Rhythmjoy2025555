@@ -12,7 +12,6 @@ import { useAuth } from '../contexts/AuthContext';
 import { isPWAMode, getMobilePlatform } from '../lib/pwaDetect';
 import { PWAInstallGuideModal } from './PWAInstallGuideModal';
 import { useInstallPrompt } from '../contexts/InstallPromptContext';
-import GlobalLoadingOverlay from './GlobalLoadingOverlay';
 import '../styles/domains/settings.css';
 
 interface NotificationSettingsModalProps {
@@ -160,8 +159,6 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
     return (
         <div className="NotificationSettingsModal NSM-overlay" onClick={onClose}>
             <div className="NSM-container" onClick={e => e.stopPropagation()}>
-                <GlobalLoadingOverlay isLoading={isPushLoading} message="설정 불러오는 중..." />
-
                 <div className="NSM-header">
                     <h2 className="NSM-title"><i className="ri-notification-3-fill"></i> 알림 설정</h2>
                     <button className="NSM-closeBtn" onClick={onClose} aria-label="닫기">
@@ -170,7 +167,12 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                 </div>
 
                 <div className="NSM-body">
-                    {(!isRunningInPWA && platform !== 'android') ? (
+                    {isPushLoading ? (
+                        <div className="NSM-loadingRow">
+                            <i className="ri-loader-4-line NSM-spinner"></i>
+                            <span>설정 불러오는 중...</span>
+                        </div>
+                    ) : (!isRunningInPWA && platform !== 'android') ? (
                         <div className="NSM-pwaTip">
                             <div className="NSM-pwaHeader">
                                 <div className="NSM-appIconPreview">
@@ -306,7 +308,7 @@ export default function NotificationSettingsModal({ isOpen, onClose }: Notificat
                         disabled={!hasUnsavedChanges || isSaving}
                         onClick={handleSaveChanges}
                     >
-                        {isSaving ? '보안 연결 중...' : '변경사항 저장'}
+                        {isSaving ? '저장 중...' : '변경사항 저장'}
                     </button>
                 </div>
                 <PWAInstallGuideModal

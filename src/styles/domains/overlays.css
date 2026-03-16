@@ -165,6 +165,7 @@
 
 .SideDrawer .SD-nav {
     flex: 1;
+    min-height: 0;
     overflow-y: auto;
     /* 스크롤바 숨기기 (선택사항) */
     scrollbar-width: none;
@@ -516,7 +517,6 @@
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 6px;
-    height: 100%;
 }
 
 .SideDrawer .SD-adminGridItem {

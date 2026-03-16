@@ -225,6 +225,7 @@ function AppContent() {
     if (sub) {
       await saveSubscriptionToSupabase(sub, prefs); // 사용자가 선택한 설정 적용 (그대로 전달)
       console.log('[App] PWA Auto-subscribed successfully with custom prefs.');
+      window.dispatchEvent(new CustomEvent('pushStatusChanged', { detail: { enabled: true } }));
     }
   };
 
