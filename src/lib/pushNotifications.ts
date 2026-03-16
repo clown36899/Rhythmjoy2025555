@@ -133,27 +133,39 @@ export const subscribeToPush = async (): Promise<PushSubscription | null> => {
     try {
         const registration = await navigator.serviceWorker.ready;
 
+        console.log('[Push:subscribe] SW state:', registration.active?.state);
+        console.log('[Push:subscribe] SW scope:', registration.scope);
+        console.log('[Push:subscribe] Notification.permission:', Notification.permission);
+
         // 1. Check existing
         const existingSub = await registration.pushManager.getSubscription();
+        console.log('[Push:subscribe] Existing sub:', existingSub ? existingSub.endpoint.substring(0, 50) + '...' : 'null');
+
         if (existingSub) {
-            console.log("Existing subscription found:", existingSub);
             return existingSub;
         }
 
         // 2. Subscribe (VAPID)
         const vapidPublicKey = import.meta.env.VITE_PUBLIC_VAPID_KEY || 'BIngahG6SewkoWiBA5hrItBYVvawKxqvUwazI5uKrph7YJA1tKtzdxpc94Vc8Mz5PtXLifBKmcXzmsgoNTEzSsc';
+        console.log('[Push:subscribe] VAPID key prefix:', vapidPublicKey.substring(0, 10));
 
         const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
+        console.log('[Push:subscribe] Attempting pushManager.subscribe...');
+
         const subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true,
             applicationServerKey: convertedVapidKey as any
         });
 
-        console.log("New subscription created:", subscription);
+        console.log('[Push:subscribe] Success:', subscription.endpoint.substring(0, 50) + '...');
         return subscription;
 
-    } catch (error) {
-        console.error("Failed to subscribe to push:", error);
+    } catch (error: any) {
+        console.error('[Push:subscribe] FAILED');
+        console.error('[Push:subscribe] error.name:', error?.name);
+        console.error('[Push:subscribe] error.message:', error?.message);
+        console.error('[Push:subscribe] error.code:', error?.code);
+        console.error('[Push:subscribe] Notification.permission at failure:', Notification.permission);
         return null;
     }
 };
