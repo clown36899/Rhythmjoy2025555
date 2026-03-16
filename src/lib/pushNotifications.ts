@@ -97,7 +97,8 @@ export interface PushPreferences {
 
 export const getPushSubscription = async (): Promise<PushSubscription | null> => {
     if (!isPushSupported()) return null;
-    const registration = await navigator.serviceWorker.ready;
+    const registration = await navigator.serviceWorker.getRegistration();
+    if (!registration) return null;
     return await registration.pushManager.getSubscription();
 };
 
