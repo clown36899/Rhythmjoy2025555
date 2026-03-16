@@ -9,8 +9,8 @@ self.__WB_DISABLE_DEV_LOGS = true;
 cleanupOutdatedCaches();
 precacheAndRoute(self.__WB_MANIFEST || []);
 
-const CACHE_NAME = 'rhythmjoy-cache-v1.0.5';
-// Last updated: 2026-03-16 (v51)
+const CACHE_NAME = 'rhythmjoy-cache-v1.0.6';
+// Last updated: 2026-03-16 (v52)
 self.addEventListener('install', (event) => {
   // PWA 설치 요건: 루트(/)와 필수 에셋이 캐시되어야 오프라인 신뢰성을 인정받음
   event.waitUntil(
@@ -22,10 +22,10 @@ self.addEventListener('install', (event) => {
         '/icon-192.png',
       ]))
       .then(() => {
-        console.log('[SW] Essential assets pre-cached (V50)');
-        // skipWaiting()을 여기서 호출하지 않음
-        // 클라이언트가 SKIP_WAITING 메시지를 보낼 때까지 waiting 상태 유지
-        // → 클라이언트가 적절한 시점(페이지 로드, 포커스 복귀 등)에 자동으로 업데이트 적용
+        console.log('[SW] Essential assets pre-cached');
+        // 새 SW 즉시 활성화: waiting 상태로 멈추지 않도록 skipWaiting() 즉시 호출
+        // → push 구독 시도 시 SW 전환 타이밍 충돌로 인한 NotAllowedError 방지
+        return self.skipWaiting();
       })
   );
 });

@@ -11,8 +11,6 @@ import { supabase } from './supabase';
 // 실제 키를 생성하려면: npx web-push generate-vapid-keys
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_PUBLIC_VAPID_KEY || 'BIngahG6SewkoWiBA5hrItBYVvawKxqvUwazI5uKrph7YJA1tKtzdxpc94Vc8Mz5PtXLifBKmcXzmsgoNTEzSsc';
 
-console.log(`[Push] Using VAPID Public Key: ${VAPID_PUBLIC_KEY.substring(0, 5)}...${VAPID_PUBLIC_KEY.slice(-5)}`);
-
 /**
  * Service Worker 등록 상태 확인
  */
@@ -133,39 +131,25 @@ export const subscribeToPush = async (): Promise<PushSubscription | null> => {
     try {
         const registration = await navigator.serviceWorker.ready;
 
-        console.log('[Push:subscribe] SW state:', registration.active?.state);
-        console.log('[Push:subscribe] SW scope:', registration.scope);
-        console.log('[Push:subscribe] Notification.permission:', Notification.permission);
-
         // 1. Check existing
         const existingSub = await registration.pushManager.getSubscription();
-        console.log('[Push:subscribe] Existing sub:', existingSub ? existingSub.endpoint.substring(0, 50) + '...' : 'null');
-
         if (existingSub) {
             return existingSub;
         }
 
         // 2. Subscribe (VAPID)
         const vapidPublicKey = import.meta.env.VITE_PUBLIC_VAPID_KEY || 'BIngahG6SewkoWiBA5hrItBYVvawKxqvUwazI5uKrph7YJA1tKtzdxpc94Vc8Mz5PtXLifBKmcXzmsgoNTEzSsc';
-        console.log('[Push:subscribe] VAPID key prefix:', vapidPublicKey.substring(0, 10));
-
         const convertedVapidKey = urlBase64ToUint8Array(vapidPublicKey);
-        console.log('[Push:subscribe] Attempting pushManager.subscribe...');
 
         const subscription = await registration.pushManager.subscribe({
             userVisibleOnly: true,
             applicationServerKey: convertedVapidKey as any
         });
 
-        console.log('[Push:subscribe] Success:', subscription.endpoint.substring(0, 50) + '...');
         return subscription;
 
     } catch (error: any) {
-        console.error('[Push:subscribe] FAILED');
-        console.error('[Push:subscribe] error.name:', error?.name);
-        console.error('[Push:subscribe] error.message:', error?.message);
-        console.error('[Push:subscribe] error.code:', error?.code);
-        console.error('[Push:subscribe] Notification.permission at failure:', Notification.permission);
+        console.error('[Push] Subscribe failed:', error?.name, error?.message);
         return null;
     }
 };

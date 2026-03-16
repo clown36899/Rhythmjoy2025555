@@ -552,7 +552,7 @@
     "id": "sh_260321_sat",
     "keyword": "스윙홀릭",
     "source_url": "https://www.instagram.com/swingholic/p/DVcP9cNkroR/",
-    "poster_url": "/scraped/swingholic_260314_28_poster.webp",
+    "poster_url": "/scraped/poster_swingholic_202603.png",
     "extracted_text": "3월 DJ 일정!\n날짜: 2026-03-21 (토)\nDJ: TC\n장소: MAYAN F3\n시간: 20:00 - 22:30\n가격: 9,000원",
     "structured_data": {
       "date": "2026-03-21",
@@ -570,17 +570,17 @@
       "note": "3월 DJ 일정"
     },
     "evidence": {
-      "screenshot_path": "/scraped/swingholic_260314_28_poster.webp"
+      "screenshot_path": "/scraped/poster_swingholic_202603.png"
     },
     "created_at": "2026-03-09T15:20:00+09:00",
-    "updated_at": "2026-03-09T08:41:35.803Z",
+    "updated_at": "2026-03-16T07:28:43.340Z",
     "is_collected": true
   },
   {
     "id": "sh_260328_sat",
     "keyword": "스윙홀릭",
     "source_url": "https://www.instagram.com/swingholic/p/DVcP9cNkroR/",
-    "poster_url": "/scraped/swingholic_260314_28_poster.webp",
+    "poster_url": "/scraped/poster_swingholic_202603.png",
     "extracted_text": "3월 DJ 일정!\n날짜: 2026-03-28 (토)\nDJ: 자연인\n장소: MAYAN F3\n시간: 20:00 - 22:30\n가격: 9,000원",
     "structured_data": {
       "date": "2026-03-28",
@@ -598,10 +598,66 @@
       "note": "3월 DJ 일정"
     },
     "evidence": {
-      "screenshot_path": "/scraped/swingholic_260314_28_poster.webp"
+      "screenshot_path": "/scraped/poster_swingholic_202603.png"
     },
     "created_at": "2026-03-09T15:20:00+09:00",
-    "updated_at": "2026-03-09T08:41:22.293Z",
+    "updated_at": "2026-03-16T07:28:43.340Z",
+    "is_collected": true
+  },
+  {
+    "id": "st_260318_wed",
+    "keyword": "스윙타임",
+    "source_url": "https://www.instagram.com/swingtimebar/",
+    "poster_url": "/scraped/poster_swingtime_20260318.png",
+    "extracted_text": "■ 스윙타임빠 (3월 18일) 수 소셜 공지\n- 수요일\n저녁 7시30분부터 소셜이 진행 됩니다.\nDJ \"정양\" PM 8:15~10:15",
+    "structured_data": {
+      "date": "2026-03-18",
+      "day": "수",
+      "title": "수요 소셜 (DJ 정양)",
+      "status": "정상운영",
+      "djs": [
+        "정양"
+      ],
+      "times": [
+        "20:15 ~ 22:15"
+      ],
+      "location": "스윙타임바",
+      "fee": "미기재",
+      "note": ""
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/poster_swingtime_20260318.png"
+    },
+    "created_at": "2026-03-16T15:00:00+09:00",
+    "updated_at": "2026-03-16T07:28:36.595Z",
+    "is_collected": true
+  },
+  {
+    "id": "ksh_260317_tue",
+    "keyword": "경성홀",
+    "source_url": "https://www.instagram.com/kyungsunghall/",
+    "poster_url": "/scraped/poster_kyungsung_20260317.png",
+    "extracted_text": "3/17(화) 소셜: 오후 8-11시(9,000원) DJ: 저스틴",
+    "structured_data": {
+      "date": "2026-03-17",
+      "day": "화",
+      "title": "화요 소셜 (DJ 저스틴)",
+      "status": "정상운영",
+      "djs": [
+        "저스틴"
+      ],
+      "times": [
+        "20:00 ~ 23:00"
+      ],
+      "location": "신촌 경성홀",
+      "fee": "9,000원",
+      "note": ""
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/poster_kyungsung_20260317.png"
+    },
+    "created_at": "2026-03-16T15:00:00+09:00",
+    "updated_at": "2026-03-16T07:28:36.595Z",
     "is_collected": true
   }
 ]
