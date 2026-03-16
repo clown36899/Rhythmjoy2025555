@@ -8,8 +8,11 @@
     align-items: center;
     justify-content: center;
     z-index: var(--z-modal-base, 10003);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: var(--z-modal-base, 10003);
     padding: 0;
-    animation: cinemaFadeIn 1s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .NewEventsListModal .NEL-container {
@@ -297,20 +300,6 @@
     inset: 0;
     pointer-events: none;
     z-index: 500;
-}
-
-.NewEventsListModal .NEL-vignette {
-    position: absolute;
-    inset: 0;
-    background: radial-gradient(circle at center, transparent 20%, rgba(0, 0, 0, 0.8) 100%);
-}
-
-.NewEventsListModal .NEL-grain {
-    position: absolute;
-    inset: 0;
-    background-image: url("https://www.transparenttextures.com/patterns/black-linen-2.png");
-    opacity: 0.1;
-    mix-blend-mode: overlay;
 }
 
 @keyframes cinemaFadeIn {

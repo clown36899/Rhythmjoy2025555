@@ -393,8 +393,7 @@ export default function NewEventsListModal({
                                 )}
 
                                 <div className="NEL-cinematicFilters">
-                                    <div className="NEL-vignette"></div>
-                                    <div className="NEL-grain"></div>
+                                    {/* Vignette and grain removed for clarity */}
                                 </div>
                             </div>
                         )
