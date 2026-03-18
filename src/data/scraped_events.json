@@ -241,7 +241,8 @@
       "screenshot_path": "/scraped/swingtime_260306_poster.png"
     },
     "created_at": "2026-03-05T03:05:00+09:00",
-    "updated_at": "2026-03-05T04:59:00+09:00"
+    "updated_at": "2026-03-18T07:22:46.587Z",
+    "is_collected": true
   },
   {
     "id": "sf_260307_busan",
@@ -378,7 +379,8 @@
       "screenshot_path": "/scraped/savoy_260309_blues.png"
     },
     "created_at": "2026-03-08T03:30:00+09:00",
-    "updated_at": "2026-03-08T03:30:00+09:00"
+    "updated_at": "2026-03-18T07:22:46.587Z",
+    "is_collected": true
   },
   {
     "id": "ksh_260310_tue",
@@ -659,5 +661,142 @@
     "created_at": "2026-03-16T15:00:00+09:00",
     "updated_at": "2026-03-16T07:28:36.595Z",
     "is_collected": true
+  },
+  {
+    "id": "ss_260319_thu",
+    "keyword": "스윙스캔들",
+    "source_url": "https://www.instagram.com/p/DV-RHHXGI0u/",
+    "poster_url": "/scraped/swingscandal_260319_poster.png",
+    "extracted_text": "++ 목요일 소셜(with 스윙스캔들) ++\n일시 : 2026.3.19.(목) 19:30 ~ 23:00\n비용 : 9,000원\n디제이 : 째",
+    "structured_data": {
+      "date": "2026-03-19",
+      "day": "목",
+      "title": "목요 소셜 (DJ 째)",
+      "status": "정상운영",
+      "djs": [
+        "째"
+      ],
+      "times": [
+        "19:30 ~ 23:00"
+      ],
+      "location": "사보이볼룸",
+      "fee": "9,000원",
+      "note": "3월 3주차 운영 공지"
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/swingscandal_260319_poster.png"
+    },
+    "created_at": "2026-03-18T16:00:00+09:00",
+    "updated_at": "2026-03-18T07:26:00.445Z",
+    "is_collected": true
+  },
+  {
+    "id": "ss_260321_sat",
+    "keyword": "스윙스캔들",
+    "source_url": "https://www.instagram.com/p/DV-RHHXGI0u/",
+    "poster_url": "/scraped/swingscandal_260321_poster.png",
+    "extracted_text": "++ 토요일 소셜(with 스윙스캔들) ++\n일시 : 2026.3.21.(토) 19:30 ~ 23:00\n비용 : 11,000원\n디제이 : 테일",
+    "structured_data": {
+      "date": "2026-03-21",
+      "day": "토",
+      "title": "토요 소셜 (DJ 테일)",
+      "status": "정상운영",
+      "djs": [
+        "테일"
+      ],
+      "times": [
+        "19:30 ~ 23:00"
+      ],
+      "location": "사보이볼룸",
+      "fee": "11,000원",
+      "note": "3월 3주차 운영 공지"
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/swingscandal_260321_poster.png"
+    },
+    "created_at": "2026-03-18T16:00:00+09:00",
+    "updated_at": "2026-03-18T07:26:00.445Z",
+    "is_collected": true
+  },
+  {
+    "id": "hh_260320_fri",
+    "keyword": "해피홀",
+    "source_url": "https://www.instagram.com/p/DWBA5q3EfBn/",
+    "poster_url": "/scraped/happyhall_260320_poster.png",
+    "extracted_text": "금해DJ 소셜 (Social Party)\n일시 : 2026.3.20.(금) 20:30 (DJ 타임 시작)\n비용 : 12,000원\n디제이 : 해림\n무료라인강습(심샘) : 19:40-20:20",
+    "structured_data": {
+      "date": "2026-03-20",
+      "day": "금",
+      "title": "금해DJ 소셜 (DJ 해림)",
+      "status": "정상운영",
+      "djs": [
+        "해림"
+      ],
+      "times": [
+        "20:30 ~"
+      ],
+      "location": "신촌 해피홀",
+      "fee": "12,000원",
+      "note": "무료라인강습(심샘) 19:40-20:20"
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/happyhall_260320_poster.png"
+    },
+    "created_at": "2026-03-18T16:10:00+09:00",
+    "updated_at": "2026-03-18T07:26:00.445Z",
+    "is_collected": true
+  },
+  {
+    "id": "hh_260322_sun",
+    "keyword": "해피홀",
+    "source_url": "https://www.instagram.com/p/DV-63lfiqpe/",
+    "poster_url": "",
+    "extracted_text": "3월 3주 위클리네오 (Weekly Neo Social)\n일시 : 2026.3.22.(일)\n디제이 : 서로비",
+    "structured_data": {
+      "date": "2026-03-22",
+      "day": "일",
+      "title": "위클리네오 소셜 (DJ 서로비)",
+      "status": "정상운영",
+      "djs": [
+        "서로비"
+      ],
+      "times": [
+        "미기재"
+      ],
+      "location": "신촌 해피홀",
+      "fee": "미기재",
+      "note": ""
+    },
+    "evidence": {
+      "screenshot_path": ""
+    },
+    "created_at": "2026-03-18T16:10:00+09:00",
+    "updated_at": "2026-03-18T07:27:04.797Z",
+    "is_collected": true
+  },
+  {
+    "id": "hh_260401_wed",
+    "keyword": "해피홀",
+    "source_url": "https://www.instagram.com/p/DV5yRtwESWJ/",
+    "poster_url": "",
+    "extracted_text": "4월 1일 LIVE PARTY (라이브 소셜 파티)\n밴드 : 뉴타운 스윙밴드\n일시 : 2026.4.1.(수)",
+    "structured_data": {
+      "date": "2026-04-01",
+      "day": "수",
+      "title": "라이브 소셜 파티 (뉴타운 스윙밴드)",
+      "status": "정상운영",
+      "djs": [],
+      "times": [
+        "미기재"
+      ],
+      "location": "신촌 해피홀",
+      "fee": "미기재",
+      "note": "티저 공지 (3/18 상세 공지 예정)"
+    },
+    "evidence": {
+      "screenshot_path": ""
+    },
+    "created_at": "2026-03-18T16:10:00+09:00",
+    "updated_at": "2026-03-18T16:10:00+09:00"
   }
 ]

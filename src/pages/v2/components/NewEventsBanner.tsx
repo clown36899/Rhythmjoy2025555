@@ -19,7 +19,10 @@ export const NewEventsBanner: React.FC<NewEventsBannerProps> = ({
     defaultThumbnailEvent,
 }) => {
     const { openModal } = useModalContext();
-    const [currentIndex, setCurrentIndex] = useState(0);
+    const [currentIndex, setCurrentIndex] = useState(() => {
+        if (!events || events.length === 0) return 0;
+        return Math.floor(Math.random() * events.length);
+    });
     const [isPaused, setIsPaused] = useState(false);
     const [showInfoModal, setShowInfoModal] = useState(false);
 
