@@ -57,3 +57,7 @@ public/scraped/
 supabase/migrations_backup/
 supabase/migrations_backup_v2/
 scripts/temp_check_db.js
+
+.playwright-mcp/
+tmp/
+
