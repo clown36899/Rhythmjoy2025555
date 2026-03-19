@@ -1,0 +1,24 @@
+{
+  "sources": [
+    {
+      "name": "스윙스캔들",
+      "type": "naver_cafe",
+      "url": "https://cafe.naver.com/f-e/cafes/14933600/menus/501?viewType=I"
+    },
+    {
+      "name": "해피홀",
+      "type": "instagram",
+      "url": "https://www.instagram.com/happyhall2004/"
+    },
+    {
+      "name": "스윙타임",
+      "type": "instagram",
+      "url": "https://www.instagram.com/swingtimebar/"
+    }
+  ],
+  "keywords": ["소셜", "Social", "파티", "Party", "DJ"],
+  "rules": {
+    "instagram_post_limit": 6,
+    "integrity_check_min_bytes": 1024
+  }
+}
