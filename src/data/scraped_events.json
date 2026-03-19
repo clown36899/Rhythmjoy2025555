@@ -722,7 +722,7 @@
     "id": "hh_260320_fri",
     "keyword": "해피홀",
     "source_url": "https://www.instagram.com/p/DWBA5q3EfBn/",
-    "poster_url": "/scraped/happyhall_260320_poster.png",
+    "poster_url": "/scraped/poster_happyhall_20260320.png",
     "extracted_text": "금해DJ 소셜 (Social Party)\n일시 : 2026.3.20.(금) 20:30 (DJ 타임 시작)\n비용 : 12,000원\n디제이 : 해림\n무료라인강습(심샘) : 19:40-20:20",
     "structured_data": {
       "date": "2026-03-20",
@@ -750,7 +750,7 @@
     "id": "hh_260322_sun",
     "keyword": "해피홀",
     "source_url": "https://www.instagram.com/p/DV-63lfiqpe/",
-    "poster_url": "",
+    "poster_url": "/scraped/poster_happyhall_20260322.png",
     "extracted_text": "3월 3주 위클리네오 (Weekly Neo Social)\n일시 : 2026.3.22.(일)\n디제이 : 서로비",
     "structured_data": {
       "date": "2026-03-22",
@@ -768,35 +768,92 @@
       "note": ""
     },
     "evidence": {
-      "screenshot_path": ""
+      "screenshot_path": "/scraped/happyhall_260322_poster.png"
     },
     "created_at": "2026-03-18T16:10:00+09:00",
     "updated_at": "2026-03-18T07:27:04.797Z",
     "is_collected": true
   },
   {
-    "id": "hh_260401_wed",
+    "id": "hh_260401_insta",
     "keyword": "해피홀",
-    "source_url": "https://www.instagram.com/p/DV5yRtwESWJ/",
-    "poster_url": "",
-    "extracted_text": "4월 1일 LIVE PARTY (라이브 소셜 파티)\n밴드 : 뉴타운 스윙밴드\n일시 : 2026.4.1.(수)",
+    "source_url": "https://www.instagram.com/happyhall2004/",
+    "poster_url": "/scraped/poster_happyhall_20260401.png",
+    "extracted_text": "수햎 재오픈 기념 LIVE 2026.04.01 밴드 Sinchon Newtown Swing Band 주관 HAPPY HALL 주최 Dance&Friends 사전신청 20,000 / 현장 23,000",
     "structured_data": {
       "date": "2026-04-01",
       "day": "수",
-      "title": "라이브 소셜 파티 (뉴타운 스윙밴드)",
+      "title": "수햎 재오픈 LIVE PARTY (Band: Sinchon Newtown Swing Band)",
       "status": "정상운영",
       "djs": [],
       "times": [
-        "미기재"
+        "19:30 ~"
       ],
-      "location": "신촌 해피홀",
-      "fee": "미기재",
-      "note": "티저 공지 (3/18 상세 공지 예정)"
+      "location": "해피홀",
+      "fee": "사전 20,000 / 현장 23,000",
+      "note": "이름에 '수' 포함 시 50% 할인"
     },
     "evidence": {
-      "screenshot_path": ""
+      "screenshot_path": "/scraped/verify_hh_260401.png"
     },
-    "created_at": "2026-03-18T16:10:00+09:00",
-    "updated_at": "2026-03-18T16:10:00+09:00"
+    "created_at": "2026-03-20T03:55:00+09:00",
+    "updated_at": "2026-03-19T19:20:00.405Z",
+    "is_collected": true
+  },
+  {
+    "id": "st_20260321_insta",
+    "keyword": "스윙타임",
+    "source_url": "https://www.instagram.com/swingtimebar/",
+    "poster_url": "/scraped/poster_swingtime_20260321.png",
+    "extracted_text": "3월 21일 스윙타임 토요소셜\nDJ: 비비비 (PM 8:15 ~ 10:15)\n장소: 스윙타임빠",
+    "structured_data": {
+      "date": "2026-03-21",
+      "day": "토",
+      "title": "토요 소셜 (DJ 비비비)",
+      "status": "정상운영",
+      "djs": [
+        "비비비"
+      ],
+      "times": [
+        "20:15 ~ 22:15"
+      ],
+      "location": "스윙타임바",
+      "fee": "미기재",
+      "note": ""
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/verify_st_20260321_20260322.png"
+    },
+    "created_at": "2026-03-20T04:03:00+09:00",
+    "updated_at": "2026-03-19T19:20:00.405Z",
+    "is_collected": true
+  },
+  {
+    "id": "st_20260322_insta",
+    "keyword": "스윙타임",
+    "source_url": "https://www.instagram.com/swingtimebar/",
+    "poster_url": "/scraped/poster_swingtime_20260322.png",
+    "extracted_text": "3월 22일 스윙타임 일요소셜\nDJ: 훔머 (1부 PM 8:00~9:30, 2부 PM 9:30~11:00)\n장소: 스윙타임빠",
+    "structured_data": {
+      "date": "2026-03-22",
+      "day": "일",
+      "title": "일요 소셜 (DJ 훔머)",
+      "status": "정상운영",
+      "djs": [
+        "훔머"
+      ],
+      "times": [
+        "20:00 ~ 23:00"
+      ],
+      "location": "스윙타임바",
+      "fee": "미기재",
+      "note": "1부 20:00-21:30, 2부 21:30-23:00"
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/verify_st_20260321_20260322.png"
+    },
+    "created_at": "2026-03-20T04:03:00+09:00",
+    "updated_at": "2026-03-19T19:20:00.405Z",
+    "is_collected": true
   }
 ]

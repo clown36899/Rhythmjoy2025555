@@ -262,6 +262,41 @@ const EventIngestor: React.FC = () => {
         });
     }, []);
 
+    // ===== 필드 수정 함수 =====
+    const handleUpdateField = useCallback(async (id: string, field: string, value: string) => {
+        // 로컬 상태 업데이트
+        setScrapedEvents(prev => prev.map(e => {
+            if (e.id !== id) return e;
+            const updated = { ...e, structured_data: { ...e.structured_data! } };
+            if (field === 'date') {
+                updated.structured_data!.date = value;
+            } else if (field === 'djs') {
+                updated.structured_data!.djs = value.split(',').map(s => s.trim()).filter(Boolean);
+            } else if (field === 'location') {
+                updated.structured_data!.location = value;
+            }
+            return updated;
+        }));
+
+        // 서버에 저장
+        try {
+            const target = scrapedEvents.find(e => e.id === id);
+            if (!target) return;
+            const updated = { ...target, structured_data: { ...target.structured_data! } };
+            if (field === 'date') updated.structured_data!.date = value;
+            else if (field === 'djs') updated.structured_data!.djs = value.split(',').map(s => s.trim()).filter(Boolean);
+            else if (field === 'location') updated.structured_data!.location = value;
+
+            await fetch(`/.netlify/functions/scraped-events?type=${currentTab}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify([updated]),
+            });
+        } catch (err) {
+            console.error('필드 수정 저장 실패:', err);
+        }
+    }, [scrapedEvents, currentTab]);
+
     // ===== 일괄 처리 함수 =====
     const handleBatchRegister = useCallback(async () => {
         if (selectedIds.size === 0) return alert('선택된 항목이 없습니다.');
@@ -839,6 +874,7 @@ const EventIngestor: React.FC = () => {
                                     currentTab={currentTab}
                                     selectedGenres={genreMap[item.id] || []}
                                     onToggleGenre={(genre) => toggleGenre(item.id, genre)}
+                                    onUpdateField={handleUpdateField}
                                     matchInfo={(() => {
                                         const g = comparisonData.find(c => c.scrapedId === item.id);
                                         if (!g || g.dbMatches.length === 0) return undefined;
@@ -887,6 +923,7 @@ const EventIngestor: React.FC = () => {
                                     currentTab={currentTab}
                                     selectedGenres={genreMap[item.id] || []}
                                     onToggleGenre={(genre) => toggleGenre(item.id, genre)}
+                                    onUpdateField={handleUpdateField}
                                 />
                             ))}
                         </div>
@@ -910,12 +947,16 @@ interface EventCardProps {
     currentTab?: 'social' | 'lessons';
     selectedGenres?: string[];
     onToggleGenre?: (genre: string) => void;
+    onUpdateField?: (id: string, field: string, value: string) => void;
 }
 
 const EventCard: React.FC<EventCardProps & { event: any }> = ({
     event, isDuplicate, isSelected, onSelect, onDismiss, onRegister,
-    isRegistered, isRegistering, matchInfo, currentTab, selectedGenres = [], onToggleGenre
+    isRegistered, isRegistering, matchInfo, currentTab, selectedGenres = [], onToggleGenre, onUpdateField
 }) => {
+    const [editingField, setEditingField] = useState<string | null>(null);
+    const [editValue, setEditValue] = useState('');
+
     const data = event.structured_data || {
         date: event.parsed_data?.date || 'unknown',
         title: event.parsed_data?.title || 'No Title',
@@ -924,6 +965,24 @@ const EventCard: React.FC<EventCardProps & { event: any }> = ({
 
     const imageUrl = event.poster_url || event.screenshot_url;
     const keywords = event.allKeywords || (event.keyword ? [event.keyword] : []);
+    const hasNoDate = !data.date;
+
+    const startEdit = (field: string, currentValue: string) => {
+        setEditingField(field);
+        setEditValue(currentValue || '');
+    };
+
+    const saveEdit = () => {
+        if (editingField && onUpdateField) {
+            onUpdateField(event.id, editingField, editValue);
+        }
+        setEditingField(null);
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter') saveEdit();
+        if (e.key === 'Escape') setEditingField(null);
+    };
 
     const copySinglePrompt = () => {
         const issues: string[] = [];
@@ -954,7 +1013,7 @@ const EventCard: React.FC<EventCardProps & { event: any }> = ({
     };
 
     return (
-        <div className={`ingestor-card ${data.status === 'CLOSED' ? 'status-closed' : ''} ${isSelected ? 'is-selected' : ''}`}>
+        <div className={`ingestor-card ${data.status === 'CLOSED' ? 'status-closed' : ''} ${isSelected ? 'is-selected' : ''} ${hasNoDate ? 'no-date-warning' : ''}`}>
             <div className="card-header">
                 <div className="header-left">
                     <input
@@ -970,7 +1029,25 @@ const EventCard: React.FC<EventCardProps & { event: any }> = ({
                     </div>
                 </div>
                 {isDuplicate && <span className="duplicate-badge">DUPLICATE</span>}
-                <span className="date-badge">{data.date.slice(5)} ({data.day || '일'})</span>
+                {editingField === 'date' ? (
+                    <input
+                        type="date"
+                        className="inline-edit-input date-edit"
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        onBlur={saveEdit}
+                        onKeyDown={handleKeyDown}
+                        autoFocus
+                    />
+                ) : (
+                    <span
+                        className={`date-badge ${hasNoDate ? 'date-missing' : ''}`}
+                        onClick={() => startEdit('date', data.date || '')}
+                        title="클릭하여 날짜 수정"
+                    >
+                        {hasNoDate ? '⚠️ 날짜 미확인' : `${data.date.slice(5)} (${data.day || '일'})`}
+                    </span>
+                )}
             </div>
 
             <div className="poster-section" onClick={onSelect}>
@@ -986,14 +1063,39 @@ const EventCard: React.FC<EventCardProps & { event: any }> = ({
                 <h3 className="event-title">{data.title}</h3>
 
                 <div className="detail-compact">
-                    <div className="detail-line">
-                        <b>장소</b> <span>{data.location || '해피홀'}</span>
+                    <div className="detail-line detail-editable" onClick={() => startEdit('location', data.location || '')}>
+                        <b>장소</b>
+                        {editingField === 'location' ? (
+                            <input
+                                className="inline-edit-input"
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={saveEdit}
+                                onKeyDown={handleKeyDown}
+                                autoFocus
+                                onClick={(e) => e.stopPropagation()}
+                            />
+                        ) : (
+                            <span title="클릭하여 수정">{data.location || '해피홀'}</span>
+                        )}
                     </div>
-                    {(data.djs || []).length > 0 && (
-                        <div className="detail-line">
-                            <b>DJ</b> <span>{data.djs?.join(', ')}</span>
-                        </div>
-                    )}
+                    <div className="detail-line detail-editable" onClick={() => startEdit('djs', (data.djs || []).join(', '))}>
+                        <b>DJ</b>
+                        {editingField === 'djs' ? (
+                            <input
+                                className="inline-edit-input"
+                                value={editValue}
+                                onChange={(e) => setEditValue(e.target.value)}
+                                onBlur={saveEdit}
+                                onKeyDown={handleKeyDown}
+                                autoFocus
+                                placeholder="쉼표로 구분"
+                                onClick={(e) => e.stopPropagation()}
+                            />
+                        ) : (
+                            <span title="클릭하여 수정">{(data.djs || []).length > 0 ? data.djs.join(', ') : '미확인'}</span>
+                        )}
+                    </div>
                     {(data.times || []).length > 0 && (
                         <div className="detail-line">
                             <b>시간</b> <span>{data.times?.join(', ')}</span>

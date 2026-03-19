@@ -683,3 +683,66 @@ html.ingestor-fullscreen #root {
     background: rgba(59, 130, 246, 0.15);
     color: #60a5fa;
 }
+
+/* === 인라인 편집 === */
+.inline-edit-input {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid #4f46e5;
+    color: #fff;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    outline: none;
+    width: 100%;
+    max-width: 140px;
+}
+
+.inline-edit-input:focus {
+    border-color: #818cf8;
+    box-shadow: 0 0 6px rgba(79, 70, 229, 0.4);
+}
+
+.inline-edit-input.date-edit {
+    max-width: 150px;
+    font-size: 0.75rem;
+    color-scheme: dark;
+}
+
+/* === 날짜 미확인 경고 === */
+.date-badge.date-missing {
+    background: #ef4444;
+    animation: pulse-warning 2s infinite;
+    cursor: pointer;
+}
+
+.ingestor-card.no-date-warning {
+    border-color: rgba(239, 68, 68, 0.4);
+}
+
+@keyframes pulse-warning {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* === 편집 가능 필드 === */
+.detail-editable {
+    cursor: pointer;
+    border-radius: 4px;
+    padding: 2px 4px;
+    margin: -2px -4px;
+    transition: background 0.2s;
+}
+
+.detail-editable:hover {
+    background: rgba(79, 70, 229, 0.15);
+}
+
+.date-badge {
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.date-badge:hover {
+    filter: brightness(1.2);
+    transform: scale(1.05);
+}
