@@ -92,7 +92,7 @@ export const handler: Handler = async (event) => {
         // ===== POST: 이벤트 추가/수정 (upsert by id) =====
         if (event.httpMethod === 'POST') {
             const body = JSON.parse(event.body || '{}');
-            const incoming: ScrapedEvent[] = Array.isArray(body) ? body : [body];
+            const incoming: (ScrapedEvent & { imageData?: string })[] = Array.isArray(body) ? body : [body];
 
             if (incoming.length === 0 || !incoming[0].id) {
                 return {
@@ -106,12 +106,40 @@ export const handler: Handler = async (event) => {
             const now = new Date().toISOString();
 
             for (const item of incoming) {
+                let posterUrl = item.poster_url;
+
+                // Base64 이미지가 포함된 경우 파일로 저장
+                if (item.imageData && item.imageData.startsWith('data:image')) {
+                    try {
+                        const base64Data = item.imageData.replace(/^data:image\/\w+;base64,/, "");
+                        const buffer = Buffer.from(base64Data, 'base64');
+                        const ext = item.imageData.split(';')[0].split('/')[1] || 'png';
+                        // 고유 파일명 생성 (기존 포스터가 있으면 덮어쓰거나 새 이름 생성 가능, 여기선 새 이름 권장)
+                        const timestamp = Date.now();
+                        const filename = `edited_${item.id}_${timestamp}.${ext}`;
+                        const filePath = path.join(SCRAPED_DIR, filename);
+
+                        // 기존 이미지가 있다면 삭제 시도 (옵션)
+                        if (item.poster_url) deleteImageFile(item.poster_url);
+
+                        fs.writeFileSync(filePath, buffer);
+                        posterUrl = `/scraped/${filename}`;
+                        console.log(`이미지 저장 완료: ${posterUrl}`);
+                    } catch (err) {
+                        console.error('이미지 저장 중 오류:', err);
+                    }
+                }
+
                 const idx = events.findIndex(e => e.id === item.id);
                 const record = {
                     ...item,
+                    poster_url: posterUrl,
                     updated_at: now,
                     created_at: item.created_at || now,
                 };
+                // imageData는 JSON에 저장하지 않음
+                delete (record as any).imageData;
+
                 if (idx >= 0) {
                     events[idx] = record; // 수정
                 } else {

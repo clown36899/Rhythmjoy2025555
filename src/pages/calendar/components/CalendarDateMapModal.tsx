@@ -30,7 +30,7 @@ export default function CalendarDateMapModal({
     const mapContainerRef = useRef<HTMLDivElement>(null);
     const markersRef = useRef<any[]>([]);
     const overlaysRef = useRef<any[]>([]);
-    const [selectedRegion, setSelectedRegion] = useState<string>('서울');
+    const [selectedRegion, setSelectedRegion] = useState<string>('전체');
     const [geocodedData, setGeocodedData] = useState<{ lat: number, lng: number, event: AppEvent }[]>([]);
     const [isGeocoding, setIsGeocoding] = useState(false);
     const [localEvents, setLocalEvents] = useState<AppEvent[]>(events);
@@ -122,16 +122,11 @@ export default function CalendarDateMapModal({
         return sorted;
     }, [localEvents]);
 
-    // 초기 지역 설정 (서울이 있으면 서울, 없으면 첫 번째 지역)
+    // 초기 지역 설정 (기본값 '전체' 유지)
     useEffect(() => {
-        if (isOpen && regions.length > 1) {
-            // localEvents가 있고 regions가 추출되었을 때 '서울'이 있으면 서울 우선, 없으면 첫 번째 실제 지역 선택
-            if (regions.includes('서울')) {
-                setSelectedRegion('서울');
-            } else if (regions.length > 1) {
-                // '전체'가 항상 0번째이므로 1번째가 실제 첫 지역
-                setSelectedRegion(regions[1]);
-            }
+        if (isOpen && regions.length > 0) {
+            // 특별한 로직 없이 '전체'가 기본값이 되도록 유지
+            // 만약 regions에 '전체' 외에 아무것도 없다면 그대로 '전체'가 선택된 상태
         }
     }, [isOpen, regions]);
 

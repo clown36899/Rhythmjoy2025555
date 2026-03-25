@@ -4,6 +4,7 @@ import { supabase } from '../../lib/supabase';
 import { createClient } from '@supabase/supabase-js';
 import { createResizedImages } from '../../utils/imageResize';
 import { useAuth } from '../../contexts/AuthContext';
+import ImageCropModal from '../../components/ImageCropModal';
 import './EventIngestor.css';
 
 // [인제스터 전용] 운영 DB 클라이언트 — 등록 버튼에서만 사용
@@ -56,6 +57,11 @@ const EventIngestor: React.FC = () => {
     const [registeringId, setRegisteringId] = useState<string | null>(null);
     const [venues, setVenues] = useState<VenueRecord[]>([]);
     const [genreMap, setGenreMap] = useState<Record<string, string[]>>({}); // scraped.id -> genres[]
+
+    // 이미지 편집 관련 상태
+    const [isCropModalOpen, setIsCropModalOpen] = useState(false);
+    const [editingEvent, setEditingEvent] = useState<ScrapedEvent | null>(null);
+    const [tempImageSrc, setTempImageSrc] = useState<string | null>(null);
 
     // 전체화면 모드: 650px 제한 해제 (스크롤 허용)
     useEffect(() => {
@@ -296,6 +302,62 @@ const EventIngestor: React.FC = () => {
             console.error('필드 수정 저장 실패:', err);
         }
     }, [scrapedEvents, currentTab]);
+
+    // ===== 이미지 편집 함수 =====
+    const handleEditImage = useCallback(async (event: ScrapedEvent) => {
+        const imageUrl = event.poster_url || event.screenshot_url;
+        if (!imageUrl) {
+            alert('편집할 이미지가 없습니다.');
+            return;
+        }
+
+        setEditingEvent(event);
+        try {
+            // 로컬 이미지를 Data URL로 변환하여 크롭 모달에 전달
+            const res = await fetch(imageUrl);
+            const blob = await res.blob();
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setTempImageSrc(reader.result as string);
+                setIsCropModalOpen(true);
+            };
+            reader.readAsDataURL(blob);
+        } catch (err) {
+            console.error('이미지 로딩 실패:', err);
+            alert('이미지를 불러오는데 실패했습니다.');
+        }
+    }, []);
+
+    const handleCropComplete = useCallback(async (file: File, previewUrl: string) => {
+        if (!editingEvent) return;
+
+        try {
+            // 서버에 Base64 이미지와 함께 업데이트 요청
+            const updatedEvent = {
+                ...editingEvent,
+                imageData: previewUrl // ImageCropModal에서 받은 Data URL
+            };
+
+            const res = await fetch(`/.netlify/functions/scraped-events?type=${currentTab}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify([updatedEvent]),
+            });
+
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+            // 성공 시 로컬 상태 업데이트 (변경된 poster_url 반영을 위해 다시 fetch 권장하나 여기선 직접 업데이트 시도)
+            // 서버에서 새로운 파일명을 생성하므로 새로고침이 확실함
+            await fetchScraped();
+            setIsCropModalOpen(false);
+            setEditingEvent(null);
+            setTempImageSrc(null);
+            alert('이미지가 성공적으로 변경되었습니다.');
+        } catch (err: any) {
+            console.error('이미지 저장 실패:', err);
+            alert(`이미지 저장 실패: ${err.message}`);
+        }
+    }, [editingEvent, currentTab, fetchScraped]);
 
     // ===== 일괄 처리 함수 =====
     const handleBatchRegister = useCallback(async () => {
@@ -871,6 +933,7 @@ const EventIngestor: React.FC = () => {
                                     onRegister={() => handleRegisterEvent(item)}
                                     isRegistered={registeredIds.has(item.id)}
                                     isRegistering={registeringId === item.id}
+                                    onEditImage={() => handleEditImage(item)}
                                     currentTab={currentTab}
                                     selectedGenres={genreMap[item.id] || []}
                                     onToggleGenre={(genre) => toggleGenre(item.id, genre)}
@@ -920,6 +983,7 @@ const EventIngestor: React.FC = () => {
                                     isDuplicate={true}
                                     isSelected={selectedIds.has(item.id)}
                                     onSelect={() => toggleSelect(item.id)}
+                                    onEditImage={() => handleEditImage(item)}
                                     currentTab={currentTab}
                                     selectedGenres={genreMap[item.id] || []}
                                     onToggleGenre={(genre) => toggleGenre(item.id, genre)}
@@ -929,6 +993,19 @@ const EventIngestor: React.FC = () => {
                         </div>
                     </section>
                 )}
+
+                {/* 이미지 크롭 모달 */}
+                <ImageCropModal
+                    isOpen={isCropModalOpen}
+                    imageUrl={tempImageSrc}
+                    onClose={() => {
+                        setIsCropModalOpen(false);
+                        setEditingEvent(null);
+                        setTempImageSrc(null);
+                    }}
+                    onCropComplete={handleCropComplete}
+                    fileName={editingEvent ? `crop_${editingEvent.id}.jpg` : 'crop.jpg'}
+                />
             </main>
         </div >
     );
@@ -948,24 +1025,26 @@ interface EventCardProps {
     selectedGenres?: string[];
     onToggleGenre?: (genre: string) => void;
     onUpdateField?: (id: string, field: string, value: string) => void;
+    onEditImage?: () => void;
 }
 
-const EventCard: React.FC<EventCardProps & { event: any }> = ({
+const EventCard: React.FC<EventCardProps> = ({
     event, isDuplicate, isSelected, onSelect, onDismiss, onRegister,
-    isRegistered, isRegistering, matchInfo, currentTab, selectedGenres = [], onToggleGenre, onUpdateField
+    isRegistered, isRegistering, matchInfo, currentTab, selectedGenres = [], onToggleGenre, onUpdateField,
+    onEditImage
 }) => {
     const [editingField, setEditingField] = useState<string | null>(null);
     const [editValue, setEditValue] = useState('');
 
-    const data = event.structured_data || {
-        date: event.parsed_data?.date || 'unknown',
-        title: event.parsed_data?.title || 'No Title',
+    const eventData = (event as any).structured_data || {
+        date: (event as any).parsed_data?.date || 'unknown',
+        title: (event as any).parsed_data?.title || 'No Title',
         status: 'UNKNOWN'
     };
 
-    const imageUrl = event.poster_url || event.screenshot_url;
-    const keywords = event.allKeywords || (event.keyword ? [event.keyword] : []);
-    const hasNoDate = !data.date;
+    const imageUrl = (event as any).poster_url || (event as any).screenshot_url;
+    const keywords = (event as any).allKeywords || ((event as any).keyword ? [(event as any).keyword] : []);
+    const hasNoDate = !eventData.date;
 
     const startEdit = (field: string, currentValue: string) => {
         setEditingField(field);
@@ -974,7 +1053,7 @@ const EventCard: React.FC<EventCardProps & { event: any }> = ({
 
     const saveEdit = () => {
         if (editingField && onUpdateField) {
-            onUpdateField(event.id, editingField, editValue);
+            onUpdateField((event as any).id, editingField, editValue);
         }
         setEditingField(null);
     };
@@ -987,7 +1066,7 @@ const EventCard: React.FC<EventCardProps & { event: any }> = ({
     const copySinglePrompt = () => {
         const issues: string[] = [];
         if (!imageUrl) issues.push('이미지 누락');
-        if (!data?.djs || data.djs.length === 0) issues.push('DJ 미확인');
+        if (!eventData?.djs || eventData.djs.length === 0) issues.push('DJ 미확인');
         if (issues.length === 0) issues.push('이미지/데이터 정합성 검증 필요');
 
         const prompt = [
@@ -995,10 +1074,10 @@ const EventCard: React.FC<EventCardProps & { event: any }> = ({
             `전체 소스를 재검색하지 말고, 이 URL에서 해당 날짜의 포스트만 찾아서 수정해줘.`,
             ``,
             `- 키워드: ${keywords.join(', ')}`,
-            `  URL: ${event.source_url}`,
-            `  날짜: ${data?.date || '미확인'} (${data?.day || '?'})`,
-            `  제목: ${data?.title || '미확인'}`,
-            `  DJ: ${data?.djs?.join(', ') || '미확인'}`,
+            `  URL: ${(event as any).source_url}`,
+            `  날짜: ${eventData?.date || '미확인'} (${eventData?.day || '?'})`,
+            `  제목: ${eventData?.title || '미확인'}`,
+            `  DJ: ${eventData?.djs?.join(', ') || '미확인'}`,
             `  현재 이미지: ${imageUrl || '없음'}`,
             `  문제점: ${issues.join(', ')}`,
             ``,
@@ -1013,7 +1092,7 @@ const EventCard: React.FC<EventCardProps & { event: any }> = ({
     };
 
     return (
-        <div className={`ingestor-card ${data.status === 'CLOSED' ? 'status-closed' : ''} ${isSelected ? 'is-selected' : ''} ${hasNoDate ? 'no-date-warning' : ''}`}>
+        <div className={`ingestor-card ${eventData.status === 'CLOSED' ? 'status-closed' : ''} ${isSelected ? 'is-selected' : ''} ${hasNoDate ? 'no-date-warning' : ''}`}>
             <div className="card-header">
                 <div className="header-left">
                     <input
@@ -1042,10 +1121,10 @@ const EventCard: React.FC<EventCardProps & { event: any }> = ({
                 ) : (
                     <span
                         className={`date-badge ${hasNoDate ? 'date-missing' : ''}`}
-                        onClick={() => startEdit('date', data.date || '')}
+                        onClick={() => startEdit('date', eventData.date || '')}
                         title="클릭하여 날짜 수정"
                     >
-                        {hasNoDate ? '⚠️ 날짜 미확인' : `${data.date.slice(5)} (${data.day || '일'})`}
+                        {hasNoDate ? '⚠️ 날짜 미확인' : `${eventData.date.slice(5)} (${eventData.day || '일'})`}
                     </span>
                 )}
             </div>
@@ -1060,10 +1139,10 @@ const EventCard: React.FC<EventCardProps & { event: any }> = ({
             </div>
 
             <div className="info-section">
-                <h3 className="event-title">{data.title}</h3>
+                <h3 className="event-title">{eventData.title}</h3>
 
                 <div className="detail-compact">
-                    <div className="detail-line detail-editable" onClick={() => startEdit('location', data.location || '')}>
+                    <div className="detail-line detail-editable" onClick={() => startEdit('location', eventData.location || '')}>
                         <b>장소</b>
                         {editingField === 'location' ? (
                             <input
@@ -1076,10 +1155,10 @@ const EventCard: React.FC<EventCardProps & { event: any }> = ({
                                 onClick={(e) => e.stopPropagation()}
                             />
                         ) : (
-                            <span title="클릭하여 수정">{data.location || '해피홀'}</span>
+                            <span title="클릭하여 수정">{eventData.location || '해피홀'}</span>
                         )}
                     </div>
-                    <div className="detail-line detail-editable" onClick={() => startEdit('djs', (data.djs || []).join(', '))}>
+                    <div className="detail-line detail-editable" onClick={() => startEdit('djs', (eventData.djs || []).join(', '))}>
                         <b>DJ</b>
                         {editingField === 'djs' ? (
                             <input
@@ -1093,12 +1172,12 @@ const EventCard: React.FC<EventCardProps & { event: any }> = ({
                                 onClick={(e) => e.stopPropagation()}
                             />
                         ) : (
-                            <span title="클릭하여 수정">{(data.djs || []).length > 0 ? data.djs.join(', ') : '미확인'}</span>
+                            <span title="클릭하여 수정">{(eventData.djs || []).length > 0 ? eventData.djs.join(', ') : '미확인'}</span>
                         )}
                     </div>
-                    {(data.times || []).length > 0 && (
+                    {(eventData.times || []).length > 0 && (
                         <div className="detail-line">
-                            <b>시간</b> <span>{data.times?.join(', ')}</span>
+                            <b>시간</b> <span>{eventData.times?.join(', ')}</span>
                         </div>
                     )}
                 </div>
@@ -1120,18 +1199,25 @@ const EventCard: React.FC<EventCardProps & { event: any }> = ({
                     </div>
                 )}
 
-                {event.extracted_text && (
+                { (event as any).extracted_text && (
                     <div className="extracted-box" title="추출된 본문 텍스트">
-                        {event.extracted_text}
+                        { (event as any).extracted_text }
                     </div>
                 )}
 
                 <div className="card-actions">
                     <button
                         className="btn-register btn-sm"
-                        onClick={() => window.open(event.source_url, '_blank')}
+                        onClick={() => window.open((event as any).source_url, '_blank')}
                     >
                         원본
+                    </button>
+                    <button
+                        className="btn-register btn-sm"
+                        onClick={onEditImage}
+                        title="이미지 크롭 또는 교체"
+                    >
+                        🖼️ 편집
                     </button>
                     <button
                         className="btn-rescrape btn-sm"
@@ -1145,12 +1231,12 @@ const EventCard: React.FC<EventCardProps & { event: any }> = ({
                         <button
                             className={`btn-register btn-sm primary ${isRegistering ? 'loading' : ''}`}
                             onClick={onRegister}
-                            disabled={isRegistering || !onRegister}
+                            disabled={isRegistering || !(onRegister as any)}
                         >
                             {isRegistering ? '⏳ 등록중...' : '📥 등록'}
                         </button>
                     )}
-                    {onDismiss && (
+                    {(onDismiss as any) && (
                         <button
                             className="btn-dismiss-card btn-sm"
                             onClick={onDismiss}

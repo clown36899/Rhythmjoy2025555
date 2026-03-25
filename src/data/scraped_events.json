@@ -1,12 +1,12 @@
 [
   {
-    "id": "hh_260304_wed",
-    "keyword": "해피홀",
-    "source_url": "https://www.instagram.com/p/DVN8hYDj1NB/",
-    "poster_url": "/scraped/happyhall_260304_poster.jpg",
-    "extracted_text": "수요일 DJ 소셜\n날짜: 2026-03-04 (수)\nDJ: 쓴귤\n시간: 20:20 ~\n가격: 12,000원",
+    "id": "st_260325_wed",
+    "keyword": "스윙타임",
+    "source_url": "https://www.instagram.com/p/DWOrg94E49-/",
+    "poster_url": "/scraped/swingtime_20260325_poster.jpg",
+    "extracted_text": "■ 스윙타임빠 (3월 25일) 수 소셜 공지\nDJ \"쓴귤\" PM 8:15~10:15",
     "structured_data": {
-      "date": "2026-03-04",
+      "date": "2026-03-25",
       "day": "수",
       "title": "수요 소셜 (DJ 쓴귤)",
       "status": "정상운영",
@@ -14,464 +14,120 @@
         "쓴귤"
       ],
       "times": [
-        "20:20 ~"
-      ],
-      "location": "해피홀",
-      "fee": "12,000원",
-      "note": "3월부터 평일 가격 인상"
-    },
-    "evidence": {
-      "screenshot_path": "/scraped/happyhall_260304_poster.jpg"
-    },
-    "created_at": "2026-02-27T20:35:00+09:00",
-    "updated_at": "2026-02-27T20:35:00+09:00"
-  },
-  {
-    "id": "st_260228_sat",
-    "keyword": "스윙타임",
-    "source_url": "https://www.instagram.com/p/DVPoLr_k-T6/",
-    "poster_url": "/scraped/swingtime_260228_poster.jpg",
-    "extracted_text": "토요일 소셜\n날짜: 2026.02.28 (토)\nDJ: 나나씨\n시간: 19:30 ~\n가격: 12,000원",
-    "structured_data": {
-      "date": "2026-02-28",
-      "day": "토",
-      "title": "토요 소셜 (DJ 나나씨)",
-      "status": "정상운영",
-      "djs": [
-        "나나씨"
-      ],
-      "times": [
-        "19:30 ~"
-      ],
-      "location": "스윙타임",
-      "fee": "12,000원",
-      "note": "주말 가격 인상"
-    },
-    "evidence": {
-      "screenshot_path": "/scraped/swingtime_260228_poster.jpg"
-    },
-    "created_at": "2026-02-27T20:35:00+09:00",
-    "updated_at": "2026-02-27T20:35:00+09:00"
-  },
-  {
-    "id": "st_260301_sun",
-    "keyword": "스윙타임",
-    "source_url": "https://www.instagram.com/p/DVPoLr_k-T6/",
-    "poster_url": "/scraped/swingtime_260228_poster.jpg",
-    "extracted_text": "일요일 소셜\n날짜: 2026.03.01 (일)\nDJ: 로젤\n시간: 19:30 ~\n가격: 12,000원",
-    "structured_data": {
-      "date": "2026-03-01",
-      "day": "일",
-      "title": "일요 소셜 (DJ 로젤)",
-      "status": "정상운영",
-      "djs": [
-        "로젤"
-      ],
-      "times": [
-        "19:30 ~"
-      ],
-      "location": "스윙타임",
-      "fee": "12,000원",
-      "note": "주말 가격 인상"
-    },
-    "evidence": {
-      "screenshot_path": "/scraped/swingtime_260228_poster.jpg"
-    },
-    "created_at": "2026-02-27T20:35:00+09:00",
-    "updated_at": "2026-02-27T20:35:00+09:00"
-  },
-  {
-    "id": "ksh_260228_sat",
-    "keyword": "경성홀",
-    "source_url": "https://www.instagram.com/p/DVNd3R9kuKw/",
-    "poster_url": "/scraped/kyungsunghall_260228_poster.jpg",
-    "extracted_text": "토요일 소셜\n날짜: 2026.02.28 (토)\nDJ: 이정\n시간: 19:30 - 23:00\n가격: 11,000원",
-    "structured_data": {
-      "date": "2026-02-28",
-      "day": "토",
-      "title": "토요 소셜 (DJ 이정)",
-      "status": "정상운영",
-      "djs": [
-        "이정"
-      ],
-      "times": [
-        "19:30 ~ 23:00"
-      ],
-      "location": "경성홀",
-      "fee": "11,000원",
-      "note": ""
-    },
-    "evidence": {
-      "screenshot_path": "/scraped/kyungsunghall_260228_poster.jpg"
-    },
-    "created_at": "2026-02-27T20:35:00+09:00",
-    "updated_at": "2026-02-27T20:35:00+09:00"
-  },
-  {
-    "id": "ksh_260301_sun",
-    "keyword": "경성홀",
-    "source_url": "https://www.instagram.com/p/DVNd3R9kuKw/",
-    "poster_url": "/scraped/kyungsunghall_260228_poster.jpg",
-    "extracted_text": "일요일 소셜\n날짜: 2026.03.01 (일)\nDJ: 들라\n시간: 19:30 - 23:00\n가격: 11,000원",
-    "structured_data": {
-      "date": "2026-03-01",
-      "day": "일",
-      "title": "일요 소셜 (DJ 들라)",
-      "status": "정상운영",
-      "djs": [
-        "들라"
-      ],
-      "times": [
-        "19:30 ~ 23:00"
-      ],
-      "location": "경성홀",
-      "fee": "11,000원",
-      "note": ""
-    },
-    "evidence": {
-      "screenshot_path": "/scraped/kyungsunghall_260228_poster.jpg"
-    },
-    "created_at": "2026-02-27T20:35:00+09:00",
-    "updated_at": "2026-02-27T20:35:00+09:00"
-  },
-  {
-    "id": "ksh_260303_tue",
-    "keyword": "경성홀",
-    "source_url": "https://www.instagram.com/p/DVNd3R9kuKw/",
-    "poster_url": "/scraped/kyungsunghall_260228_poster.jpg",
-    "extracted_text": "화요일 소셜\n날짜: 2026.03.03 (화)\nDJ: 루비\n시간: 20:00 - 23:00\n가격: 9,000원",
-    "structured_data": {
-      "date": "2026-03-03",
-      "day": "화",
-      "title": "화요 소셜 (DJ 루비)",
-      "status": "정상운영",
-      "djs": [
-        "루비"
-      ],
-      "times": [
-        "20:00 ~ 23:00"
-      ],
-      "location": "경성홀",
-      "fee": "9,000원",
-      "note": ""
-    },
-    "evidence": {
-      "screenshot_path": "/scraped/kyungsunghall_260228_poster.jpg"
-    },
-    "created_at": "2026-02-27T20:35:00+09:00",
-    "updated_at": "2026-02-27T20:35:00+09:00"
-  },
-  {
-    "id": "ss_260305_thu",
-    "keyword": "스윙스캔들",
-    "source_url": "https://www.instagram.com/p/DVa-FGqiFoh/",
-    "poster_url": "/scraped/swingscandal_260305_poster.png",
-    "extracted_text": "스윙스캔들 목요일 소셜\n날짜: 2026-03-05 (목)\nDJ: 루비\n시간: 19:30 - 23:00\n가격: 9,000원",
-    "structured_data": {
-      "date": "2026-03-05",
-      "day": "목",
-      "title": "목요 소셜 (DJ 루비)",
-      "status": "정상운영",
-      "djs": [
-        "루비"
-      ],
-      "times": [
-        "19:30 ~ 23:00"
-      ],
-      "location": "사보이볼룸",
-      "fee": "9,000원",
-      "note": "3월 첫째주 정기 소셜"
-    },
-    "evidence": {
-      "screenshot_path": "/scraped/verify_scandal_20260305.png"
-    },
-    "parsed_data": {
-      "date": "2026-03-05",
-      "title": "목요 소셜 (DJ 루비)"
-    },
-    "created_at": "2026-03-05T00:15:00+09:00",
-    "updated_at": "2026-03-05T00:15:00+09:00"
-  },
-  {
-    "id": "ss_260307_sat",
-    "keyword": "스윙스캔들",
-    "source_url": "https://www.instagram.com/p/DVa-FGqiFoh/",
-    "poster_url": "/scraped/swingscandal_260307_poster.png",
-    "extracted_text": "스윙스캔들 99회 졸업 파티 및 토요일 소셜\n날짜: 2026-03-07 (토)\nDJ: 로젤\n시간: 20:20 - 23:00\n가격: 사전 14,000원 / 현장 15,000원",
-    "structured_data": {
-      "date": "2026-03-07",
-      "day": "토",
-      "title": "99기 졸업 파티 및 토요 소셜 (DJ 로젤)",
-      "status": "정상운영",
-      "djs": [
-        "로젤"
-      ],
-      "times": [
-        "20:20 ~ 23:00"
-      ],
-      "location": "사보이볼룸",
-      "fee": "14,000원(사전) / 15,000원(현장)",
-      "note": "99기 졸업 기념 파티"
-    },
-    "evidence": {
-      "screenshot_path": "/scraped/verify_scandal_20260307.png"
-    },
-    "parsed_data": {
-      "date": "2026-03-07",
-      "title": "99기 졸업 파티 및 토요 소셜 (DJ 로젤)"
-    },
-    "created_at": "2026-03-05T00:15:00+09:00",
-    "updated_at": "2026-03-05T00:15:00+09:00"
-  },
-  {
-    "id": "st_260306_fri",
-    "keyword": "스윙타임",
-    "source_url": "https://www.instagram.com/swingtimebar/",
-    "poster_url": "/scraped/swingtime_260306_poster.png",
-    "extracted_text": "Slow Jam (1분기 정기 소셜)\n날짜: 2026-03-06 (금)\nDJ: 안단테, 휘모리\n시간: 22:10 - 01:10 (익일)\n장소: 스윙타임바",
-    "structured_data": {
-      "date": "2026-03-06",
-      "day": "금",
-      "title": "Slow Jam (DJ 안단테, 휘모리)",
-      "status": "정상운영",
-      "djs": [
-        "안단테",
-        "휘모리"
-      ],
-      "times": [
-        "22:10 ~ 01:10"
+        "20:15 ~ 22:15"
       ],
       "location": "스윙타임바",
       "fee": "미기재",
-      "note": "1분기 정기 소셜"
+      "note": ""
     },
     "evidence": {
-      "screenshot_path": "/scraped/swingtime_260306_poster.png"
+      "screenshot_path": "/scraped/verify_st_20260325.png"
     },
-    "created_at": "2026-03-05T03:05:00+09:00",
-    "updated_at": "2026-03-18T07:22:46.587Z",
+    "parsed_data": {
+      "date": "2026-03-25",
+      "title": "수요 소셜 (DJ 쓴귤)"
+    },
+    "created_at": "2026-03-25T14:28:00+09:00",
+    "updated_at": "2026-03-25T09:41:30.213Z",
     "is_collected": true
   },
   {
-    "id": "sf_260307_busan",
-    "keyword": "스윙프렌즈",
-    "source_url": "https://www.instagram.com/tc_dances/",
-    "poster_url": "/scraped/swingfriends_busan_260307_poster.png",
-    "extracted_text": "부산 스윙프렌즈 토요 소셜\n날짜: 2026-03-07 (토)\n장소: 부산 (상세 미정)\nDJ: 미정",
+    "id": "ss_260326_thu",
+    "keyword": "스윙스캔들",
+    "source_url": "https://cafe.naver.com/f-e/cafes/14933600/articles/102101?boardtype=I&menuid=501&referrerAllArticles=false",
+    "poster_url": "/scraped/swingscandal_20260326_poster.png",
+    "extracted_text": "2026.03.26. 스윙스캔들 목요소셜 DJ. 굼바 님입니다!",
     "structured_data": {
-      "date": "2026-03-07",
-      "day": "토",
-      "title": "부산 토요 소셜",
+      "date": "2026-03-26",
+      "day": "목",
+      "title": "목요 소셜 (DJ 굼바)",
       "status": "정상운영",
       "djs": [
-        "미정"
+        "굼바"
       ],
       "times": [
-        "미기재"
+        "19:30 ~ 23:00"
       ],
-      "location": "부산 (상세 확인 필요)",
+      "location": "사보이볼룸",
       "fee": "미기재",
-      "note": "부산 스윙프렌즈 정기 소셜"
+      "note": ""
     },
     "evidence": {
-      "screenshot_path": "/scraped/swingfriends_busan_260307_poster.png"
+      "screenshot_path": "/scraped/verify_scandal_20260326.png"
     },
-    "created_at": "2026-03-05T05:05:00+09:00",
-    "updated_at": "2026-03-05T05:05:00+09:00"
+    "parsed_data": {
+      "date": "2026-03-26",
+      "title": "목요 소셜 (DJ 굼바)"
+    },
+    "created_at": "2026-03-25T13:58:00+09:00",
+    "updated_at": "2026-03-25T09:41:30.213Z",
+    "is_collected": true
   },
   {
-    "id": "sh_260307_sat",
-    "keyword": "스윙홀릭",
-    "source_url": "https://www.instagram.com/swingholic/",
-    "poster_url": "/scraped/swingholic_260307_poster.png",
-    "extracted_text": "광주 정기 소셜\n날짜: 2026-03-07 (토)\nDJ: 행복\n장소: 광주 마얀 F3\n시간: 20:00 - 22:30\n가격: 9,000원",
+    "id": "hh_260327_fri",
+    "keyword": "해피홀",
+    "source_url": "https://www.instagram.com/happyhall2004/",
+    "poster_url": "/scraped/edited_hh_260327_fri_1774432029233.jpeg",
+    "extracted_text": "🌼3월 4주 위클리네오\n🎧금햅 DJ TC\n🎧일햅 DJ 로젤",
     "structured_data": {
-      "date": "2026-03-07",
-      "day": "토",
-      "title": "광주 정기 소셜 (DJ 행복)",
+      "date": "2026-03-27",
+      "day": "금",
+      "title": "금요 소셜 (금햅 - DJ TC)",
       "status": "정상운영",
       "djs": [
-        "행복"
+        "TC"
+      ],
+      "times": [
+        "20:30 ~"
+      ],
+      "location": "신촌 해피홀",
+      "fee": "미기재",
+      "note": "3월 4주 위클리네오"
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/verify_hh_20260327.png"
+    },
+    "parsed_data": {
+      "date": "2026-03-27",
+      "title": "금요 소셜 (금햅 - DJ TC)"
+    },
+    "created_at": "2026-03-25T14:15:00+09:00",
+    "updated_at": "2026-03-25T09:47:09.233Z",
+    "is_collected": false,
+    "allKeywords": [
+      "해피홀"
+    ]
+  },
+  {
+    "id": "sf_260327_fri",
+    "keyword": "스윙피버",
+    "source_url": "https://cafe.naver.com/swingfever2002",
+    "poster_url": "/scraped/poster_swingfever_20260321.png",
+    "extracted_text": "3월 27일 (금) 스윙피버 정모 안내\nDJ : 블로 (Blo)\n장소: 스윙잇 댄스홀",
+    "structured_data": {
+      "date": "2026-03-27",
+      "day": "금",
+      "title": "금요 정모 (DJ 블로)",
+      "status": "정상운영",
+      "djs": [
+        "블로"
       ],
       "times": [
         "20:00 ~ 22:30"
       ],
-      "location": "광주 마얀 F3",
-      "fee": "9,000원",
-      "note": "광주 스윙홀릭 월간 DJ 일정"
-    },
-    "evidence": {
-      "screenshot_path": "/scraped/swingholic_260307_poster.png"
-    },
-    "created_at": "2026-03-05T03:10:00+09:00",
-    "updated_at": "2026-03-09T08:41:47.191Z",
-    "is_collected": true
-  },
-  {
-    "id": "st_260308_sun",
-    "keyword": "스윙타임",
-    "source_url": "https://www.instagram.com/p/DVkfqsDk_qa/",
-    "poster_url": "/scraped/swingtime_260308_poster.png",
-    "extracted_text": "3/8(일) 일요 소셜\nDJ: 1부 유광, 2부 다카포\n시간: 19:30 ~\n가격: 사전 10,000 / 현장 12,000",
-    "structured_data": {
-      "date": "2026-03-08",
-      "day": "일",
-      "title": "일요 소셜 (DJ 유광, 다카포)",
-      "status": "정상운영",
-      "djs": [
-        "유광",
-        "다카포"
-      ],
-      "times": [
-        "19:30 ~ 23:00"
-      ],
-      "location": "스윙타임바",
-      "fee": "10,000원(사전) / 12,000원(현장)",
-      "note": "1부 20:00-21:30, 2부 21:30-23:00"
-    },
-    "evidence": {
-      "screenshot_path": "/scraped/swingtime_260308_poster.png"
-    },
-    "created_at": "2026-03-08T03:30:00+09:00",
-    "updated_at": "2026-03-09T08:41:47.191Z",
-    "is_collected": true
-  },
-  {
-    "id": "ksh_260308_sun",
-    "keyword": "경성홀",
-    "source_url": "https://www.instagram.com/p/DVgb1uCEhYP/",
-    "poster_url": "/scraped/kyungsung_260308_poster.png",
-    "extracted_text": "3/8(일) 일요 소셜\nDJ: 북실\n시간: 19:30 - 23:00\n가격: 11,000원",
-    "structured_data": {
-      "date": "2026-03-08",
-      "day": "일",
-      "title": "일요 소셜 (DJ 북실)",
-      "status": "정상운영",
-      "djs": [
-        "북실"
-      ],
-      "times": [
-        "19:30 ~ 23:00"
-      ],
-      "location": "경성홀",
-      "fee": "11,000원",
-      "note": ""
-    },
-    "evidence": {
-      "screenshot_path": "/scraped/kyungsung_260308_poster.png"
-    },
-    "created_at": "2026-03-08T03:30:00+09:00",
-    "updated_at": "2026-03-09T08:41:35.803Z",
-    "is_collected": true
-  },
-  {
-    "id": "ss_260309_mon",
-    "keyword": "스윙스캔들",
-    "source_url": "https://www.instagram.com/p/DVc1pDIEfmN/",
-    "poster_url": "/scraped/savoy_260309_blues.png",
-    "extracted_text": "3/9(월) 블바지 블루스 소셜\n대전 오나다\n사보이볼룸 계정 공지",
-    "structured_data": {
-      "date": "2026-03-09",
-      "day": "월",
-      "title": "블바지 블루스 소셜",
-      "status": "정상운영",
-      "djs": [],
-      "times": [
-        "미기재"
-      ],
-      "location": "대전 오나다",
+      "location": "대전 스윙잇 댄스홀",
       "fee": "미기재",
-      "note": "사보이볼룸(스윙스캔들) 인스타그램 공지"
+      "note": "네이버 카페 공지 확인"
     },
     "evidence": {
-      "screenshot_path": "/scraped/savoy_260309_blues.png"
+      "screenshot_path": "/scraped/verify_sf_20260327.png"
     },
-    "created_at": "2026-03-08T03:30:00+09:00",
-    "updated_at": "2026-03-18T07:22:46.587Z",
-    "is_collected": true
-  },
-  {
-    "id": "ksh_260310_tue",
-    "keyword": "경성홀",
-    "source_url": "https://www.instagram.com/p/DVgb1uCEhYP/",
-    "poster_url": "/scraped/kyungsung_260308_poster.png",
-    "extracted_text": "3/10(화) 화요 소셜\nDJ: 데니즈\n시간: 20:00 - 23:00\n가격: 9,000원",
-    "structured_data": {
-      "date": "2026-03-10",
-      "day": "화",
-      "title": "화요 소셜 (DJ 데니즈)",
-      "status": "정상운영",
-      "djs": [
-        "데니즈"
-      ],
-      "times": [
-        "20:00 ~ 23:00"
-      ],
-      "location": "경성홀",
-      "fee": "9,000원",
-      "note": "Deniz & Meti 워크숍 동시 진행"
+    "parsed_data": {
+      "date": "2026-03-27",
+      "title": "금요 정모 (DJ 블로)"
     },
-    "evidence": {
-      "screenshot_path": "/scraped/kyungsung_260308_poster.png"
-    },
-    "created_at": "2026-03-08T03:30:00+09:00",
-    "updated_at": "2026-03-09T08:41:35.803Z",
-    "is_collected": true
-  },
-  {
-    "id": "bat_260314_sat",
-    "keyword": "박쥐스윙",
-    "source_url": "https://www.instagram.com/batswing2003/",
-    "poster_url": "/scraped/batswing_2603_schedule.png",
-    "extracted_text": "3/14(토) 박쥐스윙 정모 소셜\nDJ: 윤가\n시간: 19:30 ~\n장소: 인더무드 신림",
-    "structured_data": {
-      "date": "2026-03-14",
-      "day": "토",
-      "title": "토요 정모 소셜 (DJ 윤가)",
-      "status": "정상운영",
-      "djs": [
-        "윤가"
-      ],
-      "times": [
-        "19:30 ~"
-      ],
-      "location": "인더무드 신림 (신림역)",
-      "fee": "미기재",
-      "note": "박쥐스윙 3월 DJ 리스트"
-    },
-    "evidence": {
-      "screenshot_path": "/scraped/batswing_2603_schedule.png"
-    },
-    "created_at": "2026-03-08T03:30:00+09:00",
-    "updated_at": "2026-03-09T08:41:35.803Z",
-    "is_collected": true
-  },
-  {
-    "id": "bat_260321_sat",
-    "keyword": "박쥐스윙",
-    "source_url": "https://www.instagram.com/batswing2003/",
-    "poster_url": "/scraped/batswing_2603_schedule.png",
-    "extracted_text": "3/21(토) 박쥐스윙 정모 소셜\nDJ: 훔머\n시간: 19:30 ~\n장소: 인더무드 신림",
-    "structured_data": {
-      "date": "2026-03-21",
-      "day": "토",
-      "title": "토요 정모 소셜 (DJ 훔머)",
-      "status": "정상운영",
-      "djs": [
-        "훔머"
-      ],
-      "times": [
-        "19:30 ~"
-      ],
-      "location": "인더무드 신림 (신림역)",
-      "fee": "미기재",
-      "note": "박쥐스윙 3월 DJ 리스트"
-    },
-    "evidence": {
-      "screenshot_path": "/scraped/batswing_2603_schedule.png"
-    },
-    "created_at": "2026-03-08T03:30:00+09:00",
-    "updated_at": "2026-03-09T08:41:35.803Z",
+    "created_at": "2026-03-25T17:30:00+09:00",
+    "updated_at": "2026-03-25T09:41:30.213Z",
     "is_collected": true
   },
   {
@@ -500,553 +156,6 @@
     },
     "created_at": "2026-03-08T03:30:00+09:00",
     "updated_at": "2026-03-09T08:41:35.803Z",
-    "is_collected": true
-  },
-  {
-    "id": "ns_260308_sun",
-    "keyword": "네오스윙",
-    "source_url": "https://www.instagram.com/neo_swing/",
-    "poster_url": "/scraped/poster_neoswing_20260308.png",
-    "extracted_text": "네오스윙 일요 소셜 (일햅)\n날짜: 2026-03-08 (일)\nDJ: 달로 (Dallo)\n시간: 18:00 - 21:00\n장소: 신촌 해피홀\n가격: 13,000원",
-    "structured_data": {
-      "date": "2026-03-08",
-      "day": "일",
-      "title": "네오스윙 일요 소셜 (DJ 달로)",
-      "status": "정상운영",
-      "djs": [
-        "달로"
-      ],
-      "times": [
-        "18:00 ~ 21:00"
-      ],
-      "location": "신촌 해피홀",
-      "fee": "13,000원",
-      "note": "신규 수집"
-    },
-    "evidence": {
-      "screenshot_path": "/scraped/verify_neoswing_20260308.png"
-    },
-    "created_at": "2026-03-08T08:15:00+09:00",
-    "updated_at": "2026-03-09T08:41:47.191Z",
-    "is_collected": true
-  },
-  {
-    "id": "sh_260314_sat",
-    "keyword": "스윙홀릭",
-    "source_url": "https://www.instagram.com/swingholic/p/DVcP9cNkroR/",
-    "poster_url": "/scraped/swingholic_260314_28_poster.webp",
-    "extracted_text": "3월 DJ 일정!\n날짜: 2026-03-14 (토)\nDJ: 별장군\n장소: MAYAN F3\n시간: 20:00 - 22:30\n가격: 9,000원",
-    "structured_data": {
-      "date": "2026-03-14",
-      "day": "토",
-      "title": "광주 정기 소셜 (DJ 별장군)",
-      "status": "정상운영",
-      "djs": [
-        "별장군"
-      ],
-      "times": [
-        "20:00 ~ 22:30"
-      ],
-      "location": "광주 마얀 F3",
-      "fee": "9,000원",
-      "note": "3월 DJ 일정"
-    },
-    "evidence": {
-      "screenshot_path": "/scraped/swingholic_260314_28_poster.webp"
-    },
-    "created_at": "2026-03-09T15:20:00+09:00",
-    "updated_at": "2026-03-09T08:41:35.803Z",
-    "is_collected": true
-  },
-  {
-    "id": "sh_260321_sat",
-    "keyword": "스윙홀릭",
-    "source_url": "https://www.instagram.com/swingholic/p/DVcP9cNkroR/",
-    "poster_url": "/scraped/poster_swingholic_202603.png",
-    "extracted_text": "3월 DJ 일정!\n날짜: 2026-03-21 (토)\nDJ: TC\n장소: MAYAN F3\n시간: 20:00 - 22:30\n가격: 9,000원",
-    "structured_data": {
-      "date": "2026-03-21",
-      "day": "토",
-      "title": "광주 정기 소셜 (DJ TC)",
-      "status": "정상운영",
-      "djs": [
-        "TC"
-      ],
-      "times": [
-        "20:00 ~ 22:30"
-      ],
-      "location": "광주 마얀 F3",
-      "fee": "9,000원",
-      "note": "3월 DJ 일정"
-    },
-    "evidence": {
-      "screenshot_path": "/scraped/poster_swingholic_202603.png"
-    },
-    "created_at": "2026-03-09T15:20:00+09:00",
-    "updated_at": "2026-03-16T07:28:43.340Z",
-    "is_collected": true
-  },
-  {
-    "id": "sh_260328_sat",
-    "keyword": "스윙홀릭",
-    "source_url": "https://www.instagram.com/swingholic/p/DVcP9cNkroR/",
-    "poster_url": "/scraped/poster_swingholic_202603.png",
-    "extracted_text": "3월 DJ 일정!\n날짜: 2026-03-28 (토)\nDJ: 자연인\n장소: MAYAN F3\n시간: 20:00 - 22:30\n가격: 9,000원",
-    "structured_data": {
-      "date": "2026-03-28",
-      "day": "토",
-      "title": "광주 정기 소셜 (DJ 자연인)",
-      "status": "정상운영",
-      "djs": [
-        "자연인"
-      ],
-      "times": [
-        "20:00 ~ 22:30"
-      ],
-      "location": "광주 마얀 F3",
-      "fee": "9,000원",
-      "note": "3월 DJ 일정"
-    },
-    "evidence": {
-      "screenshot_path": "/scraped/poster_swingholic_202603.png"
-    },
-    "created_at": "2026-03-09T15:20:00+09:00",
-    "updated_at": "2026-03-16T07:28:43.340Z",
-    "is_collected": true
-  },
-  {
-    "id": "st_260318_wed",
-    "keyword": "스윙타임",
-    "source_url": "https://www.instagram.com/swingtimebar/",
-    "poster_url": "/scraped/poster_swingtime_20260318.png",
-    "extracted_text": "■ 스윙타임빠 (3월 18일) 수 소셜 공지\n- 수요일\n저녁 7시30분부터 소셜이 진행 됩니다.\nDJ \"정양\" PM 8:15~10:15",
-    "structured_data": {
-      "date": "2026-03-18",
-      "day": "수",
-      "title": "수요 소셜 (DJ 정양)",
-      "status": "정상운영",
-      "djs": [
-        "정양"
-      ],
-      "times": [
-        "20:15 ~ 22:15"
-      ],
-      "location": "스윙타임바",
-      "fee": "미기재",
-      "note": ""
-    },
-    "evidence": {
-      "screenshot_path": "/scraped/poster_swingtime_20260318.png"
-    },
-    "created_at": "2026-03-16T15:00:00+09:00",
-    "updated_at": "2026-03-16T07:28:36.595Z",
-    "is_collected": true
-  },
-  {
-    "id": "ksh_260317_tue",
-    "keyword": "경성홀",
-    "source_url": "https://www.instagram.com/kyungsunghall/",
-    "poster_url": "/scraped/poster_kyungsung_20260317.png",
-    "extracted_text": "3/17(화) 소셜: 오후 8-11시(9,000원) DJ: 저스틴",
-    "structured_data": {
-      "date": "2026-03-17",
-      "day": "화",
-      "title": "화요 소셜 (DJ 저스틴)",
-      "status": "정상운영",
-      "djs": [
-        "저스틴"
-      ],
-      "times": [
-        "20:00 ~ 23:00"
-      ],
-      "location": "신촌 경성홀",
-      "fee": "9,000원",
-      "note": ""
-    },
-    "evidence": {
-      "screenshot_path": "/scraped/poster_kyungsung_20260317.png"
-    },
-    "created_at": "2026-03-16T15:00:00+09:00",
-    "updated_at": "2026-03-16T07:28:36.595Z",
-    "is_collected": true
-  },
-  {
-    "id": "ss_260319_thu",
-    "keyword": "스윙스캔들",
-    "source_url": "https://www.instagram.com/p/DV-RHHXGI0u/",
-    "poster_url": "/scraped/swingscandal_260319_poster.png",
-    "extracted_text": "++ 목요일 소셜(with 스윙스캔들) ++\n일시 : 2026.3.19.(목) 19:30 ~ 23:00\n비용 : 9,000원\n디제이 : 째",
-    "structured_data": {
-      "date": "2026-03-19",
-      "day": "목",
-      "title": "목요 소셜 (DJ 째)",
-      "status": "정상운영",
-      "djs": [
-        "째"
-      ],
-      "times": [
-        "19:30 ~ 23:00"
-      ],
-      "location": "사보이볼룸",
-      "fee": "9,000원",
-      "note": "3월 3주차 운영 공지"
-    },
-    "evidence": {
-      "screenshot_path": "/scraped/verify_scandal_20260319.png"
-    },
-    "parsed_data": {
-      "date": "2026-03-19",
-      "title": "목요 소셜 (DJ 째)"
-    },
-    "created_at": "2026-03-18T16:00:00+09:00",
-    "updated_at": "2026-03-18T07:26:00.445Z",
-    "is_collected": true
-  },
-  {
-    "id": "ss_260321_sat",
-    "keyword": "스윙스캔들",
-    "source_url": "https://www.instagram.com/p/DV-RHHXGI0u/",
-    "poster_url": "/scraped/swingscandal_260321_poster.png",
-    "extracted_text": "++ 토요일 소셜(with 스윙스캔들) ++\n일시 : 2026.3.21.(토) 19:30 ~ 23:00\n비용 : 11,000원\n디제이 : 테일",
-    "structured_data": {
-      "date": "2026-03-21",
-      "day": "토",
-      "title": "토요 소셜 (DJ 테일)",
-      "status": "정상운영",
-      "djs": [
-        "테일"
-      ],
-      "times": [
-        "19:30 ~ 23:00"
-      ],
-      "location": "사보이볼룸",
-      "fee": "11,000원",
-      "note": "3월 3주차 운영 공지"
-    },
-    "evidence": {
-      "screenshot_path": "/scraped/verify_scandal_20260321.png"
-    },
-    "parsed_data": {
-      "date": "2026-03-21",
-      "title": "토요 소셜 (DJ 테일)"
-    },
-    "created_at": "2026-03-18T16:00:00+09:00",
-    "updated_at": "2026-03-18T07:26:00.445Z",
-    "is_collected": true
-  },
-  {
-    "id": "hh_260320_fri",
-    "keyword": "해피홀",
-    "source_url": "https://www.instagram.com/p/DWBA5q3EfBn/",
-    "poster_url": "/scraped/poster_happyhall_20260320.png",
-    "extracted_text": "금해DJ 소셜 (Social Party)\n일시 : 2026.3.20.(금) 20:30 (DJ 타임 시작)\n비용 : 12,000원\n디제이 : 해림\n무료라인강습(심샘) : 19:40-20:20",
-    "structured_data": {
-      "date": "2026-03-20",
-      "day": "금",
-      "title": "금해DJ 소셜 (DJ 해림)",
-      "status": "정상운영",
-      "djs": [
-        "해림"
-      ],
-      "times": [
-        "20:30 ~"
-      ],
-      "location": "신촌 해피홀",
-      "fee": "12,000원",
-      "note": "무료라인강습(심샘) 19:40-20:20"
-    },
-    "evidence": {
-      "screenshot_path": "/scraped/verify_hh_260320.png"
-    },
-    "parsed_data": {
-      "date": "2026-03-20",
-      "title": "금해DJ 소셜 (DJ 해림)"
-    },
-    "created_at": "2026-03-18T16:10:00+09:00",
-    "updated_at": "2026-03-18T07:26:00.445Z",
-    "is_collected": true
-  },
-  {
-    "id": "hh_260322_sun",
-    "keyword": "해피홀",
-    "source_url": "https://www.instagram.com/p/DV-63lfiqpe/",
-    "poster_url": "/scraped/poster_happyhall_20260322.png",
-    "extracted_text": "3월 3주 위클리네오 (Weekly Neo Social)\n일시 : 2026.3.22.(일)\n디제이 : 서로비",
-    "structured_data": {
-      "date": "2026-03-22",
-      "day": "일",
-      "title": "위클리네오 소셜 (DJ 서로비)",
-      "status": "정상운영",
-      "djs": [
-        "서로비"
-      ],
-      "times": [
-        "미기재"
-      ],
-      "location": "신촌 해피홀",
-      "fee": "미기재",
-      "note": ""
-    },
-    "evidence": {
-      "screenshot_path": "/scraped/verify_hh_260322.png"
-    },
-    "parsed_data": {
-      "date": "2026-03-22",
-      "title": "위클리네오 소셜 (DJ 서로비)"
-    },
-    "created_at": "2026-03-18T16:10:00+09:00",
-    "updated_at": "2026-03-18T07:27:04.797Z",
-    "is_collected": true
-  },
-  {
-    "id": "hh_260401_insta",
-    "keyword": "해피홀",
-    "source_url": "https://www.instagram.com/happyhall2004/",
-    "poster_url": "/scraped/poster_happyhall_20260401.png",
-    "extracted_text": "수햎 재오픈 기념 LIVE 2026.04.01 밴드 Sinchon Newtown Swing Band 주관 HAPPY HALL 주최 Dance&Friends 사전신청 20,000 / 현장 23,000",
-    "structured_data": {
-      "date": "2026-04-01",
-      "day": "수",
-      "title": "수햎 재오픈 LIVE PARTY (Band: Sinchon Newtown Swing Band)",
-      "status": "정상운영",
-      "djs": [],
-      "times": [
-        "19:30 ~"
-      ],
-      "location": "해피홀",
-      "fee": "사전 20,000 / 현장 23,000",
-      "note": "이름에 '수' 포함 시 50% 할인"
-    },
-    "evidence": {
-      "screenshot_path": "/scraped/verify_hh_260401.png"
-    },
-    "parsed_data": {
-      "date": "2026-04-01",
-      "title": "수햎 재오픈 LIVE PARTY (Band: Sinchon Newtown Swing Band)"
-    },
-    "created_at": "2026-03-20T03:55:00+09:00",
-    "updated_at": "2026-03-19T19:20:00.405Z",
-    "is_collected": true
-  },
-  {
-    "id": "st_20260321_insta",
-    "keyword": "스윙타임",
-    "source_url": "https://www.instagram.com/swingtimebar/",
-    "poster_url": "/scraped/poster_swingtime_20260321.png",
-    "extracted_text": "3월 21일 스윙타임 토요소셜\nDJ: 비비비 (PM 8:15 ~ 10:15)\n장소: 스윙타임빠",
-    "structured_data": {
-      "date": "2026-03-21",
-      "day": "토",
-      "title": "토요 소셜 (DJ 비비비)",
-      "status": "정상운영",
-      "djs": [
-        "비비비"
-      ],
-      "times": [
-        "20:15 ~ 22:15"
-      ],
-      "location": "스윙타임바",
-      "fee": "미기재",
-      "note": ""
-    },
-    "evidence": {
-      "screenshot_path": "/scraped/verify_st_20260321_20260322.png"
-    },
-    "parsed_data": {
-      "date": "2026-03-21",
-      "title": "토요 소셜 (DJ 비비비)"
-    },
-    "created_at": "2026-03-20T04:03:00+09:00",
-    "updated_at": "2026-03-19T19:20:00.405Z",
-    "is_collected": true
-  },
-  {
-    "id": "st_20260322_insta",
-    "keyword": "스윙타임",
-    "source_url": "https://www.instagram.com/swingtimebar/",
-    "poster_url": "/scraped/poster_swingtime_20260322.png",
-    "extracted_text": "3월 22일 스윙타임 일요소셜\nDJ: 훔머 (1부 PM 8:00~9:30, 2부 PM 9:30~11:00)\n장소: 스윙타임빠",
-    "structured_data": {
-      "date": "2026-03-22",
-      "day": "일",
-      "title": "일요 소셜 (DJ 훔머)",
-      "status": "정상운영",
-      "djs": [
-        "훔머"
-      ],
-      "times": [
-        "20:00 ~ 23:00"
-      ],
-      "location": "스윙타임바",
-      "fee": "미기재",
-      "note": "1부 20:00-21:30, 2부 21:30-23:00"
-    },
-    "evidence": {
-      "screenshot_path": "/scraped/verify_st_20260321_20260322.png"
-    },
-    "parsed_data": {
-      "date": "2026-03-22",
-      "title": "일요 소셜 (DJ 훔머)"
-    },
-    "created_at": "2026-03-20T04:03:00+09:00",
-    "updated_at": "2026-03-19T19:20:00.405Z",
-    "is_collected": true
-  },
-  {
-    "id": "hh_260401_wed",
-    "keyword": "해피홀",
-    "source_url": "https://www.instagram.com/happyhall2004/",
-    "poster_url": "/scraped/poster_happyhall_20260401.png",
-    "extracted_text": "🎶 해피홀 수햎 재오픈 LIVE PARTY★D&F 🎶\n4월 1일(수), 다시 찾아 온 수해피!!\nDance&Friends 밴드 'Sinchon Newtown Swing Band'와 함께 즐거운 쏘셜 시간!!\n사전 신청: 20,000원 (빠비 12,000원 + 라이브비 8,000원)\n현장 신청: 23,000원",
-    "structured_data": {
-      "date": "2026-04-01",
-      "day": "수",
-      "title": "수협 재오픈 LIVE PARTY (Band LIVE)",
-      "status": "정상운영",
-      "djs": [],
-      "times": [
-        "19:30 ~"
-      ],
-      "location": "해피홀",
-      "fee": "20,000원(사전) / 23,000원(현장)",
-      "note": "Sinchon Newtown Swing Band 라이브"
-    },
-    "evidence": {
-      "screenshot_path": "/scraped/verify_happyhall_20260401.png"
-    },
-    "parsed_data": {
-      "date": "2026-04-01",
-      "title": "수협 재오픈 기념 LIVE"
-    },
-    "created_at": "2026-03-20T16:50:00+09:00",
-    "updated_at": "2026-03-20T16:50:00+09:00"
-  },
-  {
-    "id": "ksh_260321_sat",
-    "keyword": "경성홀",
-    "source_url": "https://www.instagram.com/kyungsunghall/",
-    "poster_url": "/scraped/poster_kyungsung_20260321.png",
-    "extracted_text": "3/21(토) 소셜: 오후 7:30-11시(11,000원) DJ: 메이저",
-    "structured_data": {
-      "date": "2026-03-21",
-      "day": "토",
-      "title": "토요 소셜 (DJ 메이저)",
-      "status": "정상운영",
-      "djs": [
-        "메이저"
-      ],
-      "times": [
-        "19:30 ~ 23:00"
-      ],
-      "location": "경성홀",
-      "fee": "11,000원",
-      "note": ""
-    },
-    "evidence": {
-      "screenshot_path": "/scraped/verify_kyungsung_20260321.png"
-    },
-    "parsed_data": {
-      "date": "2026-03-21",
-      "title": "토요 소셜 (DJ 메이저)"
-    },
-    "created_at": "2026-03-20T17:40:00+09:00",
-    "updated_at": "2026-03-20T08:50:48.038Z",
-    "is_collected": true
-  },
-  {
-    "id": "ksh_260322_sun",
-    "keyword": "경성홀",
-    "source_url": "https://www.instagram.com/kyungsunghall/",
-    "poster_url": "/scraped/poster_kyungsung_20260321.png",
-    "extracted_text": "3/22(일) 소셜: 오후 7:30-11시(11,000원) DJ: 고즈",
-    "structured_data": {
-      "date": "2026-03-22",
-      "day": "일",
-      "title": "일요 소셜 (DJ 고즈)",
-      "status": "정상운영",
-      "djs": [
-        "고즈"
-      ],
-      "times": [
-        "19:30 ~ 23:00"
-      ],
-      "location": "경성홀",
-      "fee": "11,000원",
-      "note": ""
-    },
-    "evidence": {
-      "screenshot_path": "/scraped/verify_kyungsung_20260321.png"
-    },
-    "parsed_data": {
-      "date": "2026-03-22",
-      "title": "일요 소셜 (DJ 고즈)"
-    },
-    "created_at": "2026-03-20T17:40:00+09:00",
-    "updated_at": "2026-03-20T08:50:48.038Z",
-    "is_collected": true
-  },
-  {
-    "id": "ksh_260324_tue",
-    "keyword": "경성홀",
-    "source_url": "https://www.instagram.com/kyungsunghall/",
-    "poster_url": "/scraped/poster_kyungsung_20260321.png",
-    "extracted_text": "3/24(화) 소셜: 오후 8-11시(9,000원) DJ: 북실",
-    "structured_data": {
-      "date": "2026-03-24",
-      "day": "화",
-      "title": "화요 소셜 (DJ 북실)",
-      "status": "정상운영",
-      "djs": [
-        "북실"
-      ],
-      "times": [
-        "20:00 ~ 23:00"
-      ],
-      "location": "경성홀",
-      "fee": "9,000원",
-      "note": ""
-    },
-    "evidence": {
-      "screenshot_path": "/scraped/verify_kyungsung_20260321.png"
-    },
-    "parsed_data": {
-      "date": "2026-03-24",
-      "title": "화요 소셜 (DJ 북실)"
-    },
-    "created_at": "2026-03-20T17:40:00+09:00",
-    "updated_at": "2026-03-20T09:29:47.817Z",
-    "is_collected": true
-  },
-  {
-    "id": "sf_260321_sat",
-    "keyword": "스윙피버",
-    "source_url": "https://cafe.naver.com/swingfever2002",
-    "poster_url": "/scraped/poster_swingfever_20260321.png",
-    "extracted_text": "소셜 : 3월 21일 (토) 오후 7시~10시\n디제이 : 아다마스\n장소: 대전 스윙잇 댄스홀\n비용: 1만원 (사전입금 시 토요일 당일 댄스홀 무료 입장)",
-    "structured_data": {
-      "date": "2026-03-21",
-      "day": "토",
-      "title": "토요 소셜 (DJ 아다마스)",
-      "status": "정상운영",
-      "djs": [
-        "아다마스"
-      ],
-      "times": [
-        "19:00 ~ 22:00"
-      ],
-      "location": "대전 스윙잇 댄스홀",
-      "fee": "10,000원",
-      "note": "사전입금 시 당일 댄스홀 무료 입장"
-    },
-    "evidence": {
-      "screenshot_path": "/scraped/verify_swingfever_20260321.png"
-    },
-    "parsed_data": {
-      "date": "2026-03-21",
-      "title": "스윙잇댄스홀 토요 소셜 (DJ 아다마스)"
-    },
-    "created_at": "2026-03-20T17:50:00+09:00",
-    "updated_at": "2026-03-20T09:29:53.066Z",
     "is_collected": true
   },
   {
@@ -1079,6 +188,199 @@
     },
     "created_at": "2026-03-20T17:50:00+09:00",
     "updated_at": "2026-03-20T09:29:53.066Z",
+    "is_collected": true
+  },
+  {
+    "id": "ss_260328_sat",
+    "keyword": "스윙스캔들",
+    "source_url": "https://cafe.naver.com/f-e/cafes/14933600/articles/102102?boardtype=I&menuid=501&referrerAllArticles=false",
+    "poster_url": "/scraped/swingscandal_20260328_poster.png",
+    "extracted_text": "2026.03.28. 스윙스캔들 토요소셜 DJ. 안단테 님입니다!",
+    "structured_data": {
+      "date": "2026-03-28",
+      "day": "토",
+      "title": "토요 소셜 (DJ 안단테)",
+      "status": "정상운영",
+      "djs": [
+        "안단테"
+      ],
+      "times": [
+        "19:30 ~ 23:00"
+      ],
+      "location": "사보이볼룸",
+      "fee": "미기재",
+      "note": ""
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/verify_scandal_20260328.png"
+    },
+    "parsed_data": {
+      "date": "2026-03-28",
+      "title": "토요 소셜 (DJ 안단테)"
+    },
+    "created_at": "2026-03-25T13:47:00+09:00",
+    "updated_at": "2026-03-25T09:41:30.213Z",
+    "is_collected": true
+  },
+  {
+    "id": "sh_260328_sat",
+    "keyword": "스윙홀릭",
+    "source_url": "https://www.instagram.com/swingholic/",
+    "poster_url": "/scraped/swingholic_20260328_poster.webp",
+    "extracted_text": "3월 DJ일정 - 자연인 토요소셜\n날짜: 2026년 3월 28일 (토)\n시간: 20:00 ~ 22:30\n장소: 광주 충장로 마얀 3층\nDJ: 자연인\n입장료: 9,000원",
+    "structured_data": {
+      "date": "2026-03-28",
+      "day": "토",
+      "title": "토요 소셜 (DJ 자연인)",
+      "status": "정상운영",
+      "djs": [
+        "자연인"
+      ],
+      "times": [
+        "20:00 ~ 22:30"
+      ],
+      "location": "광주 충장로 마얀 3층",
+      "fee": "9,000원",
+      "note": ""
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/verify_sh_20260328.png"
+    },
+    "parsed_data": {
+      "date": "2026-03-28",
+      "title": "토요 소셜 (DJ 자연인)"
+    },
+    "created_at": "2026-03-25T17:30:00+09:00",
+    "updated_at": "2026-03-25T09:41:34.099Z",
+    "is_collected": true
+  },
+  {
+    "id": "hh_260329_sun",
+    "keyword": "해피홀",
+    "source_url": "https://www.instagram.com/happyhall2004/",
+    "poster_url": "/scraped/edited_hh_260329_sun_1774432041281.jpeg",
+    "extracted_text": "🌼3월 4주 위클리네오\n🎧금햅 DJ TC\n🎧일햅 DJ 로젤",
+    "structured_data": {
+      "date": "2026-03-29",
+      "day": "일",
+      "title": "일요 소셜 (일햅 - DJ 로젤)",
+      "status": "정상운영",
+      "djs": [
+        "로젤"
+      ],
+      "times": [
+        "18:00 ~ 21:00"
+      ],
+      "location": "신촌 해피홀",
+      "fee": "미기재",
+      "note": "3월 4주 위클리네오"
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/verify_hh_20260327.png"
+    },
+    "parsed_data": {
+      "date": "2026-03-29",
+      "title": "일요 소셜 (일햅 - DJ 로젤)"
+    },
+    "created_at": "2026-03-25T14:15:00+09:00",
+    "updated_at": "2026-03-25T09:47:21.281Z",
+    "is_collected": false,
+    "allKeywords": [
+      "해피홀"
+    ]
+  },
+  {
+    "id": "hh_260401_insta",
+    "keyword": "해피홀",
+    "source_url": "https://www.instagram.com/happyhall2004/",
+    "poster_url": "/scraped/poster_happyhall_20260401.png",
+    "extracted_text": "수햎 재오픈 기념 LIVE 2026.04.01 밴드 Sinchon Newtown Swing Band 주관 HAPPY HALL 주최 Dance&Friends 사전신청 20,000 / 현장 23,000",
+    "structured_data": {
+      "date": "2026-04-01",
+      "day": "수",
+      "title": "수햎 재오픈 LIVE PARTY (Band: Sinchon Newtown Swing Band)",
+      "status": "정상운영",
+      "djs": [],
+      "times": [
+        "19:30 ~"
+      ],
+      "location": "해피홀",
+      "fee": "사전 20,000 / 현장 23,000",
+      "note": "이름에 '수' 포함 시 50% 할인"
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/verify_hh_260401.png"
+    },
+    "parsed_data": {
+      "date": "2026-04-01",
+      "title": "수햎 재오픈 LIVE PARTY (Band: Sinchon Newtown Swing Band)"
+    },
+    "created_at": "2026-03-20T03:55:00+09:00",
+    "updated_at": "2026-03-19T19:20:00.405Z",
+    "is_collected": true
+  },
+  {
+    "id": "hh_260401_wed",
+    "keyword": "해피홀",
+    "source_url": "https://www.instagram.com/p/DWNIkQXk49u/",
+    "poster_url": "/scraped/poster_hh_260401.webp",
+    "extracted_text": "🎶 해피홀 수햎 재오픈 LIVE PARTY★D&F 🎶\n4월 1일(수), 다시 찾아 온 수해피!!\nDance&Friends 밴드 'Sinchon Newtown Swing Band'와 함께 즐거운 쏘셜 시간!!",
+    "structured_data": {
+      "date": "2026-04-01",
+      "day": "수",
+      "title": "수햎 재오픈 LIVE PARTY (DJ 해림)",
+      "status": "정상운영",
+      "djs": [
+        "해림"
+      ],
+      "times": [
+        "19:30 ~"
+      ],
+      "location": "해피홀",
+      "fee": "사전 20,000원 / 현장 23,000원",
+      "note": "신촌뉴타운 스윙밴드 라이브, 이름에 '수' 포함 시 50% 할인"
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/verify_hh_preview.png"
+    },
+    "parsed_data": {
+      "date": "2026-04-01",
+      "title": "수햎 재오픈 LIVE PARTY (DJ 해림)"
+    },
+    "created_at": "2026-03-23T13:58:00+09:00",
+    "updated_at": "2026-03-23T13:58:00+09:00",
+    "is_collected": true
+  },
+  {
+    "id": "bat_260422_wed",
+    "keyword": "박쥐스윙",
+    "source_url": "https://www.instagram.com/p/DWLSJ1ZSG4S/",
+    "poster_url": "/scraped/poster_bat_260422.jpg",
+    "extracted_text": "DDPlay X 스윙팍 with 스윙제리\n일시 : 2026.4.22.수.7:00-10:00PM\n장소 : DDP 어울림광장\n밴드 : 스윙제리(Swingerie) 4인조 스윙 밴드\n참여 : 누구나 무료",
+    "structured_data": {
+      "date": "2026-04-22",
+      "day": "수",
+      "title": "DDP 야외 소셜 (with 스윙제리)",
+      "status": "정상운영",
+      "djs": [
+        "스윙제리"
+      ],
+      "times": [
+        "19:00 ~ 22:00"
+      ],
+      "location": "DDP 어울림광장",
+      "fee": "무료",
+      "note": "빅밴드 라이브 야외 소셜"
+    },
+    "evidence": {
+      "screenshot_path": "/scraped/verify_bat_preview.png"
+    },
+    "parsed_data": {
+      "date": "2026-04-22",
+      "title": "DDP 야외 소셜 (with 스윙제리)"
+    },
+    "created_at": "2026-03-23T15:40:00+09:00",
+    "updated_at": "2026-03-23T15:40:00+09:00",
     "is_collected": true
   }
 ]
