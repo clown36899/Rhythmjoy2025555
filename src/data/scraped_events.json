@@ -92,8 +92,8 @@
       "title": "금요 소셜 (금햅 - DJ TC)"
     },
     "created_at": "2026-03-25T14:15:00+09:00",
-    "updated_at": "2026-03-25T09:47:09.233Z",
-    "is_collected": false,
+    "updated_at": "2026-03-25T10:05:25.043Z",
+    "is_collected": true,
     "allKeywords": [
       "해피홀"
     ]
@@ -283,8 +283,8 @@
       "title": "일요 소셜 (일햅 - DJ 로젤)"
     },
     "created_at": "2026-03-25T14:15:00+09:00",
-    "updated_at": "2026-03-25T09:47:21.281Z",
-    "is_collected": false,
+    "updated_at": "2026-03-25T10:05:25.043Z",
+    "is_collected": true,
     "allKeywords": [
       "해피홀"
     ]
@@ -306,7 +306,9 @@
       ],
       "location": "해피홀",
       "fee": "사전 20,000 / 현장 23,000",
-      "note": "이름에 '수' 포함 시 50% 할인"
+      "note": "이름에 '수' 포함 시 50% 할인",
+      "address": "서울 서대문구 명물길 37",
+      "venue_id": null
     },
     "evidence": {
       "screenshot_path": "/scraped/verify_hh_260401.png"
@@ -316,7 +318,7 @@
       "title": "수햎 재오픈 LIVE PARTY (Band: Sinchon Newtown Swing Band)"
     },
     "created_at": "2026-03-20T03:55:00+09:00",
-    "updated_at": "2026-03-19T19:20:00.405Z",
+    "updated_at": "2026-03-25T10:07:29.063Z",
     "is_collected": true
   },
   {

@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js';
 import { createResizedImages } from '../../utils/imageResize';
 import { useAuth } from '../../contexts/AuthContext';
 import ImageCropModal from '../../components/ImageCropModal';
+const VenueSelectModal = React.lazy(() => import('../v2/components/VenueSelectModal'));
 import './EventIngestor.css';
 
 // [인제스터 전용] 운영 DB 클라이언트 — 등록 버튼에서만 사용
@@ -28,6 +29,8 @@ interface ScrapedEvent {
         djs?: string[];
         times?: string[];
         location?: string;
+        address?: string;
+        venue_id?: string | number | null;
         fee?: string;
         note?: string;
     };
@@ -62,6 +65,10 @@ const EventIngestor: React.FC = () => {
     const [isCropModalOpen, setIsCropModalOpen] = useState(false);
     const [editingEvent, setEditingEvent] = useState<ScrapedEvent | null>(null);
     const [tempImageSrc, setTempImageSrc] = useState<string | null>(null);
+
+    // 장소 선택 관련 상태
+    const [isVenueModalOpen, setIsVenueModalOpen] = useState(false);
+    const [venueTargetId, setVenueTargetId] = useState<string | null>(null);
 
     // 전체화면 모드: 650px 제한 해제 (스크롤 허용)
     useEffect(() => {
@@ -141,10 +148,19 @@ const EventIngestor: React.FC = () => {
         // 시간 추출
         const startTime = data.times?.[0]?.split('~')[0]?.trim() || '';
 
-        // 장소 매칭
-        const matchedVenue = matchVenue(data.location || '');
+        // 장소 매칭 및 주소 결정
+        const sAddress = data.address;
+        const sVenueId = data.venue_id;
 
-        if (!skipConfirm && !confirm(`다음 이벤트를 DB에 등록하시겠습니까?\n\n제목: ${formattedTitle}\n날짜: ${data.date}\n장소: ${data.location || '미정'}${matchedVenue ? ` → venue: ${matchedVenue.name}` : ''}\nDJ: ${djNames || '없음'}`)) {
+        // 수동으로 주소/ID가 입력되어 있다면 그것을 우선 사용, 없으면 자동 매칭 시도
+        const matchedVenue = (sVenueId && sVenueId !== '') 
+            ? venues.find(v => String(v.id) === String(sVenueId))
+            : matchVenue(data.location || '');
+
+        const finalAddress = sAddress || matchedVenue?.address || '';
+        const finalVenueId = sVenueId || matchedVenue?.id || null;
+
+        if (!skipConfirm && !confirm(`다음 이벤트를 DB에 등록하시겠습니까?\n\n제목: ${formattedTitle}\n날짜: ${data.date}\n장소: ${data.location || '미정'}${finalAddress ? ` (${finalAddress})` : ''}${matchedVenue ? ` → venue: ${matchedVenue.name}` : ''}\nDJ: ${djNames || '없음'}`)) {
             return false;
         }
 
@@ -231,8 +247,9 @@ const EventIngestor: React.FC = () => {
                 image_medium: imageMedium,
                 image_full: imageFull,
                 storage_path: storagePath,
-                venue_id: matchedVenue?.id || null,
+                venue_id: finalVenueId,
                 venue_name: matchedVenue?.name || data.location || null,
+                address: finalAddress,
             };
 
             // 3. DB insert
@@ -269,7 +286,7 @@ const EventIngestor: React.FC = () => {
     }, []);
 
     // ===== 필드 수정 함수 =====
-    const handleUpdateField = useCallback(async (id: string, field: string, value: string) => {
+    const handleUpdateField = useCallback(async (id: string, field: string, value: any) => {
         // 로컬 상태 업데이트
         setScrapedEvents(prev => prev.map(e => {
             if (e.id !== id) return e;
@@ -277,9 +294,13 @@ const EventIngestor: React.FC = () => {
             if (field === 'date') {
                 updated.structured_data!.date = value;
             } else if (field === 'djs') {
-                updated.structured_data!.djs = value.split(',').map(s => s.trim()).filter(Boolean);
+                updated.structured_data!.djs = typeof value === 'string' ? value.split(',').map(s => s.trim()).filter(Boolean) : value;
             } else if (field === 'location') {
                 updated.structured_data!.location = value;
+            } else if (field === 'address') {
+                updated.structured_data!.address = value;
+            } else if (field === 'venue_id') {
+                updated.structured_data!.venue_id = value;
             }
             return updated;
         }));
@@ -290,8 +311,10 @@ const EventIngestor: React.FC = () => {
             if (!target) return;
             const updated = { ...target, structured_data: { ...target.structured_data! } };
             if (field === 'date') updated.structured_data!.date = value;
-            else if (field === 'djs') updated.structured_data!.djs = value.split(',').map(s => s.trim()).filter(Boolean);
+            else if (field === 'djs') updated.structured_data!.djs = typeof value === 'string' ? value.split(',').map(s => s.trim()).filter(Boolean) : value;
             else if (field === 'location') updated.structured_data!.location = value;
+            else if (field === 'address') updated.structured_data!.address = value;
+            else if (field === 'venue_id') updated.structured_data!.venue_id = value;
 
             await fetch(`/.netlify/functions/scraped-events?type=${currentTab}`, {
                 method: 'POST',
@@ -302,6 +325,20 @@ const EventIngestor: React.FC = () => {
             console.error('필드 수정 저장 실패:', err);
         }
     }, [scrapedEvents, currentTab]);
+
+    const handleVenueSelect = useCallback((venue: any) => {
+        if (!venueTargetId) return;
+        handleUpdateField(venueTargetId, 'location', venue.name);
+        handleUpdateField(venueTargetId, 'address', venue.address);
+        handleUpdateField(venueTargetId, 'venue_id', venue.id);
+        setIsVenueModalOpen(false);
+        setVenueTargetId(null);
+    }, [venueTargetId, handleUpdateField]);
+
+    const openVenueModal = (id: string) => {
+        setVenueTargetId(id);
+        setIsVenueModalOpen(true);
+    };
 
     // ===== 이미지 편집 함수 =====
     const handleEditImage = useCallback(async (event: ScrapedEvent) => {
@@ -938,6 +975,7 @@ const EventIngestor: React.FC = () => {
                                     selectedGenres={genreMap[item.id] || []}
                                     onToggleGenre={(genre) => toggleGenre(item.id, genre)}
                                     onUpdateField={handleUpdateField}
+                                    onOpenVenueModal={openVenueModal}
                                     matchInfo={(() => {
                                         const g = comparisonData.find(c => c.scrapedId === item.id);
                                         if (!g || g.dbMatches.length === 0) return undefined;
@@ -988,6 +1026,7 @@ const EventIngestor: React.FC = () => {
                                     selectedGenres={genreMap[item.id] || []}
                                     onToggleGenre={(genre) => toggleGenre(item.id, genre)}
                                     onUpdateField={handleUpdateField}
+                                    onOpenVenueModal={openVenueModal}
                                 />
                             ))}
                         </div>
@@ -1006,6 +1045,25 @@ const EventIngestor: React.FC = () => {
                     onCropComplete={handleCropComplete}
                     fileName={editingEvent ? `crop_${editingEvent.id}.jpg` : 'crop.jpg'}
                 />
+
+                <React.Suspense fallback={null}>
+                    <VenueSelectModal
+                        isOpen={isVenueModalOpen}
+                        onClose={() => {
+                            setIsVenueModalOpen(false);
+                            setVenueTargetId(null);
+                        }}
+                        onSelect={handleVenueSelect}
+                        onManualInput={(name, link, addr) => {
+                            if (!venueTargetId) return;
+                            handleUpdateField(venueTargetId, 'location', name);
+                            handleUpdateField(venueTargetId, 'address', addr);
+                            handleUpdateField(venueTargetId, 'venue_id', null); // 직접 입력은 일단 ID 없음
+                            setIsVenueModalOpen(false);
+                            setVenueTargetId(null);
+                        }}
+                    />
+                </React.Suspense>
             </main>
         </div >
     );
@@ -1024,14 +1082,15 @@ interface EventCardProps {
     currentTab?: 'social' | 'lessons';
     selectedGenres?: string[];
     onToggleGenre?: (genre: string) => void;
-    onUpdateField?: (id: string, field: string, value: string) => void;
+    onUpdateField?: (id: string, field: string, value: any) => void;
     onEditImage?: () => void;
+    onOpenVenueModal?: (id: string) => void;
 }
 
 const EventCard: React.FC<EventCardProps> = ({
     event, isDuplicate, isSelected, onSelect, onDismiss, onRegister,
     isRegistered, isRegistering, matchInfo, currentTab, selectedGenres = [], onToggleGenre, onUpdateField,
-    onEditImage
+    onEditImage, onOpenVenueModal
 }) => {
     const [editingField, setEditingField] = useState<string | null>(null);
     const [editValue, setEditValue] = useState('');
@@ -1155,7 +1214,20 @@ const EventCard: React.FC<EventCardProps> = ({
                                 onClick={(e) => e.stopPropagation()}
                             />
                         ) : (
-                            <span title="클릭하여 수정">{eventData.location || '해피홀'}</span>
+                            <div className="location-row-display">
+                                <span title="클릭하여 수정">{eventData.location || '해피홀'}</span>
+                                <button 
+                                    className="btn-venue-pin" 
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onOpenVenueModal?.((event as any).id);
+                                    }}
+                                    title="장소 선택 및 주소 확인"
+                                >
+                                    📍
+                                </button>
+                                {eventData.address && <span className="addr-preview">{eventData.address}</span>}
+                            </div>
                         )}
                     </div>
                     <div className="detail-line detail-editable" onClick={() => startEdit('djs', (eventData.djs || []).join(', '))}>

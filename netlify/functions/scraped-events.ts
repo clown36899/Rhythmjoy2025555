@@ -31,6 +31,8 @@ interface ScrapedEvent {
         djs?: string[];
         times?: string[];
         location?: string;
+        address?: string;
+        venue_id?: string | number | null;
         fee?: string;
         note?: string;
     };
