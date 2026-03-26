@@ -63,3 +63,14 @@ User-agent: bingbot
 Allow: /
 
 Sitemap: https://swingenjoy.com/sitemap.xml
+
+# Keyword landing pages - explicitly allowed
+Allow: /dance-billboard/
+Allow: /swing-dance-events/
+Allow: /swing-dance-party/
+Allow: /swing-dance-lessons/
+Allow: /lindy-hop/
+Allow: /boogie-woogie/
+Allow: /swing-dance-social/
+Allow: /jazz-dance/
+Allow: /dance-schedule/
