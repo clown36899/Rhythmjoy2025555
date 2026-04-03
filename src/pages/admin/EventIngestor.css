@@ -286,17 +286,34 @@
     opacity: 0.7;
 }
 
-.duplicate-badge {
+.badge-group {
     position: absolute;
     top: 10px;
     right: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-end;
+    z-index: 1;
+}
+
+.anchor-badge {
+    background: #2563eb;
+    color: white;
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: bold;
+    box-shadow: 0 0 5px rgba(37, 99, 235, 0.5);
+}
+
+.duplicate-badge {
     background: #ef4444;
     color: white;
     font-size: 0.7rem;
     padding: 2px 6px;
     border-radius: 4px;
     font-weight: bold;
-    z-index: 1;
 }
 
 @media (max-width: 600px) {

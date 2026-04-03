@@ -38,15 +38,16 @@ const SUPABASE_KEY = env.VITE_PUBLIC_SUPABASE_ANON_KEY;
 
 // ── 수집 소스 정의 ────────────────────────────────────
 const SOURCES = [
+  { name: '네오스윙',   type: 'ig',     handle: 'neo_swing',       url: 'https://www.instagram.com/neo_swing/' },
   { name: '스윙스캔들', type: 'naver',  handle: null,              url: 'https://cafe.naver.com/f-e/cafes/14933600/menus/501?viewType=I' },
-  { name: '스윙프렌즈', type: 'google', handle: null,              query: '스윙프렌즈 소셜 인스타그램' },
-  { name: '해피홀',     type: 'ig',     handle: 'happyhall2004',   url: 'https://www.instagram.com/happyhall2004/' },
-  { name: '스윙타임',   type: 'ig',     handle: 'swingtimebar',    url: 'https://www.instagram.com/swingtimebar/' },
   { name: '경성홀',     type: 'ig',     handle: 'kyungsunghall',   url: 'https://www.instagram.com/kyungsunghall/' },
+  { name: '해피홀',     type: 'ig',     handle: 'happyhall2004',   url: 'https://www.instagram.com/happyhall2004/' },
+  { name: '피에스타',   type: 'ig',     handle: 'fiesta_swingdance', url: 'https://www.instagram.com/fiesta_swingdance/' },
+  { name: '스윙타임',   type: 'ig',     handle: 'swingtimebar',    url: 'https://www.instagram.com/swingtimebar/' },
+  { name: '스윙프렌즈', type: 'google', handle: null,              query: '스윙프렌즈 소셜 인스타그램' },
   { name: '박쥐스윙',   type: 'ig',     handle: 'batswing2003',    url: 'https://www.instagram.com/batswing2003/' },
   { name: '대전스윙피버',type: 'ig',    handle: 'daejeon.swingfever', url: 'https://www.instagram.com/daejeon.swingfever/' },
   { name: '스윙홀릭',   type: 'ig',     handle: 'swingholic',      url: 'https://www.instagram.com/swingholic/' },
-  { name: '네오스윙',   type: 'ig',     handle: 'neo_swing',       url: 'https://www.instagram.com/neo_swing/' },
 ];
 
 // ── DJ 소셜 판별 ───────────────────────────────────────
@@ -691,21 +692,21 @@ async function main() {
     if (source.type === 'ig')     results = await scrapeInstagram(page, source);
     if (source.type === 'naver')  results = await scrapeNaver(page, source);
     if (source.type === 'google') results = await scrapeGoogle(page, source);
-    allResults.push(...results);
+    
+    if (results.length > 0) {
+      console.log(`\n[저장] ${source.name}: ${results.length}건 → scraped_events.json`);
+      const existing = JSON.parse(readFileSync(JSON_PATH, 'utf8'));
+      const existingUrls = new Set(existing.map(e => e.source_url));
+      const newItems = results.filter(r => !existingUrls.has(r.source_url));
+      existing.push(...newItems);
+      writeFileSync(JSON_PATH, JSON.stringify(existing, null, 2), 'utf8');
+      console.log(`  신규 ${newItems.length}건 추가 완료 ✅`);
+      allResults.push(...newItems);
+    }
   }
 
-  // scraped_events.json 업데이트
-  if (allResults.length > 0) {
-    console.log(`\n[저장] ${allResults.length}건 → scraped_events.json`);
-    const existing = JSON.parse(readFileSync(JSON_PATH, 'utf8'));
-    // source_url 기준 중복 제거
-    const existingUrls = new Set(existing.map(e => e.source_url));
-    const newItems = allResults.filter(r => !existingUrls.has(r.source_url));
-    existing.push(...newItems);
-    writeFileSync(JSON_PATH, JSON.stringify(existing, null, 2), 'utf8');
-    console.log(`  신규 ${newItems.length}건 추가 (중복 제외 ${allResults.length - newItems.length}건)`);
-  } else {
-    console.log('\n[저장] 신규 이벤트 없음');
+  if (allResults.length === 0) {
+    console.log('\n[저장] 이번 실행에서 새로 수집된 이벤트 없음');
   }
 
   // 파일 무결성 검사
