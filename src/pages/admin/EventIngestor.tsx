@@ -535,7 +535,7 @@ const EventIngestor: React.FC = () => {
         alert("정밀 재수집 요청이 복사되었습니다. 채팅창에 붙여넣으세요!");
     };
 
-    const { newList, duplicateList } = useMemo(() => {
+    const { newList, duplicateList, ignoredList, anchorIds } = useMemo(() => {
         // 1. URL + Date 기반 내부 중복 제거 및 키워드 병합
         const uniqueMap = new Map<string, ScrapedEvent & { allKeywords: string[] }>();
 
@@ -570,8 +570,14 @@ const EventIngestor: React.FC = () => {
 
         const newItemList: any[] = [];
         const duplicateItemList: any[] = [];
+        const ignoredItemList: any[] = [];
 
         sorted.forEach(scraped => {
+            if (scraped.structured_data?.status === 'IGNORED') {
+                ignoredItemList.push(scraped);
+                return;
+            }
+
             const sDate = scraped.structured_data?.date || scraped.parsed_data?.date;
             const sTitle = scraped.structured_data?.title || scraped.parsed_data?.title;
 
@@ -590,7 +596,17 @@ const EventIngestor: React.FC = () => {
             }
         });
 
-        return { newList: newItemList, duplicateList: duplicateItemList };
+        const anchorIds = new Set<string>();
+        const seenKeywords = new Set<string>();
+        sorted.forEach(item => {
+            const kw = item.keyword || '알수없음';
+            if (!seenKeywords.has(kw)) {
+                seenKeywords.add(kw);
+                anchorIds.add(item.id);
+            }
+        });
+
+        return { newList: newItemList, duplicateList: duplicateItemList, ignoredList: ignoredItemList, anchorIds };
     }, [scrapedEvents, existingEvents]);
 
     // ===== 퍼지 매칭 유틸 =====
@@ -944,45 +960,55 @@ const EventIngestor: React.FC = () => {
                     {newList.length === 0 ? (
                         <p className="no-data">새로운 수집 데이터가 없습니다.</p>
                     ) : (
-                        <div className="ingestor-grid">
-                            {newList.map(item => (
-                                <EventCard
-                                    key={item.id}
-                                    event={item}
-                                    isDuplicate={false}
-                                    isSelected={selectedIds.has(item.id)}
-                                    onSelect={() => toggleSelect(item.id)}
-                                    onDismiss={async () => {
-                                        if (!confirm('이 항목을 수집 목록에서 영구 삭제하시겠습니까? (이미지도 함께 삭제됩니다)')) return;
-                                        try {
-                                            const res = await fetch('/.netlify/functions/scraped-events', {
-                                                method: 'DELETE',
-                                                headers: { 'Content-Type': 'application/json' },
-                                                body: JSON.stringify({ id: item.id }),
-                                            });
-                                            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+                        <div className="ingestor-source-groups">
+                            {Array.from(new Set(newList.map(item => item.keyword || '알수없음'))).map(keyword => (
+                                <div key={`new-${keyword}`} className="source-group-block" style={{ marginBottom: '40px' }}>
+                                    <h3 style={{ padding: '8px 16px', background: '#2563eb', borderRadius: '20px', color: '#fff', display: 'inline-block', marginBottom: '15px', fontSize: '1.1rem', fontWeight: '600' }}>
+                                        🎯 {keyword} <span style={{fontSize: '0.9rem', fontWeight: 'normal', opacity: 0.8}}>({newList.filter(i => (i.keyword || '알수없음') === keyword).length})</span>
+                                    </h3>
+                                    <div className="ingestor-grid">
+                                        {newList.filter(item => (item.keyword || '알수없음') === keyword).map((item) => (
+                                            <EventCard
+                                                key={item.id}
+                                                event={item}
+                                                isAnchor={anchorIds.has(item.id)}
+                                                isDuplicate={false}
+                                                isSelected={selectedIds.has(item.id)}
+                                                onSelect={() => toggleSelect(item.id)}
+                                                onDismiss={async () => {
+                                                    if (!confirm('이 항목을 수집 목록에서 영구 삭제하시겠습니까? (이미지도 함께 삭제됩니다)')) return;
+                                                    try {
+                                                        const res = await fetch('/.netlify/functions/scraped-events', {
+                                                            method: 'DELETE',
+                                                            headers: { 'Content-Type': 'application/json' },
+                                                            body: JSON.stringify({ id: item.id }),
+                                                        });
+                                                        if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-                                            setScrapedEvents(prev => prev.filter(e => e.id !== item.id));
-                                        } catch (err: any) {
-                                            alert(`삭제 실패: ${err.message}`);
-                                        }
-                                    }}
-                                    onRegister={() => handleRegisterEvent(item)}
-                                    isRegistered={registeredIds.has(item.id)}
-                                    isRegistering={registeringId === item.id}
-                                    onEditImage={() => handleEditImage(item)}
-                                    currentTab={currentTab}
-                                    selectedGenres={genreMap[item.id] || []}
-                                    onToggleGenre={(genre) => toggleGenre(item.id, genre)}
-                                    onUpdateField={handleUpdateField}
-                                    onOpenVenueModal={openVenueModal}
-                                    matchInfo={(() => {
-                                        const g = comparisonData.find(c => c.scrapedId === item.id);
-                                        if (!g || g.dbMatches.length === 0) return undefined;
-                                        const top = g.dbMatches[0];
-                                        return { score: top.score, status: g.bestStatus, dbTitle: top.dbTitle, matchReasons: top.matchReasons };
-                                    })()}
-                                />
+                                                        setScrapedEvents(prev => prev.filter(e => e.id !== item.id));
+                                                    } catch (err: any) {
+                                                        alert(`삭제 실패: ${err.message}`);
+                                                    }
+                                                }}
+                                                onRegister={() => handleRegisterEvent(item)}
+                                                isRegistered={registeredIds.has(item.id)}
+                                                isRegistering={registeringId === item.id}
+                                                onEditImage={() => handleEditImage(item)}
+                                                currentTab={currentTab}
+                                                selectedGenres={genreMap[item.id] || []}
+                                                onToggleGenre={(genre) => toggleGenre(item.id, genre)}
+                                                onUpdateField={handleUpdateField}
+                                                onOpenVenueModal={openVenueModal}
+                                                matchInfo={(() => {
+                                                    const g = comparisonData.find(c => c.scrapedId === item.id);
+                                                    if (!g || g.dbMatches.length === 0) return undefined;
+                                                    const top = g.dbMatches[0];
+                                                    return { score: top.score, status: g.bestStatus, dbTitle: top.dbTitle, matchReasons: top.matchReasons };
+                                                })()}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
                             ))}
                         </div>
                     )}
@@ -1013,21 +1039,65 @@ const EventIngestor: React.FC = () => {
                                 </label>
                             )}
                         </div>
-                        <div className="ingestor-grid">
-                            {duplicateList.map(item => (
-                                <EventCard
-                                    key={item.id}
-                                    event={item}
-                                    isDuplicate={true}
-                                    isSelected={selectedIds.has(item.id)}
-                                    onSelect={() => toggleSelect(item.id)}
-                                    onEditImage={() => handleEditImage(item)}
-                                    currentTab={currentTab}
-                                    selectedGenres={genreMap[item.id] || []}
-                                    onToggleGenre={(genre) => toggleGenre(item.id, genre)}
-                                    onUpdateField={handleUpdateField}
-                                    onOpenVenueModal={openVenueModal}
-                                />
+                        <div className="ingestor-source-groups">
+                            {Array.from(new Set(duplicateList.map(item => item.keyword || '알수없음'))).map(keyword => (
+                                <div key={`dup-${keyword}`} className="source-group-block" style={{ marginBottom: '40px' }}>
+                                    <h3 style={{ padding: '8px 16px', background: '#4b5563', borderRadius: '20px', color: '#fff', display: 'inline-block', marginBottom: '15px', fontSize: '1.1rem', fontWeight: '600' }}>
+                                        ⚠️ {keyword} <span style={{fontSize: '0.9rem', fontWeight: 'normal', opacity: 0.8}}>({duplicateList.filter(i => (i.keyword || '알수없음') === keyword).length})</span>
+                                    </h3>
+                                    <div className="ingestor-grid">
+                                        {duplicateList.filter(item => (item.keyword || '알수없음') === keyword).map(item => (
+                                            <EventCard
+                                                key={item.id}
+                                                event={item}
+                                                isAnchor={anchorIds.has(item.id)}
+                                                isDuplicate={true}
+                                                isSelected={selectedIds.has(item.id)}
+                                                onSelect={() => toggleSelect(item.id)}
+                                                onEditImage={() => handleEditImage(item)}
+                                                currentTab={currentTab}
+                                                selectedGenres={genreMap[item.id] || []}
+                                                onToggleGenre={(genre) => toggleGenre(item.id, genre)}
+                                                onUpdateField={handleUpdateField}
+                                                onOpenVenueModal={openVenueModal}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                )}
+
+                {/* === IGNORED SECTION (숨겨진 앵커 노출용) === */}
+                {ignoredList.length > 0 && (
+                    <section className="ingestor-section ignored-section" style={{ marginTop: '50px', opacity: 0.8 }}>
+                        <div className="section-header-row">
+                            <h2>
+                                <span role="img" aria-label="ignored">🚫</span> 수집 제외 항목 (Fast-Fail 앵커)
+                                <span className="count-badge ignored-count" style={{ background: '#374151', color: '#fff' }}>{ignoredList.length}</span>
+                            </h2>
+                        </div>
+                        <div className="ingestor-source-groups">
+                            {Array.from(new Set(ignoredList.map(item => item.keyword || '알수없음'))).map(keyword => (
+                                <div key={`ign-${keyword}`} className="source-group-block" style={{ marginBottom: '20px' }}>
+                                    <h3 style={{ padding: '6px 12px', background: '#374151', borderRadius: '15px', color: '#ccc', display: 'inline-block', marginBottom: '10px', fontSize: '0.95rem', fontWeight: '500' }}>
+                                        🚫 {keyword} <span style={{fontSize: '0.85rem', fontWeight: 'normal', opacity: 0.7}}>({ignoredList.filter(i => (i.keyword || '알수없음') === keyword).length})</span>
+                                    </h3>
+                                    <div className="ingestor-grid" style={{ opacity: 0.6 }}>
+                                        {ignoredList.filter(item => (item.keyword || '알수없음') === keyword).map(item => (
+                                            <EventCard
+                                                key={item.id}
+                                                event={item}
+                                                isAnchor={anchorIds.has(item.id)}
+                                                isDuplicate={false}
+                                                isIgnored={true}
+                                                isSelected={false}
+                                                onSelect={() => {}}
+                                            />
+                                        ))}
+                                    </div>
+                                </div>
                             ))}
                         </div>
                     </section>
@@ -1071,7 +1141,9 @@ const EventIngestor: React.FC = () => {
 
 interface EventCardProps {
     event: ScrapedEvent;
+    isAnchor?: boolean;
     isDuplicate: boolean;
+    isIgnored?: boolean;
     isSelected: boolean;
     onSelect: () => void;
     onDismiss?: () => void;
@@ -1088,7 +1160,7 @@ interface EventCardProps {
 }
 
 const EventCard: React.FC<EventCardProps> = ({
-    event, isDuplicate, isSelected, onSelect, onDismiss, onRegister,
+    event, isAnchor, isDuplicate, isIgnored, isSelected, onSelect, onDismiss, onRegister,
     isRegistered, isRegistering, matchInfo, currentTab, selectedGenres = [], onToggleGenre, onUpdateField,
     onEditImage, onOpenVenueModal
 }) => {
@@ -1154,19 +1226,25 @@ const EventCard: React.FC<EventCardProps> = ({
         <div className={`ingestor-card ${eventData.status === 'CLOSED' ? 'status-closed' : ''} ${isSelected ? 'is-selected' : ''} ${hasNoDate ? 'no-date-warning' : ''}`}>
             <div className="card-header">
                 <div className="header-left">
-                    <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={onSelect}
-                        className="card-checkbox"
-                    />
+                    {!isIgnored && (
+                        <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={onSelect}
+                            className="card-checkbox"
+                        />
+                    )}
                     <div className="keyword-tags">
                         {keywords.map((kw: string) => (
                             <span key={kw} className="source-tag">{kw}</span>
                         ))}
                     </div>
                 </div>
-                {isDuplicate && <span className="duplicate-badge">DUPLICATE</span>}
+                <div className="badge-group">
+                    {isAnchor && <span className="anchor-badge">⚓ 앵커</span>}
+                    {isIgnored && <span className="ignored-badge" style={{ background: '#4b5563', color: 'white', fontSize: '0.7rem', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>🚫 수집제외</span>}
+                    {isDuplicate && <span className="duplicate-badge">DUPLICATE</span>}
+                </div>
                 {editingField === 'date' ? (
                     <input
                         type="date"
@@ -1277,6 +1355,7 @@ const EventCard: React.FC<EventCardProps> = ({
                     </div>
                 )}
 
+                { !isIgnored && (
                 <div className="card-actions">
                     <button
                         className="btn-register btn-sm"
@@ -1324,6 +1403,7 @@ const EventCard: React.FC<EventCardProps> = ({
                         </span>
                     )}
                 </div>
+                )}
             </div>
         </div>
     );
