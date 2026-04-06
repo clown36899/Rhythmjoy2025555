@@ -316,8 +316,6 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
       {/* Global Fixed Header */}
       {!isFullscreen && !isMetronomePage && !isAdminWebzinePage && !isAdminV2Ingestor && (
         <header className={`shell-header global-header-fixed ${isEventsPage ? 'has-ticker' : ''}`}>
-          {/* Main Page Ticker */}
-          {isEventsPage && <NoticeTicker />}
           <div className="header-content-inner">
             {/* Left/Center Content based on Route */}
             <div className="header-left-content">
@@ -550,17 +548,47 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
         </header >
       )}
 
-      <div className={isAdminV2Ingestor ? "shell-main-content layout-full" : ""} style={{ paddingTop: isEventsPage ? '36px' : '0' }}>
+      {/* New Header Navigation for Events Page */}
+      {!isFullscreen && !isMetronomePage && !isAdminWebzinePage && !isAdminV2Ingestor && isEventsPage && (
+        <nav className="header-nav-v2">
+          <div className="header-nav-v2-inner">
+            <button
+              className="header-nav-v2-item"
+              onClick={() => navigate('/calendar')}
+              data-analytics-id="header_nav_calendar"
+            >
+              전체달력
+            </button>
+            <button
+              className="header-nav-v2-item"
+              onClick={() => navigate('/board')}
+              data-analytics-id="header_nav_forum"
+            >
+              포럼
+            </button>
+            <button
+              className="header-nav-v2-item"
+              onClick={() => navigate('/board?category=free')}
+              data-analytics-id="header_nav_free_board"
+            >
+              자유게시판
+            </button>
+          </div>
+        </nav>
+      )}
+
+      <div className={isAdminV2Ingestor ? "shell-main-content layout-full" : ""} style={{ paddingTop: isEventsPage ? '0' : '0' }}>
         <Outlet context={{ category, isFullscreen }} />
       </div>
 
-      {/* Bottom Navigation */}
+      {/* Bottom Navigation Removed by User Request 2026-04-06 */}
+      {/* 
       {!isFullscreen && !isMetronomePage && !isAdminWebzinePage && (
         <div data-id="bottom-nav" className="shell-bottom-nav">
-          {/* Top Bar Removed - Replaced by FAB Logic */}
           <BottomNavigation pageAction={pageAction} onPageActionClick={handlePageAction} />
         </div>
       )}
+      */}
 
       {/* Organic FAB */}
 

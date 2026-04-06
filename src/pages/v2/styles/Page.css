@@ -14,9 +14,8 @@
 
   /* height: 100vh; */
   /* overflow-y: auto; */
-  padding-top: calc(60px + env(safe-area-inset-top));
-  padding-bottom: 142px;
-
+  padding-top: calc(104px + env(safe-area-inset-top));
+  padding-bottom: 40px;
 }
 
 /* ===== 헤더 ===== */
