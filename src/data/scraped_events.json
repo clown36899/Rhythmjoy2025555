@@ -1,5 +1,21 @@
 [
   {
+    "id": "ps_260605_fri",
+    "keyword": "펄스인서울 2026",
+    "source_url": "https://www.instagram.com/p/C-iQ6LPSf-S/",
+    "poster_url": "/scraped/poster_pulse_2026.png",
+    "extracted_text": "PULSE IN SEOUL 2026. 6.5-7. THE BALBOA 3rd Edition. Lucia & Javi. Shinchon Happy Hall.",
+    "structured_data": {
+      "date": "2026-06-05",
+      "title": "PULSE IN SEOUL 2026",
+      "status": "정상운영",
+      "location": "신촌 해피홀",
+      "djs": ["Lucia & Javi (Guest)"]
+    },
+    "is_collected": false,
+    "created_at": "2026-04-06T18:07:00+09:00"
+  },
+  {
     "id": "ns_260426_ignored",
     "keyword": "네오스윙",
     "source_url": "https://www.instagram.com/neo_swing/",

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useEvents } from '../v2/components/EventList/hooks/useEvents';
 import { supabase } from '../../lib/supabase';
 import { createClient } from '@supabase/supabase-js';
@@ -60,6 +60,8 @@ const EventIngestor: React.FC = () => {
     const [registeringId, setRegisteringId] = useState<string | null>(null);
     const [venues, setVenues] = useState<VenueRecord[]>([]);
     const [genreMap, setGenreMap] = useState<Record<string, string[]>>({}); // scraped.id -> genres[]
+    const [isProcessing, setIsProcessing] = useState(false); // 일괄 처리 중 로딩 상태
+    const isInitialLoadRef = useRef(false); // 최초 로딩 완료 여부 추적 (깜빡임 방지용)
 
     // 이미지 편집 관련 상태
     const [isCropModalOpen, setIsCropModalOpen] = useState(false);
@@ -404,23 +406,30 @@ const EventIngestor: React.FC = () => {
 
         if (!confirm(`선택한 ${targets.length}개의 이벤트를 일괄 등록하시겠습니까?`)) return;
 
+        setIsProcessing(true);
         let successCount = 0;
         let failCount = 0;
 
-        for (const event of targets) {
-            const success = await handleRegisterEvent(event, true);
-            if (success) successCount++;
-            else failCount++;
+        try {
+            for (const event of targets) {
+                const success = await handleRegisterEvent(event, true);
+                if (success) successCount++;
+                else failCount++;
+            }
+            alert(`일괄 등록 완료!\n성공: ${successCount}건\n실패: ${failCount}건`);
+        } catch (err: any) {
+            alert(`일괄 등록 중 오류 발생: ${err.message}`);
+        } finally {
+            setIsProcessing(false);
+            setSelectedIds(new Set());
         }
-
-        alert(`일괄 등록 완료!\n성공: ${successCount}건\n실패: ${failCount}건`);
-        setSelectedIds(new Set());
-    }, [selectedIds, scrapedEvents, registeredIds, handleRegisterEvent]);
+    }, [selectedIds, scrapedEvents, registeredIds, handleRegisterEvent, isProcessing]);
 
     const handleBatchDismiss = useCallback(async () => {
         if (selectedIds.size === 0) return alert('선택된 항목이 없습니다.');
         if (!confirm(`선택한 ${selectedIds.size}개의 항목을 영구 삭제하시겠습니까? (이미지 파일도 함께 삭제됩니다)`)) return;
 
+        setIsProcessing(true);
         try {
             const idsToDelete = Array.from(selectedIds);
             const res = await fetch(`/.netlify/functions/scraped-events?type=${currentTab}`, {
@@ -439,8 +448,10 @@ const EventIngestor: React.FC = () => {
         } catch (err: any) {
             console.error('일괄 삭제 실패:', err);
             alert(`삭제 중 오류가 발생했습니다: ${err.message}`);
+        } finally {
+            setIsProcessing(false);
         }
-    }, [selectedIds, currentTab]);
+    }, [selectedIds, currentTab, isProcessing]);
 
     const handleBatchMarkAsCollected = useCallback(async () => {
         if (selectedIds.size === 0) return alert('선택된 항목이 없습니다.');
@@ -449,6 +460,7 @@ const EventIngestor: React.FC = () => {
 
         if (!confirm(`선택한 ${targets.length}개의 항목을 '이미 수집됨'으로 표시하시겠습니까? (목록에서 숨겨집니다)`)) return;
 
+        setIsProcessing(true);
         try {
             const updatedEvents = targets.map(e => ({ ...e, is_collected: true }));
             const res = await fetch(`/.netlify/functions/scraped-events?type=${currentTab}`, {
@@ -467,8 +479,10 @@ const EventIngestor: React.FC = () => {
         } catch (err: any) {
             console.error('마킹 실패:', err);
             alert(`처리 중 오류가 발생했습니다: ${err.message}`);
+        } finally {
+            setIsProcessing(false);
         }
-    }, [selectedIds, scrapedEvents, currentTab]);
+    }, [selectedIds, scrapedEvents, currentTab, isProcessing]);
 
     const toggleSelect = (id: string) => {
         setSelectedIds(prev => {
@@ -768,7 +782,13 @@ const EventIngestor: React.FC = () => {
         return groups.sort((a, b) => a.scrapedDate.localeCompare(b.scrapedDate));
     }, [showComparison, scrapedEvents, existingEvents]);
 
-    if (existingLoading || loadingScraped) {
+    // 최초 로딩 완료 시 플래그 세팅 (이후 refetch에서 로딩 가드 발동 방지)
+    if (!existingLoading && !loadingScraped && !isInitialLoadRef.current) {
+        isInitialLoadRef.current = true;
+    }
+
+    // 최초 로드 전에만 전체 로딩 화면 표시 (이후 refetch 시에는 UI 유지하여 깜빡임 방지)
+    if (!isInitialLoadRef.current && (existingLoading || loadingScraped)) {
         return <div className="event-ingestor-container">데이터를 불러오는 중...</div>;
     }
 
@@ -791,23 +811,26 @@ const EventIngestor: React.FC = () => {
                             📋 재수집 요청 복사
                         </button>
                         <button
-                            className={`btn-batch-dismiss ${selectedIds.size > 0 ? 'active' : ''}`}
+                            className={`btn-batch-dismiss ${selectedIds.size > 0 ? 'active' : ''} ${isProcessing ? 'loading' : ''}`}
                             onClick={handleBatchDismiss}
+                            disabled={isProcessing}
                         >
                             ✕ 일괄 제외
                         </button>
                         <button
-                            className={`btn-batch-mark ${selectedIds.size > 0 ? 'active' : ''}`}
+                            className={`btn-batch-mark ${selectedIds.size > 0 ? 'active' : ''} ${isProcessing ? 'loading' : ''}`}
                             onClick={handleBatchMarkAsCollected}
+                            disabled={isProcessing}
                             title="선택한 항목을 이미 수집된 것으로 분류하여 목록에서 숨깁니다."
                         >
                             📌 이미 수집됨
                         </button>
                         <button
-                            className={`btn-batch-register ${selectedIds.size > 0 ? 'active' : ''}`}
+                            className={`btn-batch-register ${selectedIds.size > 0 ? 'active' : ''} ${isProcessing ? 'loading' : ''}`}
                             onClick={handleBatchRegister}
+                            disabled={isProcessing}
                         >
-                            📥 일괄 등록
+                            {isProcessing ? '⏳ 등록중...' : '📥 일괄 등록'}
                         </button>
                     </div>
                 </div>

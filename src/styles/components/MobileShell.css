@@ -45,6 +45,20 @@
   flex-direction: column;
 }
 
+.shell-container.layout-full,
+.shell-container.layout-full #root,
+.shell-container.layout-full .shell-main-content {
+  width: 100% !important;
+  max-width: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow-y: auto !important;
+}
+
+.layout-full .header-content-inner {
+  max-width: none !important;
+}
+
 .shell-bottom-nav {
   position: fixed;
   bottom: 0;

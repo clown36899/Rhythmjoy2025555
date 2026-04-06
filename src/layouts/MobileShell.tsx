@@ -62,6 +62,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
   const isLearningDetailPage = currentPath.startsWith('/learning/') && currentPath !== '/learning';
   const isMetronomePage = currentPath === '/metronome';
   const isAdminWebzinePage = currentPath.startsWith('/admin/webzine');
+  const isAdminV2Ingestor = currentPath === '/admin/v2/ingestor';
 
   const isAdmin = isAdminProp || authIsAdmin;
 
@@ -273,8 +274,11 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
   const isWideLayout = useMemo(() => {
     const searchParams = new URLSearchParams(location.search);
     const category = searchParams.get('category');
-    return currentPath.startsWith('/learning') || currentPath.startsWith('/history') || (currentPath === '/board' && category === 'history');
-  }, [currentPath, location.search]);
+    return currentPath.startsWith('/learning') || 
+           currentPath.startsWith('/history') || 
+           (currentPath === '/board' && category === 'history') ||
+           isAdminV2Ingestor;
+  }, [currentPath, location.search, isAdminV2Ingestor]);
 
   // Apply global layout class to html (to override index.css max-width constraint on html & body)
   useEffect(() => {
@@ -308,9 +312,9 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
   };
 
   return (
-    <div className={`shell-container ${isWideLayout ? 'layout-wide' : 'layout-compact'} ${isFullscreen ? 'fullscreen-mode' : ''} ${isMetronomePage ? 'metronome-shell' : ''}`}>
+    <div className={`shell-container ${isAdminV2Ingestor ? 'layout-full' : isWideLayout ? 'layout-wide' : 'layout-compact'} ${isFullscreen ? 'fullscreen-mode' : ''} ${isMetronomePage ? 'metronome-shell' : ''}`}>
       {/* Global Fixed Header */}
-      {!isFullscreen && !isMetronomePage && !isAdminWebzinePage && (
+      {!isFullscreen && !isMetronomePage && !isAdminWebzinePage && !isAdminV2Ingestor && (
         <header className={`shell-header global-header-fixed ${isEventsPage ? 'has-ticker' : ''}`}>
           {/* Main Page Ticker */}
           {isEventsPage && <NoticeTicker />}
@@ -546,7 +550,7 @@ export const MobileShell: React.FC<MobileShellProps> = ({ isAdmin: isAdminProp }
         </header >
       )}
 
-      <div style={{ paddingTop: isEventsPage ? '36px' : '0' }}>
+      <div className={isAdminV2Ingestor ? "shell-main-content layout-full" : ""} style={{ paddingTop: isEventsPage ? '36px' : '0' }}>
         <Outlet context={{ category, isFullscreen }} />
       </div>
 

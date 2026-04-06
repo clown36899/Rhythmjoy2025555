@@ -1,15 +1,13 @@
 import { Handler } from '@netlify/functions';
 import * as fs from 'fs';
 import * as path from 'path';
+import sqlite3 from 'sqlite3';
+import { open, Database } from 'sqlite';
 
 // netlify dev 환경에서 프로젝트 루트 기준 경로
 const PROJECT_ROOT = path.resolve(process.cwd());
 const SCRAPED_DIR = path.join(PROJECT_ROOT, 'public/scraped');
-
-function getJsonPath(type: string | undefined): string {
-    const filename = type === 'lessons' ? 'scraped_lessons.json' : 'scraped_events.json';
-    return path.join(PROJECT_ROOT, 'src/data/', filename);
-}
+const DB_PATH = path.join(PROJECT_ROOT, 'src/data/scraped_events.db');
 
 const corsHeaders = {
     'Access-Control-Allow-Origin': '*',
@@ -23,42 +21,30 @@ interface ScrapedEvent {
     source_url: string;
     poster_url?: string | null;
     extracted_text: string;
-    structured_data?: {
-        date: string;
-        day?: string;
-        title: string;
-        status: string;
-        djs?: string[];
-        times?: string[];
-        location?: string;
-        address?: string;
-        venue_id?: string | number | null;
-        fee?: string;
-        note?: string;
-    };
+    structured_data?: any;
     created_at?: string;
     updated_at?: string;
     is_collected?: boolean;
 }
 
-function readEvents(jsonPath: string): ScrapedEvent[] {
-    try {
-        if (!fs.existsSync(jsonPath)) return [];
-        const raw = fs.readFileSync(jsonPath, 'utf-8');
-        return JSON.parse(raw);
-    } catch {
-        return [];
-    }
-}
-
-function writeEvents(jsonPath: string, events: ScrapedEvent[]): void {
-    fs.writeFileSync(jsonPath, JSON.stringify(events, null, 2), 'utf-8');
+// DB 연결 헬퍼
+async function getDb() {
+    return open({
+        filename: DB_PATH,
+        driver: sqlite3.Database
+    });
 }
 
 function deleteImageFile(posterUrl: string | null | undefined): boolean {
     if (!posterUrl) return false;
-    // posterUrl 형식: "/scraped/filename.png"
-    const filename = path.basename(posterUrl);
+    let filename: string;
+    if (posterUrl.startsWith('/scraped/')) {
+        filename = path.basename(posterUrl);
+    } else if (posterUrl.includes('scraped-image?file=')) {
+        filename = posterUrl.split('scraped-image?file=')[1];
+    } else {
+        return false;
+    }
     const filePath = path.join(SCRAPED_DIR, filename);
     try {
         if (fs.existsSync(filePath)) {
@@ -72,18 +58,24 @@ function deleteImageFile(posterUrl: string | null | undefined): boolean {
 }
 
 export const handler: Handler = async (event) => {
-    // CORS preflight
     if (event.httpMethod === 'OPTIONS') {
         return { statusCode: 204, headers: corsHeaders, body: '' };
     }
 
-    const type = event.queryStringParameters?.type; // 'social' | 'lessons'
-    const jsonPath = getJsonPath(type);
+    const db = await getDb();
 
     try {
         // ===== GET: 전체 목록 조회 =====
         if (event.httpMethod === 'GET') {
-            const events = readEvents(jsonPath);
+            const rows = await db.all('SELECT * FROM scraped_events ORDER BY created_at DESC');
+            
+            // SQLite 0/1 값을 Boolean으로, JSONB 데이터를 객체로 변환
+            const events = rows.map(row => ({
+                ...row,
+                is_collected: !!row.is_collected,
+                structured_data: JSON.parse(row.structured_data || '{}')
+            }));
+
             return {
                 statusCode: 200,
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -91,7 +83,7 @@ export const handler: Handler = async (event) => {
             };
         }
 
-        // ===== POST: 이벤트 추가/수정 (upsert by id) =====
+        // ===== POST: 이벤트 추가/수정 (upsert) =====
         if (event.httpMethod === 'POST') {
             const body = JSON.parse(event.body || '{}');
             const incoming: (ScrapedEvent & { imageData?: string })[] = Array.isArray(body) ? body : [body];
@@ -104,52 +96,59 @@ export const handler: Handler = async (event) => {
                 };
             }
 
-            const events = readEvents(jsonPath);
             const now = new Date().toISOString();
 
             for (const item of incoming) {
                 let posterUrl = item.poster_url;
 
                 // Base64 이미지가 포함된 경우 파일로 저장
+                console.log(`[scraped-events] item.id=${item.id} hasImageData=${!!item.imageData} imageDataStart=${item.imageData?.substring(0,30)}`);
                 if (item.imageData && item.imageData.startsWith('data:image')) {
                     try {
                         const base64Data = item.imageData.replace(/^data:image\/\w+;base64,/, "");
                         const buffer = Buffer.from(base64Data, 'base64');
                         const ext = item.imageData.split(';')[0].split('/')[1] || 'png';
-                        // 고유 파일명 생성 (기존 포스터가 있으면 덮어쓰거나 새 이름 생성 가능, 여기선 새 이름 권장)
                         const timestamp = Date.now();
                         const filename = `edited_${item.id}_${timestamp}.${ext}`;
                         const filePath = path.join(SCRAPED_DIR, filename);
+                        console.log(`[scraped-events] 파일 저장: ${filePath}`);
 
-                        // 기존 이미지가 있다면 삭제 시도 (옵션)
                         if (item.poster_url) deleteImageFile(item.poster_url);
 
                         fs.writeFileSync(filePath, buffer);
-                        posterUrl = `/scraped/${filename}`;
-                        console.log(`이미지 저장 완료: ${posterUrl}`);
+                        posterUrl = `/.netlify/functions/scraped-image?file=${filename}`;
+                        console.log(`[scraped-events] 저장 완료 posterUrl=${posterUrl}`);
                     } catch (err) {
-                        console.error('이미지 저장 중 오류:', err);
+                        console.error('[scraped-events] 이미지 저장 중 오류:', err);
                     }
-                }
-
-                const idx = events.findIndex(e => e.id === item.id);
-                const record = {
-                    ...item,
-                    poster_url: posterUrl,
-                    updated_at: now,
-                    created_at: item.created_at || now,
-                };
-                // imageData는 JSON에 저장하지 않음
-                delete (record as any).imageData;
-
-                if (idx >= 0) {
-                    events[idx] = record; // 수정
                 } else {
-                    events.push(record); // 추가
+                    console.log(`[scraped-events] imageData 없음 또는 형식 불일치`);
                 }
-            }
 
-            writeEvents(jsonPath, events);
+                await db.run(`
+                    INSERT INTO scraped_events (
+                        id, keyword, source_url, poster_url, extracted_text, structured_data, is_collected, updated_at, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(id) DO UPDATE SET
+                        keyword=excluded.keyword,
+                        source_url=excluded.source_url,
+                        poster_url=excluded.poster_url,
+                        extracted_text=excluded.extracted_text,
+                        structured_data=excluded.structured_data,
+                        is_collected=excluded.is_collected,
+                        updated_at=excluded.updated_at
+                `, [
+                    item.id,
+                    item.keyword,
+                    item.source_url,
+                    posterUrl,
+                    item.extracted_text,
+                    JSON.stringify(item.structured_data || {}),
+                    item.is_collected ? 1 : 0,
+                    now,
+                    item.created_at || now
+                ]);
+            }
 
             return {
                 statusCode: 201,
@@ -171,28 +170,26 @@ export const handler: Handler = async (event) => {
                 };
             }
 
-            const events = readEvents(jsonPath);
+            // 이미지 파일 삭제를 위해 데이터 조회
+            const placeholders = idsToDelete.map(() => '?').join(',');
+            const targets = await db.all(`SELECT poster_url FROM scraped_events WHERE id IN (${placeholders})`, idsToDelete);
+            
             const deletedImages: string[] = [];
-
-            // 삭제 대상의 이미지 파일도 함께 삭제
-            for (const id of idsToDelete) {
-                const target = events.find(e => e.id === id);
-                if (target?.poster_url) {
-                    if (deleteImageFile(target.poster_url)) {
-                        deletedImages.push(target.poster_url);
-                    }
+            for (const target of targets) {
+                if (target.poster_url && deleteImageFile(target.poster_url)) {
+                    deletedImages.push(target.poster_url);
                 }
             }
 
-            const remaining = events.filter(e => !idsToDelete.includes(e.id));
-            writeEvents(jsonPath, remaining);
+            // DB에서 삭제
+            const result = await db.run(`DELETE FROM scraped_events WHERE id IN (${placeholders})`, idsToDelete);
 
             return {
                 statusCode: 200,
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     success: true,
-                    deleted: events.length - remaining.length,
+                    deleted: result.changes,
                     deletedImages,
                 }),
             };
@@ -210,5 +207,7 @@ export const handler: Handler = async (event) => {
             headers: corsHeaders,
             body: JSON.stringify({ error: err.message }),
         };
+    } finally {
+        await db.close();
     }
 };

@@ -107,6 +107,7 @@ const ForumPage = lazy(() => import('./pages/forum/ForumPage'));
 const BpmTapperPage = lazy(() => import('./pages/bpm-tapper/BpmTapperPage'));
 const MetronomePage = lazy(() => import('./pages/metronome/MetronomePage'));
 const EventIngestorPage = lazy(() => import('./pages/admin/EventIngestor'));
+const EventIngestorV2Page = lazy(() => import('./pages/admin/v2/EventIngestorV2'));
 const WebzineViewer = lazy(() => import('./pages/webzine/WebzineViewer'));
 const AdminWebzineList = lazy(() => import('./pages/admin/webzine/AdminWebzineList'));
 const WebzineEditor = lazy(() => import('./pages/admin/webzine/WebzineEditor'));
@@ -214,6 +215,7 @@ const router = createBrowserRouter([
       { path: "/map", element: <SiteMapPage /> },
       { path: "/admin/push-test", element: <Suspense fallback={null}><AdminPushTestPage /></Suspense> },
       { path: "/admin/ingestor", element: <Suspense fallback={null}><EventIngestorPage /></Suspense> },
+      { path: "/admin/v2/ingestor", element: <Suspense fallback={null}><EventIngestorV2Page /></Suspense> },
       { path: "/links", element: <LinksPage /> },
 
       // Webzine Routes

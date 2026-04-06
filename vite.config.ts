@@ -176,7 +176,7 @@ export default defineConfig({
     alias: {
       "@": resolve(__dirname, "./src"),
     },
-  }, // 👇 여기부터가 핵심 보강
+  },
 
   server: {
     port: SERVER_PORT, // 로컬: 5173, Replit: 5000
@@ -204,6 +204,9 @@ export default defineConfig({
     headers: {
       'X-Frame-Options': 'ALLOWALL',
       'Content-Security-Policy': "frame-ancestors *",
+    },
+    watch: {
+      ignored: ['**/src/data/**', '**/public/scraped/**', '**/*.json'],
     },
   },
   preview: {

@@ -428,8 +428,6 @@
     background-attachment: fixed;
     /* 스크롤 시에도 배경 패턴 고정 */
     color: var(--text-primary);
-    max-width: 650px;
-    margin: 0 auto;
     overflow-x: hidden !important;
     width: 100% !important;
     touch-action: pan-y;

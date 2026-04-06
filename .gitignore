@@ -60,4 +60,9 @@ scripts/temp_check_db.js
 
 .playwright-mcp/
 tmp/
+src/data/scraped_events.db
+test-*.png
+*.png
+!public/**/*.png
+!src/**/*.png
 

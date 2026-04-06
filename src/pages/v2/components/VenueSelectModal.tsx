@@ -156,16 +156,17 @@ export default function VenueSelectModal({ isOpen, onClose, onSelect, onManualIn
     }, [searchKeyword, activeCategory, isSdkLoaded]);
 
     const handleResultSelect = (place: any) => {
+        console.log('[VenueSelect] handleResultSelect:', { place_name: place.place_name, road_address: place.road_address_name, address: place.address_name, place_url: place.place_url });
         setVenueName(place.place_name);
         setVenueAddress(place.road_address_name || place.address_name);
         setVenueLink(place.place_url);
         setSearchResults([]); // Hide list after selection
-        // Optional: Keep the search keyword or clear it
     };
 
     const handleManualSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         e.stopPropagation();
+        console.log('[VenueSelect] handleManualSubmit called:', { venueName, venueAddress, venueLink, hasOnManualInput: !!onManualInput });
 
         if (!venueName.trim()) {
             alert('장소 이름을 입력해주세요.');
@@ -181,12 +182,15 @@ export default function VenueSelectModal({ isOpen, onClose, onSelect, onManualIn
         }
 
         if (onManualInput) {
+            console.log('[VenueSelect] onManualInput 호출:', { name: venueName.trim(), link: venueLink.trim(), addr: venueAddress.trim() });
             onManualInput(venueName.trim(), venueLink.trim(), venueAddress.trim());
             setVenueName('');
             setVenueAddress('');
             setVenueLink('');
             setSearchKeyword('');
             onClose();
+        } else {
+            console.warn('[VenueSelect] onManualInput 콜백 없음!');
         }
     };
 

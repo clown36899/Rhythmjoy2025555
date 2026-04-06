@@ -153,6 +153,10 @@ export default memo(function ImageCropModal({
         type: file.type,
         size: file.size
       });
+      // 새 파일 선택 시 기존 크롭 결과 초기화
+      setCroppedFile(null);
+      setCroppedPreviewUrl(null);
+      setIsModified(false);
       if (onImageUpdate) {
         console.log('[ImageCropModal] Calling onImageUpdate with file');
         onImageUpdate(file);
