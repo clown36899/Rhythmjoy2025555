@@ -1056,6 +1056,21 @@ export default function EventDetailModal({
                   >
                     {showImageArea ? (
                       <>
+                        {/* Background Blur Layer (Desktop highlight) */}
+                        {!isSocialMap && (thumbnailSrc || highResSrc) && (
+                          <div
+                            className="EDM-imageBlurBg"
+                            style={{
+                              backgroundImage: `url("${thumbnailSrc || highResSrc}")`,
+                              // HighRes 로드 전후로 투명도 조절
+                              opacity: isHighResLoaded ? 0.4 : 0.2,
+                              transition: 'opacity 0.4s ease-in-out',
+                              zIndex: 1,
+                              pointerEvents: 'none'
+                            }}
+                          />
+                        )}
+
                         <div className="EDM-imageWrapper" style={isSocialMap ? { backgroundColor: '#111' } : undefined}>
                           {isSocialMap && !mapSearchFailed ? (
                             // venues 데이터가 아직 로드되지 않았으면 로딩 placeholder 표시

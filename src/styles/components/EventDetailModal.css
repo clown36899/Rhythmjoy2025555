@@ -1342,12 +1342,15 @@
 @media (min-width: 768px) {
     .EDM-container {
         max-width: 1100px;
-        height: 85vh;
+        height: 85vh; /* 고정 높이 */
         max-height: 850px;
+        display: flex;
         flex-direction: row;
-        border-radius: 28px;
+        border-radius: 24px;
         border: 1px solid var(--border-glass-strong);
         box-shadow: var(--shadow-elevated);
+        overflow: hidden;
+        background: black; /* 전체 배경 통일 */
     }
 
     .EDM-container::before {
@@ -1361,63 +1364,83 @@
         z-index: 100;
     }
 
-    .EDM-scrollContainer {
+    .EDM-scrollContainer, .EDM-content {
         display: flex;
-        flex-direction: row;
+        flex-direction: row; /* 명시적으로 좌우 배치(Row) 강제 */
+        flex: 1;
         width: 100%;
         height: 100%;
         overflow: hidden;
     }
 
-    .EDM-content {
-        flex-direction: row;
-        width: 100%;
-    }
-
     .EDM-imageArea {
-        width: 45%;
+        flex: 1.1;
         height: 100%;
-        min-height: 100%;
-        flex-shrink: 0;
+        max-height: none !important; /* 모바일의 400px 제한 해제 (위아래 꽉 차게) */
+        background: #000;
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding-bottom: 100px; /* 푸터 높이만큼 제외하여 이미지가 그 위로 꽉 차게 설정 */
         border-right: 1px solid var(--border-glass);
-        /* background: var(--bg-surface-3); */
-        animation: edm-imagePanelEnter 0.8s cubic-bezier(0.19, 1, 0.22, 1) both;
+        animation: edm-imagePanelEnter 0.6s ease-out both;
+        overflow: hidden;
     }
 
     .EDM-imageWrapper {
-        max-width: 100%;
-        padding: 40px;
-        max-height: 95%;
-        filter: drop-shadow(0 30px 60px rgba(0, 0, 0, 0.9));
-        transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
-        animation: edm-posterFloat 1s cubic-bezier(0.34, 1.56, 0.64, 1) both;
-        animation-delay: 0.2s;
+        display: grid;
+        place-items: center;
+        width: 100%;
+        height: 100%;
+        position: relative;
+        z-index: 10;
+    }
+
+    .EDM-imageContent {
+        grid-area: 1 / 1;
+        max-width: 100%; /* 여백 없이 꽉 차게 설정 */
+        max-height: 100%;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+        border-radius: 4px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    }
+
+    .EDM-imageBlurBg {
+        position: absolute; /* Sticky Area 내부에서 전체 배경 채움 */
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0.4;
+        filter: blur(100px);
+        transform: scale(1.5);
+        z-index: 1;
+        pointer-events: none;
     }
 
     .EDM-imageWrapper:hover {
-        transform: scale(1.03) translateY(-5px);
+        transform: scale(1.02) translateY(-5px);
         filter: drop-shadow(0 40px 80px rgba(0, 0, 0, 1));
     }
 
     .EDM-infoColumn {
-        width: 55%;
+        flex: 0.9; /* 이미지에 더 많은 공간을 주기 위해 비중 조절 */
         height: 100%;
+        background: var(--bg-surface);
+        overflow-y: auto;
         position: relative;
-        overflow: hidden;
-        animation: edm-infoPanelEnter 0.8s cubic-bezier(0.19, 1, 0.22, 1) both;
-        animation-delay: 0.1s;
+        animation: edm-infoPanelEnter 0.6s ease-out both;
+        animation-delay: 0.05s;
     }
 
     .EDM-infoSection {
-        flex: 1;
-        width: 100%;
-        height: 100%;
-        padding: 32px;
-        overflow-y: auto;
-        position: relative;
+        padding: 32px 32px 140px 32px; /* 푸터와 겹치지 않도록 여유로운 패딩 */
         display: flex;
         flex-direction: column;
-        padding-bottom: 100px;
+        min-height: 100%;
     }
 
     .EDM-header {
@@ -1425,7 +1448,7 @@
         background: transparent;
         border-bottom: none;
         z-index: 50;
-        position: relative;
+        position: relative; /* Sticky 비활성화로 전체 스크롤과 동기화 */
     }
 
     .EDM-footer {
